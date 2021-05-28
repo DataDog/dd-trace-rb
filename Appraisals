@@ -1277,7 +1277,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'excon'
     gem 'grape'
     gem 'graphql', '>= 1.12.0'
-    # gem 'grpc' # Pending 3.0 support by transient protobuf dependency https://github.com/protocolbuffers/protobuf/issues/7922
+    gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
     gem 'hiredis'
     gem 'http'
     gem 'httpclient'
