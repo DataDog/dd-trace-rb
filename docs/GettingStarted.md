@@ -101,7 +101,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.3     | Full                                 | Latest              |
 |       |                            | 2.2     | Full                                 | Latest              |
 |       |                            | 2.1     | Full                                 | Latest              |
-|       |                            | 2.0     | Deprecated                           | < 0.50.0            |
+|       |                            | 2.0     | EOL since June X, 2021               | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
 | JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
@@ -1678,8 +1678,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name for `sequel` instrumentation | Name of database adapter (e.g. `'mysql2'`) |
-
-Only Ruby 2.0+ is supported.
 
 **Configuring databases to use different settings**
 
