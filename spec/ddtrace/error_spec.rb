@@ -47,8 +47,14 @@ RSpec.describe Datadog::Error do
               raise 'root cause'
             end
 
-            def wrapper
+            def middle
               root
+            rescue
+              raise 'middle cause'
+            end
+
+            def wrapper
+              middle
             rescue
               raise 'wrapper layer'
             end
@@ -65,7 +71,7 @@ RSpec.describe Datadog::Error do
           begin
             clazz.new.call
           rescue => e
-            e
+            puts e
           end
         end
 
@@ -73,22 +79,24 @@ RSpec.describe Datadog::Error do
           expect(error.type).to eq('RuntimeError')
           expect(error.message).to eq('wrapper layer')
 
-          wrapper_error_message = /error_spec.rb:\d+:in.*wrapper': wrapper layer \(RuntimeError\)/
-          caller_stack = /from.*error_spec.rb:\d+:in `call'/
-          root_error_message = /error_spec.rb:\d+:in.*root': root cause \(RuntimeError\)/
-          wrapper_stack = /from.*error_spec.rb:\d+:in `wrapper'/
+          # Outer-most error first, inner-most last
+          wrapper_error_message = /in.*wrapper': wrapper layer \(RuntimeError\)/
+          wrapper_stack = /from.*in `wrapper'/
+          middle_error_message = /in.*middle': middle cause \(RuntimeError\)/
+          middle_stack = /from.*in `middle'/
+          root_error_message = /in.*root': root cause \(RuntimeError\)/
 
           expect(error.backtrace)
             .to match(/
                        #{wrapper_error_message}.*
-                       #{caller_stack}.*
-                       #{root_error_message}.*
                        #{wrapper_stack}.*
-                       #{caller_stack}.*
+                       #{middle_error_message}.*
+                       #{middle_stack}.*
+                       #{root_error_message}.*
                        /mx)
 
           # Expect 2 "first-class" exception lines: 'root cause' and 'wrapper layer'.
-          expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
+          expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(3).items
         end
 
         context 'that is reused' do
