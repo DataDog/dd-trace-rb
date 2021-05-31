@@ -13,7 +13,7 @@ require 'ddtrace/contrib/rails/support/models'
 
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
-Rails::Application.singleton_class.instance_eval do
+Rails::Application.singleton_class.class_eval do
   def inherited(base)
     # raise "You cannot have more than one Rails::Application" if Rails.application
     super

@@ -10,7 +10,7 @@ module Datadog
         module_function
 
         def patch!
-          ::SuckerPunch.singleton_class.instance_eval do
+          ::SuckerPunch.singleton_class.class_eval do
             alias_method :__exception_handler, :exception_handler
 
             def exception_handler
