@@ -2411,7 +2411,7 @@ The tracer and its integrations can produce some additional metrics that can pro
 To configure your application for metrics collection:
 
 1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
-2. Add `gem 'dogstatsd-ruby', '~> 4.0'` to your Gemfile
+2. Add `gem 'dogstatsd-ruby', '~> 4.0'` to your Gemfile (note that it is pinned to v4.x [until this issue is solved](https://github.com/DataDog/dd-trace-rb/issues/1491))
 
 #### For application runtime
 
