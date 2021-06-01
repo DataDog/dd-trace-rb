@@ -39,6 +39,7 @@ module Datadog
           return false unless running?
 
           @run_async = false
+          Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
           worker.terminate
           true
         end
