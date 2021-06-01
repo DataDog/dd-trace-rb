@@ -41,4 +41,7 @@ Gem::Specification.new do |spec|
 
   # Used by the profiler
   spec.add_dependency 'ffi', '~> 1.0'
+
+  # WIP
+  spec.add_dependency 'stackprof'
 end
