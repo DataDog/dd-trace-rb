@@ -57,9 +57,11 @@ module Datadog
 
       def profile_to_recorder(profile)
         frames = profile.fetch(:frames)
-        raw_samples = profile.fetch(:raw)
+        raw_samples = profile[:raw]
 
         events = []
+
+        all_backtrace_locations = frames_to_backtrace_locations(frames)
 
         sample_position = 0
         while sample_position < raw_samples.size
@@ -72,8 +74,8 @@ module Datadog
           count = raw_samples[count_position]
 
           events << Events::StackSample.new(
-            nil,
-            samples_to_locations(frames, the_samples),
+            0, # fake timestamp -- avoids using Timenow
+            the_samples.reverse.map { |sample| all_backtrace_locations.fetch(sample) },
             the_samples.size,
             1, # fake thread id,
             nil, # trace_id
@@ -88,11 +90,22 @@ module Datadog
         @recorder.push(events)
       end
 
-      def samples_to_locations(frames, samples)
-        samples.map do |sample|
-          frame = frames.fetch(sample)
+      # def samples_to_locations(frames, samples)
+      #   samples.map do |sample|
+      #     frame = frames.fetch(sample)
 
-          @stack_sample_event_recorder.cache(:backtrace_locations).fetch(
+      #     @stack_sample_event_recorder.cache(:backtrace_locations).fetch(
+      #       frame.fetch(:name),
+      #       frame[:line] || 0,
+      #       frame.fetch(:file),
+      #       &@build_backtrace_location
+      #     )
+      #   end
+      # end
+
+      def frames_to_backtrace_locations(frames)
+        frames.each_with_object({}) do |(key, frame), locations|
+          locations[key] = @stack_sample_event_recorder.cache(:backtrace_locations).fetch(
             frame.fetch(:name),
             frame[:line] || 0,
             frame.fetch(:file),
