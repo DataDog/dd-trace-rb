@@ -13,15 +13,13 @@ require 'ddtrace/contrib/rails/support/models'
 
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
-Rails::Application.class_eval do
-  class << self
-    def inherited(base)
-      # raise "You cannot have more than one Rails::Application" if Rails.application
-      super
-      Rails.application = base.instance
-      Rails.application.add_lib_to_load_path!
-      ActiveSupport.run_load_hooks(:before_configuration, base.instance)
-    end
+Rails::Application.singleton_class.class_eval do
+  def inherited(base)
+    # raise "You cannot have more than one Rails::Application" if Rails.application
+    super
+    Rails.application = base.instance
+    Rails.application.add_lib_to_load_path!
+    ActiveSupport.run_load_hooks(:before_configuration, base.instance)
   end
 end
 

@@ -62,9 +62,11 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
         expect(::Process.ancestors).to include(described_class::Kernel)
         expect(::Kernel.ancestors).to include(described_class::Kernel)
+        expect(toplevel_receiver.class.ancestors).to include(described_class::Kernel)
 
         expect(::Process.method(:fork).source_location.first).to match(%r{.*ddtrace/profiling/ext/forking.rb})
         expect(::Kernel.method(:fork).source_location.first).to match(%r{.*ddtrace/profiling/ext/forking.rb})
+        expect(toplevel_receiver.method(:fork).source_location.first).to match(%r{.*ddtrace/profiling/ext/forking.rb})
       end
     end
 
