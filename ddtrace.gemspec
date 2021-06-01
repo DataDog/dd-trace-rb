@@ -50,4 +50,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'ffi', '~> 1.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
+
+  # WIP
+  spec.add_dependency 'stackprof'
 end
