@@ -81,18 +81,20 @@ RSpec.describe Datadog::Error do
 
           # Outer-most error first, inner-most last
           wrapper_error_message = /in.*wrapper': wrapper layer \(RuntimeError\)/
-          wrapper_stack = /from.*in `wrapper'/
+          wrapper_caller = /from.*in `call'/
           middle_error_message = /in.*middle': middle cause \(RuntimeError\)/
-          middle_stack = /from.*in `middle'/
-          root_error_message = /in.*root': root cause \(RuntimeError\)/
+          middle_caller = /from.*in `wrapper'/
+          root_error_message = /in `root': root cause \(RuntimeError\)/
+          root_caller = /from.*in `middle'/
 
           expect(error.backtrace)
             .to match(/
                        #{wrapper_error_message}.*
-                       #{wrapper_stack}.*
+                       #{wrapper_caller}.*
                        #{middle_error_message}.*
-                       #{middle_stack}.*
+                       #{middle_caller}.*
                        #{root_error_message}.*
+                       #{root_caller}.*
                        /mx)
 
           # Expect 2 "first-class" exception lines: 'root cause' and 'wrapper layer'.
