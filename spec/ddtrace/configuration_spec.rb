@@ -9,6 +9,7 @@ RSpec.describe Datadog::Configuration do
 
   context 'when extended by a class' do
     subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Configuration }) }
+    after { test_class.shutdown! }
 
     describe '#configure' do
       subject(:configure) { test_class.configure }
@@ -18,7 +19,7 @@ RSpec.describe Datadog::Configuration do
           allow(Datadog::Configuration::Components).to receive(:new)
             .and_wrap_original do |m, *args|
             new_components = m.call(*args)
-            allow(new_components).to receive(:shutdown!)
+            allow(new_components).to receive(:shutdown!).and_call_original
             allow(new_components).to receive(:startup!)
             new_components
           end
@@ -186,8 +187,8 @@ RSpec.describe Datadog::Configuration do
 
       context 'when the metrics' do
         context 'are replaced' do
-          let(:old_statsd) { instance_double(Datadog::Statsd) }
-          let(:new_statsd) { instance_double(Datadog::Statsd) }
+          let(:old_statsd) { instance_double(Datadog::Statsd, close: nil) }
+          let(:new_statsd) { instance_double(Datadog::Statsd, close: nil) }
 
           before do
             expect(old_statsd).to receive(:close).once
@@ -210,12 +211,12 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'have one of a few replaced' do
-          let(:old_statsd) { instance_double(Datadog::Statsd) }
-          let(:new_statsd) { instance_double(Datadog::Statsd) }
+          let(:old_statsd) { instance_double(Datadog::Statsd, close: nil) }
+          let(:new_statsd) { instance_double(Datadog::Statsd, close: nil) }
 
           before do
             # Since its being reused, it should not be closed.
-            expect(old_statsd).to_not receive(:close)
+            allow(old_statsd).to receive(:close)
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
@@ -225,6 +226,8 @@ RSpec.describe Datadog::Configuration do
             test_class.configure do |c|
               c.runtime_metrics.statsd = new_statsd
             end
+
+            expect(old_statsd).to_not have_received(:close)
           end
 
           it 'uses new and old Statsd but does not close the old Statsd' do
@@ -237,7 +240,7 @@ RSpec.describe Datadog::Configuration do
           let(:statsd) { instance_double(Datadog::Statsd) }
 
           before do
-            expect(statsd).to_not receive(:close)
+            allow(statsd).to receive(:close)
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
@@ -248,6 +251,8 @@ RSpec.describe Datadog::Configuration do
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
+
+            expect(statsd).to_not have_received(:close)
           end
 
           it 'reuses the same Statsd' do
@@ -259,7 +264,7 @@ RSpec.describe Datadog::Configuration do
           let(:statsd) { instance_double(Datadog::Statsd) }
 
           before do
-            expect(statsd).to_not receive(:close)
+            allow(statsd).to receive(:close)
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
@@ -267,6 +272,8 @@ RSpec.describe Datadog::Configuration do
             end
 
             test_class.configure { |_c| }
+
+            expect(statsd).to_not have_received(:close)
           end
 
           it 'reuses the same Statsd' do
@@ -296,10 +303,12 @@ RSpec.describe Datadog::Configuration do
           let(:tracer) { Datadog::Tracer.new }
 
           before do
-            expect(tracer).to_not receive(:shutdown!)
+            allow(tracer).to receive(:shutdown!)
 
             test_class.configure { |c| c.tracer = tracer }
             test_class.configure { |c| c.tracer = tracer }
+
+            expect(tracer).to_not have_received(:shutdown!)
           end
 
           it 'reuses the same tracer' do
@@ -311,10 +320,12 @@ RSpec.describe Datadog::Configuration do
           let(:tracer) { Datadog::Tracer.new }
 
           before do
-            expect(tracer).to_not receive(:shutdown!)
+            allow(tracer).to receive(:shutdown!)
 
             test_class.configure { |c| c.tracer = tracer }
             test_class.configure { |_c| }
+
+            expect(tracer).to_not have_received(:shutdown!)
           end
 
           it 'reuses the same tracer' do
@@ -397,17 +408,17 @@ RSpec.describe Datadog::Configuration do
       context 'when components are being replaced' do
         before do
           test_class.configure
-          allow(test_class.send(:components)).to receive(:shutdown!)
         end
 
         it 'returns the old logger' do
           old_logger = test_class.logger
           logger_during_component_replacement = nil
 
-          allow(Datadog::Configuration::Components).to receive(:new) do
+          allow(Datadog::Configuration::Components).to receive(:new).and_wrap_original do |m, *args, &block|
             # simulate getting the logger during reinitialization
             logger_during_component_replacement = test_class.logger
-            instance_double(Datadog::Configuration::Components, startup!: nil)
+
+            m.call(*args, &block)
           end
 
           test_class.configure
@@ -438,9 +449,11 @@ RSpec.describe Datadog::Configuration do
       let!(:original_components) { test_class.send(:components) }
 
       it 'gracefully shuts down components' do
-        expect(original_components).to receive(:shutdown!)
+        allow(original_components).to receive(:shutdown!).and_call_original
 
         shutdown!
+
+        expect(original_components).to have_received(:shutdown!)
       end
 
       it 'does not attempt to recreate components' do
@@ -456,7 +469,7 @@ RSpec.describe Datadog::Configuration do
       let!(:original_components) { test_class.send(:components) }
 
       it 'gracefully shuts down components' do
-        expect(original_components).to receive(:shutdown!)
+        expect(original_components).to receive(:shutdown!).and_call_original
 
         reset!
       end
@@ -529,11 +542,13 @@ RSpec.describe Datadog::Configuration do
       end
 
       it 'provides a write_components callback that can be used to update the components' do
+        updated_components = instance_double(::Datadog::Configuration::Components, shutdown!: nil)
+
         test_class.send(:safely_synchronize) do |write_components|
-          write_components.call(:updated_components)
+          write_components.call(updated_components)
         end
 
-        expect(test_class.send(:components)).to be :updated_components
+        expect(test_class.send(:components)).to be(updated_components)
       end
 
       context 'when recursive execution triggers a deadlock' do

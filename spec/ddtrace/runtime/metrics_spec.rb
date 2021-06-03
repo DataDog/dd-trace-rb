@@ -4,6 +4,7 @@ require 'ddtrace/runtime/metrics'
 
 RSpec.describe Datadog::Runtime::Metrics do
   subject(:runtime_metrics) { described_class.new(options) }
+  after { runtime_metrics.close }
 
   let(:options) { {} }
 
