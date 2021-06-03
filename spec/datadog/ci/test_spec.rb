@@ -1,6 +1,5 @@
-require 'spec_helper'
+require 'datadog/ci/spec_helper'
 
-require 'ddtrace'
 require 'datadog/ci/test'
 
 RSpec.describe Datadog::CI::Test do

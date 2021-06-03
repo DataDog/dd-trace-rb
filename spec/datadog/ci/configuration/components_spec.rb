@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'datadog/ci/spec_helper'
 require 'datadog/ci/configuration/components'
 
 RSpec.describe Datadog::CI::Configuration::Components do

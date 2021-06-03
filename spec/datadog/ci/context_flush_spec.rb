@@ -1,4 +1,4 @@
-require 'spec_helper'
+require 'datadog/ci/spec_helper'
 
 require 'ddtrace/context'
 require 'ddtrace/span'

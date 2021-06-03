@@ -80,6 +80,3 @@ require 'ddtrace/contrib/sidekiq/integration'
 require 'ddtrace/contrib/sinatra/integration'
 require 'ddtrace/contrib/sneakers/integration'
 require 'ddtrace/contrib/sucker_punch/integration'
-
-# Load extensions from CI namespace
-require 'datadog/ci'
