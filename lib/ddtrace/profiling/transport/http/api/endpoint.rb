@@ -14,6 +14,11 @@ module Datadog
           class Endpoint < Datadog::Transport::HTTP::API::Endpoint
             include Datadog::Ext::Profiling::Transport::HTTP
 
+            # These tags are read from the flush object (see below) directly and so we ignore any extra copies that
+            # may come in the tags hash to avoid duplicates.
+            TAGS_TO_IGNORE_IN_TAGS_HASH = %w[service env version].freeze
+            private_constant :TAGS_TO_IGNORE_IN_TAGS_HASH
+
             attr_reader \
               :encoder
 
@@ -52,7 +57,11 @@ module Datadog
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
                   # NOTE: Redundant w/ 'runtime'; may want to remove this later.
                   "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
-                  "#{FORM_FIELD_TAG_HOST}:#{flush.host}"
+                  "#{FORM_FIELD_TAG_HOST}:#{flush.host}",
+                  *flush
+                    .tags
+                    .reject { |tag_key| TAGS_TO_IGNORE_IN_TAGS_HASH.include?(tag_key) }
+                    .map { |tag_key, tag_value| "#{tag_key}:#{tag_value}" }
                 ],
                 FORM_FIELD_DATA => pprof_file,
                 FORM_FIELD_RUNTIME => flush.language,
