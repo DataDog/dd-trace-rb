@@ -427,7 +427,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it { is_expected.to be nil }
 
         it 'logs a warning' do
-          expect(Datadog.logger).to receive(:debug).with(/missing CPU profiling instrumentation/)
+          expect(Datadog.logger).to receive(:debug).with(/missing profiling instrumentation/)
 
           get_cpu_time_interval!
         end
