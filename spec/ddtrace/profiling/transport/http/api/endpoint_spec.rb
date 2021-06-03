@@ -10,11 +10,10 @@ require 'ddtrace/transport/http/env'
 
 # rubocop:disable Layout/LineLength
 RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
-  subject(:endpoint) { described_class.new(path, encoder, options) }
+  subject(:endpoint) { described_class.new(path, encoder) }
 
   let(:path) { double('path') }
   let(:encoder) { class_double(Datadog::Profiling::Encoding::Profile::Protobuf) }
-  let(:options) { {} }
 
   describe '#initialize' do
     it do
