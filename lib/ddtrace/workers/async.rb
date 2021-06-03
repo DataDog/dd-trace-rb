@@ -127,7 +127,7 @@ module Datadog
           @run_async = true
           @pid = Process.pid
           @error = nil
-          Datadog.logger.debug("Starting thread in the process: #{Process.pid} for: #{self}")
+          Datadog.logger.debug { "Starting thread for: #{self}" }
 
           @worker = ::Thread.new do
             begin
