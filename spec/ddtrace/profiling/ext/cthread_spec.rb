@@ -93,7 +93,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
     context 'with a started thread' do
       before do
-        # There is a brief period where a thread has been started but the native_thread_id and clock_id have not
+        # There is a brief period where a thread has been started but the pthread_thread_id and clock_id have not
         # yet been set. This try_wait_until is here to ensure that we wait for them to be set before running any
         # expectations, as otherwise this would generate test suite flakiness.
         # The easiest way to simulate this is to add a  `sleep(1)` to the start of `#update_native_ids`,
@@ -104,7 +104,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       describe '::new' do
         it 'has native thread IDs available' do
           is_expected.to have_attributes(
-            native_thread_id: kind_of(Integer),
+            pthread_thread_id: kind_of(Integer),
             cpu_time: kind_of(Float)
           )
           expect(thread.send(:clock_id)).to be_kind_of(Integer)
@@ -124,8 +124,8 @@ if Datadog::Profiling::Ext::CPU.supported?
         end
       end
 
-      describe '#native_thread_id' do
-        subject(:native_thread_id) { thread.native_thread_id }
+      describe '#pthread_thread_id' do
+        subject(:pthread_thread_id) { thread.pthread_thread_id }
 
         it { is_expected.to be_a_kind_of(Integer) }
 
@@ -133,12 +133,12 @@ if Datadog::Profiling::Ext::CPU.supported?
           context 'when forked' do
             it 'returns a new native thread ID' do
               # Get main thread native ID
-              original_native_thread_id = thread.native_thread_id
+              original_pthread_thread_id = thread.pthread_thread_id
 
               expect_in_fork do
                 # Expect main thread native ID to not change
-                expect(thread.native_thread_id).to be_a_kind_of(Integer)
-                expect(thread.native_thread_id).to eq(original_native_thread_id)
+                expect(thread.pthread_thread_id).to be_a_kind_of(Integer)
+                expect(thread.pthread_thread_id).to eq(original_pthread_thread_id)
               end
             end
           end
@@ -293,10 +293,10 @@ if Datadog::Profiling::Ext::CPU.supported?
         end
       end
 
-      describe '#native_thread_id' do
+      describe '#pthread_thread_id' do
         it 'can be read without crashing the Ruby VM' do
           with_profiling_extensions_in_fork do
-            expect(process_waiter_thread.native_thread_id).to be nil
+            expect(process_waiter_thread.pthread_thread_id).to be nil
           end
         end
       end
