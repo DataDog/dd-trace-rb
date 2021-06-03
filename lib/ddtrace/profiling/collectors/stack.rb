@@ -224,6 +224,7 @@ module Datadog
             #    In this case, the fix is to make sure ddtrace gets loaded before any other parts of the application.
             #
             # b) The thread was started using the Ruby native APIs (e.g. from a C extension such as ffi).
+            #    Known cases right now that trigger this are the ethon/typhoeus gems.
             #    We currently have no solution for this case; these threads will always be missing our CPU instrumentation.
             #
             # c) The thread was started with `Thread.start`/`Thread.fork` and hasn't yet enabled the instrumentation.
@@ -232,7 +233,9 @@ module Datadog
             #    it to run and our instrumentation to be applied.
             #
             if thread_api.current.respond_to?(:cpu_time) && thread_api.current.cpu_time
-              Datadog.logger.debug("Detected thread ('#{thread}') with missing CPU profiling instrumentation.")
+              Datadog.logger.debug(
+                "Thread ('#{thread}') is missing profiling instrumentation; other threads should be unaffected"
+              )
             end
           end
         end
