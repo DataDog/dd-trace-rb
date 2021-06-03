@@ -75,6 +75,10 @@ module Datadog
           converters[event_class].add_events!(events)
         end
 
+        def debug_statistics
+          converters.values.map(&:debug_statistics).join(', ')
+        end
+
         def to_pprof
           profile = builder.build_profile
           data = builder.encode_profile(profile)

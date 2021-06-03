@@ -440,4 +440,13 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
     end
   end
+
+  describe '#debug_statistics' do
+    subject(:debug_statistics) { converter.debug_statistics }
+
+    # NOTE: I don't think it's worth testing this beyond "it doesn't break when it's called"
+    it 'returns a string with counters related to the conversion work' do
+      is_expected.to be_a(String)
+    end
+  end
 end
