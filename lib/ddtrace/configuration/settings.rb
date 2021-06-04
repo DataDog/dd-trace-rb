@@ -141,6 +141,12 @@ module Datadog
           o.lazy
         end
 
+        # Controls the interval at which the stack trace is sampled
+        option :sampling_interval do |o|
+          o.default { env_to_float(Ext::Profiling::ENV_SAMPLING_INTERVAL, 0.01) }
+          o.lazy
+        end
+
         settings :upload do
           option :timeout_seconds do |o|
             o.setter { |value| value.nil? ? 30.0 : value.to_f }
