@@ -18,7 +18,8 @@ module Datadog
       :runtime_engine,
       :runtime_platform,
       :runtime_version,
-      :profiler_version
+      :profiler_version,
+      :tags
     ) do
       def initialize(*args)
         super
@@ -32,6 +33,7 @@ module Datadog
         self.runtime_platform = runtime_platform || Datadog::Runtime::Identity.lang_platform
         self.runtime_version = runtime_version || Datadog::Runtime::Identity.lang_version
         self.profiler_version = profiler_version || Datadog::Runtime::Identity.tracer_version
+        self.tags = tags || Datadog.configuration.tags
       end
     end
 
