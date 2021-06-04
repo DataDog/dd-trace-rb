@@ -35,5 +35,29 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     end
 
     it { is_expected.to be payload }
+
+    context 'debug logging' do
+      let(:flush) do
+        instance_double(
+          Datadog::Profiling::Flush,
+          event_groups: event_groups,
+          start: Time.new(2020).utc,
+          finish: Time.new(2021).utc,
+          event_count: 42
+        )
+      end
+
+      let(:template) { instance_double(Datadog::Profiling::Pprof::Template, debug_statistics: 'template_debug_statistics') }
+
+      it 'debug logs profile information' do
+        expect(Datadog.logger).to receive(:debug) do |&message|
+          expect(message.call).to include '2020-01-01T00:00:00Z'
+          expect(message.call).to include '2021-01-01T00:00:00Z'
+          expect(message.call).to include 'template_debug_statistics'
+        end
+
+        encode
+      end
+    end
   end
 end

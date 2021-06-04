@@ -123,4 +123,12 @@ RSpec.describe Datadog::Profiling::Pprof::Converter do
     # and expects all values to be "no value"
     it { is_expected.to eq(default_sample_values) }
   end
+
+  describe '#debug_statistics' do
+    subject(:debug_statistics) { converter.debug_statistics }
+
+    it 'provides no debug statistics by default, as this is a hook for subclasses to use' do
+      is_expected.to be nil
+    end
+  end
 end

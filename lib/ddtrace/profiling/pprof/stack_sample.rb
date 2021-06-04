@@ -7,6 +7,9 @@ module Datadog
   module Profiling
     module Pprof
       # Builds a profile from a StackSample
+      #
+      # NOTE: This class may appear stateless but is in fact stateful; a new instance should be created for every
+      # encoded profile.
       class StackSample < Converter
         SAMPLE_TYPES = {
           cpu_time_ns: [
@@ -23,6 +26,13 @@ module Datadog
           SAMPLE_TYPES
         end
 
+        def initialize(*_)
+          super
+
+          @processed_unique_stacks = 0
+          @processed_with_trace_ids = 0
+        end
+
         def add_events!(stack_samples)
           new_samples = build_samples(stack_samples)
           builder.samples.concat(new_samples)
@@ -35,6 +45,7 @@ module Datadog
         def build_samples(stack_samples)
           groups = group_events(stack_samples, &method(:stack_sample_group_key))
           groups.collect do |_group_key, group|
+            @processed_unique_stacks += 1
             build_sample(group.sample, group.values)
           end
         end
@@ -69,6 +80,7 @@ module Datadog
           ]
 
           unless stack_sample.trace_id.nil? || stack_sample.trace_id.zero?
+            @processed_with_trace_ids += 1
             labels << Perftools::Profiles::Label.new(
               key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
               str: builder.string_table.fetch(stack_sample.trace_id.to_s)
@@ -83,6 +95,10 @@ module Datadog
           end
 
           labels
+        end
+
+        def debug_statistics
+          "unique stacks: #{@processed_unique_stacks}, of which had active traces: #{@processed_with_trace_ids}"
         end
       end
     end

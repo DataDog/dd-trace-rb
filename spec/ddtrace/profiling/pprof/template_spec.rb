@@ -149,4 +149,27 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
       )
     end
   end
+
+  describe '#debug_statistics' do
+    subject(:debug_statistics) { template.debug_statistics }
+
+    let(:mappings) do
+      {
+        dummy_mapping_one: class_double(
+          Datadog::Profiling::Pprof::Converter,
+          sample_value_types: { dummy_mapping_one: ['dummy_mapping_one'] },
+          new: instance_double(Datadog::Profiling::Pprof::Converter, debug_statistics: 'dummy_mapping_one_stats')
+        ),
+        dummy_mapping_two: class_double(
+          Datadog::Profiling::Pprof::Converter,
+          sample_value_types: { dummy_mapping_two: ['dummy_mapping_two'] },
+          new: instance_double(Datadog::Profiling::Pprof::Converter, debug_statistics: 'dummy_mapping_two_stats')
+        )
+      }
+    end
+
+    it 'returns a string containing the available debug statistics from each converter' do
+      is_expected.to eq 'dummy_mapping_one_stats, dummy_mapping_two_stats'
+    end
+  end
 end
