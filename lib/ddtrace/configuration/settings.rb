@@ -15,6 +15,32 @@ module Datadog
     class Settings
       include Base
 
+      def initialize(*_)
+        super
+
+        # WORKAROUND: The values for services, version, and env can get set either directly OR as a side effect of
+        # accessing tags (reading or writing). This is of course really confusing and error-prone, e.g. in an app
+        # WITHOUT this workaround where you define `DD_TAGS=env:envenvtag,service:envservicetag,version:envversiontag`
+        # and do:
+        #
+        # puts Datadog.configuration.instance_exec { "#{service} #{env} #{version}" }
+        # Datadog.configuration.tags
+        # puts Datadog.configuration.instance_exec { "#{service} #{env} #{version}" }
+        #
+        # the output will be:
+        #
+        # [empty]
+        # envservicetag envenvtag envversiontag
+        #
+        # That is -- the proper values for service/env/version are only set AFTER something accidentally or not triggers
+        # the resolution of the tags.
+        # This is really confusing, error prone, etc, so calling tags here is a really hacky but effective way to
+        # avoid this. I could not think of a better way of fixing this issue without massive refactoring of tags parsing
+        # (so that the individual service/env/version get correctly set even from their tags values, not as a side
+        # effect). Sorry :(
+        tags
+      end
+
       settings :analytics do
         option :enabled do |o|
           o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
@@ -91,6 +117,7 @@ module Datadog
       end
 
       option :env do |o|
+        # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
       end
@@ -198,6 +225,7 @@ module Datadog
       end
 
       option :service do |o|
+        # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
         o.lazy
       end
@@ -230,9 +258,7 @@ module Datadog
 
           # Cross-populate tag values with other settings
 
-          if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
-            self.env = string_tags[Ext::Environment::TAG_ENV]
-          end
+          self.env = string_tags[Ext::Environment::TAG_ENV] if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
 
           if version.nil? && string_tags.key?(Ext::Environment::TAG_VERSION)
             self.version = string_tags[Ext::Environment::TAG_VERSION]
@@ -353,6 +379,7 @@ module Datadog
       end
 
       option :version do |o|
+        # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
         o.lazy
       end

@@ -371,6 +371,30 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to eq(environment) }
       end
     end
+
+    context 'when an env tag is defined in DD_TAGS' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'env:env-from-tag') do
+          example.run
+        end
+      end
+
+      it 'uses the env from DD_TAGS' do
+        is_expected.to eq('env-from-tag')
+      end
+
+      context 'and defined via DD_ENV' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => 'env-from-dd-env') do
+            example.run
+          end
+        end
+
+        it 'uses the env from DD_ENV' do
+          is_expected.to eq('env-from-dd-env')
+        end
+      end
+    end
   end
 
   describe '#env=' do
@@ -826,6 +850,30 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to eq(service) }
       end
     end
+
+    context 'when a service tag is defined in DD_TAGS' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'service:service-name-from-tag') do
+          example.run
+        end
+      end
+
+      it 'uses the service name from DD_TAGS' do
+        is_expected.to eq('service-name-from-tag')
+      end
+
+      context 'and defined via DD_SERVICE' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'service-name-from-dd-service') do
+            example.run
+          end
+        end
+
+        it 'uses the service name from DD_SERVICE' do
+          is_expected.to eq('service-name-from-dd-service')
+        end
+      end
+    end
   end
 
   describe '#service=' do
@@ -908,7 +956,7 @@ RSpec.describe Datadog::Configuration::Settings do
         end
 
         context 'and when #env' do
-          let(:options) { {**super(), env: env} }
+          let(:options) { { **super(), env: env } }
 
           context 'is set' do
             let(:env) { 'env-value' }
@@ -940,18 +988,6 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
-      context 'defines :env with missing #env' do
-        let(:env_tags) { "env:#{tag_env_value}" }
-        let(:tag_env_value) { 'tag-env-value' }
-
-        it 'populates #env from the tag' do
-          expect { tags }
-            .to change { settings.env }
-            .from(nil)
-            .to(tag_env_value)
-        end
-      end
-
       context 'conflicts with #env' do
         let(:options) { { **super(), env: env_value } }
 
@@ -962,18 +998,6 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to include('env' => env_value) }
       end
 
-      context 'defines :service with missing #service' do
-        let(:env_tags) { "service:#{tag_service_value}" }
-        let(:tag_service_value) { 'tag-service-value' }
-
-        it 'populates #service from the tag' do
-          expect { tags }
-            .to change { settings.service }
-            .from(nil)
-            .to(tag_service_value)
-        end
-      end
-
       context 'conflicts with #version' do
         let(:options) { { **super(), version: version_value } }
 
@@ -982,18 +1006,6 @@ RSpec.describe Datadog::Configuration::Settings do
         let(:version_value) { 'version-value' }
 
         it { is_expected.to include('version' => version_value) }
-      end
-
-      context 'defines :version with missing #version' do
-        let(:env_tags) { "version:#{tag_version_value}" }
-        let(:tag_version_value) { 'tag-version-value' }
-
-        it 'populates #version from the tag' do
-          expect { tags }
-            .to change { settings.version }
-            .from(nil)
-            .to(tag_version_value)
-        end
       end
     end
   end
@@ -1527,6 +1539,30 @@ RSpec.describe Datadog::Configuration::Settings do
         let(:version) { 'version-value' }
 
         it { is_expected.to eq(version) }
+      end
+    end
+
+    context 'when a version tag is defined in DD_TAGS' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'version:version-from-tag') do
+          example.run
+        end
+      end
+
+      it 'uses the version from DD_TAGS' do
+        is_expected.to eq('version-from-tag')
+      end
+
+      context 'and defined via DD_VERSION' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_VERSION => 'version-from-dd-version') do
+            example.run
+          end
+        end
+
+        it 'uses the version from DD_VERSION' do
+          is_expected.to eq('version-from-dd-version')
+        end
       end
     end
   end
