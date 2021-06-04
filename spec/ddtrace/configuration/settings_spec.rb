@@ -5,7 +5,9 @@ require 'ddtrace'
 require 'ddtrace/configuration/settings'
 
 RSpec.describe Datadog::Configuration::Settings do
-  subject(:settings) { described_class.new }
+  subject(:settings) { described_class.new(options) }
+
+  let(:options) { {} }
 
   describe '#analytics' do
     describe '#enabled' do
@@ -896,39 +898,17 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to include('a' => '1', 'b' => '2') }
 
         context 'with an invalid tag' do
-          context do
-            let(:env_tags) { '' }
+          ['', 'a', ':', ',', 'a:'].each do |invalid_tag|
+            context "when tag is #{invalid_tag.inspect}" do
+              let(:env_tags) { invalid_tag }
 
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { 'a' }
-
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { ':' }
-
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { ',' }
-
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { 'a:' }
-
-            it { is_expected.to eq({}) }
+              it { is_expected.to eq({}) }
+            end
           end
         end
 
         context 'and when #env' do
-          before { allow(settings).to receive(:env).and_return(env) }
+          let(:options) { {**super(), env: env} }
 
           context 'is set' do
             let(:env) { 'env-value' }
@@ -944,7 +924,7 @@ RSpec.describe Datadog::Configuration::Settings do
         end
 
         context 'and when #version' do
-          before { allow(settings).to receive(:version).and_return(version) }
+          let(:options) { { **super(), version: version } }
 
           context 'is set' do
             let(:version) { 'version-value' }
@@ -973,11 +953,11 @@ RSpec.describe Datadog::Configuration::Settings do
       end
 
       context 'conflicts with #env' do
+        let(:options) { { **super(), env: env_value } }
+
         let(:env_tags) { "env:#{tag_env_value}" }
         let(:tag_env_value) { 'tag-env-value' }
         let(:env_value) { 'env-value' }
-
-        before { allow(settings).to receive(:env).and_return(env_value) }
 
         it { is_expected.to include('env' => env_value) }
       end
@@ -995,11 +975,11 @@ RSpec.describe Datadog::Configuration::Settings do
       end
 
       context 'conflicts with #version' do
+        let(:options) { { **super(), version: version_value } }
+
         let(:env_tags) { "env:#{tag_version_value}" }
         let(:tag_version_value) { 'tag-version-value' }
         let(:version_value) { 'version-value' }
-
-        before { allow(settings).to receive(:version).and_return(version_value) }
 
         it { is_expected.to include('version' => version_value) }
       end
