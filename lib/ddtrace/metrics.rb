@@ -14,8 +14,8 @@ module Datadog
     attr_reader :statsd
 
     def initialize(options = {})
-      @statsd = options.fetch(:statsd) { default_statsd_client if supported? }
       @enabled = options.fetch(:enabled, true)
+      @statsd = options.fetch(:statsd) { default_statsd_client if enabled? && supported? }
     end
 
     def supported?

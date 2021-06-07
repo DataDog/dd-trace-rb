@@ -947,41 +947,34 @@ RSpec.describe Datadog::Configuration::Components do
   describe '#shutdown!' do
     subject(:shutdown!) { components.shutdown!(replacement) }
 
-    context 'given no replacement' do
-      let(:replacement) { nil }
+    before do
+      allow(settings.runtime_metrics).to receive(:enabled).and_return(runtime_metrics_enabled)
+      allow(settings.diagnostics.health_metrics).to receive(:enabled).and_return(health_metrics_enabled)
+    end
 
-      it 'shuts down all components' do
-        expect(components.tracer).to receive(:shutdown!)
-        expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-        expect(components.runtime_metrics).to receive(:stop)
-          .with(true, close_metrics: false)
-        expect(components.runtime_metrics.metrics.statsd).to receive(:close)
-        expect(components.health_metrics.statsd).to receive(:close)
+    shared_context 'replacement' do
+      let(:replacement) { instance_double(described_class) }
+      let(:tracer) { instance_double(Datadog::Tracer) }
+      let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
+      let(:runtime_metrics_worker) { instance_double(Datadog::Workers::RuntimeMetrics, metrics: runtime_metrics) }
+      let(:runtime_metrics) { instance_double(Datadog::Runtime::Metrics, statsd: statsd) }
+      let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics, statsd: statsd) }
+      let(:statsd) { instance_double(::Datadog::Statsd) }
 
-        shutdown!
+      before do
+        allow(replacement).to receive(:tracer).and_return(tracer)
+        allow(replacement).to receive(:profiler).and_return(profiler)
+        allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
+        allow(replacement).to receive(:health_metrics).and_return(health_metrics)
       end
     end
 
-    context 'given a replacement' do
-      shared_context 'replacement' do
-        let(:replacement) { instance_double(described_class) }
-        let(:tracer) { instance_double(Datadog::Tracer) }
-        let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
-        let(:runtime_metrics_worker) { instance_double(Datadog::Workers::RuntimeMetrics, metrics: runtime_metrics) }
-        let(:runtime_metrics) { instance_double(Datadog::Runtime::Metrics, statsd: statsd) }
-        let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics, statsd: statsd) }
-        let(:statsd) { instance_double(::Datadog::Statsd) }
+    context 'with metrics enabled' do
+      let(:runtime_metrics_enabled) { true }
+      let(:health_metrics_enabled) { true }
 
-        before do
-          allow(replacement).to receive(:tracer).and_return(tracer)
-          allow(replacement).to receive(:profiler).and_return(profiler)
-          allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
-          allow(replacement).to receive(:health_metrics).and_return(health_metrics)
-        end
-      end
-
-      context 'when no components are reused' do
-        include_context 'replacement'
+      context 'given no replacement' do
+        let(:replacement) { nil }
 
         it 'shuts down all components' do
           expect(components.tracer).to receive(:shutdown!)
@@ -993,75 +986,187 @@ RSpec.describe Datadog::Configuration::Components do
 
           shutdown!
         end
+      end
 
-        context 'and Statsd is not initialized' do
-          before do
-            allow(components.runtime_metrics.metrics)
-              .to receive(:statsd)
-              .and_return(nil)
-          end
+      context 'given a replacement' do
+        context 'when no components are reused' do
+          include_context 'replacement'
 
           it 'shuts down all components' do
             expect(components.tracer).to receive(:shutdown!)
             expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
             expect(components.runtime_metrics).to receive(:stop)
               .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to receive(:close)
+            expect(components.health_metrics.statsd).to receive(:close)
+
+            shutdown!
+          end
+
+          context 'and Statsd is not initialized' do
+            before do
+              allow(components.runtime_metrics.metrics)
+                .to receive(:statsd)
+                .and_return(nil)
+            end
+
+            it 'shuts down all components' do
+              expect(components.tracer).to receive(:shutdown!)
+              expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+              expect(components.runtime_metrics).to receive(:stop)
+                .with(true, close_metrics: false)
+              expect(components.health_metrics.statsd).to receive(:close)
+
+              shutdown!
+            end
+          end
+        end
+
+        context 'when the tracer is re-used' do
+          include_context 'replacement' do
+            let(:tracer) { components.tracer }
+          end
+
+          it 'shuts down all components but the tracer' do
+            expect(components.tracer).to_not receive(:shutdown!)
+            expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to receive(:close)
             expect(components.health_metrics.statsd).to receive(:close)
 
             shutdown!
           end
         end
-      end
 
-      context 'when the tracer is re-used' do
-        include_context 'replacement' do
-          let(:tracer) { components.tracer }
+        context 'when one of Statsd instances are reused' do
+          include_context 'replacement' do
+            let(:runtime_metrics_worker) { components.runtime_metrics }
+          end
+
+          it 'shuts down all components but the tracer' do
+            expect(components.tracer).to receive(:shutdown!)
+            expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
+            expect(components.health_metrics.statsd).to receive(:close)
+
+            shutdown!
+          end
         end
 
-        it 'shuts down all components but the tracer' do
-          expect(components.tracer).to_not receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+        context 'when both Statsd instances are reused' do
+          include_context 'replacement' do
+            let(:runtime_metrics_worker) { components.runtime_metrics }
+            let(:health_metrics) { components.health_metrics }
+          end
+
+          it 'shuts down all components but the tracer' do
+            expect(components.tracer).to receive(:shutdown!)
+            expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
+            expect(components.health_metrics.statsd).to_not receive(:close)
+
+            shutdown!
+          end
+        end
+      end
+    end
+
+    context 'with metrics disabled' do
+      let(:runtime_metrics_enabled) { false }
+      let(:health_metrics_enabled) { false }
+
+      context 'given no replacement' do
+        let(:replacement) { nil }
+
+        it 'shuts down all components' do
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to receive(:close)
-          expect(components.health_metrics.statsd).to receive(:close)
+          expect(components.runtime_metrics.metrics.statsd).to be_nil
+          expect(components.health_metrics.statsd).to be_nil
 
           shutdown!
         end
       end
 
-      context 'when one of Statsd instances are reused' do
-        include_context 'replacement' do
-          let(:runtime_metrics_worker) { components.runtime_metrics }
+      context 'given a replacement' do
+        context 'when no components are reused' do
+          include_context 'replacement'
+
+          it 'shuts down all components' do
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to be_nil
+            expect(components.health_metrics.statsd).to be_nil
+
+            shutdown!
+          end
+
+          context 'and Statsd is not initialized' do
+            before do
+              allow(components.runtime_metrics.metrics)
+                .to receive(:statsd)
+                .and_return(nil)
+            end
+
+            it 'shuts down all components' do
+              expect(components.runtime_metrics).to receive(:stop)
+                .with(true, close_metrics: false)
+              expect(components.health_metrics.statsd).to be_nil
+
+              shutdown!
+            end
+          end
         end
 
-        it 'shuts down all components but the tracer' do
-          expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
-          expect(components.health_metrics.statsd).to receive(:close)
+        context 'when the tracer is re-used' do
+          include_context 'replacement' do
+            let(:tracer) { components.tracer }
+          end
 
-          shutdown!
-        end
-      end
+          it 'shuts down all components but the tracer' do
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to be_nil
+            expect(components.health_metrics.statsd).to be_nil
 
-      context 'when both Statsd instances are reused' do
-        include_context 'replacement' do
-          let(:runtime_metrics_worker) { components.runtime_metrics }
-          let(:health_metrics) { components.health_metrics }
+            shutdown!
+          end
         end
 
-        it 'shuts down all components but the tracer' do
-          expect(components.tracer).to receive(:shutdown!)
-          expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
-          expect(components.runtime_metrics).to receive(:stop)
-            .with(true, close_metrics: false)
-          expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
-          expect(components.health_metrics.statsd).to_not receive(:close)
+        context 'when one of Statsd instances are reused' do
+          include_context 'replacement' do
+            let(:runtime_metrics_worker) { components.runtime_metrics }
+          end
 
-          shutdown!
+          it 'shuts down all components but the tracer' do
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
+            expect(components.health_metrics.statsd).to be_nil
+
+            shutdown!
+          end
+        end
+
+        context 'when both Statsd instances are reused' do
+          include_context 'replacement' do
+            let(:runtime_metrics_worker) { components.runtime_metrics }
+            let(:health_metrics) { components.health_metrics }
+          end
+
+          it 'shuts down all components but the tracer' do
+            expect(components.runtime_metrics).to receive(:stop)
+              .with(true, close_metrics: false)
+            expect(components.runtime_metrics.metrics.statsd).to_not receive(:close)
+            expect(components.health_metrics.statsd).to_not receive(:close)
+
+            shutdown!
+          end
         end
       end
     end

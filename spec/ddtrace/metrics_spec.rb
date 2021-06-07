@@ -81,6 +81,7 @@ RSpec.describe Datadog::Metrics do
 
   describe '#enabled?' do
     subject(:enabled) { metrics.enabled? }
+    let(:options) { {} }
 
     context 'by default' do
       it { is_expected.to be true }
@@ -96,6 +97,7 @@ RSpec.describe Datadog::Metrics do
       let(:options) { super().merge(enabled: false) }
 
       it { is_expected.to be false }
+      it { expect(metrics.statsd).to be_nil }
     end
   end
 
@@ -725,7 +727,7 @@ RSpec.describe Datadog::Metrics do
   end
 
   describe '#incompatible_statsd_warning' do
-    let(:options) { {} }
+    let(:options) { { enabled: true } }
 
     before { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
     after { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }

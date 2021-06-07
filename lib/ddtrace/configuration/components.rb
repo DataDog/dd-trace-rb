@@ -34,11 +34,15 @@ module Datadog
           options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
           options[:services] = [settings.service] unless settings.service.nil?
 
+          # TODO: This object should be return when invoking `Datadog#runtime_metrics`
           Datadog::Runtime::Metrics.new(options)
         end
 
         def build_runtime_metrics_worker(settings)
-          # NOTE: Should we just ignore building the worker if its not enabled?
+          # TODO: We should expose {Datadog::Runtime::Metrics} instead of
+          # {Datadog::Workers::RuntimeMetrics} to users, allowing us to skip
+          # creating the worker (and its thread) if runtime metrics are
+          # disabled.
           options = settings.runtime_metrics.opts.merge(
             enabled: settings.runtime_metrics.enabled,
             metrics: build_runtime_metrics(settings)
@@ -228,13 +232,15 @@ module Datadog
         # If we need to directly have ownership of `statsd` lifecycle, we should
         # have direct ownership of it.
         old_statsd = [
-          runtime_metrics.metrics.statsd,
+          runtime_metrics.metrics && runtime_metrics.metrics.statsd,
           health_metrics.statsd
         ].compact.uniq
 
+        return if old_statsd.empty? # Nothing to close
+
         new_statsd =  if replacement
                         [
-                          replacement.runtime_metrics.metrics.statsd,
+                          replacement.runtime_metrics.metrics && replacement.runtime_metrics.metrics.statsd,
                           replacement.health_metrics.statsd
                         ].compact.uniq
                       else
