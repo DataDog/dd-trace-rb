@@ -7,9 +7,7 @@ module Datadog
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
 
-    # Support for Ruby < 2.1 is currently deprecated in the tracer.
-    # Support will be dropped in the near future.
-    MINIMUM_RUBY_VERSION = '2.0.0'.freeze
+    MINIMUM_RUBY_VERSION = '2.1.0'.freeze
 
     # Ruby 3.2 is not supported: Ruby 3.x support as implemented using *args
     # needs ruby2_keywords to continue working, yet the scheduled removal of
