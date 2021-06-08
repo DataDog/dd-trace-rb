@@ -2484,14 +2484,18 @@ If you have confirmed that traces are dropped due to large payloads, then enable
 
 ### Stack level too deep
 
-`ddtrace` uses [Module#prepend](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) when instrumenting gems, as this approach allows for non-competing overriding of the same method by other libraries present in the same application.
+Datadog tracing collects trace data by adding instrumentation into other common libraries (e.g. Rails, Rack, etc.) Some libraries provide APIs to add this instrumentation, but some do not. In order to add instrumentation into libraries lacking an instrumentation API, Datadog uses a technique called "monkey-patching" to modify the code of that library.
 
-The presence of other libraries that use [alias](https://ruby-doc.org/core-3.0.0/doc/syntax/miscellaneous_rdoc.html#label-alias) or [Module#alias_method](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method) to override methods can cause issues to manifest in your application, often referred to as “noisy neighbor” issues.  The two methods above destructively replace the original method being overridden.  This approach is also incompatible with `Module#prepend` overriding, causing, for example, `SystemStackError`.
+In Ruby version 1.9.3 and earlier, "monkey-patching" often involved the use of [`alias_method`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method), also known as *method rewriting*, to destructively replace existing Ruby methods. However, this practice would often create conflicts & errors if two libraries attempted to "rewrite" the same method. (e.g. two different APM packages trying to instrument the same method.)
 
-A few libraries have known workarounds for these types of noisy neighbor issues:
+In Ruby 2.0, the [`Module#prepend`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) feature was introduced. This feature avoids destructive method rewriting and allows multiple "monkey patches" on the same method. Consequently, it has become the safest, preferred means to "monkey patch" code.
+
+Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some libraries (typically those supporting Ruby < 2.0) still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
+
+As the implementation of `alias_method` exists within those libraries, Datadog generally cannot fix them. However, some libraries have known workarounds:
 
 * `rack-mini-profiler`: [Net::HTTP stack level too deep errors](https://github.com/MiniProfiler/rack-mini-profiler#nethttp-stack-level-too-deep-errors).
 
 For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method` or separating libraries into different environments for testing.
 
-For any further questions on these issues or to report a noisy neighbor issue so we can investigate if Datadog is able to mitigate the issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)
+For any further questions or to report an occurence of this issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)
