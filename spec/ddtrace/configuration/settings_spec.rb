@@ -833,19 +833,19 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => service) do
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => env_service) do
           example.run
         end
       end
 
       context 'is not defined' do
-        let(:service) { nil }
+        let(:env_service) { nil }
 
-        it { is_expected.to be nil }
+        it { is_expected.to include 'rspec' }
       end
 
       context 'is defined' do
-        let(:service) { 'service-value' }
+        let(:env_service) { 'service-value' }
 
         it { is_expected.to eq(service) }
       end

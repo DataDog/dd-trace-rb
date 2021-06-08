@@ -149,15 +149,7 @@ module Datadog
     # for non-root spans which have a parent. However, root spans without
     # a service would be invalid and rejected.
     def default_service
-      return @default_service if instance_variable_defined?(:@default_service) && @default_service
-
-      begin
-        @default_service = File.basename($PROGRAM_NAME, '.*')
-      rescue StandardError => e
-        Datadog.logger.error("unable to guess default service: #{e}")
-        @default_service = 'ruby'.freeze
-      end
-      @default_service
+      @default_service ||= Datadog::Ext::Runtime::FALLBACK_SERVICE_NAME
     end
 
     # Set the given key / value tag pair at the tracer level. These tags will be

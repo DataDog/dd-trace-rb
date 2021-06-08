@@ -226,7 +226,7 @@ module Datadog
 
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
+        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Runtime::FALLBACK_SERVICE_NAME) }
         o.lazy
       end
 
@@ -264,7 +264,7 @@ module Datadog
             self.version = string_tags[Ext::Environment::TAG_VERSION]
           end
 
-          if service.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
+          if service.equal?(Ext::Runtime::FALLBACK_SERVICE_NAME) && string_tags.key?(Ext::Environment::TAG_SERVICE)
             self.service = string_tags[Ext::Environment::TAG_SERVICE]
           end
 
