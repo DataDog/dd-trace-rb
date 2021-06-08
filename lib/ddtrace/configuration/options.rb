@@ -7,17 +7,15 @@ module Datadog
     # Behavior for a configuration object that has options
     module Options
       def self.included(base)
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class behavior for a configuration object with options
       module ClassMethods
         def options
-          @options ||= begin
-            # Allows for class inheritance of option definitions
-            superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
-          end
+          # Allows for class inheritance of option definitions
+          @options ||= superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
         end
 
         protected

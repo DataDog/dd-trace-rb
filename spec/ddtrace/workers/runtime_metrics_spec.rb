@@ -6,7 +6,7 @@ require 'ddtrace/workers/runtime_metrics'
 RSpec.describe Datadog::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(options) }
 
-  let(:metrics) { instance_double(Datadog::Runtime::Metrics) }
+  let(:metrics) { instance_double(Datadog::Runtime::Metrics, close: nil) }
   let(:options) { { metrics: metrics, enabled: true } }
 
   before { allow(metrics).to receive(:flush) }
@@ -201,6 +201,49 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
       expect(worker.metrics).to have_received(:associate_with_span)
         .with(span)
       expect(worker).to have_received(:perform)
+    end
+  end
+
+  describe '#stop' do
+    subject(:stop) { worker.stop(*args, **kwargs) }
+
+    let(:args) { %w[foo bar] }
+    let(:kwargs) { {} }
+
+    before do
+      allow(worker.metrics).to receive(:close)
+    end
+
+    it 'closes metrics and stops worker' do
+      stop
+
+      expect(worker.enabled?).to be(false)
+      expect(worker.running?).to be(false)
+      expect(worker.metrics).to have_received(:close)
+    end
+
+    context 'with close_metrics: false' do
+      let(:kwargs) { { close_metrics: false } }
+
+      it 'does not close metrics, but stops worker' do
+        stop
+
+        expect(worker.running?).to be(false)
+        expect(worker.metrics).to_not have_received(:close)
+      end
+    end
+
+    context 'with async thread not started' do
+      it 'does not lazily initialize stopped worker' do
+        expect(worker.running?).to be(false)
+
+        stop
+
+        # Try to initialize async thread
+        worker.perform
+
+        expect(worker.running?).to be(false)
+      end
     end
   end
 

@@ -16,13 +16,10 @@ module Datadog
       def initialize(options = {})
         transport_options = options.fetch(:transport_options, {})
 
-        transport_options = { on_build: transport_options } if transport_options.is_a?(Proc)
-
-        transport_options[:hostname] = options[:hostname] if options.key?(:hostname)
-        transport_options[:port] = options[:port] if options.key?(:port)
+        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
 
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(transport_options)
+          Transport::HTTP.default(**transport_options)
         end
       end
 
@@ -145,6 +142,7 @@ module Datadog
         [buffer.pop]
       end
 
+      # Are there more traces to be processed next?
       def work_pending?
         !buffer.empty?
       end

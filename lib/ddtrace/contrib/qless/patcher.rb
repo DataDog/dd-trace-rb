@@ -19,11 +19,9 @@ module Datadog
           require_relative 'tracer_cleaner'
 
           # Instrument all Qless Workers
-          ::Qless::Workers::BaseWorker.class_eval do
-            # These are executed in inverse order of listing here
-            include QlessJob
-            include TracerCleaner
-          end
+          # These are executed in inverse order of listing here
+          ::Qless::Workers::BaseWorker.include(QlessJob)
+          ::Qless::Workers::BaseWorker.include(TracerCleaner)
         end
 
         def get_option(option)

@@ -7,7 +7,7 @@ require 'ddtrace/version'
 Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
   spec.version               = Datadog::VERSION::STRING
-  spec.required_ruby_version = ">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}"
+  spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}", "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"]
   spec.required_rubygems_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
@@ -29,14 +29,16 @@ Gem::Specification.new do |spec|
   end
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
-  spec.bindir        = 'exe'
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
   if RUBY_VERSION >= '2.2.0'
     spec.add_dependency 'msgpack'
   else
-    # msgpack 1.4 fails for Ruby 2.0 and 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
+    # msgpack 1.4 fails for Ruby 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
     spec.add_dependency 'msgpack', '< 1.4'
   end
+
+  # Used by the profiler
+  spec.add_dependency 'ffi', '~> 1.0'
 end

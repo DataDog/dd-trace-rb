@@ -6,7 +6,7 @@ require 'webrick'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/http/adapters/net'
 
-RSpec.describe 'Adapters::Net integration tests' do
+RSpec.describe 'Adapters::Net tracing integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port) }
@@ -28,7 +28,7 @@ RSpec.describe 'Adapters::Net integration tests' do
     let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
     let(:server_proc) do
       proc do |req, res|
-        messages << req
+        messages << req.tap { req.body } # Read body, store message before socket closes.
         res.body = '{}'
       end
     end
@@ -80,6 +80,7 @@ RSpec.describe 'Adapters::Net integration tests' do
         end
 
         expect(http_request.header['content-length'].first.to_i).to be > 0
+        expect(http_request.body.length).to be > 0
       end
     end
   end

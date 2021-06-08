@@ -10,6 +10,7 @@ RSpec.describe Datadog::Metrics do
   include_context 'metrics'
 
   subject(:metrics) { described_class.new(options) }
+  after { metrics.close }
 
   let(:options) { { statsd: statsd } }
 
@@ -30,6 +31,8 @@ RSpec.describe Datadog::Metrics do
         allow(Gem.loaded_specs).to receive(:[])
           .with('dogstatsd-ruby')
           .and_return(spec)
+
+        stub_const 'Datadog::Statsd::VERSION', nil
       end
 
       context 'is not loaded' do
@@ -49,6 +52,26 @@ RSpec.describe Datadog::Metrics do
 
         context 'with version 3.3.0' do
           let(:version) { Gem::Version.new('3.3.0') }
+
+          it { is_expected.to be true }
+        end
+      end
+
+      context 'is loaded but ruby is not using rubygems' do
+        before do
+          stub_const 'Datadog::Statsd::VERSION', gem_version_number
+        end
+
+        let(:spec) { nil }
+
+        context 'with version < 3.3.0' do
+          let(:gem_version_number) { '3.2.9' }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with version 3.3.0' do
+          let(:gem_version_number) { '3.3.0' }
 
           it { is_expected.to be true }
         end
@@ -675,6 +698,56 @@ RSpec.describe Datadog::Metrics do
 
         expect(metrics).to have_received(:increment)
           .with(inc_name, inc_options)
+      end
+    end
+  end
+
+  describe '#close' do
+    subject(:close) { metrics.close }
+
+    context 'with a closeable statsd instance' do
+      let(:statsd) { instance_double(Datadog::Statsd, close: nil) }
+
+      it 'closes statsd' do
+        close
+
+        expect(statsd).to have_received(:close)
+      end
+    end
+
+    context 'without a non-closeable statsd instance' do
+      let(:statsd) { double }
+
+      it 'does not call nonexistent method #close' do
+        close
+      end
+    end
+  end
+
+  describe '#incompatible_statsd_warning' do
+    let(:options) { {} }
+
+    before { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+    after { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
+
+    context 'with an incompatible dogstastd-ruby version' do
+      before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version >= Gem::Version.new('5.0') }
+
+      it 'emits deprecation warning once' do
+        expect(Datadog.logger).to receive(:warn)
+          .with(/This version of `ddtrace` is incompatible with `dogstastd-ruby`/).once
+
+        metrics
+      end
+    end
+
+    context 'with a compatible dogstastd-ruby version' do
+      before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version < Gem::Version.new('5.0') }
+
+      it 'emits no warnings' do
+        expect(Datadog.logger).to_not receive(:warn)
+
+        metrics
       end
     end
   end

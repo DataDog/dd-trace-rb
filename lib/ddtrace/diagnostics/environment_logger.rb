@@ -12,7 +12,7 @@ module Datadog
         # Outputs environment information to {Datadog.logger}.
         # Executes only for the lifetime of the program.
         def log!(transport_responses)
-          return if @executed || !log?
+          return if (defined?(@executed) && @executed) || !log?
 
           @executed = true
 
@@ -259,7 +259,7 @@ module Datadog
 
       # Capture all active integration settings into "integrationName_settingName: value" entries.
       def instrumented_integrations_settings
-        Hash[instrumented_integrations.flat_map do |name, integration|
+        instrumented_integrations.flat_map do |name, integration|
           integration.configuration.to_h.flat_map do |setting, value|
             next [] if setting == :tracer # Skip internal Ruby objects
 
@@ -267,7 +267,7 @@ module Datadog
             # handlers possibly causing errors.
             [[:"integration_#{name}_#{setting}", value.to_s]]
           end
-        end]
+        end.to_h
       end
 
       # Outputs "k1:v1,k2:v2,..."

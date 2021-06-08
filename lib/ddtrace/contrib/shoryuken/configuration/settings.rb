@@ -23,6 +23,7 @@ module Datadog
 
           option :service_name, default: Ext::SERVICE_NAME
           option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
+          option :tag_body, default: false
         end
       end
     end

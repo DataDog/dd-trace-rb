@@ -28,7 +28,7 @@ RSpec.describe Datadog::Workers::AsyncTransport do
         expect { worker.callback_traces }.to_not raise_error
 
         lines = buf.string.lines
-        expect(lines.count).to eq 1
+        expect(lines.count).to eq(1), "Expected single line, got #{lines.inspect}"
       end
     end
   end

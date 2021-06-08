@@ -24,8 +24,16 @@ module Datadog
         Ext::Runtime::LANG
       end
 
+      def lang_engine
+        Ext::Runtime::LANG_ENGINE
+      end
+
       def lang_interpreter
         Ext::Runtime::LANG_INTERPRETER
+      end
+
+      def lang_platform
+        Ext::Runtime::LANG_PLATFORM
       end
 
       def lang_version

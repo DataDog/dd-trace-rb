@@ -10,7 +10,7 @@ module Datadog
       # RestClient RequestPatch
       module RequestPatch
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation

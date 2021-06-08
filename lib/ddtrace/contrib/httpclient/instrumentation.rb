@@ -12,7 +12,7 @@ module Datadog
       # Instrumentation for Httpclient
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for configuration
@@ -88,14 +88,12 @@ module Datadog
             service = config[:service_name]
             tracer = config[:tracer]
 
-            @datadog_pin ||= begin
-              Datadog::Pin.new(
-                service,
-                app: Ext::APP,
-                app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-                tracer: -> { config[:tracer] }
-              )
-            end
+            @datadog_pin ||= Datadog::Pin.new(
+              service,
+              app: Ext::APP,
+              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
+              tracer: -> { config[:tracer] }
+            )
 
             if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
               @datadog_pin.service = service
@@ -111,14 +109,12 @@ module Datadog
             config = Datadog.configuration[:httpclient]
             service = config[:service_name]
 
-            @default_datadog_pin ||= begin
-              Datadog::Pin.new(
-                service,
-                app: Ext::APP,
-                app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-                tracer: -> { config[:tracer] }
-              )
-            end
+            @default_datadog_pin ||= Datadog::Pin.new(
+              service,
+              app: Ext::APP,
+              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
+              tracer: -> { config[:tracer] }
+            )
           end
 
           def datadog_configuration(host = :default)

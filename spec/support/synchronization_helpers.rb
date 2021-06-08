@@ -1,16 +1,32 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork(&block)
-    # Start in fork
-    pid = fork(&block)
+  def expect_in_fork(fork_expectations: nil)
+    fork_expectations ||= proc { |status, stderr|
+      expect(status && status.success?).to be(true), stderr
+    }
 
-    # Wait for fork to finish, retrieve its status.
-    Process.wait(pid)
-    status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
+    fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork')
+    begin
+      # Start in fork
+      pid = fork do
+        # Capture test failures
+        $stderr.reopen(fork_stderr)
 
-    # Expect fork and assertions to have completed successfully.
-    expect(status && status.success?).to be true
+        yield
+      end
+
+      fork_stderr.close
+
+      # Wait for fork to finish, retrieve its status.
+      Process.wait(pid)
+      status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
+
+      # Expect fork and assertions to have completed successfully.
+      fork_expectations.call(status, File.read(fork_stderr.path))
+    ensure
+      fork_stderr.unlink
+    end
   end
 
   def expect_in_thread(&block)
@@ -45,7 +61,5 @@ module SynchronizationHelpers
     30
   end
 
-  class << self
-    include SynchronizationHelpers
-  end
+  singleton_class.include SynchronizationHelpers
 end

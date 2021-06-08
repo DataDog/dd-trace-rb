@@ -2,8 +2,6 @@ module Datadog
   module Utils
     # Common database-related utility functions.
     module Time
-      PROCESS_TIME_SUPPORTED = Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.1.0')
-
       module_function
 
       # Current monotonic time.
@@ -12,7 +10,7 @@ module Datadog
       #
       # @return [Float] in seconds, since some unspecified starting point
       def get_time
-        PROCESS_TIME_SUPPORTED ? Process.clock_gettime(Process::CLOCK_MONOTONIC) : now.to_f
+        Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
       # Current wall time.
@@ -32,6 +30,13 @@ module Datadog
       # @param block [Proc] block that returns a `Time` object representing the current wall time
       def now_provider=(block)
         define_singleton_method(:now, &block)
+      end
+
+      def measure
+        before = get_time
+        yield
+        after = get_time
+        after - before
       end
     end
   end

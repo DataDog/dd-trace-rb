@@ -59,14 +59,14 @@ RSpec.shared_context 'Rails 6 base application' do
     klass.send(:define_method, :test_initialize!) do
       # we want to disable explicit instrumentation
       # when testing auto patching
-      if ENV['TEST_AUTO_INSTRUMENT'] != true
+      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
+        require 'ddtrace/auto_instrument'
+      else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
           c.use :rails
           c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
         end
-      else
-        require 'ddtrace/auto_instrument'
       end
 
       Rails.application.config.active_job.queue_adapter = :sidekiq if ENV['USE_SIDEKIQ']

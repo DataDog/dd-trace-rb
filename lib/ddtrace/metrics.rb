@@ -3,8 +3,9 @@ require 'ddtrace/ext/metrics'
 require 'set'
 require 'logger'
 require 'ddtrace/environment'
-require 'ddtrace/utils/time'
 require 'ddtrace/runtime/identity'
+require 'ddtrace/utils/only_once'
+require 'ddtrace/utils/time'
 
 module Datadog
   # Acts as client for sending metrics (via Statsd)
@@ -18,8 +19,14 @@ module Datadog
     end
 
     def supported?
-      version = Gem.loaded_specs['dogstatsd-ruby'] \
-                  && Gem.loaded_specs['dogstatsd-ruby'].version
+      version = (
+          defined?(Datadog::Statsd::VERSION) &&
+          Datadog::Statsd::VERSION &&
+          Gem::Version.new(Datadog::Statsd::VERSION)
+        ) || (
+          Gem.loaded_specs['dogstatsd-ruby'] &&
+          Gem.loaded_specs['dogstatsd-ruby'].version
+        )
 
       !version.nil? && (version >= Gem::Version.new('3.3.0'))
     end
@@ -42,6 +49,8 @@ module Datadog
 
     def default_statsd_client
       require 'datadog/statsd'
+
+      incompatible_statsd_warning
 
       # Create a StatsD client that points to the agent.
       Datadog::Statsd.new(default_hostname, default_port)
@@ -118,6 +127,10 @@ module Datadog
 
     def send_metrics(metrics)
       metrics.each { |m| send(m.type, *[m.name, m.value, m.options].compact) }
+    end
+
+    def close
+      @statsd.close if @statsd && @statsd.respond_to?(:close)
     end
 
     Metric = Struct.new(:type, :name, :value, :options) do
@@ -222,5 +235,21 @@ module Datadog
     include Options
     extend Options
     extend Helpers
+
+    private
+
+    INCOMPATIBLE_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :INCOMPATIBLE_STATSD_ONLY_ONCE
+
+    def incompatible_statsd_warning
+      return if Gem.loaded_specs['dogstatsd-ruby'].version < Gem::Version.new('5.0')
+
+      INCOMPATIBLE_STATSD_ONLY_ONCE.run do
+        Datadog.logger.warn(
+          'This version of `ddtrace` is incompatible with `dogstastd-ruby` version >= 5.0 and can ' \
+          'cause unbounded memory usage. Please use `dogstastd-ruby` version < 5.0 instead.'
+        )
+      end
+    end
   end
 end

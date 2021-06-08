@@ -12,13 +12,13 @@ module Datadog
         SHUTDOWN_TIMEOUT = 1
 
         def self.included(base)
-          base.send(:prepend, PrependedMethods)
+          base.prepend(PrependedMethods)
         end
 
         # Methods that must be prepended
         module PrependedMethods
           def perform(*args)
-            start { self.result = super(*args) } unless started?
+            start_async { self.result = super(*args) } unless started?
           end
         end
 
@@ -39,6 +39,7 @@ module Datadog
           return false unless running?
 
           @run_async = false
+          Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
           worker.terminate
           true
         end
@@ -105,7 +106,7 @@ module Datadog
           @worker ||= nil
         end
 
-        def start(&block)
+        def start_async(&block)
           mutex.synchronize do
             return if running?
 
@@ -126,7 +127,7 @@ module Datadog
           @run_async = true
           @pid = Process.pid
           @error = nil
-          Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
+          Datadog.logger.debug { "Starting thread for: #{self}" }
 
           @worker = ::Thread.new do
             begin

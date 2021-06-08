@@ -20,7 +20,7 @@ module Datadog
 
         def patch
           # Patch endpoints
-          ::Grape::Endpoint.send(:include, Instrumentation)
+          ::Grape::Endpoint.include(Instrumentation)
 
           # Subscribe to ActiveSupport events
           Datadog::Contrib::Grape::Endpoint.subscribe

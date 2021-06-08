@@ -6,7 +6,7 @@ module Datadog
     # Defines extensions to ddtrace for OpenTelemetry support
     module Extensions
       def self.extended(base)
-        Datadog::Span.send(:prepend, OpenTelemetry::Span)
+        Datadog::Span.prepend(OpenTelemetry::Span)
       end
     end
   end

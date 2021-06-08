@@ -5,7 +5,7 @@ require:
   - rubocop-rspec
 
 AllCops:
-  TargetRubyVersion: 2.4 # Lowest version supported currently
+  TargetRubyVersion: 2.5 # Lowest version supported as of Rubocop 0.13.0
   Include:
     - 'lib/**/*.rb'
     - 'test/**/*.rb'
@@ -18,6 +18,7 @@ AllCops:
     - 'lib/ddtrace/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
+    - 'lib/ddtrace/profiling/pprof/pprof_pb.rb'
   NewCops: disable # Don't allow new cops to be enabled implicitly.
 
 # 80 characters is a nice goal, but not worth currently changing in existing
@@ -173,14 +174,6 @@ Performance/StringInclude: # (new in 1.7)
 Performance/Sum: # (new in 1.8)
   Enabled: true
 
-# Requires Ruby 2.1
-Style/HashConversion:
-  Enabled: false
-
-# Requires Ruby 2.1
-Lint/SendWithMixinArgument:
-  Enabled: false
-
 # Requires Ruby 2.2
 Style/HashSyntax:
   Enabled: false
@@ -199,6 +192,18 @@ Style/HashTransformValues:
 
 # Requires Ruby 2.4
 Style/CollectionCompact:
+  Enabled: false
+
+# Requires Ruby 2.4
+Performance/RegexpMatch:
+  Enabled: false
+
+# Requires Ruby 2.5
+Style/RedundantBegin:
+  Enabled: false
+
+# Requires Ruby 2.5
+Style/HashTransformKeys:
   Enabled: false
 
 # Enforces negative/positive branching order,
@@ -226,6 +231,18 @@ RSpec/LeadingSubject:
 RSpec/ImplicitSubject:
   Enabled: false
 
+# Enforces empty line after hook declaration.
+RSpec/EmptyLineAfterHook:
+  Enabled: false
+
+# Enforces empty line after subject declaration.
+RSpec/EmptyLineAfterSubject:
+  Enabled: false
+
+# Enforces empty line after last let declaration.
+RSpec/EmptyLineAfterFinalLet:
+  Enabled: false
+
 # TODO: Disabling until we categorize which file are safe to do so.
 Style/FrozenStringLiteralComment:
   Enabled: false
@@ -243,6 +260,12 @@ Lint/EmptyBlock:
 
 # Enforces that context description must start with 'when', 'with', or 'without'.
 RSpec/ContextWording:
+  Enabled: false
+
+# Checks for multiple top-level example groups.
+# Multiple descriptions for the same class or module should either
+# be nested or separated into different test files.
+RSpec/MultipleDescribes:
   Enabled: false
 
 # Enforces that examples should only have a limited amount of assertions.

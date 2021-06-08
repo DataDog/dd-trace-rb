@@ -223,8 +223,6 @@ RSpec.describe Datadog::Contrib::Patcher do
         end)
       end
 
-      it { is_expected.to be_a_kind_of(Datadog::Patcher) }
-
       describe '#patch' do
         subject(:patch) { patcher.patch }
 

@@ -16,8 +16,8 @@ module Datadog
           require 'ddtrace/contrib/ethon/easy_patch'
           require 'ddtrace/contrib/ethon/multi_patch'
 
-          ::Ethon::Easy.send(:include, EasyPatch)
-          ::Ethon::Multi.send(:include, MultiPatch)
+          ::Ethon::Easy.include(EasyPatch)
+          ::Ethon::Multi.include(MultiPatch)
         end
       end
     end

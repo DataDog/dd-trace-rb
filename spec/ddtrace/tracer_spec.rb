@@ -38,17 +38,57 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
+  describe '::new' do
+    subject(:tracer) { described_class.new(options) }
+    let(:options) { { writer: writer } }
+
+    context 'given :context_flush' do
+      let(:options) { super().merge(context_flush: context_flush) }
+      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+      it { is_expected.to have_attributes(context_flush: context_flush) }
+    end
+  end
+
   describe '#configure' do
-    subject!(:configure) { tracer.configure(options) }
+    context 'by default' do
+      subject!(:configure) { tracer.configure(options) }
 
-    let(:options) { {} }
+      let(:options) { {} }
 
-    it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
+      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
+    end
+
+    context 'with context flush' do
+      subject!(:configure) { tracer.configure(options) }
+
+      let(:options) { { context_flush: context_flush } }
+      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+
+      it { expect(tracer.context_flush).to be(context_flush) }
+    end
 
     context 'with partial flushing' do
+      subject!(:configure) { tracer.configure(options) }
+
       let(:options) { { partial_flush: true } }
 
       it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Partial) }
+    end
+
+    context 'with agent_settings' do
+      subject(:configure) { tracer.configure(options) }
+
+      let(:agent_settings) { double('agent_settings') }
+      let(:options) { { agent_settings: agent_settings } }
+
+      it 'creates a new writer using the given agent_settings' do
+        # create writer first, to avoid colliding with the below expectation
+        writer
+
+        expect(Datadog::Writer).to receive(:new).with(hash_including(agent_settings: agent_settings))
+
+        configure
+      end
     end
   end
 
@@ -172,7 +212,6 @@ RSpec.describe Datadog::Tracer do
 
         it 'tracks the number of allocations made in the span' do
           skip 'Test unstable; improve stability before re-enabling.'
-          skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
 
           # Create and discard first trace.
           # When warming up, it might have more allocations than subsequent traces.
@@ -508,30 +547,35 @@ RSpec.describe Datadog::Tracer do
   describe '#set_service_info' do
     include_context 'tracer logging'
 
-    # Ensure we have a clean `@done_once` before and after each test
+    # Ensure we have a clean OnlyOnce before and after each test
     # so we can properly test the behavior here, and we don't pollute other tests
-    before { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    before { described_class::SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.send(:reset_ran_once_state_for_tests) }
 
-    after { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    after { described_class::SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.send(:reset_ran_once_state_for_tests) }
 
     before do
       # Call multiple times to assert we only log once
+      allow(Datadog.logger).to receive(:warn).and_call_original
+
       tracer.set_service_info('service-A', 'app-A', 'app_type-A')
       tracer.set_service_info('service-B', 'app-B', 'app_type-B')
       tracer.set_service_info('service-C', 'app-C', 'app_type-C')
       tracer.set_service_info('service-D', 'app-D', 'app_type-D')
     end
 
-    it 'generates a single deprecation warnings' do
-      expect(log_buffer.length).to be > 1
+    it 'generates a single deprecation warning' do
+      expect(Datadog.logger).to have_received(:warn).once
       expect(log_buffer).to contain_line_with('Usage of set_service_info has been deprecated')
     end
   end
 
   describe '#record' do
     subject(:record) { tracer.record(context) }
-
     let(:context) { instance_double(Datadog::Context) }
+
+    before do
+      allow(tracer.trace_completed).to receive(:publish)
+    end
 
     context 'with trace' do
       let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
@@ -543,19 +587,49 @@ RSpec.describe Datadog::Tracer do
         subject
       end
 
-      it { expect(writer.spans).to eq(trace) }
+      it 'writes the trace' do
+        expect(writer.spans).to eq(trace)
+
+        expect(tracer.trace_completed)
+          .to have_received(:publish)
+          .with(trace)
+      end
     end
 
     context 'with empty trace' do
       let(:trace) { [] }
 
-      it { expect(writer.spans).to be_empty }
+      it 'does not write a trace' do
+        expect(writer.spans).to be_empty
+
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
 
     context 'with nil trace' do
       let(:trace) { nil }
 
-      it { expect(writer.spans).to be_empty }
+      it 'does not write a trace' do
+        expect(writer.spans).to be_empty
+
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
+  end
+
+  describe '#trace_completed' do
+    subject(:trace_completed) { tracer.trace_completed }
+    it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
+  end
+end
+
+RSpec.describe Datadog::Tracer::TraceCompleted do
+  subject(:event) { described_class.new }
+
+  describe '#name' do
+    subject(:name) { event.name }
+    it { is_expected.to be :trace_completed }
   end
 end

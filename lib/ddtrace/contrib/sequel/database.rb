@@ -10,7 +10,7 @@ module Datadog
       # Adds instrumentation to Sequel::Database
       module Database
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for instrumenting Sequel::Database

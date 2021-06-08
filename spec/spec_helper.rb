@@ -5,8 +5,7 @@ require 'rspec/collection_matchers'
 require 'webmock/rspec'
 require 'climate_control'
 
-# Skip for benchmarks, as coverage collection slows them down.
-unless RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
+if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
   # +SimpleCov.start+ must be invoked before any application code is loaded
   require 'simplecov'
   SimpleCov.start do
@@ -90,8 +89,28 @@ RSpec.configure do |config|
   # Changing this to `config.after(:each)` would
   # put this code inside the test scope, interfering
   # with the test execution.
+  #
+  # rubocop:disable Style/GlobalVars
   config.around do |example|
     example.run.tap do
+      # Stop reporting on background thread leaks after too many
+      # successive failures. The output is very verbose and, at that point,
+      # it's better to work on fixing the very first occurrences.
+      $background_thread_leak_reports ||= 0
+      if $background_thread_leak_reports >= 10
+        unless $background_thread_leak_warned ||= false
+          warn RSpec::Core::Formatters::ConsoleCodes.wrap(
+            "Too many leaky thread reports! Suppressing further reports.\n" \
+            'Consider addressing the previously reported leaks before proceeding.',
+            :red
+          )
+
+          $background_thread_leak_warned = true
+        end
+
+        next
+      end
+
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
         group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
@@ -110,9 +129,12 @@ RSpec.configure do |config|
           # Rails connection reaper
           backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
           # Ruby JetBrains debugger
-          t.class.name.include?('DebugThread') ||
+          (t.class.name && t.class.name.include?('DebugThread')) ||
           # Categorized as a known leaky thread
-          !group_name.nil?
+          !group_name.nil? ||
+          # Internal TruffleRuby thread, defined in
+          # https://github.com/oracle/truffleruby/blob/02f568556ca4dd9056b0114b750ab848ac52943b/src/main/java/org/truffleruby/core/ReferenceProcessingService.java#L221
+          RUBY_ENGINE == 'truffleruby' && t.to_s.include?('Ruby-reference-processor')
       end
 
       unless background_threads.empty?
@@ -127,8 +149,21 @@ RSpec.configure do |config|
         end
 
         info = background_threads.each_with_index.flat_map do |t, idx|
+          backtrace = t.backtrace
+          if backtrace.nil? && t.alive? # Maybe the thread hasn't run yet? Let's give it a second chance
+            Thread.pass
+            backtrace = t.backtrace
+          end
+          if backtrace.nil? || backtrace.empty?
+            backtrace =
+              if t.alive?
+                ['(Not available. Possibly a native thread.)']
+              else
+                ['(Thread finished before we could collect a backtrace)']
+              end
+          end
+
           caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
-          backtrace = t.backtrace || ['(Not available. Possibly a native thread.)']
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
             'Thread Creation Site:',
@@ -146,11 +181,14 @@ RSpec.configure do |config|
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
           "\n" \
           "#{info}",
-          :red
+          :yellow
         )
+
+        $background_thread_leak_reports += 1
       end
     end
   end
+  # rubocop:enable Style/GlobalVars
 
   # Closes the global testing tracer.
   #
@@ -171,11 +209,13 @@ end
 # To allow for leaky threads to be traced
 # back to their creation point.
 module DatadogThreadDebugger
-  def initialize(*args)
-    caller_ = caller
+  # DEV: we have to use an explicit `block`, argument
+  # instead of the implicit `yield` call, as calling
+  # `yield` here crashes the Ruby VM in Ruby < 2.2.
+  def initialize(*args, &block)
+    @caller = caller
     wrapped = lambda do |*thread_args|
-      Thread.current.instance_variable_set(:@caller, caller_)
-      yield(*thread_args)
+      block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
     end
     wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)
 
@@ -185,7 +225,7 @@ module DatadogThreadDebugger
   ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 end
 
-Thread.send(:prepend, DatadogThreadDebugger)
+Thread.prepend(DatadogThreadDebugger)
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be

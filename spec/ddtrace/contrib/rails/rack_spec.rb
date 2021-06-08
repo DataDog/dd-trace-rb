@@ -7,6 +7,7 @@ RSpec.describe 'Rails Rack' do
   let(:routes) do
     {
       '/full' => 'test#full',
+      '/partial' => 'test#partial',
       '/error' => 'test#error',
       '/sub_error' => 'test#sub_error',
       '/soft_error' => 'test#soft_error',
@@ -16,23 +17,32 @@ RSpec.describe 'Rails Rack' do
     }
   end
 
+  let(:layout) { 'application' }
   let(:controllers) { [controller, errors_controller] }
   let(:controller) do
+    layout_ = layout
     stub_const('TestController', Class.new(ActionController::Base) do
       include ::Rails.application.routes.url_helpers
 
-      layout 'application'
+      layout layout_
 
       self.view_paths = [ActionView::FixtureResolver.new(
         'layouts/application.html.erb' => '<%= yield %>',
-        'test/full.html.erb' => 'Sample request render',
-        'test/error_partial.html.erb' => 'Oops <%= render "test/inner_error.html.erb" %>',
+        'test/full.html.erb' => 'Test template content',
+        'test/template_with_partial.html.erb' => 'Template with <%= render "test/outer_partial" %>',
+        'test/_outer_partial.html.erb' => 'a partial inside <%= render "test/inner_partial" %>',
+        'test/_inner_partial.html.erb' => 'a partial',
+        'test/error_partial.html.erb' => 'Oops <%= render "test/inner_error" %>',
         'test/_inner_error.html.erb' => '<%= 1/0 %>'
       )]
 
       def full
         @value = ::Rails.cache.write('empty-key', 50)
         render 'full'
+      end
+
+      def partial
+        render 'template_with_partial'
       end
 
       def error
@@ -83,7 +93,7 @@ RSpec.describe 'Rails Rack' do
   let(:controller_span) { spans[1] }
 
   context 'with a full request' do
-    subject { get '/full' }
+    subject(:response) { get '/full' }
 
     it 'traces request' do
       is_expected.to be_ok
@@ -99,18 +109,23 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.url')).to eq('/full')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')
+      expect(request_span).to be_measured
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.span_type).to eq('web')
       expect(controller_span.resource).to eq('TestController#full')
       expect(controller_span.get_tag('rails.route.action')).to eq('full')
       expect(controller_span.get_tag('rails.route.controller')).to eq('TestController')
+      expect(controller_span).to be_measured
 
       expect(render_span.name).to eq('rails.render_template')
       expect(render_span.span_type).to eq('template')
       expect(render_span.service).to eq(Datadog.configuration[:rails][:service_name])
       expect(render_span.resource).to eq('full.html.erb')
       expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
+      expect(render_span.get_tag('rails.layout')).to eq('layouts/application') if Rails.version >= '3.2.22.5'
+      expect(render_span.get_tag('rails.layout')).to include('layouts/application')
+      expect(render_span).to be_measured
 
       expect(cache_span.name).to eq('rails.cache')
       expect(cache_span.span_type).to eq('cache')
@@ -118,6 +133,65 @@ RSpec.describe 'Rails Rack' do
       expect(cache_span.service).to eq("#{app_name}-cache")
       expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(cache_span.get_tag('rails.cache.key')).to eq('empty-key')
+      expect(cache_span).to_not be_measured
+    end
+
+    it 'tracing does not affect response body' do
+      expect(response.body).to eq('Test template content')
+    end
+
+    context 'without explicit layout' do
+      # Most users of Rails do not explicitly specify a controller layout
+      let(:layout) { nil }
+
+      it do
+        is_expected.to be_ok
+        expect(spans).to have(4).items
+
+        # Spans are sorted alphabetically
+        _request_span, _controller_span, _cache_span, render_span = spans
+
+        expect(render_span.resource).to eq('full.html.erb') if Rails.version >= '3.2.22.5'
+        expect(render_span.resource).to include('full.html')
+        expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb') if Rails.version >= '3.2.22.5'
+        expect(render_span.get_tag('rails.template_name')).to include('full.html')
+        expect(render_span.get_tag('rails.layout')).to be_nil
+      end
+    end
+  end
+
+  context 'with a partial templates' do
+    subject(:response) { get '/partial' }
+
+    it do
+      is_expected.to be_ok
+      expect(spans).to have(5).items
+
+      _rack_span, _controller_span, inner_partial_span, outer_partial_span, template_span = spans
+
+      expect(outer_partial_span.name).to eq('rails.render_partial')
+      expect(outer_partial_span.span_type).to eq('template')
+      expect(outer_partial_span.resource).to eq('_outer_partial.html.erb')
+      if Rails.version >= '3.2.22.5'
+        expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb')
+      end
+      expect(outer_partial_span.get_tag('rails.template_name')).to include('_outer_partial.html')
+      expect(outer_partial_span).to be_measured
+      expect(outer_partial_span.parent).to eq(template_span)
+
+      expect(inner_partial_span.name).to eq('rails.render_partial')
+      expect(inner_partial_span.span_type).to eq('template')
+      expect(inner_partial_span.resource).to eq('_inner_partial.html.erb')
+      if Rails.version >= '3.2.22.5'
+        expect(inner_partial_span.get_tag('rails.template_name')).to eq('_inner_partial.html.erb')
+      end
+      expect(inner_partial_span.get_tag('rails.template_name')).to include('_inner_partial.html')
+      expect(inner_partial_span).to be_measured
+      expect(inner_partial_span.parent).to eq(outer_partial_span)
+    end
+
+    it 'tracing does not affect response body' do
+      expect(response.body).to eq('Template with a partial inside a partial')
     end
   end
 
@@ -253,9 +327,16 @@ RSpec.describe 'Rails Rack' do
     it 'has ActionView error tags' do
       is_expected.to be_server_error
 
-      expect(spans).to have_at_least(3).items
-      request_span = spans.first
-      render_span = spans.last
+      if Gem::Version.new(Rails::VERSION::STRING) < Gem::Version.new('3.2')
+        expect(spans).to have(5).items
+
+        # Rails 3.0 has an intermediate internal template file,
+        # `_request_and_response.erb`, to handle exceptions.
+        request_span, controller_span, partial_span, __request_and_response_span, render_span = spans
+      else
+        expect(spans).to have(4).items
+        request_span, controller_span, partial_span, render_span = spans
+      end
 
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::Template::Error')
@@ -263,8 +344,16 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_message
       expect(request_span.resource).to_not eq(render_span.resource)
 
+      expect(controller_span).to have_error
+      expect(controller_span).to have_error_type('ActionView::Template::Error')
+      expect(controller_span).to have_error_stack
+      expect(controller_span).to have_error_message
+
       expect(render_span).to have_error
       expect(render_span).to have_error_type('ActionView::Template::Error')
+
+      expect(partial_span).to have_error
+      expect(partial_span).to have_error_type('ActionView::Template::Error')
     end
   end
 end

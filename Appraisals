@@ -10,104 +10,6 @@ end
 
 if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
   raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
-elsif Gem::Version.new('2.0.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-  if RUBY_PLATFORM != 'java'
-    appraise 'rails30-postgres' do
-      gem 'test-unit'
-      gem 'rails', '3.0.20'
-      gem 'pg', '0.15.1', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'rack-cache', '1.7.1'
-      gem 'lograge', '< 0.4'
-    end
-
-    appraise 'rails30-postgres-sidekiq' do
-      gem 'test-unit'
-      gem 'rails', '3.0.20'
-      gem 'pg', '0.15.1', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'sidekiq', '4.0.0'
-      gem 'rack-cache', '1.7.1'
-      gem 'lograge', '< 0.4'
-    end
-
-    appraise 'rails32-mysql2' do
-      gem 'test-unit'
-      gem 'rails', '3.2.22.5'
-      gem 'mysql2', '0.3.21', platform: :ruby
-      gem 'activerecord-mysql-adapter', platform: :ruby
-      gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-      gem 'rack-cache', '1.7.1'
-      gem 'sqlite3', '~> 1.3.5'
-      gem 'lograge', '< 0.4'
-    end
-
-    appraise 'rails32-postgres' do
-      gem 'test-unit'
-      gem 'rails', '3.2.22.5'
-      gem 'pg', '0.15.1', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'rack-cache', '1.7.1'
-      gem 'lograge', '< 0.4'
-    end
-
-    appraise 'rails32-postgres-redis' do
-      gem 'test-unit'
-      gem 'rails', '3.2.22.5'
-      gem 'pg', '0.15.1', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'redis-rails'
-      gem 'redis', '< 4.0'
-      gem 'rack-cache', '1.7.1'
-      gem 'lograge', '< 0.4'
-    end
-
-    appraise 'rails32-postgres-sidekiq' do
-      gem 'test-unit'
-      gem 'rails', '3.2.22.5'
-      gem 'pg', '0.15.1', platform: :ruby
-      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'sidekiq', '4.0.0'
-      gem 'rack-cache', '1.7.1'
-      gem 'lograge', '< 0.4'
-    end
-
-    appraise 'contrib-old' do
-      gem 'active_model_serializers', '~> 0.9.0'
-      gem 'activerecord', '3.2.22.5'
-      gem 'activerecord-mysql-adapter', platform: :ruby
-      gem 'aws-sdk', '~> 2.0'
-      gem 'concurrent-ruby'
-      gem 'dalli'
-      gem 'delayed_job'
-      gem 'delayed_job_active_record'
-      gem 'elasticsearch-transport'
-      gem 'ethon'
-      gem 'excon'
-      gem 'hiredis'
-      gem 'http'
-      gem 'httpclient'
-      gem 'mongo', '< 2.5'
-      gem 'mysql2', '0.3.21', platform: :ruby
-      gem 'pg', '< 1.0', platform: :ruby
-      gem 'rack', '1.4.7'
-      gem 'rack-cache', '1.7.1'
-      gem 'rack-test', '0.7.0'
-      gem 'rake', '< 12.3'
-      gem 'redis', '< 4.0'
-      gem 'rest-client'
-      gem 'resque', '< 2.0'
-      gem 'rspec', '>= 3.0.0'
-      gem 'sequel', '~> 4.0', '< 4.37'
-      gem 'sidekiq', '~> 3.5.4'
-      gem 'sinatra', '1.4.5'
-      gem 'sqlite3', '~> 1.3.6'
-      gem 'sucker_punch'
-      gem 'timers', '< 4.2'
-      gem 'typhoeus'
-    end
-  end
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
   if RUBY_PLATFORM != 'java'
@@ -139,6 +41,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'rack-cache', '1.7.1'
       gem 'sqlite3', '~> 1.3.5'
       gem 'lograge', '< 0.4'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     end
 
     appraise 'rails32-postgres' do
@@ -213,6 +116,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
       gem 'pg', '< 1.0', platform: :ruby
@@ -233,6 +137,10 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'timers', '< 4.2'
       gem 'typhoeus'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -339,6 +247,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres' do
@@ -346,6 +255,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres-redis' do
@@ -354,6 +264,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres-redis-activesupport' do
@@ -362,6 +273,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'rails5-postgres-sidekiq' do
@@ -371,6 +283,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'activejob'
       gem 'sprockets', '< 4'
       gem 'lograge'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
     appraise 'contrib' do
@@ -391,10 +304,11 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'faraday'
       gem 'grape'
       gem 'graphql', '>= 1.12.0'
-      gem 'grpc', '~> 1.21.0' # Last version to support Ruby < 2.3
+      gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'qless'
@@ -416,6 +330,10 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0.beta2'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -589,6 +507,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
@@ -616,6 +535,10 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -694,6 +617,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
@@ -721,6 +645,10 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -895,13 +823,14 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'http'
     gem 'httpclient'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'makara'
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
     gem 'presto-client', '>=  0.5.14'
-    gem 'qless'
+    gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-test'
@@ -925,6 +854,10 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+  end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
   end
 elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
@@ -1070,6 +1003,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
@@ -1097,6 +1031,10 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -1246,6 +1184,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
@@ -1273,6 +1212,10 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+    end
+
+    appraise 'core-old' do
+      gem 'dogstatsd-ruby', '~> 4'
     end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
@@ -1334,10 +1277,11 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'excon'
     gem 'grape'
     gem 'graphql', '>= 1.12.0'
-    # gem 'grpc' # Pending 3.0 support by transient protobuf dependency https://github.com/protocolbuffers/protobuf/issues/7922
+    gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
     gem 'hiredis'
     gem 'http'
     gem 'httpclient'
+    gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
@@ -1362,4 +1306,18 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
   end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
+  end
+end
+
+ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
+                 "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
+               else
+                 "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
+               end
+
+appraisals.each do |appraisal|
+  appraisal.name.prepend("#{ruby_runtime}-")
 end
