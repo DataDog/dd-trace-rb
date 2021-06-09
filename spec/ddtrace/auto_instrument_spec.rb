@@ -111,6 +111,8 @@ RSpec.describe 'Profiler startup' do
   end
 
   it 'starts the profiler' do
+    skip 'Profiler not supported on JRuby' if PlatformHelpers.jruby?
+
     profiler = instance_double(Datadog::Profiler)
 
     expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
