@@ -1,4 +1,4 @@
-name: Test with unstable Ruby VMs
+name: Test with Ruby unstable
 on: [push]
 jobs:
   test:
@@ -7,6 +7,7 @@ jobs:
       matrix:
         ruby: [head, jruby-head, truffleruby-head]
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v2
       - uses: ruby/setup-ruby@77ca66ce2792fb05b8b204a203328e12593a64f3 # v1.72.1
