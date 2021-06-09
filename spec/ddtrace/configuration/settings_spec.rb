@@ -888,6 +888,32 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
+  describe '#service_without_fallback' do
+    subject(:service_without_fallback) { settings.service_without_fallback }
+
+    context 'when no service name is configured' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => nil) do
+          example.run
+        end
+      end
+
+      it { is_expected.to be nil }
+    end
+
+    context 'when a service name is configured' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'test_service_name') do
+          example.run
+        end
+      end
+
+      it 'returns the service name' do
+        is_expected.to eq 'test_service_name'
+      end
+    end
+  end
+
   describe '#site' do
     subject(:site) { settings.site }
 
