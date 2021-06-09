@@ -73,6 +73,31 @@ module Datadog
         def build_profiler(settings, agent_settings)
           return unless Datadog::Profiling.supported? && settings.profiling.enabled
 
+          unless defined?(Datadog::Profiling::Tasks::Setup)
+            # In #1545 a user reported a NameError due to this constant being uninitialized
+            # I've documented my suspicion on why that happened in
+            # https://github.com/DataDog/dd-trace-rb/issues/1545#issuecomment-856049025
+            #
+            # > Thanks for the info! It seems to feed into my theory: there's two moments in the code where we check if
+            # > profiler is "supported": 1) when loading ddtrace (inside preload) and 2) when starting the profile
+            # > after Datadog.configure gets run.
+            # > The problem is that the code assumes that both checks 1) and 2) will always reach the same conclusion:
+            # > either profiler is supported, or profiler is not supported.
+            # > In the problematic case, it looks like in your case check 1 decides that profiler is not
+            # > supported => doesn't load it, and then check 2 decides that it is => assumes it is loaded and tries to
+            # > start it.
+            #
+            # I was never able to validate if this was the issue or why exactly .supported? would change its mind BUT
+            # just in case it happens again, I've left this check which avoids breaking the user's application AND
+            # would instead direct them to report it to us instead, so that we can investigate what's wrong.
+            Datadog.logger.error(
+              'Profiling was marked as supported and enabled, but setup task was not loaded properly. ' \
+              'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
+            )
+
+            return
+          end
+
           # Load extensions needed to support some of the Profiling features
           Datadog::Profiling::Tasks::Setup.new.run
 
