@@ -102,3 +102,28 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
     end
   end
 end
+
+RSpec.describe 'Profiler startup' do
+  subject(:auto_instrument) { load 'ddtrace/auto_instrument.rb' }
+
+  before do
+    allow(Datadog).to receive(:add_auto_instrument)
+  end
+
+  it 'starts the profiler' do
+    profiler = instance_double(Datadog::Profiler)
+
+    expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
+    expect(profiler).to receive(:start)
+
+    auto_instrument
+  end
+
+  context 'when the profiler is not available' do
+    it 'does not raise any error' do
+      expect(Datadog).to receive(:profiler).and_return(nil)
+
+      auto_instrument
+    end
+  end
+end
