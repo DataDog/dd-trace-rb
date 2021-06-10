@@ -199,7 +199,7 @@ RSpec.describe Datadog::Span do
     let(:duration_wall_time) { 0.0001 }
 
     context 'without start or end time provided' do
-      let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
+      let(:static_time) { Time.utc(2010, 9, 15, 22, 3, 15) }
 
       before do
         # We set the same time no matter what.
