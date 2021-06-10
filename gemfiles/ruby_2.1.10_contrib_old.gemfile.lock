@@ -8,6 +8,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    actionpack (1.4.0)
     active_model_serializers (0.9.8)
       activemodel (>= 3.2)
       concurrent-ruby (~> 1.0)
@@ -116,6 +117,9 @@ GEM
       concurrent-ruby (~> 1.0)
     jmespath (1.4.0)
     json (1.8.6)
+    lograge (0.2.0)
+      actionpack
+      activesupport
     makara (0.4.1)
       activerecord (>= 3.0.0)
     memory_profiler (0.9.12)
@@ -262,6 +266,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
+  lograge
   makara (< 0.5.0)
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)

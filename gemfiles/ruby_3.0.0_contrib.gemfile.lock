@@ -1254,6 +1254,9 @@ GEM
       concurrent-ruby (~> 1.0)
     jmespath (1.4.0)
     jsonapi-renderer (0.2.2)
+    lograge (0.2.0)
+      actionpack
+      activesupport
     loofah (2.9.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
@@ -1490,6 +1493,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
+  lograge
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)
