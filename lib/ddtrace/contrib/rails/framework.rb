@@ -47,7 +47,7 @@ module Datadog
             activate_action_pack!(datadog_config, rails_config)
             activate_action_view!(datadog_config, rails_config)
             activate_active_record!(datadog_config, rails_config)
-            activate_lograge(datadog_config, rails_config)
+            activate_lograge!(datadog_config, rails_config)
           end
         end
 
@@ -121,7 +121,7 @@ module Datadog
           )
         end
 
-        def self.activate_lograge(datadog_config, rails_config)
+        def self.activate_lograge!(datadog_config, rails_config)
           return unless defined?(::Lograge)
 
           if rails_config[:log_injection]
@@ -129,9 +129,6 @@ module Datadog
               :lograge
             )
           end
-        rescue StandardError => e
-          # TODO: can we use Datadog.logger at this point?
-          Datadog.logger.warn("Unable to add Datadog Trace context to Lograge: #{e.message} #{e.backtrace}")
         end
       end
     end
