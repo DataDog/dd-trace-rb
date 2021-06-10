@@ -18,7 +18,7 @@ module Datadog
         end
 
         def self.loaded?
-          !defined?(::Lograge).nil?
+          !defined?(::Lograge::LogSubscribers::Base).nil?
         end
 
         def self.compatible?

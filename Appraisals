@@ -116,6 +116,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'lograge'
       gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '< 2.5'
       gem 'mysql2', '0.3.21', platform: :ruby
@@ -308,6 +309,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'lograge'
       gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
@@ -507,6 +509,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'lograge'
       gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
@@ -617,6 +620,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'lograge'
       gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 0.5', platform: :ruby
@@ -822,6 +826,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'hiredis'
     gem 'http'
     gem 'httpclient'
+    gem 'lograge'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
     gem 'makara'
     gem 'mongo', '>= 2.8.0'
@@ -1003,6 +1008,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'lograge'
       gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
@@ -1184,6 +1190,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'hiredis'
       gem 'http'
       gem 'httpclient'
+      gem 'lograge'
       gem 'makara'
       gem 'mongo', '>= 2.8.0'
       gem 'mysql2', '< 1', platform: :ruby
@@ -1281,6 +1288,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'hiredis'
     gem 'http'
     gem 'httpclient'
+    gem 'lograge'
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '>= 0.5.3', platform: :ruby

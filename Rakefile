@@ -111,6 +111,7 @@ namespace :spec do
     :httpclient,
     :httprb,
     :kafka,
+    :lograge,
     :mongodb,
     :mysql2,
     :presto,
@@ -249,6 +250,7 @@ task :ci do
     declare 'bundle exec appraisal contrib-old rake spec:http'
     declare 'bundle exec appraisal contrib-old rake spec:httpclient'
     declare 'bundle exec appraisal contrib-old rake spec:httprb'
+    declare 'bundle exec appraisal contrib-old rake spec:lograge'
     declare 'bundle exec appraisal contrib-old rake spec:kafka'
     declare 'bundle exec appraisal contrib-old rake spec:mongodb'
     declare 'bundle exec appraisal contrib-old rake spec:mysql2'
@@ -320,6 +322,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -401,6 +404,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -488,6 +492,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -561,6 +566,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
@@ -657,6 +663,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -755,6 +762,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -850,6 +858,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'

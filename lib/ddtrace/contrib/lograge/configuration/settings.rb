@@ -3,7 +3,7 @@ require 'ddtrace/contrib/lograge/ext'
 
 module Datadog
   module Contrib
-    module Logragge
+    module Lograge
       module Configuration
         # Custom settings for the Lograge integration
         class Settings < Contrib::Configuration::Settings
