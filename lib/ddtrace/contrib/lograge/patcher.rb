@@ -25,11 +25,7 @@ module Datadog
         # patch applies our patch
         def patch
           PATCH_ONLY_ONCE.run do
-            begin
-              ::Lograge::LogSubscribers::Base.include(Instrumentation)
-            rescue StandardError => e
-              Datadog::Logger.error("Unable to apply lograge integration: #{e}")
-            end
+            ::Lograge::LogSubscribers::Base.include(Instrumentation)
           end
         end
       end
