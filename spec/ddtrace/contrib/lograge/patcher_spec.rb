@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'lograge'
+require 'ddtrace/contrib/lograge/patcher'
 
 RSpec.describe Datadog::Contrib::Lograge::Patcher do
   describe '.patch' do
