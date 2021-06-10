@@ -90,6 +90,10 @@ module Datadog
             # I was never able to validate if this was the issue or why exactly .supported? would change its mind BUT
             # just in case it happens again, I've left this check which avoids breaking the user's application AND
             # would instead direct them to report it to us instead, so that we can investigate what's wrong.
+            #
+            # TODO: As of June 2021, most checks in .supported? are related to the google-protobuf gem; so it's
+            # very likely that it was the origin of the issue we saw. Thus, if, as planned we end up moving away from
+            # protobuf OR enough time has passed and no users saw the issue again, we can remove this check altogether.
             Datadog.logger.error(
               'Profiling was marked as supported and enabled, but setup task was not loaded properly. ' \
               'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
