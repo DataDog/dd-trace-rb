@@ -18,7 +18,7 @@ module Datadog
         module ClassMethods
           def subscription(*args)
             super.tap do |subscription|
-              subscription.before_trace { ensure_clean_context! }
+              subscription.before_trace { Contrib::Support.ensure_finished_context!(configuration[:tracer], Ext::APP) }
             end
           end
 
@@ -56,18 +56,6 @@ module Datadog
             span.set_tag(Ext::TAG_FIRST_OFFSET, payload[:first_offset]) if payload.key?(:first_offset)
             span.set_tag(Ext::TAG_MESSAGE_COUNT, payload[:message_count]) if payload.key?(:message_count)
             span.set_error(payload[:exception_object]) if payload[:exception_object]
-          end
-
-          private
-
-          # Context objects are thread-bound.
-          # If Racecar re-uses threads, context from a previous trace
-          # could leak into the new trace. This "cleans" current context,
-          # preventing such a leak.
-          def ensure_clean_context!
-            return unless configuration[:tracer].call_context.current_span
-
-            configuration[:tracer].provider.context = Context.new
           end
         end
       end

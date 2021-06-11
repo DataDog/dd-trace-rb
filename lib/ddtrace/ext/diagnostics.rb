@@ -28,6 +28,7 @@ module Datadog
           METRIC_TRACES_FILTERED = 'datadog.tracer.traces.filtered'.freeze
           METRIC_TRANSPORT_CHUNKED = 'datadog.tracer.transport.chunked'.freeze
           METRIC_TRANSPORT_TRACE_TOO_LARGE = 'datadog.tracer.transport.trace_too_large'.freeze
+          METRIC_UNFINISHED_CONTEXT = 'datadog.tracer.unfinished_context'.freeze
           METRIC_WRITER_CPU_TIME = 'datadog.tracer.writer.cpu_time'.freeze
         end
       end

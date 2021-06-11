@@ -21,6 +21,7 @@ module Datadog
         count :traces_filtered, Ext::Diagnostics::Health::Metrics::METRIC_TRACES_FILTERED
         count :transport_trace_too_large, Ext::Diagnostics::Health::Metrics::METRIC_TRANSPORT_TRACE_TOO_LARGE
         count :transport_chunked, Ext::Diagnostics::Health::Metrics::METRIC_TRANSPORT_CHUNKED
+        count :unfinished_context, Ext::Diagnostics::Health::Metrics::METRIC_UNFINISHED_CONTEXT
         count :writer_cpu_time, Ext::Diagnostics::Health::Metrics::METRIC_WRITER_CPU_TIME
 
         gauge :queue_length, Ext::Diagnostics::Health::Metrics::METRIC_QUEUE_LENGTH
