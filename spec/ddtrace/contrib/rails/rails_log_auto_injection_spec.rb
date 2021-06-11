@@ -1,6 +1,4 @@
 require 'ddtrace/contrib/rails/rails_helper'
-# for log_injection testing
-require 'lograge'
 
 RSpec.describe 'Rails Log Auto Injection' do
   include Rack::Test::Methods
@@ -90,6 +88,8 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     if Rails.version >= '4.0'
+      # for log_injection testing
+      require 'lograge'
       context 'with Lograge' do
         subject(:response) { get '/lograge' }
 
