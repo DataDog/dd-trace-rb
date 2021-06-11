@@ -388,7 +388,7 @@ jobs:
     docker:
       - environment:
           *container_base_environment
-        image: marcotc/docker-library:ddtrace_rb_2_5_6
+        image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     steps:
       - checkout
       - run:
@@ -409,7 +409,7 @@ jobs:
     docker:
       - environment:
           *container_base_environment
-        image: marcotc/docker-library:ddtrace_rb_2_5_6
+        image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     steps:
       - run:
           name: Check if this commit author has publishing credentials
@@ -463,7 +463,7 @@ job_configuration:
   - &config-2_5
     <<: *filters_all_branches_and_tags
     ruby_version: '2.5'
-    image: marcotc/docker-library:ddtrace_rb_2_5_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
   - &config-2_6
     <<: *filters_all_branches_and_tags
     ruby_version: '2.6'
