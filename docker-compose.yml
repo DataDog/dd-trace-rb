@@ -240,7 +240,7 @@ services:
       - bundle-3.0:/usr/local/bundle
   # JRuby
   tracer-jruby-9.2.0.0:
-    image: marcotc/docker-library:ddtrace_rb_jruby_9_2_0_0
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
     command: /bin/bash
     depends_on:
       - ddagent
