@@ -137,6 +137,7 @@ RSpec.describe Datadog::ThreadLocalContext do
       subject(:local) { thread_local_context.local(thread) }
 
       let(:thread) { Thread.new {} }
+      after { thread.join }
 
       it 'retrieves the context for the provided thread' do
         is_expected.to be_a_kind_of(Datadog::Context)

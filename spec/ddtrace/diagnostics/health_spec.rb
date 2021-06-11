@@ -4,6 +4,7 @@ require 'ddtrace/diagnostics/health'
 
 RSpec.describe Datadog::Diagnostics::Health::Metrics do
   subject(:health_metrics) { described_class.new }
+  after { health_metrics.close }
 
   shared_examples_for 'a health metric' do |type, name, stat|
     subject(:health_metric) { health_metrics.send(name, *args, &block) }
