@@ -250,7 +250,6 @@ task :ci do
     declare 'bundle exec appraisal contrib-old rake spec:http'
     declare 'bundle exec appraisal contrib-old rake spec:httpclient'
     declare 'bundle exec appraisal contrib-old rake spec:httprb'
-    declare 'bundle exec appraisal contrib-old rake spec:lograge'
     declare 'bundle exec appraisal contrib-old rake spec:kafka'
     declare 'bundle exec appraisal contrib-old rake spec:mongodb'
     declare 'bundle exec appraisal contrib-old rake spec:mysql2'
