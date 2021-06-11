@@ -39,6 +39,6 @@ gem "pg", "< 1.0", platform: :ruby
 gem "sidekiq"
 gem "activejob"
 gem "sprockets", "< 4"
-gem "lograge"
+gem "lograge", "~> 0.11"
 
 gemspec path: "../"

@@ -53,7 +53,6 @@ gem "grpc", ">= 1.38.0"
 gem "hiredis"
 gem "http"
 gem "httpclient"
-gem "lograge"
 gem "makara", ">= 0.6.0.pre"
 gem "mongo", ">= 2.8.0"
 gem "mysql2", ">= 0.5.3", platform: :ruby

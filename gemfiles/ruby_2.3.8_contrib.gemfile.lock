@@ -1427,7 +1427,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
-  lograge
+  lograge (~> 0.11)
   makara
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)

@@ -858,7 +858,8 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
-      declare 'bundle exec appraisal contrib rake spec:lograge'
+      # lograge nested dependancy thor ~> 1.0 conflicts w/qless dependancy thor ~> 0.19.1
+      # declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'

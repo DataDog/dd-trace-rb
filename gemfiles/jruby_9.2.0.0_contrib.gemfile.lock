@@ -1484,7 +1484,7 @@ DEPENDENCIES
   httpclient
   i18n (= 1.8.7)
   jdbc-sqlite3 (>= 3.28)
-  lograge
+  lograge (~> 0.11)
   makara
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)

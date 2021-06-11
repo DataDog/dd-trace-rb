@@ -35,6 +35,5 @@ gem "pg", "0.15.1", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "sidekiq", "4.0.0"
 gem "rack-cache", "1.7.1"
-gem "lograge", "< 0.4"
 
 gemspec path: "../"
