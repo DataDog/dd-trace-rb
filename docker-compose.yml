@@ -32,7 +32,7 @@ services:
       - .:/app
       - bundle-2.1:/usr/local/bundle
   tracer-2.2:
-    image: palazzem/docker-library:ddtrace_rb_2_2_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
     depends_on:
       - ddagent
