@@ -31,6 +31,7 @@ module Datadog
           option :error_handler, default: DEFAULT_ERROR_HANDLER
           option :service_name, default: Ext::SERVICE_NAME
           option :split_by_domain, default: false
+          option :ruby_http_client_resource_quantize, default: false
         end
       end
     end

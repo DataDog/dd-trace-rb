@@ -29,7 +29,7 @@ module Datadog
         end
 
         # InstanceMethods - implementing instrumentation
-        module InstanceMethods
+        module InstanceMethods # rubocop:disable Metrics/ModuleLength
           include Datadog::Contrib::HttpAnnotationHelper
 
           # :yield: +response+
@@ -49,8 +49,15 @@ module Datadog
                 request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
-                span.resource = req.method
 
+                host, = host_and_port(req)
+                span.resource = resource_name(
+                  req.method,
+                  host,
+                  req.path,
+                  request_options[:ruby_http_client_resource_quantize],
+                  request_options[:ruby_http_client_resource_quantize]
+                )
                 if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
@@ -58,7 +65,7 @@ module Datadog
                 # Add additional request specific tags to the span.
                 annotate_span_with_request!(span, req, request_options)
               rescue StandardError => e
-                Datadog.logger.error("error preparing span for http request: #{e}")
+                Datadog.logger.error("error preparing span for http request: #{e.message}")
               ensure
                 response = super(req, body, &block)
               end

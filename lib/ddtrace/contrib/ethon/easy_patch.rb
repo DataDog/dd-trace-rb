@@ -15,7 +15,7 @@ module Datadog
         end
 
         # InstanceMethods - implementing instrumentation
-        module InstanceMethods
+        module InstanceMethods # rubocop:disable Metrics/ModuleLength
           include Datadog::Contrib::HttpAnnotationHelper
 
           def http_request(url, action_name, options = {})
@@ -111,6 +111,12 @@ module Datadog
 
             this_uri = uri
             return unless this_uri
+
+            span.resource = resource_name(method,
+                                          this_uri.host,
+                                          this_uri.path,
+                                          datadog_configuration[:ruby_http_client_resource_quantize],
+                                          datadog_configuration[:ruby_http_client_resource_quantize])
 
             span.set_tag(Datadog::Ext::HTTP::URL, this_uri.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
