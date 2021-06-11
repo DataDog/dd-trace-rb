@@ -1,5 +1,7 @@
-# Current version: https://github.com/docker-library/ruby/blob/802421922ef50cfa05c89a3c619992acf4329986/2.4/jessie/Dockerfile
-FROM ruby:2.4.6
+# https://hub.docker.com/layers/ruby/library/ruby/2.4.10-stretch/images/sha256-e932ae985bce29c1e1b845332af331fbc7b2cc9a7cb5477b1727f665c78aba0a
+# NOTE: There are images with the newer debian version 10 (2.4.10-buster) but they broke the sequel gem due to a missing shared library,
+# so I decided to stay with debian 9 "stretch"
+FROM ruby@sha256:e932ae985bce29c1e1b845332af331fbc7b2cc9a7cb5477b1727f665c78aba0a
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
