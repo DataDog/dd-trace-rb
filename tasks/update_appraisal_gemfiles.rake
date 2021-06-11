@@ -1,5 +1,5 @@
-desc 'update gemfiles/ and .lock files based on Appraisals'
-task :'update_appraisals' do
+desc 'update gemfiles/*.gemfile and gemfiles/*.lock files based on Appraisals'
+task :'update_appraisal_gemfiles' do
   sh "docker-compose run --rm tracer-2.1 /bin/bash -c 'rm -f Gemfile.lock && bundle install && bundle exec appraisal install'"
   sh "docker-compose run --rm tracer-2.2 /bin/bash -c 'rm -f Gemfile.lock && bundle install && bundle exec appraisal install'"
   sh "docker-compose run --rm tracer-2.3 /bin/bash -c 'rm -f Gemfile.lock && bundle install && bundle exec appraisal install'"
