@@ -1,5 +1,5 @@
-# Current version: https://github.com/docker-library/ruby/blob/6a7df7a72b4a3d1b3e06ead303841b3fdaca560e/2.6/buster/Dockerfile
-FROM ruby:2.6.4
+# https://hub.docker.com/layers/ruby/library/ruby/2.6.7-buster/images/sha256-88239eaf531f72ca1f641379393228acd399d7db01bee5d566b79276406b4fc6
+FROM ruby@sha256:88239eaf531f72ca1f641379393228acd399d7db01bee5d566b79276406b4fc6
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
