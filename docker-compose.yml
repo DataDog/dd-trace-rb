@@ -2,7 +2,7 @@ version: '3.2'
 services:
   # MRI
   tracer-2.1:
-    image: palazzem/docker-library:ddtrace_rb_2_1_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
     command: /bin/bash
     depends_on:
       - ddagent

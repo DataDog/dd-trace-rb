@@ -447,7 +447,7 @@ job_configuration:
   - &config-2_1
     <<: *filters_all_branches_and_tags
     ruby_version: '2.1'
-    image: palazzem/docker-library:ddtrace_rb_2_1_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
   - &config-2_2
     <<: *filters_all_branches_and_tags
     ruby_version: '2.2'
