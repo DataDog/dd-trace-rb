@@ -1,5 +1,5 @@
-# https://hub.docker.com/layers/ruby/library/ruby/3.0.0/images/sha256-9719b7df964602b114a5e9319bd0a3ce2d4d44ccb7ea4d1702fa1ef9742a8f84
-FROM ruby@sha256:9719b7df964602b114a5e9319bd0a3ce2d4d44ccb7ea4d1702fa1ef9742a8f84
+# https://hub.docker.com/layers/ruby/library/ruby/3.0.1-buster/images/sha256-d5c828809239010c8549eeaf1f6da84f67bee7f61353e6a4a52159bf3f397aa6
+FROM ruby@sha256:d5c828809239010c8549eeaf1f6da84f67bee7f61353e6a4a52159bf3f397aa6
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \

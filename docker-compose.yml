@@ -212,7 +212,7 @@ services:
       - .:/app
       - bundle-2.7:/usr/local/bundle
   tracer-3.0:
-    image: marcotc/docker-library:ddtrace_rb_3.0.0
+    image: ivoanjo/docker-library:ddtrace_rb_3_0_1
     command: /bin/bash
     depends_on:
       - ddagent
