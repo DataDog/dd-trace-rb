@@ -116,7 +116,7 @@ module Datadog
       @metrics.delete(key)
 
       # DEV: This is necessary because the agent looks at `meta[key]`, not `metrics[key]`.
-      value = value.to_s if ENSURE_AGENT_TAGS.key?(key)
+      value = value.to_s if ENSURE_AGENT_TAGS[key]
 
       # NOTE: Adding numeric tags as metrics is stop-gap support
       #       for numeric typed tags. Eventually they will become
