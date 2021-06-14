@@ -119,8 +119,8 @@ module Datadog
 
         def build_tracer_tags(settings)
           settings.tags.dup.tap do |tags|
-            tags['env'] = settings.env unless settings.env.nil?
-            tags['version'] = settings.version unless settings.version.nil?
+            tags[Ext::Environment::TAG_ENV] = settings.env unless settings.env.nil?
+            tags[Ext::Environment::TAG_VERSION] = settings.version unless settings.version.nil?
           end
         end
 

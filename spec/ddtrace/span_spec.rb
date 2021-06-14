@@ -425,9 +425,30 @@ RSpec.describe Datadog::Span do
       end
     end
 
+    context 'given _dd.hostname' do
+      let(:key) { '_dd.hostname' }
+      let(:value) { 1 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given _dd.origin' do
+      let(:key) { '_dd.origin' }
+      let(:value) { 2 }
+
+      it_behaves_like 'meta tag'
+    end
+
     context 'given http.status_code' do
       let(:key) { 'http.status_code' }
       let(:value) { 200 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given version' do
+      let(:key) { 'version' }
+      let(:value) { 3 }
 
       it_behaves_like 'meta tag'
     end

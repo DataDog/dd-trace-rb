@@ -2,7 +2,10 @@
 
 require 'time'
 require 'ddtrace/utils'
+require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/errors'
+require 'ddtrace/ext/http'
+require 'ddtrace/ext/net'
 require 'ddtrace/ext/priority'
 require 'ddtrace/environment'
 require 'ddtrace/analytics'
@@ -37,6 +40,17 @@ module Datadog
 
     # This limit is for numeric tags because uint64 could end up rounded.
     NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
+
+    # Some associated values should always be sent as Tags, never as Metrics, regardless
+    # if their value is numeric or not.
+    # The Datadog agent will look for these values only as Tags, not Metrics.
+    # @see https://github.com/DataDog/datadog-agent/blob/2ae2cdd315bcda53166dd8fa0dedcfc448087b9d/pkg/trace/stats/aggregation.go#L13-L17
+    ENSURE_AGENT_TAGS = {
+      Ext::DistributedTracing::ORIGIN_KEY => true,
+      Ext::Environment::TAG_VERSION => true,
+      Ext::HTTP::STATUS_CODE => true,
+      Ext::NET::TAG_HOSTNAME => true
+    }.freeze
 
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,
@@ -101,11 +115,8 @@ module Datadog
       # Keys must be unique between tags and metrics
       @metrics.delete(key)
 
-      # Ensure `http.status_code` is always a string so it is added to
-      #   @meta instead of @metrics
-      # DEV: This is necessary because the agent looks to `meta['http.status_code']` for
-      #   tagging necessary metrics
-      value = value.to_s if key == Ext::HTTP::STATUS_CODE
+      # DEV: This is necessary because the agent looks at `meta[key]`, not `metrics[key]`.
+      value = value.to_s if ENSURE_AGENT_TAGS[key]
 
       # NOTE: Adding numeric tags as metrics is stop-gap support
       #       for numeric typed tags. Eventually they will become
