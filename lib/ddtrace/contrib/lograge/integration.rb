@@ -25,10 +25,11 @@ module Datadog
           super && version >= MINIMUM_VERSION
         end
 
-        # enabled by rails integration so should only auto instrument
-        # if detected that it is being used without rails
+        # enabled by rails integration and has a hard dependancy on rails
+        # so can safely say this shouldn't ever be part of auto instrumentation
+        # https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lograge.gemspec#L18-L20
         def auto_instrument?
-          !Datadog::Contrib::Rails::Utils.railtie_supported?
+          false
         end
 
         def default_configuration

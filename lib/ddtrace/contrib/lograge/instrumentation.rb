@@ -29,7 +29,7 @@ module Datadog
               ddsource: ['ruby']
             }
 
-            original_custom_options.merge(datadog_trace_log_hash)
+            datadog_trace_log_hash.merge(original_custom_options)
           end
         end
       end

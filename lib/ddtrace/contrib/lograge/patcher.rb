@@ -24,9 +24,7 @@ module Datadog
 
         # patch applies our patch
         def patch
-          PATCH_ONLY_ONCE.run do
-            ::Lograge::LogSubscribers::Base.include(Instrumentation)
-          end
+          ::Lograge::LogSubscribers::Base.include(Instrumentation)
         end
       end
     end

@@ -1,4 +1,3 @@
-require 'ddtrace/contrib/auto_instrument_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/lograge/integration'
 
@@ -61,7 +60,7 @@ RSpec.describe Datadog::Contrib::Lograge::Integration do
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
 
-    it_behaves_like 'rails sub-gem auto_instrument?'
+    it { is_expected.to be false }
   end
 
   describe '#default_configuration' do
