@@ -226,8 +226,16 @@ module Datadog
 
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
+        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Runtime::FALLBACK_SERVICE_NAME) }
         o.lazy
+
+        # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
+        # nil instead so that one can do
+        # nice_service_name = Datadog.configure.service_without_fallback || nice_service_name_default
+        o.helper(:service_without_fallback) do
+          service_name = service
+          service_name unless service_name.equal?(Ext::Runtime::FALLBACK_SERVICE_NAME)
+        end
       end
 
       option :site do |o|
@@ -264,7 +272,7 @@ module Datadog
             self.version = string_tags[Ext::Environment::TAG_VERSION]
           end
 
-          if service.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
+          if service_without_fallback.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
             self.service = string_tags[Ext::Environment::TAG_SERVICE]
           end
 

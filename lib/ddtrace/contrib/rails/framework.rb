@@ -55,7 +55,7 @@ module Datadog
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
           datadog_config[:rails].tap do |config|
-            config[:service_name] ||= (Datadog.configuration.service || Utils.app_name)
+            config[:service_name] ||= (Datadog.configure.service_without_fallback || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"

@@ -1,0 +1,34 @@
+name: Test unstable
+on: [push]
+jobs:
+  test-head:
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: [head, jruby-head, truffleruby-head]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@77ca66ce2792fb05b8b204a203328e12593a64f3 # v1.72.1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+        continue-on-error: true
+      - run: bundle exec rake test:main
+        continue-on-error: true
+      - run: bundle exec rake spec:main
+        continue-on-error: true
+      - run: bundle exec rake spec:contrib
+        continue-on-error: true
+      - run: bundle exec rake spec:opentracer
+        continue-on-error: true
+      # A few contrib jobs that `ddtrace` already includes their gem in the global Gemfile.
+      # We technically don't need appraisal to run them, thus are easy candidates for early testing.
+      - run: bundle exec rake spec:rake
+        continue-on-error: true
+      - run: bundle exec rake spec:rspec
+        continue-on-error: true
+      - run: bundle exec rake spec:concurrent_ruby
+        continue-on-error: true
+      - run: bundle exec rake spec:http
+        continue-on-error: true

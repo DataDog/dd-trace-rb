@@ -388,7 +388,7 @@ jobs:
     docker:
       - environment:
           *container_base_environment
-        image: marcotc/docker-library:ddtrace_rb_2_5_6
+        image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     steps:
       - checkout
       - run:
@@ -409,7 +409,7 @@ jobs:
     docker:
       - environment:
           *container_base_environment
-        image: marcotc/docker-library:ddtrace_rb_2_5_6
+        image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     steps:
       - run:
           name: Check if this commit author has publishing credentials
@@ -447,49 +447,49 @@ job_configuration:
   - &config-2_1
     <<: *filters_all_branches_and_tags
     ruby_version: '2.1'
-    image: palazzem/docker-library:ddtrace_rb_2_1_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
   - &config-2_2
     <<: *filters_all_branches_and_tags
     ruby_version: '2.2'
-    image: palazzem/docker-library:ddtrace_rb_2_2_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
   - &config-2_3
     <<: *filters_all_branches_and_tags
     ruby_version: '2.3'
-    image: palazzem/docker-library:ddtrace_rb_2_3_8
+    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
   - &config-2_4
     <<: *filters_all_branches_and_tags
     ruby_version: '2.4'
-    image: palazzem/docker-library:ddtrace_rb_2_4_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
   - &config-2_5
     <<: *filters_all_branches_and_tags
     ruby_version: '2.5'
-    image: marcotc/docker-library:ddtrace_rb_2_5_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
   - &config-2_6
     <<: *filters_all_branches_and_tags
     ruby_version: '2.6'
-    image: marcotc/docker-library:ddtrace_rb_2_6_4
+    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
   - &config-2_7
     <<: *filters_all_branches_and_tags
     ruby_version: '2.7'
-    image: marcotc/docker-library:ddtrace_rb_2_7_0
+    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
   - &config-3_0
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
-    image: marcotc/docker-library:ddtrace_rb_3.0.0
+    image: ivoanjo/docker-library:ddtrace_rb_3_0_1
   - &config-3_0-jit
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
-    image: marcotc/docker-library:ddtrace_rb_3.0.0
+    image: ivoanjo/docker-library:ddtrace_rb_3_0_1
     jit: true
   # JRuby
   - &config-jruby-9_2_0_0 # Oldest supported version
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.0.0'
-    image: marcotc/docker-library:ddtrace_rb_jruby_9_2_0_0
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
   - &config-jruby-9_2-latest # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2-latest'
-    image: marcotc/docker-library:ddtrace_rb_jruby_9_2_11_1
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
   # TruffleRuby
   - &config-truffleruby-21_0_0
     <<: *filters_all_branches_and_tags

@@ -2,7 +2,7 @@ version: '3.2'
 services:
   # MRI
   tracer-2.1:
-    image: palazzem/docker-library:ddtrace_rb_2_1_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -32,7 +32,7 @@ services:
       - .:/app
       - bundle-2.1:/usr/local/bundle
   tracer-2.2:
-    image: palazzem/docker-library:ddtrace_rb_2_2_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -62,7 +62,7 @@ services:
       - .:/app
       - bundle-2.2:/usr/local/bundle
   tracer-2.3:
-    image: palazzem/docker-library:ddtrace_rb_2_3_8
+    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
     depends_on:
       - ddagent
@@ -92,7 +92,7 @@ services:
       - .:/app
       - bundle-2.3:/usr/local/bundle
   tracer-2.4:
-    image: palazzem/docker-library:ddtrace_rb_2_4_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -122,7 +122,7 @@ services:
       - .:/app
       - bundle-2.4:/usr/local/bundle
   tracer-2.5:
-    image: marcotc/docker-library:ddtrace_rb_2_5_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     command: /bin/bash
     depends_on:
       - ddagent
@@ -152,7 +152,7 @@ services:
       - .:/app
       - bundle-2.5:/usr/local/bundle
   tracer-2.6:
-    image: marcotc/docker-library:ddtrace_rb_2_6_4
+    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
     command: /bin/bash
     depends_on:
       - ddagent
@@ -182,7 +182,7 @@ services:
       - .:/app
       - bundle-2.6:/usr/local/bundle
   tracer-2.7:
-    image: marcotc/docker-library:ddtrace_rb_2_7_0
+    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
     command: /bin/bash
     depends_on:
       - ddagent
@@ -212,7 +212,7 @@ services:
       - .:/app
       - bundle-2.7:/usr/local/bundle
   tracer-3.0:
-    image: marcotc/docker-library:ddtrace_rb_3.0.0
+    image: ivoanjo/docker-library:ddtrace_rb_3_0_1
     command: /bin/bash
     depends_on:
       - ddagent
@@ -240,7 +240,7 @@ services:
       - bundle-3.0:/usr/local/bundle
   # JRuby
   tracer-jruby-9.2.0.0:
-    image: marcotc/docker-library:ddtrace_rb_jruby_9_2_0_0
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
     command: /bin/bash
     depends_on:
       - ddagent
@@ -270,7 +270,7 @@ services:
       - .:/app
       - bundle-jruby-9.2.0.0:/usr/local/bundle
   tracer-jruby-9.2-latest:
-    image: marcotc/docker-library:ddtrace_rb_jruby_9_2_11_1
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
     command: /bin/bash
     depends_on:
       - ddagent
