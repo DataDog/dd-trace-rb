@@ -833,19 +833,19 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => service) do
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => env_service) do
           example.run
         end
       end
 
       context 'is not defined' do
-        let(:service) { nil }
+        let(:env_service) { nil }
 
-        it { is_expected.to be nil }
+        it { is_expected.to include 'rspec' }
       end
 
       context 'is defined' do
-        let(:service) { 'service-value' }
+        let(:env_service) { 'service-value' }
 
         it { is_expected.to eq(service) }
       end
@@ -885,6 +885,32 @@ RSpec.describe Datadog::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
+    end
+  end
+
+  describe '#service_without_fallback' do
+    subject(:service_without_fallback) { settings.service_without_fallback }
+
+    context 'when no service name is configured' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => nil) do
+          example.run
+        end
+      end
+
+      it { is_expected.to be nil }
+    end
+
+    context 'when a service name is configured' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'test_service_name') do
+          example.run
+        end
+      end
+
+      it 'returns the service name' do
+        is_expected.to eq 'test_service_name'
+      end
     end
   end
 

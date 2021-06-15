@@ -14,7 +14,7 @@ module Datadog
             end
 
             option :service_name do |o|
-              o.default { Datadog.configuration.service || Ext::SERVICE_NAME }
+              o.default { Datadog.configuration.service_without_fallback || Ext::SERVICE_NAME }
               o.lazy
             end
 

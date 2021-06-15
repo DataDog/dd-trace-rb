@@ -4,8 +4,9 @@ require 'ddtrace'
 
 RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
+  let(:tracer_options) { {} }
 
-  subject(:tracer) { described_class.new(writer: writer) }
+  subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
 
   after { tracer.shutdown! }
 
@@ -39,11 +40,8 @@ RSpec.describe Datadog::Tracer do
   end
 
   describe '::new' do
-    subject(:tracer) { described_class.new(options) }
-    let(:options) { { writer: writer } }
-
     context 'given :context_flush' do
-      let(:options) { super().merge(context_flush: context_flush) }
+      let(:tracer_options) { super().merge(context_flush: context_flush) }
       let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
       it { is_expected.to have_attributes(context_flush: context_flush) }
     end
@@ -622,6 +620,23 @@ RSpec.describe Datadog::Tracer do
   describe '#trace_completed' do
     subject(:trace_completed) { tracer.trace_completed }
     it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
+  end
+
+  describe '#default_service' do
+    subject(:default_service) { tracer.default_service }
+
+    context 'when tracer is initialized with a default_service' do
+      let(:tracer_options) { { **super(), default_service: default_service_value } }
+      let(:default_service_value) { 'test_default_service' }
+
+      it { is_expected.to be default_service_value }
+    end
+
+    context 'when no default_service is provided' do
+      it 'sets the default_service based on the current ruby process name' do
+        is_expected.to include 'rspec'
+      end
+    end
   end
 end
 

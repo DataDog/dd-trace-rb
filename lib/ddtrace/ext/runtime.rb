@@ -15,6 +15,13 @@ module Datadog
       TAG_ID = 'runtime-id'.freeze
       TAG_LANG = 'language'.freeze
 
+      FALLBACK_SERVICE_NAME =
+        begin
+          File.basename($PROGRAM_NAME, '.*')
+        rescue StandardError
+          'ruby'
+        end.freeze
+
       # Metrics
       module Metrics
         ENV_ENABLED = 'DD_RUNTIME_METRICS_ENABLED'.freeze
