@@ -8,7 +8,6 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    actionpack (1.4.0)
     active_model_serializers (0.9.8)
       activemodel (>= 3.2)
       concurrent-ruby (~> 1.0)
@@ -43,7 +42,7 @@ GEM
       aws-sdk-core (= 2.11.632)
     aws-sigv4 (1.2.3)
       aws-eventstream (~> 1, >= 1.0.2)
-    benchmark-ips (2.8.4)
+    benchmark-ips (2.9.1)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
     binding_of_caller (1.0.0)
@@ -69,7 +68,7 @@ GEM
       timers (>= 4.1.1)
     climate_control (0.2.0)
     coderay (1.1.3)
-    concurrent-ruby (1.1.8)
+    concurrent-ruby (1.1.9)
     connection_pool (2.2.3)
     crack (0.4.5)
       rexml
@@ -98,7 +97,7 @@ GEM
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
     ffi (1.12.2)
-    google-protobuf (3.6.1)
+    google-protobuf (3.6.1-x86_64-linux)
     hashdiff (1.0.1)
     hiredis (0.6.3)
     hitimes (1.3.0)
@@ -117,9 +116,6 @@ GEM
       concurrent-ruby (~> 1.0)
     jmespath (1.4.0)
     json (1.8.6)
-    lograge (0.2.0)
-      actionpack
-      activesupport
     makara (0.4.1)
       activerecord (>= 3.0.0)
     memory_profiler (0.9.12)
@@ -233,7 +229,7 @@ GEM
     unf_ext (0.0.7.7)
     vegas (0.1.11)
       rack (>= 1.0.0)
-    webmock (3.12.2)
+    webmock (3.13.0)
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
@@ -266,7 +262,6 @@ DEPENDENCIES
   hiredis
   http
   httpclient
-  lograge
   makara (< 0.5.0)
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)
