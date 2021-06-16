@@ -1,6 +1,5 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/lograge/instrumentation'
-require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
@@ -10,13 +9,7 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
-        PATCH_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-
         module_function
-
-        def patched?
-          PATCH_ONLY_ONCE.ran?
-        end
 
         def target_version
           Integration.version
