@@ -36,6 +36,5 @@ gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "redis-rails"
 gem "redis", "< 4.0"
 gem "rack-cache", "1.7.1"
-gem "lograge", "< 0.4"
 
 gemspec path: "../"
