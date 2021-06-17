@@ -38,6 +38,6 @@ gem "rails", "~> 5.2.1"
 gem "pg", "< 1.0", platform: :ruby
 gem "redis", ">= 4.0.1"
 gem "sprockets", "< 4"
-gem "lograge"
+gem "lograge", "~> 0.11"
 
 gemspec path: "../"

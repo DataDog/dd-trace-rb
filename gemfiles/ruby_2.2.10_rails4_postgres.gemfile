@@ -33,6 +33,6 @@ gem "rails", "4.2.11.1"
 gem "pg", "< 1.0", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "sprockets", "< 4"
-gem "lograge"
+gem "lograge", "~> 0.11"
 
 gemspec path: "../"
