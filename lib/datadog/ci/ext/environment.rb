@@ -35,7 +35,8 @@ module Datadog
         module_function
 
         def tags(env)
-          if (_, extractor = PROVIDERS.find { |provider_env_var, _| env.key?(provider_env_var) })
+          _, extractor = PROVIDERS.find { |provider_env_var, _| env.key?(provider_env_var) }
+          if extractor
             tags = send(extractor, env)
 
             tags[Datadog::Ext::Git::TAG_TAG] = normalize_ref(tags[Datadog::Ext::Git::TAG_TAG])
