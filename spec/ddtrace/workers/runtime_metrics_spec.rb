@@ -7,7 +7,8 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(options) }
 
   let(:metrics) { instance_double(Datadog::Runtime::Metrics, close: nil) }
-  let(:options) { { metrics: metrics, enabled: true } }
+  let(:options) { { metrics: metrics, enabled: enabled } }
+  let(:enabled) { true }
 
   before { allow(metrics).to receive(:flush) }
 
@@ -65,8 +66,6 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     after { worker.stop(true, 5) }
 
     context 'when #enabled? is true' do
-      before { allow(worker).to receive(:enabled?).and_return(true) }
-
       it 'starts a worker thread' do
         perform
         expect(worker).to have_attributes(
@@ -77,6 +76,20 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
           forked?: false,
           fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_STOP,
           result: nil
+        )
+      end
+    end
+
+    context 'when #enabled? is false' do
+      let(:enabled) { false }
+
+      it 'does not start a worker thread' do
+        perform
+        expect(worker).to have_attributes(
+          metrics: metrics,
+          run_async?: false,
+          running?: false,
+          started?: false
         )
       end
     end
@@ -195,12 +208,26 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
       allow(worker).to receive(:perform)
     end
 
-    it 'forwards to #metrics' do
-      associate_with_span
+    context 'when enabled' do
+      it 'forwards to #metrics' do
+        associate_with_span
 
-      expect(worker.metrics).to have_received(:associate_with_span)
-        .with(span)
-      expect(worker).to have_received(:perform)
+        expect(worker.metrics).to have_received(:associate_with_span)
+          .with(span)
+        expect(worker).to have_received(:perform)
+      end
+    end
+
+    context 'when disabled' do
+      let(:options) { { enabled: enabled } }
+      let(:enabled) { false }
+
+      it 'performs no action' do
+        associate_with_span
+
+        expect(worker.metrics).to be_nil
+        expect(worker).to_not have_received(:perform)
+      end
     end
   end
 
@@ -243,6 +270,19 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
         worker.perform
 
         expect(worker.running?).to be(false)
+      end
+    end
+
+    context 'when disabled' do
+      let(:options) { { enabled: enabled } }
+      let(:enabled) { false }
+
+      it 'does not close metrics and stops worker' do
+        stop
+
+        expect(worker.enabled?).to be(false)
+        expect(worker.running?).to be(false)
+        expect(worker.metrics).to be_nil
       end
     end
   end

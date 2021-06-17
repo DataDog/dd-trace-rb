@@ -185,93 +185,121 @@ RSpec.describe Datadog::Configuration do
       end
 
       context 'when the metrics' do
-        context 'are replaced' do
-          let(:old_statsd) { instance_double(Datadog::Statsd) }
-          let(:new_statsd) { instance_double(Datadog::Statsd) }
+        shared_examples 'metrics configuration' do
+          context 'are replaced' do
+            let(:old_statsd) { instance_double(Datadog::Statsd) }
+            let(:new_statsd) { instance_double(Datadog::Statsd) }
 
-          before do
-            expect(old_statsd).to receive(:close).once
+            before do
+              expect(old_statsd).to receive(:close).once
 
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = old_statsd
+                c.runtime_metrics.enabled = runtime_metrics_enabled
+                c.diagnostics.health_metrics.statsd = old_statsd
+                c.diagnostics.health_metrics.enabled = health_metrics_enabled
+              end
+
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = new_statsd
+                c.runtime_metrics.enabled = runtime_metrics_enabled
+                c.diagnostics.health_metrics.statsd = new_statsd
+                c.diagnostics.health_metrics.enabled = health_metrics_enabled
+              end
             end
 
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = new_statsd
-              c.diagnostics.health_metrics.statsd = new_statsd
+            it 'replaces the old Statsd and closes it' do
+              expect(test_class.runtime_metrics.metrics.statsd).to be new_statsd
+              expect(test_class.health_metrics.statsd).to be new_statsd
             end
           end
 
-          it 'replaces the old Statsd and closes it' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be new_statsd
-            expect(test_class.health_metrics.statsd).to be new_statsd
+          context 'have one of a few replaced' do
+            let(:old_statsd) { instance_double(Datadog::Statsd) }
+            let(:new_statsd) { instance_double(Datadog::Statsd) }
+
+            before do
+              # Since its being reused, it should not be closed.
+              expect(old_statsd).to_not receive(:close)
+
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = old_statsd
+                c.runtime_metrics.enabled = runtime_metrics_enabled
+                c.diagnostics.health_metrics.statsd = old_statsd
+                c.diagnostics.health_metrics.enabled = health_metrics_enabled
+              end
+
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = new_statsd
+              end
+            end
+
+            it 'uses new and old Statsd but does not close the old Statsd' do
+              expect(test_class.runtime_metrics.metrics.statsd).to be new_statsd
+              expect(test_class.health_metrics.statsd).to be old_statsd
+            end
+          end
+
+          context 'are reused' do
+            let(:statsd) { instance_double(Datadog::Statsd) }
+
+            before do
+              expect(statsd).to_not receive(:close)
+
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = statsd
+                c.runtime_metrics.enabled = runtime_metrics_enabled
+                c.diagnostics.health_metrics.statsd = statsd
+                c.diagnostics.health_metrics.enabled = health_metrics_enabled
+              end
+
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = statsd
+                c.runtime_metrics.enabled = runtime_metrics_enabled
+                c.diagnostics.health_metrics.statsd = statsd
+                c.diagnostics.health_metrics.enabled = health_metrics_enabled
+              end
+            end
+
+            it 'reuses the same Statsd' do
+              expect(test_class.runtime_metrics.metrics.statsd).to be statsd
+            end
+          end
+
+          context 'are not changed' do
+            let(:statsd) { instance_double(Datadog::Statsd) }
+
+            before do
+              expect(statsd).to_not receive(:close)
+
+              test_class.configure do |c|
+                c.runtime_metrics.statsd = statsd
+                c.runtime_metrics.enabled = runtime_metrics_enabled
+                c.diagnostics.health_metrics.statsd = statsd
+                c.diagnostics.health_metrics.enabled = health_metrics_enabled
+              end
+
+              test_class.configure { |_c| }
+            end
+
+            it 'reuses the same Statsd' do
+              expect(test_class.runtime_metrics.metrics.statsd).to be statsd
+            end
           end
         end
 
-        context 'have one of a few replaced' do
-          let(:old_statsd) { instance_double(Datadog::Statsd) }
-          let(:new_statsd) { instance_double(Datadog::Statsd) }
+        context 'enabled' do
+          let(:runtime_metrics_enabled) { true }
+          let(:health_metrics_enabled) { true }
 
-          before do
-            # Since its being reused, it should not be closed.
-            expect(old_statsd).to_not receive(:close)
-
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
-            end
-
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = new_statsd
-            end
-          end
-
-          it 'uses new and old Statsd but does not close the old Statsd' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be new_statsd
-            expect(test_class.health_metrics.statsd).to be old_statsd
-          end
+          it_behaves_like 'metrics configuration'
         end
 
-        context 'are reused' do
-          let(:statsd) { instance_double(Datadog::Statsd) }
+        context 'disabled' do
+          let(:runtime_metrics_enabled) { false }
+          let(:health_metrics_enabled) { false }
 
-          before do
-            expect(statsd).to_not receive(:close)
-
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
-            end
-
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
-            end
-          end
-
-          it 'reuses the same Statsd' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be statsd
-          end
-        end
-
-        context 'are not changed' do
-          let(:statsd) { instance_double(Datadog::Statsd) }
-
-          before do
-            expect(statsd).to_not receive(:close)
-
-            test_class.configure do |c|
-              c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
-            end
-
-            test_class.configure { |_c| }
-          end
-
-          it 'reuses the same Statsd' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be statsd
-          end
+          it_behaves_like 'metrics configuration'
         end
       end
 
