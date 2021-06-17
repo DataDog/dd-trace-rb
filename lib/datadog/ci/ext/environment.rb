@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'ddtrace/ext/git'
 
 module Datadog
@@ -6,48 +8,50 @@ module Datadog
       # Defines constants for CI tags
       # rubocop:disable Metrics/ModuleLength:
       module Environment
-        TAG_STAGE_NAME = 'ci.stage.name'.freeze
-        TAG_JOB_NAME = 'ci.job.name'.freeze
-        TAG_JOB_URL = 'ci.job.url'.freeze
-        TAG_PIPELINE_ID = 'ci.pipeline.id'.freeze
-        TAG_PIPELINE_NAME = 'ci.pipeline.name'.freeze
-        TAG_PIPELINE_NUMBER = 'ci.pipeline.number'.freeze
-        TAG_PIPELINE_URL = 'ci.pipeline.url'.freeze
-        TAG_PROVIDER_NAME = 'ci.provider.name'.freeze
-        TAG_WORKSPACE_PATH = 'ci.workspace_path'.freeze
+        TAG_STAGE_NAME = 'ci.stage.name'
+        TAG_JOB_NAME = 'ci.job.name'
+        TAG_JOB_URL = 'ci.job.url'
+        TAG_PIPELINE_ID = 'ci.pipeline.id'
+        TAG_PIPELINE_NAME = 'ci.pipeline.name'
+        TAG_PIPELINE_NUMBER = 'ci.pipeline.number'
+        TAG_PIPELINE_URL = 'ci.pipeline.url'
+        TAG_PROVIDER_NAME = 'ci.provider.name'
+        TAG_WORKSPACE_PATH = 'ci.workspace_path'
 
         PROVIDERS = [
-          ['APPVEYOR'.freeze, :extract_appveyor],
-          ['TF_BUILD'.freeze, :extract_azure_pipelines],
-          ['BITBUCKET_COMMIT'.freeze, :extract_bitbucket],
-          ['BUILDKITE'.freeze, :extract_buildkite],
-          ['CIRCLECI'.freeze, :extract_circle_ci],
-          ['GITHUB_SHA'.freeze, :extract_github_actions],
-          ['GITLAB_CI'.freeze, :extract_gitlab],
-          ['JENKINS_URL'.freeze, :extract_jenkins],
-          ['TEAMCITY_VERSION'.freeze, :extract_teamcity],
-          ['TRAVIS'.freeze, :extract_travis],
-          ['BITRISE_BUILD_SLUG'.freeze, :extract_bitrise]
+          ['APPVEYOR', :extract_appveyor],
+          ['TF_BUILD', :extract_azure_pipelines],
+          ['BITBUCKET_COMMIT', :extract_bitbucket],
+          ['BUILDKITE', :extract_buildkite],
+          ['CIRCLECI', :extract_circle_ci],
+          ['GITHUB_SHA', :extract_github_actions],
+          ['GITLAB_CI', :extract_gitlab],
+          ['JENKINS_URL', :extract_jenkins],
+          ['TEAMCITY_VERSION', :extract_teamcity],
+          ['TRAVIS', :extract_travis],
+          ['BITRISE_BUILD_SLUG', :extract_bitrise]
         ].freeze
 
         module_function
 
         def tags(env)
-          provider = PROVIDERS.find { |c| env.key? c[0] }
-          return {} if provider.nil?
+          if (_, extractor = PROVIDERS.find { |provider_env_var, _| env.key?(provider_env_var) })
+            tags = send(extractor, env)
 
-          tags = send(provider[1], env)
+            tags[Datadog::Ext::Git::TAG_TAG] = normalize_ref(tags[Datadog::Ext::Git::TAG_TAG])
+            tags.delete(Datadog::Ext::Git::TAG_BRANCH) unless tags[Datadog::Ext::Git::TAG_TAG].nil?
+            tags[Datadog::Ext::Git::TAG_BRANCH] = normalize_ref(tags[Datadog::Ext::Git::TAG_BRANCH])
+            tags[Datadog::Ext::Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Datadog::Ext::Git::TAG_REPOSITORY_URL])
 
-          tags[Datadog::Ext::Git::TAG_TAG] = normalize_ref(tags[Datadog::Ext::Git::TAG_TAG])
-          tags.delete(Datadog::Ext::Git::TAG_BRANCH) unless tags[Datadog::Ext::Git::TAG_TAG].nil?
-          tags[Datadog::Ext::Git::TAG_BRANCH] = normalize_ref(tags[Datadog::Ext::Git::TAG_BRANCH])
-          tags[Datadog::Ext::Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Datadog::Ext::Git::TAG_REPOSITORY_URL])
-
-          # Expand ~
-          workspace_path = tags[TAG_WORKSPACE_PATH]
-          if !workspace_path.nil? && (workspace_path == '~' || workspace_path.start_with?('~/'))
-            tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
+            # Expand ~
+            workspace_path = tags[TAG_WORKSPACE_PATH]
+            if !workspace_path.nil? && (workspace_path == '~' || workspace_path.start_with?('~/'))
+              tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
+            end
+          else
+            tags = {}
           end
+
           tags.reject { |_, v| v.nil? }
         end
 
@@ -85,29 +89,27 @@ module Datadog
             TAG_PIPELINE_URL => url,
             TAG_JOB_URL => url,
             Datadog::Ext::Git::TAG_BRANCH => branch,
-            Datadog::Ext::Git::TAG_TAG => tag
+            Datadog::Ext::Git::TAG_TAG => tag,
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['APPVEYOR_REPO_COMMIT_AUTHOR'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED']
           }
         end
 
         def extract_azure_pipelines(env)
+          pipeline_url = job_url = nil
           if env['SYSTEM_TEAMFOUNDATIONSERVERURI'] && env['SYSTEM_TEAMPROJECTID'] && env['BUILD_BUILDID']
             base_url = "#{env['SYSTEM_TEAMFOUNDATIONSERVERURI']}#{env['SYSTEM_TEAMPROJECTID']}" \
               "/_build/results?buildId=#{env['BUILD_BUILDID']}"
+
             pipeline_url = base_url
-            job_url = base_url + "&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
-          else
-            pipeline_url = job_url = nil
+            job_url = "#{base_url}&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
           end
-          branch_or_tag = (
-            env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCH'] || env['BUILD_SOURCEBRANCHNAME']
-          )
-          if branch_or_tag.include? 'tags/'
-            branch = nil
-            tag = branch_or_tag
-          else
-            branch = branch_or_tag
-            tag = nil
-          end
+
+          branch, tag = branch_or_tag(env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] ||
+                                        env['BUILD_SOURCEBRANCH'] ||
+                                        env['BUILD_SOURCEBRANCHNAME'])
+
           {
             TAG_PROVIDER_NAME => 'azurepipelines',
             TAG_WORKSPACE_PATH => env['BUILD_SOURCESDIRECTORY'],
@@ -116,13 +118,14 @@ module Datadog
             TAG_PIPELINE_NUMBER => env['BUILD_BUILDID'],
             TAG_PIPELINE_URL => pipeline_url,
             TAG_JOB_URL => job_url,
-            Datadog::Ext::Git::TAG_REPOSITORY_URL => (
-              env['SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI'] \
-              || env['BUILD_REPOSITORY_URI']
-            ),
-            Datadog::Ext::Git::TAG_COMMIT_SHA => (env['SYSTEM_PULLREQUEST_SOURCECOMMITID'] || env['BUILD_SOURCEVERSION']),
+            Datadog::Ext::Git::TAG_REPOSITORY_URL =>
+              env['SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI'] || env['BUILD_REPOSITORY_URI'],
+            Datadog::Ext::Git::TAG_COMMIT_SHA => env['SYSTEM_PULLREQUEST_SOURCECOMMITID'] || env['BUILD_SOURCEVERSION'],
             Datadog::Ext::Git::TAG_BRANCH => branch,
-            Datadog::Ext::Git::TAG_TAG => tag
+            Datadog::Ext::Git::TAG_TAG => tag,
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
@@ -135,12 +138,15 @@ module Datadog
             Datadog::Ext::Git::TAG_REPOSITORY_URL => env['BITBUCKET_GIT_SSH_ORIGIN'],
             Datadog::Ext::Git::TAG_TAG => env['BITBUCKET_TAG'],
             TAG_JOB_URL => url,
-            TAG_PIPELINE_ID => env['BITBUCKET_PIPELINE_UUID'] ? env['BITBUCKET_PIPELINE_UUID'].tr('{}', '') : None,
+            TAG_PIPELINE_ID => env['BITBUCKET_PIPELINE_UUID'] ? env['BITBUCKET_PIPELINE_UUID'].tr('{}', '') : nil,
             TAG_PIPELINE_NAME => env['BITBUCKET_REPO_FULL_NAME'],
             TAG_PIPELINE_NUMBER => env['BITBUCKET_BUILD_NUMBER'],
             TAG_PIPELINE_URL => url,
             TAG_PROVIDER_NAME => 'bitbucket',
-            TAG_WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR']
+            TAG_WORKSPACE_PATH => env['BITBUCKET_CLONE_DIR'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
@@ -156,7 +162,10 @@ module Datadog
             TAG_PIPELINE_URL => env['BUILDKITE_BUILD_URL'],
             TAG_JOB_URL => "#{env['BUILDKITE_BUILD_URL']}##{env['BUILDKITE_JOB_ID']}",
             TAG_PROVIDER_NAME => 'buildkite',
-            TAG_WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH']
+            TAG_WORKSPACE_PATH => env['BUILDKITE_BUILD_CHECKOUT_PATH'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILDKITE_BUILD_AUTHOR'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILDKITE_BUILD_AUTHOR_EMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILDKITE_MESSAGE']
           }
         end
 
@@ -168,23 +177,20 @@ module Datadog
             Datadog::Ext::Git::TAG_TAG => env['CIRCLE_TAG'],
             TAG_PIPELINE_ID => env['CIRCLE_WORKFLOW_ID'],
             TAG_PIPELINE_NAME => env['CIRCLE_PROJECT_REPONAME'],
-            TAG_PIPELINE_NUMBER => env['CIRCLE_BUILD_NUM'],
-            TAG_PIPELINE_URL => env['CIRCLE_BUILD_URL'],
+            TAG_PIPELINE_URL => "https://app.circleci.com/pipelines/workflows/#{env['CIRCLE_WORKFLOW_ID']}",
+            TAG_JOB_NAME => env['CIRCLE_JOB'],
             TAG_JOB_URL => env['CIRCLE_BUILD_URL'],
             TAG_PROVIDER_NAME => 'circleci',
-            TAG_WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY']
+            TAG_WORKSPACE_PATH => env['CIRCLE_WORKING_DIRECTORY'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
         def extract_github_actions(env)
-          branch_or_tag = (env['GITHUB_HEAD_REF'] || env['GITHUB_REF'])
-          if branch_or_tag.include? 'tags/'
-            branch = nil
-            tag = branch_or_tag
-          else
-            branch = branch_or_tag
-            tag = nil
-          end
+          branch, tag = branch_or_tag(env['GITHUB_HEAD_REF'] || env['GITHUB_REF'])
+
           {
             Datadog::Ext::Git::TAG_BRANCH => branch,
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['GITHUB_SHA'],
@@ -196,13 +202,15 @@ module Datadog
             TAG_PIPELINE_NUMBER => env['GITHUB_RUN_NUMBER'],
             TAG_PIPELINE_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
             TAG_PROVIDER_NAME => 'github',
-            TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE']
+            TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
         def extract_gitlab(env)
           url = env['CI_PIPELINE_URL']
-          url = url.gsub(%r{/-/pipelines/}, '/pipelines/') unless url.nil?
           {
             Datadog::Ext::Git::TAG_BRANCH => env['CI_COMMIT_BRANCH'],
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
@@ -214,24 +222,20 @@ module Datadog
             TAG_PIPELINE_ID => env['CI_PIPELINE_ID'],
             TAG_PIPELINE_NAME => env['CI_PROJECT_PATH'],
             TAG_PIPELINE_NUMBER => env['CI_PIPELINE_IID'],
-            TAG_PIPELINE_URL => url,
+            TAG_PIPELINE_URL => (url.gsub(%r{/-/pipelines/}, '/pipelines/') if url),
             TAG_PROVIDER_NAME => 'gitlab',
-            TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR']
+            TAG_WORKSPACE_PATH => env['CI_PROJECT_DIR'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['CI_COMMIT_MESSAGE']
           }
         end
 
         def extract_jenkins(env)
-          branch_or_tag = env['GIT_BRANCH']
-          if branch_or_tag.include? 'tags/'
-            branch = nil
-            tag = branch_or_tag
-          else
-            branch = branch_or_tag
-            tag = nil
+          branch, tag = branch_or_tag(env['GIT_BRANCH'])
+
+          if (name = env['JOB_NAME'])
+            name = name.gsub("/#{normalize_ref(branch)}", '') if branch
+            name = name.split('/').reject { |v| v.nil? || v.include?('=') }.join('/')
           end
-          name = env['JOB_NAME']
-          name = name.gsub("/#{normalize_ref(branch)}", '') unless name.nil? || branch.nil?
-          name = name.split('/').reject { |v| v.nil? || v.include?('=') }.join('/') unless name.nil?
           {
             Datadog::Ext::Git::TAG_BRANCH => branch,
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['GIT_COMMIT'],
@@ -242,7 +246,10 @@ module Datadog
             TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
             TAG_PIPELINE_URL => env['BUILD_URL'],
             TAG_PROVIDER_NAME => 'jenkins',
-            TAG_WORKSPACE_PATH => env['WORKSPACE']
+            TAG_WORKSPACE_PATH => env['WORKSPACE'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
@@ -256,7 +263,10 @@ module Datadog
             TAG_PIPELINE_NUMBER => env['BUILD_NUMBER'],
             TAG_PIPELINE_URL => (
               env['SERVER_URL'] && env['BUILD_ID'] ? "#{env['SERVER_URL']}/viewLog.html?buildId=#{env['SERVER_URL']}" : nil
-            )
+            ),
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['BUILD_REQUESTEDFOREMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BUILD_SOURCEVERSIONMESSAGE']
           }
         end
 
@@ -272,7 +282,8 @@ module Datadog
             TAG_PIPELINE_NUMBER => env['TRAVIS_BUILD_NUMBER'],
             TAG_PIPELINE_URL => env['TRAVIS_BUILD_WEB_URL'],
             TAG_PROVIDER_NAME => 'travisci',
-            TAG_WORKSPACE_PATH => env['TRAVIS_BUILD_DIR']
+            TAG_WORKSPACE_PATH => env['TRAVIS_BUILD_DIR'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['TRAVIS_COMMIT_MESSAGE']
           }
         end
 
@@ -293,8 +304,20 @@ module Datadog
             Datadog::Ext::Git::TAG_REPOSITORY_URL => env['GIT_REPOSITORY_URL'],
             Datadog::Ext::Git::TAG_COMMIT_SHA => commit,
             Datadog::Ext::Git::TAG_BRANCH => branch,
-            Datadog::Ext::Git::TAG_TAG => env['BITRISE_GIT_TAG']
+            Datadog::Ext::Git::TAG_TAG => env['BITRISE_GIT_TAG'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE']
           }
+        end
+
+        def branch_or_tag(branch_or_tag)
+          branch = tag = nil
+          if branch_or_tag.include?('tags/')
+            tag = branch_or_tag
+          else
+            branch = branch_or_tag
+          end
+
+          [branch, tag]
         end
       end
       # rubocop:enable Metrics/ModuleLength:
