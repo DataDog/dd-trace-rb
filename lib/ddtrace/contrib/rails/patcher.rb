@@ -46,23 +46,23 @@ module Datadog
         def add_middleware(app)
           # puts app.middleware.inspect
 
-          our_tags = {
-            dd: -> _ {
-              correlation = Datadog.tracer.active_correlation
-              {
-                env: correlation.env.to_s,
-                service: correlation.service.to_s,
-                version: correlation.version.to_s,
-                trace_id: correlation.trace_id.to_s,
-                span_id: correlation.span_id.to_s
-              }
-            },
-            ddsource: ['ruby']
-          }
+          # our_tags = {
+          #   dd: -> _ {
+          #     correlation = Datadog.tracer.active_correlation
+          #     {
+          #       env: correlation.env.to_s,
+          #       service: correlation.service.to_s,
+          #       version: correlation.version.to_s,
+          #       trace_id: correlation.trace_id.to_s,
+          #       span_id: correlation.span_id.to_s
+          #     }
+          #   },
+          #   ddsource: ['ruby']
+          # }
 
-          # puts app.config.log_tags
+          # # puts app.config.log_tags
 
-          app.middleware.swap(RailsSemanticLogger::Rack::Logger, RailsSemanticLogger::Rack::Logger, our_tags)
+          # app.middleware.swap(RailsSemanticLogger::Rack::Logger, RailsSemanticLogger::Rack::Logger, our_tags)
           # Add trace middleware
           app.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
 

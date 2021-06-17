@@ -10,7 +10,7 @@ module Datadog
 
         # Instance methods for configuration
         module InstanceMethods
-          def named_tags
+          def named_tags_two
             puts 'do i run tho'
             original_named_tags = super
 

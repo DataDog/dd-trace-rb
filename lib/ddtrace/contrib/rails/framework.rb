@@ -49,7 +49,7 @@ module Datadog
             activate_action_view!(datadog_config, rails_config)
             activate_active_record!(datadog_config, rails_config)
             activate_lograge!(datadog_config, rails_config)
-            # activate_semantic_logger!(datadog_config, rails_config)
+            activate_semantic_logger!(datadog_config, rails_config)
           end
         end
 
@@ -133,17 +133,17 @@ module Datadog
           end
         end
 
-        # def self.activate_semantic_logger!(datadog_config, rails_config)
-        #   return unless defined?(::SemanticLogger)
+        def self.activate_semantic_logger!(datadog_config, rails_config)
+          return unless defined?(::SemanticLogger)
 
-        #   puts 'ooook'
+          puts 'ooook'
 
-        #   if rails_config[:log_injection]
-        #     datadog_config.use(
-        #       :semantic_logger
-        #     )
-        #   end
-        # end
+          if rails_config[:log_injection]
+            datadog_config.use(
+              :semantic_logger
+            )
+          end
+        end
       end
     end
   end
