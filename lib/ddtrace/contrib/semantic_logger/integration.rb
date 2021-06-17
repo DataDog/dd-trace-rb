@@ -1,33 +1,36 @@
 require 'ddtrace/contrib/integration'
-require 'ddtrace/contrib/lograge/configuration/settings'
-require 'ddtrace/contrib/lograge/patcher'
+require 'ddtrace/contrib/semantic_logger/configuration/settings'
+require 'ddtrace/contrib/semantic_logger/patcher'
 
 module Datadog
   module Contrib
-    module Lograge
-      # Description of Lograge integration
+    module SemanticLogger
+      # Description of SemanticLogger integration
       class Integration
         include Contrib::Integration
 
-        MINIMUM_VERSION = Gem::Version.new('0.11.0')
+        # v4 had a migration to `named_tags` instead of `payload`
+        # and has been out for almost 5 years at this point
+        # it's probably reasonable to nudge users to using modern ruby libs
+        MINIMUM_VERSION = Gem::Version.new('4.0.0')
 
-        register_as :lograge
+        register_as :semantic_logger
 
         def self.version
-          Gem.loaded_specs['lograge'] && Gem.loaded_specs['lograge'].version
+          Gem.loaded_specs['semantic_logger'] && Gem.loaded_specs['semantic_logger'].version
         end
 
         def self.loaded?
-          !defined?(::Lograge::LogSubscribers::Base).nil?
+          !defined?(::SemanticLogger::Base).nil?
         end
 
         def self.compatible?
           super && version >= MINIMUM_VERSION
         end
 
-        # enabled by rails integration and has a hard dependancy on rails
-        # so can safely say this shouldn't ever be part of auto instrumentation
-        # https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lograge.gemspec#L18-L20
+        # We should probably just never auto enabled log injection as part of auto instrumentation
+        # TODO: abstract out the log injection related instrumentation into it's own module so we dont
+        # keep having to do these funky workarounds
         def auto_instrument?
           false
         end

@@ -1,16 +1,18 @@
 module Datadog
   module Contrib
-    module Lograge
-      # Instrumentation for Lograge
+    module SemanticLogger
+      # Instrumentation for SemanticLogger
       module Instrumentation
         def self.included(base)
+          puts 'do i patch?'
           base.prepend(InstanceMethods)
         end
 
         # Instance methods for configuration
         module InstanceMethods
-          def custom_options(event)
-            original_custom_options = super(event)
+          def named_tags
+            puts 'do i run tho'
+            original_named_tags = super
 
             # Retrieves trace information for current thread
             correlation = Datadog.tracer.active_correlation
@@ -29,7 +31,10 @@ module Datadog
               ddsource: ['ruby']
             }
 
-            datadog_trace_log_hash.merge(original_custom_options)
+            # if the user already has conflicting log_tags
+            # we want them to clobber ours, because we should allow them to override
+            # if needed.
+            datadog_trace_log_hash.merge(original_named_tags)
           end
         end
       end

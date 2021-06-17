@@ -3,6 +3,7 @@ require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/semantic_logger/patcher'
 require 'ddtrace/utils/only_once'
 
 module Datadog
@@ -43,6 +44,25 @@ module Datadog
         end
 
         def add_middleware(app)
+          # puts app.middleware.inspect
+
+          our_tags = {
+            dd: -> _ {
+              correlation = Datadog.tracer.active_correlation
+              {
+                env: correlation.env.to_s,
+                service: correlation.service.to_s,
+                version: correlation.version.to_s,
+                trace_id: correlation.trace_id.to_s,
+                span_id: correlation.span_id.to_s
+              }
+            },
+            ddsource: ['ruby']
+          }
+
+          # puts app.config.log_tags
+
+          app.middleware.swap(RailsSemanticLogger::Rack::Logger, RailsSemanticLogger::Rack::Logger, our_tags)
           # Add trace middleware
           app.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
 
@@ -78,6 +98,14 @@ module Datadog
             Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
             should_warn = false
           end
+
+          if defined?(::SemanticLogger)
+            # Datadog.configure do |datadog_config|
+            #   datadog_config.use :semantic_logger
+            # end
+            Datadog::Contrib::SemanticLogger::Patcher.patch
+          end
+        
 
           Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported") if should_warn
         end
