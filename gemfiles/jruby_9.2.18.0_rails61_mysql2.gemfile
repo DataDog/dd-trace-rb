@@ -28,7 +28,7 @@ gem "yard", "~> 0.9"
 gem "rubocop", "~> 1.10", require: false
 gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", "~> 2.2", require: false
-gem "dogstatsd-ruby", ">= 3.3.0"
+gem "dogstatsd-ruby", "< 5.0"
 gem "opentracing", ">= 0.4.1"
 gem "rails", "~> 6.1.0"
 gem "mysql2", "~> 0.5", platform: :ruby
