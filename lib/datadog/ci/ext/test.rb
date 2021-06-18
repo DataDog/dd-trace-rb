@@ -8,7 +8,7 @@ module Datadog
         TAG_ARGUMENTS = 'test.arguments'.freeze
         TAG_FRAMEWORK = 'test.framework'.freeze
         TAG_NAME = 'test.name'.freeze
-        TAG_SKIP_REASON = 'test.skip_reason'.freeze
+        TAG_SKIP_REASON = 'test.skip_reason'.freeze # DEV: Not populated yet
         TAG_STATUS = 'test.status'.freeze
         TAG_SUITE = 'test.suite'.freeze
         TAG_TRAITS = 'test.traits'.freeze
