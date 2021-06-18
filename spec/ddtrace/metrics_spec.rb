@@ -23,6 +23,70 @@ RSpec.describe Datadog::Metrics do
     end
   end
 
+  describe '#initialize' do
+    before do
+      # NOTE: allow_any_instace_of is needed as when we run this no metrics instance has been created yet (and we
+      # don't want it to be created as the nested contexts still need to change the arguments to the call to new)
+      allow_any_instance_of(described_class).to receive(:supported?).and_return(statsd_supported)
+    end
+
+    context 'when a supported version of statsd is installed' do
+      let(:statsd_supported) { true }
+
+      context 'when no statsd instance is provided' do
+        let(:options) { {} }
+
+        after do
+          metrics.close
+        end
+
+        it 'creates a new instance' do
+          expect(metrics.statsd).to_not be nil
+        end
+      end
+
+      context 'when a statsd instance is provided' do
+        let(:statsd) { double('Statsd') }
+        let(:options) { { statsd: statsd } }
+
+        it 'uses the provided instance' do
+          expect(metrics.statsd).to be statsd
+        end
+      end
+    end
+
+    context 'when no statsd is either not installed, or an unsupported version is installed' do
+      let(:statsd_supported) { false }
+
+      context 'when no statsd instance is provided' do
+        let(:options) { {} }
+
+        it 'does not create a new instance' do
+          expect(metrics.statsd).to be nil
+        end
+      end
+
+      context 'when a statsd instance is provided' do
+        let(:options) { { statsd: statsd } }
+
+        before do
+          described_class.const_get('IGNORED_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
+          allow(Datadog.logger).to receive(:warn)
+        end
+
+        it 'does not use the provided instance' do
+          expect(metrics.statsd).to be nil
+        end
+
+        it 'logs a warning' do
+          expect(Datadog.logger).to receive(:warn).with(/Ignoring .* statsd instance/)
+
+          metrics
+        end
+      end
+    end
+  end
+
   describe '#supported?' do
     subject(:supported?) { metrics.supported? }
 
@@ -728,7 +792,6 @@ RSpec.describe Datadog::Metrics do
     let(:options) { {} }
 
     before { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
-    after { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
 
     context 'with an incompatible dogstastd-ruby version' do
       before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version >= Gem::Version.new('5.0') }
