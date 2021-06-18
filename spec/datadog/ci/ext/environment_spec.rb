@@ -6,7 +6,6 @@ require 'datadog/ci/ext/environment'
 RSpec.describe Datadog::CI::Ext::Environment do
   describe '.tags' do
     subject(:tags) { described_class.tags(env) }
-    let(:env) { {} }
 
     Dir.glob("#{File.dirname(__FILE__)}/fixtures/ci/*.json") do |filename|
       File.open(filename) do |f|

@@ -37,7 +37,7 @@ module Datadog
         def tags(env)
           _, extractor = PROVIDERS.find { |provider_env_var, _| env.key?(provider_env_var) }
           if extractor
-            tags = send(extractor, env)
+            tags = public_send(extractor, env)
 
             tags[Datadog::Ext::Git::TAG_TAG] = normalize_ref(tags[Datadog::Ext::Git::TAG_TAG])
             tags.delete(Datadog::Ext::Git::TAG_BRANCH) unless tags[Datadog::Ext::Git::TAG_TAG].nil?
@@ -98,13 +98,15 @@ module Datadog
         end
 
         def extract_azure_pipelines(env)
-          pipeline_url = job_url = nil
-          if env['SYSTEM_TEAMFOUNDATIONSERVERURI'] && env['SYSTEM_TEAMPROJECTID'] && env['BUILD_BUILDID']
-            base_url = "#{env['SYSTEM_TEAMFOUNDATIONSERVERURI']}#{env['SYSTEM_TEAMPROJECTID']}" \
-              "/_build/results?buildId=#{env['BUILD_BUILDID']}"
+          build_id = env['BUILD_BUILDID']
 
-            pipeline_url = base_url
-            job_url = "#{base_url}&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
+          if build_id &&
+            (team_foundation_server_uri = env['SYSTEM_TEAMFOUNDATIONSERVERURI']) &&
+            (team_project_id = env['SYSTEM_TEAMPROJECTID'])
+
+            pipeline_url = "#{team_foundation_server_uri}#{team_project_id}/_build/results?buildId=#{build_id}"
+
+            job_url = "#{pipeline_url}&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
           end
 
           branch, tag = branch_or_tag(env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] ||
@@ -114,9 +116,9 @@ module Datadog
           {
             TAG_PROVIDER_NAME => 'azurepipelines',
             TAG_WORKSPACE_PATH => env['BUILD_SOURCESDIRECTORY'],
-            TAG_PIPELINE_ID => env['BUILD_BUILDID'],
+            TAG_PIPELINE_ID => build_id,
             TAG_PIPELINE_NAME => env['BUILD_DEFINITIONNAME'],
-            TAG_PIPELINE_NUMBER => env['BUILD_BUILDID'],
+            TAG_PIPELINE_NUMBER => build_id,
             TAG_PIPELINE_URL => pipeline_url,
             TAG_JOB_URL => job_url,
             Datadog::Ext::Git::TAG_REPOSITORY_URL =>
