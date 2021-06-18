@@ -9,7 +9,7 @@ require 'datadog/statsd'
 RSpec.describe Datadog::Metrics do
   include_context 'metrics'
 
-  subject(:metrics) { described_class.new(options) }
+  subject(:metrics) { described_class.new(**options) }
   after { metrics.close }
 
   let(:options) { { statsd: statsd } }
