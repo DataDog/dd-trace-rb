@@ -8,7 +8,6 @@ module Datadog
       # Defines constants for CI tags
       # rubocop:disable Metrics/ModuleLength:
       module Environment
-        TAG_STAGE_NAME = 'ci.stage.name'
         TAG_JOB_NAME = 'ci.job.name'
         TAG_JOB_URL = 'ci.job.url'
         TAG_PIPELINE_ID = 'ci.pipeline.id'
@@ -16,6 +15,7 @@ module Datadog
         TAG_PIPELINE_NUMBER = 'ci.pipeline.number'
         TAG_PIPELINE_URL = 'ci.pipeline.url'
         TAG_PROVIDER_NAME = 'ci.provider.name'
+        TAG_STAGE_NAME = 'ci.stage.name'
         TAG_WORKSPACE_PATH = 'ci.workspace_path'
 
         PROVIDERS = [
@@ -51,6 +51,11 @@ module Datadog
             end
           else
             tags = {}
+          end
+
+          # Fill out tags from local git as fallback
+          extract_local_git.each do |key, value|
+            tags[key] = value unless tags[key]
           end
 
           tags.reject { |_, v| v.nil? }
@@ -309,6 +314,107 @@ module Datadog
             Datadog::Ext::Git::TAG_BRANCH => branch,
             Datadog::Ext::Git::TAG_TAG => env['BITRISE_GIT_TAG'],
             Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE']
+          }
+        end
+
+        def git_commit_users
+          # Get committer and author information in one command.
+          #
+          # Because we can't get a reliable UTC time from all recent versions of git
+          # We have to rely on converting the date to UTC ourselves.
+          output = exec_git_command("git show -s --format='%an\t%ae\t%at\t%cn\t%ce\t%ct'")
+          return unless output
+
+          fields = output.split("\t").each(&:strip!)
+
+          author = {
+            name: fields[0],
+            email: fields[1],
+            date: Time.at(fields[2].to_i).utc.to_datetime.iso8601
+          }
+
+          committer = {
+            name: fields[3],
+            email: fields[4],
+            date: Time.at(fields[5].to_i).utc.to_datetime.iso8601
+          }
+
+          [author, committer]
+        rescue => e
+          Datadog.logger.debug("Unable to read git commit users: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def git_repository_url
+          exec_git_command('git ls-remote --get-url')
+        rescue => e
+          Datadog.logger.debug("Unable to read git repository url: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def git_commit_message
+          exec_git_command('git show -s --format=%s')
+        rescue => e
+          Datadog.logger.debug("Unable to read git commit message: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def git_branch
+          exec_git_command('git rev-parse --abbrev-ref HEAD')
+        rescue => e
+          Datadog.logger.debug("Unable to read git branch: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def git_commit_sha
+          exec_git_command('git rev-parse HEAD')
+        rescue => e
+          Datadog.logger.debug("Unable to read git commit SHA: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def git_tag
+          exec_git_command('git tag --points-at HEAD')
+        rescue => e
+          Datadog.logger.debug("Unable to read git commit SHA: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def git_base_directory
+          git_dir = exec_git_command('git rev-parse --git-dir')
+          return unless git_dir
+
+          # The result will point to the '.git' directory.
+          # We actually want the base source directory.
+          File.expand_path('..', git_dir)
+        rescue => e
+          Datadog.logger.debug("Unable to read git dir path: #{e.message} at #{e.backtrace.first}")
+          nil
+        end
+
+        def exec_git_command(cmd)
+          result = `#{cmd} 2>/dev/null`
+          return nil if result.empty?
+
+          result.strip # There's always a "\n" at the end of the command output
+        end
+
+        def extract_local_git
+          author, committer = git_commit_users
+
+          {
+            TAG_WORKSPACE_PATH => git_base_directory,
+            Datadog::Ext::Git::TAG_REPOSITORY_URL => git_repository_url,
+            Datadog::Ext::Git::TAG_COMMIT_SHA => git_commit_sha,
+            Datadog::Ext::Git::TAG_BRANCH => git_branch,
+            Datadog::Ext::Git::TAG_TAG => git_tag,
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => git_commit_message,
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => (author[:name] if author),
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => (author[:email] if author),
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_DATE => (author[:date] if author),
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_NAME => (committer[:name] if committer),
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => (committer[:email] if committer),
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => (committer[:date] if committer)
           }
         end
 
