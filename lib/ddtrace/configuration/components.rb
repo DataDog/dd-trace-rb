@@ -19,7 +19,7 @@ module Datadog
           options = { enabled: settings.enabled }
           options[:statsd] = settings.statsd unless settings.statsd.nil?
 
-          Datadog::Diagnostics::Health::Metrics.new(options)
+          Datadog::Diagnostics::Health::Metrics.new(**options)
         end
 
         def build_logger(settings)
@@ -34,7 +34,7 @@ module Datadog
           options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
           options[:services] = [settings.service] unless settings.service.nil?
 
-          Datadog::Runtime::Metrics.new(options)
+          Datadog::Runtime::Metrics.new(**options)
         end
 
         def build_runtime_metrics_worker(settings)

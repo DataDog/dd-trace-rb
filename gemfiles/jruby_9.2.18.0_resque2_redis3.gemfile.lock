@@ -37,8 +37,8 @@ GEM
     cri (2.15.11)
     diff-lcs (1.4.4)
     docile (1.4.0)
-    dogstatsd-ruby (5.0.1)
-    ffi (1.15.1-java)
+    dogstatsd-ruby (4.8.3)
+    ffi (1.15.3-java)
     hashdiff (1.0.1)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -152,7 +152,7 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   ddtrace!
-  dogstatsd-ruby (>= 3.3.0)
+  dogstatsd-ruby (< 5.0)
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)
   minitest-around (= 0.5.0)
