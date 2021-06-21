@@ -55,7 +55,7 @@ RSpec.describe Datadog::Metrics do
       end
     end
 
-    context 'when no statsd is either not installed, or an unsupported version is installed' do
+    context 'when statsd is either not installed, or an unsupported version is installed' do
       let(:statsd_supported) { false }
 
       context 'when no statsd instance is provided' do
