@@ -17,10 +17,7 @@ module Datadog
 
         # patch applies our patch
         def patch
-          puts 'here we go'
-          puts ::SemanticLogger::Base.named_tags
-          ::SemanticLogger::Base.include(Instrumentation)
-          puts ::SemanticLogger::Base.named_tags
+          ::SemanticLogger::Logger.include(Instrumentation)
         end
       end
     end

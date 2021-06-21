@@ -136,8 +136,6 @@ module Datadog
         def self.activate_semantic_logger!(datadog_config, rails_config)
           return unless defined?(::SemanticLogger)
 
-          puts 'ooook'
-
           if rails_config[:log_injection]
             datadog_config.use(
               :semantic_logger

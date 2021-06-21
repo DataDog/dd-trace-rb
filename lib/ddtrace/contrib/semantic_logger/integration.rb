@@ -21,7 +21,7 @@ module Datadog
         end
 
         def self.loaded?
-          !defined?(::SemanticLogger::Base).nil?
+          !defined?(::SemanticLogger::Logger).nil?
         end
 
         def self.compatible?

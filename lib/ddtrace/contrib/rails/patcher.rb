@@ -44,25 +44,6 @@ module Datadog
         end
 
         def add_middleware(app)
-          # puts app.middleware.inspect
-
-          # our_tags = {
-          #   dd: -> _ {
-          #     correlation = Datadog.tracer.active_correlation
-          #     {
-          #       env: correlation.env.to_s,
-          #       service: correlation.service.to_s,
-          #       version: correlation.version.to_s,
-          #       trace_id: correlation.trace_id.to_s,
-          #       span_id: correlation.span_id.to_s
-          #     }
-          #   },
-          #   ddsource: ['ruby']
-          # }
-
-          # # puts app.config.log_tags
-
-          # app.middleware.swap(RailsSemanticLogger::Rack::Logger, RailsSemanticLogger::Rack::Logger, our_tags)
           # Add trace middleware
           app.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
 
@@ -87,7 +68,7 @@ module Datadog
           # Instead, we patch Lograge `custom_options` internals directly
           # as part of Rails framework patching
           # and just flag off the warning log here.
-          should_warn = false if app.config.respond_to?(:lograge)
+          should_warn = false if app.config.respond_to?(:lograge) || defined?(::SemanticLogger)
 
           # if lograge isn't set, check if tagged logged is enabled.
           # if so, add proc that injects trace identifiers for tagged logging.
@@ -98,14 +79,6 @@ module Datadog
             Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
             should_warn = false
           end
-
-          if defined?(::SemanticLogger)
-            # Datadog.configure do |datadog_config|
-            #   datadog_config.use :semantic_logger
-            # end
-            Datadog::Contrib::SemanticLogger::Patcher.patch
-          end
-        
 
           Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported") if should_warn
         end
