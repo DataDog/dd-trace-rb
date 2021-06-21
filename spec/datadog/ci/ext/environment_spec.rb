@@ -4,7 +4,7 @@ require 'json'
 require 'datadog/ci/ext/environment'
 
 RSpec.describe Datadog::CI::Ext::Environment do
-  fixture_dir = "#{File.dirname(__FILE__)}/fixtures/"
+  FIXTURE_DIR = "#{File.dirname(__FILE__)}/fixtures/" # rubocop:disable all
 
   describe '.tags' do
     subject(:tags) do
@@ -14,11 +14,17 @@ RSpec.describe Datadog::CI::Ext::Environment do
     let(:env) { {} }
     let(:environment_variables) { {} }
 
-    shared_context 'without git installed' do
-      before { allow(described_class).to receive(:`).and_raise(Errno::ENOENT, 'git') }
+    shared_context 'with git fixture' do |git_fixture|
+      let(:environment_variables) do
+        super().merge('GIT_DIR' => "#{FIXTURE_DIR}/git/#{git_fixture}", 'GIT_WORK_TREE' => "#{FIXTURE_DIR}/git/")
+      end
     end
 
-    Dir.glob("#{fixture_dir}/ci/*.json") do |filename|
+    shared_context 'without git installed' do
+      before { allow(Open3).to receive(:capture2e).and_raise(Errno::ENOENT, 'No such file or directory - git') }
+    end
+
+    Dir.glob("#{FIXTURE_DIR}/ci/*.json").sort.each do |filename|
       # Parse each CI provider file
       File.open(filename) do |f|
         context "for fixture #{File.basename(filename)}" do
@@ -30,7 +36,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
               let(:env) { env }
 
               context 'with git information' do
-                let(:environment_variables) { super().merge('GIT_DIR' => "#{fixture_dir}/git/gitdir_with_commit") }
+                include_context 'with git fixture', 'gitdir_with_commit'
 
                 it 'matches CI tags, with git fallback information' do
                   is_expected
@@ -65,55 +71,51 @@ RSpec.describe Datadog::CI::Ext::Environment do
       end
     end
 
-    context 'inside a git repository' do
-      shared_context 'matching git tags' do |git_fixture, expected_tags|
-        let(:environment_variables) { { 'GIT_DIR' => "#{fixture_dir}/git/#{git_fixture}" } }
-
-        context "for #{git_fixture}" do
-          it 'matches tags' do
-            is_expected.to eq(expected_tags)
-          end
+    context 'inside a git directory' do
+      context 'with a newly created git repository' do
+        include_context 'with git fixture', 'gitdir_empty'
+        it 'matches tags' do
+          is_expected.to eq('ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git")
         end
       end
 
-      it_behaves_like 'matching git tags', 'gitdir_empty', {
-        'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
-        'git.branch' => 'HEAD',
-        'git.commit.sha' => 'HEAD'
-      }
-
-      it_behaves_like 'matching git tags', 'gitdir_with_commit', {
-        'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
-        'git.branch' => 'master',
-        'git.commit.author.date' => '2011-02-16T13:00:00+00:00',
-        'git.commit.author.email' => 'bot@friendly.test',
-        'git.commit.author.name' => 'Friendly bot',
-        'git.commit.committer.date' => '2021-06-17T18:35:10+00:00',
-        'git.commit.committer.email' => 'marco.costa@datadoghq.com',
-        'git.commit.committer.name' => 'Marco Costa',
-        'git.commit.message' => 'First commit!',
-        'git.commit.sha' => '9322ca1d57975b49b8c00b449d21b06660ce8b5b',
-        'git.repository_url' => 'https://datadoghq.com/git/test.git'
-      }
-    end
-
-    context 'not inside a git repository' do
-      let(:environment_variables) { { 'GIT_DIR' => './tmp/not-a-git-dir' } }
-
-      it 'does not fail' do
-        is_expected.to eq({})
+      context 'with a git repository with a commit' do
+        include_context 'with git fixture', 'gitdir_with_commit'
+        it 'matches tags' do
+          is_expected.to eq(
+            'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
+            'git.branch' => 'master',
+            'git.commit.author.date' => '2011-02-16T13:00:00+00:00',
+            'git.commit.author.email' => 'bot@friendly.test',
+            'git.commit.author.name' => 'Friendly bot',
+            'git.commit.committer.date' => '2021-06-17T18:35:10+00:00',
+            'git.commit.committer.email' => 'marco.costa@datadoghq.com',
+            'git.commit.committer.name' => 'Marco Costa',
+            'git.commit.message' => 'First commit!',
+            'git.commit.sha' => '9322ca1d57975b49b8c00b449d21b06660ce8b5b',
+            'git.repository_url' => 'https://datadoghq.com/git/test.git'
+          )
+        end
       end
-    end
 
-    context 'without git installed nor CI information' do
-      include_context 'without git installed'
+      context 'not inside a git repository' do
+        let(:environment_variables) { { 'GIT_DIR' => './tmp/not-a-git-dir' } }
 
-      it 'does not fail' do
-        allow(Datadog.logger).to receive(:debug)
+        it 'does not fail' do
+          is_expected.to eq({})
+        end
+      end
 
-        is_expected.to eq({})
+      context 'without git installed nor CI information' do
+        include_context 'without git installed'
 
-        expect(Datadog.logger).to have_received(:debug).with(/No such file or directory - git/).at_least(1).time
+        it 'does not fail' do
+          allow(Datadog.logger).to receive(:debug)
+
+          is_expected.to eq({})
+
+          expect(Datadog.logger).to have_received(:debug).with(/No such file or directory - git/).at_least(1).time
+        end
       end
     end
   end
