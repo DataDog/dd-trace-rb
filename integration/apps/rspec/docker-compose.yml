@@ -27,6 +27,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - /app/.git
       - ./data/app:/data/app
       - bundle:/usr/local/bundle
       - ../../images/include:/vendor/dd-demo

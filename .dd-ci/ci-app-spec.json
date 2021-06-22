@@ -17,7 +17,11 @@
   "git.commit.sha",
   "git.branch",
   "git.tag",
+  "git.commit.author.date",
   "git.commit.author.email",
   "git.commit.author.name",
+  "git.commit.committer.date",
+  "git.commit.committer.email",
+  "git.commit.committer.name",
   "git.commit.message"
 ]
