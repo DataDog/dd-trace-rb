@@ -388,11 +388,13 @@ module Datadog
         def exec_git_command(cmd)
           out, status = Open3.capture2e(cmd)
 
-          raise out unless status.success?
+          raise "Failed to run git command #{cmd}: #{out}" unless status.success?
+
+          out.strip! # There's always a "\n" at the end of the command output
 
           return nil if out.empty?
 
-          out.strip # There's always a "\n" at the end of the command output
+          out
         end
 
         def extract_local_git
