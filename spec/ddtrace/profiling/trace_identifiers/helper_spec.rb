@@ -1,5 +1,6 @@
 require 'ddtrace/profiling/trace_identifiers/helper'
 require 'ddtrace/profiling/trace_identifiers/ddtrace'
+require 'ddtrace/profiling/trace_identifiers/opentelemetry'
 
 RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
   let(:thread) { instance_double(Thread) }
@@ -7,6 +8,15 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
   let(:api2) { instance_double(Datadog::Profiling::TraceIdentifiers::Ddtrace, 'api2') }
 
   subject(:trace_identifiers_helper) { described_class.new(supported_apis: [api1, api2]) }
+
+  describe '::DEFAULT_SUPPORTED_APIS' do
+    it 'contains the Datadog and OpenTelemetry trace identifiers' do
+      expect(described_class.const_get(:DEFAULT_SUPPORTED_APIS)).to eq([
+        ::Datadog::Profiling::TraceIdentifiers::Ddtrace,
+        ::Datadog::Profiling::TraceIdentifiers::OpenTelemetry,
+      ])
+    end
+  end
 
   describe '#trace_identifiers_for' do
     subject(:trace_identifiers_for) { trace_identifiers_helper.trace_identifiers_for(thread) }

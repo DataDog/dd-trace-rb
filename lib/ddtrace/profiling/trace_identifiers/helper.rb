@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'ddtrace/profiling/trace_identifiers/ddtrace'
+require 'ddtrace/profiling/trace_identifiers/opentelemetry'
 
 module Datadog
   module Profiling
@@ -11,7 +12,13 @@ module Datadog
       # This data is used to connect profiles to the traces -- samples in a profile will be tagged with this data and
       # the profile can be filtered down to look at only the samples for a given trace.
       class Helper
-        def initialize(supported_apis: [::Datadog::Profiling::TraceIdentifiers::Ddtrace.new])
+        DEFAULT_SUPPORTED_APIS = [
+          ::Datadog::Profiling::TraceIdentifiers::Ddtrace,
+          ::Datadog::Profiling::TraceIdentifiers::OpenTelemetry,
+        ].freeze
+        private_constant :DEFAULT_SUPPORTED_APIS
+
+        def initialize(supported_apis: DEFAULT_SUPPORTED_APIS.map(&:new))
           @supported_apis = supported_apis
         end
 
