@@ -5,10 +5,10 @@ require 'ddtrace/contrib/semantic_logger/patcher'
 
 RSpec.describe Datadog::Contrib::SemanticLogger::Patcher do
   describe '.patch' do
-    it 'adds Instrumentation to ancestors of SemanticLogger::Logging class' do
+    it 'adds Instrumentation to ancestors of SemanticLogger::Logger class' do
       described_class.patch
 
-      expect(SemanticLogger::Loggiing.ancestors).to include(Datadog::Contrib::SemanticLogger::Instrumentation)
+      expect(SemanticLogger::Logger.ancestors).to include(Datadog::Contrib::SemanticLogger::Instrumentation)
     end
   end
 end
