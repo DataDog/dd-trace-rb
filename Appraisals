@@ -84,6 +84,14 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge', '~> 0.11'
     end
 
+    appraise 'rails4-semantic-logger' do
+      gem 'rails', '4.2.11.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+    end
+
     appraise 'rails4-postgres-redis' do
       gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
@@ -123,6 +131,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '< 2.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
+      gem 'semantic_logger', '~> 4.0'
       gem 'sequel', '~> 4.0', '< 4.37'
       gem 'shoryuken'
       gem 'sidekiq', '~> 3.5.4'
@@ -210,6 +219,14 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge', '~> 0.11'
     end
 
+    appraise 'rails4-semantic-logger' do
+      gem 'rails', '4.2.11.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+    end
+
     appraise 'rails4-postgres-redis' do
       gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
@@ -274,6 +291,14 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
     end
 
+    appraise 'rails5-semantic-logger' do
+      gem 'rails', '5.2.3'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+      gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -310,6 +335,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '< 2.0'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
+      gem 'semantic_logger', '~> 4.0'
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
@@ -398,6 +424,14 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge', '~> 0.11'
     end
 
+    appraise 'rails4-semantic-logger' do
+      gem 'rails', '4.2.11.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+    end
+
     appraise 'rails4-postgres-redis' do
       gem 'rails', '4.2.11.1'
       gem 'pg', '< 1.0', platform: :ruby
@@ -438,6 +472,13 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails5-semantic-logger' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
     end
 
     appraise 'rails5-postgres-redis-activesupport' do
@@ -506,6 +547,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
+      gem 'semantic_logger', '~> 4.0'
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
@@ -540,6 +582,13 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails5-semantic-logger' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
     end
 
     appraise 'rails5-postgres-redis' do
@@ -617,6 +666,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
+      gem 'semantic_logger', '~> 4.0'
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
@@ -653,6 +703,15 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+  end
+
+  appraise 'rails5-semantic-logger' do
+    gem 'rails', '~> 5.2.1'
+    gem 'pg', '< 1.0', platform: :ruby
+    gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+    gem 'sprockets', '< 4'
+    gem 'rails_semantic_logger', '~> 4.0'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
@@ -702,6 +761,15 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+  end
+
+  appraise 'rails6-semantic-logger' do
+    gem 'rails', '~> 6.0.0'
+    gem 'pg', '< 1.0', platform: :ruby
+    gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
+    gem 'sprockets', '< 4'
+    gem 'rails_semantic_logger', '~> 4.0'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
@@ -774,6 +842,15 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
+  appraise 'rails61-semantic-logger' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
+    gem 'sprockets', '< 4'
+    gem 'rails_semantic_logger', '~> 4.0'
+    gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+  end
+
   appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
     gem 'resque', '>= 2.0'
@@ -826,6 +903,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
+    gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
@@ -860,6 +938,13 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails5-semantic-logger' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
     end
 
     appraise 'rails5-postgres-redis' do
@@ -954,6 +1039,13 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sidekiq', '>= 6.1.2'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails61-semantic-logger' do
+      gem 'rails', '~> 6.1.0'
+      gem 'pg', '>= 1.1', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
     end
 
     appraise 'resque2-redis3' do
@@ -1005,6 +1097,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque'
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
+      gem 'semantic_logger', '~> 4.0'
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
@@ -1039,6 +1132,13 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+    end
+
+    appraise 'rails5-semantic-logger' do
+      gem 'rails', '~> 5.2.1'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
     end
 
     appraise 'rails5-postgres-redis' do
@@ -1139,6 +1239,13 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge', '~> 0.11'
     end
 
+    appraise 'rails61-semantic-logger' do
+      gem 'rails', '~> 6.1.0'
+      gem 'pg', '>= 1.1', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+    end
+
     appraise 'resque2-redis3' do
       gem 'redis', '< 4.0'
       gem 'resque', '>= 2.0'
@@ -1188,6 +1295,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'ruby-kafka', '>= 0.7.10'
       gem 'rspec', '>= 3.0.0'
       gem 'sequel'
+      gem 'semantic_logger', '~> 4.0'
       gem 'shoryuken'
       gem 'sidekiq'
       gem 'sinatra'
@@ -1235,6 +1343,14 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'sidekiq', '>= 6.1.2'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'rails_semantic_logger', '~> 4.0'
+  end
+
+  appraise 'rails61-semantic-logger' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'rails_semantic_logger', '~> 4.0'
   end
 
   appraise 'resque2-redis3' do
@@ -1285,6 +1401,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'resque'
     gem 'ruby-kafka', '>= 0.7.10'
     gem 'rspec', '>= 3.0.0'
+    gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
