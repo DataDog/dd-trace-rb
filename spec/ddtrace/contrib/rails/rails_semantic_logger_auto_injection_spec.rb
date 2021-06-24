@@ -64,13 +64,13 @@ RSpec.describe 'Rails Log Auto Injection' do
               SemanticLogger.flush
 
               expect(logs).to include(spans[0].trace_id.to_s)
-              expect(logs).to include("MINASWAN")
+              expect(logs).to include('MINASWAN')
             end
           end
 
           context 'with semantic logger setup and existing log_tags' do
             before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return({some_tag: 'some_value'})
+              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return({ some_tag: 'some_value' })
             end
 
             it 'injects trace_id into logs and preserve existing log tags' do
@@ -79,7 +79,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               SemanticLogger.flush
 
               expect(logs).to include(spans[0].trace_id.to_s)
-              expect(logs).to include("MINASWAN")
+              expect(logs).to include('MINASWAN')
               expect(logs).to include('some_tag')
               expect(logs).to include('some_value')
             end

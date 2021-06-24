@@ -14,7 +14,7 @@ RSpec.describe 'Rails Log Auto Injection' do
   let(:controllers) do
     [
       tagged_logging_controller,
-      lograge_controller,
+      lograge_controller
     ]
   end
 

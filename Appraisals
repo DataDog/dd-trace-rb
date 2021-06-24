@@ -986,6 +986,13 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'lograge', '~> 0.11'
     end
 
+    appraise 'rails6-semantic-logger' do
+      gem 'rails', '~> 6.0.0'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+    end
+
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
@@ -1181,6 +1188,13 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
+
+    appraise 'rails6-semantic-logger' do
+      gem 'rails', '~> 6.0.0'
+      gem 'pg', '< 1.0', platform: :ruby
+      gem 'sprockets', '< 4'
+      gem 'rails_semantic_logger', '~> 4.0'
+    end    
 
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
