@@ -88,6 +88,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Profiling](#profiling)
          - [Troubleshooting](#troubleshooting)
          - [Profiling Resque jobs](#profiling-resque-jobs)
+         - [Linking OpenTelemetry traces with profiles](#linking-opentelemetry-traces-with-profiles)
  - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
     - [Payload too large](#payload-too-large)
     - [Stack level too deep](#stack-level-too-deep)
