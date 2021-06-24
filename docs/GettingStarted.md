@@ -2503,6 +2503,21 @@ When profiling [Resque](https://github.com/resque/resque) jobs, you should set t
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
 
+#### Linking OpenTelemetry traces with profiles
+
+Profiler's support for [Investigating Code Hotspots from Traces](https://docs.datadoghq.com/tracing/profiler/connect_traces_and_profiles)
+is also available when using the [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-ruby) Ruby libraries.
+
+To enable this feature, and after following regular steps for enabling profiling,
+modify your OpenTelemetry gem configuration to add an additional span processor:
+
+```ruby
+OpenTelemetry::SDK.configure do |c|
+  c.add_span_processor(Datadog::Profiling::Ext::OpenTelemetryTraceLinking.new)
+  # ... rest of your configuration for using OpenTelemetry
+end
+```
+
 ## Known issues and suggested configurations
 
 ### Payload too large
