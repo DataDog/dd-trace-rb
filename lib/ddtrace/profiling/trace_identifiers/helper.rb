@@ -14,7 +14,7 @@ module Datadog
       class Helper
         DEFAULT_SUPPORTED_APIS = [
           ::Datadog::Profiling::TraceIdentifiers::Ddtrace,
-          ::Datadog::Profiling::TraceIdentifiers::OpenTelemetry,
+          ::Datadog::Profiling::TraceIdentifiers::OpenTelemetry
         ].freeze
         private_constant :DEFAULT_SUPPORTED_APIS
 

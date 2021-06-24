@@ -58,6 +58,26 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::OpenTelemetry do
       end
     end
 
+    context 'when an unsupported version of the opentelemetry-api gem is loaded' do
+      before do
+        allow(Datadog.logger).to receive(:warn)
+        stub_const('::OpenTelemetry::VERSION', '0.16.0')
+        described_class.const_get('UNSUPPORTED_VERSION_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
+      end
+
+      it 'does not try to invoke the opentelemetry api' do
+        expect(OpenTelemetry::Trace).to_not receive(:current_span)
+
+        trace_identifiers_for
+      end
+
+      it 'logs a warning' do
+        expect(Datadog.logger).to receive(:warn).with(/Incompatible version of opentelemetry-api/)
+
+        trace_identifiers_for
+      end
+    end
+
     context 'when opentelemetry-api gem is not available' do
       let!(:original_opentelemetry) { ::OpenTelemetry }
 

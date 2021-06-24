@@ -1,11 +1,24 @@
 # frozen_string_literal: true
 
+require 'ddtrace/utils/only_once'
+
 module Datadog
   module Profiling
     module TraceIdentifiers
+      # Used by Datadog::Profiling::TraceIdentifiers::Helper to get the trace identifiers (trace id and span id) for a
+      # given thread, if there is an active trace for that thread in the OpenTelemetry library.
+      #
+      # This class MUST be safe to instantiate and call even when the opentelemetry-api library is not installed.
       class OpenTelemetry
+        SUPPORTED_VERSIONS = Gem::Requirement.new('>= 0.17.0')
+        private_constant :SUPPORTED_VERSIONS
+
+        UNSUPPORTED_VERSION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+        private_constant :UNSUPPORTED_VERSION_ONLY_ONCE
+
         def initialize
           @available = false
+          @checked_version = false
         end
 
         def trace_identifiers_for(thread)
@@ -25,9 +38,9 @@ module Datadog
         private
 
         def available?
-          return true if @available
+          return false unless defined?(::OpenTelemetry)
 
-          if defined?(::OpenTelemetry)
+          unless @checked_version
             # Because the profiler can start quite early in the application boot process, it's possible for us to
             # observe the OpenTelemetry module, but still be in a situation where the full opentelemetry gem has not
             # finished being require'd.
@@ -35,14 +48,15 @@ module Datadog
             # To solve this, we use a require which forces a synchronization point -- this require will not return
             # until the gem is fully loaded.
             require 'opentelemetry-api'
-            @available = true
+            @available = supported?
+            @checked_version = true
           end
 
           @available
         end
 
         def binary_8_byte_string_to_i(string)
-          string.unpack1("Q>")
+          string.unpack1('Q>')
         end
 
         def trace_id_to_datadog(trace_id)
@@ -52,6 +66,24 @@ module Datadog
           # * https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/9c7c329f0877f72befb36c61c47899d5a4525037/exporter/datadogexporter/translate_traces.go#L469
           # * https://github.com/open-telemetry/opentelemetry-specification/issues/525
           trace_id[8..16]
+        end
+
+        def supported?
+          if defined?(::OpenTelemetry::VERSION) &&
+             SUPPORTED_VERSIONS.satisfied_by?(Gem::Version.new(::OpenTelemetry::VERSION))
+            true
+          else
+            UNSUPPORTED_VERSION_ONLY_ONCE.run do
+              Datadog.logger.warn(
+                'Profiler: Incompatible version of opentelemetry-api detected; ' \
+                "ensure you have opentelemetry-api #{SUPPORTED_VERSIONS} by adding " \
+                "`gem 'opentelemetry-api', '#{SUPPORTED_VERSIONS}'` to your Gemfile or gems.rb file. " \
+                'Linking of OpenTelemetry traces to profiles will not be available. '
+              )
+            end
+
+            false
+          end
         end
       end
     end
