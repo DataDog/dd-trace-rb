@@ -20,6 +20,7 @@ Components below live inside <../lib/ddtrace/profiling>:
 * `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle fork() and CPU profiling.
 * `Transport::*` (in <../lib/ddtrace/profiling/transport>): Implements transmission of profiling payloads to the Datadog agent
   or backend.
+* `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
 * `BacktraceLocation`: Entity class used to represent an entry in a stack trace.
 * `Buffer`: Bounded buffer used to store profiling events.
 * `Exporter`: Writes profiling data to a given transport.
@@ -86,3 +87,29 @@ takes care of encoding the data and reporting it to the datadog agent (or to the
 ## How CPU-time profiling works
 
 **TODO**: Document our pthread-based approach to getting CPU-time for threads.
+
+## How linking of traces to profiles works
+
+The [code hotspots feature](https://docs.datadoghq.com/tracing/profiler/connect_traces_and_profiles) allows users to start
+from a trace and then to investigate the profile that corresponds to that trace.
+
+This works in two steps:
+1. Linking a trace to the profile that was gathered while it executed
+2. Enabling the filtering of a profile to contain only the samples relating to a given trace/span
+
+To link a trace to a profile, we must ensure that both have the same `runtime-id` tag.
+This tag is in `Datadog::Runtime::Identity.id` and is automatically added by both the tracer and the profiler to reported
+traces/profiles.
+
+The profiler backend links a trace covering a given time interval to the profiles covering the same time interval,
+whenever they share the same `runtime-id`.
+
+To further enable filtering of a profile to show only samples related to a given trace/span, each sample taken by the
+profiler is tagged with the trace_id and span_id for the given trace/span.
+
+This is done using the `Datadog::Profiling::TraceIdentifiers::Helper` that retrieves a trace_id and span_id, if
+available, from the supported tracers. This helper is called by the `Collectors::Stack` during sampling.
+
+Note that if a given trace executes too fast, it's possible that the profiler will not contain any samples for that
+specific trace. Nevertheless, the linking still works and is useful, as it allows users to explore what was going on their
+profile at that time, even if they can't filter down to the specific request.
