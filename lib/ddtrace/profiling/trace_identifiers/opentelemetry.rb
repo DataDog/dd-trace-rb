@@ -19,12 +19,16 @@ module Datadog
         def initialize
           @available = false
           @checked_version = false
+          @current_context_key = nil
         end
 
         def trace_identifiers_for(thread)
           return unless available?
 
-          span = ::OpenTelemetry::Trace.current_span(thread[::OpenTelemetry::Context::KEY])
+          current_context = Array(thread[@current_context_key]).last # <= 1.0.0.rc1 single value; > 1.0.0.rc1 array
+          return unless current_context
+
+          span = ::OpenTelemetry::Trace.current_span(current_context)
 
           if span && span != ::OpenTelemetry::Trace::Span::INVALID
             context = span.context
@@ -69,10 +73,8 @@ module Datadog
         end
 
         def supported?
-          if defined?(::OpenTelemetry::VERSION) &&
-             SUPPORTED_VERSIONS.satisfied_by?(Gem::Version.new(::OpenTelemetry::VERSION))
-            true
-          else
+          unless defined?(::OpenTelemetry::VERSION) &&
+                 SUPPORTED_VERSIONS.satisfied_by?(Gem::Version.new(::OpenTelemetry::VERSION))
             UNSUPPORTED_VERSION_ONLY_ONCE.run do
               Datadog.logger.warn(
                 'Profiler: Incompatible version of opentelemetry-api detected; ' \
@@ -82,7 +84,21 @@ module Datadog
               )
             end
 
-            false
+            return false
+          end
+
+          key = retrieve_current_context_key
+          return false unless key
+
+          @current_context_key = key
+          true
+        end
+
+        def retrieve_current_context_key
+          if defined?(::OpenTelemetry::Context::KEY) # <= 1.0.0.rc1
+            ::OpenTelemetry::Context::KEY
+          elsif ::OpenTelemetry::Context.const_defined?(:STACK_KEY)
+            ::OpenTelemetry::Context.const_get(:STACK_KEY)
           end
         end
       end

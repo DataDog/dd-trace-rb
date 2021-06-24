@@ -59,7 +59,6 @@ end
 # Optional extensions
 # TODO: Move this to Appraisals?
 gem 'dogstatsd-ruby', '< 5.0'
-gem 'opentelemetry-api', '>= 0.17.0' if RUBY_VERSION >= '2.5.0'
 gem 'opentracing', '>= 0.4.1'
 
 # Profiler optional dependencies

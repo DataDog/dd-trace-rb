@@ -18,7 +18,7 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry,auto_instrument}/**/*_spec.rb,'\
-                        ' spec/**/auto_instrument_spec.rb'
+                        ' spec/**/auto_instrument_spec.rb,spec/**/profiling/**/opentelemetry_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -65,6 +65,11 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
     t.pattern = 'spec/ddtrace/auto_instrument_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:'profiling-opentelemetry') do |t, args|
+    t.pattern = 'spec/**/profiling/**/opentelemetry_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -628,6 +633,11 @@ task :ci do
     declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+    # Profiling
+    declare 'bundle exec appraisal opentelemetry-pre-1-0 rake spec:profiling-opentelemetry'
+    declare 'bundle exec appraisal opentelemetry-1-0 rake spec:profiling-opentelemetry'
+
   elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
     # Main library
@@ -726,6 +736,10 @@ task :ci do
       declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+      # Profiling
+      declare 'bundle exec appraisal opentelemetry-pre-1-0 rake spec:profiling-opentelemetry'
+      declare 'bundle exec appraisal opentelemetry-1-0 rake spec:profiling-opentelemetry'
     end
   elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.0.0')
@@ -824,6 +838,10 @@ task :ci do
       declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+      # Profiling
+      declare 'bundle exec appraisal opentelemetry-pre-1-0 rake spec:profiling-opentelemetry'
+      declare 'bundle exec appraisal opentelemetry-1-0 rake spec:profiling-opentelemetry'
     end
   elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     # Main library
@@ -898,6 +916,11 @@ task :ci do
       declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
+
+      # Profiling
+      declare 'bundle exec appraisal opentelemetry-pre-1-0 rake spec:profiling-opentelemetry'
+      declare 'bundle exec appraisal opentelemetry-1-0 rake spec:profiling-opentelemetry'
+
     end
   end
 end
