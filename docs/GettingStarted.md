@@ -86,6 +86,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
      - [Profiling](#profiling)
+         - [Troubleshooting](#troubleshooting)
+         - [Profiling Resque jobs](#profiling-resque-jobs)
  - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
     - [Payload too large](#payload-too-large)
     - [Stack level too deep](#stack-level-too-deep)
@@ -2490,6 +2492,10 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 **Setup**
 
 To get started with profiling, follow the [Profiler Getting Started Guide](https://docs.datadoghq.com/tracing/profiler/getting_started/?code-lang=ruby).
+
+#### Troubleshooting
+
+If you run into issues with profiling, please check the [Profiler Troubleshooting Guide](https://docs.datadoghq.com/tracing/profiler/profiler_troubleshooting/?code-lang=ruby).
 
 #### Profiling Resque jobs
 
