@@ -98,15 +98,15 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
 
     it do
       is_expected.to include(
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,
-        Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Ext::Runtime::TRACER_VERSION
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Core::Ext::Environment::LANG,
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Ext::Environment::LANG_VERSION,
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Ext::Environment::LANG_INTERPRETER,
+        Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Ext::Environment::TRACER_VERSION
       )
     end
 
-    context 'when Runtime::Container.container_id' do
-      before { expect(Datadog::Runtime::Container).to receive(:container_id).and_return(container_id) }
+    context 'when Core::Environment::Container.container_id' do
+      before { expect(Datadog::Core::Environment::Container).to receive(:container_id).and_return(container_id) }
 
       context 'is not nil' do
         let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }

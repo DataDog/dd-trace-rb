@@ -56,7 +56,7 @@ module Datadog
       puts "Rails env: #{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
       puts "PID: #{Process.pid}"
       if ddtrace = Gem.loaded_specs['ddtrace']
-        puts "Runtime ID: #{Datadog::Runtime::Identity.id}" if defined?(Datadog::Runtime::Identity)
+        puts "Runtime ID: #{Datadog::Core::Environment::Identity.id}" if defined?(Datadog::Core::Environment::Identity)
         puts "ddtrace version: #{ddtrace.version}"
         puts "ddtrace path: #{ddtrace.full_gem_path}"
         if git_spec = git_gem('ddtrace')

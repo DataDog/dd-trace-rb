@@ -73,14 +73,14 @@ module Datadog
 
       # @return [String] "ruby"
       def lang
-        Ext::Runtime::LANG
+        Core::Ext::Environment::LANG
       end
 
       # Supported Ruby language version.
       # Will be distinct from VM version for non-MRI environments.
       # @return [String]
       def lang_version
-        Ext::Runtime::LANG_VERSION
+        Core::Ext::Environment::LANG_VERSION
       end
 
       # @return [String] configured application environment

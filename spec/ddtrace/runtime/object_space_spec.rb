@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'ddtrace/runtime/object_space'
+require 'datadog/core/environment/object_space'
 
-RSpec.describe Datadog::Runtime::ObjectSpace do
+RSpec.describe Datadog::Core::Environment::ObjectSpace do
   describe '::estimate_bytesize' do
     subject(:estimate_bytesize) { described_class.estimate_bytesize(object) }
 

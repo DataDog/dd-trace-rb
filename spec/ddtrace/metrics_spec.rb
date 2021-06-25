@@ -836,10 +836,10 @@ RSpec.describe Datadog::Metrics::Options do
 
         it 'includes default tags' do
           is_expected.to include(
-            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Runtime::Identity.lang}",
-            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Runtime::Identity.lang_interpreter}",
-            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Runtime::Identity.lang_version}",
-            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Runtime::Identity.tracer_version}"
+            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Core::Environment::Identity.lang}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Core::Environment::Identity.lang_interpreter}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Core::Environment::Identity.lang_version}",
+            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Core::Environment::Identity.tracer_version}"
           )
         end
 

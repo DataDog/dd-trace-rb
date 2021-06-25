@@ -1,4 +1,4 @@
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 require 'ddtrace/configuration/options'
 
 module Datadog
@@ -6,8 +6,8 @@ module Datadog
     # Basic configuration behavior
     module Base
       def self.included(base)
-        base.extend(Datadog::Environment::Helpers)
-        base.include(Datadog::Environment::Helpers)
+        base.extend(Datadog::Core::Environment::VariableHelpers)
+        base.include(Datadog::Core::Environment::VariableHelpers)
         base.include(Options)
 
         base.extend(ClassMethods)

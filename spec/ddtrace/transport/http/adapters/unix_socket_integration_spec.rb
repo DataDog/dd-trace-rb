@@ -90,17 +90,17 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       expect(messages).to have(1).items
       messages.first.tap do |http_request|
         expect(http_request.header).to include(
-          'datadog-meta-lang' => [Datadog::Ext::Runtime::LANG],
-          'datadog-meta-lang-version' => [Datadog::Ext::Runtime::LANG_VERSION],
-          'datadog-meta-lang-interpreter' => [Datadog::Ext::Runtime::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Ext::Runtime::TRACER_VERSION],
+          'datadog-meta-lang' => [Datadog::Core::Ext::Environment::LANG],
+          'datadog-meta-lang-version' => [Datadog::Core::Ext::Environment::LANG_VERSION],
+          'datadog-meta-lang-interpreter' => [Datadog::Core::Ext::Environment::LANG_INTERPRETER],
+          'datadog-meta-tracer-version' => [Datadog::Core::Ext::Environment::TRACER_VERSION],
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )
 
-        unless Datadog::Runtime::Container.container_id.nil?
+        unless Datadog::Core::Environment::Container.container_id.nil?
           expect(http_request.header).to include(
-            'datadog-container-id' => [Datadog::Runtime::Container.container_id]
+            'datadog-container-id' => [Datadog::Core::Environment::Container.container_id]
           )
         end
 

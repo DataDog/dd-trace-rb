@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'ddtrace/runtime/container'
+require 'datadog/core/environment/container'
 
-RSpec.describe Datadog::Runtime::Container do
+RSpec.describe Datadog::Core::Environment::Container do
   describe '::descriptor' do
     subject(:descriptor) { described_class.descriptor }
 

@@ -1,8 +1,8 @@
 require 'spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/ext/runtime'
-require 'ddtrace/runtime/identity'
+require 'datadog/core/ext/environment'
+require 'datadog/core/environment/identity'
 require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::Tracer do

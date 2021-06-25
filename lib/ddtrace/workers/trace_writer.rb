@@ -60,7 +60,7 @@ module Datadog
         traces.each do |trace|
           next if trace.first.nil?
 
-          hostname = Datadog::Runtime::Socket.hostname
+          hostname = Datadog::Core::Environment::Socket.hostname
           trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
         end
       end

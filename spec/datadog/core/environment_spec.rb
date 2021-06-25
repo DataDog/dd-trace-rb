@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 
-RSpec.describe Datadog::Environment do
+RSpec.describe Datadog::Core::Environment do
   let(:var) { 'TEST_VAR' }
 
   shared_context 'env var' do

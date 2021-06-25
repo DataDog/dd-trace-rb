@@ -79,16 +79,16 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         client.send_profiling_flush(flush)
 
         expect(request.header).to include(
-          'datadog-meta-lang' => [Datadog::Ext::Runtime::LANG],
-          'datadog-meta-lang-version' => [Datadog::Ext::Runtime::LANG_VERSION],
-          'datadog-meta-lang-interpreter' => [Datadog::Ext::Runtime::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Ext::Runtime::TRACER_VERSION],
+          'datadog-meta-lang' => [Datadog::Core::Ext::Environment::LANG],
+          'datadog-meta-lang-version' => [Datadog::Core::Ext::Environment::LANG_VERSION],
+          'datadog-meta-lang-interpreter' => [Datadog::Core::Ext::Environment::LANG_INTERPRETER],
+          'datadog-meta-tracer-version' => [Datadog::Core::Ext::Environment::TRACER_VERSION],
           'content-type' => [%r{^multipart/form-data; boundary=(.+)}]
         )
 
-        unless Datadog::Runtime::Container.container_id.nil?
+        unless Datadog::Core::Environment::Container.container_id.nil?
           expect(request.header).to include(
-            'datadog-container-id' => [Datadog::Runtime::Container.container_id]
+            'datadog-container-id' => [Datadog::Core::Environment::Container.container_id]
           )
         end
 
@@ -99,30 +99,30 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         expect(body).to include(
-          'runtime-id' => Datadog::Runtime::Identity.id,
+          'runtime-id' => Datadog::Core::Environment::Identity.id,
           'recording-start' => kind_of(String),
           'recording-end' => kind_of(String),
           'data[0]' => kind_of(String),
           'types[0]' => /auto/,
-          'runtime' => Datadog::Ext::Runtime::LANG,
+          'runtime' => Datadog::Core::Ext::Environment::LANG,
           'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
         )
 
         tags = body["#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS}[]"].list
         expect(tags).to include(
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Ext::Runtime::LANG}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Core::Ext::Environment::LANG}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{uuid_regex.source}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Ext::Runtime::LANG_ENGINE}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Ext::Runtime::LANG_PLATFORM}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Ext::Runtime::LANG_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Core::Ext::Environment::LANG_ENGINE}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Core::Ext::Environment::LANG_PLATFORM}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Core::Ext::Environment::LANG_VERSION}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Ext::Runtime::TRACER_VERSION}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Core::Ext::Environment::TRACER_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Core::Ext::Environment::LANG}/o,
           'test_tag:test_value'
         )
 
-        if Datadog::Runtime::Container.container_id
-          container_id = Datadog::Runtime::Container.container_id[0..11]
+        if Datadog::Core::Environment::Container.container_id
+          container_id = Datadog::Core::Environment::Container.container_id[0..11]
           expect(tags).to include(/#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_HOST}:#{container_id}/)
         end
       end
