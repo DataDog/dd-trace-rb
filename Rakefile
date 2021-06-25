@@ -18,7 +18,7 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry,auto_instrument}/**/*_spec.rb,'\
-                        ' spec/**/auto_instrument_spec.rb,spec/**/profiling/**/opentelemetry_spec.rb'
+                        ' spec/**/auto_instrument_spec.rb,spec/**/profiling/**/**opentelemetry**_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -69,7 +69,7 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:'profiling-opentelemetry') do |t, args|
-    t.pattern = 'spec/**/profiling/**/opentelemetry_spec.rb'
+    t.pattern = 'spec/**/profiling/**/**opentelemetry**_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
