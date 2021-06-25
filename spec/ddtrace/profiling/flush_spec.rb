@@ -18,7 +18,8 @@ RSpec.describe Datadog::Profiling::Flush do
           runtime_engine: Datadog::Runtime::Identity.lang_engine,
           runtime_platform: Datadog::Runtime::Identity.lang_platform,
           runtime_version: Datadog::Runtime::Identity.lang_version,
-          profiler_version: Datadog::Runtime::Identity.tracer_version
+          profiler_version: Datadog::Runtime::Identity.tracer_version,
+          tags: Datadog.configuration.tags
         )
       end
     end
@@ -39,7 +40,8 @@ RSpec.describe Datadog::Profiling::Flush do
           runtime_engine,
           runtime_platform,
           runtime_version,
-          profiler_version
+          profiler_version,
+          tags
         )
       end
 
@@ -57,6 +59,7 @@ RSpec.describe Datadog::Profiling::Flush do
       let(:runtime_platform) { double('runtime_platform') }
       let(:runtime_version) { double('runtime_version') }
       let(:profiler_version) { double('profiler_version') }
+      let(:tags) { double('tags') }
 
       it do
         is_expected.to have_attributes(
@@ -73,7 +76,8 @@ RSpec.describe Datadog::Profiling::Flush do
           runtime_engine: runtime_engine,
           runtime_platform: runtime_platform,
           runtime_version: runtime_version,
-          profiler_version: profiler_version
+          profiler_version: profiler_version,
+          tags: tags
         )
       end
     end

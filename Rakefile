@@ -87,6 +87,7 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  # Datadog Tracing integrations
   [
     :action_cable,
     :action_pack,
@@ -110,6 +111,7 @@ namespace :spec do
     :httpclient,
     :httprb,
     :kafka,
+    :lograge,
     :mongodb,
     :mysql2,
     :presto,
@@ -132,6 +134,17 @@ namespace :spec do
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+
+  # Datadog CI integrations
+  [
+    :cucumber,
+    :rspec
+  ].each do |contrib|
+    RSpec::Core::RakeTask.new(contrib) do |t, args|
+      t.pattern = "spec/datadog/ci/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end
@@ -308,6 +321,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -389,6 +403,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -476,6 +491,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -549,6 +565,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:http'
     declare 'bundle exec appraisal contrib rake spec:httpclient'
     declare 'bundle exec appraisal contrib rake spec:httprb'
+    declare 'bundle exec appraisal contrib rake spec:lograge'
     declare 'bundle exec appraisal contrib rake spec:kafka'
     declare 'bundle exec appraisal contrib rake spec:mongodb'
     declare 'bundle exec appraisal contrib rake spec:mysql2' if RUBY_PLATFORM != 'java' # built-in jdbc is used instead
@@ -645,6 +662,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -743,6 +761,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'
@@ -834,10 +853,12 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:faraday'
       declare 'bundle exec appraisal contrib rake spec:grape'
       declare 'bundle exec appraisal contrib rake spec:graphql'
-      # declare 'bundle exec appraisal contrib rake spec:grpc' # Pending https://github.com/protocolbuffers/protobuf/issues/7922
+      declare 'bundle exec appraisal contrib rake spec:grpc'
       declare 'bundle exec appraisal contrib rake spec:http'
       declare 'bundle exec appraisal contrib rake spec:httpclient'
       declare 'bundle exec appraisal contrib rake spec:httprb'
+      # lograge nested dependancy thor ~> 1.0 conflicts w/qless dependancy thor ~> 0.19.1
+      # declare 'bundle exec appraisal contrib rake spec:lograge'
       declare 'bundle exec appraisal contrib rake spec:kafka'
       declare 'bundle exec appraisal contrib rake spec:mongodb'
       declare 'bundle exec appraisal contrib rake spec:mysql2'

@@ -48,7 +48,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       context 'and succeeds' do
         it 'applies forking extensions' do
           expect(Datadog::Profiling::Ext::Forking).to receive(:apply!)
-          expect($stdout).to_not receive(:puts)
+          expect(Datadog.logger).to_not receive(:warn)
           activate_forking_extensions
         end
       end
@@ -60,9 +60,9 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             .and_raise(StandardError)
         end
 
-        it 'displays a warning to $stdout' do
-          expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('Forking extensions unavailable')
+        it 'logs a warning' do
+          expect(Datadog.logger).to receive(:warn) do |&message|
+            expect(message.call).to include('forking extensions unavailable')
           end
 
           activate_forking_extensions
@@ -86,8 +86,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips forking extensions with warning' do
           expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
-          expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('Forking extensions skipped')
+          expect(Datadog.logger).to receive(:debug) do |message|
+            expect(message).to include('forking extensions skipped')
           end
 
           activate_forking_extensions
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips forking extensions without warning' do
           expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
-          expect($stdout).to_not receive(:puts)
+          expect(Datadog.logger).to_not receive(:debug)
           activate_forking_extensions
         end
       end
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       context 'and succeeds' do
         it 'applies CPU extensions' do
           expect(Datadog::Profiling::Ext::CPU).to receive(:apply!)
-          expect($stdout).to_not receive(:puts)
+          expect(Datadog.logger).to_not receive(:warn)
           activate_cpu_extensions
         end
       end
@@ -135,9 +135,9 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             .and_raise(StandardError)
         end
 
-        it 'displays a warning to $stdout' do
-          expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('CPU profiling unavailable')
+        it 'logs a warning' do
+          expect(Datadog.logger).to receive(:warn) do |&message|
+            expect(message.call).to include('CPU profiling extensions unavailable')
           end
 
           activate_cpu_extensions
@@ -159,10 +159,10 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
             .and_return(true)
         end
 
-        it 'skips CPU extensions with warning' do
+        it 'skips CPU extensions with an info message' do
           expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
-          expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('CPU time profiling skipped')
+          expect(Datadog.logger).to receive(:info) do |&message|
+            expect(message.call).to include('CPU time profiling skipped')
           end
 
           activate_cpu_extensions
@@ -178,7 +178,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
         it 'skips CPU extensions without warning' do
           expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
-          expect($stdout).to_not receive(:puts)
+          expect(Datadog.logger).to_not receive(:warn)
           activate_cpu_extensions
         end
       end
@@ -224,7 +224,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       context 'when there is an issue starting the profiler' do
         before do
           expect(Datadog).to receive(:profiler).and_raise('Dummy exception')
-          allow($stdout).to receive(:puts) # Silence logging during tests
+          allow(Datadog.logger).to receive(:warn) # Silence logging during tests
         end
 
         it 'does not raise any error' do
@@ -232,8 +232,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         end
 
         it 'logs an exception' do
-          expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('Dummy exception')
+          expect(Datadog.logger).to receive(:warn) do |&message|
+            expect(message.call).to include('Dummy exception')
           end
 
           at_fork_hook.call
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
           without_partial_double_verification do
             expect(Thread.current).to receive(:update_native_ids).and_raise('Dummy exception')
           end
-          allow($stdout).to receive(:puts) # Silence logging during tests
+          allow(Datadog.logger).to receive(:warn) # Silence logging during tests
         end
 
         it 'does not raise any error' do
@@ -261,8 +261,8 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         end
 
         it 'logs an exception' do
-          expect($stdout).to receive(:puts) do |message|
-            expect(message).to include('Dummy exception')
+          expect(Datadog.logger).to receive(:warn) do |&message|
+            expect(message.call).to include('Dummy exception')
           end
 
           at_fork_hook.call

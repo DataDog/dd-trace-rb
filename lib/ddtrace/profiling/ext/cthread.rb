@@ -16,9 +16,9 @@ module Datadog
         attach_function :pthread_getcpuclockid, [:ulong, CClockId], :int
 
         # NOTE: Only returns thread ID for thread that evaluates this call.
-        #       a.k.a. evaluating `get_native_thread_id(thread_a)` from within
+        #       a.k.a. evaluating `get_pthread_thread_id(thread_a)` from within
         #       `thread_b` will return `thread_b`'s thread ID, not `thread_a`'s.
-        def self.get_native_thread_id(thread)
+        def self.get_pthread_thread_id(thread)
           return unless ::Thread.current == thread
 
           pthread_self
@@ -65,16 +65,16 @@ module Datadog
         # it looks like there's some lazily-created structure that is missing and did not get created).
         if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') &&
            Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
-          attr_reader :native_thread_id
+          attr_reader :pthread_thread_id
         else
-          def native_thread_id
-            defined?(@native_thread_id) && @native_thread_id
+          def pthread_thread_id
+            defined?(@pthread_thread_id) && @pthread_thread_id
           end
         end
 
         def initialize(*args)
           @pid = ::Process.pid
-          @native_thread_id = nil
+          @pthread_thread_id = nil
           @clock_id = nil
 
           # Wrap the work block with our own
@@ -120,8 +120,8 @@ module Datadog
           return unless ::Thread.current == self
 
           @pid = ::Process.pid
-          @native_thread_id = NativePthread.get_native_thread_id(self)
-          @clock_id = NativePthread.get_clock_id(self, @native_thread_id)
+          @pthread_thread_id = NativePthread.get_pthread_thread_id(self)
+          @clock_id = NativePthread.get_clock_id(self, @pthread_thread_id)
         end
       end
 

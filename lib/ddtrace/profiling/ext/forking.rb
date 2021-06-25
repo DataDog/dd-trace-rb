@@ -24,13 +24,13 @@ module Datadog
           #       It could also have collisions with other libraries that patch.
           #       Opt to modify the inheritance of each relevant target instead.
           modules.each do |mod|
-            if mod.class <= Module
-              mod.singleton_class.class_eval do
-                prepend Kernel
-              end
-            else
-              mod.class.prepend(Kernel)
-            end
+            clazz = if mod.class <= Module
+                      mod.singleton_class
+                    else
+                      mod.class
+                    end
+
+            clazz.prepend(Kernel)
           end
         end
 

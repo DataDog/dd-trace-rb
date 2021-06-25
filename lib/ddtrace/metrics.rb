@@ -3,8 +3,9 @@ require 'ddtrace/ext/metrics'
 require 'set'
 require 'logger'
 require 'ddtrace/environment'
-require 'ddtrace/utils/time'
 require 'ddtrace/runtime/identity'
+require 'ddtrace/utils/only_once'
+require 'ddtrace/utils/time'
 
 module Datadog
   # Acts as client for sending metrics (via Statsd)
@@ -12,9 +13,15 @@ module Datadog
   class Metrics
     attr_reader :statsd
 
-    def initialize(options = {})
-      @statsd = options.fetch(:statsd) { default_statsd_client if supported? }
-      @enabled = options.fetch(:enabled, true)
+    def initialize(statsd: nil, enabled: true, **_)
+      @statsd =
+        if supported?
+          statsd || default_statsd_client
+        else
+          ignored_statsd_warning if statsd
+          nil
+        end
+      @enabled = enabled
     end
 
     def supported?
@@ -48,6 +55,8 @@ module Datadog
 
     def default_statsd_client
       require 'datadog/statsd'
+
+      incompatible_statsd_warning
 
       # Create a StatsD client that points to the agent.
       Datadog::Statsd.new(default_hostname, default_port)
@@ -232,5 +241,36 @@ module Datadog
     include Options
     extend Options
     extend Helpers
+
+    private
+
+    INCOMPATIBLE_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :INCOMPATIBLE_STATSD_ONLY_ONCE
+
+    # IMPORTANT: Once you delete this, you probably want to update the `#ignored_statsd_warning` below where we
+    # recommend that customers add `gem 'dogstatsd-ruby', '~> 4.0'` to their Gemfile to perhaps state something
+    # different.
+    def incompatible_statsd_warning
+      return if Gem.loaded_specs['dogstatsd-ruby'].version < Gem::Version.new('5.0')
+
+      INCOMPATIBLE_STATSD_ONLY_ONCE.run do
+        Datadog.logger.warn(
+          'This version of `ddtrace` is incompatible with `dogstastd-ruby` version >= 5.0 and can ' \
+          'cause unbounded memory usage. Please use `dogstastd-ruby` version < 5.0 instead.'
+        )
+      end
+    end
+
+    IGNORED_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :IGNORED_STATSD_ONLY_ONCE
+
+    def ignored_statsd_warning
+      IGNORED_STATSD_ONLY_ONCE.run do
+        Datadog.logger.warn(
+          'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
+          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 4.0'` on your Gemfile or gems.rb file."
+        )
+      end
+    end
   end
 end

@@ -7,6 +7,7 @@ require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
+require 'ddtrace/contrib/lograge/integration'
 
 require 'ddtrace/contrib/rails/ext'
 require 'ddtrace/contrib/rails/utils'
@@ -46,6 +47,7 @@ module Datadog
             activate_action_pack!(datadog_config, rails_config)
             activate_action_view!(datadog_config, rails_config)
             activate_active_record!(datadog_config, rails_config)
+            activate_lograge!(datadog_config, rails_config)
           end
         end
 
@@ -53,7 +55,7 @@ module Datadog
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
           datadog_config[:rails].tap do |config|
-            config[:service_name] ||= (Datadog.configuration.service || Utils.app_name)
+            config[:service_name] ||= (Datadog.configure.service_without_fallback || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
@@ -117,6 +119,16 @@ module Datadog
             :active_record,
             service_name: rails_config[:database_service]
           )
+        end
+
+        def self.activate_lograge!(datadog_config, rails_config)
+          return unless defined?(::Lograge)
+
+          if rails_config[:log_injection]
+            datadog_config.use(
+              :lograge
+            )
+          end
         end
       end
     end

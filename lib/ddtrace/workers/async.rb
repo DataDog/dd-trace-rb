@@ -39,6 +39,7 @@ module Datadog
           return false unless running?
 
           @run_async = false
+          Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
           worker.terminate
           true
         end
@@ -126,7 +127,7 @@ module Datadog
           @run_async = true
           @pid = Process.pid
           @error = nil
-          Datadog.logger.debug("Starting thread in the process: #{Process.pid} for: #{self}")
+          Datadog.logger.debug { "Starting thread for: #{self}" }
 
           @worker = ::Thread.new do
             begin

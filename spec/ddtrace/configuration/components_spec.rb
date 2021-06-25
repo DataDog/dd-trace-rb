@@ -186,7 +186,7 @@ RSpec.describe Datadog::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new runtime metrics' do
         let(:runtime_metrics) { instance_double(Datadog::Runtime::Metrics) }
-        let(:default_options) { { enabled: settings.runtime_metrics.enabled } }
+        let(:default_options) { { enabled: settings.runtime_metrics.enabled, services: [settings.service] } }
         let(:options) { {} }
 
         before do
@@ -512,6 +512,87 @@ RSpec.describe Datadog::Configuration::Components do
 
           it_behaves_like 'new tracer' do
             let(:options) { { tags: tags.merge('version' => version) } }
+          end
+        end
+      end
+
+      context 'with :test_mode' do
+        context ':enabled' do
+          before do
+            allow(settings.test_mode)
+              .to receive(:enabled)
+              .and_return(enabled)
+          end
+
+          context 'set to true' do
+            let(:enabled) { true }
+
+            context 'and :context_flush' do
+              before do
+                allow(settings.test_mode)
+                  .to receive(:context_flush)
+                  .and_return(context_flush)
+              end
+
+              context 'is not set' do
+                let(:context_flush) { nil }
+
+                it_behaves_like 'new tracer' do
+                  let(:configure_options) do
+                    {
+                      agent_settings: agent_settings,
+                      sampler: kind_of(Datadog::AllSampler),
+                      writer: kind_of(Datadog::SyncWriter)
+                    }
+                  end
+                end
+              end
+
+              context 'is set' do
+                let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+
+                it_behaves_like 'new tracer' do
+                  let(:configure_options) do
+                    {
+                      agent_settings: agent_settings,
+                      context_flush: context_flush,
+                      sampler: kind_of(Datadog::AllSampler),
+                      writer: kind_of(Datadog::SyncWriter)
+                    }
+                  end
+                end
+              end
+            end
+
+            context 'and :writer_options' do
+              before do
+                allow(settings.test_mode)
+                  .to receive(:writer_options)
+                  .and_return(writer_options)
+              end
+
+              context 'are set' do
+                let(:sync_writer) { instance_double(Datadog::SyncWriter) }
+                let(:writer_options) { { foo: :bar } }
+
+                it_behaves_like 'new tracer' do
+                  before do
+                    expect(Datadog::SyncWriter)
+                      .to receive(:new)
+                      .with(writer_options)
+                      .and_return(sync_writer)
+                  end
+
+                  let(:configure_options) do
+                    {
+                      agent_settings: agent_settings,
+                      sampler: kind_of(Datadog::AllSampler),
+                      writer: sync_writer
+                    }
+                  end
+                end
+              end
+            end
           end
         end
       end

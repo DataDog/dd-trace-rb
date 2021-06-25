@@ -68,6 +68,12 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     shared_examples_for 'profile HTTP request' do
       subject(:request) { messages.first }
 
+      let(:tags) { { 'test_tag' => 'test_value' } }
+
+      before do
+        allow(Datadog.configuration).to receive(:tags).and_return(tags)
+      end
+
       # rubocop:disable Layout/LineLength
       it 'sends profiles successfully' do
         client.send_profiling_flush(flush)
@@ -103,7 +109,6 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         )
 
         tags = body["#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS}[]"].list
-        expect(tags).to be_a_kind_of(Array)
         expect(tags).to include(
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Ext::Runtime::LANG}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{uuid_regex.source}/,
@@ -112,7 +117,8 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Ext::Runtime::LANG_VERSION}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Ext::Runtime::TRACER_VERSION}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/o
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Ext::Runtime::LANG}/o,
+          'test_tag:test_value'
         )
 
         if Datadog::Runtime::Container.container_id

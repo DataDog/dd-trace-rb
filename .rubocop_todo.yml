@@ -32,8 +32,8 @@ Lint/DuplicateBranch:
 # Offense count: 3
 Lint/DuplicateRequire:
   Exclude:
-    - 'lib/ddtrace/contrib/cucumber/integration.rb'
-    - 'lib/ddtrace/contrib/rspec/integration.rb'
+    - 'lib/datadog/ci/contrib/cucumber/integration.rb'
+    - 'lib/datadog/ci/contrib/rspec/integration.rb'
     - 'spec/ddtrace/contrib/presto/client_spec.rb'
 
 # Offense count: 1
@@ -164,21 +164,21 @@ Naming/VariableNumber:
 # Offense count: 18
 Performance/MethodObjectAsBlock:
   Exclude:
-    - 'lib/ddtrace/contrib/cucumber/formatter.rb'
+    - 'lib/datadog/ci/contrib/cucumber/formatter.rb'
     - 'lib/ddtrace/contrib/delayed_job/plugin.rb'
     - 'lib/ddtrace/pipeline.rb'
     - 'lib/ddtrace/profiling/collectors/stack.rb'
     - 'lib/ddtrace/profiling/pprof/builder.rb'
     - 'lib/ddtrace/profiling/pprof/stack_sample.rb'
     - 'lib/ddtrace/profiling/pprof/template.rb'
-    - 'spec/ddtrace/contrib/cucumber/patcher_spec.rb'
+    - 'spec/datadog/ci/contrib/cucumber/patcher_spec.rb'
 
 # Offense count: 6
 RSpec/EmptyExampleGroup:
   Exclude:
     - 'spec/ddtrace/buffer_spec.rb'
     - 'spec/ddtrace/configuration/components_spec.rb'
-    - 'spec/ddtrace/ext/ci_spec.rb'
+    - 'spec/datadog/ci/ext/environment_spec.rb'
     - 'spec/ddtrace/opentracer/distributed_headers_spec.rb'
 
 # Offense count: 2
@@ -186,7 +186,7 @@ RSpec/EmptyExampleGroup:
 RSpec/ExpectActual:
   Exclude:
     - 'spec/routing/**/*'
-    - 'spec/ddtrace/contrib/rspec/instrumentation_spec.rb'
+    - 'spec/datadog/ci/contrib/rspec/instrumentation_spec.rb'
 
 # Offense count: 3
 RSpec/IteratedExpectation:
@@ -327,6 +327,7 @@ RSpec/UnspecifiedException:
 # Configuration parameters: IgnoreNameless, IgnoreSymbolicNames.
 RSpec/VerifiedDoubles:
   Exclude:
+    - 'spec/datadog/ci/contrib/cucumber/formatter_spec.rb'
     - 'spec/ddtrace/buffer_spec.rb'
     - 'spec/ddtrace/configuration/base_spec.rb'
     - 'spec/ddtrace/configuration/components_spec.rb'
@@ -344,7 +345,6 @@ RSpec/VerifiedDoubles:
     - 'spec/ddtrace/contrib/analytics_spec.rb'
     - 'spec/ddtrace/contrib/configuration/resolver_spec.rb'
     - 'spec/ddtrace/contrib/configuration/settings_spec.rb'
-    - 'spec/ddtrace/contrib/cucumber/formatter_spec.rb'
     - 'spec/ddtrace/contrib/delayed_job/plugin_spec.rb'
     - 'spec/ddtrace/contrib/ethon/easy_patch_spec.rb'
     - 'spec/ddtrace/contrib/extensions_spec.rb'

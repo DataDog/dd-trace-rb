@@ -1,3 +1,5 @@
+require 'bundler/stub_specification'
+
 require 'ddtrace/pin'
 
 module ConfigurationHelpers

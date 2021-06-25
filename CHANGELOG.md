@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [0.50.0] - 2021-06-07
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.50.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.49.0...v0.50.0
+
+### Added
+
+- Add warning, update documentation, for incompatible dogstastd-ruby version ([#1544][][#1533][])
+- Add CI mode and Test mode feature ([#1504][])
+- Add Gem.loaded_specs fallback behavior if protobuf or dogstatsd-ruby already loaded([#1506][][#1510][])
+
+### Changed
+
+- Declare EOL for Ruby 2.0 support ([#1534][])
+- Rename Thread#native_thread_id to #pthread_thread_id to avoid conflict with Ruby 3.1 ([#1537][])
+
+### Fixed
+
+- Fix tracer ignoring value for service tag (service.name) in DD_TAGS ([#1543][])
+- Fix nested error reporting to correctly walk clause chain ([#1535][])
+- Fix AWS integration to prevent S3 URL presigning from generating a remote request span ([#1494][])
+- Fix backtrace handling of exception classes that return nil message ([#1500][]) ([@masato-hi][])
+
+### Refactored
+
+- Cleanup Ruby 2.0 Code (dropping Ruby 2.0 support) ([#1529][][#1523][][#1524][][#1509][][#1507][][#1503][][#1502][])
+
 ## [0.49.0] - 2021-05-12
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.49.0
@@ -2371,8 +2399,26 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1480]: https://github.com/DataDog/dd-trace-rb/issues/1480
 [#1487]: https://github.com/DataDog/dd-trace-rb/issues/1487
 [#1489]: https://github.com/DataDog/dd-trace-rb/issues/1489
+[#1494]: https://github.com/DataDog/dd-trace-rb/issues/1494
 [#1495]: https://github.com/DataDog/dd-trace-rb/issues/1495
 [#1497]: https://github.com/DataDog/dd-trace-rb/issues/1497
+[#1500]: https://github.com/DataDog/dd-trace-rb/issues/1500
+[#1502]: https://github.com/DataDog/dd-trace-rb/issues/1502
+[#1503]: https://github.com/DataDog/dd-trace-rb/issues/1503
+[#1504]: https://github.com/DataDog/dd-trace-rb/issues/1504
+[#1506]: https://github.com/DataDog/dd-trace-rb/issues/1506
+[#1507]: https://github.com/DataDog/dd-trace-rb/issues/1507
+[#1509]: https://github.com/DataDog/dd-trace-rb/issues/1509
+[#1510]: https://github.com/DataDog/dd-trace-rb/issues/1510
+[#1523]: https://github.com/DataDog/dd-trace-rb/issues/1523
+[#1524]: https://github.com/DataDog/dd-trace-rb/issues/1524
+[#1529]: https://github.com/DataDog/dd-trace-rb/issues/1529
+[#1533]: https://github.com/DataDog/dd-trace-rb/issues/1533
+[#1534]: https://github.com/DataDog/dd-trace-rb/issues/1534
+[#1535]: https://github.com/DataDog/dd-trace-rb/issues/1535
+[#1537]: https://github.com/DataDog/dd-trace-rb/issues/1537
+[#1543]: https://github.com/DataDog/dd-trace-rb/issues/1543
+[#1544]: https://github.com/DataDog/dd-trace-rb/issues/1544
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2448,6 +2494,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@link04]: https://github.com/link04
 [@lloeki]: https://github.com/lloeki
 [@mantrala]: https://github.com/mantrala
+[@masato-hi]: https://github.com/masato-hi
 [@matchbookmac]: https://github.com/matchbookmac
 [@mberlanda]: https://github.com/mberlanda
 [@mdehoog]: https://github.com/mdehoog

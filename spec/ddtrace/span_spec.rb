@@ -199,7 +199,7 @@ RSpec.describe Datadog::Span do
     let(:duration_wall_time) { 0.0001 }
 
     context 'without start or end time provided' do
-      let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
+      let(:static_time) { Time.utc(2010, 9, 15, 22, 3, 15) }
 
       before do
         # We set the same time no matter what.
@@ -425,9 +425,30 @@ RSpec.describe Datadog::Span do
       end
     end
 
+    context 'given _dd.hostname' do
+      let(:key) { '_dd.hostname' }
+      let(:value) { 1 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given _dd.origin' do
+      let(:key) { '_dd.origin' }
+      let(:value) { 2 }
+
+      it_behaves_like 'meta tag'
+    end
+
     context 'given http.status_code' do
       let(:key) { 'http.status_code' }
       let(:value) { 200 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given version' do
+      let(:key) { 'version' }
+      let(:value) { 3 }
 
       it_behaves_like 'meta tag'
     end

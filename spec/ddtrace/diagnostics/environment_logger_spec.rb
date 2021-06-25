@@ -56,7 +56,8 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           'priority_sampling_enabled' => false,
           'runtime_metrics_enabled' => false,
           'version' => Datadog::VERSION::STRING,
-          'vm' => be_a(String)
+          'vm' => be_a(String),
+          'service' => be_a(String)
         )
       end
     end
@@ -150,7 +151,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           runtime_metrics_enabled: false,
           sample_rate: nil,
           sampling_rules: nil,
-          service: nil,
+          service: be_a(String),
           tags: nil,
           version: Datadog::VERSION::STRING,
           vm: be_a(String)

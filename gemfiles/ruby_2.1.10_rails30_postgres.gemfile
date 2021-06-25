@@ -26,7 +26,7 @@ gem "simplecov", "~> 0.17"
 gem "webmock", ">= 3.10.0"
 gem "rexml", "< 3.2.5"
 gem "yard", "~> 0.9"
-gem "dogstatsd-ruby", ">= 3.3.0"
+gem "dogstatsd-ruby", "< 5.0"
 gem "opentracing", ">= 0.4.1"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "test-unit"
@@ -34,6 +34,5 @@ gem "rails", "3.0.20"
 gem "pg", "0.15.1", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "rack-cache", "1.7.1"
-gem "lograge", "< 0.4"
 
 gemspec path: "../"

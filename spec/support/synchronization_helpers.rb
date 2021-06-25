@@ -61,7 +61,5 @@ module SynchronizationHelpers
     30
   end
 
-  class << self
-    include SynchronizationHelpers
-  end
+  singleton_class.include SynchronizationHelpers
 end

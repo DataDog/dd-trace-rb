@@ -86,6 +86,9 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
      - [Profiling](#profiling)
+ - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
+    - [Payload too large](#payload-too-large)
+    - [Stack level too deep](#stack-level-too-deep)
 
 ## Compatibility
 
@@ -101,7 +104,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.3     | Full                                 | Latest              |
 |       |                            | 2.2     | Full                                 | Latest              |
 |       |                            | 2.1     | Full                                 | Latest              |
-|       |                            | 2.0     | Deprecated                           | < 0.50.0            |
+|       |                            | 2.0     | EOL since June 7th, 2021             | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
 | JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
@@ -1679,8 +1682,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `service_name` | Service name for `sequel` instrumentation | Name of database adapter (e.g. `'mysql2'`) |
 
-Only Ruby 2.0+ is supported.
-
 **Configuring databases to use different settings**
 
 If you use multiple databases with Sequel, you can give each of them different settings by configuring their respective `Sequel::Database` objects:
@@ -2250,8 +2251,6 @@ Datadog.configure do |c|
 end
 ```
 
-_Note:_ For `lograge` users who have also defined `lograge.custom_options` in an `initializers/lograge.rb` configuration file, due to the order that Rails loads initializers (alphabetical), automatic trace correlation may not take effect, since `initializers/datadog.rb` would be overwritten by the `initializers/lograge.rb` initializer. To support automatic trace correlation with _existing_ `lograge.custom_options`, use the [Manual (Lograge)](#manual-lograge) configuration below.
-
 ##### Manual (Lograge)
 
 After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs.
@@ -2411,7 +2410,7 @@ The tracer and its integrations can produce some additional metrics that can pro
 To configure your application for metrics collection:
 
 1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
-2. Add `gem 'dogstatsd-ruby'` to your Gemfile
+2. Add `gem 'dogstatsd-ruby', '~> 4.0'` to your Gemfile (note that it is advised to pin v4.x [until this issue is solved](https://github.com/DataDog/dogstatsd-ruby/issues/182))
 
 #### For application runtime
 
@@ -2497,3 +2496,33 @@ To get started with profiling, follow the [Profiler Getting Started Guide](https
 When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
+
+## Known issues and suggested configurations
+
+### Payload too large
+
+By default, Datadog limits the size of trace payloads to prevent memory overhead within instrumented applications. As a result, traces containing thousands of operations may not be sent to Datadog.
+
+If traces are missing, enable [debug mode](#tracer-settings) to check if messages containing `"Dropping trace. Payload too large"` are logged.
+
+Since debug mode is verbose, Datadog does not recommend leaving this enabled or enabling this in production. Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+
+If you have confirmed that traces are dropped due to large payloads, then enable the [partial_flush](#tracer-settings) setting to break down large traces into smaller chunks.
+
+### Stack level too deep
+
+Datadog tracing collects trace data by adding instrumentation into other common libraries (e.g. Rails, Rack, etc.) Some libraries provide APIs to add this instrumentation, but some do not. In order to add instrumentation into libraries lacking an instrumentation API, Datadog uses a technique called "monkey-patching" to modify the code of that library.
+
+In Ruby version 1.9.3 and earlier, "monkey-patching" often involved the use of [`alias_method`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method), also known as *method rewriting*, to destructively replace existing Ruby methods. However, this practice would often create conflicts & errors if two libraries attempted to "rewrite" the same method. (e.g. two different APM packages trying to instrument the same method.)
+
+In Ruby 2.0, the [`Module#prepend`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) feature was introduced. This feature avoids destructive method rewriting and allows multiple "monkey patches" on the same method. Consequently, it has become the safest, preferred means to "monkey patch" code.
+
+Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some libraries (typically those supporting Ruby < 2.0) still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
+
+As the implementation of `alias_method` exists within those libraries, Datadog generally cannot fix them. However, some libraries have known workarounds:
+
+* `rack-mini-profiler`: [Net::HTTP stack level too deep errors](https://github.com/MiniProfiler/rack-mini-profiler#nethttp-stack-level-too-deep-errors).
+
+For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method` or separating libraries into different environments for testing.
+
+For any further questions or to report an occurence of this issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)

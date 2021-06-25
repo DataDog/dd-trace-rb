@@ -62,6 +62,10 @@ module Datadog
           Array.new(@sample_type_mappings.length, Datadog::Ext::Profiling::Pprof::SAMPLE_VALUE_NO_VALUE)
         end
 
+        def debug_statistics
+          # Empty; can be used by subclasses to report a string containing debug statistics to be logged
+        end
+
         # Represents a grouped event
         # 'sample' is an example event object from the group.
         # 'values' is the the summation of the group's sample values

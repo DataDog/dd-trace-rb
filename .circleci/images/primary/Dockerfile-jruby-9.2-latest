@@ -1,5 +1,5 @@
-# Current version: https://github.com/cpuguy83/docker-jruby/blob/db08637839406420a254a9c825d94994cded5021/9000/jre/Dockerfile
-FROM jruby:9.2.11.1
+# https://hub.docker.com/layers/jruby/library/jruby/9.2.18-jre8/images/sha256-8dd56d26850fbba5c558fe195f98f2cc765d82e91ace601e3fc2273c1f9c95b5
+FROM jruby@sha256:8dd56d26850fbba5c558fe195f98f2cc765d82e91ace601e3fc2273c1f9c95b5
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -15,7 +15,7 @@ RUN set -ex; \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim \
+            tzdata rsync vim less \
             build-essential \
             shared-mime-info; \
         rm -rf /var/lib/apt/lists/*;

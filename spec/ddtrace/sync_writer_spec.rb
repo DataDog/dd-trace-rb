@@ -9,6 +9,25 @@ RSpec.describe Datadog::SyncWriter do
   let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, buffer } }
   let(:buffer) { [] }
 
+  describe '::new' do
+    subject(:sync_writer) { described_class.new(options) }
+
+    context 'given :agent_settings' do
+      let(:options) { { agent_settings: agent_settings } }
+      let(:agent_settings) { instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings) }
+      let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
+
+      before do
+        expect(Datadog::Transport::HTTP)
+          .to receive(:default)
+          .with(options)
+          .and_return(transport)
+      end
+
+      it { is_expected.to have_attributes(transport: transport) }
+    end
+  end
+
   describe '#write' do
     subject(:write) { sync_writer.write(trace, services) }
 

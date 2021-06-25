@@ -78,7 +78,7 @@ RSpec.describe 'ddtrace integration' do
           .to(
             eq(before_open_file_descriptors.size),
             lambda {
-              "Open fds before (#{after_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
+              "Open fds before (#{before_open_file_descriptors.size}): #{before_open_file_descriptors}\n" \
               "Open fds after (#{after_open_file_descriptors.size}):  #{after_open_file_descriptors}"
             }
           )

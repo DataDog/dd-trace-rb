@@ -38,7 +38,8 @@ module Datadog
         causes = {}
         causes[ex] = true
 
-        while (cause = ex.cause) && !causes.key?(cause)
+        cause = ex
+        while (cause = cause.cause) && !causes.key?(cause)
           backtrace_for(cause, backtrace)
           causes[cause] = true
         end

@@ -5,7 +5,9 @@ require 'ddtrace'
 require 'ddtrace/configuration/settings'
 
 RSpec.describe Datadog::Configuration::Settings do
-  subject(:settings) { described_class.new }
+  subject(:settings) { described_class.new(options) }
+
+  let(:options) { {} }
 
   describe '#analytics' do
     describe '#enabled' do
@@ -367,6 +369,30 @@ RSpec.describe Datadog::Configuration::Settings do
         let(:environment) { 'env-value' }
 
         it { is_expected.to eq(environment) }
+      end
+    end
+
+    context 'when an env tag is defined in DD_TAGS' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'env:env-from-tag') do
+          example.run
+        end
+      end
+
+      it 'uses the env from DD_TAGS' do
+        is_expected.to eq('env-from-tag')
+      end
+
+      context 'and defined via DD_ENV' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => 'env-from-dd-env') do
+            example.run
+          end
+        end
+
+        it 'uses the env from DD_ENV' do
+          is_expected.to eq('env-from-dd-env')
+        end
       end
     end
   end
@@ -807,21 +833,45 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => service) do
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => env_service) do
           example.run
         end
       end
 
       context 'is not defined' do
-        let(:service) { nil }
+        let(:env_service) { nil }
 
-        it { is_expected.to be nil }
+        it { is_expected.to include 'rspec' }
       end
 
       context 'is defined' do
-        let(:service) { 'service-value' }
+        let(:env_service) { 'service-value' }
 
         it { is_expected.to eq(service) }
+      end
+    end
+
+    context 'when a service tag is defined in DD_TAGS' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'service:service-name-from-tag') do
+          example.run
+        end
+      end
+
+      it 'uses the service name from DD_TAGS' do
+        is_expected.to eq('service-name-from-tag')
+      end
+
+      context 'and defined via DD_SERVICE' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'service-name-from-dd-service') do
+            example.run
+          end
+        end
+
+        it 'uses the service name from DD_SERVICE' do
+          is_expected.to eq('service-name-from-dd-service')
+        end
       end
     end
   end
@@ -835,6 +885,32 @@ RSpec.describe Datadog::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
+    end
+  end
+
+  describe '#service_without_fallback' do
+    subject(:service_without_fallback) { settings.service_without_fallback }
+
+    context 'when no service name is configured' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => nil) do
+          example.run
+        end
+      end
+
+      it { is_expected.to be nil }
+    end
+
+    context 'when a service name is configured' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'test_service_name') do
+          example.run
+        end
+      end
+
+      it 'returns the service name' do
+        is_expected.to eq 'test_service_name'
+      end
     end
   end
 
@@ -896,39 +972,17 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to include('a' => '1', 'b' => '2') }
 
         context 'with an invalid tag' do
-          context do
-            let(:env_tags) { '' }
+          ['', 'a', ':', ',', 'a:'].each do |invalid_tag|
+            context "when tag is #{invalid_tag.inspect}" do
+              let(:env_tags) { invalid_tag }
 
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { 'a' }
-
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { ':' }
-
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { ',' }
-
-            it { is_expected.to eq({}) }
-          end
-
-          context do
-            let(:env_tags) { 'a:' }
-
-            it { is_expected.to eq({}) }
+              it { is_expected.to eq({}) }
+            end
           end
         end
 
         context 'and when #env' do
-          before { allow(settings).to receive(:env).and_return(env) }
+          let(:options) { { **super(), env: env } }
 
           context 'is set' do
             let(:env) { 'env-value' }
@@ -944,7 +998,7 @@ RSpec.describe Datadog::Configuration::Settings do
         end
 
         context 'and when #version' do
-          before { allow(settings).to receive(:version).and_return(version) }
+          let(:options) { { **super(), version: version } }
 
           context 'is set' do
             let(:version) { 'version-value' }
@@ -960,60 +1014,24 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
-      context 'defines :env with missing #env' do
-        let(:env_tags) { "env:#{tag_env_value}" }
-        let(:tag_env_value) { 'tag-env-value' }
-
-        it 'populates #env from the tag' do
-          expect { tags }
-            .to change { settings.env }
-            .from(nil)
-            .to(tag_env_value)
-        end
-      end
-
       context 'conflicts with #env' do
+        let(:options) { { **super(), env: env_value } }
+
         let(:env_tags) { "env:#{tag_env_value}" }
         let(:tag_env_value) { 'tag-env-value' }
         let(:env_value) { 'env-value' }
 
-        before { allow(settings).to receive(:env).and_return(env_value) }
-
         it { is_expected.to include('env' => env_value) }
       end
 
-      context 'defines :service with missing #service' do
-        let(:env_tags) { "service:#{tag_service_value}" }
-        let(:tag_service_value) { 'tag-service-value' }
-
-        it 'populates #service from the tag' do
-          expect { tags }
-            .to change { settings.service }
-            .from(nil)
-            .to(tag_service_value)
-        end
-      end
-
       context 'conflicts with #version' do
+        let(:options) { { **super(), version: version_value } }
+
         let(:env_tags) { "env:#{tag_version_value}" }
         let(:tag_version_value) { 'tag-version-value' }
         let(:version_value) { 'version-value' }
 
-        before { allow(settings).to receive(:version).and_return(version_value) }
-
         it { is_expected.to include('version' => version_value) }
-      end
-
-      context 'defines :version with missing #version' do
-        let(:env_tags) { "version:#{tag_version_value}" }
-        let(:tag_version_value) { 'tag-version-value' }
-
-        it 'populates #version from the tag' do
-          expect { tags }
-            .to change { settings.version }
-            .from(nil)
-            .to(tag_version_value)
-        end
       end
     end
   end
@@ -1048,6 +1066,141 @@ RSpec.describe Datadog::Configuration::Settings do
       before { set_tags }
 
       it { expect(settings.tags).to eq('foo' => 'oof', 'bar' => 'bar', 'baz' => 'baz') }
+    end
+  end
+
+  describe '#test_mode' do
+    describe '#enabled' do
+      subject(:enabled) { settings.test_mode.enabled }
+
+      it { is_expected.to be false }
+
+      context "when #{Datadog::Ext::Test::ENV_MODE_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Test::ENV_MODE_ENABLED => enable) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:enable) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is set to true' do
+          let(:enable) { 'true' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:enable) { 'false' }
+
+          it { is_expected.to be false }
+        end
+      end
+    end
+
+    describe '#context_flush' do
+      subject(:context_flush) { settings.test_mode.context_flush }
+
+      context 'default' do
+        it { is_expected.to be nil }
+      end
+    end
+
+    describe '#context_flush=' do
+      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+
+      it 'updates the #context_flush setting' do
+        expect { settings.test_mode.context_flush = context_flush }
+          .to change { settings.test_mode.context_flush }
+          .from(nil)
+          .to(context_flush)
+      end
+    end
+
+    describe '#enabled=' do
+      it 'updates the #enabled setting' do
+        expect { settings.test_mode.enabled = true }
+          .to change { settings.test_mode.enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#writer_options' do
+      subject(:writer_options) { settings.test_mode.writer_options }
+
+      it { is_expected.to eq({}) }
+
+      context 'when modified' do
+        it 'does not modify the default by reference' do
+          settings.test_mode.writer_options[:foo] = :bar
+          expect(settings.test_mode.writer_options).to_not be_empty
+          expect(settings.test_mode.options[:writer_options].default_value).to be_empty
+        end
+      end
+    end
+
+    describe '#writer_options=' do
+      let(:options) { { priority_sampling: true } }
+
+      it 'updates the #writer_options setting' do
+        expect { settings.test_mode.writer_options = options }
+          .to change { settings.test_mode.writer_options }
+          .from({})
+          .to(options)
+      end
+    end
+  end
+
+  describe '#time_now_provider=' do
+    subject(:set_time_now_provider) { settings.time_now_provider = time_now_provider }
+
+    after { settings.reset! }
+
+    let(:time_now) { double('time') }
+    let(:time_now_provider) do
+      now = time_now # Capture for closure
+      -> { now }
+    end
+
+    context 'when default' do
+      before { allow(Time).to receive(:now).and_return(time_now) }
+
+      it 'delegates to Time.now' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+      end
+    end
+
+    context 'when given a value' do
+      before { set_time_now_provider }
+
+      it 'returns the provided time' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+      end
+    end
+
+    context 'then reset' do
+      before { set_time_now_provider }
+
+      let(:original_time_now) { double('original time') }
+
+      before { allow(Time).to receive(:now).and_return(original_time_now) }
+
+      it 'returns the provided time' do
+        expect(settings.time_now_provider.call).to be(time_now)
+        expect(Datadog::Utils::Time.now).to be(time_now)
+
+        settings.reset!
+
+        expect(settings.time_now_provider.call).to be(original_time_now)
+        expect(Datadog::Utils::Time.now).to be(original_time_now)
+      end
     end
   end
 
@@ -1414,6 +1567,30 @@ RSpec.describe Datadog::Configuration::Settings do
         it { is_expected.to eq(version) }
       end
     end
+
+    context 'when a version tag is defined in DD_TAGS' do
+      around do |example|
+        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'version:version-from-tag') do
+          example.run
+        end
+      end
+
+      it 'uses the version from DD_TAGS' do
+        is_expected.to eq('version-from-tag')
+      end
+
+      context 'and defined via DD_VERSION' do
+        around do |example|
+          ClimateControl.modify(Datadog::Ext::Environment::ENV_VERSION => 'version-from-dd-version') do
+            example.run
+          end
+        end
+
+        it 'uses the version from DD_VERSION' do
+          is_expected.to eq('version-from-dd-version')
+        end
+      end
+    end
   end
 
   describe '#version=' do
@@ -1425,54 +1602,6 @@ RSpec.describe Datadog::Configuration::Settings do
       before { set_version }
 
       it { expect(settings.version).to eq(version) }
-    end
-  end
-
-  describe '#time_now_provider=' do
-    subject(:set_time_now_provider) { settings.time_now_provider = time_now_provider }
-
-    after { settings.reset! }
-
-    let(:time_now) { double('time') }
-    let(:time_now_provider) do
-      now = time_now # Capture for closure
-      -> { now }
-    end
-
-    context 'when default' do
-      before { allow(Time).to receive(:now).and_return(time_now) }
-
-      it 'delegates to Time.now' do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
-      end
-    end
-
-    context 'when given a value' do
-      before { set_time_now_provider }
-
-      it 'returns the provided time' do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
-      end
-    end
-
-    context 'then reset' do
-      before { set_time_now_provider }
-
-      let(:original_time_now) { double('original time') }
-
-      before { allow(Time).to receive(:now).and_return(original_time_now) }
-
-      it 'returns the provided time' do
-        expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
-
-        settings.reset!
-
-        expect(settings.time_now_provider.call).to be(original_time_now)
-        expect(Datadog::Utils::Time.now).to be(original_time_now)
-      end
     end
   end
 end
