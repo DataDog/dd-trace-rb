@@ -52,8 +52,16 @@ module Datadog
       def flush
         return unless enabled?
 
-        try_flush { gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, Core::Environment::ClassCount.value) if Core::Environment::ClassCount.available? }
-        try_flush { gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, Core::Environment::ThreadCount.value) if Core::Environment::ThreadCount.available? }
+        try_flush do
+          if Core::Environment::ClassCount.available?
+            gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, Core::Environment::ClassCount.value)
+          end
+        end
+        try_flush do
+          if Core::Environment::ThreadCount.available?
+            gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, Core::Environment::ThreadCount.value)
+          end
+        end
         try_flush { gc_metrics.each { |metric, value| gauge(metric, value) } if Core::Environment::GC.available? }
       end
 

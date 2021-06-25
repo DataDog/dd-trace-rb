@@ -24,7 +24,7 @@ RSpec.describe Datadog::Core::Environment do
       context 'and default is defined' do
         subject(:env_to_bool) { described_class.env_to_bool(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Core::Environment do
       context 'and default is defined' do
         subject(:env_to_int) { described_class.env_to_int(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Core::Environment do
       context 'and default is defined' do
         subject(:env_to_float) { described_class.env_to_float(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Environment do
       context 'and default is defined' do
         subject(:env_to_list) { described_class.env_to_list(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end

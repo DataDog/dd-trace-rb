@@ -55,10 +55,10 @@ module Datadog
 
         def default_headers
           {
-            Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Core::Ext::Environment::LANG,
-            Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Ext::Environment::LANG_VERSION,
-            Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Ext::Environment::LANG_INTERPRETER,
-            Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Ext::Environment::TRACER_VERSION
+            Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Core::Ext::Environment::LANG,
+            Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Core::Ext::Environment::LANG_VERSION,
+            Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Core::Ext::Environment::LANG_INTERPRETER,
+            Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Core::Ext::Environment::TRACER_VERSION
           }.tap do |headers|
             # Add container ID, if present.
             container_id = Datadog::Core::Environment::Container.container_id
