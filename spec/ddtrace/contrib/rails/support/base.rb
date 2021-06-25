@@ -1,5 +1,5 @@
 require 'rails/all'
-require 'ddtrace'
+require 'ddtrace' unless ENV['TEST_AUTO_INSTRUMENT'] == 'true'
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'

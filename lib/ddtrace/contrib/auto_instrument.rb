@@ -1,5 +1,3 @@
-require 'ddtrace'
-
 module Datadog
   module Contrib
     # Extensions for auto instrumentation added to the base library

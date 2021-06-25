@@ -29,7 +29,7 @@ RSpec.describe Datadog::Contrib::Extensions do
       describe '#configure' do
         include_context 'registry with integration' do
           before do
-            allow(described_class.configuration).to receive(:registry).and_return(registry)
+            allow(described_class).to receive(:registry).and_return(registry)
           end
         end
 
@@ -71,7 +71,11 @@ RSpec.describe Datadog::Contrib::Extensions do
     describe Datadog::Configuration::Settings do
       include_context 'registry with integration'
 
-      subject(:settings) { described_class.new(registry: registry) }
+      subject(:settings) { described_class.new }
+
+      before do
+        allow(Datadog).to receive(:registry).and_return(registry)
+      end
 
       describe '#[]' do
         context 'when the integration doesn\'t exist' do

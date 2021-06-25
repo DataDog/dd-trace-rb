@@ -1,5 +1,10 @@
 require 'ddtrace/ext/runtime'
 
+# TODO: suggested namespace
+# Datadog::Tracing::Environment::Ruby::GC
+# Datadog::Tracing::Environment::Socket
+# Datadog::Tracing::Runtime/Engine
+
 module Datadog
   module Runtime
     # For control groups

@@ -200,7 +200,7 @@ RSpec.configure do |config|
   # with the test execution.
   config.around do |example|
     example.run.tap do
-      tracer_shutdown!
+      tracer_reset!
     end
   end
 end

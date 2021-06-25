@@ -74,7 +74,6 @@ RSpec.describe 'Presto::Client instrumentation' do
       Datadog.registry[:presto].reset_configuration!
       example.run
       Datadog.registry[:presto].reset_configuration!
-      Datadog.configuration.reset!
     end
   end
 

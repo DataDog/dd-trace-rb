@@ -35,6 +35,8 @@ MESSAGE
     end)
   end
 
+  before { app }
+
   it 'does not instrument' do
     # make the request and assert the proper span
     get '/'

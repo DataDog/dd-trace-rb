@@ -1,4 +1,3 @@
-require 'ddtrace/configuration'
 require 'ddtrace/span'
 require 'ddtrace/ext/distributed'
 

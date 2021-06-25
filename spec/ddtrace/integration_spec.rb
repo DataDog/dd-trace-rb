@@ -177,6 +177,9 @@ RSpec.describe 'Tracer integration tests' do
 
       around do |example|
         ClimateControl.modify('DD_TRACE_SAMPLE_RATE' => '1.0') do
+          # Force global configuration reset, to allow for environment variable refresh.
+          Datadog.configuration.reset!
+
           example.run
         end
       end
@@ -185,11 +188,6 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', 1.0
       it_behaves_like 'rate limit metric', 1.0
-
-      it 'test' do
-        puts "Datadog.configuration.sampling.default_rate: #{Datadog.configuration.sampling.default_rate}:" \
-          "#{Datadog.configuration.sampling.default_rate.class}"
-      end
     end
 
     context 'with low default sample rate' do
