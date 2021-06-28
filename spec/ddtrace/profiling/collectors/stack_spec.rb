@@ -2,18 +2,21 @@ require 'spec_helper'
 require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace/profiling/collectors/stack'
+require 'ddtrace/profiling/trace_identifiers/helper'
 require 'ddtrace/profiling/recorder'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collector) { described_class.new(recorder, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
-  let(:options) { { max_frames: 50 } }
+  let(:options) { { max_frames: 50, trace_identifiers_helper: trace_identifiers_helper } }
 
   let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
   let(:string_table) { Datadog::Utils::StringTable.new }
   let(:backtrace_location_cache) { Datadog::Utils::ObjectSet.new }
-  let(:correlation) { instance_double(Datadog::Correlation::Identifier, trace_id: 0, span_id: 0) }
+  let(:trace_identifiers_helper) do
+    instance_double(Datadog::Profiling::TraceIdentifiers::Helper, trace_identifiers_for: nil)
+  end
 
   before do
     allow(recorder)
@@ -29,12 +32,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       .to receive(:cache)
       .with(:backtrace_locations)
       .and_return(backtrace_location_cache)
-
-    if Datadog.respond_to?(:tracer)
-      allow(Datadog.tracer)
-        .to receive(:active_correlation)
-        .and_return(correlation)
-    end
   end
 
   describe '::new' do
@@ -285,8 +282,38 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:base_label) { double('base_label') }
       let(:lineno) { double('lineno') }
       let(:path) { double('path') }
+      let(:trace_identifiers) { nil }
 
       let(:backtrace_size) { collector.max_frames }
+
+      before do
+        expect(trace_identifiers_helper).to receive(:trace_identifiers_for).with(thread).and_return(trace_identifiers)
+      end
+
+      context 'and there is an active trace for the thread' do
+        let(:trace_identifiers) { [trace_id, span_id] }
+
+        let(:trace_id) { rand(1e12) }
+        let(:span_id) { rand(1e12) }
+
+        it 'builds an event including the trace id and span id' do
+          is_expected.to have_attributes(
+            trace_id: trace_id,
+            span_id: span_id
+          )
+        end
+      end
+
+      context 'and there is no active trace for the thread' do
+        let(:trace_identifiers) { nil }
+
+        it 'builds an event with nil trace id and span id' do
+          is_expected.to have_attributes(
+            trace_id: nil,
+            span_id: nil
+          )
+        end
+      end
 
       context 'and CPU timing is unavailable' do
         it 'builds an event without CPU time' do
@@ -504,80 +531,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           end
 
           it { is_expected.to eq(cpu_interval) }
-        end
-      end
-    end
-  end
-
-  describe '#get_trace_identifiers' do
-    subject(:get_trace_identifiers) { collector.get_trace_identifiers(thread) }
-
-    let(:thread) { Thread.new {} }
-
-    after do
-      thread && thread.join
-    end
-
-    context 'given a non-thread' do
-      let(:thread) { nil }
-
-      it { is_expected.to be nil }
-    end
-
-    context 'when linking is unavailable' do
-      context 'because the tracer is unavailable' do
-        let(:datadog) { Module.new { const_set('Utils', Datadog::Utils) } }
-
-        before { stub_const('Datadog', datadog, transfer_nested_constant: true) }
-
-        it { is_expected.to be nil }
-      end
-
-      context 'because correlations are unavailable' do
-        let(:tracer) { instance_double(Datadog::Tracer) }
-
-        before { allow(Datadog).to receive(:tracer).and_return(tracer) }
-
-        it { is_expected.to be nil }
-      end
-    end
-
-    context 'when linking is available' do
-      context 'and the trace & span IDs are' do
-        context 'set' do
-          let(:correlation) do
-            instance_double(
-              Datadog::Correlation::Identifier,
-              trace_id: rand(1e12),
-              span_id: rand(1e12)
-            )
-          end
-
-          it { is_expected.to eq([correlation.trace_id, correlation.span_id]) }
-        end
-
-        context '0' do
-          let(:correlation) do
-            instance_double(
-              Datadog::Correlation::Identifier,
-              trace_id: 0,
-              span_id: 0
-            )
-          end
-
-          it { is_expected.to eq([0, 0]) }
-        end
-
-        context 'are nil' do
-          let(:correlation) do
-            instance_double(
-              Datadog::Correlation::Identifier,
-              trace_id: nil,
-              span_id: nil
-            )
-          end
-
-          it { is_expected.to eq([nil, nil]) }
         end
       end
     end

@@ -35,7 +35,7 @@ RSpec.describe Datadog::Configuration::Components do
         .and_return(tracer)
 
       expect(described_class).to receive(:build_profiler)
-        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings))
+        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings), tracer)
         .and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -666,8 +666,9 @@ RSpec.describe Datadog::Configuration::Components do
   describe '::build_profiler' do
     let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:profiler) { build_profiler }
+    let(:tracer) { instance_double(Datadog::Tracer) }
 
-    subject(:build_profiler) { described_class.build_profiler(settings, agent_settings) }
+    subject(:build_profiler) { described_class.build_profiler(settings, agent_settings, tracer) }
 
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }

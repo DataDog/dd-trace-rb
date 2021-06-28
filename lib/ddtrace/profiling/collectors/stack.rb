@@ -11,8 +11,7 @@ module Datadog
       # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
       # Runs on its own background thread.
       #
-      # rubocop:disable Metrics/ClassLength
-      class Stack < Worker
+      class Stack < Worker # rubocop:disable Metrics/ClassLength
         include Workers::Polling
 
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0
@@ -22,6 +21,7 @@ module Datadog
         attr_reader \
           :recorder,
           :max_frames,
+          :trace_identifiers_helper,
           :ignore_thread,
           :max_time_usage_pct,
           :thread_api
@@ -29,6 +29,7 @@ module Datadog
         def initialize(
           recorder,
           max_frames:,
+          trace_identifiers_helper:, # Usually an instance of Datadog::Profiling::TraceIdentifiers::Helper
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
           thread_api: Thread,
@@ -38,6 +39,7 @@ module Datadog
         )
           @recorder = recorder
           @max_frames = max_frames
+          @trace_identifiers_helper = trace_identifiers_helper
           @ignore_thread = ignore_thread
           @max_time_usage_pct = max_time_usage_pct
           @thread_api = thread_api
@@ -123,7 +125,7 @@ module Datadog
           locations = convert_backtrace_locations(locations)
 
           thread_id = thread.respond_to?(:pthread_thread_id) ? thread.pthread_thread_id : thread.object_id
-          trace_id, span_id = get_trace_identifiers(thread)
+          trace_id, span_id = trace_identifiers_helper.trace_identifiers_for(thread)
           cpu_time = get_cpu_time_interval!(thread)
 
           Events::StackSample.new(
@@ -160,14 +162,6 @@ module Datadog
 
           # Return interval
           interval
-        end
-
-        def get_trace_identifiers(thread)
-          return unless thread.is_a?(::Thread)
-          return unless Datadog.respond_to?(:tracer) && Datadog.tracer.respond_to?(:active_correlation)
-
-          identifier = Datadog.tracer.active_correlation(thread)
-          [identifier.trace_id, identifier.span_id]
         end
 
         def compute_wait_time(used_time)
@@ -256,7 +250,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end

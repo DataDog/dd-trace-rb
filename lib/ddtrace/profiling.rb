@@ -1,3 +1,7 @@
+# Unlike the rest of the Profiler, this class is always loaded because it's expected to be instanced by users directly,
+# and thus should always be available, even when Profiler is disabled or not available.
+require 'ddtrace/profiling/ext/opentelemetry_trace_linking'
+
 module Datadog
   # Contains profiler for generating stack profiles, etc.
   module Profiling
@@ -95,6 +99,7 @@ module Datadog
       require 'ddtrace/profiling/transport/io'
       require 'ddtrace/profiling/transport/http'
       require 'ddtrace/profiling/profiler'
+      require 'ddtrace/profiling/trace_identifiers/helper'
 
       require 'ddtrace/profiling/pprof/pprof_pb'
 

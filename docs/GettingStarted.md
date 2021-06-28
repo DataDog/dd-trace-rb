@@ -86,6 +86,9 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
      - [Profiling](#profiling)
+         - [Troubleshooting](#troubleshooting)
+         - [Profiling Resque jobs](#profiling-resque-jobs)
+         - [Linking OpenTelemetry traces with profiles](#linking-opentelemetry-traces-with-profiles)
  - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
     - [Payload too large](#payload-too-large)
     - [Stack level too deep](#stack-level-too-deep)
@@ -2491,11 +2494,30 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 To get started with profiling, follow the [Profiler Getting Started Guide](https://docs.datadoghq.com/tracing/profiler/getting_started/?code-lang=ruby).
 
+#### Troubleshooting
+
+If you run into issues with profiling, please check the [Profiler Troubleshooting Guide](https://docs.datadoghq.com/tracing/profiler/profiler_troubleshooting/?code-lang=ruby).
+
 #### Profiling Resque jobs
 
 When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
 
 Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
+
+#### Linking OpenTelemetry traces with profiles
+
+Profiler's support for [Investigating Code Hotspots from Traces](https://docs.datadoghq.com/tracing/profiler/connect_traces_and_profiles)
+is also available when using the [OpenTelemetry](https://github.com/open-telemetry/opentelemetry-ruby) Ruby libraries.
+
+To enable this feature, and after following regular steps for enabling profiling,
+modify your OpenTelemetry gem configuration to add an additional span processor:
+
+```ruby
+OpenTelemetry::SDK.configure do |c|
+  c.add_span_processor(Datadog::Profiling::Ext::OpenTelemetryTraceLinking.new)
+  # ... rest of your configuration for using OpenTelemetry
+end
+```
 
 ## Known issues and suggested configurations
 

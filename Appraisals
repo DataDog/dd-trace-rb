@@ -8,6 +8,16 @@ def self.gem_cucumber(version)
   end
 end
 
+def self.apraise_opentelemetry
+  appraise 'opentelemetry-pre-1-0' do
+    gem 'opentelemetry-sdk', '< 1'
+  end
+
+  appraise 'opentelemetry-1-0' do
+    gem 'opentelemetry-sdk', '>= 1.0.0.rc2'
+  end
+end
+
 if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
   raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
 elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -784,6 +794,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'resque', '>= 2.0'
   end
 
+  apraise_opentelemetry
+
   (3..5).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
@@ -965,6 +977,8 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'redis', '>= 4.0'
       gem 'resque', '>= 2.0'
     end
+
+    apraise_opentelemetry
 
     (3..5).each { |v| gem_cucumber(v) }
 
@@ -1149,6 +1163,8 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'resque', '>= 2.0'
     end
 
+    apraise_opentelemetry
+
     (3..5).each { |v| gem_cucumber(v) }
 
     appraise 'contrib' do
@@ -1246,6 +1262,8 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'redis', '>= 4.0'
     gem 'resque', '>= 2.0'
   end
+
+  apraise_opentelemetry
 
   (3..5).each { |v| gem_cucumber(v) }
 
