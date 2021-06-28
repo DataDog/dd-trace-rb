@@ -246,10 +246,17 @@ RSpec.describe Datadog::Metrics do
     subject(:default_statsd_client) { metrics.default_statsd_client }
 
     let(:statsd_client) { instance_double(Datadog::Statsd) }
+    let(:options) do
+      if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new('5.2.0')
+        { single_thread: true }
+      else
+        {}
+      end
+    end
 
     before do
       expect(Datadog::Statsd).to receive(:new)
-        .with(metrics.default_hostname, metrics.default_port)
+        .with(metrics.default_hostname, metrics.default_port, **options)
         .and_return(statsd_client)
     end
 
@@ -789,22 +796,27 @@ RSpec.describe Datadog::Metrics do
 
   describe '#incompatible_statsd_warning' do
     let(:options) { {} }
+    let(:dogstatsd_version) { Gem::Version.new(Datadog::Statsd::VERSION) }
 
     before { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
 
     context 'with an incompatible dogstastd-ruby version' do
-      before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version >= Gem::Version.new('5.0') }
+      before do
+        skip if dogstatsd_version < Gem::Version.new('5.0') || dogstatsd_version >= Gem::Version.new('5.2')
+      end
 
       it 'emits deprecation warning once' do
         expect(Datadog.logger).to receive(:warn)
-          .with(/This version of `ddtrace` is incompatible with `dogstastd-ruby`/).once
+          .with(/`ddtrace` is incompatible with `dogstastd-ruby` versions 5.0.0, 5.0.1, and 5.2.0/).once
 
         metrics
       end
     end
 
     context 'with a compatible dogstastd-ruby version' do
-      before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version < Gem::Version.new('5.0') }
+      before do
+        skip unless dogstatsd_version < Gem::Version.new('5.0') || dogstatsd_version >= Gem::Version.new('5.2')
+      end
 
       it 'emits no warnings' do
         expect(Datadog.logger).to_not receive(:warn)

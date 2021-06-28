@@ -58,7 +58,9 @@ end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-gem 'dogstatsd-ruby', '< 5.0'
+# dogstatsd v5, but lower than 5.2, has possible memory leak with ddtrace.
+# @see https://github.com/DataDog/dogstatsd-ruby/issues/182
+gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 gem 'opentracing', '>= 0.4.1'
 
 # Profiler optional dependencies
