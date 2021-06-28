@@ -46,22 +46,16 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
     context 'when no tracer instance is available' do
       let(:tracer) { nil }
 
-      context 'because the tracer is unavailable' do
-        let(:datadog) { Module.new { const_set('Utils', Datadog::Utils) } }
-
-        before { stub_const('Datadog', datadog, transfer_nested_constant: true) }
-
-        it do
-          expect(trace_identifiers_for).to be nil
-        end
+      it do
+        expect(trace_identifiers_for).to be nil
       end
+    end
 
-      context 'because correlations are unavailable' do
-        before { allow(Datadog).to receive(:tracer).and_return(instance_double(Datadog::Tracer)) }
+    context 'when tracer does not support #active_correlation' do
+      let(:tracer) { double('Tracer') } # rubocop:disable RSpec/VerifiedDoubles
 
-        it do
-          expect(trace_identifiers_for).to be nil
-        end
+      it do
+        expect(trace_identifiers_for).to be nil
       end
     end
   end

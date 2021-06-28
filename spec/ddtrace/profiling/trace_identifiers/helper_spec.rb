@@ -6,7 +6,7 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
   let(:api1) { instance_double(Datadog::Profiling::TraceIdentifiers::Ddtrace, 'api1') }
   let(:api2) { instance_double(Datadog::Profiling::TraceIdentifiers::Ddtrace, 'api2') }
 
-  subject(:trace_identifiers_helper) { described_class.new(supported_apis: [api1, api2]) }
+  subject(:trace_identifiers_helper) { described_class.new(tracer: nil, supported_apis: [api1, api2]) }
 
   describe '::DEFAULT_SUPPORTED_APIS' do
     it 'contains the Datadog trace identifiers' do
