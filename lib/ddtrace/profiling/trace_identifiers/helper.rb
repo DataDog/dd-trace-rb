@@ -18,7 +18,7 @@ module Datadog
         ].freeze
         private_constant :DEFAULT_SUPPORTED_APIS
 
-        def initialize(supported_apis: DEFAULT_SUPPORTED_APIS.map(&:new))
+        def initialize(tracer:, supported_apis: DEFAULT_SUPPORTED_APIS.map { |api| api.new(tracer: tracer) })
           @supported_apis = supported_apis
         end
 

@@ -44,22 +44,14 @@ flow:
 4. The `Setup` task activates our extensions
     * `Datadog::Profiling::Ext::Forking`
     * `Datadog::Profiling::Ext::CPU`
-5. Still inside `Datadog::Components`, the `build_profiler` method then creates and wires up the Profiler:
-    ```ruby
-          recorder = build_profiler_recorder(settings)
-          collectors = build_profiler_collectors(settings, recorder)
-          exporters = build_profiler_exporters(settings)
-          scheduler = build_profiler_scheduler(settings, recorder, exporters)
-
-          Datadog::Profiler.new(collectors, scheduler)
-    ```
+5. Still inside `Datadog::Components`, the `build_profiler` method then creates and wires up the Profiler as such:
     ```asciiflow
             +------------+
             |  Profiler  |
-            +-+--------+-+
-              |        |
-              v        v
-    +---------+--+  +--+--------+
+            +-+-------+--+
+              |       |
+              v       v
+    +---------+--+  +-+---------+
     | Collectors |  | Scheduler |
     +---------+--+  +-+-------+-+
               |       |       |

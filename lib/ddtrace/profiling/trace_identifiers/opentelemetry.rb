@@ -16,7 +16,7 @@ module Datadog
         UNSUPPORTED_VERSION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
         private_constant :UNSUPPORTED_VERSION_ONLY_ONCE
 
-        def initialize
+        def initialize(**_)
           @available = false
           @checked_version = false
           @current_context_key = nil
