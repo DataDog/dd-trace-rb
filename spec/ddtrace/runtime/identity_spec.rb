@@ -37,36 +37,36 @@ RSpec.describe Datadog::Core::Environment::Identity do
   describe '::lang' do
     subject(:lang) { described_class.lang }
 
-    it { is_expected.to eq(Datadog::Core::Ext::Environment::LANG) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::LANG) }
   end
 
   describe '::lang_engine' do
     subject(:lang_engine) { described_class.lang_engine }
 
-    it { is_expected.to eq(Datadog::Core::Ext::Environment::LANG_ENGINE) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::LANG_ENGINE) }
   end
 
   describe '::lang_interpreter' do
     subject(:lang_interpreter) { described_class.lang_interpreter }
 
-    it { is_expected.to eq(Datadog::Core::Ext::Environment::LANG_INTERPRETER) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::LANG_INTERPRETER) }
   end
 
   describe '::lang_platform' do
     subject(:lang_platform) { described_class.lang_platform }
 
-    it { is_expected.to eq(Datadog::Core::Ext::Environment::LANG_PLATFORM) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::LANG_PLATFORM) }
   end
 
   describe '::lang_version' do
     subject(:lang_version) { described_class.lang_version }
 
-    it { is_expected.to eq(Datadog::Core::Ext::Environment::LANG_VERSION) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::LANG_VERSION) }
   end
 
   describe '::tracer_version' do
     subject(:tracer_version) { described_class.tracer_version }
 
-    it { is_expected.to eq(Datadog::Core::Ext::Environment::TRACER_VERSION) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::TRACER_VERSION) }
   end
 end

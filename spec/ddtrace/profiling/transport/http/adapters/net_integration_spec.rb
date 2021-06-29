@@ -79,10 +79,10 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         client.send_profiling_flush(flush)
 
         expect(request.header).to include(
-          'datadog-meta-lang' => [Datadog::Core::Ext::Environment::LANG],
-          'datadog-meta-lang-version' => [Datadog::Core::Ext::Environment::LANG_VERSION],
-          'datadog-meta-lang-interpreter' => [Datadog::Core::Ext::Environment::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Core::Ext::Environment::TRACER_VERSION],
+          'datadog-meta-lang' => [Datadog::Core::Environment::Ext::LANG],
+          'datadog-meta-lang-version' => [Datadog::Core::Environment::Ext::LANG_VERSION],
+          'datadog-meta-lang-interpreter' => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
+          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::TRACER_VERSION],
           'content-type' => [%r{^multipart/form-data; boundary=(.+)}]
         )
 
@@ -104,20 +104,20 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           'recording-end' => kind_of(String),
           'data[0]' => kind_of(String),
           'types[0]' => /auto/,
-          'runtime' => Datadog::Core::Ext::Environment::LANG,
+          'runtime' => Datadog::Core::Environment::Ext::LANG,
           'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
         )
 
         tags = body["#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS}[]"].list
         expect(tags).to include(
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Core::Ext::Environment::LANG}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Core::Environment::Ext::LANG}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{uuid_regex.source}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Core::Ext::Environment::LANG_ENGINE}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Core::Ext::Environment::LANG_PLATFORM}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Core::Ext::Environment::LANG_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Core::Environment::Ext::LANG_ENGINE}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Core::Environment::Ext::LANG_PLATFORM}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Core::Environment::Ext::LANG_VERSION}/o,
           /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Core::Ext::Environment::TRACER_VERSION}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Core::Ext::Environment::LANG}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Core::Environment::Ext::TRACER_VERSION}/o,
+          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Core::Environment::Ext::LANG}/o,
           'test_tag:test_value'
         )
 

@@ -1,5 +1,5 @@
 require 'securerandom'
-require 'datadog/core/ext/environment'
+require 'datadog/core/environment/ext'
 require 'ddtrace/utils/forking'
 
 module Datadog
@@ -22,27 +22,27 @@ module Datadog
         end
 
         def lang
-          Core::Ext::Environment::LANG
+          Core::Environment::Ext::LANG
         end
 
         def lang_engine
-          Core::Ext::Environment::LANG_ENGINE
+          Core::Environment::Ext::LANG_ENGINE
         end
 
         def lang_interpreter
-          Core::Ext::Environment::LANG_INTERPRETER
+          Core::Environment::Ext::LANG_INTERPRETER
         end
 
         def lang_platform
-          Core::Ext::Environment::LANG_PLATFORM
+          Core::Environment::Ext::LANG_PLATFORM
         end
 
         def lang_version
-          Core::Ext::Environment::LANG_VERSION
+          Core::Environment::Ext::LANG_VERSION
         end
 
         def tracer_version
-          Core::Ext::Environment::TRACER_VERSION
+          Core::Environment::Ext::TRACER_VERSION
         end
       end
     end

@@ -1,4 +1,4 @@
-require 'datadog/core/ext/environment'
+require 'datadog/core/environment/ext'
 
 module Datadog
   module Core

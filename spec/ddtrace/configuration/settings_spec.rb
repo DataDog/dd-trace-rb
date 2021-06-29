@@ -3,7 +3,6 @@ require 'securerandom'
 
 require 'ddtrace'
 require 'ddtrace/configuration/settings'
-require 'ddtrace/ext/runtime'
 
 RSpec.describe Datadog::Configuration::Settings do
   subject(:settings) { described_class.new(options) }

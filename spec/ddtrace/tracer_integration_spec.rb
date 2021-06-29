@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'ddtrace'
-require 'datadog/core/ext/environment'
+require 'datadog/core/environment/ext'
 require 'datadog/core/environment/identity'
 require 'ddtrace/propagation/http_propagator'
 

@@ -90,10 +90,10 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       expect(messages).to have(1).items
       messages.first.tap do |http_request|
         expect(http_request.header).to include(
-          'datadog-meta-lang' => [Datadog::Core::Ext::Environment::LANG],
-          'datadog-meta-lang-version' => [Datadog::Core::Ext::Environment::LANG_VERSION],
-          'datadog-meta-lang-interpreter' => [Datadog::Core::Ext::Environment::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Core::Ext::Environment::TRACER_VERSION],
+          'datadog-meta-lang' => [Datadog::Core::Environment::Ext::LANG],
+          'datadog-meta-lang-version' => [Datadog::Core::Environment::Ext::LANG_VERSION],
+          'datadog-meta-lang-interpreter' => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
+          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::TRACER_VERSION],
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )

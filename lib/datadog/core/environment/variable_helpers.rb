@@ -1,5 +1,3 @@
-require 'ddtrace/ext/environment'
-
 module Datadog
   module Core
     # Namespace for handling application environment

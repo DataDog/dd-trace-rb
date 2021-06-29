@@ -1,5 +1,5 @@
 require 'ddtrace/version'
-require 'datadog/core/ext/environment'
+require 'datadog/core/environment/ext'
 require 'ddtrace/ext/transport'
 
 require 'datadog/core/environment/container'
@@ -65,10 +65,10 @@ module Datadog
 
       def default_headers
         {
-          Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Core::Ext::Environment::LANG,
-          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Ext::Environment::LANG_VERSION,
-          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Ext::Environment::LANG_INTERPRETER,
-          Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Ext::Environment::TRACER_VERSION
+          Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
+          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
+          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Environment::Ext::LANG_INTERPRETER,
+          Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
         }.tap do |headers|
           # Add container ID, if present.
           container_id = Datadog::Core::Environment::Container.container_id

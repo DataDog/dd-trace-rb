@@ -1,7 +1,7 @@
 require 'logger'
 require 'pathname'
 
-require 'datadog/core/environment/variable_helpers'
+require 'ddtrace/ext/environment'
 require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
@@ -12,7 +12,6 @@ require 'ddtrace/sampling'
 require 'ddtrace/correlation'
 require 'ddtrace/event'
 require 'ddtrace/utils/only_once'
-require 'ddtrace/ext/runtime'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -150,7 +149,7 @@ module Datadog
     # for non-root spans which have a parent. However, root spans without
     # a service would be invalid and rejected.
     def default_service
-      @default_service ||= Datadog::Core::Ext::Environment::FALLBACK_SERVICE_NAME
+      @default_service ||= Datadog::Ext::Environment::FALLBACK_SERVICE_NAME
     end
 
     # Set the given key / value tag pair at the tracer level. These tags will be

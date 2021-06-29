@@ -2,8 +2,8 @@ require 'ddtrace/ext/metrics'
 
 require 'set'
 require 'logger'
-require 'datadog/core/environment/variable_helpers'
 require 'datadog/core/environment/identity'
+require 'ddtrace/ext/environment'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/utils/time'
 

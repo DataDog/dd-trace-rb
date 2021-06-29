@@ -2,8 +2,8 @@ require 'ddtrace/version'
 
 module Datadog
   module Core
-    module Ext
-      module Environment
+    module Environment
+      module Ext
         # Identity
         LANG = 'ruby'.freeze
         LANG_ENGINE = RUBY_ENGINE
@@ -12,13 +12,6 @@ module Datadog
         LANG_VERSION = RUBY_VERSION
         RUBY_ENGINE = ::RUBY_ENGINE # e.g. 'ruby', 'jruby', 'truffleruby'
         TRACER_VERSION = Datadog::VERSION::STRING
-
-        FALLBACK_SERVICE_NAME =
-          begin
-            File.basename($PROGRAM_NAME, '.*')
-          rescue StandardError
-            'ruby'
-          end.freeze
       end
     end
   end

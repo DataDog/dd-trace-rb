@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-require 'ddtrace'
 require 'ddtrace/metrics'
 
 require 'benchmark'

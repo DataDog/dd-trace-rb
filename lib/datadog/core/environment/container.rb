@@ -1,4 +1,4 @@
-require 'datadog/core/ext/environment'
+require 'datadog/core/environment/ext'
 require 'datadog/core/environment/cgroup'
 
 module Datadog
