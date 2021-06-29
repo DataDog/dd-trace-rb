@@ -36,8 +36,6 @@ module Datadog
           var.is_a?(Array) ? var.find { |env_var| ENV.key?(env_var) } : var
         end
       end
-
-      extend VariableHelpers
     end
   end
 end
