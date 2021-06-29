@@ -72,6 +72,60 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it_behaves_like 'a peer service span'
     end
 
+    context 'with a different service name using describes option' do
+      let(:primary_service) { 'mongodb-primary' }
+      let(:secondary_service) { 'mongodb-secondary' }
+      let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
+      let(:secondary_host) { 'localhost' }
+
+      before do
+        Datadog.configure do |c|
+          c.use :mongo, describes: /#{host}/ do |mongo|
+            mongo.service_name = primary_service
+          end
+
+          c.use :mongo, describes: /#{secondary_host}/ do |mongo|
+            mongo.service_name = secondary_service
+          end
+        end
+      end
+
+      context 'primary client' do
+        subject { client[collection].insert_one(name: 'FKA Twigs') }
+
+        it 'produces spans with the correct service' do
+          subject
+          expect(spans).to have(1).items
+          expect(spans.first.service).to eq(primary_service)
+        end
+
+        it_behaves_like 'a peer service span'
+      end
+
+      context 'secondary client' do
+        around do |example|
+          suppress_warnings do
+            # Reset before and after each example; don't allow global state to linger.
+            Datadog.registry[:mongo].reset_configuration!
+            example.run
+            Datadog.registry[:mongo].reset_configuration!
+            secondary_client.database.drop if drop_database?
+            secondary_client.close
+          end
+        end
+
+        subject { secondary_client[collection].insert_one(name: 'FKA Twigs') }
+
+        it 'produces spans with the correct service' do
+          subject
+          expect(spans).to have(1).items
+          expect(spans.first.service).to eq(secondary_service)
+        end
+
+        it_behaves_like 'a peer service span'
+      end
+    end
+
     context 'to disable the tracer' do
       before { tracer.enabled = false }
 
