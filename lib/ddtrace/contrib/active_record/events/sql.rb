@@ -26,6 +26,7 @@ module Datadog
           end
 
           def process(span, event, _id, payload)
+            caller_path = Utils.extract_caller_path(caller)
             config = Utils.connection_config(payload[:connection], payload[:connection_id])
             settings = Datadog.configuration[:active_record, config]
             adapter_name = Datadog::Utils::Database.normalize_vendor(config[:adapter])
@@ -56,6 +57,7 @@ module Datadog
             span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
             span.set_tag(Ext::TAG_DB_NAME, config[:database])
             span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
+            span.set_tag(Ext::SPAN_CALLER_STACK, caller_path) if caller_path.present?  # Only supported under Rails
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, config[:host]) if config[:host]
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, config[:port]) if config[:port]
           rescue StandardError => e

@@ -10,6 +10,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE'.freeze
         ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_ACTIVE_RECORD_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'active_record'.freeze
+        SPAN_CALLER_STACK = 'active_record.query_caller_stack'.freeze
         SPAN_INSTANTIATION = 'active_record.instantiation'.freeze
         SPAN_SQL = 'active_record.sql'.freeze
         SPAN_TYPE_INSTANTIATION = 'custom'.freeze

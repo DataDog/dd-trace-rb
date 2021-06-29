@@ -117,6 +117,17 @@ module Datadog
             connection_pool.spec.config
           end
         end
+
+        def self.extract_caller_path(callers)
+          return nil unless defined?(::Rails)
+
+          caller_path = callers
+                        .select { |c| c =~ /^#{::Rails.root}/ }
+                        .map { |c| c.gsub ::Rails.root.to_s, '' }[0...5]
+          # Handle cases when the db query is triggered from inside of a Rubygem
+          caller_path = callers[0...5] if caller_path.nil?
+          caller_path.join(",\n")
+        end
       end
     end
   end
