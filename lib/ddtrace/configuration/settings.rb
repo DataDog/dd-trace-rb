@@ -3,8 +3,8 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/environment'
 require 'ddtrace/ext/profiling'
-# require 'datadog/core/ext/environment'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/ext/test'
 
