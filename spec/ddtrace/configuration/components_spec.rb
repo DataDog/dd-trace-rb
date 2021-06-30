@@ -335,7 +335,12 @@ RSpec.describe Datadog::Configuration::Components do
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             partial_flush: settings.tracer.partial_flush.enabled,
-            tags: settings.tags
+            tags: settings.tags,
+            sampler: lambda do |sampler|
+              expect(sampler.pre_sampler).to be_a(Datadog::AllSampler)
+              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
+              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::RateByServiceSampler)
+            end
           }
         end
         let(:options) { {} }
