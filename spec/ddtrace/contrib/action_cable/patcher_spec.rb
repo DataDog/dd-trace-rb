@@ -32,9 +32,9 @@ RSpec.describe 'ActionCable patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:action_cable].reset_configuration!
+    Datadog::Contrib::REGISTRY[:action_cable].reset_configuration!
     example.run
-    Datadog.registry[:action_cable].reset_configuration!
+    Datadog::Contrib::REGISTRY[:action_cable].reset_configuration!
   end
 
   context 'with server' do

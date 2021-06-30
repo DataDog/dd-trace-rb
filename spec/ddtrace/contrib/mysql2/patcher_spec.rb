@@ -33,9 +33,9 @@ RSpec.describe 'Mysql2::Client patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:mysql2].reset_configuration!
+    Datadog::Contrib::REGISTRY[:mysql2].reset_configuration!
     example.run
-    Datadog.registry[:mysql2].reset_configuration!
+    Datadog::Contrib::REGISTRY[:mysql2].reset_configuration!
   end
 
   context 'pin' do

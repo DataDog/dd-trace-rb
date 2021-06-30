@@ -39,9 +39,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
   around do |example|
     suppress_warnings do
       # Reset before and after each example; don't allow global state to linger.
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Contrib::REGISTRY[:mongo].reset_configuration!
       example.run
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Contrib::REGISTRY[:mongo].reset_configuration!
       client.database.drop if drop_database?
       client.close
     end

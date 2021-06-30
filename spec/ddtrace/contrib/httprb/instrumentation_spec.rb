@@ -60,9 +60,9 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:httprb].reset_configuration!
+    Datadog::Contrib::REGISTRY[:httprb].reset_configuration!
     example.run
-    Datadog.registry[:httprb].reset_configuration!
+    Datadog::Contrib::REGISTRY[:httprb].reset_configuration!
   end
 
   describe 'instrumented request' do

@@ -35,9 +35,9 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:active_model_serializers].reset_configuration!
+    Datadog::Contrib::REGISTRY[:active_model_serializers].reset_configuration!
     example.run
-    Datadog.registry[:active_model_serializers].reset_configuration!
+    Datadog::Contrib::REGISTRY[:active_model_serializers].reset_configuration!
   end
 
   describe 'on render' do

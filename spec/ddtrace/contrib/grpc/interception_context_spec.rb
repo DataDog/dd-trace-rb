@@ -21,9 +21,9 @@ RSpec.describe GRPC::InterceptionContext do
 
     around do |example|
       # Reset before and after each example; don't allow global state to linger.
-      Datadog.registry[:grpc].reset_configuration!
+      Datadog::Contrib::REGISTRY[:grpc].reset_configuration!
       example.run
-      Datadog.registry[:grpc].reset_configuration!
+      Datadog::Contrib::REGISTRY[:grpc].reset_configuration!
     end
 
     context 'when intercepting on the client' do

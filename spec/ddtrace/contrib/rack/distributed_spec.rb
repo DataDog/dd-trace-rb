@@ -16,7 +16,7 @@ RSpec.describe 'Rack integration distributed tracing' do
     end
   end
 
-  after { Datadog.registry[:rack].reset_configuration! }
+  after { Datadog::Contrib::REGISTRY[:rack].reset_configuration! }
 
   shared_context 'an incoming HTTP request' do
     subject(:response) { get '/' }

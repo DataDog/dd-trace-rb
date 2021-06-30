@@ -35,9 +35,9 @@ RSpec.describe 'Faraday middleware' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:faraday].reset_configuration!
+    Datadog::Contrib::REGISTRY[:faraday].reset_configuration!
     example.run
-    Datadog.registry[:faraday].reset_configuration!
+    Datadog::Contrib::REGISTRY[:faraday].reset_configuration!
   end
 
   context 'without explicit middleware configured' do
