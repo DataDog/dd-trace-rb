@@ -57,7 +57,14 @@ module Datadog
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             partial_flush: settings.tracer.partial_flush.enabled,
-            tags: build_tracer_tags(settings)
+            tags: build_tracer_tags(settings),
+            sampler: PrioritySampler.new(
+              base_sampler: AllSampler.new,
+              post_sampler: Sampling::RuleSampler.new(
+                rate_limit: settings.sampling.rate_limit,
+                default_sample_rate: settings.sampling.default_rate
+              )
+            )
           )
 
           # TODO: We reconfigure the tracer here because it has way too many
