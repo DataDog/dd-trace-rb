@@ -8,6 +8,13 @@ module Datadog
       ENV_TAGS = 'DD_TAGS'.freeze
       ENV_VERSION = 'DD_VERSION'.freeze
 
+      FALLBACK_SERVICE_NAME =
+        begin
+          File.basename($PROGRAM_NAME, '.*')
+        rescue StandardError
+          'ruby'
+        end.freeze
+
       TAG_ENV = 'env'.freeze
       TAG_SERVICE = 'service'.freeze
       TAG_VERSION = 'version'.freeze

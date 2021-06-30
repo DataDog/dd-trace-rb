@@ -1,5 +1,5 @@
 require 'ddtrace/diagnostics/health'
-require 'ddtrace/runtime/object_space'
+require 'datadog/core/environment/object_space'
 
 # Trace buffer that accumulates traces for a consumer.
 # Consumption can happen from a different thread.
@@ -318,7 +318,7 @@ module Datadog
   #
   # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
   # TODO Making such a change is potentially breaking for users manually configuring the tracer.
-  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby'
+  TraceBuffer = if Datadog::Core::Environment::Ext::RUBY_ENGINE == 'ruby'
                   CRubyTraceBuffer
                 else
                   ThreadSafeTraceBuffer

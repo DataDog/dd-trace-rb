@@ -44,7 +44,7 @@ RSpec.describe Datadog::SyncWriter do
       let(:hostname) { 'my-host' }
 
       before do
-        allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+        allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
       end
 
       context 'enabled' do

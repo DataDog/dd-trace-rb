@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'ddtrace/runtime/gc'
+require 'datadog/core/environment/gc'
 
-RSpec.describe Datadog::Runtime::GC do
+RSpec.describe Datadog::Core::Environment::GC do
   describe '::stat' do
     subject(:stat) { described_class.stat }
 

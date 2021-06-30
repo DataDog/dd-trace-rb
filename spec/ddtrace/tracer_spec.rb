@@ -173,7 +173,7 @@ RSpec.describe Datadog::Tracer do
     context 'when :child_of' do
       context 'is not given' do
         it 'applies a runtime ID tag' do
-          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
         end
       end
 
@@ -246,7 +246,7 @@ RSpec.describe Datadog::Tracer do
 
         it 'adds a runtime ID tag to the span' do
           tracer.trace(name) do |span|
-            expect(span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+            expect(span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
           end
         end
       end
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Tracer do
       context 'when nesting spans' do
         it 'only the top most span has a runtime ID tag' do
           tracer.trace(name) do |parent_span|
-            expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+            expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
 
             tracer.trace(name) do |child_span|
               expect(child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
@@ -267,14 +267,14 @@ RSpec.describe Datadog::Tracer do
 
           it 'only the top most span per process has a runtime ID tag' do
             tracer.trace(name) do |parent_span|
-              parent_process_id = Datadog::Runtime::Identity.id
+              parent_process_id = Datadog::Core::Environment::Identity.id
               expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(parent_process_id)
 
               tracer.trace(name) do |child_span|
                 expect(child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
 
                 expect_in_fork do
-                  fork_process_id = Datadog::Runtime::Identity.id
+                  fork_process_id = Datadog::Core::Environment::Identity.id
                   expect(fork_process_id).to_not eq(parent_process_id)
 
                   tracer.trace(name) do |fork_parent_span|

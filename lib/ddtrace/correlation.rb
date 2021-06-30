@@ -1,5 +1,5 @@
 require 'ddtrace/ext/correlation'
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 
 module Datadog
   # Contains behavior for managing correlations with tracing

@@ -230,7 +230,7 @@ RSpec.describe Datadog::Writer do
           let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           before do
-            allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+            allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
             allow(response).to receive(:ok?).and_return(true)
             allow(response).to receive(:server_error?).and_return(false)
             allow(response).to receive(:internal_error?).and_return(false)

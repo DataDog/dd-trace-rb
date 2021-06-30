@@ -4,7 +4,7 @@ require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 require 'date'
 
 module Datadog

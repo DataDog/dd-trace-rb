@@ -2,8 +2,8 @@ require 'ddtrace/ext/metrics'
 
 require 'set'
 require 'logger'
-require 'ddtrace/environment'
-require 'ddtrace/runtime/identity'
+require 'datadog/core/environment/identity'
+require 'ddtrace/ext/environment'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/utils/time'
 
@@ -150,10 +150,10 @@ module Datadog
     module Options
       DEFAULT = {
         tags: DEFAULT_TAGS = [
-          "#{Ext::Metrics::TAG_LANG}:#{Runtime::Identity.lang}".freeze,
-          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Runtime::Identity.lang_interpreter}".freeze,
-          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Runtime::Identity.lang_version}".freeze,
-          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Runtime::Identity.tracer_version}".freeze
+          "#{Ext::Metrics::TAG_LANG}:#{Core::Environment::Identity.lang}".freeze,
+          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Core::Environment::Identity.lang_interpreter}".freeze,
+          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Core::Environment::Identity.lang_version}".freeze,
+          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Core::Environment::Identity.tracer_version}".freeze
         ].freeze
       }.freeze
 

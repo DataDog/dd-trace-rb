@@ -1,8 +1,8 @@
 require 'spec_helper'
-require 'ddtrace/runtime/cgroup'
+require 'datadog/core/environment/cgroup'
 
 # rubocop:disable Layout/LineLength
-RSpec.describe Datadog::Runtime::Cgroup do
+RSpec.describe Datadog::Core::Environment::Cgroup do
   describe '::descriptors' do
     subject(:descriptors) { described_class.descriptors }
 
@@ -306,3 +306,4 @@ RSpec.describe Datadog::Runtime::Cgroup do
     end
   end
 end
+# rubocop:enable Layout/LineLength

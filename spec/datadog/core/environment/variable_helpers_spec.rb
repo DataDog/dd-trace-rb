@@ -1,8 +1,9 @@
 require 'spec_helper'
 
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 
-RSpec.describe Datadog::Environment do
+RSpec.describe Datadog::Core::Environment::VariableHelpers do
+  let(:variable_helpers) { Class.new { extend Datadog::Core::Environment::VariableHelpers } }
   let(:var) { 'TEST_VAR' }
 
   shared_context 'env var' do
@@ -14,7 +15,7 @@ RSpec.describe Datadog::Environment do
   end
 
   describe '::env_to_bool' do
-    subject(:env_to_bool) { described_class.env_to_bool(var) }
+    subject(:env_to_bool) { variable_helpers.env_to_bool(var) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -22,9 +23,9 @@ RSpec.describe Datadog::Environment do
       end
 
       context 'and default is defined' do
-        subject(:env_to_bool) { described_class.env_to_bool(var, default) }
+        subject(:env_to_bool) { variable_helpers.env_to_bool(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end
@@ -63,7 +64,7 @@ RSpec.describe Datadog::Environment do
   end
 
   describe '::env_to_int' do
-    subject(:env_to_int) { described_class.env_to_int(var) }
+    subject(:env_to_int) { variable_helpers.env_to_int(var) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -71,9 +72,9 @@ RSpec.describe Datadog::Environment do
       end
 
       context 'and default is defined' do
-        subject(:env_to_int) { described_class.env_to_int(var, default) }
+        subject(:env_to_int) { variable_helpers.env_to_int(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end
@@ -109,7 +110,7 @@ RSpec.describe Datadog::Environment do
   end
 
   describe '::env_to_float' do
-    subject(:env_to_float) { described_class.env_to_float(var) }
+    subject(:env_to_float) { variable_helpers.env_to_float(var) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -117,9 +118,9 @@ RSpec.describe Datadog::Environment do
       end
 
       context 'and default is defined' do
-        subject(:env_to_float) { described_class.env_to_float(var, default) }
+        subject(:env_to_float) { variable_helpers.env_to_float(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end
@@ -155,7 +156,7 @@ RSpec.describe Datadog::Environment do
   end
 
   describe '::env_to_list' do
-    subject(:env_to_list) { described_class.env_to_list(var) }
+    subject(:env_to_list) { variable_helpers.env_to_list(var) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -163,9 +164,9 @@ RSpec.describe Datadog::Environment do
       end
 
       context 'and default is defined' do
-        subject(:env_to_list) { described_class.env_to_list(var, default) }
+        subject(:env_to_list) { variable_helpers.env_to_list(var, default) }
 
-        let(:default) { double('default') }
+        let(:default) { double }
 
         it { is_expected.to be default }
       end

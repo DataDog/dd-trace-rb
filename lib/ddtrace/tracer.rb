@@ -1,12 +1,12 @@
 require 'logger'
 require 'pathname'
 
-require 'ddtrace/environment'
+require 'ddtrace/ext/environment'
 require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
-require 'ddtrace/runtime/identity'
+require 'datadog/core/environment/identity'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
@@ -149,7 +149,7 @@ module Datadog
     # for non-root spans which have a parent. However, root spans without
     # a service would be invalid and rejected.
     def default_service
-      @default_service ||= Datadog::Ext::Runtime::FALLBACK_SERVICE_NAME
+      @default_service ||= Datadog::Ext::Environment::FALLBACK_SERVICE_NAME
     end
 
     # Set the given key / value tag pair at the tracer level. These tags will be
@@ -201,7 +201,7 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
-        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Runtime::Identity.id)
+        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Core::Environment::Identity.id)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
