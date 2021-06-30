@@ -40,8 +40,8 @@ module ConfigurationHelpers
       if integration.respond_to?(:patch_only_once, true)
         integration.send(:patch_only_once).send(:reset_ran_once_state_for_tests)
       end
-    elsif Datadog.registry[integration].respond_to?(:patcher)
-      Datadog.registry[integration].patcher.tap do |patcher|
+    elsif Datadog::Contrib::REGISTRY[integration].respond_to?(:patcher)
+      Datadog::Contrib::REGISTRY[integration].patcher.tap do |patcher|
         patcher::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(patcher::PATCH_ONLY_ONCE)
         patcher.send(:patch_only_once).send(:reset_ran_once_state_for_tests) if patcher.respond_to?(:patch_only_once, true)
       end

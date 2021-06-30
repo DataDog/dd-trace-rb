@@ -71,9 +71,9 @@ RSpec.describe 'Presto::Client instrumentation' do
 
   around do |example|
     suppress_warnings do
-      Datadog.registry[:presto].reset_configuration!
+      Datadog::Contrib::REGISTRY[:presto].reset_configuration!
       example.run
-      Datadog.registry[:presto].reset_configuration!
+      Datadog::Contrib::REGISTRY[:presto].reset_configuration!
       Datadog.configuration.reset!
     end
   end

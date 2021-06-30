@@ -18,9 +18,9 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:ethon].reset_configuration!
+    Datadog::Contrib::REGISTRY[:ethon].reset_configuration!
     example.run
-    Datadog.registry[:ethon].reset_configuration!
+    Datadog::Contrib::REGISTRY[:ethon].reset_configuration!
   end
 
   describe '#add' do

@@ -21,9 +21,9 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rest_client].reset_configuration!
+    Datadog::Contrib::REGISTRY[:rest_client].reset_configuration!
     example.run
-    Datadog.registry[:rest_client].reset_configuration!
+    Datadog::Contrib::REGISTRY[:rest_client].reset_configuration!
   end
 
   describe 'instrumented request' do

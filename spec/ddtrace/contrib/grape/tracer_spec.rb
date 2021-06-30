@@ -116,11 +116,11 @@ RSpec.describe 'Grape instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rack].reset_configuration!
-    Datadog.registry[:grape].reset_configuration!
+    Datadog::Contrib::REGISTRY[:rack].reset_configuration!
+    Datadog::Contrib::REGISTRY[:grape].reset_configuration!
     example.run
-    Datadog.registry[:rack].reset_configuration!
-    Datadog.registry[:grape].reset_configuration!
+    Datadog::Contrib::REGISTRY[:rack].reset_configuration!
+    Datadog::Contrib::REGISTRY[:grape].reset_configuration!
   end
 
   context 'without rack' do

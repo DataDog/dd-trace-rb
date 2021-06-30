@@ -21,7 +21,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
     end
   end
 
-  after { Datadog.registry[:active_record].reset_configuration! }
+  after { Datadog::Contrib::REGISTRY[:active_record].reset_configuration! }
 
   describe 'for an in-memory database' do
     let!(:connection) do

@@ -261,14 +261,14 @@ module TestTracerHelper
 
   def around(&block)
     if integration_name
-      Datadog.registry[integration_name].reset_configuration!
+      Datadog::Contrib::REGISTRY[integration_name].reset_configuration!
       Datadog.configuration[integration_name].reset_options!
     end
 
     with_stubbed_tracer(&block)
 
     if integration_name
-      Datadog.registry[integration_name].reset_configuration!
+      Datadog::Contrib::REGISTRY[integration_name].reset_configuration!
       Datadog.configuration[integration_name].reset_options!
     end
   end
