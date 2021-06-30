@@ -306,3 +306,4 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
     end
   end
 end
+# rubocop:enable Layout/LineLength
