@@ -4,6 +4,7 @@ module Datadog
   module Core
     module Environment
       # Retrieves garbage collection statistics
+      # DEV: Currently only used for testing.
       module ObjectSpace
         module_function
 
