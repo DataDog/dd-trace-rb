@@ -3,7 +3,10 @@ require 'datadog/core/environment/ext'
 module Datadog
   module Core
     module Environment
-      # For control groups
+      # Reads information from Linux cgroups.
+      # This information is used to extract information
+      # about the current Linux container identity.
+      # @see https://man7.org/linux/man-pages/man7/cgroups.7.html
       module Cgroup
         LINE_REGEX = /^(\d+):([^:]*):(.+)$/.freeze
 
