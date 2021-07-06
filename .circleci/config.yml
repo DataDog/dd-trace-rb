@@ -134,8 +134,10 @@ ensure_lockfile_committed: &ensure_lockfile_committed
       then
         >&2 echo "Gem lock files were modified or new lock files were created during"
         >&2 echo "'bundle install' and 'bundle appraisal install' installation in CI."
-        >&2 echo "You need to check in those changes in your branch."
-        >&2 echo "Affected files:"
+        >&2 echo "You need to run 'bundle exec rake update_appraisal_gemfiles' locally"
+        >&2 echo "and commit any changes."
+        >&2 echo ""
+        >&2 echo "Changes found:"
         >&2 echo $CHANGED_FILES
         >&2 GIT_PAGER=cat git diff HEAD
         exit 1
