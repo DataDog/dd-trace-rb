@@ -3,6 +3,7 @@ require 'ddtrace/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/testtask'
+require 'rake/extensiontask'
 require 'appraisal'
 require 'yard'
 
@@ -944,5 +945,7 @@ namespace :changelog do
     PimpMyChangelog::CLI.run!
   end
 end
+
+Rake::ExtensionTask.new('ddtrace_native_extension')
 
 task default: :test

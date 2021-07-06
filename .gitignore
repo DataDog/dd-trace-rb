@@ -58,3 +58,6 @@ Gemfile.lock
 
 # bundle config
 gemfiles/.bundle
+
+# Native library binaries
+lib/ddtrace_native_extension.bundle
