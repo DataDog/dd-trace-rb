@@ -68,6 +68,8 @@ module Datadog
           # Instead, we patch Lograge `custom_options` internals directly
           # as part of Rails framework patching
           # and just flag off the warning log here.
+          # SemanticLogger we similarly patch in the after_initiaize block, and should flag
+          # off the warning log here if we know we'll patch this gem later.
           should_warn = false if app.config.respond_to?(:lograge) || defined?(::SemanticLogger)
 
           # if lograge isn't set, check if tagged logged is enabled.

@@ -28,9 +28,8 @@ module Datadog
           super && version >= MINIMUM_VERSION
         end
 
-        # We should probably just never auto enabled log injection as part of auto instrumentation
         # TODO: abstract out the log injection related instrumentation into it's own module so we dont
-        # keep having to do these funky workarounds
+        # keep having to do these workarounds
         def auto_instrument?
           false
         end

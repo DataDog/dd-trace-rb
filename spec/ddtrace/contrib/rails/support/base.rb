@@ -33,7 +33,6 @@ RSpec.shared_context 'Rails base application' do
   end
 
   let(:initialize_block) do
-    $stdout.sync = true
     middleware = rails_middleware
     debug_mw = debug_middleware
     logger = self.logger

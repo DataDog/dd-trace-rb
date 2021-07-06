@@ -39,8 +39,8 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*_spec.rb'
-    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,semanti'\
-                        'c_logger}*_spec.rb'
+    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
+                        'semantic_logger}*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
