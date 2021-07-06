@@ -41,6 +41,9 @@ RSpec.describe 'Rails Log Auto Injection' do
   context 'with Log_Injection Enabled', if: Rails.version >= '4.0' do
     # defined in rails support apps
     let(:logs) { log_output.string }
+    let(:test_env) { 'test-env' }
+    let(:test_version) { 'test-version' }
+    let(:test_service) { 'test-service' }
 
     context 'with Semantic Logger' do
       # for logsog_injection testing
@@ -48,6 +51,13 @@ RSpec.describe 'Rails Log Auto Injection' do
       subject(:response) { get '/semantic_logger' }
 
       before do
+        Datadog.configure do |c|
+          c.use :rails, log_injection: true
+          c.env = test_env
+          c.version = test_version
+          c.service = test_service
+        end
+
         allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
       end
 
@@ -63,23 +73,18 @@ RSpec.describe 'Rails Log Auto Injection' do
             SemanticLogger.flush
 
             expect(logs).to include(spans[0].trace_id.to_s)
+            expect(logs).to include(spans[0].span_id.to_s)
+            expect(logs).to include(test_env)
+            expect(logs).to include(test_version)
+            expect(logs).to include(test_service)
             expect(logs).to include('MINASWAN')
           end
         end
 
         context 'with semantic logger setup and existing log_tags' do
-          let(:test_env) { 'test-env' }
-          let(:test_version) { 'test-version' }
-          let(:test_service) { 'test-service' }
+
 
           before do
-            Datadog.configure do |c|
-              c.use :rails, log_injection: true
-              c.env = test_env
-              c.version = test_version
-              c.service = test_service
-            end
-
             allow(ENV).to receive(:[]).with('LOG_TAGS').and_return({ some_tag: 'some_value' })
           end
 
