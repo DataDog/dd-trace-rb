@@ -25,7 +25,7 @@ if RUBY_PLATFORM != 'java'
 else
   gem 'pry-debugger-jruby'
 end
-gem 'rake', '>= 10.5'
+gem 'rake', '>= 10.5', '< 13.0.4' # Locking rake until https://github.com/thoughtbot/appraisal/pull/184 is released
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
