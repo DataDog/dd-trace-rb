@@ -1,7 +1,7 @@
 require 'spec_helper'
-require 'ddtrace/runtime/class_count'
+require 'datadog/core/environment/class_count'
 
-RSpec.describe Datadog::Runtime::ClassCount do
+RSpec.describe Datadog::Core::Environment::ClassCount do
   describe '::available?' do
     subject(:available?) { described_class.available? }
 

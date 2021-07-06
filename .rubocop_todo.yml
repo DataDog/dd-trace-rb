@@ -79,7 +79,6 @@ Lint/MissingCopEnableDirective:
     - 'spec/ddtrace/contrib/rails/support/database.rb'
     - 'spec/ddtrace/contrib/rails/support/middleware.rb'
     - 'spec/ddtrace/diagnostics/health_spec.rb'
-    - 'spec/ddtrace/runtime/cgroup_spec.rb'
     - 'spec/support/container_helpers.rb'
     - 'spec/support/tracer_helpers.rb'
     - 'test/contrib/rails/controller_test.rb'

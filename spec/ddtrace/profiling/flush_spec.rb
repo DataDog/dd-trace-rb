@@ -9,16 +9,16 @@ RSpec.describe Datadog::Profiling::Flush do
           finish: nil,
           event_groups: nil,
           event_count: nil,
-          runtime_id: Datadog::Runtime::Identity.id,
+          runtime_id: Datadog::Core::Environment::Identity.id,
           service: Datadog.configuration.service,
           env: Datadog.configuration.env,
           version: Datadog.configuration.version,
-          host: Datadog::Runtime::Socket.hostname,
-          language: Datadog::Runtime::Identity.lang,
-          runtime_engine: Datadog::Runtime::Identity.lang_engine,
-          runtime_platform: Datadog::Runtime::Identity.lang_platform,
-          runtime_version: Datadog::Runtime::Identity.lang_version,
-          profiler_version: Datadog::Runtime::Identity.tracer_version,
+          host: Datadog::Core::Environment::Socket.hostname,
+          language: Datadog::Core::Environment::Identity.lang,
+          runtime_engine: Datadog::Core::Environment::Identity.lang_engine,
+          runtime_platform: Datadog::Core::Environment::Identity.lang_platform,
+          runtime_version: Datadog::Core::Environment::Identity.lang_version,
+          profiler_version: Datadog::Core::Environment::Identity.tracer_version,
           tags: Datadog.configuration.tags
         )
       end

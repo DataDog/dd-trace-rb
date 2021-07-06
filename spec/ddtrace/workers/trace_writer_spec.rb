@@ -168,7 +168,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
     context 'when hostname' do
       before do
-        allow(Datadog::Runtime::Socket).to receive(:hostname)
+        allow(Datadog::Core::Environment::Socket).to receive(:hostname)
           .and_return(hostname)
       end
 

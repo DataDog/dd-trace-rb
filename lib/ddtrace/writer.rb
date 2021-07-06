@@ -1,7 +1,7 @@
 require 'json'
 
 require 'ddtrace/ext/net'
-require 'ddtrace/runtime/socket'
+require 'datadog/core/environment/socket'
 
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
@@ -181,7 +181,7 @@ module Datadog
       traces.each do |trace|
         next if trace.first.nil?
 
-        hostname = Datadog::Runtime::Socket.hostname
+        hostname = Datadog::Core::Environment::Socket.hostname
         trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end

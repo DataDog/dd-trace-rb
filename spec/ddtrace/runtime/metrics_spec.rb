@@ -37,7 +37,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       context 'with internal span' do
         it 'registers the span\'s service' do
           expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
-          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Runtime::Identity.lang)
+          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Core::Environment::Identity.lang)
         end
       end
 
@@ -147,13 +147,13 @@ RSpec.describe Datadog::Runtime::Metrics do
     shared_examples_for 'a flush of all runtime metrics' do
       context 'including ClassCount' do
         it_behaves_like 'runtime metric flush',
-                        Datadog::Runtime::ClassCount,
+                        Datadog::Core::Environment::ClassCount,
                         Datadog::Ext::Runtime::Metrics::METRIC_CLASS_COUNT
       end
 
       context 'including ThreadCount' do
         it_behaves_like 'runtime metric flush',
-                        Datadog::Runtime::ThreadCount,
+                        Datadog::Core::Environment::ThreadCount,
                         Datadog::Ext::Runtime::Metrics::METRIC_THREAD_COUNT
       end
 

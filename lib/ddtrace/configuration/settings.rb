@@ -3,8 +3,8 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/environment'
 require 'ddtrace/ext/profiling'
-require 'ddtrace/ext/runtime'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/ext/test'
 
@@ -226,7 +226,7 @@ module Datadog
 
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Runtime::FALLBACK_SERVICE_NAME) }
+        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Environment::FALLBACK_SERVICE_NAME) }
         o.lazy
 
         # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
@@ -234,7 +234,7 @@ module Datadog
         # nice_service_name = Datadog.configure.service_without_fallback || nice_service_name_default
         o.helper(:service_without_fallback) do
           service_name = service
-          service_name unless service_name.equal?(Ext::Runtime::FALLBACK_SERVICE_NAME)
+          service_name unless service_name.equal?(Ext::Environment::FALLBACK_SERVICE_NAME)
         end
       end
 

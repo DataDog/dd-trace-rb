@@ -1,9 +1,6 @@
 require 'spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/ext/runtime'
-require 'ddtrace/runtime/identity'
-require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::Tracer do
   subject(:tracer) { described_class.new(writer: FauxWriter.new) }
