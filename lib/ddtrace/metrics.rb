@@ -27,7 +27,10 @@ module Datadog
     def supported?
       version = dogstatsd_gem_version
 
-      !version.nil? && (version >= Gem::Version.new('3.3.0'))
+      !version.nil? && (version >= Gem::Version.new('3.3.0') &&
+        # dogstatsd-ruby >= 5.0 & < 5.2.0 has known issues with process forks
+        # and do not support the single thread mode we use to avoid this problem.
+        !(version >= Gem::Version.new('5.0') && version < Gem::Version.new('5.2')))
     end
 
     def enabled?
@@ -49,15 +52,13 @@ module Datadog
     def default_statsd_client
       require 'datadog/statsd'
 
-      incompatible_statsd_warning
-
       # Create a StatsD client that points to the agent.
       version = dogstatsd_gem_version
       if version.nil? || (version < Gem::Version.new('5.2.0'))
         Datadog::Statsd.new(default_hostname, default_port)
       else
         # use the single thread mode available since dogstatsd-ruby v5.2.0 in order
-        # to not have any issue with processes forks
+        # to not have any issue with process forks
         Datadog::Statsd.new(default_hostname, default_port, single_thread: true)
       end
     end
@@ -244,33 +245,13 @@ module Datadog
 
     private
 
-    INCOMPATIBLE_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-    private_constant :INCOMPATIBLE_STATSD_ONLY_ONCE
-
-
     def dogstatsd_gem_version
       (
         defined?(Datadog::Statsd::VERSION) && Datadog::Statsd::VERSION &&
         Gem::Version.new(Datadog::Statsd::VERSION)
-       ) || (
+      ) || (
         Gem.loaded_specs['dogstatsd-ruby'] && Gem.loaded_specs['dogstatsd-ruby'].version
       )
-    end
-
-    # Using dogstatsd-ruby >= 5.0 and < 5.2 can lead to unbounded memory usage in some scenario with process forks
-    # involved. Display a warning if the available version of the dogstatsd-ruby gem is impacted.
-    # Note that starting with 5.2.0, the `single_thread` mode of the dogstatsd-ruby gem is used in order to not have
-    # this issue.
-    def incompatible_statsd_warning
-      return if dogstatsd_gem_version < Gem::Version.new('5.0') || dogstatsd_gem_version >= Gem::Version.new('5.2')
-
-      INCOMPATIBLE_STATSD_ONLY_ONCE.run do
-        Datadog.logger.warn(
-          'This version of `ddtrace` is incompatible with `dogstastd-ruby` version >= 5.0 and < 5.2 and can '   \
-          'cause unbounded memory usage. Please use either `dogstastd-ruby` version < 5.0 or `dogstatsd-ruby` ' \
-          'version ~> 5.2 instead.'
-        )
-      end
     end
 
     IGNORED_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
