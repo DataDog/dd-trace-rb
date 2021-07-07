@@ -14,7 +14,11 @@ module Datadog
       # NOTE: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
       # first that they can't use this on JRuby before telling them that they are missing protobuf
 
-      ruby_engine_unsupported? || protobuf_gem_unavailable? || protobuf_version_unsupported? || protobuf_failed_to_load?
+      ruby_engine_unsupported? ||
+        native_library_failed_to_load? ||
+        protobuf_gem_unavailable? ||
+        protobuf_version_unsupported? ||
+        protobuf_failed_to_load?
     end
 
     def self.ruby_engine_unsupported?
@@ -81,6 +85,32 @@ module Datadog
     end
     private_class_method :protobuf_loaded_successfully?
 
+    private_class_method def self.native_library_failed_to_load?
+      success, exception = try_loading_native_library
+
+      unless success
+        if exception
+          'There was an error loading the profiling native extension due to ' \
+          "'#{exception.message}' at '#{exception.backtrace.first}'"
+        else
+          'The profiling native extension did not load correctly. ' \
+          'If the error persists, please contact support via <https://docs.datadoghq.com/help/> or ' \
+          'file a bug at <https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug>.'
+        end
+      end
+    end
+
+    private_class_method def self.try_loading_native_library
+      begin
+        require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+        success =
+          defined?(Datadog::Profiling::NativeExtension) && Datadog::Profiling::NativeExtension.send(:native_working?)
+        [success, nil]
+      rescue StandardError, LoadError => e
+        [false, e]
+      end
+    end
+
     def self.load_profiling
       return false unless supported?
 
@@ -95,7 +125,7 @@ module Datadog
       require 'ddtrace/profiling/transport/io'
       require 'ddtrace/profiling/transport/http'
       require 'ddtrace/profiling/profiler'
-
+      require 'ddtrace/profiling/native_extension'
       require 'ddtrace/profiling/pprof/pprof_pb'
 
       true

@@ -58,3 +58,7 @@ Gemfile.lock
 
 # bundle config
 gemfiles/.bundle
+
+# Native extension binaries
+lib/*.bundle
+lib/*.so

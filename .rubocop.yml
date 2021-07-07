@@ -8,6 +8,7 @@ AllCops:
   TargetRubyVersion: 2.5 # Lowest version supported as of Rubocop 0.13.0
   Include:
     - 'lib/**/*.rb'
+    - 'ext/**/*.rb'
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
     - 'Gemfile'
