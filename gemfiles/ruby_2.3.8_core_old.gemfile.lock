@@ -97,6 +97,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
+  cri (< 2.15.11)
   ddtrace!
   dogstatsd-ruby (~> 4)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
