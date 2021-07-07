@@ -196,7 +196,7 @@ DEPENDENCIES
   pry-stack_explorer
   rack-cache (= 1.7.1)
   rails (= 3.2.22.5)
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)
