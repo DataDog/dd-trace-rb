@@ -24,19 +24,17 @@ module Datadog
       @enabled = enabled
     end
 
-    def dogstatsd_ruby_gem_version
-      return (
-          defined?(Datadog::Statsd::VERSION) &&
-          Datadog::Statsd::VERSION &&
-          Gem::Version.new(Datadog::Statsd::VERSION)
-        ) || (
-          Gem.loaded_specs['dogstatsd-ruby'] &&
-          Gem.loaded_specs['dogstatsd-ruby'].version
-        )
+    def dogstatsd_gem_version
+      (
+        defined?(Datadog::Statsd::VERSION) && Datadog::Statsd::VERSION &&
+        Gem::Version.new(Datadog::Statsd::VERSION)
+      ) || (
+        Gem.loaded_specs['dogstatsd-ruby'] && Gem.loaded_specs['dogstatsd-ruby'].version
+      )
     end
 
     def supported?
-      version = dogstatsd_ruby_gem_version
+      version = dogstatsd_gem_version
 
       !version.nil? && (version >= Gem::Version.new('3.3.0'))
     end
@@ -63,7 +61,7 @@ module Datadog
       incompatible_statsd_warning
 
       # Create a StatsD client that points to the agent.
-      version = dogstatsd_ruby_gem_version
+      version = dogstatsd_gem_version
       if version.nil? || (version < Gem::Version.new('5.2.0'))
         Datadog::Statsd.new(default_hostname, default_port)
       else
@@ -263,8 +261,7 @@ module Datadog
     # Note that starting with 5.2.0, the `single_thread` mode of the dogstatsd-ruby gem is used in order to not have
     # this issue.
     def incompatible_statsd_warning
-      return if dogstatsd_ruby_gem_version < Gem::Version.new('5.0') ||
-                  dogstatsd_ruby_gem_version >= Gem::Version.new('5.2')
+      return if dogstatsd_gem_version < Gem::Version.new('5.0') || dogstatsd_gem_version >= Gem::Version.new('5.2')
 
       INCOMPATIBLE_STATSD_ONLY_ONCE.run do
         Datadog.logger.warn(
