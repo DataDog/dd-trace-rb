@@ -786,33 +786,6 @@ RSpec.describe Datadog::Metrics do
       end
     end
   end
-
-  describe '#incompatible_statsd_warning' do
-    let(:options) { {} }
-
-    before { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
-
-    context 'with an incompatible dogstastd-ruby version' do
-      before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version >= Gem::Version.new('5.0') }
-
-      it 'emits deprecation warning once' do
-        expect(Datadog.logger).to receive(:warn)
-          .with(/This version of `ddtrace` is incompatible with `dogstastd-ruby`/).once
-
-        metrics
-      end
-    end
-
-    context 'with a compatible dogstastd-ruby version' do
-      before { skip unless Gem.loaded_specs['dogstatsd-ruby'].version < Gem::Version.new('5.0') }
-
-      it 'emits no warnings' do
-        expect(Datadog.logger).to_not receive(:warn)
-
-        metrics
-      end
-    end
-  end
 end
 
 RSpec.describe Datadog::Metrics::Options do
