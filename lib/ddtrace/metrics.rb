@@ -28,7 +28,7 @@ module Datadog
       (
         defined?(Datadog::Statsd::VERSION) && Datadog::Statsd::VERSION &&
         Gem::Version.new(Datadog::Statsd::VERSION)
-      ) || (
+       ) || (
         Gem.loaded_specs['dogstatsd-ruby'] && Gem.loaded_specs['dogstatsd-ruby'].version
       )
     end
