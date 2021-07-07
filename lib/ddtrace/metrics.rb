@@ -24,15 +24,6 @@ module Datadog
       @enabled = enabled
     end
 
-    def dogstatsd_gem_version
-      (
-        defined?(Datadog::Statsd::VERSION) && Datadog::Statsd::VERSION &&
-        Gem::Version.new(Datadog::Statsd::VERSION)
-       ) || (
-        Gem.loaded_specs['dogstatsd-ruby'] && Gem.loaded_specs['dogstatsd-ruby'].version
-      )
-    end
-
     def supported?
       version = dogstatsd_gem_version
 
@@ -256,6 +247,16 @@ module Datadog
     INCOMPATIBLE_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
     private_constant :INCOMPATIBLE_STATSD_ONLY_ONCE
 
+
+    def dogstatsd_gem_version
+      (
+        defined?(Datadog::Statsd::VERSION) && Datadog::Statsd::VERSION &&
+        Gem::Version.new(Datadog::Statsd::VERSION)
+       ) || (
+        Gem.loaded_specs['dogstatsd-ruby'] && Gem.loaded_specs['dogstatsd-ruby'].version
+      )
+    end
+
     # Using dogstatsd-ruby >= 5.0 and < 5.2 can lead to unbounded memory usage in some scenario with process forks
     # involved. Display a warning if the available version of the dogstatsd-ruby gem is impacted.
     # Note that starting with 5.2.0, the `single_thread` mode of the dogstatsd-ruby gem is used in order to not have
@@ -279,7 +280,7 @@ module Datadog
       IGNORED_STATSD_ONLY_ONCE.run do
         Datadog.logger.warn(
           'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
-          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 4.0'` on your Gemfile or gems.rb file."
+          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '>= 5.2'` on your Gemfile or gems.rb file."
         )
       end
     end
