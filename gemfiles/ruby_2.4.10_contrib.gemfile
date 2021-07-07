@@ -59,7 +59,7 @@ gem "mysql2", "< 0.5", platform: :ruby
 gem "pg", platform: :ruby
 gem "presto-client", ">=  0.5.14"
 gem "qless"
-gem "racecar", ">= 0.3.5"
+gem "racecar", ">= 0.3.5", "< 2.3.0"
 gem "rack"
 gem "rack-test"
 gem "redis", "< 4.0"

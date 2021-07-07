@@ -608,7 +608,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
       gem 'qless'
-      gem 'racecar', '>= 0.3.5'
+      gem 'racecar', '>= 0.3.5', '< 2.3.0' # Locked until https://github.com/zendesk/racecar/issues/252 is addressed
       gem 'rack'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
