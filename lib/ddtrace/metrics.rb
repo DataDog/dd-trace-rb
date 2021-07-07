@@ -268,7 +268,7 @@ module Datadog
         Datadog.logger.warn(
           'This version of `ddtrace` is incompatible with `dogstastd-ruby` version >= 5.0 and < 5.2 and can '   \
           'cause unbounded memory usage. Please use either `dogstastd-ruby` version < 5.0 or `dogstatsd-ruby` ' \
-          'version >= 5.2 instead.'
+          'version ~> 5.2 instead.'
         )
       end
     end
@@ -280,7 +280,7 @@ module Datadog
       IGNORED_STATSD_ONLY_ONCE.run do
         Datadog.logger.warn(
           'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
-          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '>= 5.2'` on your Gemfile or gems.rb file."
+          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.2'` on your Gemfile or gems.rb file."
         )
       end
     end
