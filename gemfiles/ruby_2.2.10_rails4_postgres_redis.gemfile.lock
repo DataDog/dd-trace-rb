@@ -132,7 +132,7 @@ GEM
       activesupport (= 4.2.11.1)
       rake (>= 0.8.7)
       thor (>= 0.18.1, < 2.0)
-    rake (13.0.4)
+    rake (13.0.3)
     redcarpet (3.5.1)
     redis (3.3.5)
     redis-actionpack (5.1.0)
