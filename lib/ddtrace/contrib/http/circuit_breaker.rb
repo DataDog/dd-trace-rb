@@ -5,7 +5,7 @@ module Datadog
       # For avoiding recursive traces.
       module CircuitBreaker
         def should_skip_tracing?(request, tracer)
-          return true if datadog_http_request?(request)
+          return true if !request.nil? && datadog_http_request?(request)
 
           # we don't want a "shotgun" effect with two nested traces for one
           # logical get, and request is likely to call itself recursively
