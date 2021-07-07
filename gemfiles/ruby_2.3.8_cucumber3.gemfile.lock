@@ -130,7 +130,7 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)

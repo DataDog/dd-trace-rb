@@ -176,7 +176,7 @@ DEPENDENCIES
   pry-stack_explorer
   rack-cache (= 1.7.1)
   rails (= 3.0.20)
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   rexml (< 3.2.5)
   rspec (~> 3.10)
