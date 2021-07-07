@@ -244,7 +244,7 @@ DEPENDENCIES
   pry-nav
   pry-stack_explorer
   rails (~> 5.2.1)
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   redis (>= 4.0.1)
   rspec (~> 3.10)
