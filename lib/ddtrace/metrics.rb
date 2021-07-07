@@ -51,17 +51,14 @@ module Datadog
 
       # Create a StatsD client that points to the agent.
       #
-      # We use `single_thread: true` as using the background thread for
-      # dogstatsd-ruby has caused resource leak issue for some users,
-      # but we cannot reproduce the issue.
-      # We conservatively revert to the single-threaded behavior from
-      # dogstatsd-ruby < 5.0.
+      # We use `single_thread: true`, as dogstatsd-ruby >= 5.0 creates a background thread
+      # by default, but does not handle forks correctly, causing resource leaks.
       #
       # Using dogstatsd-ruby >= 5.0 is still valuable, as it supports
       # transparent batch metric submission, which reduces submission
       # overhead.
       #
-      # Versions < 5.0 are inherently single-threaded.
+      # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
       if dogstatsd_version >= Gem::Version.new('5.2')
         Datadog::Statsd.new(default_hostname, default_port, single_thread: true)
       else
@@ -288,7 +285,7 @@ module Datadog
       IGNORED_STATSD_ONLY_ONCE.run do
         Datadog.logger.warn(
           'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
-          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 4.0'` on your Gemfile or gems.rb file."
+          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.2'` on your Gemfile or gems.rb file."
         )
       end
     end
