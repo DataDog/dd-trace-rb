@@ -54,7 +54,7 @@ GEM
     cucumber-wire (0.0.1)
     diff-lcs (1.4.4)
     docile (1.4.0)
-    dogstatsd-ruby (5.2.0)
+    dogstatsd-ruby (4.8.3)
     ffi (1.15.3-java)
     gherkin (5.1.0)
     hashdiff (1.0.1)
@@ -114,7 +114,7 @@ GEM
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.7.0)
       parser (>= 3.0.1.1)
-    rubocop-performance (1.11.4)
+    rubocop-performance (1.11.3)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
     rubocop-rspec (2.4.0)
@@ -148,7 +148,7 @@ DEPENDENCIES
   concurrent-ruby
   cucumber (>= 3.0.0, < 4.0.0)
   ddtrace!
-  dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  dogstatsd-ruby (< 5.0)
   memory_profiler (~> 0.9)
   minitest (= 5.10.1)
   minitest-around (= 0.5.0)
