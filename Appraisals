@@ -136,10 +136,6 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
-
-    appraise 'core-incompatible-dogstatsd-5.x' do
-      gem 'dogstatsd-ruby', '5.1.0'
-    end
   end
 elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
@@ -327,10 +323,6 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
-    end
-
-    appraise 'core-incompatible-dogstatsd-5.x' do
-      gem 'dogstatsd-ruby', '5.1.0'
     end
   end
 elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -532,10 +524,6 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
-
-    appraise 'core-incompatible-dogstatsd-5.x' do
-      gem 'dogstatsd-ruby', '5.1.0'
-    end
   end
 elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
@@ -646,10 +634,6 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
-    end
-
-    appraise 'core-incompatible-dogstatsd-5.x' do
-      gem 'dogstatsd-ruby', '5.1.0'
     end
   end
 elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -861,10 +845,6 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-
-  appraise 'core-incompatible-dogstatsd-5.x' do
-    gem 'dogstatsd-ruby', '5.1.0'
-  end
 elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
   if RUBY_PLATFORM != 'java'
@@ -1042,10 +1022,6 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
 
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
-    end
-
-    appraise 'core-incompatible-dogstatsd-5.x' do
-      gem 'dogstatsd-ruby', '5.1.0'
     end
   end
 elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
@@ -1229,10 +1205,6 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
     appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
-
-    appraise 'core-incompatible-dogstatsd-5.x' do
-      gem 'dogstatsd-ruby', '5.1.0'
-    end
   end
 elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
   appraise 'rails61-mysql2' do
@@ -1326,10 +1298,6 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
 
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
-  end
-
-  appraise 'core-incompatible-dogstatsd-5.x' do
-    gem 'dogstatsd-ruby', '5.1.0'
   end
 end
 
