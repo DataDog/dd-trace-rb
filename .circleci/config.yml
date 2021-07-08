@@ -103,7 +103,12 @@ check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
 save_bundle_checksum: &save_bundle_checksum
   run:
     name: Save current bundle checksum alongside cached gems
-    command: cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        # Recompute gemfiles/*.lock checksum, as it might have changed.
+        cat Gemfile Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      fi
+      cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
 step_bundle_install: &step_bundle_install
   run:
     name: Install gem dependencies
@@ -479,7 +484,7 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.0.0'
     image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
-    resource_class_to_use: large
+    resource_class_to_use: medium+
   - &config-jruby-9_2-latest # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2-latest'
@@ -489,7 +494,7 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'truffleruby-21.0.0'
     image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_0_0
-    resource_class_to_use: large
+    resource_class_to_use: medium+
 
 workflows:
   version: 2
