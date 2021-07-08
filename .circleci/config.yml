@@ -91,6 +91,11 @@ check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
     # To accomplish such check, we save `bundle_checksum` alongside the cached
     # gems. After gems are restored, we compare the restored `bundle_checksum`'s
     # content with the current commit's `bundle_checksum`.
+    #
+    # Because we are using a "soft" approach to our gemset lock files, we allow
+    # for partial matches to lock files until a new release goes out.
+    # This means that we might install slightly out of date gems, instead of the
+    # very latest versions from RubyGems until the next gemset update commit.
     command: |
       ! cmp -s .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
       echo "export CI_BUNDLE_CACHE_HIT=$?" >> $BASH_ENV
@@ -125,29 +130,15 @@ step_appraisal_update: &step_appraisal_update
     name: Update Appraisal gems
     command: | # Remove all generated gemfiles and lockfiles, resolve, and install dependencies again
       bundle exec appraisal update
-ensure_lockfile_committed: &ensure_lockfile_committed
-  run:
-    name: Ensure Gem lock files are commited
-    command: |
-      CHANGED_FILES=$(git status gemfiles/ --porcelain)
-      if [[ $CHANGED_FILES ]]
-      then
-        >&2 echo "Gem lock files were modified or new lock files were created during"
-        >&2 echo "'bundle install' and 'bundle appraisal install' installation in CI."
-        >&2 echo "You need to run 'bundle exec rake update_appraisal_gemfiles' locally"
-        >&2 echo "and commit any changes."
-        >&2 echo ""
-        >&2 echo "Changes found:"
-        >&2 echo $CHANGED_FILES
-        >&2 GIT_PAGER=cat git diff HEAD
-        exit 1
-      fi
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
+    # This checksum leaves some leeway for changes to Gemfile.lock, as
+    # we have a "soft" approach to committing gemset changes until release, given
+    # updating the gemset lock files produces extremely large commits.
     command: |
       bundle lock # Create Gemfile.lock
-      cat Gemfile.lock gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      cat Gemfile Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
@@ -204,7 +195,6 @@ orbs:
                   equal: [ << parameters.edge >>, true ]
               steps:
                 - *step_appraisal_install # Run on a stable set of gems we integrate with
-                - *ensure_lockfile_committed
           - *save_bundle_checksum
           - save_cache:
               key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
