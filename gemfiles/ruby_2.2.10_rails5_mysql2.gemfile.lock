@@ -219,7 +219,7 @@ DEPENDENCIES
   pry-nav
   pry-stack_explorer
   rails (= 5.2.3)
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   rexml (< 3.2.5)
   rspec (~> 3.10)
@@ -231,4 +231,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   1.17.3
+   1.16.6

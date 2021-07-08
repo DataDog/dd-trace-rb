@@ -202,7 +202,7 @@ GEM
     rspec_n (1.4.0)
       colorize (~> 0.8.0)
       cri (~> 2.15.3)
-    rubocop (1.17.0)
+    rubocop (1.18.3)
       parallel (~> 1.10)
       parser (>= 3.0.0.0)
       rainbow (>= 2.2.2, < 4.0)
@@ -277,7 +277,7 @@ DEPENDENCIES
   pry-byebug
   pry-stack_explorer
   rails (~> 6.0.0)
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)
