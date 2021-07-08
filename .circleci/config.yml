@@ -102,7 +102,12 @@ check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
 save_bundle_checksum: &save_bundle_checksum
   run:
     name: Save current bundle checksum alongside cached gems
-    command: cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        # Recompute gemfiles/*.lock checksum, as it might have changed.
+        cat Gemfile Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      fi
+      cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
 step_bundle_install: &step_bundle_install
   run:
     name: Install gem dependencies
