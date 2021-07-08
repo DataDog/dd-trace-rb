@@ -30,14 +30,7 @@ gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.4.1'
-if RUBY_VERSION >= '2.3.0'
-  gem 'rspec_n', '~> 1.3'
-
-  # Ancient bundler mistakenly installs incompatible cri version for Ruby 2.3.
-  # We can't update bundler because it would mean going from bundler v1 to v2,
-  # and that breaks many gems that we test with in Ruby 2.3.
-  gem 'cri', '< 2.15.11' if RUBY_VERSION < '2.4.0'
-end
+gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
   # Merging branch coverage results does not work for old, unsupported rubies.
