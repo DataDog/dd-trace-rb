@@ -29,6 +29,7 @@ test_containers:
         description: Use latest version of dependencies during testing
         type: boolean
         default: false
+    resource_class: <<parameters.resource_class_to_use>>
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
     JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
@@ -478,6 +479,7 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.0.0'
     image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
+    resource_class_to_use: large
   - &config-jruby-9_2-latest # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2-latest'
