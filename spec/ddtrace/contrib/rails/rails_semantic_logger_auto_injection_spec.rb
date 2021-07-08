@@ -82,8 +82,6 @@ RSpec.describe 'Rails Log Auto Injection' do
         end
 
         context 'with semantic logger setup and existing log_tags' do
-
-
           before do
             allow(ENV).to receive(:[]).with('LOG_TAGS').and_return({ some_tag: 'some_value' })
           end
