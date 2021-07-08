@@ -1,4 +1,4 @@
-require 'bundler/stub_specification'
+require 'bundler'
 
 module ConfigurationHelpers
   shared_context 'loaded gems' do |gems = {}|
