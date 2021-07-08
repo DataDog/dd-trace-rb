@@ -62,11 +62,13 @@ module Datadog
       # overhead.
       #
       # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
-      if dogstatsd_version >= Gem::Version.new('5.2')
-        Datadog::Statsd.new(default_hostname, default_port, single_thread: true)
-      else
-        Datadog::Statsd.new(default_hostname, default_port)
-      end
+      options = if dogstatsd_version >= Gem::Version.new('5.2')
+                  { single_thread: true }
+                else
+                  {}
+                end
+
+      Datadog::Statsd.new(default_hostname, default_port, **options)
     end
 
     def configure(options = {})
