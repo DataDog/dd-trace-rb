@@ -118,6 +118,18 @@ RSpec.describe Datadog::Metrics do
 
           it { is_expected.to be true }
         end
+
+        context 'with incompatible 5.x version' do
+          let(:version) { Gem::Version.new('5.0.0') }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with compatible 5.x version' do
+          let(:version) { Gem::Version.new('5.2.0') }
+
+          it { is_expected.to be true }
+        end
       end
 
       context 'is loaded but ruby is not using rubygems' do
@@ -135,6 +147,18 @@ RSpec.describe Datadog::Metrics do
 
         context 'with version 3.3.0' do
           let(:gem_version_number) { '3.3.0' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'with incompatible 5.x version' do
+          let(:gem_version_number) { '5.0.0' }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with compatible 5.x version' do
+          let(:gem_version_number) { '5.2.0' }
 
           it { is_expected.to be true }
         end
@@ -790,38 +814,6 @@ RSpec.describe Datadog::Metrics do
 
       it 'does not call nonexistent method #close' do
         close
-      end
-    end
-  end
-
-  describe '#incompatible_statsd_warning' do
-    let(:options) { {} }
-    let(:dogstatsd_version) { Gem::Version.new(Datadog::Statsd::VERSION) }
-
-    before { described_class.const_get('INCOMPATIBLE_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
-
-    context 'with an incompatible dogstastd-ruby version' do
-      before do
-        skip if dogstatsd_version < Gem::Version.new('5.0') || dogstatsd_version >= Gem::Version.new('5.2')
-      end
-
-      it 'emits deprecation warning once' do
-        expect(Datadog.logger).to receive(:warn)
-          .with(/`ddtrace` is incompatible with `dogstastd-ruby` versions 5.0.0, 5.0.1, and 5.2.0/).once
-
-        metrics
-      end
-    end
-
-    context 'with a compatible dogstastd-ruby version' do
-      before do
-        skip unless dogstatsd_version < Gem::Version.new('5.0') || dogstatsd_version >= Gem::Version.new('5.2')
-      end
-
-      it 'emits no warnings' do
-        expect(Datadog.logger).to_not receive(:warn)
-
-        metrics
       end
     end
   end
