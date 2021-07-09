@@ -1,7 +1,11 @@
+# frozen_string_literal: true
+
 require 'ddtrace/contrib/analytics'
 
 require 'datadog/ci/ext/app_types'
 require 'datadog/ci/ext/test'
+
+require 'rbconfig'
 
 module Datadog
   module CI
@@ -41,6 +45,8 @@ module Datadog
         span.set_tag(Ext::Test::TAG_SUITE, tags[:test_suite]) if tags[:test_suite]
         span.set_tag(Ext::Test::TAG_TYPE, tags[:test_type]) if tags[:test_type]
 
+        set_environment_runtime_tags!(span)
+
         span
       end
 
@@ -57,6 +63,13 @@ module Datadog
       def self.skipped!(span, exception = nil)
         span.set_tag(Ext::Test::TAG_STATUS, Ext::Test::Status::SKIP)
         span.set_error(exception) unless exception.nil?
+      end
+
+      private_class_method def self.set_environment_runtime_tags!(span)
+        span.set_tag(Ext::Test::TAG_OS_ARCHITECTURE, ::RbConfig::CONFIG['host_cpu'])
+        span.set_tag(Ext::Test::TAG_OS_PLATFORM, ::RbConfig::CONFIG['host_os'])
+        span.set_tag(Ext::Test::TAG_RUNTIME_NAME, Core::Environment::Ext::LANG_ENGINE)
+        span.set_tag(Ext::Test::TAG_RUNTIME_VERSION, Core::Environment::Ext::ENGINE_VERSION)
       end
     end
   end
