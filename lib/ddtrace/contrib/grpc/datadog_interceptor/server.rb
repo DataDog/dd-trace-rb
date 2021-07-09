@@ -17,7 +17,8 @@ module Datadog
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               service: service_name,
-              resource: format_resource(keywords[:method])
+              resource: format_resource(keywords[:method]),
+              on_error: error_handler,
             }
             metadata = keywords[:call].metadata
 
