@@ -64,6 +64,10 @@ module Datadog
           def analytics_sample_rate
             datadog_configuration[:analytics_sample_rate]
           end
+
+          def error_handler
+            datadog_configuration[:error_handler]
+          end
         end
 
         require_relative 'datadog_interceptor/client'
