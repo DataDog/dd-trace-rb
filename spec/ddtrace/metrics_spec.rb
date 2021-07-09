@@ -271,6 +271,7 @@ RSpec.describe Datadog::Metrics do
 
     let(:statsd_client) { instance_double(Datadog::Statsd) }
     let(:options) do
+      # This tests is run with both ~> 4.0 and latest dogstatsd-ruby.
       if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new('5.2.0')
         { single_thread: true }
       else
