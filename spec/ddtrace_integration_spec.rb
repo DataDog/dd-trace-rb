@@ -113,12 +113,8 @@ RSpec.describe 'ddtrace integration' do
         expect(Datadog.configuration.runtime_metrics.enabled).to be(true).or be(false)
       end
 
-      it 'does not error on reporting health metrics', if: Datadog::Statsd::VERSION >= '5.0.0' do
-        expect(Datadog.health_metrics.queue_accepted(1)).to be_truthy
-      end
-
-      it 'does not error on reporting health metrics', if: Datadog::Statsd::VERSION < '5.0.0' do
-        expect(Datadog.health_metrics.queue_accepted(1)).to be_a(Integer)
+      it 'does not error on reporting health metrics' do
+        expect { Datadog.health_metrics.queue_accepted(1) }.to_not raise_error
       end
 
       context 'with OpenTracer' do

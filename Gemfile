@@ -30,7 +30,7 @@ gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.4.1'
-gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.3.0'
+gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
   # Merging branch coverage results does not work for old, unsupported rubies.
@@ -58,7 +58,9 @@ end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-gem 'dogstatsd-ruby', '< 5.0'
+# dogstatsd v5, but lower than 5.2, has possible memory leak with ddtrace.
+# @see https://github.com/DataDog/dogstatsd-ruby/issues/182
+gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 gem 'opentracing', '>= 0.4.1'
 
 # Profiler optional dependencies
