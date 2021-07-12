@@ -165,7 +165,7 @@ RSpec.describe Datadog::CI::Test do
           span.get_tag(Datadog::CI::Ext::Test::TAG_OS_ARCHITECTURE)
         end
 
-        it { is_expected.to eq('x86_64') }
+        it { is_expected.to eq('x86_64').or eq('i686').or start_with('arm') }
       end
 
       context 'for the OS platform' do
@@ -180,6 +180,10 @@ RSpec.describe Datadog::CI::Test do
 
         context 'with Mac OS', if: PlatformHelpers.mac? do
           it { is_expected.to start_with('darwin') }
+        end
+
+        it 'returns a valid string' do
+          is_expected.to be_a(String)
         end
       end
 
@@ -200,6 +204,10 @@ RSpec.describe Datadog::CI::Test do
         context 'with TruffleRuby', if: PlatformHelpers.truffleruby? do
           it { is_expected.to eq('truffleruby') }
         end
+
+        it 'returns a valid string' do
+          is_expected.to be_a(String)
+        end
       end
 
       context 'for the runtime version' do
@@ -218,6 +226,10 @@ RSpec.describe Datadog::CI::Test do
 
         context 'with TruffleRuby', if: PlatformHelpers.truffleruby? do
           it { is_expected.to match(/^2\d\./) }
+        end
+
+        it 'returns a valid string' do
+          is_expected.to be_a(String)
         end
       end
     end
