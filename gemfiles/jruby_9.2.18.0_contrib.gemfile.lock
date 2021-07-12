@@ -1319,6 +1319,7 @@ GEM
     nokogiri (1.11.7-java)
       racc (~> 1.4)
     opentracing (0.5.0)
+    os (1.1.1)
     parallel (1.20.1)
     parser (3.0.1.1)
       ast (~> 2.4.1)
@@ -1430,6 +1431,8 @@ GEM
       digest-crc
     ruby-progressbar (1.11.0)
     ruby2_keywords (0.0.4)
+    semantic_logger (4.8.0)
+      concurrent-ruby (~> 1.0)
     sequel (5.46.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
@@ -1505,7 +1508,7 @@ DEPENDENCIES
   ddtrace!
   delayed_job
   delayed_job_active_record
-  dogstatsd-ruby (< 5.0)
+  dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   elasticsearch-transport
   ethon
   excon
@@ -1527,6 +1530,7 @@ DEPENDENCIES
   mongo (>= 2.8.0)
   mysql2 (< 1)
   opentracing (>= 0.4.1)
+  os (~> 1.1)
   pg
   pimpmychangelog (>= 0.1.2)
   presto-client (>= 0.5.14)
@@ -1549,6 +1553,7 @@ DEPENDENCIES
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)
   ruby-kafka (>= 0.7.10)
+  semantic_logger (~> 4.0)
   sequel
   shoryuken
   sidekiq

@@ -134,6 +134,7 @@ GEM
     nokogiri (1.11.7-java)
       racc (~> 1.4)
     opentracing (0.5.0)
+    os (1.1.1)
     parallel (1.20.1)
     parser (3.0.1.1)
       ast (~> 2.4.1)
@@ -259,7 +260,7 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   ddtrace!
-  dogstatsd-ruby (< 5.0)
+  dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   i18n (= 1.8.7)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
@@ -268,6 +269,7 @@ DEPENDENCIES
   minitest-stub_any_instance (= 1.0.2)
   mysql2 (~> 0.5)
   opentracing (>= 0.4.1)
+  os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
