@@ -157,6 +157,82 @@ RSpec.describe Datadog::CI::Test do
           .to eq(test_type)
       end
     end
+
+    context 'with environment runtime information' do
+      context 'for the architecture platform' do
+        subject(:tag) do
+          set_tags!
+          span.get_tag(Datadog::CI::Ext::Test::TAG_OS_ARCHITECTURE)
+        end
+
+        it { is_expected.to eq('x86_64').or eq('i686').or start_with('arm') }
+      end
+
+      context 'for the OS platform' do
+        subject(:tag) do
+          set_tags!
+          span.get_tag(Datadog::CI::Ext::Test::TAG_OS_PLATFORM)
+        end
+
+        context 'with Linux', if: PlatformHelpers.linux? do
+          it { is_expected.to start_with('linux') }
+        end
+
+        context 'with Mac OS', if: PlatformHelpers.mac? do
+          it { is_expected.to start_with('darwin') }
+        end
+
+        it 'returns a valid string' do
+          is_expected.to be_a(String)
+        end
+      end
+
+      context 'for the runtime name' do
+        subject(:tag) do
+          set_tags!
+          span.get_tag(Datadog::CI::Ext::Test::TAG_RUNTIME_NAME)
+        end
+
+        context 'with MRI', if: PlatformHelpers.mri? do
+          it { is_expected.to eq('ruby') }
+        end
+
+        context 'with JRuby', if: PlatformHelpers.jruby? do
+          it { is_expected.to eq('jruby') }
+        end
+
+        context 'with TruffleRuby', if: PlatformHelpers.truffleruby? do
+          it { is_expected.to eq('truffleruby') }
+        end
+
+        it 'returns a valid string' do
+          is_expected.to be_a(String)
+        end
+      end
+
+      context 'for the runtime version' do
+        subject(:tag) do
+          set_tags!
+          span.get_tag(Datadog::CI::Ext::Test::TAG_RUNTIME_VERSION)
+        end
+
+        context 'with MRI', if: PlatformHelpers.mri? do
+          it { is_expected.to match(/^[23]\./) }
+        end
+
+        context 'with JRuby', if: PlatformHelpers.jruby? do
+          it { is_expected.to match(/^9\./) }
+        end
+
+        context 'with TruffleRuby', if: PlatformHelpers.truffleruby? do
+          it { is_expected.to match(/^2\d\./) }
+        end
+
+        it 'returns a valid string' do
+          is_expected.to be_a(String)
+        end
+      end
+    end
   end
 
   describe '::passed!' do

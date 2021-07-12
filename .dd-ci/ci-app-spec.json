@@ -23,5 +23,9 @@
   "git.commit.committer.date",
   "git.commit.committer.email",
   "git.commit.committer.name",
-  "git.commit.message"
+  "git.commit.message",
+  "os.architecture",
+  "os.platform",
+  "runtime.name",
+  "runtime.version"
 ]
