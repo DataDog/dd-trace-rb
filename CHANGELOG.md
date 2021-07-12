@@ -2,6 +2,56 @@
 
 ## [Unreleased]
 
+## [0.51.0] - 2021-07-12
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.51.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.50.0...v0.51.0
+
+### Added
+
+- Semantic Logger trace correlation injection ([#1566][])
+- New and improved Lograge trace correlation injection ([#1555][])
+- Profiler: Start profiler on `ddtrace/auto_instrument`
+- CI-App: Add runtime and OS information ([#1587][])
+- CI-App: Read metadata from local git repository ([#1561][])
+
+### Changed
+
+- Rename `Datadog::Runtime` to `Datadog::Core::Environment` ([#1570][])
+
+  As we prepare the `Datadog` Ruby namespace to better accommodate new products, we are moving a few internal modules to a different location to avoid conflicts.
+
+  None of the affected files are exposed publicly in our documentation, and they are only expected to be used internally and may change at any time, even between patch releases.
+
+  * The following modules have been moved:
+  ```ruby
+  Datadog::Runtime::Cgroup -> Datadog::Core::Environment::Cgroup
+  Datadog::Runtime::ClassCount -> Datadog::Core::Environment::ClassCount
+  Datadog::Runtime::Container -> Datadog::Core::Environment::Container
+  Datadog::Runtime::GC -> Datadog::Core::Environment::GC
+  Datadog::Runtime::Identity -> Datadog::Core::Environment::Identity
+  Datadog::Runtime::ObjectSpace -> Datadog::Core::Environment::ObjectSpace
+  Datadog::Runtime::Socket -> Datadog::Core::Environment::Socket
+  Datadog::Runtime::ThreadCount -> Datadog::Core::Environment::ThreadCount
+  ```
+  * Most constants from `Datadog::Ext::Runtime` have been moved to a new module: `Datadog::Core::Environment::Ext`.
+- Skip CPU time instrumentation if logging gem is detected ([#1557][])
+
+### Fixed
+
+- Initialize `dogstatsd-ruby` in single threaded mode ([#1576][])
+
+  This should alleviate any existing issues with `dogstatsd-ruby` resource leaks.
+
+- Do not use configured `dogstatsd-ruby` instance when it's an incompatible version ([#1560][])
+- Ensure tags with special Datadog processing are consistently serialized ([#1556][])
+- Profiler: NameError during initialization ([#1552][])
+
+### Refactored
+- Improvements to test suite & CI ([#1586][])
+- Improvements to documentation ([#1397][])
+
 ## [0.50.0] - 2021-06-07
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.50.0
@@ -1713,6 +1763,7 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...master
+[0.51.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.50.0...v0.51.0
 [0.48.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.47.0...v0.48.0
 [0.47.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.46.0...v0.47.0
 [0.46.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.45.0...v0.46.0
@@ -2359,6 +2410,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1393]: https://github.com/DataDog/dd-trace-rb/issues/1393
 [#1394]: https://github.com/DataDog/dd-trace-rb/issues/1394
 [#1396]: https://github.com/DataDog/dd-trace-rb/issues/1396
+[#1397]: https://github.com/DataDog/dd-trace-rb/issues/1397
 [#1398]: https://github.com/DataDog/dd-trace-rb/issues/1398
 [#1399]: https://github.com/DataDog/dd-trace-rb/issues/1399
 [#1400]: https://github.com/DataDog/dd-trace-rb/issues/1400
@@ -2419,6 +2471,17 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1537]: https://github.com/DataDog/dd-trace-rb/issues/1537
 [#1543]: https://github.com/DataDog/dd-trace-rb/issues/1543
 [#1544]: https://github.com/DataDog/dd-trace-rb/issues/1544
+[#1552]: https://github.com/DataDog/dd-trace-rb/issues/1552
+[#1555]: https://github.com/DataDog/dd-trace-rb/issues/1555
+[#1556]: https://github.com/DataDog/dd-trace-rb/issues/1556
+[#1557]: https://github.com/DataDog/dd-trace-rb/issues/1557
+[#1560]: https://github.com/DataDog/dd-trace-rb/issues/1560
+[#1561]: https://github.com/DataDog/dd-trace-rb/issues/1561
+[#1566]: https://github.com/DataDog/dd-trace-rb/issues/1566
+[#1570]: https://github.com/DataDog/dd-trace-rb/issues/1570
+[#1576]: https://github.com/DataDog/dd-trace-rb/issues/1576
+[#1586]: https://github.com/DataDog/dd-trace-rb/issues/1586
+[#1587]: https://github.com/DataDog/dd-trace-rb/issues/1587
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
