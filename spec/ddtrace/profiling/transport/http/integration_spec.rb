@@ -47,9 +47,10 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
 
         let(:options) do
           {
-            agent_settings: double('agent_settings which should not be used'),
+            agent_settings: double('agent_settings which should not be used'), # rubocop:disable RSpec/VerifiedDoubles
             site: 'datadoghq.com',
             api_key: ENV['DD_API_KEY'] || 'Invalid API key',
+            agentless_allowed: true
           }
         end
 
