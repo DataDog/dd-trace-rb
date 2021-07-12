@@ -127,6 +127,7 @@ GEM
     nokogiri (1.11.7-x86_64-linux)
       racc (~> 1.4)
     opentracing (0.5.0)
+    os (1.1.1)
     parallel (1.20.1)
     parser (3.0.1.1)
       ast (~> 2.4.1)
@@ -257,7 +258,7 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   ddtrace!
-  dogstatsd-ruby (< 5.0)
+  dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   i18n (= 1.8.7)
   memory_profiler (~> 0.9)
@@ -265,6 +266,7 @@ DEPENDENCIES
   minitest-around (= 0.5.0)
   minitest-stub_any_instance (= 1.0.2)
   opentracing (>= 0.4.1)
+  os (~> 1.1)
   pg (>= 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
@@ -272,7 +274,7 @@ DEPENDENCIES
   pry-stack_explorer
   rails (~> 6.1.0)
   rails_semantic_logger (~> 4.0)
-  rake (>= 10.5)
+  rake (>= 10.5, < 13.0.4)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)
