@@ -23,8 +23,7 @@ module Datadog
         end
 
         # Builds a new Transport::HTTP::Client with default settings
-        # Pass a block to override any settings.
-        def default(profiling_upload_timeout_seconds:, agent_settings: nil, site: nil, api_key: nil)
+        def default(profiling_upload_timeout_seconds:, agent_settings:, site: nil, api_key: nil)
           new do |transport|
             transport.headers default_headers
 
@@ -37,13 +36,6 @@ module Datadog
                 api_key: api_key
               )
             else
-              unless agent_settings
-                raise(
-                  ArgumentError,
-                  "Missing configuration for #{self}.default: All of `agent_settings`, `site` and `api_key` are nil"
-                )
-              end
-
               configure_for_agent(
                 transport,
                 profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,

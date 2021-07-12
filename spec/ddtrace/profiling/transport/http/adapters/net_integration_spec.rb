@@ -162,6 +162,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
       let(:client) do
         Datadog::Profiling::Transport::HTTP.default(
           profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+          agent_settings: double('agent_settings which should not be used'),
           api_key: api_key,
           site: hostname
         )
