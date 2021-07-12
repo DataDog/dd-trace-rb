@@ -979,4 +979,4 @@ namespace :changelog do
   end
 end
 
-task default: :test
+task default: 'spec:main'
