@@ -5,6 +5,10 @@ require 'ddtrace'
 require 'ddtrace/profiling/transport/http'
 
 RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
+  before do
+    skip 'Profiler not supported on JRuby' if PlatformHelpers.jruby?
+  end
+
   describe 'HTTP#default' do
     subject(:transport) do
       Datadog::Profiling::Transport::HTTP.default(
