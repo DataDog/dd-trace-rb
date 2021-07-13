@@ -78,11 +78,11 @@ test_containers:
     image: memcached:1.5-alpine
   - &memcached_port 11211
   - &container_agent
-    image: datadog/docker-dd-agent
+    image: datadog/agent
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=invalid_key_but_this_is_fine
+      - DD_API_KEY=00000000000000000000000000000000
   - &agent_port 8126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
