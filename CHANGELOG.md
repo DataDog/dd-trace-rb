@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.51.1] - 2021-07-13
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.51.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.51.0...v0.51.1
+
+### Fixed
+
+- AWS-SDK instrumentation without `aws-sdk-s3` ([#1592][])
+
 ## [0.51.0] - 2021-07-12
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.51.0
@@ -1763,6 +1773,7 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...master
+[0.51.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.51.0...v0.51.1
 [0.51.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.50.0...v0.51.0
 [0.48.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.47.0...v0.48.0
 [0.47.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.46.0...v0.47.0
@@ -2482,6 +2493,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1576]: https://github.com/DataDog/dd-trace-rb/issues/1576
 [#1586]: https://github.com/DataDog/dd-trace-rb/issues/1586
 [#1587]: https://github.com/DataDog/dd-trace-rb/issues/1587
+[#1592]: https://github.com/DataDog/dd-trace-rb/issues/1592
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
