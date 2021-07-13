@@ -2,6 +2,7 @@ require 'bundler/gem_tasks'
 require 'ddtrace/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
+require 'rake/extensiontask'
 require 'rake/testtask'
 require 'appraisal'
 require 'yard'
@@ -21,6 +22,7 @@ namespace :spec do
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
+  Rake::Task[:main].enhance([:compile]) if RUBY_PLATFORM != 'java' # Compile native extensions before running the main task
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
@@ -977,6 +979,10 @@ namespace :changelog do
 
     PimpMyChangelog::CLI.run!
   end
+end
+
+Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+  ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
 end
 
 task default: 'spec:main'
