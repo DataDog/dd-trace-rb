@@ -126,6 +126,7 @@ module Datadog
       require 'ddtrace/profiling/transport/http'
       require 'ddtrace/profiling/profiler'
       require 'ddtrace/profiling/native_extension'
+      require 'ddtrace/profiling/trace_identifiers/helper'
       require 'ddtrace/profiling/pprof/pprof_pb'
 
       true

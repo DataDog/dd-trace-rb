@@ -70,7 +70,7 @@ module Datadog
           tracer
         end
 
-        def build_profiler(settings, agent_settings)
+        def build_profiler(settings, agent_settings, tracer)
           return unless Datadog::Profiling.supported? && settings.profiling.enabled
 
           unless defined?(Datadog::Profiling::Tasks::Setup)
@@ -107,8 +107,10 @@ module Datadog
 
           # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
+          trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer)
+
           recorder = build_profiler_recorder(settings)
-          collectors = build_profiler_collectors(settings, recorder)
+          collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
           exporters = build_profiler_exporters(settings, agent_settings)
           scheduler = build_profiler_scheduler(settings, recorder, exporters)
 
@@ -164,10 +166,11 @@ module Datadog
           Datadog::Profiling::Recorder.new(event_classes, settings.profiling.max_events)
         end
 
-        def build_profiler_collectors(settings, recorder)
+        def build_profiler_collectors(settings, recorder, trace_identifiers_helper)
           [
             Datadog::Profiling::Collectors::Stack.new(
               recorder,
+              trace_identifiers_helper: trace_identifiers_helper,
               max_frames: settings.profiling.max_frames
               # TODO: Provide proc that identifies Datadog worker threads?
               # ignore_thread: settings.profiling.ignore_profiler
@@ -209,7 +212,7 @@ module Datadog
         @tracer = self.class.build_tracer(settings, agent_settings)
 
         # Profiler
-        @profiler = self.class.build_profiler(settings, agent_settings)
+        @profiler = self.class.build_profiler(settings, agent_settings, @tracer)
 
         # Runtime metrics
         @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
