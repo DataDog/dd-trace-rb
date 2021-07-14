@@ -1,10 +1,16 @@
+require 'datadog/core/environment/variable_helpers'
+require 'ddtrace/utils/only_once'
+
 module Datadog
   # Contains profiler for generating stack profiles, etc.
-  module Profiling
+  module Profiling # rubocop:disable Metrics/ModuleLength
     module_function
 
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
+
+    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :SKIPPED_NATIVE_EXTENSION_ONLY_ONCE
 
     def supported?
       unsupported_reason.nil?
@@ -101,6 +107,19 @@ module Datadog
     end
 
     private_class_method def self.try_loading_native_library
+      if Datadog::Core::Environment::VariableHelpers.env_to_bool('DD_PROFILING_NO_EXTENSION', false)
+        SKIPPED_NATIVE_EXTENSION_ONLY_ONCE.run do
+          Kernel.warn(
+            '[DDTRACE] Skipped loading of profiling native extension due to DD_PROFILING_NO_EXTENSION environment ' \
+            'variable being set. ' \
+            'This option is experimental and will lead to the profiler not working in future releases. ' \
+            'If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.'
+          )
+        end
+
+        return [true, nil]
+      end
+
       begin
         require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
         success =

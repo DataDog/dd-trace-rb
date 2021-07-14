@@ -147,6 +147,8 @@ RSpec.describe Datadog::Profiling do
 
     let(:native_extension_require) { "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}" }
 
+    around { |example| ClimateControl.modify('DD_PROFILING_NO_EXTENSION' => nil) { example.run } }
+
     context 'when the profiling native library loads successfully' do
       before do
         expect(described_class)
@@ -187,6 +189,35 @@ RSpec.describe Datadog::Profiling do
       end
 
       it { is_expected.to eq [false, nil] }
+    end
+
+    context "when DD_PROFILING_NO_EXTENSION is set to 'true'" do
+      before do
+        allow(Kernel).to receive(:warn)
+        described_class.const_get(:SKIPPED_NATIVE_EXTENSION_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+      end
+
+      around { |example| ClimateControl.modify('DD_PROFILING_NO_EXTENSION' => 'true') { example.run } }
+
+      it { is_expected.to eq [true, nil] }
+
+      it 'logs a warning' do
+        expect(Kernel).to receive(:warn).with(/DD_PROFILING_NO_EXTENSION/)
+
+        try_loading_native_library
+      end
+
+      it 'does not try to require the native extension' do
+        expect(described_class).to_not receive(:require)
+
+        try_loading_native_library
+      end
+
+      it 'does not try to call NativeExtension.native_working?' do
+        stub_const('Datadog::Profiling::NativeExtension', double('native_extension double which should not be used'))
+
+        try_loading_native_library
+      end
     end
   end
 end
