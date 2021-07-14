@@ -14,6 +14,7 @@ require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
 require 'ddtrace/patcher'
 require 'ddtrace/metrics'
+require 'ddtrace/method_tracer'
 require 'ddtrace/auto_instrument_base'
 require 'ddtrace/profiling'
 
