@@ -786,50 +786,6 @@ RSpec.describe Datadog::Configuration::Components do
           end
         end
 
-        context 'and :site + :api_key' do
-          context 'are set' do
-            let(:site) { 'test.datadoghq.com' }
-            let(:api_key) { SecureRandom.uuid }
-
-            before do
-              allow(settings)
-                .to receive(:site)
-                .and_return(site)
-
-              allow(settings)
-                .to receive(:api_key)
-                .and_return(api_key)
-            end
-
-            it_behaves_like 'profiler with default collectors'
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-
-            it 'configures agentless transport' do
-              expect(profiler.scheduler.exporters).to have(1).item
-              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
-              http_exporter = profiler.scheduler.exporters.first
-
-              expect(http_exporter).to have_attributes(
-                transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
-              )
-
-              # Should be configured for agentless transport
-              default_api = Datadog::Profiling::Transport::HTTP::API::V1
-              expect(http_exporter.transport.api).to have_attributes(
-                adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
-                spec: Datadog::Profiling::Transport::HTTP::API.api_defaults[default_api]
-              )
-              expect(http_exporter.transport.api.adapter).to have_attributes(
-                hostname: "intake.profile.#{site}",
-                port: 443,
-                ssl: true,
-                timeout: settings.profiling.upload.timeout_seconds
-              )
-            end
-          end
-        end
-
         context 'and :transport' do
           context 'is given' do
             # Must be a kind of Datadog::Profiling::Transport::Client

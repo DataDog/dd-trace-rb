@@ -32,62 +32,99 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
     subject(:default) { described_class.default(profiling_upload_timeout_seconds: timeout_seconds, **options) }
 
     let(:timeout_seconds) { double('Timeout in seconds') }
-    let(:options) { {} }
+    let(:options) { { agent_settings: agent_settings } }
+
+    let(:agent_settings) do
+      instance_double(
+        Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+        hostname: hostname,
+        port: port,
+        ssl: ssl,
+        deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
+      )
+    end
+    let(:hostname) { double('hostname') }
+    let(:port) { double('port') }
+    let(:profiling_upload_timeout_seconds) { double('timeout') }
+    let(:ssl) { true }
+    let(:deprecated_for_removal_transport_configuration_proc) { nil }
+
+    it 'returns a transport with provided options configured for agent mode' do
+      expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+      expect(default.api.adapter.hostname).to eq(hostname)
+      expect(default.api.adapter.port).to eq(port)
+      expect(default.api.adapter.timeout).to be timeout_seconds
+      expect(default.api.adapter.ssl).to be true
+      expect(default.api.headers).to include(described_class.default_headers)
+      expect(default.api.headers).to_not include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY)
+    end
+
+    context 'when agent_settings has a deprecated_for_removal_transport_configuration_proc' do
+      let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
+
+      it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
+        expect(deprecated_for_removal_transport_configuration_proc).to \
+          receive(:call).with(an_instance_of(Datadog::Profiling::Transport::HTTP::Builder))
+
+        default
+      end
+    end
 
     context 'when called with a site and api' do
-      let(:options) { { site: site, api_key: api_key } }
+      let(:options) do
+        { agent_settings: double('agent_settings which should not be used'), site: site, api_key: api_key }
+      end
 
       let(:site) { 'test.datadoghq.com' }
       let(:api_key) { SecureRandom.uuid }
 
-      it 'returns a transport configured for agentless' do
-        expected_host = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
-        expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(default.api.adapter.hostname).to eq(expected_host)
-        expect(default.api.adapter.port).to eq(443)
-        expect(default.api.adapter.timeout).to be timeout_seconds
-        expect(default.api.adapter.ssl).to be true
-        expect(default.api.headers).to include(described_class.default_headers)
-        expect(default.api.headers).to include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
-      end
-    end
+      context 'when DD_PROFILING_AGENTLESS environment variable is set to "true"' do
+        around do |example|
+          ClimateControl.modify('DD_PROFILING_AGENTLESS' => 'true') do
+            example.run
+          end
+        end
 
-    context 'when called with agent_settings' do
-      let(:options) { { agent_settings: agent_settings } }
-
-      let(:agent_settings) do
-        instance_double(
-          Datadog::Configuration::AgentSettingsResolver::AgentSettings,
-          hostname: hostname,
-          port: port,
-          ssl: ssl,
-          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
-        )
-      end
-      let(:hostname) { double('hostname') }
-      let(:port) { double('port') }
-      let(:profiling_upload_timeout_seconds) { double('timeout') }
-      let(:ssl) { true }
-      let(:deprecated_for_removal_transport_configuration_proc) { nil }
-
-      it 'returns a transport with provided options' do
-        expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(default.api.adapter.hostname).to eq(hostname)
-        expect(default.api.adapter.port).to eq(port)
-        expect(default.api.adapter.timeout).to be timeout_seconds
-        expect(default.api.adapter.ssl).to be true
-        expect(default.api.headers).to include(described_class.default_headers)
-        expect(default.api.headers).to_not include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY)
+        it 'returns a transport configured for agentless' do
+          expected_host = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
+          expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+          expect(default.api.adapter.hostname).to eq(expected_host)
+          expect(default.api.adapter.port).to eq(443)
+          expect(default.api.adapter.timeout).to be timeout_seconds
+          expect(default.api.adapter.ssl).to be true
+          expect(default.api.headers).to include(described_class.default_headers)
+          expect(default.api.headers).to include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
+        end
       end
 
-      context 'when agent_settings has a deprecated_for_removal_transport_configuration_proc' do
-        let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
+      context 'when agentless_allowed is true' do
+        let(:options) { { **super(), agentless_allowed: true } }
 
-        it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
-          expect(deprecated_for_removal_transport_configuration_proc).to \
-            receive(:call).with(an_instance_of(Datadog::Profiling::Transport::HTTP::Builder))
+        it 'returns a transport configured for agentless' do
+          expected_host = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
+          expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+          expect(default.api.adapter.hostname).to eq(expected_host)
+          expect(default.api.adapter.port).to eq(443)
+          expect(default.api.adapter.timeout).to be timeout_seconds
+          expect(default.api.adapter.ssl).to be true
+          expect(default.api.headers).to include(described_class.default_headers)
+          expect(default.api.headers).to include(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
+        end
+      end
 
-          default
+      ['false', nil].each do |environment_value|
+        context "when DD_PROFILING_AGENTLESS environment variable is set to #{environment_value.inspect}" do
+          let(:options) { { **super(), agent_settings: agent_settings } }
+
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_AGENTLESS' => environment_value) do
+              example.run
+            end
+          end
+
+          it 'returns a transport configured for agent mode' do
+            expect(default.api.adapter.hostname).to eq(hostname)
+          end
         end
       end
     end

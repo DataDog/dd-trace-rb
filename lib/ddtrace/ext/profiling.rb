@@ -4,6 +4,7 @@ module Datadog
       ENV_ENABLED = 'DD_PROFILING_ENABLED'.freeze
       ENV_UPLOAD_TIMEOUT = 'DD_PROFILING_UPLOAD_TIMEOUT'.freeze
       ENV_MAX_FRAMES = 'DD_PROFILING_MAX_FRAMES'.freeze
+      ENV_AGENTLESS = 'DD_PROFILING_AGENTLESS'.freeze
 
       module Pprof
         LABEL_KEY_SPAN_ID = 'span id'.freeze

@@ -2,6 +2,7 @@ require 'datadog/core/environment/ext'
 require 'ddtrace/ext/transport'
 
 require 'datadog/core/environment/container'
+require 'datadog/core/environment/variable_helpers'
 
 require 'ddtrace/profiling/transport/http/builder'
 require 'ddtrace/profiling/transport/http/api'
@@ -23,13 +24,18 @@ module Datadog
         end
 
         # Builds a new Transport::HTTP::Client with default settings
-        # Pass a block to override any settings.
-        def default(profiling_upload_timeout_seconds:, agent_settings: nil, site: nil, api_key: nil)
+        def default(
+          profiling_upload_timeout_seconds:,
+          agent_settings:,
+          site: nil,
+          api_key: nil,
+          agentless_allowed: agentless_allowed?
+        )
           new do |transport|
             transport.headers default_headers
 
             # Configure adapter & API
-            if site && api_key
+            if site && api_key && agentless_allowed
               configure_for_agentless(
                 transport,
                 profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,
@@ -37,13 +43,6 @@ module Datadog
                 api_key: api_key
               )
             else
-              unless agent_settings
-                raise(
-                  ArgumentError,
-                  "Missing configuration for #{self}.default: All of `agent_settings`, `site` and `api_key` are nil"
-                )
-              end
-
               configure_for_agent(
                 transport,
                 profiling_upload_timeout_seconds: profiling_upload_timeout_seconds,
@@ -106,6 +105,10 @@ module Datadog
           )
           transport.api(API::V1, apis[API::V1], default: true)
           transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
+        end
+
+        private_class_method def agentless_allowed?
+          Datadog::Core::Environment::VariableHelpers.env_to_bool(Datadog::Ext::Profiling::ENV_AGENTLESS, false)
         end
 
         # Add adapters to registry
