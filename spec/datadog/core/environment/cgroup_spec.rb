@@ -132,6 +132,26 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
           is_expected.to include(be_a_kind_of(described_class::Descriptor))
         end
       end
+
+      context 'in a Fargate 1.4+ (2-part short random) environment' do
+        include_context 'Fargate 1.4+ (2-part short random) environment'
+
+        it do
+          is_expected.to be_a_kind_of(Array)
+          is_expected.to have(11).items
+          is_expected.to include(be_a_kind_of(described_class::Descriptor))
+        end
+      end
+
+      context 'in a Fargate 1.4+ with ECS+docker environment' do
+        include_context 'Fargate 1.4+ with ECS+docker environment'
+
+        it do
+          is_expected.to be_a_kind_of(Array)
+          is_expected.to have(10).items
+          is_expected.to include(be_a_kind_of(described_class::Descriptor))
+        end
+      end
     end
   end
 
