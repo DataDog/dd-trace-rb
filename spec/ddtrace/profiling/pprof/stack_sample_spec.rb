@@ -330,10 +330,10 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         end
       end
 
-      context 'whose labels' do
-        subject(:locations) { build_sample.label }
+      context 'whose label array' do
+        subject(:label) { build_sample.label }
 
-        it { is_expected.to have(3).items }
+        it { is_expected.to have(4).items }
       end
     end
   end
@@ -397,17 +397,32 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
     end
 
+    shared_examples_for 'contains trace_resource label' do |index = 3, trace_resource:|
+      subject(:span_id_label) { build_sample_labels[index] }
+
+      it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+
+      it do
+        is_expected.to have_attributes(
+          key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
+          str: string_id_for(trace_resource)
+        )
+      end
+    end
+
     context 'when thread ID is set' do
       let(:stack_sample) do
         instance_double(
           Datadog::Profiling::Events::StackSample,
           thread_id: thread_id,
           trace_id: trace_id,
-          span_id: span_id
+          span_id: span_id,
+          trace_resource: trace_resource
         )
       end
 
       let(:thread_id) { rand(1e9) }
+      let(:trace_resource) { nil }
 
       context 'when trace and span IDs are' do
         context 'set' do
@@ -422,6 +437,20 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           it_behaves_like 'contains thread ID label'
           it_behaves_like 'contains trace ID label'
           it_behaves_like 'contains span ID label'
+
+          context 'when trace resource is non-null' do
+            let(:trace_resource) { 'example trace resource' }
+
+            it do
+              is_expected.to be_kind_of(Array)
+              is_expected.to have(4).items
+            end
+
+            it_behaves_like 'contains thread ID label'
+            it_behaves_like 'contains trace ID label'
+            it_behaves_like 'contains span ID label'
+            it_behaves_like('contains trace_resource label', trace_resource: 'example trace resource')
+          end
         end
 
         context '0' do
