@@ -79,19 +79,29 @@ module Datadog
             )
           ]
 
-          unless stack_sample.trace_id.nil? || stack_sample.trace_id.zero?
+          trace_id = stack_sample.trace_id || 0
+          span_id = stack_sample.span_id || 0
+
+          if trace_id != 0 && span_id != 0
             @processed_with_trace_ids += 1
+
             labels << Perftools::Profiles::Label.new(
               key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
-              str: builder.string_table.fetch(stack_sample.trace_id.to_s)
+              str: builder.string_table.fetch(trace_id.to_s)
             )
-          end
 
-          unless stack_sample.span_id.nil? || stack_sample.span_id.zero?
             labels << Perftools::Profiles::Label.new(
               key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_SPAN_ID),
-              str: builder.string_table.fetch(stack_sample.span_id.to_s)
+              str: builder.string_table.fetch(span_id.to_s)
             )
+
+            trace_resource_container = stack_sample.trace_resource_container
+            if trace_resource_container
+              labels << Perftools::Profiles::Label.new(
+                key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
+                str: builder.string_table.fetch(trace_resource_container.latest)
+              )
+            end
           end
 
           labels

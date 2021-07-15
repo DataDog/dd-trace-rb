@@ -91,7 +91,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { 1 }
       let(:trace_id) { 2 }
       let(:span_id) { 3 }
-      let(:trace_resource_container) { double('trace_resource_container') } # rubocop:disable RSpec/VerifiedDoubles
+      let(:trace_resource_container) { Datadog::Span::ResourceContainer.new("resource#{rand(1e9)}") }
       let(:stack) { Thread.current.backtrace_locations }
 
       context 'with identical threads, stacks, trace and span IDs' do
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { 1 }
       let(:trace_id) { 2 }
       let(:span_id) { 3 }
-      let(:trace_resource_container) { double('trace_resource_container') } # rubocop:disable RSpec/VerifiedDoubles
+      let(:trace_resource_container) { Datadog::Span::ResourceContainer.new("resource#{rand(1e9)}") }
       let(:stack) { Thread.current.backtrace_locations }
 
       shared_examples_for 'independent stack samples' do
@@ -330,10 +330,10 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         end
       end
 
-      context 'whose labels' do
-        subject(:locations) { build_sample.label }
+      context 'whose label array' do
+        subject(:label) { build_sample.label }
 
-        it { is_expected.to have(3).items }
+        it { is_expected.to have(4).items }
       end
     end
   end
@@ -397,17 +397,32 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
     end
 
+    shared_examples_for 'contains trace endpoint label' do |index = 3, trace_endpoint:|
+      subject(:span_id_label) { build_sample_labels[index] }
+
+      it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
+
+      it do
+        is_expected.to have_attributes(
+          key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
+          str: string_id_for(trace_endpoint)
+        )
+      end
+    end
+
     context 'when thread ID is set' do
       let(:stack_sample) do
         instance_double(
           Datadog::Profiling::Events::StackSample,
           thread_id: thread_id,
           trace_id: trace_id,
-          span_id: span_id
+          span_id: span_id,
+          trace_resource_container: trace_resource_container
         )
       end
 
       let(:thread_id) { rand(1e9) }
+      let(:trace_resource_container) { nil }
 
       context 'when trace and span IDs are' do
         context 'set' do
@@ -422,6 +437,20 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           it_behaves_like 'contains thread ID label'
           it_behaves_like 'contains trace ID label'
           it_behaves_like 'contains span ID label'
+
+          context 'when trace resource is non-null' do
+            let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('example trace resource') }
+
+            it do
+              is_expected.to be_kind_of(Array)
+              is_expected.to have(4).items
+            end
+
+            it_behaves_like 'contains thread ID label'
+            it_behaves_like 'contains trace ID label'
+            it_behaves_like 'contains span ID label'
+            it_behaves_like('contains trace endpoint label', trace_endpoint: 'example trace resource')
+          end
         end
 
         context '0' do

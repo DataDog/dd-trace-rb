@@ -97,7 +97,7 @@ module ProfileHelpers
       thread_id || rand(1e9),
       trace_id || rand(1e9),
       span_id || rand(1e9),
-      trace_resource_container || double('trace_resource_container'), # rubocop:disable RSpec/VerifiedDoubles
+      trace_resource_container || Datadog::Span::ResourceContainer.new("resource#{rand(1e9)}"),
       cpu_time_ns || rand(1e9),
       wall_time_ns || rand(1e9)
     )
