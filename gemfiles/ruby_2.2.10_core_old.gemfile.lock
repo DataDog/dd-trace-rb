@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.50.0)
+    ddtrace (0.51.0)
       ffi (~> 1.0)
       msgpack
 
@@ -29,7 +29,7 @@ GEM
     docile (1.3.5)
     dogstatsd-ruby (4.8.3)
     ffi (1.12.2)
-    google-protobuf (3.6.1)
+    google-protobuf (3.6.1-x86_64-linux)
     hashdiff (1.0.1)
     json (2.5.1)
     memory_profiler (0.9.12)
@@ -51,6 +51,8 @@ GEM
       binding_of_caller (>= 0.7)
       pry (>= 0.9.11)
     rake (13.0.3)
+    rake-compiler (1.1.1)
+      rake
     redcarpet (3.5.1)
     rexml (3.2.4)
     rspec (3.10.0)
@@ -107,6 +109,7 @@ DEPENDENCIES
   pry-nav
   pry-stack_explorer
   rake (>= 10.5, < 13.0.4)
+  rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   rexml (< 3.2.5)
   rspec (~> 3.10)
@@ -117,4 +120,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   1.16.6
+   1.17.3

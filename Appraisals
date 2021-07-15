@@ -652,7 +652,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
       gem 'makara'
-      gem 'mongo', '>= 2.8.0'
+      gem 'mongo', '>= 2.8.0', '!= 2.15.0' # TODO: FIX TEST BREAKAGES ON 2.15.0
       gem 'mysql2', '< 0.5', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
@@ -887,7 +887,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
     gem 'makara'
-    gem 'mongo', '>= 2.8.0'
+    gem 'mongo', '>= 2.8.0', '!= 2.15.0' # TODO: FIX TEST BREAKAGES ON 2.15.0
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', platform: :ruby
@@ -907,7 +907,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
+    gem 'sinatra', '>= 1.4'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
@@ -1090,7 +1090,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
       gem 'makara'
-      gem 'mongo', '>= 2.8.0'
+      gem 'mongo', '>= 2.8.0', '!= 2.15.0' # TODO: FIX TEST BREAKAGES ON 2.15.0
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
@@ -1108,7 +1108,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
-      gem 'sinatra'
+      gem 'sinatra', '>= 1.4'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
@@ -1294,7 +1294,7 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'httpclient'
       gem 'lograge', '~> 0.11'
       gem 'makara'
-      gem 'mongo', '>= 2.8.0'
+      gem 'mongo', '>= 2.8.0', '!= 2.15.0' # TODO: FIX TEST BREAKAGES ON 2.15.0
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
       gem 'presto-client', '>=  0.5.14'
@@ -1401,7 +1401,7 @@ elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
     gem 'httpclient'
     # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-    gem 'mongo', '>= 2.8.0'
+    gem 'mongo', '>= 2.8.0', '!= 2.15.0' # TODO: FIX TEST BREAKAGES ON 2.15.0
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'presto-client', '>=  0.5.14'
