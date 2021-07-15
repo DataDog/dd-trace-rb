@@ -95,10 +95,11 @@ module Datadog
               str: builder.string_table.fetch(span_id.to_s)
             )
 
-            if stack_sample.trace_resource
+            trace_resource = stack_sample.trace_resource
+            if trace_resource && !trace_resource.empty?
               labels << Perftools::Profiles::Label.new(
                 key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
-                str: builder.string_table.fetch(stack_sample.trace_resource)
+                str: builder.string_table.fetch(trace_resource)
               )
             end
           end
