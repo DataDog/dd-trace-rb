@@ -907,7 +907,7 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
+    gem 'sinatra', '>= 1.4'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
@@ -1108,7 +1108,7 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
-      gem 'sinatra'
+      gem 'sinatra', '>= 1.4'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'

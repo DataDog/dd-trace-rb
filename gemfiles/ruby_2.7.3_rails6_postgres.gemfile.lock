@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.50.0)
+    ddtrace (0.51.0)
       ffi (~> 1.0)
       msgpack
 
@@ -97,7 +97,7 @@ GEM
     debug_inspector (1.1.0)
     diff-lcs (1.4.4)
     docile (1.4.0)
-    dogstatsd-ruby (4.8.3)
+    dogstatsd-ruby (5.2.0)
     erubi (1.10.0)
     ffi (1.15.3)
     globalid (0.4.2)
@@ -133,7 +133,7 @@ GEM
     opentracing (0.5.0)
     os (1.1.1)
     parallel (1.20.1)
-    parser (3.0.1.1)
+    parser (3.0.2.0)
       ast (~> 2.4.1)
     pg (0.21.0)
     pimpmychangelog (0.1.3)
@@ -178,6 +178,8 @@ GEM
       thor (>= 0.20.3, < 2.0)
     rainbow (3.0.0)
     rake (13.0.3)
+    rake-compiler (1.1.1)
+      rake
     redcarpet (3.5.1)
     regexp_parser (2.1.1)
     request_store (1.5.0)
@@ -212,9 +214,9 @@ GEM
       rubocop-ast (>= 1.7.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 1.4.0, < 3.0)
-    rubocop-ast (1.7.0)
+    rubocop-ast (1.8.0)
       parser (>= 3.0.1.1)
-    rubocop-performance (1.11.3)
+    rubocop-performance (1.11.4)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
     rubocop-rspec (2.4.0)
@@ -275,6 +277,7 @@ DEPENDENCIES
   pry-stack_explorer
   rails (~> 6.0.0)
   rake (>= 10.5, < 13.0.4)
+  rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)
