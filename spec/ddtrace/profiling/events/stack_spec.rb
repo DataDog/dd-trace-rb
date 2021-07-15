@@ -74,40 +74,4 @@ RSpec.describe Datadog::Profiling::Events do
       end
     end
   end
-
-  describe Datadog::Profiling::Events::StackExceptionSample do
-    describe '::new' do
-      subject(:event) do
-        described_class.new(
-          timestamp,
-          frames,
-          total_frame_count,
-          thread_id,
-          trace_id,
-          span_id,
-          exception
-        )
-      end
-
-      let(:timestamp) { double('timestamp') }
-      let(:frames) { double('frames', collect: []) }
-      let(:total_frame_count) { double('total_frame_count') }
-      let(:thread_id) { double('thread_id') }
-      let(:trace_id) { double('trace_id') }
-      let(:span_id) { double('span_id') }
-      let(:exception) { double('exception') }
-
-      it do
-        is_expected.to have_attributes(
-          timestamp: timestamp,
-          frames: frames,
-          total_frame_count: total_frame_count,
-          thread_id: thread_id,
-          trace_id: trace_id,
-          span_id: span_id,
-          exception: exception
-        )
-      end
-    end
-  end
 end
