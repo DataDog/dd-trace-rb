@@ -438,7 +438,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           it_behaves_like 'contains trace ID label'
           it_behaves_like 'contains span ID label'
 
-          context 'when trace resource is non-null' do
+          context 'when trace resource is non-empty' do
             let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('example trace resource') }
 
             it do
@@ -450,6 +450,19 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
             it_behaves_like 'contains trace ID label'
             it_behaves_like 'contains span ID label'
             it_behaves_like('contains trace endpoint label', trace_endpoint: 'example trace resource')
+          end
+
+          context 'when trace resource is empty' do
+            let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('') }
+
+            it do
+              is_expected.to be_kind_of(Array)
+              is_expected.to have(3).items
+            end
+
+            it_behaves_like 'contains thread ID label'
+            it_behaves_like 'contains trace ID label'
+            it_behaves_like 'contains span ID label'
           end
         end
 
