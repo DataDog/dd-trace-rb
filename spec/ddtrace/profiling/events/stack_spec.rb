@@ -12,7 +12,8 @@ RSpec.describe Datadog::Profiling::Events do
           total_frame_count,
           thread_id,
           trace_id,
-          span_id
+          span_id,
+          trace_resource_container
         )
       end
 
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Profiling::Events do
       let(:thread_id) { double('thread_id') }
       let(:trace_id) { double('trace_id') }
       let(:span_id) { double('span_id') }
+      let(:trace_resource_container) { double('trace_resource_container') }
 
       it do
         is_expected.to have_attributes(
@@ -30,7 +32,8 @@ RSpec.describe Datadog::Profiling::Events do
           total_frame_count: total_frame_count,
           thread_id: thread_id,
           trace_id: trace_id,
-          span_id: span_id
+          span_id: span_id,
+          trace_resource_container: trace_resource_container
         )
       end
     end
@@ -46,6 +49,7 @@ RSpec.describe Datadog::Profiling::Events do
           thread_id,
           trace_id,
           span_id,
+          trace_resource_container,
           cpu_time_interval_ns,
           wall_time_interval_ns
         )
@@ -57,6 +61,7 @@ RSpec.describe Datadog::Profiling::Events do
       let(:thread_id) { double('thread_id') }
       let(:trace_id) { double('trace_id') }
       let(:span_id) { double('span_id') }
+      let(:trace_resource_container) { double('trace_resource_container') }
       let(:cpu_time_interval_ns) { double('cpu_time_interval_ns') }
       let(:wall_time_interval_ns) { double('wall_time_interval_ns') }
 
@@ -68,6 +73,7 @@ RSpec.describe Datadog::Profiling::Events do
           thread_id: thread_id,
           trace_id: trace_id,
           span_id: span_id,
+          trace_resource_container: trace_resource_container,
           cpu_time_interval_ns: cpu_time_interval_ns,
           wall_time_interval_ns: wall_time_interval_ns
         )
@@ -97,7 +103,8 @@ RSpec.describe Datadog::Profiling::Events do
       let(:span_id) { double('span_id') }
       let(:exception) { double('exception') }
 
-      it do
+      # FIXME: Will be removed by a separate PR
+      xit do
         is_expected.to have_attributes(
           timestamp: timestamp,
           frames: frames,
