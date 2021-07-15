@@ -20,6 +20,7 @@ module Datadog
           @supported_apis = supported_apis
         end
 
+        # Expected output of the #trace_identifiers_for duck type is [trace_id, span_id, (optional trace_resource)]
         def trace_identifiers_for(thread)
           @supported_apis.each do |api|
             trace_identifiers = api.trace_identifiers_for(thread)

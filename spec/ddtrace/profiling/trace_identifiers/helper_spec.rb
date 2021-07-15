@@ -55,5 +55,15 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
         expect(trace_identifiers_for).to be nil
       end
     end
+
+    context 'when the api provider returns a trace resource together with the trace identifiers' do
+      before do
+        allow(api1).to receive(:trace_identifiers_for).and_return([:api1_trace_id, :api1_span_id, :ap1_trace_resource])
+      end
+
+      it 'returns the trace resource together with the trace identifiers' do
+        expect(trace_identifiers_for).to eq [:api1_trace_id, :api1_span_id, :ap1_trace_resource]
+      end
+    end
   end
 end

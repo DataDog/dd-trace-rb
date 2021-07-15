@@ -299,8 +299,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it 'builds an event including the trace id and span id' do
           is_expected.to have_attributes(
             trace_id: trace_id,
-            span_id: span_id
+            span_id: span_id,
+            trace_resource: nil
           )
+        end
+
+        context 'and a trace_resource is provided' do
+          let(:trace_identifiers) { [trace_id, span_id, trace_resource] }
+
+          let(:trace_resource) { 'trace resource example' }
+
+          it 'builds an event including the trace id, span id, and trace_resource' do
+            is_expected.to have_attributes(
+              trace_id: trace_id,
+              span_id: span_id,
+              trace_resource: trace_resource
+            )
+          end
         end
       end
 

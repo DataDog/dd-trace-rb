@@ -125,8 +125,7 @@ module Datadog
           locations = convert_backtrace_locations(locations)
 
           thread_id = thread.respond_to?(:pthread_thread_id) ? thread.pthread_thread_id : thread.object_id
-          trace_id, span_id = trace_identifiers_helper.trace_identifiers_for(thread)
-          trace_resource = nil # WIP
+          trace_id, span_id, trace_resource = trace_identifiers_helper.trace_identifiers_for(thread)
           cpu_time = get_cpu_time_interval!(thread)
 
           Events::StackSample.new(
