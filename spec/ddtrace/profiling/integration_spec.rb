@@ -34,11 +34,11 @@ RSpec.describe 'profiling integration test' do
 
     let(:stack_samples) do
       [
-        build_stack_sample(stack_one, 100, trace_id, span_id, 100),
-        build_stack_sample(stack_two, 100, trace_id, span_id, 200),
-        build_stack_sample(stack_one, 101, trace_id, span_id, 400),
-        build_stack_sample(stack_two, 101, trace_id, span_id, 800),
-        build_stack_sample(stack_two, 101, trace_id, span_id, 1600)
+        build_stack_sample(locations: stack_one, thread_id: 100, trace_id: trace_id, span_id: span_id, cpu_time_ns: 100),
+        build_stack_sample(locations: stack_two, thread_id: 100, trace_id: trace_id, span_id: span_id, cpu_time_ns: 200),
+        build_stack_sample(locations: stack_one, thread_id: 101, trace_id: trace_id, span_id: span_id, cpu_time_ns: 400),
+        build_stack_sample(locations: stack_two, thread_id: 101, trace_id: trace_id, span_id: span_id, cpu_time_ns: 800),
+        build_stack_sample(locations: stack_two, thread_id: 101, trace_id: trace_id, span_id: span_id, cpu_time_ns: 1600)
       ]
     end
 

@@ -6,12 +6,13 @@ module Datadog
       # Describes a stack profiling event
       class Stack < Event
         attr_reader \
-          :frames,
           :hash,
-          :span_id,
-          :thread_id,
+          :frames,
           :total_frame_count,
-          :trace_id
+          :thread_id,
+          :trace_id,
+          :span_id,
+          :trace_resource
 
         def initialize(
           timestamp,
@@ -19,7 +20,8 @@ module Datadog
           total_frame_count,
           thread_id,
           trace_id,
-          span_id
+          span_id,
+          trace_resource
         )
           super(timestamp)
 
@@ -28,11 +30,14 @@ module Datadog
           @thread_id = thread_id
           @trace_id = trace_id
           @span_id = span_id
+          @trace_resource = trace_resource
 
           @hash = [
             thread_id,
             trace_id,
             span_id,
+            # trace_resource is deliberately not included -- we assume that for events that share the same
+            # (trace_id, span_id) pair will also have the same trace_resource
             frames.collect(&:hash),
             total_frame_count
           ].hash
@@ -52,6 +57,7 @@ module Datadog
           thread_id,
           trace_id,
           span_id,
+          trace_resource,
           cpu_time_interval_ns,
           wall_time_interval_ns
         )
@@ -61,7 +67,8 @@ module Datadog
             total_frame_count,
             thread_id,
             trace_id,
-            span_id
+            span_id,
+            trace_resource
           )
 
           @cpu_time_interval_ns = cpu_time_interval_ns

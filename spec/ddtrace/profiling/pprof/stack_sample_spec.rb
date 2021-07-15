@@ -91,11 +91,12 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { 1 }
       let(:trace_id) { 2 }
       let(:span_id) { 3 }
+      let(:trace_resource) { 'a resource' }
       let(:stack) { Thread.current.backtrace_locations }
 
       context 'with identical threads, stacks, trace and span IDs' do
-        let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
-        let(:second) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+        let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+        let(:second) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
 
         before { expect(first.frames).to eq(second.frames) }
 
@@ -105,8 +106,10 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       context 'with identical threads and stacks but different' do
         context 'trace IDs' do
           let(:other_trace_id) { 3 }
-          let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
-          let(:second) { build_stack_sample(stack, thread_id, other_trace_id, span_id) }
+          let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:second) do
+            build_stack_sample(locations: stack, thread_id: thread_id, trace_id: other_trace_id, span_id: span_id)
+          end
 
           before { expect(first.frames).to eq(second.frames) }
 
@@ -115,8 +118,10 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
         context 'span IDs' do
           let(:other_span_id) { 4 }
-          let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
-          let(:second) { build_stack_sample(stack, thread_id, trace_id, other_span_id) }
+          let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:second) do
+            build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: other_span_id)
+          end
 
           before { expect(first.frames).to eq(second.frames) }
 
@@ -126,8 +131,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'with identical threads and different' do
         context 'stacks' do
-          let(:first) { build_stack_sample(nil, thread_id, trace_id, span_id) }
-          let(:second) { build_stack_sample(nil, thread_id, trace_id, span_id) }
+          let(:first) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:second) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
 
           before { expect(first.frames).to_not eq(second.frames) }
 
@@ -143,6 +148,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -156,6 +162,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -168,8 +175,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
 
       context 'with identical stacks and different thread IDs' do
-        let(:first) { build_stack_sample(stack, 1) }
-        let(:second) { build_stack_sample(stack, 2) }
+        let(:first) { build_stack_sample(locations: stack, thread_id: 1) }
+        let(:second) { build_stack_sample(locations: stack, thread_id: 2) }
 
         before do
           expect(first.frames).to eq(second.frames)
@@ -190,6 +197,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { 1 }
       let(:trace_id) { 2 }
       let(:span_id) { 3 }
+      let(:trace_resource) { 'a resource' }
       let(:stack) { Thread.current.backtrace_locations }
 
       shared_examples_for 'independent stack samples' do
@@ -214,8 +222,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
 
       context 'with identical threads, stacks, trace and span IDs' do
-        let(:first) { build_stack_sample(stack, thread_id, trace_id, span_id) }
-        let(:second) { build_stack_sample(stack, thread_id, trace_id, span_id) }
+        let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+        let(:second) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
 
         before { expect(first.frames).to eq(second.frames) }
 
@@ -236,8 +244,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'with identical threads and different' do
         context 'stacks' do
-          let(:first) { build_stack_sample(nil, thread_id, trace_id, span_id) }
-          let(:second) { build_stack_sample(nil, thread_id, trace_id, span_id) }
+          let(:first) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:second) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
 
           before { expect(first.frames).to_not eq(second.frames) }
 
@@ -253,6 +261,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -266,6 +275,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -278,8 +288,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
 
       context 'with identical stacks and different thread IDs' do
-        let(:first) { build_stack_sample(stack, 1) }
-        let(:second) { build_stack_sample(stack, 2) }
+        let(:first) { build_stack_sample(locations: stack, thread_id: 1) }
+        let(:second) { build_stack_sample(locations: stack, thread_id: 2) }
 
         before do
           expect(first.frames).to eq(second.frames)
