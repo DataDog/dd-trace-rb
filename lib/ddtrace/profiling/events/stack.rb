@@ -33,10 +33,8 @@ module Datadog
             thread_id,
             trace_id,
             span_id,
-            [
-              frames.collect(&:hash),
-              total_frame_count
-            ]
+            frames.collect(&:hash),
+            total_frame_count
           ].hash
         end
       end
