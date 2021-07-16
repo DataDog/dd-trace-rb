@@ -107,6 +107,10 @@ module Datadog
             )
 
             trace_resource = stack_sample.trace_resource
+            if trace_resource
+              trace_resource = trace_resource.resource if trace_resource.span_type == Datadog::Ext::HTTP::TYPE_INBOUND
+            end
+
             if trace_resource && !trace_resource.empty?
               labels << Perftools::Profiles::Label.new(
                 key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
