@@ -95,4 +95,15 @@ RSpec.describe 'tracing on the server connection' do
 
     it_behaves_like 'span data contents'
   end
+
+  describe '#error_handler' do
+    let(:error_handler) { proc { |span, error| span.set_error(error) if error.is_a?(StandardError) } }
+    let(:configuration_options) { { service_name: 'rspec', on_error: error_handler } }
+
+    before do
+      subject.request_response(**keywords) { raise 'error' }
+    end
+
+    it { expect(span).to have_error }
+  end
 end
