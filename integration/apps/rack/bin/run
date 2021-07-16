@@ -17,6 +17,8 @@ command = case process
             "#{env_vars} bundle exec #{profiling} puma -C /app/config/puma.rb /app/config.ru"
           when 'unicorn'
             "#{env_vars} bundle exec #{profiling} unicorn -c /app/config/unicorn.rb /app/config.ru"
+          when 'webrick'
+            "#{env_vars} bundle exec #{profiling} rackup -s webrick -o 0.0.0.0 -p 80 /app/config.ru"
           when 'irb'
             "#{env_vars} bundle exec #{profiling} irb"
           when nil, ''
