@@ -27,7 +27,7 @@ Run `docker-compose up` to auto-start the webserver. It should bind to `localhos
 Alternatively, you can run it manually with:
 
 ```sh
-docker-compose run --rm -p 80:80 app bin/run <process>
+docker-compose run --rm -p 80:80 app "bin/run <process>"
 ```
 
 The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` if not provided. See [Processes](#processes) for more details.
