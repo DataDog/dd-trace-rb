@@ -5,7 +5,7 @@ require 'ddtrace/configuration/components'
 
 module Datadog
   # Configuration provides a unique access point for configurations
-  module Configuration
+  module Configuration # rubocop:disable Metrics/ModuleLength
     extend Forwardable
 
     # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
@@ -171,6 +171,23 @@ module Datadog
         logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
         logger
       end
+    end
+
+    # Called from our at_exit hook whenever there was a pending Interrupt exception (e.g. typically due to ctrl+c)
+    # to print a nice message whenever we're taking a bit longer than usual to finish the process.
+    def handle_interrupt_shutdown!
+      logger = Datadog.logger
+      shutdown_thread = Thread.new { shutdown! }
+      print_message_treshold_seconds = 0.2
+
+      slow_shutdown = shutdown_thread.join(print_message_treshold_seconds).nil?
+
+      if slow_shutdown
+        logger.info 'Reporting remaining data... Press ctrl+c to exit immediately.'
+        shutdown_thread.join
+      end
+
+      nil
     end
   end
 end
