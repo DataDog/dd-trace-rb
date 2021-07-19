@@ -110,9 +110,9 @@ module Datadog
         end
 
         # Add adapters to registry
-        Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net, :net_http)
-        Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test, :test)
-        Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket, :unix)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net, :net_http)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test, :test)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket, :unix)
       end
     end
   end
