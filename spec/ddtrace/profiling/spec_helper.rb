@@ -1,6 +1,8 @@
 require 'ddtrace/profiling'
 
 module ProfilingFeatureHelpers
+  include Kernel
+
   # Stubs Ruby classes before applying profiling patches.
   # This allows original, pristine classes to be restored after the test.
   RSpec.shared_context 'with profiling extensions' do
@@ -35,9 +37,11 @@ module ProfilingFeatureHelpers
 end
 
 module ProfileHelpers
+  include Kernel
+
   def get_test_profiling_flush
-    stack_one = Thread.current.backtrace_locations.first(3)
-    stack_two = Thread.current.backtrace_locations.first(3)
+    stack_one = Array(Thread.current.backtrace_locations).first(3)
+    stack_two = Array(Thread.current.backtrace_locations).first(3)
 
     stack_samples = [
       build_stack_sample(stack_one, 100, 0, 0, 100, 100),

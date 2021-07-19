@@ -22,11 +22,11 @@ RSpec.describe 'profiling integration test' do
     # we want the method names on the resulting stacks to be stack_one or
     # stack_two, not block in ... when showing up in the stack traces
     def stack_one
-      @stack_one ||= Thread.current.backtrace_locations[1..3]
+      @stack_one ||= Array(Thread.current.backtrace_locations)[1..3]
     end
 
     def stack_two
-      @stack_two ||= Thread.current.backtrace_locations[1..3]
+      @stack_two ||= Array(Thread.current.backtrace_locations)[1..3]
     end
 
     let(:trace_id) { 0 }
