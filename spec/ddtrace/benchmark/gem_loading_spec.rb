@@ -6,7 +6,7 @@ unless PlatformHelpers.jruby?
 end
 
 RSpec.describe 'Gem loading' do
-  def subject
+  def run_ruby
     `ruby -e #{Shellwords.escape(load_path + program + flush_output)}`
   end
 
@@ -31,7 +31,7 @@ RSpec.describe 'Gem loading' do
   end
 
   let(:iterations) { 30 }
-  let(:benchmark) { iterations.times.reduce(0) { |acc, _| acc + subject.to_f } }
+  let(:benchmark) { iterations.times.reduce(0) { |acc, _| acc + run_ruby.to_f } }
   let(:report_average) { benchmark / iterations }
 
   context 'timing' do
@@ -57,7 +57,7 @@ RSpec.describe 'Gem loading' do
       RUBY
     end
 
-    def subject
+    def run_ruby
       output = super()
 
       before, after = output.split
@@ -92,7 +92,7 @@ RSpec.describe 'Gem loading' do
     it 'memory report' do
       skip("'benchmark/memory' not supported") if PlatformHelpers.jruby?
 
-      puts subject
+      puts run_ruby
     end
   end
 end
