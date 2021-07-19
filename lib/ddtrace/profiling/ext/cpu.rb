@@ -58,8 +58,7 @@ module Datadog
           # Here we check if the behavior is enabled
           inherit_context_configuration = ENV['LOGGING_INHERIT_CONTEXT']
 
-          inherit_context_configuration.nil? ||
-          (inherit_context_configuration && !%w[false no 0].include?(inherit_context_configuration.downcase))
+          inherit_context_configuration.nil? || !%w[false no 0].include?(inherit_context_configuration.downcase)
         end
       end
     end
