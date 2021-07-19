@@ -58,7 +58,7 @@ module Datadog
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
           Datadog.logger.error(
-            "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
+            "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
       end

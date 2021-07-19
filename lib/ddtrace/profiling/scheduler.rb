@@ -103,7 +103,7 @@ module Datadog
               exporter.export(flush)
             rescue StandardError => e
               Datadog.logger.error(
-                "Unable to export #{flush.event_count} profiling events. Cause: #{e} Location: #{e.backtrace.first}"
+                "Unable to export #{flush.event_count} profiling events. Cause: #{e} Location: #{Array(e.backtrace).first}"
               )
             end
           end

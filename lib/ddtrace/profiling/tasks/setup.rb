@@ -18,7 +18,9 @@ module Datadog
               activate_cpu_extensions
               setup_at_fork_hooks
             rescue StandardError, ScriptError => e
-              Datadog.logger.warn { "Profiler extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}" }
+              Datadog.logger.warn do
+                "Profiler extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+              end
             end
           end
         end
@@ -33,7 +35,7 @@ module Datadog
           end
         rescue StandardError, ScriptError => e
           Datadog.logger.warn do
-            "Profiler forking extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+            "Profiler forking extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
           end
         end
 
@@ -48,7 +50,7 @@ module Datadog
           end
         rescue StandardError, ScriptError => e
           Datadog.logger.warn do
-            "Profiler CPU profiling extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+            "Profiler CPU profiling extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
           end
         end
 
@@ -66,7 +68,9 @@ module Datadog
                 # Restart profiler, if enabled
                 Datadog.profiler.start if Datadog.profiler
               rescue StandardError => e
-                Datadog.logger.warn { "Error during post-fork hooks. Cause: #{e.message} Location: #{e.backtrace.first}" }
+                Datadog.logger.warn do
+                  "Error during post-fork hooks. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+                end
               end
             end
           end
