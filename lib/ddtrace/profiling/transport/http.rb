@@ -16,15 +16,13 @@ module Datadog
     module Transport
       # Namespace for HTTP transport components
       module HTTP
-        module_function
-
         # Builds a new Transport::HTTP::Client
-        def new(&block)
+        def self.new(&block)
           Builder.new(&block).to_transport
         end
 
         # Builds a new Transport::HTTP::Client with default settings
-        def default(
+        def self.default(
           profiling_upload_timeout_seconds:,
           agent_settings:,
           site: nil,
@@ -52,7 +50,7 @@ module Datadog
           end
         end
 
-        def default_headers
+        def self.default_headers
           {
             Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Core::Environment::Ext::LANG,
             Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Core::Environment::Ext::LANG_VERSION,
@@ -65,11 +63,11 @@ module Datadog
           end
         end
 
-        private_class_method def default_adapter
+        private_class_method def self.default_adapter
           :net_http
         end
 
-        private_class_method def configure_for_agent(transport, profiling_upload_timeout_seconds:, agent_settings:)
+        private_class_method def self.configure_for_agent(transport, profiling_upload_timeout_seconds:, agent_settings:)
           apis = API.agent_defaults
 
           transport.adapter(
@@ -89,7 +87,7 @@ module Datadog
           end
         end
 
-        private_class_method def configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)
+        private_class_method def self.configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)
           apis = API.api_defaults
 
           site_uri = URI(format(Datadog::Ext::Profiling::Transport::HTTP::URI_TEMPLATE_DD_API, site))
@@ -107,7 +105,7 @@ module Datadog
           transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
         end
 
-        private_class_method def agentless_allowed?
+        private_class_method def self.agentless_allowed?
           Datadog::Core::Environment::VariableHelpers.env_to_bool(Datadog::Ext::Profiling::ENV_AGENTLESS, false)
         end
 
