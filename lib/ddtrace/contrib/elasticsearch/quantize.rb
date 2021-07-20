@@ -3,6 +3,8 @@ module Datadog
     module Elasticsearch
       # Quantize contains ES-specific resource quantization tools.
       module Quantize
+        include Kernel
+
         PLACEHOLDER = '?'.freeze
         ID_PLACEHOLDER = '\1?'.freeze
         EXCLUDE_KEYS = [].freeze

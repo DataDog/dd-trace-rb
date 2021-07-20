@@ -5,6 +5,7 @@ module Datadog
     module ConcurrentRuby
       # Patcher enables patching of 'Future' class.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function

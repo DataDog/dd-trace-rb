@@ -6,6 +6,7 @@ require 'ddtrace/configuration/components'
 module Datadog
   # Configuration provides a unique access point for configurations
   module Configuration # rubocop:disable Metrics/ModuleLength
+    include Kernel
     extend Forwardable
 
     # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.

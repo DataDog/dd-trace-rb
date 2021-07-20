@@ -3,6 +3,7 @@ module Datadog
     module Ethon
       # Patcher enables patching of 'ethon' module.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function

@@ -5,6 +5,7 @@ module Datadog
     module Sinatra
       # Patcher enables patching of 'sinatra' module.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function

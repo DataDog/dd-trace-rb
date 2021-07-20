@@ -5,6 +5,8 @@ module Datadog
   module Quantization
     # Quantization for HTTP resources
     module HTTP
+      include Kernel
+
       PLACEHOLDER = '?'.freeze
 
       module_function

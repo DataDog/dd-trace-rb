@@ -2,6 +2,8 @@ module Datadog
   module Utils
     # Common database-related utility functions.
     module Time
+      include Kernel
+
       module_function
 
       # Current monotonic time.

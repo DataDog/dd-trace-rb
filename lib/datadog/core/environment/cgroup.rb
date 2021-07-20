@@ -8,6 +8,8 @@ module Datadog
       # about the current Linux container identity.
       # @see https://man7.org/linux/man-pages/man7/cgroups.7.html
       module Cgroup
+        include Kernel
+
         LINE_REGEX = /^(\d+):([^:]*):(.+)$/.freeze
 
         Descriptor = Struct.new(

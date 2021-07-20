@@ -3,6 +3,7 @@ module Datadog
     module RestClient
       # Patcher enables patching of 'rest_client' module.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function
