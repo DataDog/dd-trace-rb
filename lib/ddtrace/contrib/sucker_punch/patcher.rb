@@ -7,6 +7,7 @@ module Datadog
     module SuckerPunch
       # Patcher enables patching of 'sucker_punch' module.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function

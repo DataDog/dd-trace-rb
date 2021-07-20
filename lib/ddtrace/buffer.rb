@@ -213,6 +213,8 @@ module Datadog
 
   # Health metrics for trace buffers.
   module MeasuredBuffer
+    include Kernel
+
     def initialize(*_)
       super
 

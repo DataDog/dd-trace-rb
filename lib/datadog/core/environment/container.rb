@@ -5,6 +5,8 @@ module Datadog
     module Environment
       # For container environments
       module Container
+        include Kernel
+
         UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'.freeze
         CONTAINER_PATTERN = '[0-9a-f]{64}'.freeze
 

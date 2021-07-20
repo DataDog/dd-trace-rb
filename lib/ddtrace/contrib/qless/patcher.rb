@@ -6,6 +6,7 @@ module Datadog
     module Qless
       # Patcher enables patching of 'qless' module.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function

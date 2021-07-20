@@ -6,6 +6,8 @@ module Datadog
   module Encoding
     # Encoder interface that provides the logic to encode traces and service
     module Encoder
+      include Kernel
+
       def content_type
         raise NotImplementedError
       end

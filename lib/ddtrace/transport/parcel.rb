@@ -2,6 +2,8 @@ module Datadog
   module Transport
     # Data transfer object for generic data
     module Parcel
+      include Kernel
+
       attr_reader \
         :data
 

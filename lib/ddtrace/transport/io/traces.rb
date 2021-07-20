@@ -20,6 +20,8 @@ module Datadog
 
         # Extensions for HTTP client
         module Client
+          include Kernel
+
           def send_traces(traces)
             # Build a request
             req = Transport::Traces::Request.new(Parcel.new(traces))

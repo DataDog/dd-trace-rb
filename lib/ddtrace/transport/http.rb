@@ -16,6 +16,8 @@ module Datadog
   module Transport
     # Namespace for HTTP transport components
     module HTTP
+      include Kernel
+
       module_function
 
       # Builds a new Transport::HTTP::Client

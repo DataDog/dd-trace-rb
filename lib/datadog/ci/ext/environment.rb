@@ -10,6 +10,8 @@ module Datadog
       # Defines constants for CI tags
       # rubocop:disable Metrics/ModuleLength:
       module Environment
+        include Kernel
+
         TAG_JOB_NAME = 'ci.job.name'
         TAG_JOB_URL = 'ci.job.url'
         TAG_PIPELINE_ID = 'ci.pipeline.id'

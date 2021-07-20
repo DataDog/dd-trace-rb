@@ -6,6 +6,7 @@ module Datadog
     module GRPC
       # Patcher enables patching of 'grpc' module.
       module Patcher
+        include Kernel
         include Contrib::Patcher
 
         module_function
