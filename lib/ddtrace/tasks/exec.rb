@@ -22,11 +22,9 @@ module Datadog
       private
 
       def set_rubyopt!
-        if ENV.key?('RUBYOPT')
-          ENV['RUBYOPT'] += " #{rubyopts.join(' ')}"
-        else
-          ENV['RUBYOPT'] = rubyopts.join(' ')
-        end
+        existing_rubyopt = ENV['RUBYOPT']
+
+        ENV['RUBYOPT'] = existing_rubyopt ? "#{existing_rubyopt} #{rubyopts.join(' ')}" : rubyopts.join(' ')
       end
 
       # If there's an error here, rather than throwing a cryptic stack trace, let's instead have clearer messages, and
