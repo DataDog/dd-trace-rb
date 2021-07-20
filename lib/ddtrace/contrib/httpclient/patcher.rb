@@ -28,7 +28,7 @@ module Datadog
             begin
               ::HTTPClient.include(Instrumentation)
             rescue StandardError => e
-              Datadog::Logger.error("Unable to apply httpclient integration: #{e}")
+              Datadog.logger.error("Unable to apply httpclient integration: #{e}")
             end
           end
         end
