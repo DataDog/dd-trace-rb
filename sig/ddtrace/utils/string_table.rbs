@@ -1,0 +1,20 @@
+module Datadog
+  module Utils
+    # Tracks strings and returns IDs
+    class StringTable
+      def initialize: () -> untyped
+
+      # Returns an ID for the string
+      def fetch: (untyped string) -> untyped
+
+      # Returns the canonical copy of this string
+      # Typically used for psuedo interning; reduce
+      # identical copies of a string to one object.
+      def fetch_string: (untyped string) -> (nil | untyped)
+
+      def []: (untyped id) -> untyped
+
+      def strings: () -> untyped
+    end
+  end
+end

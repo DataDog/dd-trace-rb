@@ -1,0 +1,30 @@
+module Datadog
+  module Core
+    module Environment
+      # For container environments
+      module Container
+        UUID_PATTERN: untyped
+
+        CONTAINER_PATTERN: untyped
+
+        PLATFORM_REGEX: untyped
+
+        POD_REGEX: untyped
+
+        CONTAINER_REGEX: untyped
+
+        FARGATE_14_CONTAINER_REGEX: untyped
+
+        Descriptor: untyped
+
+        def self?.platform: () -> untyped
+
+        def self?.container_id: () -> untyped
+
+        def self?.task_uid: () -> untyped
+
+        def self?.descriptor: () -> untyped
+      end
+    end
+  end
+end

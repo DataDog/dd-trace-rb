@@ -1,0 +1,15 @@
+module Datadog
+  module Security
+    module Contrib
+      module Rack
+        class RequestMiddleware
+          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> untyped
+
+          attr_reader logger: untyped
+
+          def call: (untyped env) -> untyped
+        end
+      end
+    end
+  end
+end

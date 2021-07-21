@@ -1,0 +1,17 @@
+module Datadog
+  module Security
+    module Assets
+      def self?.waf_rules: () -> ::String
+
+      def self?.blocked: () -> ::String
+
+      def self?.path: () -> ::Pathname
+
+      def self?.filepath: (::String filename) -> ::Pathname
+
+      def self?.read: (::String filename, ?::String mode) -> ::String
+
+      def self?.dir: () -> ::String
+    end
+  end
+end

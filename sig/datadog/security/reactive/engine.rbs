@@ -1,0 +1,13 @@
+module Datadog
+  module Security
+    module Reactive
+      class Engine
+        def initialize: () -> void
+
+        def subscribe: (*String addresses) { (*top values) -> void } -> void
+
+        def publish: (String address, top data) -> void
+      end
+    end
+  end
+end

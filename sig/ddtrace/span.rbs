@@ -1,0 +1,8 @@
+module Datadog
+  class Span
+    attr_accessor span_id: Integer
+
+    def set_tag: (String key, ?untyped? value) -> void
+  end
+end
+

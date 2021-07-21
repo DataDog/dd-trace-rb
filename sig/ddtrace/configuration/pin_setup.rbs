@@ -1,0 +1,19 @@
+module Datadog
+  module Configuration
+    class PinSetup
+      def initialize: (untyped target, ?::Hash[untyped, untyped] opts) -> untyped
+
+      def call: () -> (nil | ::TrueClass)
+
+      private
+
+      attr_reader pin: untyped
+
+      attr_reader opts: untyped
+
+      ATTRS: untyped
+
+      DEPRECATED_ATTRS: untyped
+    end
+  end
+end

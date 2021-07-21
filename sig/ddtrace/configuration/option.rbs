@@ -1,0 +1,23 @@
+module Datadog
+  module Configuration
+    class Option
+      attr_reader definition: untyped
+
+      def initialize: (untyped definition, untyped context) -> untyped
+
+      def set: (untyped value) -> untyped
+
+      def get: () -> untyped
+
+      def reset: () -> untyped
+
+      def default_value: () -> untyped
+
+      private
+
+      def context_exec: (*untyped args) { () -> untyped } -> untyped
+
+      def context_eval: () { () -> untyped } -> untyped
+    end
+  end
+end

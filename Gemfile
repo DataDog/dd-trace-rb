@@ -17,7 +17,7 @@ gem 'pimpmychangelog', '>= 0.1.2'
 gem 'pry'
 if RUBY_PLATFORM != 'java'
   # There's a few incompatibilities between pry/pry-byebug on older Rubies
-  gem 'pry-byebug' if RUBY_VERSION >= '2.6.0' && RUBY_ENGINE != 'truffleruby'
+  gem 'pry-byebug' if RUBY_VERSION >= '2.6.0' && RUBY_VERSION < '3.0.0' && RUBY_ENGINE != 'truffleruby'
   gem 'pry-nav' if RUBY_VERSION < '2.6.0'
   gem 'pry-stack_explorer'
 else
@@ -88,4 +88,10 @@ end
 if RUBY_VERSION >= '2.4.0' && !Gem.win_platform?
   gem 'sorbet', '= 0.5.9120'
   gem 'spoom', '~> 1.1'
+end
+
+# type checking with steep
+if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
+  gem 'rbs'
+  gem 'steep', '~> 0.42.0'
 end

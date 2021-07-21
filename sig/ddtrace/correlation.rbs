@@ -1,0 +1,8 @@
+module Datadog
+  module Correlation
+    Identifier: Struct[untyped]
+
+    def self?.identifier_from_context: (untyped context) -> Struct[untyped] # Identifier
+  end
+end
+

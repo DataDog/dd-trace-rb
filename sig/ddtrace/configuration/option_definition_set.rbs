@@ -1,0 +1,9 @@
+module Datadog
+  module Configuration
+    class OptionDefinitionSet < Hash[untyped, untyped]
+      def dependency_order: () -> untyped
+
+      def dependency_graph: () -> untyped
+    end
+  end
+end

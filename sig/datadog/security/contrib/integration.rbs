@@ -1,0 +1,21 @@
+module Datadog
+  module Security
+    module Contrib
+      module Integration
+        RegisteredIntegration: untyped
+
+        def self.included: (untyped base) -> untyped
+
+        module ClassMethods
+          def register_as: (untyped name, ?::Hash[untyped, untyped] options) -> untyped
+
+          def compatible?: () -> bool
+        end
+
+        def self.register: (untyped integration, untyped name, untyped options) -> untyped
+
+        def self.registry: () -> untyped
+      end
+    end
+  end
+end

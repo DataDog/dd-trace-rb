@@ -1,0 +1,52 @@
+module Datadog
+  module Configuration
+    class Components
+      def self.build_health_metrics: (untyped settings) -> untyped
+
+      def self.build_logger: (untyped settings) -> untyped
+
+      def self.build_runtime_metrics: (untyped settings) -> untyped
+
+      def self.build_runtime_metrics_worker: (untyped settings) -> untyped
+
+      def self.build_tracer: (untyped settings, untyped agent_settings) -> untyped
+
+      def self.build_profiler: (untyped settings, untyped agent_settings, untyped tracer) -> (nil | untyped)
+
+      private
+
+      def self.build_tracer_tags: (untyped settings) -> untyped
+
+      def self.build_tracer_options: (untyped settings, untyped agent_settings) -> untyped
+
+      def self.build_tracer_test_mode_options: (untyped tracer_options, untyped settings, untyped agent_settings) -> untyped
+
+      def self.build_profiler_recorder: (untyped settings) -> untyped
+
+      def self.build_profiler_collectors: (untyped settings, untyped recorder, untyped trace_identifiers_helper) -> ::Array[untyped]
+
+      def self.build_profiler_exporters: (untyped settings, untyped agent_settings) -> ::Array[untyped]
+
+      def self.build_profiler_scheduler: (untyped settings, untyped recorder, untyped exporters) -> untyped
+
+      public
+
+      attr_reader health_metrics: untyped
+
+      attr_reader logger: untyped
+
+      attr_reader profiler: untyped
+
+      attr_reader runtime_metrics: untyped
+
+      attr_reader tracer: untyped
+
+      def initialize: (untyped settings) -> untyped
+
+      # Starts up components
+      def startup!: (untyped settings) -> untyped
+
+      def shutdown!: (?untyped? replacement) -> untyped
+    end
+  end
+end

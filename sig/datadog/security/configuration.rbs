@@ -1,0 +1,23 @@
+module Datadog
+  module Security
+    module Configuration
+      def self.included: (::Module base) -> void
+
+      class DSL
+        def initialize: () -> void
+
+        type options = ::Hash[::Symbol, ::Integer | bool | ::Symbol | ::String | ::Hash[::Symbol, options] | ::Array[options]]
+
+        def use: (::Symbol name, ?options options) -> void
+
+        def uses: () -> ::Array[[:Symbol, options]]
+      end
+
+      module ClassMethods
+        def configure: () { (DSL) -> void } -> void
+
+        def settings: () -> Settings
+      end
+    end
+  end
+end
