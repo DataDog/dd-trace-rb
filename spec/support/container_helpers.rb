@@ -232,4 +232,50 @@ module ContainerHelpers
       cgroup_file.rewind
     end
   end
+
+  shared_context 'Fargate 1.4+ (2-part short random) environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'ecs' }
+    let(:container_id_with_random) { "#{container_id_without_random}-609015642" }
+    let(:container_id_without_random) { 'cef584f232933b25e0c6933d7e86cb34' }
+
+    before do
+      cgroup_file.puts "11:hugetlb:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "10:pids:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "9:cpuset:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "8:net_cls,net_prio:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "7:cpu,cpuacct:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "6:perf_event:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "5:freezer:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "4:devices:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "3:blkio:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "2:memory:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.puts "1:name=systemd:/#{platform}/#{container_id_without_random}/#{container_id_with_random}"
+      cgroup_file.rewind
+    end
+  end
+
+  shared_context 'Fargate 1.4+ with ECS+docker environment' do
+    include_context 'cgroup file'
+
+    let(:platform) { 'ecs' }
+    let(:task_arn) { 'c101a02b-a99d-4016-b52d-449e313a8087' }
+    let(:host_container_id) { '746a2eb2aa309b64c604f5f798c2df761a92ba9e80ad1948edc5f1c63e2e125e' }
+    let(:child_container_id) { '3fb61c869147b933a1c459a87eb11429f640e1600e4c9c7f38a9fe39ecbc5d2a' }
+
+    before do
+      cgroup_file.puts "10:pids:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "9:perf_event:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "8:memory:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "7:hugetlb:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "6:freezer:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "5:devices:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "4:cpuset:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "3:cpuacct:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "2:cpu:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.puts "1:blkio:/#{platform}/#{task_arn}/#{host_container_id}/docker/#{child_container_id}"
+      cgroup_file.rewind
+    end
+  end
 end
