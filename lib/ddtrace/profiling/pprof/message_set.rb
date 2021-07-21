@@ -5,7 +5,9 @@ module Datadog
     module Pprof
       # Acts as a unique dictionary of protobuf messages
       class MessageSet < Utils::ObjectSet
-        alias_method :messages, :objects
+        def messages
+          objects
+        end
       end
     end
   end
