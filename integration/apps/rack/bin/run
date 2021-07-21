@@ -3,15 +3,24 @@
 # Start application process
 puts "\n== Starting application process =="
 
-profiling = Datadog::DemoEnv.feature?('profiling') ? 'DD_PROFILING_ENABLED=true ddtracerb exec ' : ''
+profiling = ''
+env_vars = ''
+
+if Datadog::DemoEnv.feature?('profiling')
+  profling = 'ddtracerb exec'
+  env_vars = 'DD_PROFILING_ENABLED=true'
+end
+
 process = (ARGV[0] || Datadog::DemoEnv.process)
 command = case process
           when 'puma'
-            "bundle exec #{profiling}puma -C /app/config/puma.rb /app/config.ru"
+            "#{env_vars} bundle exec #{profiling} puma -C /app/config/puma.rb /app/config.ru"
           when 'unicorn'
-            "bundle exec #{profiling}unicorn -c /app/config/unicorn.rb /app/config.ru"
+            "#{env_vars} bundle exec #{profiling} unicorn -c /app/config/unicorn.rb /app/config.ru"
+          when 'webrick'
+            "#{env_vars} bundle exec #{profiling} rackup -s webrick -o 0.0.0.0 -p 80 /app/config.ru"
           when 'irb'
-            "bundle exec #{profiling}irb"
+            "#{env_vars} bundle exec #{profiling} irb"
           when nil, ''
             abort("\n== ERROR: Must specify a application process! ==")
           else
