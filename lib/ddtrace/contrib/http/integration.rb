@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/version'
 
 require 'ddtrace/contrib/integration'

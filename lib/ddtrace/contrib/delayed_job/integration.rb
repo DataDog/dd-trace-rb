@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/delayed_job/configuration/settings'
 require 'ddtrace/contrib/delayed_job/patcher'

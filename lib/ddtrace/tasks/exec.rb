@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Tasks
     # Wraps command with Datadog tracing

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/httpclient/instrumentation'
 require 'ddtrace/utils/only_once'

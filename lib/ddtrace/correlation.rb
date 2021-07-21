@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/correlation'
 require 'datadog/core/environment/variable_helpers'
 

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/concurrent_ruby/patcher'
 require 'ddtrace/contrib/concurrent_ruby/configuration/settings'

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/profiling'

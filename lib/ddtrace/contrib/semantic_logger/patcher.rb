@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/semantic_logger/instrumentation'
 

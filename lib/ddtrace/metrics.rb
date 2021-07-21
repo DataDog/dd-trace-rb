@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/metrics'
 
 require 'set'

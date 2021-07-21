@@ -1,3 +1,4 @@
+# typed: strict
 require 'ddtrace/ext/diagnostics'
 require 'ddtrace/metrics'
 

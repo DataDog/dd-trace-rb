@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     # Registry is a collection of integrations.

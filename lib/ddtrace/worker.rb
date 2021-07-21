@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   # Base class for work tasks
   class Worker

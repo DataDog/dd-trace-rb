@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Transport
     module HTTP

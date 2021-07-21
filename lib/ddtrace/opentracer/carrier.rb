@@ -1,3 +1,4 @@
+# typed: strict
 module Datadog
   module OpenTracer
     class Carrier < ::OpenTracing::Carrier

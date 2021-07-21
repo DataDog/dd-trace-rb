@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/rest_client/integration'

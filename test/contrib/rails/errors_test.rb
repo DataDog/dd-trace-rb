@@ -1,3 +1,4 @@
+# typed: ignore
 require 'helper'
 require 'minitest/around/unit'
 

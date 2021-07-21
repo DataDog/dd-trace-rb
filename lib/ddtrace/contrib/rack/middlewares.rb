@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'

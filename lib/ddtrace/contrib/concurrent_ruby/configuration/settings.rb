@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/concurrent_ruby/ext'
 

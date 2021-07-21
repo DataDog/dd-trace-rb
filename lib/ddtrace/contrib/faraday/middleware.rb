@@ -1,3 +1,4 @@
+# typed: ignore
 require 'faraday'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/integration'

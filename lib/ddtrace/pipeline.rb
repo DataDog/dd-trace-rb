@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   # Pipeline
   module Pipeline

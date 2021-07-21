@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/settings'
 require 'datadog/ci/contrib/cucumber/ext'
 

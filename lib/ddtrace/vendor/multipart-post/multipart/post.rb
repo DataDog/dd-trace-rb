@@ -1,3 +1,4 @@
+# typed: strict
 module Datadog
   module Vendor
     module Multipart

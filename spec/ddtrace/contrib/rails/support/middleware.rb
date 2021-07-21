@@ -1,3 +1,4 @@
+# typed: ignore
 RSpec.shared_context 'Rails middleware' do
   let(:rails_middleware) { [] }
 

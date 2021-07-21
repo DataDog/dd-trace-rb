@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/propagation/http_propagator'
 
 module Datadog

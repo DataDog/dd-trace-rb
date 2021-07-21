@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Configuration
     # PinSetup translates a flat hash into a Pin configuration

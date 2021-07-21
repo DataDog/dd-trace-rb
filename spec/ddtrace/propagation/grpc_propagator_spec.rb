@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 require 'ddtrace/context'
 require 'ddtrace/propagation/grpc_propagator'

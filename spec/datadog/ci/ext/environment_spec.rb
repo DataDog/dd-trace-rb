@@ -1,3 +1,4 @@
+# typed: false
 require 'datadog/ci/spec_helper'
 
 require 'json'

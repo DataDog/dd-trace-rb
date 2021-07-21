@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/http/ext'
 require 'ddtrace/contrib/http/instrumentation'

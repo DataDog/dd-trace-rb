@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'

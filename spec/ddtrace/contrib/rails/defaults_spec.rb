@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails defaults' do

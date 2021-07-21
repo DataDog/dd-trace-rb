@@ -1,3 +1,4 @@
+# typed: ignore
 RSpec.shared_examples 'a peer service span' do
   before { subject }
 

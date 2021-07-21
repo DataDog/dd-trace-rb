@@ -1,3 +1,4 @@
+# typed: false
 require 'net/http'
 require 'ddtrace/transport/http/adapters/net'
 

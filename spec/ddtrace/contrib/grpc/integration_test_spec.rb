@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require_relative 'support/grpc_helper'
 require 'ddtrace'

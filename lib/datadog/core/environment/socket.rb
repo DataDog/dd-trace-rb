@@ -1,3 +1,4 @@
+# typed: true
 require 'socket'
 
 module Datadog

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/semantic_logger/configuration/settings'
 require 'ddtrace/contrib/semantic_logger/patcher'

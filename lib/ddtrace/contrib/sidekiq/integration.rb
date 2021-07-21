@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/sidekiq/configuration/settings'
 require 'ddtrace/contrib/sidekiq/patcher'

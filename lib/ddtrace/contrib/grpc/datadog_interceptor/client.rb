@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/integration'
 require 'ddtrace/contrib/analytics'

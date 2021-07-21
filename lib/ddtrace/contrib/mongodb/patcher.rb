@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/instrumentation'

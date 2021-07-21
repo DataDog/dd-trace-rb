@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/profiling'
 
 module ProfilingFeatureHelpers

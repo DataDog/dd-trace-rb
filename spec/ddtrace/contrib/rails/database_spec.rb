@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace/contrib/analytics_examples'

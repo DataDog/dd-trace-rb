@@ -1,3 +1,4 @@
+# typed: false
 require 'securerandom'
 require 'datadog/core/environment/ext'
 require 'ddtrace/utils/forking'

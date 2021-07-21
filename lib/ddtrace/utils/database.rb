@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Utils
     # Common database-related utility functions.

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/aws/configuration/settings'
 require 'ddtrace/contrib/aws/patcher'

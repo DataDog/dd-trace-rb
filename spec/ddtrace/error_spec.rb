@@ -1,3 +1,4 @@
+# typed: false
 RSpec.describe Datadog::Error do
   context 'with default values' do
     let(:error) { described_class.new }

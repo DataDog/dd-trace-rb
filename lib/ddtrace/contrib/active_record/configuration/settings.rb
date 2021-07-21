@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/active_record/ext'
 require 'ddtrace/contrib/active_record/utils'

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration/base'
 require 'ddtrace/utils/only_once'
 

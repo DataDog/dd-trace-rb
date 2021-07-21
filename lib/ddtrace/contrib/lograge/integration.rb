@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/lograge/configuration/settings'
 require 'ddtrace/contrib/lograge/patcher'

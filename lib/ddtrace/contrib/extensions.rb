@@ -1,3 +1,4 @@
+# typed: false
 require 'set'
 require 'ddtrace/contrib/registry'
 

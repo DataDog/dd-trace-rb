@@ -1,3 +1,4 @@
+# typed: ignore
 require 'contrib/rails/apps/application'
 
 module Rails6

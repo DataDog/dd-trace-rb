@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'

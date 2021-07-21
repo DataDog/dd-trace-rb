@@ -1,3 +1,4 @@
+# typed: true
 module RailsActiveRecordHelpers
   def get_adapter_name
     Datadog::Contrib::ActiveRecord::Utils.adapter_name

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/rest_client/configuration/settings'
 require 'ddtrace/contrib/rest_client/patcher'

@@ -1,3 +1,4 @@
+# typed: false
 require 'datadog/ci/ext/settings'
 
 module Datadog

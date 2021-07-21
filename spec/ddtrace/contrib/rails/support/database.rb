@@ -1,3 +1,4 @@
+# typed: ignore
 # load the right adapter according to installed gem
 module Datadog
   module Contrib

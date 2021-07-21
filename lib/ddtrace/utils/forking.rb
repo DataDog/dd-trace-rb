@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Utils
     # Helper methods for managing forking behavior

@@ -1,3 +1,4 @@
+# typed: strict
 module Datadog
   module Ext
     # Priority is a hint given to the backend so that it knows which traces to reject or kept.

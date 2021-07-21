@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/kafka/events/connection/request'
 require 'ddtrace/contrib/kafka/events/consumer/process_batch'
 require 'ddtrace/contrib/kafka/events/consumer/process_message'

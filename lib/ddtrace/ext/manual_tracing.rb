@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Ext
     # Defines constants for manual tracing

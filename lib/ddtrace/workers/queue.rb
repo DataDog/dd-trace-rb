@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Workers
     # Adds queue behavior to workers, with a buffer

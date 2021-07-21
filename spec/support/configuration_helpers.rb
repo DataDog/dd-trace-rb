@@ -1,3 +1,4 @@
+# typed: false
 require 'bundler'
 
 module ConfigurationHelpers

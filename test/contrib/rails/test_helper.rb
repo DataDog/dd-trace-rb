@@ -1,3 +1,4 @@
+# typed: ignore
 require 'logger'
 require 'bundler/setup'
 require 'minitest/autorun'

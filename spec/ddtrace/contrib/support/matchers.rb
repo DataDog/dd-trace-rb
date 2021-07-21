@@ -1,3 +1,4 @@
+# typed: false
 # Remove vendor-specific syntax (e.g quoting)
 # to allow for unified query matching.
 #

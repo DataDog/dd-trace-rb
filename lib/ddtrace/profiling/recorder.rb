@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/profiling/buffer'
 require 'ddtrace/profiling/flush'
 

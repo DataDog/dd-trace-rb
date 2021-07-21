@@ -1,3 +1,4 @@
+# typed: strict
 require 'ddtrace/utils/string_table'
 
 module Datadog

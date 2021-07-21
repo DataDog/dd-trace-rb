@@ -1,3 +1,4 @@
+# typed: strict
 # During development, we load `ddtrace` by through `ddtrace.gemspec`,
 # which in turn eager loads 'ddtrace/version'.
 #
