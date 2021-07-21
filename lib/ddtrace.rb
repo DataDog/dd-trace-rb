@@ -37,7 +37,13 @@ module Datadog
   # Add shutdown hook:
   # Ensures the tracer has an opportunity to flush traces
   # and cleanup before terminating the process.
-  at_exit { Datadog.shutdown! }
+  at_exit do
+    if Interrupt === $! # rubocop:disable Style/SpecialGlobalVars is process terminating due to a ctrl+c or similar?
+      Datadog.send(:handle_interrupt_shutdown!)
+    else
+      Datadog.shutdown!
+    end
+  end
 end
 
 require 'ddtrace/contrib/action_cable/integration'

@@ -558,5 +558,61 @@ RSpec.describe Datadog::Configuration do
         end
       end
     end
+
+    # NOTE: This spec is a bit too coupled with the implementation, but I couldn't think of a better way (@ivoanjo)
+    describe '#handle_interrupt_shutdown!' do
+      subject(:handle_interrupt_shutdown!) { test_class.send(:handle_interrupt_shutdown!) }
+
+      let(:fake_thread) { instance_double(Thread, 'fake thread') }
+
+      it 'calls #shutdown! in a background thread' do
+        allow(fake_thread).to receive(:join).and_return(fake_thread)
+
+        expect(Thread).to receive(:new) do |&block|
+          expect(test_class).to receive(:shutdown!)
+
+          block.call
+        end.and_return(fake_thread)
+
+        handle_interrupt_shutdown!
+      end
+
+      context 'when #shutdown! is taking longer than the set threshold' do
+        let(:threshold_seconds) { 0.2 }
+
+        before do
+          expect(Thread).to receive(:new).and_return(fake_thread)
+          expect(fake_thread).to receive(:join).with(threshold_seconds).and_return(nil)
+
+          allow(fake_thread).to receive(:join).with(no_args)
+          allow(Datadog.logger).to receive(:info)
+        end
+
+        it 'logs a message' do
+          expect(Datadog.logger).to receive(:info).with(/ctrl\+c/)
+
+          handle_interrupt_shutdown!
+        end
+
+        it 'waits for the background thread to finish its work' do
+          expect(fake_thread).to receive(:join).with(no_args)
+
+          handle_interrupt_shutdown!
+        end
+      end
+
+      context 'when #shutdown! finishes faster than the set threshold' do
+        before do
+          expect(Thread).to receive(:new).and_return(fake_thread)
+          expect(fake_thread).to receive(:join).and_return(fake_thread)
+        end
+
+        it 'does not log a message' do
+          expect(Datadog.logger).to_not receive(:info)
+
+          handle_interrupt_shutdown!
+        end
+      end
+    end
   end
 end
