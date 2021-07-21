@@ -26,7 +26,8 @@ module Datadog
 
           response
         rescue StandardError => e
-          message = "Internal error during HTTP transport request. Cause: #{e.message} Location: #{e.backtrace.first}"
+          message =
+            "Internal error during HTTP transport request. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
 
           # Log error
           if stats.consecutive_errors > 0

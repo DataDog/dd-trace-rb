@@ -135,7 +135,7 @@ module Datadog
             # rubocop:disable Lint/RescueException
             rescue Exception => e
               @error = e
-              Datadog.logger.debug("Worker thread error. Cause #{e.message} Location: #{e.backtrace.first}")
+              Datadog.logger.debug("Worker thread error. Cause #{e.message} Location: #{Array(e.backtrace).first}")
               raise
             end
           end

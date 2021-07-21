@@ -137,7 +137,7 @@ module Datadog
           logger_without_components.error(
             'Detected deadlock during ddtrace initialization. ' \
             'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
-            "\n\tSource:\n\t#{e.backtrace.join("\n\t")}"
+            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
           )
           nil
         end
