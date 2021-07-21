@@ -1,0 +1,30 @@
+module Datadog
+  module Utils
+    # Common database-related utility functions.
+    module Time
+      # Current monotonic time.
+      # Falls back to `now` if monotonic clock
+      # is not available.
+      #
+      # @return [Float] in seconds, since some unspecified starting point
+      def self?.get_time: () -> untyped
+
+      # Current wall time.
+      #
+      # @return [Time] current time object
+      def self?.now: () -> untyped
+
+      # Overrides the implementation of `#now
+      # with the provided callable.
+      #
+      # Overriding the method `#now` instead of
+      # indirectly calling `block` removes
+      # one level of method call overhead.
+      #
+      # @param block [Proc] block that returns a `Time` object representing the current wall time
+      def self?.now_provider=: (untyped block) -> untyped
+
+      def self?.measure: () { () -> untyped } -> untyped
+    end
+  end
+end

@@ -1,0 +1,45 @@
+module Datadog
+  module Configuration
+    class AgentSettingsResolver
+      AgentSettings: untyped
+
+      def self.call: (untyped settings, ?logger: untyped logger) -> untyped
+
+      private
+
+      attr_reader logger: untyped
+
+      attr_reader settings: untyped
+
+      def initialize: (untyped settings, ?logger: untyped logger) -> untyped
+
+      def call: () -> untyped
+
+      def hostname: () -> untyped
+
+      def port: () -> untyped
+
+      def ssl?: () -> untyped
+
+      def timeout_seconds: () -> untyped
+
+      def deprecated_for_removal_transport_configuration_proc: () -> untyped
+
+      def deprecated_for_removal_transport_configuration_options: () -> untyped
+
+      def parsed_url: () -> untyped
+
+      def unparsed_url_from_env: () -> untyped
+
+      def pick_from: (configurations_in_priority_order: untyped configurations_in_priority_order, or_use_default: untyped or_use_default) -> untyped
+
+      def warn_if_configuration_mismatch: (untyped detected_configurations_in_priority_order) -> (nil | untyped)
+
+      def log_warning: (untyped message) -> untyped
+
+      DetectedConfiguration: untyped
+
+      ENVIRONMENT_AGENT_SETTINGS: untyped
+    end
+  end
+end

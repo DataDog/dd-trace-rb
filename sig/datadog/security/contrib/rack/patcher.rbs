@@ -1,0 +1,19 @@
+module Datadog
+  module Security
+    module Contrib
+      module Rack
+        module Patcher
+          include Datadog::Security::Contrib::Patcher
+
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> untyped
+
+          def self?.logger: () -> untyped
+
+          def self?.patch: () -> untyped
+        end
+      end
+    end
+  end
+end

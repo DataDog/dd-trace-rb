@@ -1,0 +1,13 @@
+module Datadog
+  module Security
+    module Contrib
+      module Rack
+        module Ext
+          APP: untyped
+
+          ENV_ENABLED: untyped
+        end
+      end
+    end
+  end
+end

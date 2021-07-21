@@ -1,0 +1,14 @@
+module Datadog
+  module Utils
+    # Common database-related utility functions.
+    module Database
+      VENDOR_DEFAULT: untyped
+
+      VENDOR_POSTGRES: untyped
+
+      VENDOR_SQLITE: untyped
+
+      def self?.normalize_vendor: (untyped vendor) -> untyped
+    end
+  end
+end

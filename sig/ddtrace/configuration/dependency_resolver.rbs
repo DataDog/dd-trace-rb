@@ -1,0 +1,9 @@
+module Datadog
+  module Configuration
+    class DependencyResolver[Node]
+      include TSort::_Sortable[Node]
+
+      def initialize: (?::Hash[Node, Node] dependency_graph) -> void
+    end
+  end
+end

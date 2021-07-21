@@ -1,0 +1,25 @@
+module Datadog
+  module Security
+    module Reactive
+      class Operation
+        attr_reader reactive: untyped
+
+        attr_reader parent: untyped
+
+        attr_reader name: untyped
+
+        def logger: () -> untyped
+
+        def initialize: (untyped name, ?untyped? parent, ?untyped? reactive_engine) { (untyped) -> untyped } -> untyped
+
+        def subscribe: (*untyped addresses) { (untyped) -> untyped } -> untyped
+
+        def publish: (untyped address, untyped data) -> untyped
+
+        def finalize: () -> untyped
+
+        def self.active: () -> untyped
+      end
+    end
+  end
+end

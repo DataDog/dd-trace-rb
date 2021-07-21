@@ -1,0 +1,11 @@
+module Datadog
+  module Security
+    module Configuration
+      class Settings
+        def initialize: () -> void
+
+        def merge: (DSL dsl) -> Settings
+      end
+    end
+  end
+end

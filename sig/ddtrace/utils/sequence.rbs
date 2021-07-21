@@ -1,0 +1,10 @@
+module Datadog
+  module Utils
+    # Generates values from a consistent sequence
+    class Sequence
+      def initialize: (?::Integer seed) { () -> untyped } -> untyped
+
+      def next: () -> untyped
+    end
+  end
+end

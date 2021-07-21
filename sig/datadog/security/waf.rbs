@@ -1,0 +1,19 @@
+module Datadog
+  module Security
+    module WAF
+      class Args < Hash[String, untyped]
+        def self?.[]: (Hash[String, untyped]) -> Args
+      end
+
+      def self?.logger: () -> ::Logger
+
+      def self?.rules: () -> ::String
+
+      def self?.name: () -> ::String
+
+      def self?.load_rules: () -> void
+
+      def self?.run: (Args waf_args) -> bool
+    end
+  end
+end

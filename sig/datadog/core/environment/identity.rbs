@@ -1,0 +1,25 @@
+module Datadog
+  module Core
+    module Environment
+      # For runtime identity
+      module Identity
+        extend Datadog::Utils::Forking
+
+        # Retrieves number of classes from runtime
+        def self?.id: () -> untyped
+
+        def self?.lang: () -> untyped
+
+        def self?.lang_engine: () -> untyped
+
+        def self?.lang_interpreter: () -> untyped
+
+        def self?.lang_platform: () -> untyped
+
+        def self?.lang_version: () -> untyped
+
+        def self?.tracer_version: () -> untyped
+      end
+    end
+  end
+end

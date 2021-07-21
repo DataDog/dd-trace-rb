@@ -1,0 +1,25 @@
+module Datadog
+  module Configuration
+    module Base
+      def self.included: (untyped base) -> untyped
+
+      module ClassMethods
+        def settings: (untyped name) { () -> untyped } -> untyped
+
+        private
+
+        def new_settings_class: () { () -> untyped } -> untyped
+      end
+
+      module InstanceMethods
+        def initialize: (?::Hash[untyped, untyped] options) -> untyped
+
+        def configure: (?::Hash[untyped, untyped] opts) { (untyped) -> untyped } -> untyped
+
+        def to_h: () -> untyped
+
+        def reset!: () -> untyped
+      end
+    end
+  end
+end

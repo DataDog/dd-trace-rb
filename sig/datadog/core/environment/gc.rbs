@@ -1,0 +1,12 @@
+module Datadog
+  module Core
+    module Environment
+      # Retrieves garbage collection statistics
+      module GC
+        def self?.stat: () -> untyped
+
+        def self?.available?: () -> untyped
+      end
+    end
+  end
+end

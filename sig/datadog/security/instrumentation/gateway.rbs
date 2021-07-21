@@ -1,0 +1,17 @@
+module Datadog
+  module Security
+    module Instrumentation
+      class Gateway
+        type data = untyped
+
+        def initialize: () -> void
+
+        def push: (::String event_name, data data) -> bool
+
+        def watch: (::String event_name) { (data data) -> void } -> void
+      end
+
+      def self.gateway: () -> Gateway
+    end
+  end
+end

@@ -1,0 +1,10 @@
+module Datadog
+  module Utils
+    # Common database-related utility functions.
+    module Compression
+      def self?.gzip: (untyped string, ?level: untyped? level, ?strategy: untyped? strategy) -> untyped
+
+      def self?.gunzip: (untyped string, ?untyped encoding) -> untyped
+    end
+  end
+end

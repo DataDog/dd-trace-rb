@@ -1,0 +1,12 @@
+module Datadog
+  module Security
+    module Contrib
+      module Rack
+        module Configuration
+          class Settings < Datadog::Security::Contrib::Configuration::Settings
+          end
+        end
+      end
+    end
+  end
+end

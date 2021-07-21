@@ -1,0 +1,43 @@
+module Datadog
+  module Configuration
+    module Options
+      def self.included: (untyped base) -> untyped
+
+      module ClassMethods
+        def options: () -> untyped
+
+        def option: (untyped name, ?::Hash[untyped, untyped] meta) ?{ (OptionDefinition::Builder) -> untyped } -> untyped
+
+        private
+
+        def default_helpers: (untyped name) -> ::Hash[untyped, untyped]
+
+        def define_helpers: (untyped helpers) -> untyped
+      end
+
+      module InstanceMethods
+        def options: () -> untyped
+
+        def set_option: (untyped name, untyped value) -> untyped
+
+        def get_option: (untyped name) -> untyped
+
+        def reset_option: (untyped name) -> untyped
+
+        def option_defined?: (untyped name) -> untyped
+
+        def options_hash: () -> untyped
+
+        def reset_options!: () -> untyped
+
+        private
+
+        def add_option: (untyped name) -> untyped
+
+        def assert_valid_option!: (untyped name) -> untyped
+      end
+
+      InvalidOptionError: untyped
+    end
+  end
+end

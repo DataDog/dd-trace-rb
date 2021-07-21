@@ -1,0 +1,13 @@
+module Datadog
+  module Security
+    module Reactive
+      class AddressHash < Hash[String, untyped]
+        def []=: (String key, untyped value) -> untyped
+
+        def addresses: () -> untyped
+
+        def with: (untyped address) -> untyped
+      end
+    end
+  end
+end

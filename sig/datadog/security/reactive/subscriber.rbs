@@ -1,0 +1,11 @@
+module Datadog
+  module Security
+    module Reactive
+      class Subscriber
+        def initialize: () { () -> untyped } -> untyped
+
+        def call: (*untyped args) -> untyped
+      end
+    end
+  end
+end

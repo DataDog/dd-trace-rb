@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Environment
+      # Retrieves garbage collection statistics
+      # DEV: Currently only used for testing.
+      module ObjectSpace
+        def self?.estimate_bytesize: (untyped object) -> (0 | untyped)
+      end
+    end
+  end
+end

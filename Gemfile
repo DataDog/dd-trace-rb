@@ -94,3 +94,9 @@ end
 
 # Workaround for 1.4.3 being broken on Java 8, see https://github.com/msgpack/msgpack-ruby/issues/239
 gem 'msgpack', '< 1.4.3' if RUBY_PLATFORM == 'java'
+
+# type checking with steep
+if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
+  gem 'rbs'
+  gem 'steep', '~> 0.42.0'
+end

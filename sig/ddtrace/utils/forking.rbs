@@ -1,0 +1,27 @@
+module Datadog
+  module Utils
+    # Helper methods for managing forking behavior
+    module Forking
+      def self.included: (untyped base) -> untyped
+
+      def self.extended: (untyped base) -> untyped
+
+      def after_fork!: () { () -> untyped } -> untyped
+
+      def forked?: () -> untyped
+
+      def update_fork_pid!: () -> untyped
+
+      def fork_pid: () -> untyped
+
+      # Adds additional functionality for Classes that implement Forking
+      module ClassExtensions
+        # Addresses an edge case where forking before invoking #update_fork_pid! on the
+        # object will cause forking to not be detected in the fork when it should have.
+        #
+        # This wrapper prevents this by initializing the fork PID when the object is created.
+        def initialize: (*untyped args) { () -> untyped } -> untyped
+      end
+    end
+  end
+end
