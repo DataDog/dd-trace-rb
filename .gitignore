@@ -62,3 +62,6 @@ gemfiles/.bundle
 # Native extension binaries
 lib/*.bundle
 lib/*.so
+
+# Extra file kept by sorbet for debugging usage, as documented in https://sorbet.org/docs/adopting#step-6-source-control
+sorbet/rbi/hidden-definitions/errors.txt

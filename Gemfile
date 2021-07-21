@@ -71,3 +71,7 @@ gem 'opentracing', '>= 0.4.1'
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
 gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'] if RUBY_PLATFORM != 'java'
+
+# For type checking
+gem 'sorbet', '>= 0.5.6513', '< 0.6' if RUBY_VERSION >= '2.3.0'
+gem 'spoom', '~> 1.1' if RUBY_VERSION >= '2.4.0'
