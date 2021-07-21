@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/configurable'
 require 'ddtrace/contrib/patchable'
 require 'ddtrace/contrib/registerable'

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/span'
 require 'ddtrace/ext/distributed'
 

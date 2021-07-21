@@ -1,3 +1,4 @@
+# typed: false
 require 'datadog/core/environment/ext'
 
 module Datadog

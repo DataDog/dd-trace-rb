@@ -1,3 +1,4 @@
+# typed: false
 require 'concurrent-ruby'
 
 RSpec.describe Datadog::Utils do

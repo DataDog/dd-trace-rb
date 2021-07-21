@@ -1,3 +1,4 @@
+# typed: ignore
 require 'delayed/plugin'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/delayed_job/ext'

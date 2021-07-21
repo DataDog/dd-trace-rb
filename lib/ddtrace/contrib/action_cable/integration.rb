@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/action_cable/configuration/settings'
 require 'ddtrace/contrib/action_cable/patcher'

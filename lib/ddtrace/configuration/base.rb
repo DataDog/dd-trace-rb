@@ -1,3 +1,4 @@
+# typed: false
 require 'datadog/core/environment/variable_helpers'
 require 'ddtrace/configuration/options'
 

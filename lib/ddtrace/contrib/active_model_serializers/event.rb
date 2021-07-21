@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'

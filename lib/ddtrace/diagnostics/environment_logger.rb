@@ -1,3 +1,4 @@
+# typed: true
 require 'date'
 require 'json'
 require 'rbconfig'

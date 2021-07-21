@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/profiling'
 require 'ddtrace/utils/compression'
 require 'ddtrace/vendor/multipart-post/multipart/post/composite_read_io'

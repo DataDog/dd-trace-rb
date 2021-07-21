@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Contrib
     # Base provides features that are shared across all integrations

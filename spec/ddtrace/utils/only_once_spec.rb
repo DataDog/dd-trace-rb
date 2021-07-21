@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/utils/only_once'
 
 RSpec.describe Datadog::Utils::OnlyOnce do

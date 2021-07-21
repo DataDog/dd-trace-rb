@@ -1,3 +1,4 @@
+# typed: ignore
 require 'sidekiq/testing'
 require 'ddtrace'
 require 'ddtrace/contrib/sidekiq/client_tracer'

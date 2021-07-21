@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/http/api/instance'
 require 'ddtrace/profiling/transport/http/api/spec'
 

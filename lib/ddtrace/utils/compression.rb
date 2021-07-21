@@ -1,3 +1,4 @@
+# typed: true
 require 'zlib'
 
 module Datadog

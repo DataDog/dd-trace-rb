@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/core/environment/ext'
 require 'ddtrace/ext/transport'
 

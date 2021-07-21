@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/env'

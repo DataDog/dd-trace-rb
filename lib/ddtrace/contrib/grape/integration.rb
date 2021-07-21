@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/grape/configuration/settings'
 require 'ddtrace/contrib/grape/patcher'

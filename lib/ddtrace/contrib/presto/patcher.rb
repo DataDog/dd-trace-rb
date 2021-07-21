@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/presto/ext'
 require 'ddtrace/contrib/presto/instrumentation'

@@ -1,3 +1,4 @@
+# typed: true
 require 'json'
 
 require 'ddtrace/ext/net'

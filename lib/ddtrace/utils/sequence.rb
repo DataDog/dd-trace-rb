@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Utils
     # Generates values from a consistent sequence

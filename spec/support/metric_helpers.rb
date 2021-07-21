@@ -1,3 +1,4 @@
+# typed: false
 require 'support/statsd_helpers'
 
 module MetricHelpers

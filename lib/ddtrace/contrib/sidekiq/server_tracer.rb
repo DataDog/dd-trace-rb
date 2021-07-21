@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/sidekiq/tracing'
 require 'ddtrace/contrib/analytics'
 

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/integration'

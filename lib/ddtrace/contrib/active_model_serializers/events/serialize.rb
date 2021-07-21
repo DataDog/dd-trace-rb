@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/active_model_serializers/ext'
 require 'ddtrace/contrib/active_model_serializers/event'
 

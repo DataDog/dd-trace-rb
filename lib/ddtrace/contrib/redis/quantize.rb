@@ -1,3 +1,4 @@
+# typed: true
 require 'set'
 
 module Datadog

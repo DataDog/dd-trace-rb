@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/racecar/ext'
