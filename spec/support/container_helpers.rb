@@ -237,6 +237,7 @@ module ContainerHelpers
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
+    # Container random ID is normally 10 characters, but we've seen cases with fewer characters in the wild.
     let(:container_id_with_random) { "#{container_id_without_random}-609015642" }
     let(:container_id_without_random) { 'cef584f232933b25e0c6933d7e86cb34' }
 
