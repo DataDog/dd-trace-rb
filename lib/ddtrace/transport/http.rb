@@ -16,7 +16,7 @@ module Datadog
   module Transport
     # Namespace for HTTP transport components
     module HTTP
-      include Kernel
+      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
 
       module_function
 
