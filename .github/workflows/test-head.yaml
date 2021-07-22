@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [head, jruby-head, truffleruby-head]
+        ruby: [truffleruby-head]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -13,8 +13,6 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-        continue-on-error: true
-      - run: bundle exec rake test:main
         continue-on-error: true
       - run: bundle exec rake spec:main
         continue-on-error: true
