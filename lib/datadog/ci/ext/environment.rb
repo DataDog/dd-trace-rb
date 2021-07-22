@@ -10,6 +10,8 @@ module Datadog
       # Defines constants for CI tags
       # rubocop:disable Metrics/ModuleLength:
       module Environment
+        include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
         TAG_JOB_NAME = 'ci.job.name'
         TAG_JOB_URL = 'ci.job.url'
         TAG_PIPELINE_ID = 'ci.pipeline.id'
