@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration'
 require 'ddtrace/context'
 require 'ddtrace/ext/distributed'

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/opentracer'
 require 'datadog/statsd'
 

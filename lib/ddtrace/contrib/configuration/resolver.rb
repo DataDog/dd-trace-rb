@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     module Configuration

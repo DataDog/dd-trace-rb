@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/patcher'
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'

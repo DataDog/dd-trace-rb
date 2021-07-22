@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/encoding'
 require 'ddtrace/transport/http'
 

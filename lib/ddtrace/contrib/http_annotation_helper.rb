@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     # Contains methods helpful for tracing/annotating HTTP request libraries

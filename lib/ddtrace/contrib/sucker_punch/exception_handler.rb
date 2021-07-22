@@ -1,3 +1,4 @@
+# typed: false
 require 'sucker_punch'
 
 module Datadog

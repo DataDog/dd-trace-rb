@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   # Profiling entry point, which coordinates collectors and a scheduler
   class Profiler

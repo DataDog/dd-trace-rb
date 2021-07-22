@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Workers
     # Adds looping behavior to workers, with a sleep

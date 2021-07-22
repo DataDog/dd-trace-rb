@@ -1,3 +1,4 @@
+# typed: true
 require_relative 'datadog_interceptor'
 
 module Datadog

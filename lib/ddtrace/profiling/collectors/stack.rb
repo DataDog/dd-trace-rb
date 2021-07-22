@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/profiling/backtrace_location'
 require 'ddtrace/profiling/events/stack'
 require 'ddtrace/utils/only_once'

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/http/builder'
 
 require 'ddtrace/profiling/transport/http/api'

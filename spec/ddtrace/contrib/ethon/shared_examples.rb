@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/ethon/integration_context'
 

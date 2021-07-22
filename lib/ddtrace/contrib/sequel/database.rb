@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/analytics'

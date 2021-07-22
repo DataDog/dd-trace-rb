@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/action_view/ext'
 
 module Datadog

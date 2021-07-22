@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_record/ext'
 require 'ddtrace/contrib/active_record/event'

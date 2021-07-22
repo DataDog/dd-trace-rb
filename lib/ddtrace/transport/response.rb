@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Transport
     # Defines abstract response for transport operations

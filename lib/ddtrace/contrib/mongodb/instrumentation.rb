@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/pin'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/app_types'

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/sucker_punch/configuration/settings'
 require 'ddtrace/contrib/sucker_punch/patcher'

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 require 'support/faux_writer'

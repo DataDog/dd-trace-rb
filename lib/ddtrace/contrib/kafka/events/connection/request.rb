@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/kafka/ext'
 require 'ddtrace/contrib/kafka/event'
 

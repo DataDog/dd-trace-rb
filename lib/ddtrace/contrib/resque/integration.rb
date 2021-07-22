@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/resque/configuration/settings'
 require 'ddtrace/contrib/resque/patcher'

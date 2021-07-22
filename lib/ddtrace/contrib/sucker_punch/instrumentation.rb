@@ -1,3 +1,4 @@
+# typed: false
 require 'sucker_punch'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sucker_punch/ext'

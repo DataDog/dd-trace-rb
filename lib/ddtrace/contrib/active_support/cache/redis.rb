@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/active_support/cache/patcher'
 
 module Datadog

@@ -1,3 +1,4 @@
+# typed: false
 require 'forwardable'
 
 require 'ddtrace/runtime/metrics'

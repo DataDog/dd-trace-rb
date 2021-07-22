@@ -1,3 +1,4 @@
+# typed: false
 module LanguageHelpers
   module HashHelpers
     # Introduced in Ruby 2.5

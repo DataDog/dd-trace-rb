@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/diagnostics/health'
 
 module Datadog

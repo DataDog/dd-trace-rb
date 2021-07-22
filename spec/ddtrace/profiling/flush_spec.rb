@@ -1,3 +1,4 @@
+# typed: false
 RSpec.describe Datadog::Profiling::Flush do
   describe '#new' do
     context 'given no arguments' do

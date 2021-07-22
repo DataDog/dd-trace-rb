@@ -1,3 +1,4 @@
+# typed: ignore
 # This module tests the right integration between Sidekiq and
 # Rails. Functionality tests for Rails and Sidekiq must go
 # in their testing modules.

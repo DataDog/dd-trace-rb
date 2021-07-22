@@ -1,3 +1,4 @@
+# typed: ignore
 require 'minitest'
 require 'minitest/autorun'
 require 'benchmark'

@@ -1,3 +1,4 @@
+# typed: ignore
 require 'spec_helper'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/spec_helper'

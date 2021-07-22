@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Pipeline
     # SpanFilter implements a processor that filters entire span subtrees

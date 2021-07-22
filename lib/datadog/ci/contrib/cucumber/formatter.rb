@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/ci/test'
 require 'datadog/ci/ext/app_types'
 require 'datadog/ci/ext/environment'

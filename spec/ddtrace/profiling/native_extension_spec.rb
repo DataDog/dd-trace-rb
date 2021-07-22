@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/profiling/native_extension'
 
 RSpec.describe Datadog::Profiling::NativeExtension do

@@ -1,3 +1,4 @@
+# typed: false
 routes = {
   '/' => 'tracing#index',
   '/nested_partial' => 'tracing#nested_partial',

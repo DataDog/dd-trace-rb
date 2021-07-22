@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/http'
 
 require 'ddtrace/contrib/action_pack/ext'

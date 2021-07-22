@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Configuration
     # Represents an instance of an integration configuration option

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/profiling'
 require 'ddtrace/profiling/events/stack'
 require 'ddtrace/profiling/pprof/builder'

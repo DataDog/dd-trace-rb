@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/action_view/events/render_partial'
 require 'ddtrace/contrib/action_view/events/render_template'
 

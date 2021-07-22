@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Configuration
     class OptionSet < Hash

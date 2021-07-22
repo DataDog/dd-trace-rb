@@ -1,1 +1,2 @@
 gemfiles/**/* linguist-generated=true
+sorbet/rbi/**/* linguist-generated=true

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration/option_set'
 require 'ddtrace/configuration/option_definition'
 require 'ddtrace/configuration/option_definition_set'

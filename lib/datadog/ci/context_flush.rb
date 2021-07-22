@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/context_flush'
 
 module Datadog

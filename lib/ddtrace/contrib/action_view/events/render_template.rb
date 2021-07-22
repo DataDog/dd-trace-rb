@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/action_view/ext'

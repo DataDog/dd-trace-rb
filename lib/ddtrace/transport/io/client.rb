@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/statistics'
 require 'ddtrace/transport/io/response'
 

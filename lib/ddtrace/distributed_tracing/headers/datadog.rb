@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/distributed'
 require 'ddtrace/distributed_tracing/headers/headers'
 

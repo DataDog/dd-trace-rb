@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/configuration/settings'
 

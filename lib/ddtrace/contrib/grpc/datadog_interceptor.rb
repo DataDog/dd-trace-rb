@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'

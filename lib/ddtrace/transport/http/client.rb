@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/http/statistics'
 require 'ddtrace/transport/http/env'
 

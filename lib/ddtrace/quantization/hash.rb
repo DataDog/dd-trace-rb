@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Quantization
     # Quantization for HTTP resources

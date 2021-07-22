@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace'
 
 # Railtie to include AutoInstrumentation in rails loading

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/writer'
 
 require 'support/faux_transport'

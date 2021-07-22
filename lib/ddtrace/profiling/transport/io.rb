@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/profiling/transport/io/client'
 require 'ddtrace/profiling/encoding/profile'
 

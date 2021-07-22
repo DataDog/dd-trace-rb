@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/elasticsearch/configuration/settings'
 require 'ddtrace/contrib/elasticsearch/patcher'

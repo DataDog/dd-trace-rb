@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/faraday/ext'

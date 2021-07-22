@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'spec/ddtrace/contrib/rails/support/deprecation'
 

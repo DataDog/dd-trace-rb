@@ -1,3 +1,4 @@
+# typed: ignore
 require 'concurrent/future'
 
 require 'ddtrace/contrib/support/spec_helper'

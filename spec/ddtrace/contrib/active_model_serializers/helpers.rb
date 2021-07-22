@@ -1,3 +1,4 @@
+# typed: ignore
 module ActiveModelSerializersHelpers
   class << self
     def ams_0_10_or_newer?

@@ -1,3 +1,4 @@
+# typed: strict
 require 'opentracing'
 require 'opentracing/carrier'
 require 'ddtrace'

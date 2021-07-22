@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/logger'
 require 'ddtrace/transport/http'
 
