@@ -72,7 +72,8 @@ module Datadog
           #
           # @deprecated Use `Datadog::Contrib::REGISTRY` instead
           def registry
-            Datadog.logger.warn('Deprecated access to `Datadog.configuration.registry`, use `Datadog.registry` instead.')
+            Datadog.logger.warn('Deprecated access to `Datadog.configuration.registry`, use `Datadog.registry` instead.' \
+                                '`Datadog.configuration.registry` will be removed in a future version.')
             Contrib::REGISTRY
           end
 
