@@ -82,7 +82,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
       describe '.registry=' do
         it 'to not change registry on deprecated assignment attempt' do
-          expect(Datadog.logger).to receive(:warn).with(/Deprecated configuration attempt of the tracer registry/)
+          expect(Datadog.logger).to receive(:warn).with(/no longer supported and was ignored/)
 
           settings.registry = double
 
