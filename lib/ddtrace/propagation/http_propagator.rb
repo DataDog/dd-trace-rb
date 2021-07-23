@@ -31,7 +31,7 @@ module Datadog
         rescue => e
           Datadog.logger.error(
             'Error injecting propagated context into the environment. ' \
-            "Cause: #{e} Location: #{e.backtrace.first}"
+            "Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
       end
@@ -54,7 +54,7 @@ module Datadog
         rescue => e
           Datadog.logger.error(
             'Error extracting propagated context from the environment. ' \
-            "Cause: #{e} Location: #{e.backtrace.first}"
+            "Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
 

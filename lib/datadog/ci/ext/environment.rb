@@ -339,49 +339,49 @@ module Datadog
             committer_date: Time.at(fields[5].to_i).utc.to_datetime.iso8601
           }
         rescue => e
-          Datadog.logger.debug("Unable to read git commit users: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git commit users: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 
         def git_repository_url
           exec_git_command('git ls-remote --get-url')
         rescue => e
-          Datadog.logger.debug("Unable to read git repository url: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git repository url: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 
         def git_commit_message
           exec_git_command('git show -s --format=%s')
         rescue => e
-          Datadog.logger.debug("Unable to read git commit message: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git commit message: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 
         def git_branch
           exec_git_command('git rev-parse --abbrev-ref HEAD')
         rescue => e
-          Datadog.logger.debug("Unable to read git branch: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git branch: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 
         def git_commit_sha
           exec_git_command('git rev-parse HEAD')
         rescue => e
-          Datadog.logger.debug("Unable to read git commit SHA: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git commit SHA: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 
         def git_tag
           exec_git_command('git tag --points-at HEAD')
         rescue => e
-          Datadog.logger.debug("Unable to read git tag: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git tag: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 
         def git_base_directory
           exec_git_command('git rev-parse --show-toplevel')
         rescue => e
-          Datadog.logger.debug("Unable to read git base directory: #{e.message} at #{e.backtrace.first}")
+          Datadog.logger.debug("Unable to read git base directory: #{e.message} at #{Array(e.backtrace).first}")
           nil
         end
 

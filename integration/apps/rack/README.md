@@ -27,7 +27,7 @@ Run `docker-compose up` to auto-start the webserver. It should bind to `localhos
 Alternatively, you can run it manually with:
 
 ```sh
-docker-compose run --rm -p 80:80 app bin/run <process>
+docker-compose run --rm -p 80:80 app "bin/run <process>"
 ```
 
 The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` if not provided. See [Processes](#processes) for more details.
@@ -38,6 +38,7 @@ Within the container, run `bin/run <process>` where `<process>` is one of the fo
 
  - `puma`: Puma web server
  - `unicorn`: Unicorn web server
+ - `webrick`: WEBrick web server
  - `irb`: IRB session
 
  Alternatively, set `DD_DEMO_ENV_PROCESS` to run a particular process by default when `bin/run` is run.

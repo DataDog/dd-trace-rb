@@ -15,6 +15,7 @@ gem 'memory_profiler', '~> 0.9'
 gem 'minitest', '= 5.10.1'
 gem 'minitest-around', '0.5.0'
 gem 'minitest-stub_any_instance', '1.0.2'
+gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
 gem 'pry'
 if RUBY_PLATFORM != 'java'
@@ -25,12 +26,13 @@ if RUBY_PLATFORM != 'java'
 else
   gem 'pry-debugger-jruby'
 end
-gem 'rake', '>= 10.5'
+gem 'rake', '>= 10.5', '< 13.0.4' # Locking rake until https://github.com/thoughtbot/appraisal/pull/184 is released
+gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.4.1'
-gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.3.0'
+gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
   # Merging branch coverage results does not work for old, unsupported rubies.
@@ -58,7 +60,9 @@ end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-gem 'dogstatsd-ruby', '< 5.0'
+# dogstatsd v5, but lower than 5.2, has possible memory leak with ddtrace.
+# @see https://github.com/DataDog/dogstatsd-ruby/issues/182
+gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 gem 'opentracing', '>= 0.4.1'
 
 # Profiler optional dependencies

@@ -29,6 +29,7 @@ test_containers:
         description: Use latest version of dependencies during testing
         type: boolean
         default: false
+    resource_class: <<parameters.resource_class_to_use>>
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
     JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
@@ -77,11 +78,11 @@ test_containers:
     image: memcached:1.5-alpine
   - &memcached_port 11211
   - &container_agent
-    image: datadog/docker-dd-agent
+    image: datadog/agent
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=invalid_key_but_this_is_fine
+      - DD_API_KEY=00000000000000000000000000000000
   - &agent_port 8126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
@@ -91,13 +92,23 @@ check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
     # To accomplish such check, we save `bundle_checksum` alongside the cached
     # gems. After gems are restored, we compare the restored `bundle_checksum`'s
     # content with the current commit's `bundle_checksum`.
+    #
+    # Because we are using a "soft" approach to our gemset lock files, we allow
+    # for partial matches to lock files until a new release goes out.
+    # This means that we might install slightly out of date gems, instead of the
+    # very latest versions from RubyGems until the next gemset update commit.
     command: |
       ! cmp -s .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
       echo "export CI_BUNDLE_CACHE_HIT=$?" >> $BASH_ENV
 save_bundle_checksum: &save_bundle_checksum
   run:
     name: Save current bundle checksum alongside cached gems
-    command: cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        # Recompute gemfiles/*.lock checksum, as it might have changed.
+        cat Gemfile Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      fi
+      cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
 step_bundle_install: &step_bundle_install
   run:
     name: Install gem dependencies
@@ -125,27 +136,15 @@ step_appraisal_update: &step_appraisal_update
     name: Update Appraisal gems
     command: | # Remove all generated gemfiles and lockfiles, resolve, and install dependencies again
       bundle exec appraisal update
-ensure_lockfile_committed: &ensure_lockfile_committed
-  run:
-    name: Ensure Gem lock files are commited
-    command: |
-      CHANGED_FILES=$(git status gemfiles/ --porcelain)
-      if [[ $CHANGED_FILES ]]
-      then
-        >&2 echo "Gem lock files were modified or new lock files were created during"
-        >&2 echo "'bundle install' and 'bundle appraisal install' installation in CI."
-        >&2 echo "You need to check in those changes in your branch."
-        >&2 echo "Affected files:"
-        >&2 echo $CHANGED_FILES
-        >&2 GIT_PAGER=cat git diff HEAD
-        exit 1
-      fi
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
+    # This checksum leaves some leeway for changes to Gemfile.lock, as
+    # we have a "soft" approach to committing gemset changes until release, given
+    # updating the gemset lock files produces extremely large commits.
     command: |
       bundle lock # Create Gemfile.lock
-      cat Gemfile.lock gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      cat Gemfile Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
@@ -202,7 +201,6 @@ orbs:
                   equal: [ << parameters.edge >>, true ]
               steps:
                 - *step_appraisal_install # Run on a stable set of gems we integrate with
-                - *ensure_lockfile_committed
           - *save_bundle_checksum
           - save_cache:
               key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
@@ -486,6 +484,7 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.0.0'
     image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
+    resource_class_to_use: medium+
   - &config-jruby-9_2-latest # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2-latest'
@@ -495,7 +494,7 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'truffleruby-21.0.0'
     image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_0_0
-    resource_class_to_use: large
+    resource_class_to_use: medium+
 
 workflows:
   version: 2

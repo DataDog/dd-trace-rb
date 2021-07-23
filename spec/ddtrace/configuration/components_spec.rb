@@ -35,7 +35,7 @@ RSpec.describe Datadog::Configuration::Components do
         .and_return(tracer)
 
       expect(described_class).to receive(:build_profiler)
-        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings))
+        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings), tracer)
         .and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -666,8 +666,9 @@ RSpec.describe Datadog::Configuration::Components do
   describe '::build_profiler' do
     let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:profiler) { build_profiler }
+    let(:tracer) { instance_double(Datadog::Tracer) }
 
-    subject(:build_profiler) { described_class.build_profiler(settings, agent_settings) }
+    subject(:build_profiler) { described_class.build_profiler(settings, agent_settings, tracer) }
 
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
@@ -782,50 +783,6 @@ RSpec.describe Datadog::Configuration::Components do
             expect(profiler_setup_task).to receive(:run)
 
             build_profiler
-          end
-        end
-
-        context 'and :site + :api_key' do
-          context 'are set' do
-            let(:site) { 'test.datadoghq.com' }
-            let(:api_key) { SecureRandom.uuid }
-
-            before do
-              allow(settings)
-                .to receive(:site)
-                .and_return(site)
-
-              allow(settings)
-                .to receive(:api_key)
-                .and_return(api_key)
-            end
-
-            it_behaves_like 'profiler with default collectors'
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-
-            it 'configures agentless transport' do
-              expect(profiler.scheduler.exporters).to have(1).item
-              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
-              http_exporter = profiler.scheduler.exporters.first
-
-              expect(http_exporter).to have_attributes(
-                transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
-              )
-
-              # Should be configured for agentless transport
-              default_api = Datadog::Profiling::Transport::HTTP::API::V1
-              expect(http_exporter.transport.api).to have_attributes(
-                adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
-                spec: Datadog::Profiling::Transport::HTTP::API.api_defaults[default_api]
-              )
-              expect(http_exporter.transport.api.adapter).to have_attributes(
-                hostname: "intake.profile.#{site}",
-                port: 443,
-                ssl: true,
-                timeout: settings.profiling.upload.timeout_seconds
-              )
-            end
           end
         end
 

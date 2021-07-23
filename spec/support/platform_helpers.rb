@@ -1,5 +1,9 @@
+require 'os'
+
 module PlatformHelpers
   module_function
+
+  # Ruby runtime engines
 
   def mri?
     RUBY_ENGINE == 'ruby'.freeze
@@ -16,5 +20,15 @@ module PlatformHelpers
   def engine_version
     version = defined?(RUBY_ENGINE_VERSION) ? RUBY_ENGINE_VERSION : RUBY_VERSION
     Gem::Version.new(version)
+  end
+
+  # Operating systems
+
+  def linux?
+    OS.linux?
+  end
+
+  def mac?
+    OS.mac?
   end
 end

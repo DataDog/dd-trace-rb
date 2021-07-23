@@ -28,7 +28,14 @@ Gem::Specification.new do |spec|
     raise 'RubyGems 2.0 or newer is required to protect against public gem pushes.'
   end
 
-  spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+  spec.files =
+    `git ls-files -z`
+    .split("\x0")
+    .reject { |f| f.match(%r{^(test|spec|features|[.]circleci|[.]github|[.]dd-ci|benchmarks|gemfiles|integration|tasks)/}) }
+    .reject do |f|
+      ['.dockerignore', '.env', '.gitattributes', '.gitlab-ci.yml', '.rspec', '.rubocop.yml',
+       '.rubocop_todo.yml', '.simplecov', 'Appraisals', 'Gemfile', 'Rakefile', 'docker-compose.yml'].include?(f)
+    end
   spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
@@ -41,4 +48,6 @@ Gem::Specification.new do |spec|
 
   # Used by the profiler
   spec.add_dependency 'ffi', '~> 1.0'
+
+  spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
 end

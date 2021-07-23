@@ -88,9 +88,9 @@ RSpec.describe 'Rails Log Auto Injection' do
     end
 
     if Rails.version >= '4.0'
-      # for log_injection testing
-      require 'lograge'
       context 'with Lograge' do
+        # for log_injection testing
+        require 'lograge'
         subject(:response) { get '/lograge' }
 
         before do

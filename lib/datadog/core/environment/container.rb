@@ -11,7 +11,7 @@ module Datadog
         PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/.freeze
         POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/.freeze
         CONTAINER_REGEX = /(?<container>#{UUID_PATTERN}|#{CONTAINER_PATTERN})(?:.scope)?$/.freeze
-        FARGATE_14_CONTAINER_REGEX = /(?<container>[0-9a-f]{32}-[0-9]{10})/.freeze
+        FARGATE_14_CONTAINER_REGEX = /(?<container>[0-9a-f]{32}-[0-9]{1,10})/.freeze
 
         Descriptor = Struct.new(
           :platform,
@@ -59,7 +59,7 @@ module Datadog
                                 || parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
                 else
                   if (container_id = parts[-1][CONTAINER_REGEX, :container])
-                    task_uid = parts[-2][POD_REGEX, :pod]
+                    task_uid = parts[-2][POD_REGEX, :pod] || parts[1][POD_REGEX, :pod]
                   else
                     container_id = parts[-1][FARGATE_14_CONTAINER_REGEX, :container]
                   end
@@ -77,7 +77,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(
-                "Error while parsing container info. Cause: #{e.message} Location: #{e.backtrace.first}"
+                "Error while parsing container info. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
               )
             end
           end

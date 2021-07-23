@@ -15,16 +15,18 @@ RSpec.describe 'profiling integration test' do
     skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
   end
 
+  let(:tracer) { instance_double(Datadog::Tracer) }
+
   shared_context 'StackSample events' do
     # NOTE: Please do not convert stack_one or stack_two to let, because
     # we want the method names on the resulting stacks to be stack_one or
     # stack_two, not block in ... when showing up in the stack traces
     def stack_one
-      @stack_one ||= Thread.current.backtrace_locations[1..3]
+      @stack_one ||= Array(Thread.current.backtrace_locations)[1..3]
     end
 
     def stack_two
-      @stack_two ||= Thread.current.backtrace_locations[1..3]
+      @stack_two ||= Array(Thread.current.backtrace_locations)[1..3]
     end
 
     let(:trace_id) { 0 }
@@ -55,7 +57,7 @@ RSpec.describe 'profiling integration test' do
     let(:collector) do
       Datadog::Profiling::Collectors::Stack.new(
         recorder,
-        enabled: true,
+        trace_identifiers_helper: Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer),
         max_frames: 400
       )
     end
@@ -121,9 +123,10 @@ RSpec.describe 'profiling integration test' do
           @current_span = span
           example.run
         end
-
         Datadog.tracer.shutdown!
       end
+
+      let(:tracer) { Datadog.tracer }
 
       before do
         expect(recorder)

@@ -2,6 +2,7 @@ require 'bundler/gem_tasks'
 require 'ddtrace/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
+require 'rake/extensiontask'
 require 'rake/testtask'
 require 'appraisal'
 require 'yard'
@@ -21,6 +22,7 @@ namespace :spec do
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
+  Rake::Task[:main].enhance([:compile]) if RUBY_PLATFORM != 'java' # Compile native extensions before running the main task
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
@@ -39,7 +41,8 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/ddtrace/contrib/rails/**/*_spec.rb'
-    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument}*_spec.rb'
+    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
+                        'semantic_logger}*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -65,6 +68,14 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
     t.pattern = 'spec/ddtrace/auto_instrument_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  # rails_semantic_logger is the dog at the dog park that doesnt play nicely with other
+  # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
+  # in order to isolate its effects for rails logs auto injection
+  RSpec::Core::RakeTask.new(:railssemanticlogger) do |t, args|
+    t.pattern = 'spec/ddtrace/contrib/rails/**/*rails_semantic_logger*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -124,6 +135,7 @@ namespace :spec do
     :resque,
     :rest_client,
     :rspec,
+    :semantic_logger,
     :sequel,
     :shoryuken,
     :sidekiq,
@@ -260,6 +272,7 @@ task :ci do
     declare 'bundle exec appraisal contrib-old rake spec:resque'
     declare 'bundle exec appraisal contrib-old rake spec:rest_client'
     declare 'bundle exec appraisal contrib-old rake spec:rspec'
+    declare 'bundle exec appraisal contrib-old rake spec:semantic_logger'
     declare 'bundle exec appraisal contrib-old rake spec:sequel'
     declare 'bundle exec appraisal contrib-old rake spec:sidekiq'
     declare 'bundle exec appraisal contrib-old rake spec:sinatra'
@@ -279,6 +292,7 @@ task :ci do
     declare 'bundle exec appraisal rails4-postgres-redis rake spec:railsredis'
     declare 'bundle exec appraisal rails4-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails4-postgres rake spec:railsautoinstrument'
+    declare 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
     # Rails specs
     declare 'bundle exec appraisal rails30-postgres rake spec:rails'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
@@ -335,6 +349,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
     declare 'bundle exec appraisal contrib rake spec:rspec'
+    declare 'bundle exec appraisal contrib rake spec:semantic_logger'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -364,6 +379,8 @@ task :ci do
     declare 'bundle exec appraisal rails5-postgres-sidekiq rake spec:railsactivejob'
     declare 'bundle exec appraisal rails5-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails5-postgres rake spec:railsautoinstrument'
+    declare 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
+    declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
     # Rails specs
     declare 'bundle exec appraisal rails30-postgres rake spec:rails'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
@@ -416,6 +433,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
     declare 'bundle exec appraisal contrib rake spec:rspec'
+    declare 'bundle exec appraisal contrib rake spec:semantic_logger'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -447,6 +465,8 @@ task :ci do
     declare 'bundle exec appraisal rails5-postgres-sidekiq rake spec:railsactivejob'
     declare 'bundle exec appraisal rails5-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails5-postgres rake spec:railsautoinstrument'
+    declare 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
+    declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
     # Rails specs
     declare 'bundle exec appraisal rails30-postgres rake spec:rails'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
@@ -504,6 +524,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
     declare 'bundle exec appraisal contrib rake spec:rspec'
+    declare 'bundle exec appraisal contrib rake spec:semantic_logger'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -522,6 +543,7 @@ task :ci do
     declare 'bundle exec appraisal rails5-postgres-sidekiq rake spec:railsactivejob'
     declare 'bundle exec appraisal rails5-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails5-postgres rake spec:railsautoinstrument'
+    declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
     # Rails specs
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
@@ -579,6 +601,7 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:resque'
     declare 'bundle exec appraisal contrib rake spec:rest_client'
     declare 'bundle exec appraisal contrib rake spec:rspec'
+    declare 'bundle exec appraisal contrib rake spec:semantic_logger'
     declare 'bundle exec appraisal contrib rake spec:sequel'
     declare 'bundle exec appraisal contrib rake spec:shoryuken'
     declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -604,6 +627,9 @@ task :ci do
     declare 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
     declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails6-postgres rake spec:railsautoinstrument'
+    declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
+    declare 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
+    declare 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
     # Rails specs
     declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
@@ -676,6 +702,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
       declare 'bundle exec appraisal contrib rake spec:rspec'
+      declare 'bundle exec appraisal contrib rake spec:semantic_logger'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -702,6 +729,9 @@ task :ci do
       declare 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
       declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
       declare 'bundle exec appraisal rails6-postgres rake spec:railsautoinstrument'
+      declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
+      declare 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
+      declare 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
@@ -775,6 +805,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
       declare 'bundle exec appraisal contrib rake spec:rspec'
+      declare 'bundle exec appraisal contrib rake spec:semantic_logger'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -801,6 +832,9 @@ task :ci do
       declare 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
       declare 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
       declare 'bundle exec appraisal rails6-postgres rake spec:railsautoinstrument'
+      declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
+      declare 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
+      declare 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
       # Rails specs
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
@@ -872,6 +906,7 @@ task :ci do
       declare 'bundle exec appraisal contrib rake spec:resque'
       declare 'bundle exec appraisal contrib rake spec:rest_client'
       declare 'bundle exec appraisal contrib rake spec:rspec'
+      declare 'bundle exec appraisal contrib rake spec:semantic_logger'
       declare 'bundle exec appraisal contrib rake spec:sequel'
       declare 'bundle exec appraisal contrib rake spec:shoryuken'
       declare 'bundle exec appraisal contrib rake spec:sidekiq'
@@ -889,6 +924,7 @@ task :ci do
       declare 'bundle exec appraisal rails61-postgres rake test:rails'
       declare 'bundle exec appraisal rails61-postgres-redis rake spec:railsredis'
       declare 'bundle exec appraisal rails61-postgres-sidekiq rake spec:railsactivejob'
+      declare 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
 
       # explicitly test resque-2x compatability
       declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
@@ -945,4 +981,8 @@ namespace :changelog do
   end
 end
 
-task default: :test
+Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+  ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
+end
+
+task default: 'spec:main'

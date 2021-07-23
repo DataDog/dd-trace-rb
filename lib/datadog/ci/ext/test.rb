@@ -14,6 +14,12 @@ module Datadog
         TAG_TRAITS = 'test.traits'.freeze
         TAG_TYPE = 'test.type'.freeze
 
+        # Environment runtime tags
+        TAG_OS_ARCHITECTURE = 'os.architecture'.freeze
+        TAG_OS_PLATFORM = 'os.platform'.freeze
+        TAG_RUNTIME_NAME = 'runtime.name'.freeze
+        TAG_RUNTIME_VERSION = 'runtime.version'.freeze
+
         # TODO: is there a better place for SPAN_KIND?
         TAG_SPAN_KIND = 'span.kind'.freeze
 

@@ -86,6 +86,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
      - [Profiling](#profiling)
+         - [Troubleshooting](#troubleshooting)
+         - [Profiling Resque jobs](#profiling-resque-jobs)
  - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
     - [Payload too large](#payload-too-large)
     - [Stack level too deep](#stack-level-too-deep)
@@ -1028,6 +1030,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `grpc` instrumentation | `'grpc'` |
+| `error_handler` | Custom error handler invoked when a request is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 **Configuring clients to use different settings**
 
@@ -2240,7 +2243,7 @@ In many cases, such as logging, it may be useful to correlate trace IDs to other
 
 ##### Automatic
 
-For Rails applications using the default logger (`ActiveSupport::TaggedLogging`) or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true` or by setting environment variable `DD_LOGS_INJECTION=true`:
+For Rails applications using the default logger (`ActiveSupport::TaggedLogging`), `semantic_logger`, or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true` or by setting environment variable `DD_LOGS_INJECTION=true`:
 
 ```ruby
 # config/initializers/datadog.rb
@@ -2410,7 +2413,7 @@ The tracer and its integrations can produce some additional metrics that can pro
 To configure your application for metrics collection:
 
 1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
-2. Add `gem 'dogstatsd-ruby', '~> 4.0'` to your Gemfile (note that it is advised to pin v4.x [until this issue is solved](https://github.com/DataDog/dogstatsd-ruby/issues/182))
+2. Add `gem 'dogstatsd-ruby', '~> 5.2'` to your Gemfile
 
 #### For application runtime
 
@@ -2490,6 +2493,10 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 **Setup**
 
 To get started with profiling, follow the [Profiler Getting Started Guide](https://docs.datadoghq.com/tracing/profiler/getting_started/?code-lang=ruby).
+
+#### Troubleshooting
+
+If you run into issues with profiling, please check the [Profiler Troubleshooting Guide](https://docs.datadoghq.com/tracing/profiler/profiler_troubleshooting/?code-lang=ruby).
 
 #### Profiling Resque jobs
 

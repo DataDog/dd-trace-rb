@@ -38,7 +38,7 @@ module Datadog
         # @param e [Exception]
         def on_patch_error(e)
           # Log the error
-          Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+          Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{Array(e.backtrace).first}")
 
           # Emit a metric
           tags = default_tags

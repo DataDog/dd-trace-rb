@@ -43,94 +43,70 @@ RSpec.describe Datadog::Core::Environment::Cgroup do
         end
       end
 
+      shared_examples 'parsing cgroup file into an array of descriptors' do
+        it 'returns an array of descriptors' do
+          is_expected.to be_an(Array)
+          is_expected.to all(be_a(described_class::Descriptor))
+        end
+
+        it 'parses each line into an element' do
+          is_expected.to have(lines).items
+        end
+      end
+
       context 'in a non-containerized environment' do
         include_context 'non-containerized environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(13).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a non-containerized environment with VTE' do
         include_context 'non-containerized environment with VTE'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(13).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a Docker environment' do
         include_context 'Docker environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(13).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a Kubernetes environment' do
         include_context 'Kubernetes environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(11).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a Kubernetes burstable environment' do
         include_context 'Kubernetes burstable environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(11).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in an ECS environment' do
         include_context 'ECS environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(9).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a Fargate 1.3- environment' do
         include_context 'Fargate 1.3- environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(11).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a Fargate 1.4+ environment' do
         include_context 'Fargate 1.4+ environment'
-
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(11).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
 
       context 'in a Fargate 1.4+ (2-part) environment' do
         include_context 'Fargate 1.4+ (2-part) environment'
+        include_examples 'parsing cgroup file into an array of descriptors'
+      end
 
-        it do
-          is_expected.to be_a_kind_of(Array)
-          is_expected.to have(11).items
-          is_expected.to include(be_a_kind_of(described_class::Descriptor))
-        end
+      context 'in a Fargate 1.4+ (2-part short random) environment' do
+        include_context 'Fargate 1.4+ (2-part short random) environment'
+        include_examples 'parsing cgroup file into an array of descriptors'
+      end
+
+      context 'in a Fargate 1.4+ with ECS+docker environment' do
+        include_context 'Fargate 1.4+ with ECS+docker environment'
+        include_examples 'parsing cgroup file into an array of descriptors'
       end
     end
   end

@@ -1,3 +1,5 @@
+return unless __FILE__ == $PROGRAM_NAME
+
 require 'benchmark/ips'
 require 'ddtrace'
 require 'pry'
