@@ -79,7 +79,7 @@ module Datadog
           # The registry only holds declarative constant values and cannot be modified.
           # This option is a no-op and will be removed in the future.
           #
-          # @deprecated Use `Datadog::Contrib::REGISTRY` instead
+          # @deprecated The registry is now a global constant, and can be overwritten.
           def registry=(_arg)
             Datadog.logger.warn('Deprecated configuration attempt of the tracer registry. ' \
                                 'The register is a global constant and cannot be directly overwritten.' \
