@@ -6,6 +6,12 @@ module Datadog
   module Contrib
     # Extensions that can be added to the base library
     # Adds registry, configuration access for integrations.
+    #
+    # DEV: The Registry should probably be part of the core tracer
+    # as it represents a global tracer repository that is strongly intertwined
+    # with the tracer lifecycle and deeply modifies the tracer initialization
+    # process.
+    # Most of this file should probably live inside the tracer core.
     module Extensions
       def self.extended(base)
         base.extend(Helpers)
