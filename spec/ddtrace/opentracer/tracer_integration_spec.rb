@@ -38,7 +38,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
 
         context 'when given start_time' do
           let(:options) { { start_time: start_time } }
-          let(:start_time) { Time.new(2000, 1, 1) }
+          let(:start_time) { Time.utc(2000, 1, 1) }
 
           it { expect(datadog_span.start_time).to be(start_time) }
         end
@@ -191,7 +191,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
 
         context 'when given start_time' do
           let(:options) { { start_time: start_time } }
-          let(:start_time) { Time.new(2000, 1, 1) }
+          let(:start_time) { Time.utc(2000, 1, 1) }
 
           it { expect(datadog_span.start_time).to be(start_time) }
         end

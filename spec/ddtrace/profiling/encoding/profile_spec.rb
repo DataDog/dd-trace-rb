@@ -41,8 +41,8 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
         instance_double(
           Datadog::Profiling::Flush,
           event_groups: event_groups,
-          start: Time.new(2020).utc,
-          finish: Time.new(2021).utc,
+          start: Time.utc(2020),
+          finish: Time.utc(2021),
           event_count: 42
         )
       end
