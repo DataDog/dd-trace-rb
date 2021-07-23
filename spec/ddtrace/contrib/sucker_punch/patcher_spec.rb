@@ -33,9 +33,9 @@ RSpec.describe 'sucker_punch instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:sucker_punch].reset_configuration!
+    Datadog.registry[:sucker_punch].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:sucker_punch].reset_configuration!
+    Datadog.registry[:sucker_punch].reset_configuration!
   end
 
   let(:expect_thread?) { true }

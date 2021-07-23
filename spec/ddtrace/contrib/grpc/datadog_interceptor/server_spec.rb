@@ -18,9 +18,9 @@ RSpec.describe 'tracing on the server connection' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:grpc].reset_configuration!
+    Datadog.registry[:grpc].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:grpc].reset_configuration!
+    Datadog.registry[:grpc].reset_configuration!
   end
 
   shared_examples 'span data contents' do

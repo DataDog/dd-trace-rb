@@ -83,7 +83,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   end
 
   before do
-    Datadog::Contrib::REGISTRY[:active_record].reset_configuration!
+    Datadog.registry[:active_record].reset_configuration!
 
     Datadog.configure do |c|
       c.use :active_record, configuration_options
@@ -93,7 +93,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
   end
 
   after do
-    Datadog::Contrib::REGISTRY[:active_record].reset_configuration!
+    Datadog.registry[:active_record].reset_configuration!
   end
 
   context 'when databases are configured with' do

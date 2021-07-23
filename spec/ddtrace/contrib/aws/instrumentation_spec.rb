@@ -18,9 +18,9 @@ RSpec.describe 'AWS instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:aws].reset_configuration!
+    Datadog.registry[:aws].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:aws].reset_configuration!
+    Datadog.registry[:aws].reset_configuration!
   end
 
   context 'with a core AWS SDK client', if: RUBY_VERSION >= '2.2.0' do

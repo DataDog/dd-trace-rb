@@ -31,7 +31,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
   end
 
-  after { Datadog::Contrib::REGISTRY[:elasticsearch].reset_configuration! }
+  after { Datadog.registry[:elasticsearch].reset_configuration! }
 
   context 'when configured with middleware' do
     let(:client) do

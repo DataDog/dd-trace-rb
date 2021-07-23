@@ -25,7 +25,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
     end
   end
 
-  after { Datadog::Contrib::REGISTRY[:sinatra].reset_configuration! }
+  after { Datadog.registry[:sinatra].reset_configuration! }
 
   shared_context 'ActiveRecord database' do
     let(:application_record_class) do

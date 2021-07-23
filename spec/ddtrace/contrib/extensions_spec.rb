@@ -129,9 +129,7 @@ RSpec.describe Datadog::Contrib::Extensions do
       end
 
       describe '#use' do
-        subject(:result) do
-          settings.use(integration_name, options)
-        end
+        subject(:result) { settings.use(integration_name, options) }
 
         let(:options) { {} }
 

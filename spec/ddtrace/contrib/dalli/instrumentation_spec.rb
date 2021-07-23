@@ -22,9 +22,9 @@ RSpec.describe 'Dalli instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:dalli].reset_configuration!
+    Datadog.registry[:dalli].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:dalli].reset_configuration!
+    Datadog.registry[:dalli].reset_configuration!
   end
 
   describe 'when a client calls #set' do

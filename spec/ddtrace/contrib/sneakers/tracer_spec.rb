@@ -42,10 +42,10 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:sneakers].reset_configuration!
+    Datadog.registry[:sneakers].reset_configuration!
     Sneakers.clear!
     example.run
-    Datadog::Contrib::REGISTRY[:sneakers].reset_configuration!
+    Datadog.registry[:sneakers].reset_configuration!
     Sneakers.clear!
   end
 

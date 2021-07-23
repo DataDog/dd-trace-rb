@@ -18,9 +18,9 @@ RSpec.describe 'Redis test' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:redis].reset_configuration!
+    Datadog.registry[:redis].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:redis].reset_configuration!
+    Datadog.registry[:redis].reset_configuration!
   end
 
   shared_examples_for 'a Redis driver' do |driver|

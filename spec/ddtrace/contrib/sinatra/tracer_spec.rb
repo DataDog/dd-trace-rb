@@ -81,9 +81,9 @@ RSpec.describe 'Sinatra instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:sinatra].reset_configuration!
+    Datadog.registry[:sinatra].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:sinatra].reset_configuration!
+    Datadog.registry[:sinatra].reset_configuration!
   end
 
   shared_context 'with rack instrumentation' do

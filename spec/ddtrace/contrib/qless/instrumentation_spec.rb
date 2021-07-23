@@ -21,9 +21,9 @@ RSpec.describe 'Qless instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:qless].reset_configuration!
+    Datadog.registry[:qless].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:qless].reset_configuration!
+    Datadog.registry[:qless].reset_configuration!
   end
 
   shared_examples 'job execution tracing' do

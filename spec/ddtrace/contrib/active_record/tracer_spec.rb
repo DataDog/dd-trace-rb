@@ -26,9 +26,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:active_record].reset_configuration!
+    Datadog.registry[:active_record].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:active_record].reset_configuration!
+    Datadog.registry[:active_record].reset_configuration!
   end
 
   context 'when query is made' do

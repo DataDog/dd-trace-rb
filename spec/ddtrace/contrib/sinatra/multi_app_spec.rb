@@ -17,7 +17,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
     end
   end
 
-  after { Datadog::Contrib::REGISTRY[:sinatra].reset_configuration! }
+  after { Datadog.registry[:sinatra].reset_configuration! }
 
   shared_context 'multi-app' do
     let(:app) do

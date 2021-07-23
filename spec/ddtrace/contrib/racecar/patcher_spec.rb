@@ -22,9 +22,9 @@ RSpec.describe 'Racecar patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Contrib::REGISTRY[:racecar].reset_configuration!
+    Datadog.registry[:racecar].reset_configuration!
     example.run
-    Datadog::Contrib::REGISTRY[:racecar].reset_configuration!
+    Datadog.registry[:racecar].reset_configuration!
   end
 
   describe 'for both single and batch message processing' do

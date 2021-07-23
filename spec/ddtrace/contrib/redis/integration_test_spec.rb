@@ -17,7 +17,7 @@ RSpec.describe 'Redis integration test' do
   end
 
   after do
-    Datadog::Contrib::REGISTRY[:redis].reset_configuration!
+    Datadog.registry[:redis].reset_configuration!
     Datadog.configuration.reset!
   end
 
