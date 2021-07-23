@@ -1,4 +1,4 @@
-require 'ddtrace/contrib'
+require 'datadog/contrib'
 
 module Datadog
   module Contrib

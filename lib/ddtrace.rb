@@ -17,7 +17,7 @@ require 'ddtrace/metrics'
 require 'ddtrace/auto_instrument_base'
 require 'ddtrace/profiling'
 
-require 'ddtrace/contrib'
+require 'datadog/contrib'
 require 'ddtrace/contrib/auto_instrument'
 require 'ddtrace/contrib/extensions'
 

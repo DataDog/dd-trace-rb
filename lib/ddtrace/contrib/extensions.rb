@@ -1,5 +1,5 @@
 require 'set'
-require 'ddtrace/contrib'
+require 'datadog/contrib'
 require 'ddtrace/configuration/settings'
 
 module Datadog
