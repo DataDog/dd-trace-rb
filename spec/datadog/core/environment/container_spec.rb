@@ -100,5 +100,23 @@ RSpec.describe Datadog::Core::Environment::Container do
         let(:task_uid) { nil }
       end
     end
+
+    context 'when in a Fargate 1.4+ (2-part short random) environment' do
+      include_context 'Fargate 1.4+ (2-part short random) environment'
+
+      it_behaves_like 'container descriptor' do
+        let(:container_id) { container_id_with_random }
+        let(:task_uid) { nil }
+      end
+    end
+
+    context 'when in a Fargate 1.4+ with ECS+docker environment' do
+      include_context 'Fargate 1.4+ with ECS+docker environment'
+
+      it_behaves_like 'container descriptor' do
+        let(:container_id) { child_container_id }
+        let(:task_uid) { task_arn }
+      end
+    end
   end
 end
