@@ -17,27 +17,37 @@ require 'ddtrace/metrics'
 require 'ddtrace/auto_instrument_base'
 require 'ddtrace/profiling'
 
+require 'ddtrace/contrib'
+require 'ddtrace/contrib/auto_instrument'
+require 'ddtrace/contrib/extensions'
+
+require 'ddtrace/opentelemetry/extensions'
+
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
   extend Configuration
   extend AutoInstrumentBase
 
-  # Load and extend Contrib by default
-  require 'ddtrace/contrib/extensions'
+  # Load built-in Datadog integrations
   extend Contrib::Extensions
+  # Load Contrib auto instrumentation
+  extend Contrib::AutoInstrument
+  # Load Contrib extension to global Datadog objects
+  Configuration::Settings.include Contrib::Extensions::Configuration::Settings
 
   # Load and extend OpenTelemetry compatibility by default
-  require 'ddtrace/opentelemetry/extensions'
   extend OpenTelemetry::Extensions
-
-  # Load and extend AutoInstrument
-  require 'ddtrace/contrib/auto_instrument'
-  extend Contrib::AutoInstrument
 
   # Add shutdown hook:
   # Ensures the tracer has an opportunity to flush traces
   # and cleanup before terminating the process.
-  at_exit { Datadog.shutdown! }
+  at_exit do
+    if Interrupt === $! # rubocop:disable Style/SpecialGlobalVars is process terminating due to a ctrl+c or similar?
+      Datadog.send(:handle_interrupt_shutdown!)
+    else
+      Datadog.shutdown!
+    end
+  end
 end
 
 require 'ddtrace/contrib/action_cable/integration'
@@ -75,6 +85,7 @@ require 'ddtrace/contrib/rake/integration'
 require 'ddtrace/contrib/redis/integration'
 require 'ddtrace/contrib/resque/integration'
 require 'ddtrace/contrib/rest_client/integration'
+require 'ddtrace/contrib/semantic_logger/integration'
 require 'ddtrace/contrib/sequel/integration'
 require 'ddtrace/contrib/shoryuken/integration'
 require 'ddtrace/contrib/sidekiq/integration'
