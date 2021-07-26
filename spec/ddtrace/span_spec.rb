@@ -273,7 +273,7 @@ RSpec.describe Datadog::Span do
 
       after { Datadog.configuration.reset! }
 
-      let(:time_now) { ::Time.new(2020, 1, 1) }
+      let(:time_now) { ::Time.utc(2020, 1, 1) }
 
       it 'sets the start time to the provider time' do
         span.start
