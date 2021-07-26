@@ -84,7 +84,7 @@ RSpec.describe Datadog::Contrib::Extensions do
         it 'to not change registry on deprecated assignment attempt' do
           expect(Datadog.logger).to receive(:warn).with(/no longer supported and was ignored/)
 
-          settings.registry = double
+          settings.registry = double('Overriding registry')
 
           allow(Datadog.logger).to receive(:warn)
           expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
