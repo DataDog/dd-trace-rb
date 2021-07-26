@@ -76,7 +76,7 @@ module Datadog
           # The registry only holds declarative constant values and cannot be modified.
           # This option is a no-op and will be removed in the future.
           #
-          # @deprecated Use `Datadog::Contrib::REGISTRY` instead
+          # @deprecated Use `Datadog.registry` instead
           def registry
             Datadog.logger.warn('Deprecated access to `Datadog.configuration.registry`, use `Datadog.registry` instead.' \
                                 '`Datadog.configuration.registry` will be removed in a future version.')
