@@ -1,7 +1,6 @@
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/contrib/extensions'
 
 RSpec.describe Datadog::Contrib::Extensions do
   shared_context 'registry with integration' do
@@ -28,9 +27,7 @@ RSpec.describe Datadog::Contrib::Extensions do
     describe Datadog do
       describe '#configure' do
         include_context 'registry with integration' do
-          before do
-            allow(described_class.configuration).to receive(:registry).and_return(registry)
-          end
+          before { stub_const('Datadog::Contrib::REGISTRY', registry) }
         end
 
         context 'given a block' do
@@ -71,7 +68,28 @@ RSpec.describe Datadog::Contrib::Extensions do
     describe Datadog::Configuration::Settings do
       include_context 'registry with integration'
 
-      subject(:settings) { described_class.new(registry: registry) }
+      subject(:settings) { described_class.new }
+
+      before { stub_const('Datadog::Contrib::REGISTRY', registry) }
+
+      describe '.registry' do
+        it 'return global REGISTRY on deprecated access' do
+          expect(Datadog.logger).to receive(:warn).with(/Deprecated access to `Datadog.configuration.registry`/)
+
+          expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
+        end
+      end
+
+      describe '.registry=' do
+        it 'to not change registry on deprecated assignment attempt' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer supported and was ignored/)
+
+          settings.registry = double('Overriding registry')
+
+          allow(Datadog.logger).to receive(:warn)
+          expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
+        end
+      end
 
       describe '#[]' do
         context 'when the integration doesn\'t exist' do

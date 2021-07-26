@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/registry'
+require 'datadog/contrib'
 
 module Datadog
   module Contrib
@@ -12,7 +12,7 @@ module Datadog
       # Class methods for registerable behavior
       module ClassMethods
         def register_as(name, options = {})
-          registry = options.fetch(:registry, Datadog.registry)
+          registry = options.fetch(:registry, Contrib::REGISTRY)
           auto_patch = options.fetch(:auto_patch, false)
 
           registry.add(name, new(name, options), auto_patch)
