@@ -86,7 +86,7 @@ module Datadog
           # The registry only holds declarative constant values and cannot be modified.
           # This option is a no-op and will be removed in the future.
           #
-          # @deprecated The registry is now a global constant, and can be overwritten.
+          # @deprecated The registry is now a global constant, and can't be overwritten.
           def registry=(_arg)
             Datadog.logger.warn('Setting a custom registry is no longer supported and was ignored. ' \
                                 'Remote this assignment from your configuration to stop seeing this warning.')
