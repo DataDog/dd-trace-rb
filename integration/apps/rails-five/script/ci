@@ -28,6 +28,11 @@ if [ -z ${APP_RUBY_VERSION+x} ]; then
   exit 1
 fi
 
+if [[ "$APP_RUBY_VERSION" == "3.0" ]]; then
+  echo "Ruby 3 is not supported by Rails 5"
+  exit 1
+fi
+
 # Set configuration
 APP_BASE_IMAGE=${APP_BASE_IMAGE:-datadog/dd-apm-demo:rb-$APP_RUBY_VERSION}
 APP_IMAGE=${APP_IMAGE:-$APP_BASE_IMAGE-rails-five}
