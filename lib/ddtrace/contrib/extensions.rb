@@ -89,7 +89,7 @@ module Datadog
           # @deprecated The registry is now a global constant, and can't be overwritten.
           def registry=(_arg)
             Datadog.logger.warn('Setting a custom registry is no longer supported and was ignored. ' \
-                                'Remote this assignment from your configuration to stop seeing this warning.')
+                                'Remove this assignment from your configuration to stop seeing this warning.')
           end
 
           # For the provided `integration_name`, resolves a matching configuration
