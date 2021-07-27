@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "TODO: This integration test has nothing to do in CI (bin/test does not exercise anything)"
+exit 1
+
 APP_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 APP_DIR=${APP_SCRIPT_DIR%/script}
 cd $APP_DIR
