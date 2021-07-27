@@ -566,8 +566,8 @@ workflows:
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-3.0
-          # TODO: Get Rack & Rails apps working with Ruby 3.0
-          integration_apps: ''
+          # TODO: Get Rails working with Ruby 3.0
+          integration_apps: 'rack'
           ruby_version: '3.0'
           <<: *filters_all_branches_and_tags
       # MRI
