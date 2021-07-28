@@ -20,7 +20,7 @@ services:
       - DD_PROFILING_ENABLED=true
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
-      - DD_DEMO_ENV_FEATURES=tracing
+      - DD_DEMO_ENV_FEATURES=tracing,profiling
     expose:
       - "80"
     stdin_open: true
