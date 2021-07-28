@@ -9,6 +9,6 @@ COPY . /vendor/dd-trace-rb
 ENV DD_DEMO_ENV_GEM_LOCAL_DDTRACE /vendor/dd-trace-rb
 
 # Build the ddtrace profiling native extension
-RUN cd /vendor/dd-trace-rb && bundle install && bundle exec rake compile
+RUN unset BUNDLE_GEMFILE && cd /vendor/dd-trace-rb && bundle install && bundle exec rake compile
 
 RUN bundle install
