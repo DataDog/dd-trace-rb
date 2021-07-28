@@ -3,7 +3,9 @@ require 'minitest/autorun'
 require 'webmock/minitest'
 require 'pry'
 
-require 'ddtrace'
+require 'ddtrace/encoding'
+require 'ddtrace/tracer'
+require 'ddtrace/span'
 
 begin
   # Ignore interpreter warnings from external libraries

@@ -1,5 +1,5 @@
 require 'minitest'
-require 'ddtrace/sampler'
+require 'ddtrace'
 
 module Datadog
   class RateByServiceSamplerTest < Minitest::Test
