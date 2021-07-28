@@ -19,7 +19,7 @@ services:
       - DD_SERVICE=acme-rack
       - DD_PROFILING_ENABLED=true
       # Use these to choose what is run
-      - DD_DEMO_ENV_PROCESS=puma
+      - DD_DEMO_ENV_PROCESS # needs to be specified, see README for available options
       - DD_DEMO_ENV_FEATURES=tracing,profiling
     expose:
       - "80"

@@ -62,7 +62,7 @@ module Acme
       end
 
       def default(request)
-        ['200', { 'Content-Type' => 'text/plain' }, ['Basic: Default']]
+        ['200', { 'Content-Type' => 'text/plain' }, ["Basic: Default", "\nWebserver process: #{$PROGRAM_NAME}"]]
       end
 
       private
