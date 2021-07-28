@@ -38,7 +38,7 @@ services:
       - DD_APM_ENABLED=true
       - DD_PROCESS_AGENT_ENABLED=false
       - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=invalid_api_key
+      - DD_API_KEY=00000000000000000000000000000000
       - LOG_LEVEL=DEBUG
       - DD_LOGS_STDOUT=yes
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true

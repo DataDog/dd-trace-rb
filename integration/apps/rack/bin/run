@@ -7,7 +7,7 @@ profiling = ''
 env_vars = ''
 
 if Datadog::DemoEnv.feature?('profiling')
-  profling = 'ddtracerb exec'
+  profiling = 'ddtracerb exec'
   env_vars = 'DD_PROFILING_ENABLED=true'
 end
 
