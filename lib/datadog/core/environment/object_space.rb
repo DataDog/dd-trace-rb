@@ -8,8 +8,12 @@ module Datadog
       module ObjectSpace
         module_function
 
+        def estimate_bytesize_supported?
+          ::ObjectSpace.respond_to?(:memsize_of)
+        end
+
         def estimate_bytesize(object)
-          return 0 unless ::ObjectSpace.respond_to?(:memsize_of)
+          return nil unless estimate_bytesize_supported?
 
           # Rough calculation of bytesize; not very accurate.
           object.instance_variables.inject(::ObjectSpace.memsize_of(object)) do |sum, var|

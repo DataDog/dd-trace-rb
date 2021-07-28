@@ -2,29 +2,38 @@ require 'English'
 
 module SynchronizationHelpers
   def expect_in_fork(fork_expectations: nil)
-    fork_expectations ||= proc { |status, stderr|
-      expect(status && status.success?).to be(true), stderr
+    fork_expectations ||= proc { |status, stdout, stderr|
+      expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
 
-    fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork')
+    fork_stdout = Tempfile.new('ddtrace-rspec-expect-in-fork-stdout')
+    fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork-stderr')
     begin
       # Start in fork
       pid = fork do
-        # Capture test failures
-        $stderr.reopen(fork_stderr)
+        # Capture forked output
+        $stdout.reopen(fork_stdout)
+        $stderr.reopen(fork_stderr) # STDOUT captures test failures
 
         yield
       end
 
       fork_stderr.close
+      fork_stdout.close
 
       # Wait for fork to finish, retrieve its status.
       Process.wait(pid)
       status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
 
+      # Capture forked execution information
+      fork_info = [status, File.read(fork_stdout.path), File.read(fork_stderr.path)]
+
       # Expect fork and assertions to have completed successfully.
-      fork_expectations.call(status, File.read(fork_stderr.path))
+      fork_expectations.call(*fork_info)
+
+      fork_info
     ensure
+      fork_stdout.unlink
       fork_stderr.unlink
     end
   end
