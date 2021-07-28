@@ -170,7 +170,6 @@ namespace :test do
     t.libs << %w[test lib]
     t.test_files = FileList['test/**/*_test.rb'].reject do |path|
       path.include?('contrib') ||
-        path.include?('benchmark') ||
         path.include?('redis')
     end
   end
@@ -179,11 +178,6 @@ namespace :test do
     t.libs << %w[test lib]
     t.test_files = FileList['test/contrib/rails/**/*_test.rb']
   end
-end
-
-Rake::TestTask.new(:benchmark) do |t|
-  t.libs << %w[test lib]
-  t.test_files = FileList['test/benchmark_test.rb']
 end
 
 if defined?(RuboCop::RakeTask)

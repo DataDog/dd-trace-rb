@@ -26,5 +26,7 @@ RSpec.describe 'Microbenchmark Transport' do
         transport.send_traces(span[i])
       end
     end
+
+    # TODO: add test case with JSON serializer
   end
 end
