@@ -13,14 +13,14 @@ module Acme
         '/health' => { controller: controllers[:health], action: :check },
         '/health/profiling' => { controller: controllers[:health], action: :profiling_check },
         '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
-        '/basic/default' => { controller: controllers[:basic], action: :default }
+        '/basic/default' => { controller: controllers[:basic], action: :default },
       )
     end
 
     def controllers
       {
         basic: Controllers::Basic.new,
-        health: Controllers::Health.new
+        health: Controllers::Health.new,
       }
     end
   end
