@@ -1,5 +1,7 @@
 require 'rack'
 
+require_relative 'sidekiq_background_job'
+
 module Acme
   class Application
     def call(env)
@@ -14,6 +16,8 @@ module Acme
         '/health/profiling' => { controller: controllers[:health], action: :profiling_check },
         '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
         '/basic/default' => { controller: controllers[:basic], action: :default },
+        '/background_jobs/read_sidekiq' => { controller: controllers[:background_jobs], action: :read_sidekiq },
+        '/background_jobs/write_sidekiq' => { controller: controllers[:background_jobs], action: :write_sidekiq },
       )
     end
 
@@ -21,6 +25,7 @@ module Acme
       {
         basic: Controllers::Basic.new,
         health: Controllers::Health.new,
+        background_jobs: Controllers::BackgroundJobs.new,
       }
     end
   end
@@ -85,6 +90,18 @@ module Acme
         end
 
         ['200', { 'Content-Type' => 'text/plain' }, ['Profiling check OK']]
+      end
+    end
+
+    class BackgroundJobs
+      def read_sidekiq(request)
+        ['200', { 'Content-Type' => 'text/plain' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).inspect, "\n"]]
+      end
+
+      def write_sidekiq(request)
+        SidekiqBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
+
+        ['202', {}, []]
       end
     end
   end
