@@ -11,6 +11,7 @@ module Acme
       Router.new(
         '/' => { controller: controllers[:health], action: :check },
         '/health' => { controller: controllers[:health], action: :check },
+        '/health/profiling' => { controller: controllers[:health], action: :profiling_check },
         '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
         '/basic/default' => { controller: controllers[:basic], action: :default }
       )
@@ -74,6 +75,16 @@ module Acme
     class Health
       def check(request)
         ['204', {}, []]
+      end
+
+      def profiling_check(request)
+        raise 'Profiler is not running' unless Datadog.profiler
+
+        ["Datadog::Profiling::Collectors::Stack", "Datadog::Profiling::Scheduler"].each do |name|
+          raise "Profiler thread missing: #{name}" unless Thread.list.map(&:name).include?(name)
+        end
+
+        ['200', { 'Content-Type' => 'text/plain' }, ['Profiling check OK']]
       end
     end
   end
