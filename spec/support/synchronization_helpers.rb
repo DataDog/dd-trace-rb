@@ -2,7 +2,7 @@ require 'English'
 
 module SynchronizationHelpers
   def expect_in_fork(fork_expectations: nil)
-    fork_expectations ||= proc { |status, stdout, stderr|
+    fork_expectations ||= proc { |status:, stdout:, stderr:|
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
 
@@ -26,12 +26,12 @@ module SynchronizationHelpers
       status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
 
       # Capture forked execution information
-      fork_info = [status, File.read(fork_stdout.path), File.read(fork_stderr.path)]
+      result = { status: status, stdout: File.read(fork_stdout.path), stderr: File.read(fork_stderr.path) }
 
       # Expect fork and assertions to have completed successfully.
-      fork_expectations.call(*fork_info)
+      fork_expectations.call(**result)
 
-      fork_info
+      result
     ensure
       fork_stdout.unlink
       fork_stderr.unlink

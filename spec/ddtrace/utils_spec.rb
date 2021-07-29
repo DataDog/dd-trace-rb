@@ -33,8 +33,8 @@ RSpec.describe Datadog::Utils do
     context 'after forking', if: PlatformHelpers.supports_fork? do
       it 'generates unique ids across forks' do
         ids = Array.new(3) do
-          _, stdout = expect_in_fork { puts next_id }
-          stdout.to_i
+          result = expect_in_fork { puts next_id }
+          result[:stdout].to_i
         end.uniq
 
         expect(ids).to have(3).items
