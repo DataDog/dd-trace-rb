@@ -15,7 +15,7 @@ module Datadog
     # This method is thread-safe and fork-safe.
     def self.next_id
       after_fork! { reset! }
-      id_rng.rand(Datadog::Span::RUBY_MAX_ID)
+      id_rng.rand(Datadog::Span::RUBY_MAX_ID) # TODO: This should never return zero
     end
 
     def self.id_rng
