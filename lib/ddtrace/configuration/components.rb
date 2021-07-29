@@ -114,7 +114,10 @@ module Datadog
 
           # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-          trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer)
+          trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(
+            tracer: tracer,
+            extract_trace_resource: settings.profiling.advanced.extract_trace_resource,
+          )
 
           recorder = build_profiler_recorder(settings)
           collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
