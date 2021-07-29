@@ -34,7 +34,7 @@ module Datadog
     # `value.to_s` does not fit in `size`, to signify
     # truncation.
     #
-    # If `omission.size` is less than `size`, the output
+    # If `omission.size` is larger than `size`, the output
     # will still be `omission.size` in length.
     def self.truncate(value, size, omission = '...'.freeze)
       string = value.to_s
