@@ -11,7 +11,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
       test_span_name = span_name
 
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
         klass.send(:define_singleton_method, :event_name) { test_event_name }
         klass.send(:define_singleton_method, :span_name) { test_span_name }
         klass.send(:define_singleton_method, :process, &process_block)
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
           end
 
           context 'is called a second time' do
-            before(:each) do
+            before do
               allow(ActiveSupport::Notifications).to receive(:subscribe)
                 .with(event_name, be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription))
               test_class.subscribe!
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
         end
 
         describe '#subscribe' do
-          before(:each) do
+          before do
             expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
               .with(test_class.tracer, test_class.span_name, test_class.span_options)
               .and_call_original
@@ -58,7 +58,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
           context 'when given no pattern' do
             subject(:subscription) { test_class.subscribe }
 
-            before(:each) do
+            before do
               expect_any_instance_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:subscribe)
                 .with(event_name)
             end
@@ -69,9 +69,10 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
 
           context 'when given a pattern' do
             subject(:subscription) { test_class.subscribe(pattern) }
+
             let(:pattern) { double('pattern') }
 
-            before(:each) do
+            before do
               expect_any_instance_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:subscribe)
                 .with(pattern)
             end
@@ -85,7 +86,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
           context 'when given no options' do
             subject(:subscription) { test_class.subscription }
 
-            before(:each) do
+            before do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
                 .with(test_class.tracer, test_class.span_name, test_class.span_options)
                 .and_call_original
@@ -102,7 +103,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
             let(:options) { double('options') }
             let(:tracer) { double('tracer') }
 
-            before(:each) do
+            before do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
                 .with(tracer, span_name, options)
                 .and_call_original

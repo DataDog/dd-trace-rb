@@ -4,8 +4,9 @@ require 'spec/support/language_helpers'
 require 'ddtrace/chunker'
 
 RSpec.describe Datadog::Chunker do
-  context '.chunk_by_size' do
+  describe '.chunk_by_size' do
     subject(:encode) { described_class.chunk_by_size(list, max_chunk_size) }
+
     let(:list) { %w[1 22 333] }
     let(:max_chunk_size) { 3 }
 
@@ -24,8 +25,28 @@ RSpec.describe Datadog::Chunker do
     context 'with a lazy enumerator' do
       let(:list) { [].lazy }
 
-      it 'does not force enumerator expansion' do
-        expect(subject).to be_a(Enumerator::Lazy)
+      context 'with a runtime that correctly preserves the lazy enumerator' do
+        before do
+          if PlatformHelpers.jruby? && PlatformHelpers.engine_version < Gem::Version.new('9.2.9.0')
+            skip 'This runtime returns eager enumerators on Enumerator::Lazy#slice_before calls'
+          end
+        end
+
+        it 'does not force enumerator expansion' do
+          expect(subject).to be_a(Enumerator::Lazy)
+        end
+      end
+
+      context 'with a runtime that erroneously loads the lazy enumerator eagerly' do
+        before do
+          if !PlatformHelpers.jruby? || PlatformHelpers.engine_version >= Gem::Version.new('9.2.9.0')
+            skip 'This runtime correctly returns lazy enumerators on Enumerator::Lazy#slice_before calls'
+          end
+        end
+
+        it do
+          expect(subject).to be_a(Enumerator)
+        end
       end
     end
   end

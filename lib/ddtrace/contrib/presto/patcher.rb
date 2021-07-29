@@ -1,6 +1,7 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/presto/ext'
 require 'ddtrace/contrib/presto/instrumentation'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
@@ -9,16 +10,18 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
+        PATCH_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
         module_function
 
         def patched?
-          done?(:presto)
+          PATCH_ONLY_ONCE.ran?
         end
 
         def patch
-          do_once(:presto) do
+          PATCH_ONLY_ONCE.run do
             begin
-              ::Presto::Client::Client.send(:include, Instrumentation::Client)
+              ::Presto::Client::Client.include(Instrumentation::Client)
             rescue StandardError => e
               Datadog.logger.error("Unable to apply Presto integration: #{e}")
             end

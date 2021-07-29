@@ -8,13 +8,15 @@ module Datadog
     module Sinatra
       # Middleware used for automatically tagging configured headers and handle request span
       class TracerMiddleware
-        def initialize(app, app_instance: nil)
+        def initialize(app, opt = {})
           @app = app
-          @app_instance = app_instance
+          @app_instance = opt[:app_instance]
         end
 
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/CyclomaticComplexity
+        # rubocop:disable Metrics/PerceivedComplexity
         def call(env)
           # Set the trace context (e.g. distributed tracing)
           if configuration[:distributed_tracing] && tracer.provider.context.trace_id.nil?
@@ -40,9 +42,7 @@ module Datadog
               request = ::Sinatra::Request.new(env)
               span.set_tag(Datadog::Ext::HTTP::URL, request.path)
               span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
-              if request.script_name && !request.script_name.empty?
-                span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
-              end
+              span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
               span.set_tag(Ext::TAG_APP_NAME, @app_instance.settings.name)
 

@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/support/spec_helper'
+require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/action_cable/integration'
 
@@ -26,11 +27,13 @@ RSpec.describe Datadog::Contrib::ActionCable::Integration do
 
     context 'when ActionCable is defined' do
       before { stub_const('ActionCable', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when ActionCable is not defined' do
       before { hide_const('ActionCable') }
+
       it { is_expected.to be false }
     end
   end
@@ -56,13 +59,19 @@ RSpec.describe Datadog::Contrib::ActionCable::Integration do
     end
   end
 
+  describe '#auto_instrument?' do
+    it_behaves_like 'rails sub-gem auto_instrument?'
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::ActionCable::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::ActionCable::Patcher }
   end
 end

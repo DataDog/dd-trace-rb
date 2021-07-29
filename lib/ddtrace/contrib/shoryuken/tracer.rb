@@ -12,9 +12,12 @@ module Datadog
         end
 
         def call(worker_instance, queue, sqs_msg, body)
-          @tracer.trace(Ext::SPAN_JOB, service: @shoryuken_service, span_type: Datadog::Ext::AppTypes::WORKER,
-                                       on_error: @error_handler) do |span|
-
+          @tracer.trace(
+            Ext::SPAN_JOB,
+            service: @shoryuken_service,
+            span_type: Datadog::Ext::AppTypes::WORKER,
+            on_error: @error_handler
+          ) do |span|
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
@@ -27,7 +30,7 @@ module Datadog
             span.set_tag(Ext::TAG_JOB_ID, sqs_msg.message_id)
             span.set_tag(Ext::TAG_JOB_QUEUE, queue)
             span.set_tag(Ext::TAG_JOB_ATTRIBUTES, sqs_msg.attributes) if sqs_msg.respond_to?(:attributes)
-            span.set_tag(Ext::TAG_JOB_BODY, body)
+            span.set_tag(Ext::TAG_JOB_BODY, body) if configuration[:tag_body]
 
             yield
           end

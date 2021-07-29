@@ -16,6 +16,7 @@ module Datadog
         TAG_FILTER_TYPE = 'grape.filter.type'.freeze
         TAG_ROUTE_ENDPOINT = 'grape.route.endpoint'.freeze
         TAG_ROUTE_PATH = 'grape.route.path'.freeze
+        TAG_ROUTE_METHOD = 'grape.route.method'.freeze
       end
     end
   end

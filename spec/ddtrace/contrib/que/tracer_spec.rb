@@ -7,9 +7,9 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   let(:job_args) do
     {
       field_one: 1,
-      queue:     'low',
-      priority:  10,
-      tags:      { a: 1, b: 2 }
+      queue: 'low',
+      priority: 10,
+      tags: { a: 1, b: 2 }
     }
   end
   let(:job_class) do
@@ -19,7 +19,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
   let(:error_job_class) do
     stub_const('ErrorJobClass', Class.new(::Que::Job) do
-      def run(*args)
+      def run(*_args)
         raise StandardError, 'with some error'
       end
     end)
@@ -40,11 +40,13 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
 
   describe '#call' do
+    subject(:enqueue) { job_class.enqueue(**job_args) }
+
     context 'with default options' do
       let(:configuration_options) { {} }
 
       it 'captures all generic span information' do
-        job_class.enqueue(job_args)
+        enqueue
 
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_args[:queue])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_args[:priority])
@@ -54,14 +56,14 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
       end
 
       it 'does not capture info for disabled tags' do
-        job_class.enqueue(job_args)
+        enqueue
 
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ARGS)).to eq(nil)
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_DATA)).to eq(nil)
       end
 
       it 'continues to capture spans gracefully under unexpected conditions' do
-        expect { error_job_class.enqueue(job_args) }.to raise_error(StandardError)
+        expect { error_job_class.enqueue(**job_args) }.to raise_error(StandardError)
         expect(spans).not_to be_empty
         expect(span.start_time).not_to be_nil
         expect(span.end_time).not_to be_nil
@@ -74,7 +76,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
       let(:configuration_options) { { tag_args: true } }
 
       it 'captures span info for args tag' do
-        job_class.enqueue(job_args)
+        enqueue
 
         actual_span_value   = span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ARGS)
         expected_span_value = [{ field_one: 1 }].to_s
@@ -87,7 +89,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
       let(:configuration_options) { { tag_data: true } }
 
       it 'captures spans info for data tag' do
-        job_class.enqueue(job_args)
+        enqueue
 
         actual_span_value   = span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_DATA)
         expected_span_value = { tags: job_args[:tags] }.to_s

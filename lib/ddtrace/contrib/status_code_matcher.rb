@@ -5,7 +5,7 @@ module Datadog
   module Contrib
     # Contains methods helpful for tracing/annotating HTTP request libraries
     class StatusCodeMatcher
-      REGEX_PARSER = /^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/
+      REGEX_PARSER = /^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/.freeze
 
       def initialize(range)
         @error_response_range = range
@@ -27,9 +27,10 @@ module Datadog
           set = Set.new
           handle_statuses.each do |statuses|
             status = statuses.to_s.split('-')
-            if status.length == 1
+            case status.length
+            when 1
               set.add(Integer(status[0]))
-            elsif status.length == 2
+            when 2
               min, max = status.minmax
               Array(min..max).each do |i|
                 set.add(Integer(i))
@@ -43,6 +44,7 @@ module Datadog
 
       def error_responses
         return @error_response_range if @error_response_range.is_a?(String) && !@error_response_range.nil?
+
         @error_response_range.join(',') if @error_response_range.is_a?(Array) && !@error_response_range.empty?
       end
 

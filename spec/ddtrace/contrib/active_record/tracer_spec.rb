@@ -3,12 +3,14 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
 
+require 'spec/ddtrace/contrib/rails/support/deprecation'
+
 require_relative 'app'
 
 RSpec.describe 'ActiveRecord instrumentation' do
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     # Prevent extra spans during tests
     Article.count
 
@@ -18,6 +20,8 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|
@@ -28,7 +32,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
   end
 
   context 'when query is made' do
-    before(:each) { Article.count }
+    before { Article.count }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::ActiveRecord::Ext::ENV_ANALYTICS_ENABLED }
@@ -62,6 +66,89 @@ RSpec.describe 'ActiveRecord instrumentation' do
         let(:configuration_options) { super().merge(service_name: service_name) }
 
         it { expect(span.service).to eq(service_name) }
+      end
+
+      context 'with a custom configuration' do
+        context 'with the maraka gem' do
+          before do
+            if PlatformHelpers.jruby?
+              skip("JRuby doesn't support ObjectSpace._id2ref, which is required for makara connection lookup.")
+            end
+
+            @original_config = if defined?(::ActiveRecord::Base.connection_db_config)
+                                 ::ActiveRecord::Base.connection_db_config
+                               else
+                                 ::ActiveRecord::Base.connection_config
+                               end
+
+            # Set up makara
+            require 'makara'
+            require 'active_record/connection_adapters/makara_mysql2_adapter'
+
+            # Set up ActiveRecord
+            ::ActiveRecord::Base.establish_connection(config)
+            ::ActiveRecord::Base.logger = Logger.new(nil)
+
+            # Warm it up
+            Article.count
+            clear_spans!
+
+            Datadog.configure do |c|
+              c.use :active_record, service_name: 'bad-no-match'
+              c.use :active_record, describes: { makara_role: primary_role }, service_name: primary_service_name
+              c.use :active_record, describes: { makara_role: secondary_role }, service_name: secondary_service_name
+            end
+          end
+
+          after { ::ActiveRecord::Base.establish_connection(@original_config) if @original_config }
+
+          let(:primary_service_name) { 'primary-service' }
+          let(:secondary_service_name) { 'secondary-service' }
+
+          # makara changed their internal role names from `master/slave` to `primary/secondary` in 0.6.0.
+          let(:legacy_role_naming) { Gem::Version.new(::Makara::VERSION.to_s) < Gem::Version.new('0.6.0.pre') }
+          let(:primary_role) { legacy_role_naming ? 'master' : 'primary' }
+          let(:secondary_role) { legacy_role_naming ? 'slave' : 'replica' }
+
+          let(:config) do
+            YAML.safe_load(<<-YAML)['test']
+          test:
+            adapter: 'mysql2_makara'
+            database: '#{ENV.fetch('TEST_MYSQL_DB', 'mysql')}'
+            username: 'root'
+            host: '#{ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')}'
+            password: '#{ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')}'
+            port: '#{ENV.fetch('TEST_MYSQL_PORT', '3306')}'
+
+            makara:
+              connections:
+                - role: #{primary_role}
+                - role: #{secondary_role}
+                - role: #{secondary_role}
+            YAML
+          end
+
+          context 'and a master write operation' do
+            it 'matches replica configuration' do
+              # SHOW queries are executed on master
+              ActiveRecord::Base.connection.execute('SHOW TABLES')
+
+              expect(spans).to have_at_least(1).item
+              spans.each do |span|
+                expect(span.service).to eq(primary_service_name)
+              end
+            end
+          end
+
+          context 'and a replica read operation' do
+            it 'matches replica configuration' do
+              # SELECT queries are executed on replicas
+              Article.count
+
+              expect(span.service).to eq(secondary_service_name)
+            end
+          end
+        end
       end
     end
   end

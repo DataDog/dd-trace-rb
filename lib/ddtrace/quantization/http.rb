@@ -5,6 +5,8 @@ module Datadog
   module Quantization
     # Quantization for HTTP resources
     module HTTP
+      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
       PLACEHOLDER = '?'.freeze
 
       module_function
@@ -61,6 +63,7 @@ module Datadog
       # e.g. Reduces "foo&bar=bar&bar=bar&foo" to "foo&bar=bar&bar=bar"
       def collect_query(query, options = {})
         return query unless block_given?
+
         uniq = options[:uniq].nil? ? false : options[:uniq]
         keys = Set.new
 

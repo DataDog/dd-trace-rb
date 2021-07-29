@@ -3,13 +3,6 @@ require 'ddtrace/version'
 module Datadog
   module Ext
     module Runtime
-      # Identity
-      LANG = 'ruby'.freeze
-      LANG_INTERPRETER = (RUBY_ENGINE + '-' + RUBY_PLATFORM).freeze
-      LANG_VERSION = RUBY_VERSION
-      RUBY_ENGINE =  ::RUBY_ENGINE # e.g. 'ruby', 'jruby', 'truffleruby'
-      TRACER_VERSION = Datadog::VERSION::STRING
-
       TAG_ID = 'runtime-id'.freeze
       TAG_LANG = 'language'.freeze
 

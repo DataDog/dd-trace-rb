@@ -4,6 +4,7 @@ require 'ddtrace/transport/io/client'
 
 RSpec.describe Datadog::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
+
   let(:out) { instance_double(IO) }
   let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
 
@@ -72,5 +73,56 @@ RSpec.describe Datadog::Transport::IO::Client do
         is_expected.to be response
       end
     end
+  end
+
+  describe '#encode_data' do
+    subject(:encode_data) { client.encode_data(encoder, request) }
+
+    let(:request) { instance_double(Datadog::Transport::Request, parcel: parcel) }
+    let(:parcel) { instance_double(Datadog::Transport::Parcel) }
+    let(:data) { double('data') }
+
+    before do
+      expect(parcel)
+        .to receive(:encode_with)
+        .with(encoder)
+        .and_return(data)
+    end
+
+    it { is_expected.to be data }
+  end
+
+  describe '#write_data' do
+    subject(:write_data) { client.write_data(out, data) }
+
+    let(:data) { double('data') }
+    let(:result) { double('result') }
+
+    before do
+      expect(out)
+        .to receive(:puts)
+        .with(data)
+        .and_return(result)
+    end
+
+    it { is_expected.to be result }
+  end
+
+  describe '#build_response' do
+    subject(:build_response) { client.build_response(request, data, result) }
+
+    let(:request) { instance_double(Datadog::Transport::Request) }
+    let(:data) { double('data') }
+    let(:result) { double('result') }
+    let(:response) { instance_double(Datadog::Transport::IO::Response) }
+
+    before do
+      expect(Datadog::Transport::IO::Response)
+        .to receive(:new)
+        .with(result)
+        .and_return(response)
+    end
+
+    it { is_expected.to be response }
   end
 end

@@ -11,7 +11,7 @@ module Datadog
         # Instrumentation for Presto::Client::Client
         module Client
           def self.included(base)
-            base.send(:prepend, InstanceMethods)
+            base.prepend(InstanceMethods)
           end
 
           # Instance methods for Presto::Client

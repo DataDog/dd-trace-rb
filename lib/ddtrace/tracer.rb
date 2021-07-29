@@ -1,16 +1,17 @@
-require 'thread'
 require 'logger'
 require 'pathname'
 
-require 'ddtrace/environment'
+require 'ddtrace/ext/environment'
 require 'ddtrace/span'
 require 'ddtrace/context'
 require 'ddtrace/logger'
 require 'ddtrace/writer'
-require 'ddtrace/runtime/identity'
+require 'datadog/core/environment/identity'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/correlation'
+require 'ddtrace/event'
+require 'ddtrace/utils/only_once'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -20,6 +21,9 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
+    SERVICES_DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
     attr_reader :sampler, :tags, :provider, :context_flush
     attr_accessor :enabled, :writer
     attr_writer :default_service
@@ -28,8 +32,7 @@ module Datadog
     DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
     def services
-      # Only log each deprecation warning once (safeguard against log spam)
-      Datadog::Patcher.do_once('Tracer#set_service_info') do
+      SERVICES_DEPRECATION_WARN_ONLY_ONCE.run do
         Datadog.logger.warn('services: Usage of Tracer.services has been deprecated')
       end
 
@@ -71,7 +74,9 @@ module Datadog
     #   by default.
     def initialize(options = {})
       # Configurable options
-      @context_flush = if options[:partial_flush]
+      @context_flush = if options[:context_flush]
+                         options[:context_flush]
+                       elsif options[:partial_flush]
                          Datadog::ContextFlush::Partial.new(options)
                        else
                          Datadog::ContextFlush::Finished.new
@@ -82,7 +87,7 @@ module Datadog
       @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
       @tags = options.fetch(:tags, {})
-      @writer = options.fetch(:writer, Datadog::Writer.new)
+      @writer = options.fetch(:writer) { Datadog::Writer.new }
 
       # Instance variables
       @mutex = Mutex.new
@@ -115,8 +120,10 @@ module Datadog
 
       configure_writer(options)
 
-      if options.key?(:partial_flush)
-        @context_flush = if options[:partial_flush]
+      if options.key?(:context_flush) || options.key?(:partial_flush)
+        @context_flush = if options[:context_flush]
+                           options[:context_flush]
+                         elsif options[:partial_flush]
                            Datadog::ContextFlush::Partial.new(options)
                          else
                            Datadog::ContextFlush::Finished.new
@@ -130,8 +137,7 @@ module Datadog
     #
     # set_service_info is deprecated, no service information needs to be tracked
     def set_service_info(service, app, app_type)
-      # Only log each deprecation warning once (safeguard against log spam)
-      Datadog::Patcher.do_once('Tracer#set_service_info') do
+      SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.run do
         Datadog.logger.warn(%(
           set_service_info: Usage of set_service_info has been deprecated,
           service information no longer needs to be reported to the trace agent.
@@ -143,14 +149,7 @@ module Datadog
     # for non-root spans which have a parent. However, root spans without
     # a service would be invalid and rejected.
     def default_service
-      return @default_service if instance_variable_defined?(:@default_service) && @default_service
-      begin
-        @default_service = File.basename($PROGRAM_NAME, '.*')
-      rescue StandardError => e
-        Datadog.logger.error("unable to guess default service: #{e}")
-        @default_service = 'ruby'.freeze
-      end
-      @default_service
+      @default_service ||= Datadog::Ext::Environment::FALLBACK_SERVICE_NAME
     end
 
     # Set the given key / value tag pair at the tracer level. These tags will be
@@ -159,7 +158,7 @@ module Datadog
     #
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     def set_tags(tags)
-      string_tags = Hash[tags.collect { |k, v| [k.to_s, v] }]
+      string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
       @tags = @tags.merge(string_tags)
     end
 
@@ -202,7 +201,7 @@ module Datadog
         # root span
         @sampler.sample!(span)
         span.set_tag('system.pid', Process.pid)
-        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Runtime::Identity.id)
+        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Core::Environment::Identity.id)
 
         if ctx && ctx.trace_id
           span.trace_id = ctx.trace_id
@@ -313,6 +312,10 @@ module Datadog
       end
     end
 
+    def trace_completed
+      @trace_completed ||= TraceCompleted.new
+    end
+
     # Record the given +context+. For compatibility with previous versions,
     # +context+ can also be a span. It is similar to the +child_of+ argument,
     # method will figure out what to do, submitting a +span+ for recording
@@ -364,24 +367,34 @@ module Datadog
       end
 
       @writer.write(trace)
+      trace_completed.publish(trace)
+    end
+
+    # Triggered whenever a trace is completed
+    class TraceCompleted < Datadog::Event
+      def initialize
+        super(:trace_completed)
+      end
+
+      # NOTE: Ignore Rubocop rule. This definition allows for
+      #       description of and constraints on arguments.
+      # rubocop:disable Lint/UselessMethodDefinition
+      def publish(trace)
+        super(trace)
+      end
+      # rubocop:enable Lint/UselessMethodDefinition
     end
 
     # TODO: Move this kind of configuration building out of the tracer.
     #       Tracer should not have this kind of knowledge of writer.
-    # rubocop:disable Metrics/PerceivedComplexity
-    # rubocop:disable Metrics/CyclomaticComplexity
-    # rubocop:disable Metrics/MethodLength
     def configure_writer(options = {})
-      hostname = options.fetch(:hostname, nil)
-      port = options.fetch(:port, nil)
       sampler = options.fetch(:sampler, nil)
       priority_sampling = options.fetch(:priority_sampling, nil)
       writer = options.fetch(:writer, nil)
-      transport_options = options.fetch(:transport_options, {}).dup
+      agent_settings = options.fetch(:agent_settings, nil)
 
       # Compile writer options
       writer_options = options.fetch(:writer_options, {}).dup
-      rebuild_writer = !writer_options.empty?
 
       # Re-build the sampler and writer if priority sampling is enabled,
       # but neither are configured. Verify the sampler isn't already a
@@ -394,35 +407,20 @@ module Datadog
         end
       elsif priority_sampling != false && !@sampler.is_a?(PrioritySampler)
         writer_options[:priority_sampler] = activate_priority_sampling!(@sampler)
-        rebuild_writer = true
       elsif priority_sampling == false
         deactivate_priority_sampling!(sampler)
-        rebuild_writer = true
       elsif @sampler.is_a?(PrioritySampler)
         # Make sure to add sampler to options if transport is rebuilt.
         writer_options[:priority_sampler] = @sampler
       end
 
-      # Apply options to transport
-      if transport_options.is_a?(Proc)
-        transport_options = { on_build: transport_options }
-        rebuild_writer = true
-      end
+      writer_options[:agent_settings] = agent_settings if agent_settings
 
-      if hostname || port
-        transport_options[:hostname] = hostname unless hostname.nil?
-        transport_options[:port] = port unless port.nil?
-        rebuild_writer = true
-      end
+      # Make sure old writer is shut down before throwing away.
+      # Don't want additional threads running...
+      @writer.stop unless writer.nil?
 
-      writer_options[:transport_options] = transport_options
-
-      if rebuild_writer || writer
-        # Make sure old writer is shut down before throwing away.
-        # Don't want additional threads running...
-        @writer.stop unless writer.nil?
-        @writer = writer || Writer.new(writer_options)
-      end
+      @writer = writer || Writer.new(writer_options)
     end
 
     def activate_priority_sampling!(base_sampler = nil)

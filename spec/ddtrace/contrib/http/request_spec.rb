@@ -9,7 +9,8 @@ require 'json'
 
 RSpec.describe 'net/http requests' do
   before { WebMock.enable! }
-  after(:each) do
+
+  after do
     WebMock.reset!
     WebMock.disable!
   end
@@ -34,10 +35,12 @@ RSpec.describe 'net/http requests' do
 
   describe '#get' do
     subject(:response) { client.get(path) }
+
     let(:path) { '/my/path' }
 
     context 'that returns 200' do
       before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+
       let(:content) { JSON.parse(response.body) }
       let(:span) { spans.first }
 
@@ -71,6 +74,7 @@ RSpec.describe 'net/http requests' do
 
     context 'that returns 404' do
       before { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
+
       let(:body) { '{ "code": 404, message": "Not found!" }' }
       let(:span) { spans.first }
 
@@ -94,7 +98,8 @@ RSpec.describe 'net/http requests' do
 
       context 'when configured with #after_request hook' do
         before { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
-        after(:each) { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
+
+        after { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
 
         context 'which defines each parameter' do
           let(:callback) do
@@ -134,11 +139,13 @@ RSpec.describe 'net/http requests' do
 
   describe '#post' do
     subject(:response) { client.post(path, payload) }
+
     let(:path) { '/my/path' }
     let(:payload) { '{ "foo": "bar" }' }
 
     context 'that returns 201' do
       before { stub_request(:post, "#{uri}#{path}").to_return(status: 201) }
+
       let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
@@ -216,10 +223,12 @@ RSpec.describe 'net/http requests' do
 
   context 'when split by domain' do
     subject(:response) { client.get(path) }
+
     let(:path) { '/my/path' }
     let(:span) { spans.first }
     let(:configuration_options) { super().merge(split_by_domain: true) }
-    before(:each) { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
+
+    before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
 
     it do
       response
@@ -370,7 +379,8 @@ RSpec.describe 'net/http requests' do
         Datadog.configure { |c| c.use :http, distributed_tracing: false }
         client.get(path)
       end
-      after(:each) do
+
+      after do
         Datadog.configure { |c| c.use :http, distributed_tracing: true }
       end
 
@@ -385,6 +395,7 @@ RSpec.describe 'net/http requests' do
 
   describe 'request exceptions' do
     subject(:response) { client.get(path) }
+
     let(:path) { '/my/path' }
 
     context 'that raises a timeout' do

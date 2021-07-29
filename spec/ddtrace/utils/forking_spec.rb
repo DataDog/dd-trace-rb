@@ -3,7 +3,9 @@ require 'spec_helper'
 require 'ddtrace/utils/forking'
 
 RSpec.describe Datadog::Utils::Forking do
-  before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+  before do
+    skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
+  end
 
   shared_examples_for 'a Forking type' do
     # Assume the module is defined in the parent process not the fork.
@@ -12,6 +14,7 @@ RSpec.describe Datadog::Utils::Forking do
 
     describe '#after_fork!' do
       subject(:after_fork!) { test_object.after_fork!(&block) }
+
       let(:block) { proc {} }
 
       context 'when the process forks' do
@@ -95,12 +98,15 @@ RSpec.describe Datadog::Utils::Forking do
 
   describe 'when extended by a module' do
     subject(:test_object) { Module.new { extend Datadog::Utils::Forking } }
+
     it_behaves_like 'a Forking type'
   end
 
   describe 'when included in a class' do
     subject(:test_object) { test_class.new }
+
     let(:test_class) { Class.new { include Datadog::Utils::Forking } }
+
     it_behaves_like 'a Forking type'
   end
 end

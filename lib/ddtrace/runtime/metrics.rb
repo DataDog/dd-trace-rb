@@ -2,16 +2,16 @@ require 'ddtrace/ext/integration'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/metrics'
-require 'ddtrace/runtime/class_count'
-require 'ddtrace/runtime/gc'
-require 'ddtrace/runtime/identity'
-require 'ddtrace/runtime/thread_count'
+require 'datadog/core/environment/class_count'
+require 'datadog/core/environment/gc'
+require 'datadog/core/environment/identity'
+require 'datadog/core/environment/thread_count'
 
 module Datadog
   module Runtime
     # For generating runtime metrics
     class Metrics < Datadog::Metrics
-      def initialize(options = {})
+      def initialize(**options)
         super
 
         # Initialize service list
@@ -29,7 +29,7 @@ module Datadog
         # Tag span with language and runtime ID for association with metrics.
         # We only tag spans that performed internal application work.
         unless span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)
-          span.set_tag(Ext::Runtime::TAG_LANG, Runtime::Identity.lang)
+          span.set_tag(Ext::Runtime::TAG_LANG, Core::Environment::Identity.lang)
         end
       end
 
@@ -52,17 +52,23 @@ module Datadog
       def flush
         return unless enabled?
 
-        try_flush { gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, ClassCount.value) if ClassCount.available? }
-        try_flush { gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, ThreadCount.value) if ThreadCount.available? }
-        try_flush { gc_metrics.each { |metric, value| gauge(metric, value) } if GC.available? }
+        try_flush do
+          if Core::Environment::ClassCount.available?
+            gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, Core::Environment::ClassCount.value)
+          end
+        end
+        try_flush do
+          if Core::Environment::ThreadCount.available?
+            gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, Core::Environment::ThreadCount.value)
+          end
+        end
+        try_flush { gc_metrics.each { |metric, value| gauge(metric, value) } if Core::Environment::GC.available? }
       end
 
       def gc_metrics
-        Hash[
-          GC.stat.flat_map do |k, v|
-            nested_gc_metric(Ext::Runtime::Metrics::METRIC_GC_PREFIX, k, v)
-          end
-        ]
+        Core::Environment::GC.stat.flat_map do |k, v|
+          nested_gc_metric(Ext::Runtime::Metrics::METRIC_GC_PREFIX, k, v)
+        end.to_h
       end
 
       def try_flush

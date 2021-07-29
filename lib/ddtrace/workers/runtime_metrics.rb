@@ -20,7 +20,7 @@ module Datadog
         :metrics
 
       def initialize(options = {})
-        @metrics = options.fetch(:metrics, Runtime::Metrics.new)
+        @metrics = options.fetch(:metrics) { Runtime::Metrics.new }
 
         # Workers::Async::Thread settings
         self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
@@ -41,6 +41,19 @@ module Datadog
       def associate_with_span(*args)
         # Start the worker
         metrics.associate_with_span(*args).tap { perform }
+      end
+
+      # TODO: `close_metrics` is only needed because
+      # Datadog::Components directly manipulates the lifecycle of
+      # Runtime::Metrics.statsd instances.
+      # This should be avoided, as it prevents this class from
+      # ensuring correct resource decommission of its internal
+      # dependencies.
+      def stop(*args, close_metrics: true)
+        self.enabled = false
+        result = super(*args)
+        @metrics.close if close_metrics
+        result
       end
 
       def_delegators \

@@ -1,4 +1,5 @@
 require 'ddtrace/contrib/support/spec_helper'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 require 'ddtrace'
 require 'ddtrace/contrib/analytics_examples'
@@ -16,11 +17,17 @@ RSpec.describe 'ActionCable patcher' do
   before { skip('ActionCable not supported') unless Datadog::Contrib::ActionCable::Integration.compatible? }
 
   let(:configuration_options) { {} }
+  let(:span) do
+    expect(spans).to have(1).item
+    spans.find { |s| s.service == 'action_cable' }
+  end
 
   before do
     Datadog.configure do |c|
       c.use :action_cable, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
   around do |example|
@@ -30,11 +37,6 @@ RSpec.describe 'ActionCable patcher' do
     Datadog.registry[:action_cable].reset_configuration!
   end
 
-  let(:span) do
-    expect(spans).to have(1).item
-    spans.find { |s| s.service == 'action_cable' }
-  end
-
   context 'with server' do
     let(:channel) { 'chat_room' }
     let(:message) { 'Hello Internet!' }
@@ -42,7 +44,7 @@ RSpec.describe 'ActionCable patcher' do
     let(:server) do
       ActionCable::Server::Base.new.tap do |s|
         s.config.cable = { adapter: 'inline' }.with_indifferent_access
-        s.config.logger = Logger.new(nil)
+        s.config.logger = Logger.new($stdout)
       end
     end
 
@@ -63,6 +65,7 @@ RSpec.describe 'ActionCable patcher' do
 
       it_behaves_like 'analytics for integration' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Broadcast::EVENT_NAME) }
+
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
@@ -81,7 +84,7 @@ RSpec.describe 'ActionCable patcher' do
     end
 
     let(:channel_instance) { channel_class.new(connection, '{id: 1}', id: 1) }
-    let(:connection) { double('connection', logger: Logger.new(nil), transmit: nil, identifiers: []) }
+    let(:connection) { double('connection', logger: Logger.new($stdout), transmit: nil, identifiers: []) }
 
     context 'on perform action' do
       subject(:perform) { channel_instance.perform_action(data) }
@@ -102,6 +105,7 @@ RSpec.describe 'ActionCable patcher' do
 
       it_behaves_like 'analytics for integration' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
+
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
@@ -126,7 +130,7 @@ RSpec.describe 'ActionCable patcher' do
       let(:data) { { 'action' => 'foo', 'extra' => 'data' } }
       let(:channel_class) do
         stub_const('ChatChannel', Class.new(ActionCable::Channel::Base) do
-          def foo(data)
+          def foo(_data)
             transmit({ mock: 'data' }, via: 'streamed from chat_channel')
           end
         end)
@@ -149,6 +153,7 @@ RSpec.describe 'ActionCable patcher' do
 
       it_behaves_like 'analytics for integration' do
         before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
+
         let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end

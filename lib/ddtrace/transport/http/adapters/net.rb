@@ -1,4 +1,5 @@
 require 'ddtrace/transport/response'
+require 'ddtrace/vendor/multipart-post/net/http/post/multipart'
 
 module Datadog
   module Transport
@@ -9,27 +10,28 @@ module Datadog
           attr_reader \
             :hostname,
             :port,
-            :timeout
+            :timeout,
+            :ssl
 
-          DEFAULT_TIMEOUT = 1
+          DEFAULT_TIMEOUT = 30
 
           def initialize(hostname, port, options = {})
             @hostname = hostname
             @port = port
             @timeout = options[:timeout] || DEFAULT_TIMEOUT
+            @ssl = options.key?(:ssl) ? options[:ssl] == true : false
           end
 
-          def open
+          def open(&block)
             # DEV Initializing +Net::HTTP+ directly help us avoid expensive
             # options processing done in +Net::HTTP.start+:
             # https://github.com/ruby/ruby/blob/b2d96abb42abbe2e01f010ffc9ac51f0f9a50002/lib/net/http.rb#L614-L618
             req = ::Net::HTTP.new(hostname, port, nil)
 
+            req.use_ssl = ssl
             req.open_timeout = req.read_timeout = timeout
 
-            req.start do |http|
-              yield(http)
-            end
+            req.start(&block)
           end
 
           def call(env)
@@ -41,8 +43,18 @@ module Datadog
           end
 
           def post(env)
-            post = ::Net::HTTP::Post.new(env.path, env.headers)
-            post.body = env.body
+            post = nil
+
+            if env.form.nil? || env.form.empty?
+              post = ::Net::HTTP::Post.new(env.path, env.headers)
+              post.body = env.body
+            else
+              post = ::Datadog::Vendor::Net::HTTP::Post::Multipart.new(
+                env.path,
+                env.form,
+                env.headers
+              )
+            end
 
             # Connect and send the request
             http_response = open do |http|
@@ -82,36 +94,43 @@ module Datadog
 
             def payload
               return super if http_response.nil?
+
               http_response.body
             end
 
             def code
               return super if http_response.nil?
+
               http_response.code.to_i
             end
 
             def ok?
               return super if http_response.nil?
+
               code.between?(200, 299)
             end
 
             def unsupported?
               return super if http_response.nil?
+
               code == 415
             end
 
             def not_found?
               return super if http_response.nil?
+
               code == 404
             end
 
             def client_error?
               return super if http_response.nil?
+
               code.between?(400, 499)
             end
 
             def server_error?
               return super if http_response.nil?
+
               code.between?(500, 599)
             end
 

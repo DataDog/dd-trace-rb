@@ -3,7 +3,7 @@ module Datadog
     # Helper methods for managing forking behavior
     module Forking
       def self.included(base)
-        base.send(:prepend, ClassExtensions) if base.is_a?(Class)
+        base.prepend(ClassExtensions) if base.is_a?(Class)
       end
 
       def self.extended(base)

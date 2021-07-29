@@ -7,8 +7,11 @@ require 'http'
 require 'webrick'
 require 'json'
 
+require 'spec/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   before(:all) do
+    # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
     log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
     access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
@@ -21,25 +24,37 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
       req.each do |header_name|
         # webrick formats header values as 1 length arrays
         header_in_array = req.header[header_name]
-        if header_in_array.is_a?(Array)
-          res.header[header_name] = header_in_array.join('')
-        end
+        res.header[header_name] = header_in_array.join if header_in_array.is_a?(Array)
       end
 
       res.body = req.body
     end
 
-    Thread.new { server.start }
+    ThreadHelpers.with_leaky_thread_creation(:httprb_test_server) do
+      @thread = Thread.new { server.start }
+    end
+
     @server = server
     @port = server[:Port]
   end
-  after(:all) { @server.shutdown }
+
+  after(:all) do
+    @server.shutdown
+    @thread.join
+  end
 
   let(:configuration_options) { {} }
 
   before do
     Datadog.configure do |c|
       c.use :httprb, configuration_options
+    end
+
+    # LibFFI native thread
+    allow(::HTTP::Connection).to receive(:new).and_wrap_original do |method, *args, &block|
+      ThreadHelpers.with_leaky_thread_creation(:ffi) do
+        method.call(*args, &block)
+      end
     end
   end
 
@@ -143,14 +158,24 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
         context 'response has not found status' do
           let(:code) { 404 }
           let(:message) { 'Not Found' }
+
           before { response }
 
           it 'has tag with status code' do
             expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
           end
 
-          it 'has no error set' do
-            expect(span).to_not have_error_message
+          it 'has error set' do
+            expect(span).to have_error
+          end
+
+          it 'has error type set' do
+            expect(span).to have_error_type('Error 404')
+          end
+
+          # default error message to `Error` from https://github.com/DataDog/dd-trace-rb/issues/1116
+          it 'has error message' do
+            expect(span).to have_error_message('Error')
           end
         end
 

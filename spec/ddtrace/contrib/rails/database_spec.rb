@@ -127,6 +127,7 @@ RSpec.describe 'Rails database' do
 
   context 'with custom database_service' do
     subject(:query) { Article.count }
+
     let(:database_service) { 'customer-db' }
 
     it 'doing a database call uses the proper service name if it is changed' do

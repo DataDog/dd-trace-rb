@@ -14,6 +14,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
   describe '#adapter' do
     context 'given a symbol' do
       subject(:adapter) { builder.adapter(type, *args) }
+
       let(:type) { :foo }
       let(:args) { [double('arg1'), double('arg2')] }
 
@@ -44,6 +45,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     context 'given an adapter object' do
       subject(:adapter) { builder.adapter(adapter_object) }
+
       let(:adapter_object) { double('adapter object') }
 
       it 'changes the default adapter' do
@@ -74,6 +76,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
   describe '#api' do
     subject(:api) { builder.api(key, spec, options) }
+
     let(:key) { :v2 }
     let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
     let(:options) { {} }
@@ -133,12 +136,14 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
   describe '#default_api=' do
     subject(:default_api) { builder.default_api = key }
+
     let(:key) { double('API key') }
 
     before { builder.api :original, instance_double(Datadog::Transport::HTTP::API::Spec), default: true }
 
     context 'which matches an already defined API' do
       before { builder.api key, instance_double(Datadog::Transport::HTTP::API::Spec) }
+
       it { expect { default_api }.to change { builder.default_api }.from(:original).to(key) }
     end
 
@@ -152,6 +157,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     shared_context 'default adapter' do
       before { builder.adapter(adapter) }
+
       let(:adapter) { double('adapter') }
     end
 
@@ -161,6 +167,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
     context 'when an API is defined' do
       before { builder.api(key, spec, options) }
+
       let(:key) { :v2 }
       let(:spec) { instance_double(Datadog::Transport::HTTP::API::Spec) }
       let(:options) { {} }
@@ -173,7 +180,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
         include_context 'default adapter'
 
         it 'configures the API instance with the default adapter' do
-          expect(api_instances).to include(key => kind_of(Datadog::Transport::HTTP::API::Instance))
+          expect(api_instances).to include(key => kind_of(builder.api_instance_class))
           expect(api_instances[key].adapter).to be adapter
         end
       end
@@ -183,7 +190,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
         let(:adapter) { double('adapter') }
 
         it 'configures the API instance with the given adapter' do
-          expect(api_instances).to include(key => kind_of(Datadog::Transport::HTTP::API::Instance))
+          expect(api_instances).to include(key => kind_of(builder.api_instance_class))
           expect(api_instances[key].adapter).to be adapter
         end
       end
@@ -195,13 +202,13 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
         let(:options) { { foo: :bar } }
 
         before do
-          expect(Datadog::Transport::HTTP::API::Instance).to receive(:new)
+          expect(builder.api_instance_class).to receive(:new)
             .with(spec, adapter, foo: :bar, headers: {})
             .and_call_original
         end
 
         it 'configures the API instance with custom options' do
-          expect(api_instances).to include(key => kind_of(Datadog::Transport::HTTP::API::Instance))
+          expect(api_instances).to include(key => kind_of(builder.api_instance_class))
         end
       end
 
@@ -217,8 +224,8 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
         it 'configures the map with a fallback' do
           expect(api_instances).to include(
-            key => kind_of(Datadog::Transport::HTTP::API::Instance),
-            fallback_key => kind_of(Datadog::Transport::HTTP::API::Instance)
+            key => kind_of(builder.api_instance_class),
+            fallback_key => kind_of(builder.api_instance_class)
           )
           expect(api_instances.fallbacks[key]).to eq(fallback_key)
         end
@@ -233,17 +240,18 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
         context 'and there are no default headers defined' do
           it 'configures the API instance with the given adapter' do
-            expect(api_instances).to include(key => kind_of(Datadog::Transport::HTTP::API::Instance))
+            expect(api_instances).to include(key => kind_of(builder.api_instance_class))
             expect(api_instances[key].headers).to eq(api_headers)
           end
         end
 
         context 'which conflict with default headers' do
           let(:api_headers) { { 'X-Test-Two' => 'blah', 'X-Test-Three' => 'baz' } }
+
           before { builder.headers('X-Test-One' => 'foo', 'X-Test-Two' => 'bar') }
 
           it 'configures the API instance with the given adapter' do
-            expect(api_instances).to include(key => kind_of(Datadog::Transport::HTTP::API::Instance))
+            expect(api_instances).to include(key => kind_of(builder.api_instance_class))
             expect(api_instances[key].headers).to eq(
               'X-Test-One' => 'foo',
               'X-Test-Two' => 'blah',
@@ -276,5 +284,11 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
         expect(transport.apis).to include(v2: kind_of(Datadog::Transport::HTTP::API::Instance))
       end
     end
+  end
+
+  describe '#api_instance_class' do
+    subject(:api_instance_class) { builder.api_instance_class }
+
+    it { is_expected.to be(Datadog::Transport::HTTP::API::Instance) }
   end
 end

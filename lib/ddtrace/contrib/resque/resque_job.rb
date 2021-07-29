@@ -7,9 +7,30 @@ require 'resque'
 module Datadog
   module Contrib
     module Resque
+      # Automatically configures jobs with {ResqueJob} plugin.
+      module Job
+        def perform
+          if Datadog.configuration[:resque][:workers].nil?
+            job = payload_class
+            job.extend(Datadog::Contrib::Resque::ResqueJob) unless job.is_a? Datadog::Contrib::Resque::ResqueJob
+          end
+        ensure
+          super
+        end
+      end
+
       # Uses Resque job hooks to create traces
       module ResqueJob
-        def around_perform(*args)
+        # `around_perform` hooks are executed in alphabetical order.
+        # we use the lowest printable character that allows for an inline
+        # method definition ('0'), alongside our naming prefix for identification.
+        #
+        # We could, in theory, use any character (e.g "\x00"), but this will lead
+        # to unreadable stack traces that contain this method call.
+        #
+        # We could also just use `around_perform` but this might override the user's
+        # own method.
+        def around_perform0_ddtrace(*args)
           return yield unless datadog_configuration && tracer
 
           tracer.trace(Ext::SPAN_JOB, span_options) do |span|
@@ -44,6 +65,7 @@ module Datadog
         def forked?
           pin = Datadog::Pin.get_from(::Resque)
           return false unless pin
+
           pin.config[:forked] == true
         end
 
@@ -76,5 +98,6 @@ Resque.after_fork do
 
   # Clean the state so no CoW happens
   next if configuration[:tracer].nil?
+
   configuration[:tracer].provider.context = nil
 end

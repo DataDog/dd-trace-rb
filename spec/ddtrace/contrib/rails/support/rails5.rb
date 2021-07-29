@@ -1,5 +1,6 @@
 require 'rails/all'
-require 'ddtrace'
+
+require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -52,10 +53,16 @@ RSpec.shared_context 'Rails 5 base application' do
     after_test_init = after_test_initialize_block
 
     klass.send(:define_method, :test_initialize!) do
-      # Enables the auto-instrumentation for the testing application
-      Datadog.configure do |c|
-        c.use :rails
-        c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+      # we want to disable explicit instrumentation
+      # when testing auto patching
+      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
+        require 'ddtrace/auto_instrument'
+      else
+        # Enables the auto-instrumentation for the testing application
+        Datadog.configure do |c|
+          c.use :rails
+          c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+        end
       end
 
       Rails.application.config.active_job.queue_adapter = :sidekiq
@@ -86,6 +93,9 @@ RSpec.shared_context 'Rails 5 base application' do
   # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
+    # Reset autoloaded constants
+    ActiveSupport::Dependencies.clear if Rails.application
+
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)

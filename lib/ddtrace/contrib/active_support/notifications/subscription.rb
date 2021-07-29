@@ -9,7 +9,8 @@ module Datadog
             :options
 
           def initialize(tracer, span_name, options, &block)
-            raise ArgumentError, 'Must be given a block!' unless block_given?
+            raise ArgumentError, 'Must be given a block!' unless block
+
             @tracer = tracer
             @span_name = span_name
             @options = options
@@ -38,21 +39,23 @@ module Datadog
           end
 
           def before_trace(&block)
-            callbacks.add(:before_trace, &block) if block_given?
+            callbacks.add(:before_trace, &block) if block
           end
 
           def after_trace(&block)
-            callbacks.add(:after_trace, &block) if block_given?
+            callbacks.add(:after_trace, &block) if block
           end
 
           def subscribe(pattern)
             return false if subscribers.key?(pattern)
+
             subscribers[pattern] = ::ActiveSupport::Notifications.subscribe(pattern, self)
             true
           end
 
           def unsubscribe(pattern)
             return false unless subscribers.key?(pattern)
+
             ::ActiveSupport::Notifications.unsubscribe(subscribers[pattern])
             subscribers.delete(pattern)
             true
@@ -60,7 +63,8 @@ module Datadog
 
           def unsubscribe_all
             return false if subscribers.empty?
-            subscribers.keys.each { |pattern| unsubscribe(pattern) }
+
+            subscribers.each_key { |pattern| unsubscribe(pattern) }
             true
           end
 
@@ -131,7 +135,7 @@ module Datadog
             end
 
             def add(key, &block)
-              blocks_for(key) << block if block_given?
+              blocks_for(key) << block if block
             end
 
             def run(event, key, *args)

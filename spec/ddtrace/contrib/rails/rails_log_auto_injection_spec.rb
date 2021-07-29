@@ -1,6 +1,4 @@
 require 'ddtrace/contrib/rails/rails_helper'
-# for log_injection testing
-require 'lograge'
 
 RSpec.describe 'Rails Log Auto Injection' do
   include Rack::Test::Methods
@@ -64,7 +62,7 @@ RSpec.describe 'Rails Log Auto Injection' do
         end
 
         context 'with Tagged logging setup and no tags' do
-          it 'should inject trace_id into logs' do
+          it 'injects trace_id into logs' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -77,7 +75,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
           end
 
-          it 'should inject trace_id into logs and preserve existing log tags' do
+          it 'injects trace_id into logs and preserve existing log tags' do
             is_expected.to be_ok
 
             expect(logs).to include(spans[0].trace_id.to_s)
@@ -89,78 +87,82 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    context 'with Lograge' do
-      subject(:response) { get '/lograge' }
+    if Rails.version >= '4.0'
+      context 'with Lograge' do
+        # for log_injection testing
+        require 'lograge'
+        subject(:response) { get '/lograge' }
 
-      before do
-        allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
-      end
-
-      context 'with lograge enabled' do
-        context 'with Lograge setup and no custom_options' do
-          it 'should inject trace_id into logs' do
-            is_expected.to be_ok
-
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-          end
-        end
-
-        context 'with Lograge and existing custom_options as a hash' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              'some_hash_info' => 'test_hash_value',
-              'some_other_hash_info' => 'other_test_hash_value'
-            )
-          end
-
-          it 'should inject trace_id into logs and preserve existing hash' do
-            is_expected.to be_ok
-
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-            expect(logs).to include('some_hash_info')
-            expect(logs).to include('some_other_hash_info')
-            expect(logs).to include('test_hash_value')
-            expect(logs).to include('other_test_hash_value')
-          end
-        end
-
-        context 'with Lograge and existing custom_options as a lambda' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-              lambda do |_event|
-                {
-                  'some_lambda_info' => 'test_lambda_value',
-                  'some_other_lambda_info' => 'other_test_lambda_value'
-                }
-              end
-            )
-          end
-
-          it 'should inject trace_id into logs and preserve existing lambda' do
-            is_expected.to be_ok
-
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-            expect(logs).to include('some_lambda_info')
-            expect(logs).to include('some_other_lambda_info')
-            expect(logs).to include('test_lambda_value')
-            expect(logs).to include('other_test_lambda_value')
-          end
-        end
-      end
-
-      context 'with lograge disabled' do
         before do
-          allow(ENV).to receive(:[]).with('LOGRAGE_DISABLED').and_return(true)
+          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
         end
 
-        it 'should not inject trace_id into logs' do
-          is_expected.to be_ok
+        context 'with lograge enabled' do
+          context 'with Lograge setup and no custom_options' do
+            it 'injects trace_id into logs' do
+              is_expected.to be_ok
 
-          expect(logs).not_to include(spans[0].trace_id.to_s)
-          expect(logs).to include('MINASWAN')
+              expect(logs).to include(spans[0].trace_id.to_s)
+              expect(logs).to include('MINASWAN')
+            end
+          end
+
+          context 'with Lograge and existing custom_options as a hash' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                'some_hash_info' => 'test_hash_value',
+                'some_other_hash_info' => 'other_test_hash_value'
+              )
+            end
+
+            it 'injects trace_id into logs and preserve existing hash' do
+              is_expected.to be_ok
+
+              expect(logs).to include(spans[0].trace_id.to_s)
+              expect(logs).to include('MINASWAN')
+              expect(logs).to include('some_hash_info')
+              expect(logs).to include('some_other_hash_info')
+              expect(logs).to include('test_hash_value')
+              expect(logs).to include('other_test_hash_value')
+            end
+          end
+
+          context 'with Lograge and existing custom_options as a lambda' do
+            before do
+              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
+                lambda do |_event|
+                  {
+                    'some_lambda_info' => 'test_lambda_value',
+                    'some_other_lambda_info' => 'other_test_lambda_value'
+                  }
+                end
+              )
+            end
+
+            it 'injects trace_id into logs and preserve existing lambda' do
+              is_expected.to be_ok
+
+              expect(logs).to include(spans[0].trace_id.to_s)
+              expect(logs).to include('MINASWAN')
+              expect(logs).to include('some_lambda_info')
+              expect(logs).to include('some_other_lambda_info')
+              expect(logs).to include('test_lambda_value')
+              expect(logs).to include('other_test_lambda_value')
+            end
+          end
+        end
+
+        context 'with lograge disabled' do
+          before do
+            allow(ENV).to receive(:[]).with('LOGRAGE_DISABLED').and_return(true)
+          end
+
+          it 'does not inject trace_id into logs' do
+            is_expected.to be_ok
+
+            expect(logs).not_to include(spans[0].trace_id.to_s)
+            expect(logs).to include('MINASWAN')
+          end
         end
       end
     end

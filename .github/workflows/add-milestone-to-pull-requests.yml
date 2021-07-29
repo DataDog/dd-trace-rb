@@ -1,6 +1,6 @@
 name: Add milestone to pull requests
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
     branches:
       - master

@@ -10,8 +10,8 @@ module Datadog
         # invoke Event.subscribe! to more easily subscribe to an event.
         module Event
           def self.included(base)
-            base.send(:include, Subscriber)
-            base.send(:extend, ClassMethods)
+            base.include(Subscriber)
+            base.extend(ClassMethods)
             base.send(:on_subscribe) { base.subscribe }
           end
 
@@ -20,7 +20,8 @@ module Datadog
           module ClassMethods
             DEFAULT_TRACER = -> { Datadog.tracer }
 
-            def subscribe!
+            # Publicly exposes protected method `subscribe!`
+            def subscribe! # rubocop:disable Lint/UselessMethodDefinition
               super
             end
 

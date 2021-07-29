@@ -1,15 +1,17 @@
 require 'ddtrace/contrib/rails/support/base'
+require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 RSpec.shared_context 'Rails test application' do
   include_context 'Rails base application'
 
   before do
-    Datadog.configuration[:rails].reset_options!
-
     reset_rails_configuration!
+    raise_on_rails_deprecation!
   end
 
   after do
+    reset_rails_configuration!
+
     # Reset references stored in the Rails class
     Rails.application = nil
     Rails.logger = nil
@@ -18,6 +20,11 @@ RSpec.shared_context 'Rails test application' do
       Rails.app_class = nil
       Rails.cache = nil
     end
+
+    Datadog.configuration.reset!
+    Datadog.configuration[:rails].reset_options!
+    Datadog.configuration[:rack].reset_options!
+    Datadog.configuration[:redis].reset_options!
   end
 
   let(:app) do
@@ -37,7 +44,7 @@ RSpec.shared_context 'Rails test application' do
   end
 
   if Rails.version < '4.0'
-    around(:each) do |example|
+    around do |example|
       without_warnings do
         example.run
       end

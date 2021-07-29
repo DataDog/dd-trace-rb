@@ -1,14 +1,12 @@
-require 'ddtrace/patcher'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
     # Common behavior for patcher modules
     module Patcher
       def self.included(base)
-        base.send(:include, Datadog::Patcher)
-
-        base.singleton_class.send(:prepend, CommonMethods)
-        base.send(:prepend, CommonMethods) if base.class == Class
+        base.singleton_class.prepend(CommonMethods)
+        base.prepend(CommonMethods) if base.instance_of?(Class)
       end
 
       # Prepended instance methods for all patchers
@@ -18,13 +16,13 @@ module Datadog
         end
 
         def patched?
-          done?(:patch)
+          patch_only_once.ran?
         end
 
         def patch
           return unless defined?(super)
 
-          do_once(:patch) do
+          patch_only_once.run do
             begin
               super.tap do
                 # Emit a metric
@@ -40,7 +38,7 @@ module Datadog
         # @param e [Exception]
         def on_patch_error(e)
           # Log the error
-          Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+          Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{Array(e.backtrace).first}")
 
           # Emit a metric
           tags = default_tags
@@ -55,6 +53,11 @@ module Datadog
           ["patcher:#{patch_name}"].tap do |tags|
             tags << "target_version:#{target_version}" if respond_to?(:target_version) && !target_version.nil?
           end
+        end
+
+        def patch_only_once
+          # NOTE: This is not thread-safe
+          @patch_only_once ||= Datadog::Utils::OnlyOnce.new
         end
       end
     end

@@ -1,3 +1,5 @@
+require 'set'
+
 module Datadog
   module Contrib
     module Redis
@@ -7,6 +9,19 @@ module Datadog
         TOO_LONG_MARK = '...'.freeze
         VALUE_MAX_LEN = 50
         CMD_MAX_LEN = 500
+
+        MULTI_VERB_COMMANDS = Set.new(
+          %w[
+            ACL
+            CLIENT
+            CLUSTER
+            COMMAND
+            CONFIG
+            DEBUG
+            LATENCY
+            MEMORY
+          ]
+        ).freeze
 
         module_function
 
@@ -27,8 +42,21 @@ module Datadog
           Utils.truncate(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
         end
 
+        def get_verb(command_args)
+          return unless command_args.is_a?(Array)
+
+          return get_verb(command_args.first) if command_args.first.is_a?(Array)
+
+          arg = command_args.first
+          verb = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
+          return verb unless MULTI_VERB_COMMANDS.include?(verb) && command_args[1]
+
+          "#{verb} #{command_args[1]}"
+        end
+
         def auth_command?(command_args)
           return false unless command_args.is_a?(Array) && !command_args.empty?
+
           command_args.first.to_sym == :auth
         end
 

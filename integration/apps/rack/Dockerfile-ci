@@ -1,0 +1,14 @@
+# Select base image
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+# Add gem
+COPY . /vendor/dd-trace-rb
+
+# Install dependencies
+ENV DD_DEMO_ENV_GEM_LOCAL_DDTRACE /vendor/dd-trace-rb
+
+# Build the ddtrace profiling native extension
+RUN export BUNDLE_GEMFILE=/vendor/dd-trace-rb/Gemfile && cd /vendor/dd-trace-rb && bundle install && bundle exec rake compile
+
+RUN bundle install

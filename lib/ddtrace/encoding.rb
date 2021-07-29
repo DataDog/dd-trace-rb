@@ -6,6 +6,8 @@ module Datadog
   module Encoding
     # Encoder interface that provides the logic to encode traces and service
     module Encoder
+      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
       def content_type
         raise NotImplementedError
       end

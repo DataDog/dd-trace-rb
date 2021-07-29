@@ -60,7 +60,7 @@ module Datadog
         end
 
         def default(value = nil, &block)
-          @default = block_given? ? block : value
+          @default = block || value
         end
 
         def delegate_to(&block)
@@ -71,8 +71,6 @@ module Datadog
           @helpers[name] = block
         end
 
-        # rubocop:disable Style/TrivialAccessors
-        # (Rubocop erroneously thinks #lazy == #lazy= )
         def lazy(value = true)
           @lazy = value
         end

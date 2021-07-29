@@ -5,31 +5,32 @@ module Datadog
     module Configuration
       # Resolves a value to a configuration key
       module Resolvers
-        # Matches strings against Regexps.
-        class PatternResolver < Datadog::Contrib::Configuration::Resolver
-          def resolve(name)
+        # Matches Strings and Regexps against `object.to_s` objects
+        # and Procs against plain objects.
+        class PatternResolver < Contrib::Configuration::Resolver
+          def resolve(value)
+            return if configurations.empty?
+
             # Try to find a matching pattern
-            matching_pattern = patterns.find do |pattern|
-              if pattern.is_a?(Proc)
-                (pattern === name)
-              else
-                (pattern === name.to_s) ||
-                  (pattern == name) # Only required during configuration time.
-              end
+            _, config = configurations.reverse_each.find do |matcher, _|
+              matcher === if matcher.is_a?(Proc)
+                            value
+                          else
+                            value.to_s
+                          end
             end
 
-            # Return match or default
-            matching_pattern
+            config
           end
 
-          def add(pattern)
-            patterns << (pattern.is_a?(Regexp) || pattern.is_a?(Proc) ? pattern : pattern.to_s)
-          end
+          protected
 
-          private
-
-          def patterns
-            @patterns ||= Set.new
+          def parse_matcher(matcher)
+            if matcher.is_a?(Regexp) || matcher.is_a?(Proc)
+              matcher
+            else
+              matcher.to_s
+            end
           end
         end
       end

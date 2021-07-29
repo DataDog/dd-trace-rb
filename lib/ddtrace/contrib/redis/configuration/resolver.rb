@@ -4,16 +4,25 @@ module Datadog
   module Contrib
     module Redis
       module Configuration
-        # Converts Symbols, Strings, and Hashes to a normalized connection settings Hash.
-        class Resolver < Contrib::Configuration::Resolver
-          def resolve(key_or_hash)
-            return :default if key_or_hash == :default
+        UNIX_SCHEME = 'unix'.freeze
 
-            normalize(connection_resolver.resolve(key_or_hash))
+        # Converts String URLs and Hashes to a normalized connection settings Hash.
+        class Resolver < Contrib::Configuration::Resolver
+          # @param [Hash,String] Redis connection information
+          def resolve(hash)
+            super(parse_matcher(hash))
+          end
+
+          protected
+
+          def parse_matcher(matcher)
+            matcher = { url: matcher } if matcher.is_a?(String)
+
+            normalize(connection_resolver.resolve(matcher))
           end
 
           def normalize(hash)
-            return { url: hash[:url] } if hash[:scheme] == 'unix'
+            return { url: hash[:url] } if hash[:scheme] == UNIX_SCHEME
 
             # Connexion strings are always converted to host, port, db and scheme
             # but the host, port, db and scheme will generate the :url only after

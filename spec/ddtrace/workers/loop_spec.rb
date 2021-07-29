@@ -42,11 +42,15 @@ RSpec.describe Datadog::Workers::IntervalLoop do
         sleep(0.1)
       end
 
-      after { @thread.kill }
+      after do
+        @thread.kill
+        @thread.join
+      end
     end
 
     describe '#perform' do
       subject(:perform) { worker.perform(*args) }
+
       let(:args) { [:foo, :bar] }
 
       context 'given arguments' do
@@ -57,6 +61,36 @@ RSpec.describe Datadog::Workers::IntervalLoop do
           expect(@perform_invocations).to eq(perform_limit)
         end
       end
+
+      it 'executes the task BEFORE the first sleep' do
+        perform_executed = false
+        allow(worker_spy).to receive(:perform) { perform_executed = true }
+
+        expect(worker.send(:shutdown)).to receive(:wait) {
+          expect(perform_executed).to be true
+          allow(worker_spy).to receive(:perform) { worker.stop_loop }
+        }
+
+        perform
+      end
+
+      context 'when #loop_wait_before_first_iteration? is true' do
+        before do
+          allow(worker).to receive(:loop_wait_before_first_iteration?).and_return(true)
+        end
+
+        it 'executes the task AFTER the first sleep' do
+          perform_executed = false
+          allow(worker_spy).to receive(:perform) { perform_executed = true }
+
+          expect(worker.send(:shutdown)).to receive(:wait) {
+            expect(perform_executed).to be false
+            allow(worker_spy).to receive(:perform) { worker.stop_loop }
+          }
+
+          perform
+        end
+      end
     end
 
     describe '#stop_loop' do
@@ -64,6 +98,7 @@ RSpec.describe Datadog::Workers::IntervalLoop do
 
       context 'when the worker is not running' do
         before { worker.stop_loop }
+
         it { is_expected.to be false }
       end
 
@@ -175,51 +210,52 @@ RSpec.describe Datadog::Workers::IntervalLoop do
       context 'default' do
         it { is_expected.to eq(described_class::BASE_INTERVAL) }
       end
+    end
 
-      context 'when set' do
+    describe '#loop_wait_time=' do
+      let(:value) { rand }
+
+      it do
+        expect { worker.loop_wait_time = value }
+          .to change { worker.loop_wait_time }
+          .from(described_class::BASE_INTERVAL)
+          .to(value)
+      end
+    end
+
+    describe '#reset_loop_wait_time' do
+      context 'when the loop time has been changed' do
         let(:value) { rand }
 
+        before { worker.loop_wait_time = value }
+
         it do
-          expect { worker.send(:loop_base_interval=, value) }
-            .to change { worker.loop_base_interval }
-            .from(described_class::BASE_INTERVAL)
-            .to(value)
+          expect { worker.reset_loop_wait_time }
+            .to change { worker.loop_wait_time }
+            .from(value)
+            .to(described_class::BASE_INTERVAL)
         end
       end
     end
 
     describe '#loop_back_off?' do
       subject(:loop_back_off?) { worker.loop_back_off? }
+
       it { is_expected.to be false }
     end
 
     describe '#loop_back_off!' do
-      subject(:loop_back_off!) { worker.loop_back_off! }
+      it do
+        expect { worker.loop_back_off! }
+          .to change { worker.loop_wait_time }
+          .from(described_class::BASE_INTERVAL)
+          .to(described_class::BASE_INTERVAL * described_class::BACK_OFF_RATIO)
 
-      context 'given no arguments' do
-        it do
-          expect { loop_back_off! }
-            .to change { worker.loop_wait_time }
-            .from(described_class::BASE_INTERVAL)
-            .to(described_class::BACK_OFF_RATIO)
-
-          expect { worker.loop_back_off! }
-            .to change { worker.loop_wait_time }
-            .from(described_class::BACK_OFF_RATIO)
-            .to(described_class::BACK_OFF_RATIO * described_class::BACK_OFF_RATIO)
-        end
-      end
-
-      context 'given an amount to back off' do
-        subject(:loop_back_off!) { worker.loop_back_off!(value) }
-        let(:value) { rand }
-
-        it do
-          expect { loop_back_off! }
-            .to change { worker.loop_wait_time }
-            .from(described_class::BASE_INTERVAL)
-            .to(value)
-        end
+        # Call again to see back-off increase
+        expect { worker.loop_back_off! }
+          .to change { worker.loop_wait_time }
+          .from(described_class::BASE_INTERVAL * described_class::BACK_OFF_RATIO)
+          .to(described_class::BASE_INTERVAL * described_class::BACK_OFF_RATIO * described_class::BACK_OFF_RATIO)
       end
     end
   end

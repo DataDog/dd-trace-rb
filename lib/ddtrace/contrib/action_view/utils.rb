@@ -24,7 +24,7 @@ module Datadog
             sections_view[-1]
           end
         rescue
-          return name.to_s
+          name.to_s
         end
       end
     end

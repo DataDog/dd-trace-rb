@@ -13,12 +13,11 @@ RSpec.describe 'Microbenchmark' do
 
   describe Datadog::Tracer do
     describe 'nested traces' do
-      include_examples 'benchmark'
-
+      let(:name) { 'span'.freeze }
+      let(:tracer) { new_tracer(writer: FauxWriter.new(call_original: false)) }
       let(:steps) { [1, 10, 100] }
 
-      let(:tracer) { new_tracer(writer: FauxWriter.new(call_original: false)) }
-      let(:name) { 'span'.freeze }
+      include_examples 'benchmark'
 
       def trace(i, total)
         tracer.trace(name) { trace(i + 1, total) unless i == total }
@@ -55,19 +54,19 @@ RSpec.describe 'Microbenchmark' do
       end
 
       context 'with space in buffer' do
-        include_examples 'benchmark'
-
         let(:buffer_size) { -1 }
+
+        include_examples 'benchmark'
       end
 
       context 'with buffer full' do
-        include_examples 'benchmark'
-
         let(:buffer_size) { Datadog::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE }
 
         before do
           buffer_size.times { writer.write(span1) } # fill up buffer
         end
+
+        include_examples 'benchmark'
 
         def reset_buffer
           # No need to reset, we actually want the buffer always full
@@ -80,19 +79,16 @@ RSpec.describe 'Microbenchmark' do
     include_context 'minimal agent'
 
     describe 'nested traces' do
-      include_examples 'benchmark'
-
-      let(:timing_runtime) { 60 }
-      let(:memory_iterations) { 1000 }
-
-      let(:steps) { [1, 10, 100] }
-
+      let(:name) { 'span'.freeze }
+      let(:writer) { Datadog::Writer.new(buffer_size: 1000, flush_interval: 0) }
       let(:tracer) { Datadog::Tracer.new(writer: writer) }
+      let(:steps) { [1, 10, 100] }
+      let(:memory_iterations) { 1000 }
+      let(:timing_runtime) { 60 }
+
       after { tracer.shutdown! }
 
-      let(:writer) { Datadog::Writer.new(buffer_size: 1000, flush_interval: 0) }
-
-      let(:name) { 'span'.freeze }
+      include_examples 'benchmark'
 
       def trace(i, total)
         tracer.trace(name) { trace(i + 1, total) unless i == total }

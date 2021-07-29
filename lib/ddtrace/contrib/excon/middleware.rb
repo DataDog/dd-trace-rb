@@ -119,9 +119,7 @@ module Datadog
           span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
-          if analytics_enabled?
-            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
-          end
+          Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
           span.set_tag(Datadog::Ext::HTTP::URL, datum[:path])
           span.set_tag(Datadog::Ext::HTTP::METHOD, datum[:method].to_s.upcase)
@@ -136,9 +134,7 @@ module Datadog
 
               if datum.key?(:response)
                 response = datum[:response]
-                if error_handler.call(response)
-                  span.set_error(["Error #{response[:status]}", response[:body]])
-                end
+                span.set_error(["Error #{response[:status]}", response[:body]]) if error_handler.call(response)
                 span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response[:status])
               end
               span.set_error(datum[:error]) if datum.key?(:error)

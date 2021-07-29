@@ -4,7 +4,8 @@ require 'ddtrace/logger'
 
 RSpec.describe Datadog::Logger do
   describe '::new' do
-    subject(:logger) { described_class.new(STDOUT) }
+    subject(:logger) { described_class.new($stdout) }
+
     it { is_expected.to be_a_kind_of(::Logger) }
     it { expect(logger.level).to be ::Logger::INFO }
     it { expect(logger.progname).to eq(Datadog::Logger::PREFIX) }
@@ -30,6 +31,7 @@ RSpec.describe Datadog::Logger do
 
     context 'with default settings' do
       it { is_expected.to have(5).items }
+
       it 'produces log messages with expected format' do
         expect(lines[0]).to match(/I,.*INFO -- ddtrace: \[ddtrace\] Info message/)
 
@@ -55,6 +57,7 @@ RSpec.describe Datadog::Logger do
       before { logger.level = ::Logger::DEBUG }
 
       it { is_expected.to have(6).items }
+
       it 'produces log messages with expected format' do
         expect(lines[0]).to match(
           /D,.*DEBUG -- ddtrace: \[ddtrace\] \(.*logger_spec.rb.*\) Debug message/

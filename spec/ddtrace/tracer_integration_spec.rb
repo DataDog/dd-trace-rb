@@ -1,13 +1,15 @@
 require 'spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/ext/runtime'
-require 'ddtrace/runtime/identity'
-require 'ddtrace/propagation/http_propagator'
 
 RSpec.describe Datadog::Tracer do
   subject(:tracer) { described_class.new(writer: FauxWriter.new) }
+
   let(:spans) { tracer.writer.spans(:keep) }
+
+  after do
+    tracer.shutdown! # Ensure no state gets left behind
+  end
 
   def sampling_priority_metric(span)
     span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
@@ -43,6 +45,7 @@ RSpec.describe Datadog::Tracer do
           # Then extract it from the same headers
           propagated_context = Datadog::HTTPPropagator.extract(headers)
           raise StandardError, 'Failed to propagate trace properly.' unless propagated_context.trace_id
+
           tracer.provider.context = propagated_context
 
           # And create child span from propagated context
@@ -75,6 +78,7 @@ RSpec.describe Datadog::Tracer do
         # propagate the root span, only its ID. Therefore the span reference
         # should be the first span on the other end of the distributed trace.
         it { expect(@child_root_span).to be child_span }
+
         it 'does not set runtime metrics language tag' do
           expect(lang_tag(parent_span)).to be nil
           expect(lang_tag(child_span)).to be nil
@@ -93,6 +97,7 @@ RSpec.describe Datadog::Tracer do
 
         context 'are enabled' do
           let(:enabled) { true }
+
           it 'associates the span with the runtime' do
             expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
               .with(parent_span)
@@ -104,6 +109,7 @@ RSpec.describe Datadog::Tracer do
 
         context 'disabled' do
           let(:enabled) { false }
+
           it 'does not associate the span with the runtime' do
             expect(Datadog.runtime_metrics).to_not have_received(:associate_with_span)
           end
@@ -115,6 +121,7 @@ RSpec.describe Datadog::Tracer do
   context 'with synthetics' do
     context 'which applies the context from distributed tracing headers' do
       let(:trace_id) { 3238677264721744442 }
+      let(:synthetics_context) { Datadog::HTTPPropagator.extract(distributed_tracing_headers) }
       let(:parent_id) { 0 }
       let(:sampling_priority) { 1 }
       let(:origin) { 'synthetics' }
@@ -131,8 +138,6 @@ RSpec.describe Datadog::Tracer do
       def rack_header(header)
         "http-#{header}".upcase!.tr('-', '_')
       end
-
-      let(:synthetics_context) { Datadog::HTTPPropagator.extract(distributed_tracing_headers) }
 
       before do
         tracer.provider.context = synthetics_context
@@ -161,11 +166,13 @@ RSpec.describe Datadog::Tracer do
 
       context 'for a synthetics request' do
         let(:origin) { 'synthetics' }
+
         it_behaves_like 'a synthetics-sourced trace'
       end
 
       context 'for a synthetics browser request' do
         let(:origin) { 'synthetics-browser' }
+
         it_behaves_like 'a synthetics-sourced trace'
       end
     end

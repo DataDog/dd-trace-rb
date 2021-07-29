@@ -1,4 +1,3 @@
-require 'thread'
 require 'ddtrace/diagnostics/health'
 
 require 'ddtrace/context_flush'
@@ -126,6 +125,7 @@ module Datadog
         # on per-instrumentation code to retrieve handle parent/child relations.
         set_current_span(span.parent)
         return if span.tracer.nil?
+
         if span.parent.nil? && !all_spans_finished?
           if Datadog.configuration.diagnostics.debug
             opened_spans = @trace.length - @finished_spans
@@ -189,6 +189,9 @@ module Datadog
         # Root span is finished at this point, we can configure it
         annotate_for_flush!(@current_root_span)
 
+        # Allow caller to modify trace before context is reset
+        yield(trace) if block_given?
+
         reset
         [trace, sampled]
       end
@@ -227,10 +230,24 @@ module Datadog
       attach_origin(span) if @origin
     end
 
+    def attach_sampling_priority(span)
+      span.set_metric(
+        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+        @sampling_priority
+      )
+    end
+
+    def attach_origin(span)
+      span.set_tag(
+        Ext::DistributedTracing::ORIGIN_KEY,
+        @origin
+      )
+    end
+
     # Return a string representation of the context.
     def to_s
       @mutex.synchronize do
-        # rubocop:disable Metrics/LineLength
+        # rubocop:disable Layout/LineLength
         "Context(trace.length:#{@trace.length},sampled:#{@sampled},finished_spans:#{@finished_spans},current_span:#{@current_span})"
       end
     end
@@ -282,24 +299,11 @@ module Datadog
       @finished_spans > 0 && @trace.length == @finished_spans
     end
 
-    def attach_sampling_priority(span)
-      span.set_metric(
-        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
-        @sampling_priority
-      )
-    end
-
-    def attach_origin(span)
-      span.set_tag(
-        Ext::DistributedTracing::ORIGIN_KEY,
-        @origin
-      )
-    end
-
     # Return the start time of the root span, or nil if there are no spans or this is undefined.
     def start_time
       @mutex.synchronize do
         return nil if @trace.empty?
+
         @trace[0].start_time
       end
     end
@@ -312,11 +316,9 @@ module Datadog
     end
 
     # Iterate on each span within the trace. This is thread safe.
-    def each_span
+    def each_span(&block)
       @mutex.synchronize do
-        @trace.each do |span|
-          yield span
-        end
+        @trace.each(&block)
       end
     end
   end

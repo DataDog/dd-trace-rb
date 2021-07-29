@@ -3,8 +3,10 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/runtime'
+require 'ddtrace/ext/environment'
+require 'ddtrace/ext/profiling'
 require 'ddtrace/ext/sampling'
+require 'ddtrace/ext/test'
 
 module Datadog
   module Configuration
@@ -13,9 +15,32 @@ module Datadog
     class Settings
       include Base
 
-      #
-      # Configuration options
-      #
+      def initialize(*_)
+        super
+
+        # WORKAROUND: The values for services, version, and env can get set either directly OR as a side effect of
+        # accessing tags (reading or writing). This is of course really confusing and error-prone, e.g. in an app
+        # WITHOUT this workaround where you define `DD_TAGS=env:envenvtag,service:envservicetag,version:envversiontag`
+        # and do:
+        #
+        # puts Datadog.configuration.instance_exec { "#{service} #{env} #{version}" }
+        # Datadog.configuration.tags
+        # puts Datadog.configuration.instance_exec { "#{service} #{env} #{version}" }
+        #
+        # the output will be:
+        #
+        # [empty]
+        # envservicetag envenvtag envversiontag
+        #
+        # That is -- the proper values for service/env/version are only set AFTER something accidentally or not triggers
+        # the resolution of the tags.
+        # This is really confusing, error prone, etc, so calling tags here is a really hacky but effective way to
+        # avoid this. I could not think of a better way of fixing this issue without massive refactoring of tags parsing
+        # (so that the individual service/env/version get correctly set even from their tags values, not as a side
+        # effect). Sorry :(
+        tags
+      end
+
       settings :analytics do
         option :enabled do |o|
           o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
@@ -92,6 +117,7 @@ module Datadog
       end
 
       option :env do |o|
+        # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
       end
@@ -106,6 +132,49 @@ module Datadog
 
       def logger=(logger)
         get_option(:logger).instance = logger
+      end
+
+      settings :profiling do
+        option :enabled do |o|
+          o.default { env_to_bool(Ext::Profiling::ENV_ENABLED, false) }
+          o.lazy
+        end
+
+        settings :exporter do
+          option :transport
+          option :transport_options do |o|
+            o.setter do
+              # NOTE: As of April 2021 there may be a few profiler private beta customers with this setting, but since I'm
+              # marking this as deprecated before public beta, we can remove this for 1.0 without concern.
+              Datadog.logger.warn(
+                'Configuring the profiler c.profiling.exporter.transport_options is no longer needed, as the profiler ' \
+                'will reuse your existing global or tracer configuration. ' \
+                'This setting is deprecated for removal in a future ddtrace version ' \
+                '(1.0 or profiling GA, whichever comes first).'
+              )
+              nil
+            end
+            o.default { nil }
+            o.lazy
+          end
+        end
+
+        option :max_events, default: 32768
+
+        # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
+        # produced profiles. Increasing this may increase the overhead of profiling.
+        option :max_frames do |o|
+          o.default { env_to_int(Ext::Profiling::ENV_MAX_FRAMES, 400) }
+          o.lazy
+        end
+
+        settings :upload do
+          option :timeout_seconds do |o|
+            o.setter { |value| value.nil? ? 30.0 : value.to_f }
+            o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
+            o.lazy
+          end
+        end
       end
 
       option :report_hostname do |o|
@@ -156,8 +225,17 @@ module Datadog
       end
 
       option :service do |o|
-        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, nil) }
+        # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
+        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Environment::FALLBACK_SERVICE_NAME) }
         o.lazy
+
+        # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
+        # nil instead so that one can do
+        # nice_service_name = Datadog.configure.service_without_fallback || nice_service_name_default
+        o.helper(:service_without_fallback) do
+          service_name = service
+          service_name unless service_name.equal?(Ext::Environment::FALLBACK_SERVICE_NAME)
+        end
       end
 
       option :site do |o|
@@ -184,18 +262,17 @@ module Datadog
 
         o.setter do |new_value, old_value|
           # Coerce keys to strings
-          string_tags = Hash[new_value.collect { |k, v| [k.to_s, v] }]
+          string_tags = new_value.collect { |k, v| [k.to_s, v] }.to_h
 
           # Cross-populate tag values with other settings
-          if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
-            self.env = string_tags[Ext::Environment::TAG_ENV]
-          end
+
+          self.env = string_tags[Ext::Environment::TAG_ENV] if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
 
           if version.nil? && string_tags.key?(Ext::Environment::TAG_VERSION)
             self.version = string_tags[Ext::Environment::TAG_VERSION]
           end
 
-          if service.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
+          if service_without_fallback.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
             self.service = string_tags[Ext::Environment::TAG_SERVICE]
           end
 
@@ -204,6 +281,39 @@ module Datadog
         end
 
         o.lazy
+      end
+
+      settings :test_mode do
+        option :enabled do |o|
+          o.default { env_to_bool(Ext::Test::ENV_MODE_ENABLED, false) }
+          o.lazy
+        end
+
+        option :context_flush do |o|
+          o.default { nil }
+          o.lazy
+        end
+
+        option :writer_options do |o|
+          o.default { {} }
+          o.lazy
+        end
+      end
+
+      option :time_now_provider do |o|
+        o.default { ::Time.now }
+
+        o.on_set do |time_provider|
+          Utils::Time.now_provider = time_provider
+        end
+
+        o.resetter do |_value|
+          # TODO: Resetter needs access to the default value
+          # TODO: to help reduce duplication.
+          -> { ::Time.now }.tap do |default|
+            Utils::Time.now_provider = default
+          end
+        end
       end
 
       settings :tracer do
@@ -277,6 +387,7 @@ module Datadog
       end
 
       option :version do |o|
+        # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
         o.lazy
       end

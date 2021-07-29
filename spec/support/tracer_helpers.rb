@@ -111,8 +111,8 @@ module TracerHelpers
     }
 
     n.times do
-      span1 = Datadog::Span.new(nil, 'client.testing', defaults).start().finish()
-      span2 = Datadog::Span.new(nil, 'client.testing', defaults).start().finish()
+      span1 = Datadog::Span.new(nil, 'client.testing', defaults).start.finish
+      span2 = Datadog::Span.new(nil, 'client.testing', defaults).start.finish
       span2.set_parent(span1)
       traces << [span1, span2]
     end
@@ -141,9 +141,9 @@ module TracerHelpers
   # one span is available.
   def span
     @span ||= begin
-                expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
-                spans.first
-              end
+      expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
+      spans.first
+    end
   end
 
   def clear_spans!
@@ -151,5 +151,16 @@ module TracerHelpers
 
     @spans = nil
     @span = nil
+  end
+
+  def tracer_shutdown!
+    if defined?(@use_real_tracer) && @use_real_tracer
+      Datadog.tracer.shutdown!
+    elsif defined?(@tracer) && @tracer
+      @tracer.shutdown!
+      @tracer = nil
+    end
+
+    Datadog.send(:reset!)
   end
 end

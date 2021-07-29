@@ -1,6 +1,7 @@
 # Datadog Trace Client
 
 [![CircleCI](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master.svg?style=svg&circle-token=b0bd5ef866ec7f7b018f48731bb495f2d1372cc1)](https://circleci.com/gh/DataDog/dd-trace-rb/tree/master)
+[![codecov](https://codecov.io/gh/DataDog/dd-trace-rb/branch/master/graph/badge.svg)](https://app.codecov.io/gh/DataDog/dd-trace-rb/branch/master)
 
 ``ddtrace`` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have great visiblity into bottlenecks and troublesome requests.

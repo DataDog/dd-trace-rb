@@ -20,6 +20,10 @@ module Datadog
           require 'ddtrace/contrib/aws/services'
 
           add_plugin(Seahorse::Client::Base, *loaded_constants)
+
+          # Special handling for S3 URL Presigning.
+          # @see {Datadog::Contrib::Aws::S3Presigner}
+          ::Aws::S3::Presigner.prepend(S3Presigner) if defined?(::Aws::S3::Presigner)
         end
 
         def add_plugin(*targets)
@@ -35,6 +39,7 @@ module Datadog
 
           available_services.each_with_object([]) do |service, constants|
             next if ::Aws.autoload?(service)
+
             constants << ::Aws.const_get(service, false).const_get(:Client, false) rescue next
           end
         end

@@ -56,11 +56,9 @@ module Datadog
             defaults = DEFAULTS.dup
             options = options.dup
 
-            defaults.keys.each do |key|
+            defaults.each_key do |key|
               # Fill in defaults if needed
-              if defaults[key].respond_to?(:call)
-                defaults[key] = defaults[key].call
-              end
+              defaults[key] = defaults[key].call if defaults[key].respond_to?(:call)
 
               # Symbolize only keys that are needed
               options[key] = options[key.to_s] if options.key?(key.to_s)
@@ -73,9 +71,10 @@ module Datadog
             if url
               uri = URI(url)
 
-              if uri.scheme == 'unix'
+              case uri.scheme
+              when 'unix'
                 defaults[:path] = uri.path
-              elsif uri.scheme == 'redis' || uri.scheme == 'rediss'
+              when 'redis', 'rediss'
                 defaults[:scheme]   = uri.scheme
                 defaults[:host]     = uri.host if uri.host
                 defaults[:port]     = uri.port if uri.port
@@ -90,7 +89,7 @@ module Datadog
             end
 
             # Use default when option is not specified or nil
-            defaults.keys.each do |key|
+            defaults.each_key do |key|
               options[key] = defaults[key] if options[key].nil?
             end
 

@@ -11,6 +11,7 @@ module Datadog
 
           def fetch(key, value)
             return get(key) if original.key?(key)
+
             value.tap { set(key, value) }
           end
 

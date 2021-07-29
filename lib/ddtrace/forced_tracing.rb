@@ -7,11 +7,13 @@ module Datadog
     class << self
       def keep(span)
         return if span.nil? || span.context.nil?
+
         span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
       end
 
       def drop(span)
         return if span.nil? || span.context.nil?
+
         span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
       end
     end

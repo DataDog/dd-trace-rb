@@ -7,6 +7,7 @@ RSpec.describe Datadog::Transport::HTTP do
   describe '.new' do
     context 'given a block' do
       subject(:new_http) { described_class.new(&block) }
+
       let(:block) { proc {} }
 
       let(:builder) { instance_double(Datadog::Transport::HTTP::Builder) }
@@ -41,67 +42,136 @@ RSpec.describe Datadog::Transport::HTTP do
         ]
       )
 
-      default.apis.each do |_key, api|
+      default.apis.each_value do |api|
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
         expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(api.adapter.hostname).to eq(described_class.default_hostname)
-        expect(api.adapter.port).to eq(described_class.default_port)
+        expect(api.adapter.hostname).to \
+          eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname)
+        expect(api.adapter.port).to eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port)
+        expect(api.adapter.timeout).to \
+          eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.timeout_seconds)
+        expect(api.adapter.ssl).to be(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.ssl)
         expect(api.headers).to include(described_class.default_headers)
       end
     end
 
-    context 'when given options' do
-      subject(:default) { described_class.default(options) }
+    context 'when given an agent_settings' do
+      subject(:default) { described_class.default(agent_settings: agent_settings, **options) }
 
-      context 'that are empty' do
-        let(:options) { {} }
+      let(:options) { {} }
 
-        it 'returns an HTTP transport with default configuration' do
-          is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
-          expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
+      let(:ssl) { nil }
+      let(:hostname) { nil }
+      let(:port) { nil }
+      let(:timeout_seconds) { nil }
+      let(:deprecated_for_removal_transport_configuration_proc) { nil }
+      let(:deprecated_for_removal_transport_configuration_options) { nil }
 
-          expect(default.apis.keys).to eq(
-            [
-              Datadog::Transport::HTTP::API::V4,
-              Datadog::Transport::HTTP::API::V3,
-              Datadog::Transport::HTTP::API::V2
-            ]
-          )
-
-          default.apis.each do |_key, api|
-            expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
-            expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-            expect(api.adapter.hostname).to eq(described_class.default_hostname)
-            expect(api.adapter.port).to eq(described_class.default_port)
-            expect(api.headers).to include(described_class.default_headers)
-          end
-        end
+      let(:agent_settings) do
+        instance_double(
+          Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+          ssl: ssl,
+          hostname: hostname,
+          port: port,
+          timeout_seconds: timeout_seconds,
+          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
+        )
       end
 
-      context 'that specify hostname and port' do
-        let(:options) { { hostname: hostname, port: port } }
+      context 'that specifies host, port, timeout and ssl' do
         let(:hostname) { double('hostname') }
         let(:port) { double('port') }
+        let(:timeout_seconds) { double('timeout') }
+        let(:ssl) { true }
 
-        it 'returns an HTTP transport with default configuration' do
-          default.apis.each do |_key, api|
+        it 'returns a transport with provided options' do
+          default.apis.each_value do |api|
             expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
             expect(api.adapter.hostname).to eq(hostname)
             expect(api.adapter.port).to eq(port)
+            expect(api.adapter.timeout).to be(timeout_seconds)
+            expect(api.adapter.ssl).to be true
           end
         end
       end
+
+      context 'that specifies an API version' do
+        let(:deprecated_for_removal_transport_configuration_options) { { api_version: api_version } }
+
+        context 'that is defined' do
+          let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+
+          it { expect(default.current_api_id).to eq(api_version) }
+        end
+
+        context 'that is not defined' do
+          let(:api_version) { double('non-existent API') }
+
+          it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
+        end
+
+        context 'when the options also try to set the api_version' do
+          let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+          let(:options) { { api_version: Datadog::Transport::HTTP::API::V4 } }
+
+          it 'prioritizes the version in the agent_settings' do
+            expect(default.current_api_id).to eq(api_version)
+          end
+        end
+      end
+
+      context 'that specifies headers' do
+        let(:deprecated_for_removal_transport_configuration_options) { { headers: headers } }
+
+        let(:headers) { { 'Test-Header' => 'foo' } }
+
+        it do
+          default.apis.each_value do |api|
+            expect(api.headers).to include(described_class.default_headers)
+            expect(api.headers).to include(headers)
+          end
+        end
+
+        context 'when the options also try to set the headers' do
+          let(:options) { { headers: { 'Some-Other-Test-Header' => 'foo' } } }
+
+          it 'prioritizes the headers in the agent_settings' do
+            default.apis.each_value do |api|
+              expect(api.headers).to include(described_class.default_headers)
+              expect(api.headers).to include(headers)
+            end
+          end
+        end
+      end
+
+      context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
+        let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
+
+        it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
+          expect(deprecated_for_removal_transport_configuration_proc).to \
+            receive(:call).with(an_instance_of(Datadog::Transport::HTTP::Builder))
+
+          default
+        end
+      end
+    end
+
+    context 'when given options' do
+      subject(:default) { described_class.default(**options) }
 
       context 'that specify an API version' do
         let(:options) { { api_version: api_version } }
 
         context 'that is defined' do
           let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+
           it { expect(default.current_api_id).to eq(api_version) }
         end
 
         context 'that is not defined' do
           let(:api_version) { double('non-existent API') }
+
           it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
         end
       end
@@ -111,7 +181,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:headers) { { 'Test-Header' => 'foo' } }
 
         it do
-          default.apis.each do |_key, api|
+          default.apis.each_value do |api|
             expect(api.headers).to include(described_class.default_headers)
             expect(api.headers).to include(headers)
           end
@@ -133,105 +203,93 @@ RSpec.describe Datadog::Transport::HTTP do
 
     it do
       is_expected.to include(
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Ext::Runtime::LANG,
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Ext::Runtime::LANG_VERSION,
-        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Ext::Runtime::LANG_INTERPRETER,
-        Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Ext::Runtime::TRACER_VERSION
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
+        Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Environment::Ext::LANG_INTERPRETER,
+        Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
       )
     end
 
-    context 'when Runtime::Container.container_id' do
-      before { expect(Datadog::Runtime::Container).to receive(:container_id).and_return(container_id) }
+    context 'when Core::Environment::Container.container_id' do
+      before { expect(Datadog::Core::Environment::Container).to receive(:container_id).and_return(container_id) }
 
       context 'is not nil' do
         let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
+
         it { is_expected.to include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID => container_id) }
       end
 
       context 'is nil' do
         let(:container_id) { nil }
+
         it { is_expected.to_not include(Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID) }
       end
     end
   end
 
+  describe '.default_adapter' do
+    subject(:default_adapter) { described_class.default_adapter }
+
+    it { is_expected.to be(:net_http) }
+  end
+
   describe '.default_hostname' do
-    subject(:default_hostname) { described_class.default_hostname }
+    subject(:default_hostname) { described_class.default_hostname(logger: logger) }
 
-    context 'when environment variable is' do
-      context 'set' do
-        let(:value) { 'my-hostname' }
+    let(:logger) { instance_double(Datadog::Logger, warn: nil) }
 
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => value) do
-            example.run
-          end
-        end
+    before do
+      stub_const(
+        'Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
+        instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
+      )
+    end
 
-        it { is_expected.to eq(value) }
-      end
+    it 'returns the hostname from the ENVIRONMENT_AGENT_SETTINGS object' do
+      expect(default_hostname).to eq 'example-hostname'
+    end
 
-      context 'not set' do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST => nil) do
-            example.run
-          end
-        end
+    it 'logs a deprecation warning' do
+      expect(logger).to receive(:warn).with(/Deprecated/)
 
-        it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_HOST) }
-      end
-
-      context 'set via url' do
-        let(:value) { 'http://my-hostname:8125' }
-
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL => value) do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(URI.parse(value).hostname) }
-      end
+      default_hostname
     end
   end
 
   describe '.default_port' do
-    subject(:default_port) { described_class.default_port }
+    subject(:default_port) { described_class.default_port(logger: logger) }
 
-    context 'when environment variable is' do
-      context 'set' do
-        let(:value) { '1234' }
+    let(:logger) { instance_double(Datadog::Logger, warn: nil) }
 
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => value) do
-            example.run
-          end
-        end
+    before do
+      stub_const(
+        'Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
+        instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
+      )
+    end
 
-        it { is_expected.to eq(value.to_i) }
-      end
+    it 'returns the port from the ENVIRONMENT_AGENT_SETTINGS object' do
+      expect(default_port).to eq 12345
+    end
 
-      context 'not set' do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT => nil) do
-            example.run
-          end
-        end
+    it 'logs a deprecation warning' do
+      expect(logger).to receive(:warn).with(/Deprecated/)
 
-        it { is_expected.to eq(Datadog::Ext::Transport::HTTP::DEFAULT_PORT) }
-      end
+      default_port
+    end
+  end
 
-      context 'set via url' do
-        let(:value) { 'http://my-hostname:8125' }
+  describe '.default_url' do
+    subject(:default_url) { described_class.default_url(logger: logger) }
 
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL => value) do
-            example.run
-          end
-        end
+    let(:logger) { instance_double(Datadog::Logger, warn: nil) }
 
-        it { is_expected.to eq(URI.parse(value).port) }
-      end
+    it { is_expected.to be nil }
+
+    it 'logs a deprecation warning' do
+      expect(logger).to receive(:warn).with(/Deprecated/)
+
+      default_url
     end
   end
 end

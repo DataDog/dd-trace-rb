@@ -23,19 +23,23 @@ module Datadog
   class Writer
     attr_accessor :trace_handler, :service_handler, :worker
   end
+
   class Tracer
     remove_method :writer
     attr_accessor :writer
   end
+
   module Workers
     class AsyncTransport
       attr_accessor :transport
     end
   end
+
   class Context
     remove_method :current_span
     attr_accessor :trace, :sampled, :finished_spans, :current_span
   end
+
   class Span
     attr_accessor :meta, :metrics
   end
@@ -94,8 +98,8 @@ def get_test_traces(n)
   }
 
   n.times do
-    span1 = Datadog::Span.new(nil, 'client.testing', defaults).finish()
-    span2 = Datadog::Span.new(nil, 'client.testing', defaults).finish()
+    span1 = Datadog::Span.new(nil, 'client.testing', defaults).finish
+    span2 = Datadog::Span.new(nil, 'client.testing', defaults).finish
     span2.set_parent(span1)
     traces << [span1, span2]
   end
@@ -171,6 +175,7 @@ class FauxWriter < Datadog::Writer
     @mutex.synchronize do
       return [] unless @spans
       return [] if @spans.empty?
+
       spans = @spans[0]
       @spans = @spans[1..@spans.size]
       spans
@@ -217,16 +222,15 @@ def test_repeat
   # (like: be over 10 seconds to make sure handle the case "a flush just happened
   # a few milliseconds ago")
   return 300 if RUBY_PLATFORM == 'java'
+
   30
 end
 
 # Defaults to 5 second timeout
-def try_wait_until(options = {})
-  attempts = options.fetch(:attempts, 50)
-  backoff = options.fetch(:backoff, 0.1)
-
+def try_wait_until(attempts: 50, backoff: 0.1)
   loop do
     break if yield
+
     sleep(backoff)
     attempts -= 1
 
@@ -241,7 +245,7 @@ def remove_patch!(integration)
 end
 
 require 'ddtrace/contrib/patcher'
-Datadog::Contrib::Patcher::CommonMethods.send(:prepend, Module.new do
+Datadog::Contrib::Patcher::CommonMethods.prepend(Module.new do
   # Raise error during tests that fail to patch integration, instead of simply printing a warning message.
   def on_patch_error(e)
     raise e

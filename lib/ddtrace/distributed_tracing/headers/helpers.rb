@@ -35,9 +35,7 @@ module Datadog
           #      for us so we want to make sure the comparision will work as expected
           # DEV: regex, remove all leading zeros up until we find the last 0 in the string
           #      or we find the first non-zero, this allows `'0000' -> '0'` and `'00001' -> '1'`
-          value = value.sub(/^0*(?=(0$)|[^0])/, '')
-
-          value
+          value.sub(/^0*(?=(0$)|[^0])/, '')
         end
       end
     end

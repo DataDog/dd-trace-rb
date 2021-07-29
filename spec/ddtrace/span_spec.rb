@@ -1,16 +1,26 @@
 require 'spec_helper'
 require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'
+require 'ddtrace/utils'
 
 require 'json'
 require 'msgpack'
 
 RSpec.describe Datadog::Span do
   subject(:span) { described_class.new(tracer, name, context: context, **span_options) }
+
   let(:tracer) { get_test_tracer }
   let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
   let(:span_options) { {} }
+
+  before do
+    Datadog.configure
+  end
+
+  after do
+    Datadog.configuration.reset!
+  end
 
   context 'ids' do
     it do
@@ -23,11 +33,13 @@ RSpec.describe Datadog::Span do
 
     context 'with parent id' do
       let(:span_options) { { parent_id: 2 } }
+
       it { expect(span.parent_id).to eq(2) }
     end
 
     context 'with trace id' do
       let(:span_options) { { trace_id: 3 } }
+
       it { expect(span.trace_id).to eq(3) }
     end
 
@@ -113,6 +125,7 @@ RSpec.describe Datadog::Span do
 
     context 'with finish time provided' do
       subject(:finish) { span.finish(time) }
+
       let(:time) { Time.now }
 
       it 'does not use wall time' do
@@ -123,7 +136,7 @@ RSpec.describe Datadog::Span do
       end
     end
 
-    context '#finished?' do
+    describe '#finished?' do
       it { expect { subject }.to change { span.finished? }.from(false).to(true) }
     end
 
@@ -164,13 +177,17 @@ RSpec.describe Datadog::Span do
 
       context 'is set' do
         let(:service_value) { 'span-service' }
+
         before { span.service = service_value }
+
         it { is_expected.to eq service_value }
       end
 
       context 'is not set' do
         let(:default_service) { 'default-service' }
+
         before { allow(tracer).to receive(:default_service).and_return(default_service) }
+
         it { is_expected.to eq default_service }
       end
     end
@@ -179,30 +196,28 @@ RSpec.describe Datadog::Span do
   describe '#duration' do
     subject(:duration) { span.duration }
 
+    let(:duration_wall_time) { 0.0001 }
+
     context 'without start or end time provided' do
-      let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
+      let(:static_time) { Time.utc(2010, 9, 15, 22, 3, 15) }
 
       before do
-        # We set the same time no matte what.
+        # We set the same time no matter what.
         # If duration is greater than zero but start_time == end_time, we can
         # be sure we're using the monotonic time.
-        allow(Time).to receive(:now)
+        allow(Datadog::Utils::Time).to receive(:now)
           .and_return(static_time)
       end
 
       it 'uses monotonic time' do
-        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-          skip('monotonic time not supported')
-        else
-          span.start
-          sleep(0.0002)
-          span.finish
-          expect((subject.to_f * 1e9).to_i).to be > 0
+        span.start
+        sleep(0.0002)
+        span.finish
+        expect((subject.to_f * 1e9).to_i).to be > 0
 
-          expect(span.end_time).to eq static_time
-          expect(span.start_time).to eq static_time
-          expect(span.end_time - span.start_time).to eq 0
-        end
+        expect(span.end_time).to eq static_time
+        expect(span.start_time).to eq static_time
+        expect(span.end_time - span.start_time).to eq 0
       end
     end
 
@@ -210,14 +225,26 @@ RSpec.describe Datadog::Span do
       # set a start time considerably longer than span duration
       # set a day in the past and then measure duration is longer than
       # amount of time slept, which would represent monotonic
-      let(:start_time) { Time.now - (3600 * 24) }
+      let!(:start_time) { Time.now - (duration_wall_time * 1e9) }
 
       it 'does not use monotonic time' do
         span.start(start_time)
-        sleep(0.0001)
+        sleep(duration_wall_time)
         span.finish
 
-        expect((subject.to_f * 1e9).to_i).to be >= 3600
+        expect(subject).to be_within(1).of(duration_wall_time * 1e9)
+      end
+
+      context 'and end_time provided' do
+        let(:end_time) { start_time + 123.456 }
+
+        it 'respects the exact times provided' do
+          span.start(start_time)
+          sleep(duration_wall_time)
+          span.finish(end_time)
+
+          expect(subject).to eq(123.456)
+        end
       end
     end
 
@@ -225,24 +252,45 @@ RSpec.describe Datadog::Span do
       # set an end time considerably ahead of than span duration
       # set a day in the future and then measure duration is longer than
       # amount of time slept, which would represent monotonic
-      let(:end_time) { Time.now + (3600 * 24) }
+      let!(:end_time) { Time.now + (duration_wall_time * 1e9) }
 
       it 'does not use monotonic time' do
         span.start
-        sleep(0.0001)
+        sleep(duration_wall_time)
         span.finish(end_time)
 
-        expect((subject.to_f * 1e9).to_i).to be >= 3600
+        expect(subject).to be_within(1).of(duration_wall_time * 1e9)
+      end
+    end
+
+    context 'with time_provider set' do
+      before do
+        now = time_now # Expose variable to closure
+        Datadog.configure do |c|
+          c.time_now_provider = -> { now }
+        end
+      end
+
+      after { Datadog.configuration.reset! }
+
+      let(:time_now) { ::Time.utc(2020, 1, 1) }
+
+      it 'sets the start time to the provider time' do
+        span.start
+        span.finish
+
+        expect(span.start_time).to eq(time_now)
       end
     end
   end
 
   describe '#clear_tag' do
     subject(:clear_tag) { span.clear_tag(key) }
+
     let(:key) { 'key' }
+    let(:value) { 'value' }
 
     before { span.set_tag(key, value) }
-    let(:value) { 'value' }
 
     it do
       expect { subject }.to change { span.get_tag(key) }.from(value).to(nil)
@@ -256,10 +304,11 @@ RSpec.describe Datadog::Span do
 
   describe '#clear_metric' do
     subject(:clear_metric) { span.clear_metric(key) }
+
     let(:key) { 'key' }
+    let(:value) { 1.0 }
 
     before { span.set_metric(key, value) }
-    let(:value) { 1.0 }
 
     it do
       expect { subject }.to change { span.get_metric(key) }.from(value).to(nil)
@@ -273,6 +322,7 @@ RSpec.describe Datadog::Span do
 
   describe '#get_metric' do
     subject(:get_metric) { span.get_metric(key) }
+
     let(:key) { 'key' }
 
     context 'with no metrics' do
@@ -281,6 +331,7 @@ RSpec.describe Datadog::Span do
 
     context 'with a metric' do
       let(:value) { 1.0 }
+
       before { span.set_metric(key, value) }
 
       it { is_expected.to eq(1.0) }
@@ -288,6 +339,7 @@ RSpec.describe Datadog::Span do
 
     context 'with a tag' do
       let(:value) { 'tag' }
+
       before { span.set_tag(key, value) }
 
       it { is_expected.to eq('tag') }
@@ -296,6 +348,7 @@ RSpec.describe Datadog::Span do
 
   describe '#set_metric' do
     subject(:set_metric) { span.set_metric(key, value) }
+
     let(:key) { 'key' }
 
     let(:metrics) { span.to_hash[:metrics] }
@@ -372,9 +425,30 @@ RSpec.describe Datadog::Span do
       end
     end
 
+    context 'given _dd.hostname' do
+      let(:key) { '_dd.hostname' }
+      let(:value) { 1 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given _dd.origin' do
+      let(:key) { '_dd.origin' }
+      let(:value) { 2 }
+
+      it_behaves_like 'meta tag'
+    end
+
     context 'given http.status_code' do
       let(:key) { 'http.status_code' }
       let(:value) { 200 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given version' do
+      let(:key) { 'version' }
+      let(:value) { 3 }
 
       it_behaves_like 'meta tag'
     end
@@ -386,21 +460,25 @@ RSpec.describe Datadog::Span do
       context 'which is an integer' do
         context 'that exceeds the upper limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_i + 1 }
+
           it_behaves_like 'meta tag'
         end
 
         context 'at the upper limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_i }
+
           it_behaves_like 'metric tag'
         end
 
         context 'at the lower limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_i }
+
           it_behaves_like 'metric tag'
         end
 
         context 'that is below the lower limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_i - 1 }
+
           it_behaves_like 'meta tag'
         end
       end
@@ -408,21 +486,25 @@ RSpec.describe Datadog::Span do
       context 'which is a float' do
         context 'that exceeds the upper limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_f + 1.0 }
+
           it_behaves_like 'metric tag'
         end
 
         context 'at the upper limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.max.to_f }
+
           it_behaves_like 'metric tag'
         end
 
         context 'at the lower limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_f }
+
           it_behaves_like 'metric tag'
         end
 
         context 'that is below the lower limit' do
           let(:value) { described_class::NUMERIC_TAG_SIZE_RANGE.min.to_f - 1.0 }
+
           it_behaves_like 'metric tag'
         end
       end
@@ -586,6 +668,7 @@ RSpec.describe Datadog::Span do
 
   describe '#set_error' do
     subject(:set_error) { span.set_error(error) }
+
     let(:error) { RuntimeError.new('oops') }
     let(:backtrace) { %w[method1 method2 method3] }
 
@@ -597,13 +680,17 @@ RSpec.describe Datadog::Span do
       expect(span).to have_error
       expect(span).to have_error_message('oops')
       expect(span).to have_error_type('RuntimeError')
-      expect(span).to have_error_stack(backtrace.join($RS))
+      backtrace.each do |method|
+        expect(span).to have_error_stack(include(method))
+      end
     end
   end
 
   describe '#to_hash' do
     subject(:to_hash) { span.to_hash }
+
     let(:span_options) { { trace_id: 12 } }
+
     before { span.span_id = 34 }
 
     it do

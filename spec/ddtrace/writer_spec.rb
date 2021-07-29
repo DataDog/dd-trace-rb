@@ -8,6 +8,7 @@ RSpec.describe Datadog::Writer do
 
   describe 'instance' do
     subject(:writer) { described_class.new(options) }
+
     let(:options) { { transport: transport } }
     let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
 
@@ -42,10 +43,23 @@ RSpec.describe Datadog::Writer do
             end
           end
         end
+
+        context 'with agent_settings' do
+          let(:agent_settings) { double('AgentSettings') }
+
+          let(:options) { { agent_settings: agent_settings } }
+
+          it 'configures the transport using the agent_settings' do
+            expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
+
+            writer
+          end
+        end
       end
 
       describe '#send_spans' do
         subject(:send_spans) { writer.send_spans(traces, writer.transport) }
+
         let(:traces) { get_test_traces(1) }
         let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
         let(:responses) { [response] }
@@ -91,6 +105,7 @@ RSpec.describe Datadog::Writer do
 
             context 'is not configured' do
               let(:options) { super().merge(priority_sampler: nil) }
+
               it { expectations.call }
             end
           end
@@ -152,6 +167,7 @@ RSpec.describe Datadog::Writer do
               context 'is configured' do
                 let(:options) { super().merge(priority_sampler: priority_sampler) }
                 let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
+
                 before { expect(priority_sampler).to_not receive(:update) }
 
                 it do
@@ -214,7 +230,7 @@ RSpec.describe Datadog::Writer do
           let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           before do
-            allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+            allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
             allow(response).to receive(:ok?).and_return(true)
             allow(response).to receive(:server_error?).and_return(false)
             allow(response).to receive(:internal_error?).and_return(false)
@@ -222,6 +238,7 @@ RSpec.describe Datadog::Writer do
 
           context 'enabled' do
             before { Datadog.configuration.report_hostname = true }
+
             after { Datadog.configuration.reset! }
 
             it do
@@ -237,6 +254,7 @@ RSpec.describe Datadog::Writer do
 
           context 'disabled' do
             before { Datadog.configuration.report_hostname = false }
+
             after { Datadog.configuration.reset! }
 
             it do
@@ -254,6 +272,7 @@ RSpec.describe Datadog::Writer do
 
       describe '#write' do
         subject(:write) { writer.write(trace, services) }
+
         let(:trace) { instance_double(Array) }
         let(:services) { nil }
 
@@ -298,7 +317,7 @@ RSpec.describe Datadog::Writer do
         context 'when tracer has been stopped' do
           before { writer.stop }
 
-          it 'should not try to record traces' do
+          it 'does not try to record traces' do
             expect_any_instance_of(Datadog::Workers::AsyncTransport).to_not receive(:enqueue_trace)
 
             # Ensure clean output, as failing to start the

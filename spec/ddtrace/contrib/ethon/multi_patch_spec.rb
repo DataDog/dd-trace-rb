@@ -5,6 +5,8 @@ require 'ddtrace/contrib/ethon/multi_patch'
 require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/analytics_examples'
 
+require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
+
 RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   let(:configuration_options) { {} }
 
@@ -22,12 +24,12 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   end
 
   describe '#add' do
-    let(:easy) { ::Ethon::Easy.new }
-    let(:multi) { ::Ethon::Multi.new }
-    subject { multi.add easy }
-
+    let(:easy) { EthonSupport.ethon_easy_new }
     let(:span) { easy.instance_eval { @datadog_span } }
     let(:multi_span) { multi.instance_eval { @datadog_multi_span } }
+    let(:multi) { ::Ethon::Multi.new }
+
+    subject { multi.add easy }
 
     context 'multi already performing' do
       before do
@@ -57,12 +59,12 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   end
 
   describe '#perform' do
-    let(:easy) { ::Ethon::Easy.new }
+    let(:easy) { EthonSupport.ethon_easy_new }
+    let(:easy_span) { spans.find { |span| span.name == 'ethon.request' } }
+    let(:multi_span) { spans.find { |span| span.name == 'ethon.multi.request' } }
     let(:multi) { ::Ethon::Multi.new }
-    subject { multi.perform }
 
-    let(:easy_span) { spans.select { |span| span.name == 'ethon.request' }.first }
-    let(:multi_span) { spans.select { |span| span.name == 'ethon.multi.request' }.first }
+    subject { multi.perform }
 
     context 'with no easy added to multi' do
       it 'does not trace' do
@@ -90,6 +92,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
 
         it_behaves_like 'analytics for integration' do
           before { subject }
+
           let(:span) { multi_span }
           let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }

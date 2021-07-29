@@ -58,7 +58,7 @@ module Datadog
           # TODO[manu]: findout the reason and reschedule the send if it's not
           # a fatal exception
           Datadog.logger.error(
-            "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
+            "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
       end
@@ -67,9 +67,13 @@ module Datadog
       def start
         @mutex.synchronize do
           return if @run
+
           @run = true
-          Datadog.logger.debug("Starting thread in the process: #{Process.pid}")
+          Datadog.logger.debug { "Starting thread for: #{self}" }
           @worker = Thread.new { perform }
+          @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+
+          nil
         end
       end
 
@@ -108,6 +112,7 @@ module Datadog
 
           @mutex.synchronize do
             return if !@run && @trace_buffer.empty?
+
             @shutdown.wait(@mutex, @back_off) if @run # do not wait when shutting down
           end
         end

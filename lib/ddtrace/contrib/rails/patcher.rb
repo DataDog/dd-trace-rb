@@ -3,6 +3,8 @@ require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/semantic_logger/patcher'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
@@ -10,6 +12,9 @@ module Datadog
       # Patcher enables patching of 'rails' module.
       module Patcher
         include Contrib::Patcher
+
+        BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
+        AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
 
         module_function
 
@@ -29,7 +34,7 @@ module Datadog
         end
 
         def before_intialize(app)
-          do_once(:rails_before_initialize, for: app) do
+          BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
             # Middleware must be added before the application is initialized.
             # Otherwise the middleware stack will be frozen.
             # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
@@ -56,15 +61,16 @@ module Datadog
           should_warn = true
           # check if lograge key exists
           # Note: Rails executes initializers sequentially based on alphabetical order,
-          # and lograge config could occur after dd config.
-          # Checking for `app.config.lograge.enabled` may yield a false negative.
-          # Instead we should naively add custom options if `config.lograge` exists from the lograge Railtie,
-          # since the custom options get ignored without lograge explicitly being enabled.
-          # See: https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge/railtie.rb#L7-L12
-          if app.config.respond_to?(:lograge)
-            Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
-            should_warn = false
-          end
+          # and lograge config could occur after datadog config.
+          # So checking for `app.config.lograge.enabled` may yield a false negative,
+          # and adding custom options naively if `config.lograge` exists from the lograge Railtie,
+          # is inconsistent since a lograge initializer would override it.
+          # Instead, we patch Lograge `custom_options` internals directly
+          # as part of Rails framework patching
+          # and just flag off the warning log here.
+          # SemanticLogger we similarly patch in the after_initiaize block, and should flag
+          # off the warning log here if we know we'll patch this gem later.
+          should_warn = false if app.config.respond_to?(:lograge) || defined?(::SemanticLogger)
 
           # if lograge isn't set, check if tagged logged is enabled.
           # if so, add proc that injects trace identifiers for tagged logging.
@@ -86,7 +92,7 @@ module Datadog
         end
 
         def after_intialize(app)
-          do_once(:rails_after_initialize, for: app) do
+          AFTER_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
             # Finish configuring the tracer after the application is initialized.
             # We need to wait for some things, like application name, middleware stack, etc.
             setup_tracer

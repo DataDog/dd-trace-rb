@@ -1,5 +1,6 @@
 require 'rails/all'
-require 'ddtrace'
+
+require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -12,15 +13,13 @@ require 'ddtrace/contrib/rails/support/models'
 
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
-Rails::Application.class_eval do
-  class << self
-    def inherited(base)
-      # raise "You cannot have more than one Rails::Application" if Rails.application
-      super
-      Rails.application = base.instance
-      Rails.application.add_lib_to_load_path!
-      ActiveSupport.run_load_hooks(:before_configuration, base.instance)
-    end
+Rails::Application.singleton_class.class_eval do
+  def inherited(base)
+    # raise "You cannot have more than one Rails::Application" if Rails.application
+    super
+    Rails.application = base.instance
+    Rails.application.add_lib_to_load_path!
+    ActiveSupport.run_load_hooks(:before_configuration, base.instance)
   end
 end
 
@@ -57,10 +56,16 @@ RSpec.shared_context 'Rails 3 base application' do
     after_test_init = after_test_initialize_block
 
     klass.send(:define_method, :test_initialize!) do
-      # Enables the auto-instrumentation for the testing application
-      Datadog.configure do |c|
-        c.use :rails
-        c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+      # we want to disable explicit instrumentation
+      # when testing auto patching
+      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
+        require 'ddtrace/auto_instrument'
+      else
+        # Enables the auto-instrumentation for the testing application
+        Datadog.configure do |c|
+          c.use :rails
+          c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+        end
       end
 
       before_test_init.call
@@ -155,7 +160,7 @@ end
 require 'active_support/ordered_options'
 module ActiveSupport
   class OrderedOptions
-    def respond_to?(*args)
+    def respond_to?(*_args)
       true
     end
   end

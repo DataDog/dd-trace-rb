@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 require 'time'
-require 'thread'
-
 require 'ddtrace/utils'
+require 'ddtrace/ext/distributed'
+require 'ddtrace/ext/environment'
 require 'ddtrace/ext/errors'
+require 'ddtrace/ext/http'
+require 'ddtrace/ext/net'
 require 'ddtrace/ext/priority'
-require 'ddtrace/environment'
 require 'ddtrace/analytics'
 require 'ddtrace/forced_tracing'
 require 'ddtrace/diagnostics/health'
@@ -38,14 +39,27 @@ module Datadog
     EXTERNAL_MAX_ID = 1 << 64
 
     # This limit is for numeric tags because uint64 could end up rounded.
-    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53)
+    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
+
+    # Some associated values should always be sent as Tags, never as Metrics, regardless
+    # if their value is numeric or not.
+    # The Datadog agent will look for these values only as Tags, not Metrics.
+    # @see https://github.com/DataDog/datadog-agent/blob/2ae2cdd315bcda53166dd8fa0dedcfc448087b9d/pkg/trace/stats/aggregation.go#L13-L17
+    ENSURE_AGENT_TAGS = {
+      Ext::DistributedTracing::ORIGIN_KEY => true,
+      Ext::Environment::TAG_VERSION => true,
+      Ext::HTTP::STATUS_CODE => true,
+      Ext::NET::TAG_HOSTNAME => true
+    }.freeze
 
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
-                  :tracer, :context, :duration, :start_time, :end_time
+                  :tracer, :context
 
-    attr_reader :parent
+    attr_reader :parent, :start_time, :end_time
+
+    attr_writer :duration
 
     # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
     # and then <tt>finish()</tt> once the tracer operation is over.
@@ -101,11 +115,8 @@ module Datadog
       # Keys must be unique between tags and metrics
       @metrics.delete(key)
 
-      # Ensure `http.status_code` is always a string so it is added to
-      #   @meta instead of @metrics
-      # DEV: This is necessary because the agent looks to `meta['http.status_code']` for
-      #   tagging necessary metrics
-      value = value.to_s if key == Ext::HTTP::STATUS_CODE
+      # DEV: This is necessary because the agent looks at `meta[key]`, not `metrics[key]`.
+      value = value.to_s if ENSURE_AGENT_TAGS[key]
 
       # NOTE: Adding numeric tags as metrics is stop-gap support
       #       for numeric typed tags. Eventually they will become
@@ -180,7 +191,7 @@ module Datadog
       # behavior and so we maintain it for backward compatibility for those
       # who are using async manual instrumentation that may rely on this
 
-      @start_time = start_time || Time.now.utc
+      @start_time = start_time || Utils::Time.now.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 
       self
@@ -206,7 +217,7 @@ module Datadog
 
       @allocation_count_finish = now_allocations
 
-      now = Time.now.utc
+      now = Utils::Time.now.utc
 
       # Provide a default start_time if unset.
       # Using `now` here causes duration to be 0; this is expected

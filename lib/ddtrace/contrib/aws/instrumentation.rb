@@ -56,6 +56,35 @@ module Datadog
           Datadog.configuration[:aws]
         end
       end
+
+      # Removes API request instrumentation from S3 Presign URL creation.
+      #
+      # This is necessary because the S3 SDK invokes the same handler
+      # stack for presigning as it does for sending a real requests.
+      # But presigning does not perform a network request.
+      # There's not information available for our Handler plugin to differentiate
+      # these two types of requests.
+      #
+      # DEV: Since aws-sdk-s3 1.94.1, we only need to check if
+      # `context[:presigned_url] == true` in Datadog::Contrib::Aws::Handler#call
+      # and skip the request if that condition is true. Since there's
+      # no strong reason for us not to support older versions of `aws-sdk-s3`,
+      # this {S3Presigner} monkey-patching is still required.
+      module S3Presigner
+        # Exclude our Handler from the current request's handler stack.
+        #
+        # This is the same approach that the AWS SDK takes to prevent
+        # some of its plugins form interfering with the presigning process:
+        # https://github.com/aws/aws-sdk-ruby/blob/a82c8981c95a8296ffb6269c3c06a4f551d87f7d/gems/aws-sdk-s3/lib/aws-sdk-s3/presigner.rb#L194-L196
+        def sign_but_dont_send(*args, &block)
+          if (request = args[0]).is_a?(::Seahorse::Client::Request)
+            request.handlers.remove(Handler)
+          end
+
+          super(*args, &block)
+        end
+        ruby2_keywords :sign_but_dont_send if respond_to?(:ruby2_keywords, true)
+      end
     end
   end
 end

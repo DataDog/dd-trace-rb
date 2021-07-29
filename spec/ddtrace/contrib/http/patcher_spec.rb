@@ -5,6 +5,9 @@ require 'net/http'
 
 RSpec.describe 'net/http patcher' do
   let(:host) { 'example.com' }
+  let(:request_span) do
+    spans.find { |span| span.name == Datadog::Contrib::HTTP::Ext::SPAN_REQUEST }
+  end
 
   before do
     WebMock.disable_net_connect!(allow_localhost: true)
@@ -16,10 +19,6 @@ RSpec.describe 'net/http patcher' do
     Datadog.configure do |c|
       c.use :http
     end
-  end
-
-  let(:request_span) do
-    spans.find { |span| span.name == Datadog::Contrib::HTTP::Ext::SPAN_REQUEST }
   end
 
   describe 'with default configuration' do
@@ -44,7 +43,7 @@ RSpec.describe 'net/http patcher' do
       end
     end
 
-    after(:each) { Datadog.configure { |c| c.use :http, service_name: Datadog::Contrib::HTTP::Ext::SERVICE_NAME } }
+    after { Datadog.configure { |c| c.use :http, service_name: Datadog::Contrib::HTTP::Ext::SERVICE_NAME } }
 
     subject { Net::HTTP.get(host, '/') }
 

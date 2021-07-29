@@ -5,76 +5,61 @@ require 'ddtrace/workers/trace_writer'
 
 RSpec.describe Datadog::Workers::TraceWriter do
   subject(:writer) { described_class.new(options) }
+
   let(:options) { {} }
 
   describe '#initialize' do
+    let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+
     context 'given :transport' do
       let(:options) { { transport: transport } }
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+
       it { expect(writer.transport).to be transport }
     end
 
     context 'given :transport_options' do
       let(:options) { { transport_options: transport_options } }
 
-      context 'that is a Hash' do
-        let(:transport_options) { {} }
-        let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
-
-        before do
-          expect(Datadog::Transport::HTTP).to receive(:default)
-            .with(transport_options)
-            .and_return(transport)
-        end
-
-        it { expect(writer.transport).to be transport }
-      end
-
-      context 'that is a Proc' do
-        let(:transport_options) { proc {} }
-        let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
-
-        before do
-          expect(Datadog::Transport::HTTP).to receive(:default)
-            .with(on_build: kind_of(Proc))
-            .and_return(transport)
-        end
-
-        it { expect(writer.transport).to be transport }
-      end
-    end
-
-    context 'given :hostname' do
-      let(:options) { { hostname: hostname } }
-      let(:hostname) { double('hostname') }
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+      let(:transport_options) { { example_transport_option: true } }
 
       before do
         expect(Datadog::Transport::HTTP).to receive(:default)
-          .with(hostname: hostname)
+          .with(transport_options)
           .and_return(transport)
       end
 
       it { expect(writer.transport).to be transport }
     end
 
-    context 'given :port' do
-      let(:options) { { port: port } }
-      let(:port) { double('port') }
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+    context 'given :agent_settings' do
+      let(:options) { { agent_settings: agent_settings } }
+      let(:agent_settings) { double('AgentSettings') }
 
-      before do
-        expect(Datadog::Transport::HTTP).to receive(:default)
-          .with(port: port)
-          .and_return(transport)
+      it 'configures a transport with the agent_settings' do
+        expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings).and_return(transport)
+
+        expect(writer.transport).to be transport
       end
 
-      it { expect(writer.transport).to be transport }
+      context 'and also :transport_options' do
+        let(:options) { { **super(), transport_options: transport_options } }
+
+        let(:transport_options) { { example_transport_option: true } }
+
+        before do
+          expect(Datadog::Transport::HTTP).to receive(:default)
+            .with(agent_settings: agent_settings, example_transport_option: true)
+            .and_return(transport)
+        end
+
+        it { expect(writer.transport).to be transport }
+      end
     end
   end
 
   describe '#write' do
     subject(:write) { writer.write(trace) }
+
     let(:trace) { double('trace') }
     let(:response) { instance_double(Datadog::Transport::Response) }
 
@@ -89,6 +74,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
   describe '#perform' do
     subject(:perform) { writer.perform(traces) }
+
     let(:traces) { double('traces') }
     let(:response) { instance_double(Datadog::Transport::Response) }
 
@@ -103,6 +89,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
   describe '#write_traces' do
     subject(:write_traces) { writer.write_traces(traces) }
+
     let(:traces) { double('traces') }
     let(:processed_traces) { double('processed traces') }
     let(:response) { instance_double(Datadog::Transport::Response) }
@@ -122,6 +109,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
   describe '#process_traces' do
     subject(:process_traces) { writer.process_traces(traces) }
+
     let(:traces) { double('traces') }
     let(:processed_traces) { double('processed traces') }
 
@@ -157,6 +145,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
   describe '#flush_traces' do
     subject(:flush_traces) { writer.flush_traces(traces) }
+
     let(:traces) { double('traces') }
     let(:response) { instance_double(Datadog::Transport::Response) }
 
@@ -174,11 +163,12 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
   describe '#inject_hostname!' do
     subject(:inject_hostname!) { writer.inject_hostname!(traces) }
+
     let(:traces) { get_test_traces(2) }
 
     context 'when hostname' do
       before do
-        allow(Datadog::Runtime::Socket).to receive(:hostname)
+        allow(Datadog::Core::Environment::Socket).to receive(:hostname)
           .and_return(hostname)
       end
 
@@ -210,6 +200,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
   describe '#flush_completed' do
     subject(:flush_completed) { writer.flush_completed }
+
     it { is_expected.to be_a_kind_of(described_class::FlushCompleted) }
   end
 
@@ -218,6 +209,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
     describe '#name' do
       subject(:name) { event.name }
+
       it { is_expected.to be :flush_completed }
     end
   end
@@ -225,6 +217,7 @@ end
 
 RSpec.describe Datadog::Workers::AsyncTraceWriter do
   subject(:writer) { described_class.new(options) }
+
   let(:options) { {} }
 
   it { expect(writer).to be_a_kind_of(Datadog::Workers::Queue) }
@@ -246,16 +239,19 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
       context 'as false' do
         let(:enabled) { false }
+
         it { expect(writer.enabled?).to be false }
       end
 
       context 'as true' do
         let(:enabled) { true }
+
         it { expect(writer.enabled?).to be true }
       end
 
       context 'as nil' do
         let(:enabled) { nil }
+
         it { expect(writer.enabled?).to be false }
       end
     end
@@ -265,16 +261,19 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
       context "as #{Datadog::Workers::Async::Thread::FORK_POLICY_STOP}" do
         let(:fork_policy) { Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
+
         it { expect(writer.fork_policy).to be Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
       end
 
       context "as #{described_class::FORK_POLICY_ASYNC}" do
         let(:fork_policy) { described_class::FORK_POLICY_ASYNC }
+
         it { expect(writer.fork_policy).to be Datadog::Workers::Async::Thread::FORK_POLICY_RESTART }
       end
 
       context "as #{described_class::FORK_POLICY_SYNC}" do
         let(:fork_policy) { described_class::FORK_POLICY_SYNC }
+
         it { expect(writer.fork_policy).to be Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
       end
     end
@@ -282,18 +281,21 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
     context 'given :interval' do
       let(:options) { { interval: interval } }
       let(:interval) { double('interval') }
+
       it { expect(writer.loop_base_interval).to be interval }
     end
 
     context 'given :back_off_ratio' do
       let(:options) { { back_off_ratio: back_off_ratio } }
       let(:back_off_ratio) { double('back_off_ratio') }
+
       it { expect(writer.loop_back_off_ratio).to be back_off_ratio }
     end
 
     context 'given :back_off_max' do
       let(:options) { { back_off_max: back_off_max } }
       let(:back_off_max) { double('back_off_max') }
+
       it { expect(writer.loop_back_off_max).to be back_off_max }
     end
 
@@ -314,10 +316,13 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
   describe '#perform' do
     subject(:perform) { writer.perform }
+
     after { writer.stop }
 
     it 'starts a worker thread' do
-      is_expected.to be_a_kind_of(Thread)
+      perform
+
+      expect(writer.send(:worker)).to be_a_kind_of(Thread)
       expect(writer).to have_attributes(
         run_async?: true,
         running?: true,
@@ -331,10 +336,13 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
   describe '#write' do
     subject(:write) { writer.write(trace) }
+
     let(:trace) { double('trace') }
 
     context 'when in async mode' do
       before { allow(writer).to receive(:async?).and_return true }
+
+      after { writer.stop }
 
       context 'and given a trace' do
         before do
@@ -362,6 +370,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
   describe '#enqueue' do
     subject(:enqueue) { writer.enqueue(trace) }
+
     let(:trace) { double('trace') }
 
     before do
@@ -374,6 +383,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
   describe '#dequeue' do
     subject(:dequeue) { writer.dequeue }
+
     let(:traces) { double('traces') }
 
     before do
@@ -472,7 +482,9 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
     context 'when the buffer is not empty' do
       let(:trace) { get_test_traces(1).first }
+
       before { writer.enqueue(trace) }
+
       it { is_expected.to be true }
     end
   end
@@ -573,6 +585,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
   describe '#write' do
     subject(:write) { writer.write(trace) }
+
     let(:trace) { double('trace') }
 
     context 'when #async?' do
@@ -608,7 +621,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
     let(:output) { [] }
 
     describe 'forking' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       context 'when the process forks and a trace is written' do
         let(:traces) { get_test_traces(3) }
@@ -620,7 +633,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
             .and_call_original
         end
 
-        after { writer.stop }
+        after { expect(writer.stop).to be_truthy }
 
         context 'with :sync fork policy' do
           let(:fork_policy) { :sync }
@@ -658,6 +671,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
               # Queue up traces, wait for worker to process them.
               traces.each { |trace| writer.write(trace) }
               try_wait_until(attempts: 30) { !writer.work_pending? }
+              writer.stop
 
               # Verify state of the writer
               expect(writer).to have_received(:after_fork).once

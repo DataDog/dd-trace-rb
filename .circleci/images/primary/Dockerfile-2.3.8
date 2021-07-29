@@ -15,7 +15,7 @@ RUN set -ex; \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim; \
+            tzdata rsync vim less; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -58,12 +58,24 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
   && rm -rf /tmp/dockerize-linux-amd64.tar.gz \
   && dockerize --version
 
+# Install Protobuf compiler
+RUN export PROTOC_URL=$(curl -s https://api.github.com/repos/protocolbuffers/protobuf/releases/latest | grep browser_download_url | cut -d '"' -f 4 | grep -e 'protoc-[.0-9]*-linux-x86_64\.zip' | sort -r | head -n 1) \
+  && echo Protoc URL: $PROTOC_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /tmp/protoc.zip "${PROTOC_URL}" \
+  && ls -lha /tmp/protoc.zip \
+  && unzip /tmp/protoc.zip -d /tmp/protoc \
+  && mv /tmp/protoc/bin/* /usr/bin \
+  && rm -rf /tmp/protoc /tmp/protoc.zip \
+  && protoc --version
+
 # Install RubyGems
 RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Install RubyGems
-RUN gem update --system
+# NOTE: Rubygems 3.0.6 is the last version that seems to work fine in this image AND not drag bundler 2 along.
+# Later versions are either broken or they force the use of bundler 2, which we can't because some of our dependencies don't like it.
+RUN gem update --system '3.0.6'
 # Ruby 2.3 can support Bundler 2+
 # But hold back to < 2 for now, because some dependencies require it.
 RUN gem install bundler -v '1.17.3'

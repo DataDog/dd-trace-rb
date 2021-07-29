@@ -6,7 +6,7 @@ RSpec.describe Datadog::Configuration::Options do
   describe 'implemented' do
     subject(:options_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Configuration::Options do
         context 'on class inheriting from a class implementing Options' do
           let(:parent_class) do
             Class.new.tap do |klass|
-              klass.send(:include, described_class)
+              klass.include(described_class)
             end
           end
           let(:options_class) { Class.new(parent_class) }
@@ -100,16 +100,19 @@ RSpec.describe Datadog::Configuration::Options do
 
       describe '#options' do
         subject(:options) { options_object.options }
+
         it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionSet) }
       end
 
       describe '#set_option' do
         subject(:set_option) { options_object.set_option(name, value) }
+
         let(:name) { :foo }
         let(:value) { double('value') }
 
         context 'when the option is defined' do
           before { options_class.send(:option, name) }
+
           it { expect { set_option }.to change { options_object.send(name) }.from(nil).to(value) }
         end
 
@@ -120,21 +123,26 @@ RSpec.describe Datadog::Configuration::Options do
 
       describe '#get_option' do
         subject(:get_option) { options_object.get_option(name) }
+
         let(:name) { :foo }
 
         context 'when the option is defined' do
           before { options_class.send(:option, name, meta) }
+
           let(:meta) { {} }
 
           context 'and a value is set' do
             let(:value) { double('value') }
+
             before { options_object.set_option(name, value) }
+
             it { is_expected.to be(value) }
           end
 
           context 'and a value is not set' do
             let(:meta) { super().merge(default: default_value) }
             let(:default_value) { double('default_value') }
+
             it { is_expected.to be(default_value) }
           end
         end
@@ -146,14 +154,17 @@ RSpec.describe Datadog::Configuration::Options do
 
       describe '#reset_option' do
         subject(:reset_option) { options_object.reset_option(name) }
+
         let(:name) { :foo }
 
         context 'when the option is defined' do
           before { options_class.send(:option, name, default: default_value) }
+
           let(:default_value) { double('default_value') }
 
           context 'and a value is set' do
             let(:value) { double('value') }
+
             before { options_object.set_option(name, value) }
 
             it do
@@ -171,6 +182,7 @@ RSpec.describe Datadog::Configuration::Options do
 
       describe '#option_defined?' do
         subject(:option_defined?) { options_object.option_defined?(name) }
+
         let(:name) { :foo }
 
         context 'when no options are defined' do
@@ -179,6 +191,7 @@ RSpec.describe Datadog::Configuration::Options do
 
         context 'when option is defined' do
           before { options_class.send(:option, name) }
+
           it { is_expected.to be true }
         end
       end

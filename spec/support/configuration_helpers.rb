@@ -1,3 +1,5 @@
+require 'bundler'
+
 module ConfigurationHelpers
   shared_context 'loaded gems' do |gems = {}|
     before do
@@ -34,14 +36,14 @@ module ConfigurationHelpers
 
   def remove_patch!(integration, patch_key = :patch)
     if (integration.is_a?(Module) || integration.is_a?(Class)) && integration <= Datadog::Contrib::Patcher
-      if integration.instance_variable_defined?(:@done_once)
-        integration.instance_variable_get(:@done_once).delete(patch_key)
+      integration::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(integration::PATCH_ONLY_ONCE)
+      if integration.respond_to?(:patch_only_once, true)
+        integration.send(:patch_only_once).send(:reset_ran_once_state_for_tests)
       end
     elsif Datadog.registry[integration].respond_to?(:patcher)
       Datadog.registry[integration].patcher.tap do |patcher|
-        if patcher.instance_variable_defined?(:@done_once)
-          patcher.instance_variable_get(:@done_once).delete(patch_key)
-        end
+        patcher::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(patcher::PATCH_ONLY_ONCE)
+        patcher.send(:patch_only_once).send(:reset_ran_once_state_for_tests) if patcher.respond_to?(:patch_only_once, true)
       end
     else
       Datadog
@@ -51,7 +53,7 @@ module ConfigurationHelpers
   end
 
   def self.included(config)
-    config.before(:each) do
+    config.before do
       allow_any_instance_of(Datadog::Pin)
         .to receive(:deprecation_warning)
         .and_raise('DEPRECATED: Tracer cannot be eagerly cached.' \

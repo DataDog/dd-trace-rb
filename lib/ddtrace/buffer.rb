@@ -1,6 +1,5 @@
-require 'thread'
 require 'ddtrace/diagnostics/health'
-require 'ddtrace/runtime/object_space'
+require 'datadog/core/environment/object_space'
 
 # Trace buffer that accumulates traces for a consumer.
 # Consumption can happen from a different thread.
@@ -18,6 +17,7 @@ module Datadog
     # even if the buffer is full. In that case, a random item is discarded.
     def push(item)
       return if closed?
+
       full? ? replace!(item) : add!(item)
       item
     end
@@ -168,8 +168,8 @@ module Datadog
       synchronize { super }
     end
 
-    def synchronize
-      @mutex.synchronize { yield }
+    def synchronize(&block)
+      @mutex.synchronize(&block)
     end
   end
 
@@ -213,6 +213,8 @@ module Datadog
 
   # Health metrics for trace buffers.
   module MeasuredBuffer
+    include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
     def initialize(*_)
       super
 
@@ -259,7 +261,7 @@ module Datadog
 
       @buffer_spans += trace.length
     rescue StandardError => e
-      Datadog.logger.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
 
     def measure_drop(trace)
@@ -267,7 +269,7 @@ module Datadog
 
       @buffer_spans -= trace.length
     rescue StandardError => e
-      Datadog.logger.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
 
     def measure_pop(traces)
@@ -290,7 +292,7 @@ module Datadog
       @buffer_dropped = 0
       @buffer_spans = 0
     rescue StandardError => e
-      Datadog.logger.debug("Failed to measure queue. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.debug("Failed to measure queue. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
   end
 
@@ -318,7 +320,7 @@ module Datadog
   #
   # TODO We should restructure this module, so that classes are not declared at top-level ::Datadog.
   # TODO Making such a change is potentially breaking for users manually configuring the tracer.
-  TraceBuffer = if Datadog::Ext::Runtime::RUBY_ENGINE == 'ruby' # rubocop:disable Style/ConstantName
+  TraceBuffer = if Datadog::Core::Environment::Ext::RUBY_ENGINE == 'ruby'
                   CRubyTraceBuffer
                 else
                   ThreadSafeTraceBuffer

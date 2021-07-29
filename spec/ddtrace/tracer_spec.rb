@@ -4,7 +4,11 @@ require 'ddtrace'
 
 RSpec.describe Datadog::Tracer do
   let(:writer) { FauxWriter.new }
-  subject(:tracer) { described_class.new(writer: writer) }
+  let(:tracer_options) { {} }
+
+  subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
+
+  after { tracer.shutdown! }
 
   shared_context 'parent span' do
     let(:trace_id) { SecureRandom.uuid }
@@ -35,21 +39,60 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
-  describe '#configure' do
-    subject!(:configure) { tracer.configure(options) }
-    let(:options) { {} }
+  describe '::new' do
+    context 'given :context_flush' do
+      let(:tracer_options) { super().merge(context_flush: context_flush) }
+      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+      it { is_expected.to have_attributes(context_flush: context_flush) }
+    end
+  end
 
-    it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
+  describe '#configure' do
+    context 'by default' do
+      subject!(:configure) { tracer.configure(options) }
+
+      let(:options) { {} }
+
+      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
+    end
+
+    context 'with context flush' do
+      subject!(:configure) { tracer.configure(options) }
+
+      let(:options) { { context_flush: context_flush } }
+      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+
+      it { expect(tracer.context_flush).to be(context_flush) }
+    end
 
     context 'with partial flushing' do
+      subject!(:configure) { tracer.configure(options) }
+
       let(:options) { { partial_flush: true } }
 
       it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Partial) }
+    end
+
+    context 'with agent_settings' do
+      subject(:configure) { tracer.configure(options) }
+
+      let(:agent_settings) { double('agent_settings') }
+      let(:options) { { agent_settings: agent_settings } }
+
+      it 'creates a new writer using the given agent_settings' do
+        # create writer first, to avoid colliding with the below expectation
+        writer
+
+        expect(Datadog::Writer).to receive(:new).with(hash_including(agent_settings: agent_settings))
+
+        configure
+      end
     end
   end
 
   describe '#tags' do
     subject(:tags) { tracer.tags }
+
     let(:env_tags) { {} }
 
     before { allow(Datadog.configuration).to receive(:tags).and_return(env_tags) }
@@ -90,6 +133,7 @@ RSpec.describe Datadog::Tracer do
 
   describe '#start_span' do
     subject(:start_span) { tracer.start_span(name, options) }
+
     let(:span) { start_span }
     let(:name) { 'span.name' }
     let(:options) { {} }
@@ -129,7 +173,7 @@ RSpec.describe Datadog::Tracer do
     context 'when :child_of' do
       context 'is not given' do
         it 'applies a runtime ID tag' do
-          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+          expect(start_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
         end
       end
 
@@ -151,6 +195,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a block' do
       subject(:trace) { tracer.trace(name, options, &block) }
+
       let(:block) { proc { result } }
       let(:result) { double('result') }
 
@@ -165,7 +210,6 @@ RSpec.describe Datadog::Tracer do
 
         it 'tracks the number of allocations made in the span' do
           skip 'Test unstable; improve stability before re-enabling.'
-          skip 'Not supported for Ruby < 2.0' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.0.0')
 
           # Create and discard first trace.
           # When warming up, it might have more allocations than subsequent traces.
@@ -202,7 +246,7 @@ RSpec.describe Datadog::Tracer do
 
         it 'adds a runtime ID tag to the span' do
           tracer.trace(name) do |span|
-            expect(span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+            expect(span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
           end
         end
       end
@@ -210,7 +254,7 @@ RSpec.describe Datadog::Tracer do
       context 'when nesting spans' do
         it 'only the top most span has a runtime ID tag' do
           tracer.trace(name) do |parent_span|
-            expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Runtime::Identity.id)
+            expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
 
             tracer.trace(name) do |child_span|
               expect(child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
@@ -219,18 +263,18 @@ RSpec.describe Datadog::Tracer do
         end
 
         context 'with forking' do
-          before { skip 'Java not supported' if RUBY_PLATFORM == 'java' }
+          before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
           it 'only the top most span per process has a runtime ID tag' do
             tracer.trace(name) do |parent_span|
-              parent_process_id = Datadog::Runtime::Identity.id
+              parent_process_id = Datadog::Core::Environment::Identity.id
               expect(parent_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(parent_process_id)
 
               tracer.trace(name) do |child_span|
                 expect(child_span.get_tag(Datadog::Ext::Runtime::TAG_ID)).to be nil
 
                 expect_in_fork do
-                  fork_process_id = Datadog::Runtime::Identity.id
+                  fork_process_id = Datadog::Core::Environment::Identity.id
                   expect(fork_process_id).to_not eq(parent_process_id)
 
                   tracer.trace(name) do |fork_parent_span|
@@ -250,7 +294,7 @@ RSpec.describe Datadog::Tracer do
       end
 
       context 'when starting a span fails' do
-        before(:each) do
+        before do
           allow(tracer).to receive(:start_span).and_raise(error)
         end
 
@@ -268,7 +312,7 @@ RSpec.describe Datadog::Tracer do
         context 'with fatal exception' do
           let(:fatal_error) { stub_const('FatalError', Class.new(Exception)) }
 
-          before(:each) do
+          before do
             # Raise error at first line of begin block
             allow(tracer).to receive(:start_span).and_raise(fatal_error)
           end
@@ -315,7 +359,8 @@ RSpec.describe Datadog::Tracer do
 
           context 'is a block that is not a Proc' do
             let(:not_a_proc_block) { 'not a proc' }
-            it 'should fallback to default error handler and log a debug message' do
+
+            it 'fallbacks to default error handler and log a debug message' do
               expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
               expect do
                 tracer.trace(name, on_error: not_a_proc_block, &block)
@@ -356,6 +401,7 @@ RSpec.describe Datadog::Tracer do
 
   describe '#call_context' do
     subject(:call_context) { tracer.call_context }
+
     let(:context) { instance_double(Datadog::Context) }
 
     context 'given no arguments' do
@@ -371,6 +417,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a key' do
       subject(:call_context) { tracer.call_context(key) }
+
       let(:key) { Thread.current }
 
       it do
@@ -399,6 +446,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a key' do
       subject(:active_span) { tracer.active_span(key) }
+
       let(:key) { double('key') }
 
       it do
@@ -431,6 +479,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'given a key' do
       subject(:active_root_span) { tracer.active_root_span(key) }
+
       let(:key) { double('key') }
 
       it do
@@ -454,7 +503,7 @@ RSpec.describe Datadog::Tracer do
     context 'when a trace is active' do
       let(:span) { @span }
 
-      around(:each) do |example|
+      around do |example|
         tracer.trace('test') do |span|
           @span = span
           example.run
@@ -496,29 +545,35 @@ RSpec.describe Datadog::Tracer do
   describe '#set_service_info' do
     include_context 'tracer logging'
 
-    # Ensure we have a clean `@done_once` before and after each test
+    # Ensure we have a clean OnlyOnce before and after each test
     # so we can properly test the behavior here, and we don't pollute other tests
-    before(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
-    after(:each) { Datadog::Patcher.instance_variable_set(:@done_once, nil) }
+    before { described_class::SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.send(:reset_ran_once_state_for_tests) }
 
-    before(:each) do
+    after { described_class::SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.send(:reset_ran_once_state_for_tests) }
+
+    before do
       # Call multiple times to assert we only log once
+      allow(Datadog.logger).to receive(:warn).and_call_original
+
       tracer.set_service_info('service-A', 'app-A', 'app_type-A')
       tracer.set_service_info('service-B', 'app-B', 'app_type-B')
       tracer.set_service_info('service-C', 'app-C', 'app_type-C')
       tracer.set_service_info('service-D', 'app-D', 'app_type-D')
     end
 
-    it 'generates a single deprecation warnings' do
-      expect(log_buffer.length).to be > 1
+    it 'generates a single deprecation warning' do
+      expect(Datadog.logger).to have_received(:warn).once
       expect(log_buffer).to contain_line_with('Usage of set_service_info has been deprecated')
     end
   end
 
   describe '#record' do
     subject(:record) { tracer.record(context) }
-
     let(:context) { instance_double(Datadog::Context) }
+
+    before do
+      allow(tracer.trace_completed).to receive(:publish)
+    end
 
     context 'with trace' do
       let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
@@ -530,19 +585,66 @@ RSpec.describe Datadog::Tracer do
         subject
       end
 
-      it { expect(writer.spans).to eq(trace) }
+      it 'writes the trace' do
+        expect(writer.spans).to eq(trace)
+
+        expect(tracer.trace_completed)
+          .to have_received(:publish)
+          .with(trace)
+      end
     end
 
     context 'with empty trace' do
       let(:trace) { [] }
 
-      it { expect(writer.spans).to be_empty }
+      it 'does not write a trace' do
+        expect(writer.spans).to be_empty
+
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
 
     context 'with nil trace' do
       let(:trace) { nil }
 
-      it { expect(writer.spans).to be_empty }
+      it 'does not write a trace' do
+        expect(writer.spans).to be_empty
+
+        expect(tracer.trace_completed)
+          .to_not have_received(:publish)
+      end
     end
+  end
+
+  describe '#trace_completed' do
+    subject(:trace_completed) { tracer.trace_completed }
+    it { is_expected.to be_a_kind_of(described_class::TraceCompleted) }
+  end
+
+  describe '#default_service' do
+    subject(:default_service) { tracer.default_service }
+
+    context 'when tracer is initialized with a default_service' do
+      let(:tracer_options) { { **super(), default_service: default_service_value } }
+      let(:default_service_value) { 'test_default_service' }
+
+      it { is_expected.to be default_service_value }
+    end
+
+    context 'when no default_service is provided' do
+      it 'sets the default_service based on the current ruby process name' do
+        is_expected.to include 'rspec'
+      end
+    end
+  end
+end
+
+RSpec.describe Datadog::Tracer::TraceCompleted do
+  subject(:event) { described_class.new }
+
+  describe '#name' do
+    subject(:name) { event.name }
+    it { is_expected.to be :trace_completed }
   end
 end

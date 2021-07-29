@@ -26,11 +26,13 @@ RSpec.describe Datadog::Contrib::Ethon::Integration do
 
     context 'when Ethon::Easy is defined' do
       before { stub_const('Ethon::Easy', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when Ethon::Easy is not defined' do
       before { hide_const('Ethon::Easy') }
+
       it { is_expected.to be false }
     end
   end
@@ -56,13 +58,21 @@ RSpec.describe Datadog::Contrib::Ethon::Integration do
     end
   end
 
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+
+    it { is_expected.to be(true) }
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Ethon::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::Ethon::Patcher }
   end
 end

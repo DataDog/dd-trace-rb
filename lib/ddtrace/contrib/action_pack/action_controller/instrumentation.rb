@@ -36,9 +36,7 @@ module Datadog
 
             begin
               # Set the resource name, if it's still the default name
-              if span.resource == span.name
-                span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}"
-              end
+              span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}" if span.resource == span.name
 
               # Set the resource name of the Rack request span unless this is an exception controller.
               unless exception_controller?(payload)
@@ -63,7 +61,7 @@ module Datadog
                 # [christian] in some cases :status is not defined,
                 # rather than firing an error, simply acknowledge we don't know it.
                 status = payload.fetch(:status, '?').to_s
-                span.status = 1 if status.starts_with?('5')
+                span.status = 1 if status.start_with?('5')
               elsif Utils.exception_is_error?(exception)
                 span.set_error(exception)
               end

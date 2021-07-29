@@ -2,6 +2,8 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'ddtrace/contrib/integration_examples'
 
+require 'spec/ddtrace/contrib/rails/support/deprecation'
+
 require 'active_record'
 
 if PlatformHelpers.jruby?
@@ -13,27 +15,11 @@ end
 
 RSpec.describe 'ActiveRecord multi-database implementation' do
   let(:configuration_options) { { service_name: default_db_service_name } }
-  let(:default_db_service_name) { 'default-db' }
-
-  let(:mysql) do
-    {
-      database: ENV.fetch('TEST_MYSQL_DB', 'mysql'),
-      host: ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'),
-      password: ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root'),
-      port: ENV.fetch('TEST_MYSQL_PORT', '3306')
-    }
-  end
-
-  def mysql_connection_string
-    "mysql2://root:#{mysql[:password]}@#{mysql[:host]}:#{mysql[:port]}/#{mysql[:database]}"
-  end
-
   let(:application_record) do
     stub_const('ApplicationRecord', Class.new(ActiveRecord::Base) do
       self.abstract_class = true
     end)
   end
-
   let!(:gadget_class) do
     stub_const('Gadget', Class.new(application_record)).tap do |klass|
       # Connect to the default database
@@ -55,7 +41,6 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       end
     end
   end
-
   let!(:widget_class) do
     stub_const('Widget', Class.new(application_record)).tap do |klass|
       # Connect the Widget database
@@ -75,24 +60,39 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       end
     end
   end
+  let(:gadget_span) { spans[0] }
+  let(:widget_span) { spans[1] }
+  let(:default_db_service_name) { 'default-db' }
+
+  let(:mysql) do
+    {
+      database: ENV.fetch('TEST_MYSQL_DB', 'mysql'),
+      host: ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'),
+      password: ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root'),
+      port: ENV.fetch('TEST_MYSQL_PORT', '3306')
+    }
+  end
+
+  def mysql_connection_string
+    "mysql2://root:#{mysql[:password]}@#{mysql[:host]}:#{mysql[:port]}/#{mysql[:database]}"
+  end
 
   subject(:count) do
     gadget_class.count
     widget_class.count
   end
 
-  let(:gadget_span) { spans[0] }
-  let(:widget_span) { spans[1] }
-
-  before(:each) do
+  before do
     Datadog.registry[:active_record].reset_configuration!
 
     Datadog.configure do |c|
       c.use :active_record, configuration_options
     end
+
+    raise_on_rails_deprecation!
   end
 
-  after(:each) do
+  after do
     Datadog.registry[:active_record].reset_configuration!
   end
 
@@ -131,7 +131,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           end
         end
 
-        before(:each) do
+        before do
           # Stub ActiveRecord::Base, to pretend its been configured
           allow(ActiveRecord::Base).to receive(:configurations).and_return(database_configuration_object)
 
@@ -153,12 +153,30 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           # Widget is configured to show up as its own database service
           expect(widget_span.service).to eq(widget_db_service_name)
         end
+
+        describe 'benchmark' do
+          before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+
+          it 'measure #count' do
+            require 'benchmark/ips'
+
+            Benchmark.ips do |x|
+              x.config(time: 15, warmup: 2)
+
+              x.report 'gadget_class.count' do
+                gadget_class.count
+              end
+
+              x.compare!
+            end
+          end
+        end
       end
     end
 
     context 'a String that\'s a URL' do
       context 'for a typical server' do
-        before(:each) do
+        before do
           Datadog.configure do |c|
             c.use :active_record, describes: mysql_connection_string do |gadget_db|
               gadget_db.service_name = gadget_db_service_name
@@ -184,7 +202,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       end
 
       context 'for an in-memory database' do
-        before(:each) do
+        before do
           Datadog.configure do |c|
             c.use :active_record, describes: 'sqlite3::memory:' do |widget_db|
               widget_db.service_name = widget_db_service_name
@@ -211,7 +229,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
     end
 
     context 'a Hash that describes a connection' do
-      before(:each) do
+      before do
         widget_db_connection_hash = { adapter: 'sqlite3', database: ':memory:' }
 
         Datadog.configure do |c|

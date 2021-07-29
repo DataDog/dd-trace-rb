@@ -26,11 +26,13 @@ RSpec.describe Datadog::Contrib::RestClient::Integration do
 
     context 'when RestClient::Request is defined' do
       before { stub_const('RestClient::Request', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when RestClient::Request is not defined' do
       before { hide_const('RestClient::Request') }
+
       it { is_expected.to be false }
     end
   end
@@ -56,13 +58,21 @@ RSpec.describe Datadog::Contrib::RestClient::Integration do
     end
   end
 
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+
+    it { is_expected.to be(true) }
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::RestClient::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::RestClient::Patcher }
   end
 end

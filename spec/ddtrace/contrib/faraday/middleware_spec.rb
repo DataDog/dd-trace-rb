@@ -27,7 +27,7 @@ RSpec.describe 'Faraday middleware' do
     spans.find { |span| span.name == Datadog::Contrib::Faraday::Ext::SPAN_REQUEST }
   end
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :faraday, configuration_options
     end
@@ -42,6 +42,7 @@ RSpec.describe 'Faraday middleware' do
 
   context 'without explicit middleware configured' do
     subject(:response) { client.get('/success') }
+
     let(:use_middleware) { false }
 
     it 'uses default configuration' do
@@ -68,6 +69,7 @@ RSpec.describe 'Faraday middleware' do
 
     context 'with default Faraday connection' do
       subject(:response) { client.get('http://example.com/success') }
+
       let(:client) { ::Faraday } # Use the singleton client
 
       before do
@@ -179,7 +181,13 @@ RSpec.describe 'Faraday middleware' do
     end
 
     it_behaves_like 'a peer service span' do
-      subject { client.get('/error') rescue nil }
+      subject do
+        begin
+          client.get('/error')
+        rescue Faraday::ConnectionFailed
+          nil
+        end
+      end
     end
   end
 
@@ -194,6 +202,7 @@ RSpec.describe 'Faraday middleware' do
 
     let(:middleware_options) { { error_handler: custom_handler } }
     let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
+
     it { expect(request_span).to have_error }
   end
 
@@ -244,7 +253,8 @@ RSpec.describe 'Faraday middleware' do
     end
 
     context 'but the tracer is disabled' do
-      before(:each) { tracer.enabled = false }
+      before { tracer.enabled = false }
+
       it do
         expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
         expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
@@ -268,12 +278,12 @@ RSpec.describe 'Faraday middleware' do
   context 'global service name' do
     let(:service_name) { 'faraday-global' }
 
-    before(:each) do
+    before do
       @old_service_name = Datadog.configuration[:faraday][:service_name]
       Datadog.configure { |c| c.use :faraday, service_name: service_name }
     end
 
-    after(:each) { Datadog.configure { |c| c.use :faraday, service_name: @old_service_name } }
+    after { Datadog.configure { |c| c.use :faraday, service_name: @old_service_name } }
 
     subject { client.get('/success') }
 

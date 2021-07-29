@@ -42,6 +42,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
   describe 'instrumenting worker execution' do
     let(:worker) { double(:worker, name: 'worker') }
+
     before do
       allow(tracer).to receive(:shutdown!).and_call_original
     end
@@ -141,6 +142,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
     describe 'invoke span' do
       subject(:span) { fetch_spans.first }
+
       before { job_run }
 
       include_context 'delayed_job common tags and resource'
@@ -168,6 +170,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
     describe 'enqueue span' do
       subject(:span) { fetch_spans.last }
+
       before { job_run }
 
       include_context 'delayed_job common tags and resource'

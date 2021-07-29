@@ -4,7 +4,7 @@ require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 require 'date'
 
 module Datadog
@@ -53,7 +53,7 @@ module Datadog
             tracer.provider.context = context if context.trace_id
           end
 
-          # [experimental] create a root Span to keep track of frontend web servers
+          # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
 
@@ -131,7 +131,8 @@ module Datadog
         end
 
         # rubocop:disable Metrics/AbcSize
-        # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/CyclomaticComplexity
+        # rubocop:disable Metrics/PerceivedComplexity
         def set_request_tags!(request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
@@ -199,9 +200,7 @@ module Datadog
 
           # detect if the status code is a 5xx and flag the request span as an error
           # unless it has been already set by the underlying framework
-          if status.to_s.start_with?('5') && request_span.status.zero?
-            request_span.status = 1
-          end
+          request_span.status = 1 if status.to_s.start_with?('5') && request_span.status.zero?
         end
 
         private
@@ -258,9 +257,7 @@ module Datadog
             whitelist = configuration[:headers][:request] || []
             whitelist.each do |header|
               rack_header = header_to_rack_header(header)
-              if env.key?(rack_header)
-                result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
-              end
+              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
             end
           end
         end
@@ -275,9 +272,7 @@ module Datadog
                 # Try a case-insensitive lookup
                 uppercased_header = header.to_s.upcase
                 matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                if matching_header
-                  result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
-                end
+                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header] if matching_header
               end
             end
           end

@@ -14,7 +14,7 @@ RSpec.describe Datadog::Patcher do
 
       # Because we might be mutating a global level constant,
       # we have to make sure to reset its state.
-      after(:each) { patcher.instance_variable_set(:@done_once, nil) }
+      after { patcher.instance_variable_set(:@done_once, nil) }
 
       context 'when called without a key' do
         subject(:result) { patcher.do_once { integration.patch } }
@@ -155,12 +155,15 @@ RSpec.describe Datadog::Patcher do
 
         context 'with a key' do
           subject(:done) { patcher.done?(key) }
+
           it { is_expected.to be false }
         end
 
         context 'with a key and :for' do
           subject(:done) { patcher.done?(key, for: for_key) }
+
           let(:for_key) { double('for key') }
+
           it { is_expected.to be false }
         end
       end
@@ -170,14 +173,19 @@ RSpec.describe Datadog::Patcher do
 
         context 'with a key' do
           subject(:done) { patcher.done?(key) }
-          before(:each) { patcher.do_once(key) { 'Perform patch' } }
+
+          before { patcher.do_once(key) { 'Perform patch' } }
+
           it { is_expected.to be true }
         end
 
         context 'with a key and :for' do
           subject(:done) { patcher.done?(key, for: for_key) }
+
           let(:for_key) { double('key') }
-          before(:each) { patcher.do_once(key, for: for_key) { 'Perform patch' } }
+
+          before { patcher.do_once(key, for: for_key) { 'Perform patch' } }
+
           it { is_expected.to be true }
         end
       end
@@ -187,7 +195,7 @@ RSpec.describe Datadog::Patcher do
   describe 'implemented' do
     subject(:patcher_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 

@@ -16,16 +16,19 @@ RSpec.describe 'Rails defaults' do
 
       describe 'Datadog.configuration.service' do
         subject(:global_default_service) { Datadog.configuration.service }
+
         it { expect(global_default_service).to match(/rails/) }
       end
 
       describe 'Tracer#default_service' do
         subject(:tracer_default_service) { Datadog.configuration[:rails].tracer.default_service }
+
         it { expect(tracer_default_service).to match(/rails/) }
       end
 
       describe 'Rails :service_name' do
         subject(:rails_service_name) { Datadog.configuration[:rails].service_name }
+
         it { expect(rails_service_name).to match(/rails/) }
       end
     end
@@ -35,16 +38,19 @@ RSpec.describe 'Rails defaults' do
 
       describe 'Datadog.configuration.service' do
         subject(:global_default_service) { Datadog.configuration.service }
+
         it { expect(global_default_service).to be default_service }
       end
 
       describe 'Tracer#default_service' do
         subject(:tracer_default_service) { Datadog.configuration[:rails].tracer.default_service }
+
         it { expect(tracer_default_service).to eq(default_service) }
       end
 
       describe 'Rails :service_name' do
         subject(:rails_service_name) { Datadog.configuration[:rails].service_name }
+
         it { expect(rails_service_name).to eq(default_service) }
       end
     end

@@ -1,5 +1,6 @@
 require 'rails/all'
-require 'ddtrace'
+
+require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -56,13 +57,40 @@ RSpec.shared_context 'Rails 6 base application' do
     after_test_init = after_test_initialize_block
 
     klass.send(:define_method, :test_initialize!) do
-      # Enables the auto-instrumentation for the testing application
-      Datadog.configure do |c|
-        c.use :rails
-        c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+      # we want to disable explicit instrumentation
+      # when testing auto patching
+      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
+        require 'ddtrace/auto_instrument'
+      else
+        # Enables the auto-instrumentation for the testing application
+        Datadog.configure do |c|
+          c.use :rails
+          c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+        end
       end
 
-      Rails.application.config.active_job.queue_adapter = :sidekiq
+      Rails.application.config.active_job.queue_adapter = :sidekiq if ENV['USE_SIDEKIQ']
+
+      Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
+        # When running in full application mode, Rails tries to monitor
+        # the file system for changes. This causes issues when using
+        # {ActionView::FixtureResolver} to mock the filesystem for templates
+        # as this test resolver wasn't meant to work with a full application.
+        #
+        # Because {ActionView::FixtureResolver} doesn't have a complete filesystem,
+        # it sets its base path to '', which later in the file watcher gets translated to:
+        # "Monitor '**/*' for changes", which means monitoring the whole system, causing
+        # many "permission denied errors".
+        #
+        # This method removes the blank path ('') created by {ActionView::FixtureResolver}
+        # in order to allow the file watcher to skip monitoring the "filesystem changes"
+        # of the in-memory fixtures.
+        def initialize(files, dirs = {}, &block)
+          dirs = dirs.delete('') if dirs.include?('')
+
+          super(files, dirs, &block)
+        end
+      end
 
       before_test_init.call
       initialize!
@@ -102,8 +130,11 @@ RSpec.shared_context 'Rails 6 base application' do
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
+
     # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
-    ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+    if Rails::VERSION::MINOR < 1
+      ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+    end
 
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_once_paths)

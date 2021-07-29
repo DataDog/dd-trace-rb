@@ -3,11 +3,10 @@ require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/tracer'
 require 'datadog/statsd'
-require 'thread'
 
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
-    before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+    before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
     let(:tracer) do
       Datadog::Tracer.new(initialize_options).tap do |t|
@@ -28,6 +27,8 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  after { tracer.shutdown! }
+
   describe 'agent receives span' do
     include_context 'agent-based test'
 
@@ -41,6 +42,7 @@ RSpec.describe 'Tracer integration tests' do
     def wait_for_flush(stat, num = 1)
       test_repeat.times do
         break if tracer.writer.stats[stat] >= num
+
         sleep(0.1)
       end
     end
@@ -97,7 +99,7 @@ RSpec.describe 'Tracer integration tests' do
   describe 'agent receives short span' do
     include_context 'agent-based test'
 
-    before(:each) do
+    before do
       tracer.trace('my.short.op') do |span|
         @span = span
         span.service = 'my.service'
@@ -119,6 +121,10 @@ RSpec.describe 'Tracer integration tests' do
 
   describe 'rule sampler' do
     include_context 'agent-based test'
+
+    after do
+      Datadog.configuration.sampling.reset!
+    end
 
     shared_examples 'priority sampled' do |sampling_priority|
       it { expect(@sampling_priority).to eq(sampling_priority) }
@@ -166,13 +172,33 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
 
+    context 'with rate set through DD_TRACE_SAMPLE_RATE environment variable' do
+      let(:initialize_options) { {} }
+
+      around do |example|
+        ClimateControl.modify('DD_TRACE_SAMPLE_RATE' => '1.0') do
+          example.run
+        end
+      end
+
+      it_behaves_like 'flushed trace'
+      it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+      it_behaves_like 'rule sampling rate metric', 1.0
+      it_behaves_like 'rate limit metric', 1.0
+
+      it 'test' do
+        puts "Datadog.configuration.sampling.default_rate: #{Datadog.configuration.sampling.default_rate}:" \
+          "#{Datadog.configuration.sampling.default_rate.class}"
+      end
+    end
+
     context 'with low default sample rate' do
       let(:rule_sampler) { Datadog::Sampling::RuleSampler.new(default_sample_rate: Float::MIN) }
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
-      it_behaves_like 'rule sampling rate metric', nil
-      it_behaves_like 'rate limit metric', nil
+      it_behaves_like 'rule sampling rate metric', Float::MIN
+      it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
     end
 
     context 'with rule' do
@@ -193,7 +219,7 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'flushed trace'
           it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
           it_behaves_like 'rule sampling rate metric', Float::MIN
-          it_behaves_like 'rate limit metric', nil
+          it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
         end
 
         context 'rate limited' do
@@ -211,8 +237,8 @@ RSpec.describe 'Tracer integration tests' do
 
         it_behaves_like 'flushed trace'
         it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
-        it_behaves_like 'rule sampling rate metric', nil
-        it_behaves_like 'rate limit metric', nil
+        it_behaves_like 'rule sampling rate metric', nil # Rule sampler is never reached, thus has no value to provide
+        it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
       end
     end
   end
@@ -241,7 +267,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'when sent TERM' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       subject(:terminated_process) do
         # Initiate IO pipe
@@ -290,7 +316,7 @@ RSpec.describe 'Tracer integration tests' do
       let(:parent_span) { tracer.start_span('parent span') }
       let(:child_span) { tracer.start_span('child span', child_of: parent_span.context) }
 
-      before(:each) do
+      before do
         parent_span.tap do
           child_span.tap do
             child_span.context.sampling_priority = 10
@@ -316,9 +342,10 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'when #sampling_priority is set on a parent span' do
       subject(:tag_value) { parent_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
+
       let(:parent_span) { tracer.start_span('parent span') }
 
-      before(:each) do
+      before do
         parent_span.tap do
           parent_span.context.origin = 'synthetics'
         end.finish
@@ -366,7 +393,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:transport) { Datadog::Transport::IO.default(out: out) }
     let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
 
-    before(:each) do
+    before do
       tracer.configure(
         enabled: true,
         priority_sampling: true,
@@ -422,7 +449,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
     let(:transport) { Datadog::Transport::HTTP.default }
 
-    before(:each) do
+    before do
       tracer.configure(
         enabled: true,
         priority_sampling: true,
@@ -441,6 +468,7 @@ RSpec.describe 'Tracer integration tests' do
       expect(tracer.sampler).to receive(:update)
         .with(kind_of(Hash))
         .and_call_original
+        .at_least(1).time
     end
 
     it do
@@ -469,17 +497,26 @@ RSpec.describe 'Tracer integration tests' do
     subject(:configure) do
       tracer.configure(
         priority_sampling: true,
-        hostname: hostname,
-        port: port,
-        transport_options: transport_options
+        agent_settings: agent_settings
       )
     end
 
     let(:tracer) { Datadog::Tracer.new }
     let(:hostname) { double('hostname') }
     let(:port) { double('port') }
+    let(:settings) { Datadog::Configuration::Settings.new }
+    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+
+    before do
+      settings.tracer.hostname = hostname
+      settings.tracer.port = port
+    end
 
     context 'when :transport_options' do
+      before do
+        settings.tracer.transport_options = transport_options
+      end
+
       context 'is a Proc' do
         let(:transport_options) { proc { |t| on_build.call(t) } }
         let(:on_build) { double('on_build') }
@@ -571,6 +608,8 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'with another tracer instance' do
       let(:tracer2) { new_tracer }
+
+      after { tracer2.shutdown! }
 
       it 'create one thread-local context per tracer' do
         span = tracer.trace('test')

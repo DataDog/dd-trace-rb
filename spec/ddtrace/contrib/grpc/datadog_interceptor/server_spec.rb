@@ -7,6 +7,7 @@ require 'ddtrace'
 
 RSpec.describe 'tracing on the server connection' do
   subject(:server) { Datadog::Contrib::GRPC::DatadogInterceptor::Server.new }
+
   let(:configuration_options) { { service_name: 'rspec' } }
 
   before do
@@ -23,12 +24,12 @@ RSpec.describe 'tracing on the server connection' do
   end
 
   shared_examples 'span data contents' do
-    specify { expect(span.name).to eq 'grpc.service' }
-    specify { expect(span.span_type).to eq 'web' }
-    specify { expect(span.service).to eq 'rspec' }
-    specify { expect(span.resource).to eq 'my.server.endpoint' }
-    specify { expect(span.get_tag('error.stack')).to be_nil }
-    specify { expect(span.get_tag(:some)).to eq 'datum' }
+    it { expect(span.name).to eq 'grpc.service' }
+    it { expect(span.span_type).to eq 'web' }
+    it { expect(span.service).to eq 'rspec' }
+    it { expect(span.resource).to eq 'my.server.endpoint' }
+    it { expect(span.get_tag('error.stack')).to be_nil }
+    it { expect(span.get_tag(:some)).to eq 'datum' }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
@@ -47,11 +48,46 @@ RSpec.describe 'tracing on the server connection' do
         method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
     end
 
-    before do
-      subject.request_response(keywords) {}
+    it_behaves_like 'span data contents' do
+      before do
+        subject.request_response(**keywords) {}
+      end
     end
 
-    it_behaves_like 'span data contents'
+    context 'with an error' do
+      subject(:request_response) do
+        server.request_response(**keywords) { raise error_class, 'test error' }
+      end
+
+      let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+
+      context 'without an error handler' do
+        it do
+          expect { request_response }.to raise_error('test error')
+
+          expect(span).to have_error
+          expect(span).to have_error_message('test error')
+          expect(span).to have_error_type('TestError')
+          expect(span).to have_error_stack(include('server_spec.rb'))
+        end
+      end
+
+      context 'with an error handler' do
+        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
+        let(:error_handler) do
+          lambda do |span, error|
+            span.set_tag('custom.handler', "Got error #{error}, but ignored it")
+          end
+        end
+
+        it do
+          expect { request_response }.to raise_error('test error')
+
+          expect(span).to_not have_error
+          expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
+        end
+      end
+    end
   end
 
   describe '#client_streamer' do
@@ -61,7 +97,7 @@ RSpec.describe 'tracing on the server connection' do
     end
 
     before do
-      subject.client_streamer(keywords) {}
+      subject.client_streamer(**keywords) {}
     end
 
     it_behaves_like 'span data contents'
@@ -75,7 +111,7 @@ RSpec.describe 'tracing on the server connection' do
     end
 
     before do
-      subject.server_streamer(keywords) {}
+      subject.server_streamer(**keywords) {}
     end
 
     it_behaves_like 'span data contents'
@@ -89,7 +125,7 @@ RSpec.describe 'tracing on the server connection' do
     end
 
     before do
-      subject.bidi_streamer(keywords) {}
+      subject.bidi_streamer(**keywords) {}
     end
 
     it_behaves_like 'span data contents'

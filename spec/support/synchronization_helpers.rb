@@ -1,25 +1,37 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork
-    # Start in fork
-    pid = fork do
-      yield
+  def expect_in_fork(fork_expectations: nil)
+    fork_expectations ||= proc { |status, stderr|
+      expect(status && status.success?).to be(true), stderr
+    }
+
+    fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork')
+    begin
+      # Start in fork
+      pid = fork do
+        # Capture test failures
+        $stderr.reopen(fork_stderr)
+
+        yield
+      end
+
+      fork_stderr.close
+
+      # Wait for fork to finish, retrieve its status.
+      Process.wait(pid)
+      status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
+
+      # Expect fork and assertions to have completed successfully.
+      fork_expectations.call(status, File.read(fork_stderr.path))
+    ensure
+      fork_stderr.unlink
     end
-
-    # Wait for fork to finish, retrieve its status.
-    Process.wait(pid)
-    status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
-
-    # Expect fork and assertions to have completed successfully.
-    expect(status && status.success?).to be true
   end
 
-  def expect_in_thread
+  def expect_in_thread(&block)
     # Start in thread
-    t = Thread.new do
-      yield
-    end
+    t = Thread.new(&block)
 
     # Wait for thread to finish, retrieve its return value.
     status = t.value
@@ -29,12 +41,10 @@ module SynchronizationHelpers
   end
 
   # Defaults to 5 second timeout
-  def try_wait_until(options = {})
-    attempts = options.fetch(:attempts, 50)
-    backoff = options.fetch(:backoff, 0.1)
-
+  def try_wait_until(attempts: 50, backoff: 0.1)
     loop do
       break if yield(attempts)
+
       sleep(backoff)
       attempts -= 1
 
@@ -47,10 +57,9 @@ module SynchronizationHelpers
     # (like: be over 10 seconds to make sure handle the case "a flush just happened
     # a few milliseconds ago")
     return 300 if PlatformHelpers.jruby?
+
     30
   end
 
-  class << self
-    include SynchronizationHelpers
-  end
+  singleton_class.include SynchronizationHelpers
 end

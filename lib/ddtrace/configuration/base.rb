@@ -1,4 +1,4 @@
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 require 'ddtrace/configuration/options'
 
 module Datadog
@@ -6,12 +6,12 @@ module Datadog
     # Basic configuration behavior
     module Base
       def self.included(base)
-        base.send(:extend, Datadog::Environment::Helpers)
-        base.send(:include, Datadog::Environment::Helpers)
-        base.send(:include, Options)
+        base.extend(Datadog::Core::Environment::VariableHelpers)
+        base.include(Datadog::Core::Environment::VariableHelpers)
+        base.include(Options)
 
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class methods for configuration
@@ -37,7 +37,7 @@ module Datadog
 
         def new_settings_class(&block)
           Class.new { include Datadog::Configuration::Base }.tap do |klass|
-            klass.instance_eval(&block) if block_given?
+            klass.instance_eval(&block) if block
           end
         end
       end
@@ -53,10 +53,7 @@ module Datadog
           ordering = self.class.options.dependency_order
           sorted_opts = opts.sort_by do |name, _value|
             ordering.index(name) || (ordering.length + 1)
-          end
-
-          # Ruby 2.0 doesn't support Array#to_h
-          sorted_opts = Hash[*sorted_opts.flatten]
+          end.to_h
 
           # Apply options in sort order
           sorted_opts.each do |name, value|

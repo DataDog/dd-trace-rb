@@ -8,7 +8,7 @@ module Datadog
       BASE_INTERVAL = 1
 
       def self.included(base)
-        base.send(:prepend, PrependedMethods)
+        base.prepend(PrependedMethods)
       end
 
       # Methods that must be prepended
@@ -21,6 +21,7 @@ module Datadog
       def stop_loop
         mutex.synchronize do
           return false unless run_loop?
+
           @run_loop = false
           shutdown.signal
         end
@@ -34,6 +35,7 @@ module Datadog
 
       def run_loop?
         return false unless instance_variable_defined?(:@run_loop)
+
         @run_loop == true
       end
 
@@ -53,12 +55,29 @@ module Datadog
         @loop_wait_time ||= loop_base_interval
       end
 
+      def loop_wait_time=(value)
+        @loop_wait_time = value
+      end
+
+      def reset_loop_wait_time
+        self.loop_wait_time = loop_base_interval
+      end
+
+      # Should the loop "back off" when there's no work?
       def loop_back_off?
         false
       end
 
-      def loop_back_off!(amount = nil)
-        @loop_wait_time = amount || [loop_wait_time * BACK_OFF_RATIO, BACK_OFF_MAX].min
+      def loop_back_off!
+        self.loop_wait_time = [loop_wait_time * BACK_OFF_RATIO, BACK_OFF_MAX].min
+      end
+
+      # Should perform_loop just straight into work, or start by waiting?
+      #
+      # The use case is if we want to report some information (like profiles) from time to time, we may not want to
+      # report empty/zero/some residual value immediately when the worker starts.
+      def loop_wait_before_first_iteration?
+        false
       end
 
       protected
@@ -75,16 +94,22 @@ module Datadog
       private
 
       def perform_loop
-        @run_loop = true
+        mutex.synchronize do
+          @run_loop = true
+
+          shutdown.wait(mutex, loop_wait_time) if loop_wait_before_first_iteration?
+        end
 
         loop do
           if work_pending?
+            # There's work to do...
             # Run the task
             yield
 
             # Reset the wait interval
-            loop_back_off!(loop_base_interval)
+            reset_loop_wait_time if loop_back_off?
           elsif loop_back_off?
+            # There's no work to do...
             # Back off the wait interval a bit
             loop_back_off!
           end
@@ -92,6 +117,7 @@ module Datadog
           # Wait for an interval, unless shutdown has been signaled.
           mutex.synchronize do
             return unless run_loop? || work_pending?
+
             shutdown.wait(mutex, loop_wait_time) if run_loop?
           end
         end

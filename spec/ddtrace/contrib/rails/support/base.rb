@@ -7,6 +7,7 @@ if ENV['USE_SIDEKIQ']
 end
 
 require 'lograge' if ENV['USE_LOGRAGE'] == true
+require 'rails_semantic_logger' if ENV['USE_SEMANTIC_LOGGER'] == true
 
 RSpec.shared_context 'Rails base application' do
   if Rails.version >= '6.0'
@@ -39,19 +40,23 @@ RSpec.shared_context 'Rails base application' do
     proc do
       # ActiveSupport::TaggedLogging was introduced in 3.2
       # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
-      if Rails.version >= '3.2'
-        if ENV['USE_TAGGED_LOGGING'] == true
-          config.log_tags = ENV['LOG_TAGS'] || []
-          config.logger = ActiveSupport::TaggedLogging.new(logger)
-        end
+      if Rails.version >= '3.2' && (ENV['USE_TAGGED_LOGGING'] == true)
+        config.log_tags = ENV['LOG_TAGS'] || []
+        config.logger = ActiveSupport::TaggedLogging.new(logger)
+      end
+
+      # ActiveSupport::TaggedLogging was introduced in 3.2
+      # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
+      if Rails.version >= '3.2' && (ENV['USE_SEMANTIC_LOGGER'] == true)
+        config.log_tags = ENV['LOG_TAGS'] || {}
+        config.rails_semantic_logger.add_file_appender = false
+        config.semantic_logger.add_appender(logger: logger)
       end
 
       if ENV['USE_LOGRAGE'] == true
         config.logger = logger
 
-        unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
-          config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS']
-        end
+        config.lograge.custom_options = ENV['LOGRAGE_CUSTOM_OPTIONS'] unless ENV['LOGRAGE_CUSTOM_OPTIONS'].nil?
 
         if ENV['LOGRAGE_DISABLED'].nil?
           config.lograge.enabled = true

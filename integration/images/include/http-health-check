@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# If health check URL provided, wait till it passes.
+if [ -n "$HEALTH_CHECK_URL" ]; then
+  STATUS=${HEALTH_CHECK_STATUS:-204}
+  INTERVAL=${HEALTH_CHECK_INTERVAL:-5}
+  MAX_ATTEMPTS=${HEALTH_CHECK_MAX_ATTEMPTS:-5}
+  ATTEMPTS=0
+
+  echo -e "\n== HTTP Health check =="
+  echo "Target:              $HEALTH_CHECK_URL"
+  echo "Healthy status:      $STATUS"
+  echo "Poll interval:       $INTERVAL seconds"
+  echo "** Polling until healthy state... **"
+  printf "Attempt ($(($ATTEMPTS + 1))/$MAX_ATTEMPTS): "
+  while [[ "$(curl --max-time $INTERVAL -s -o /dev/null -w ''%{http_code}'' $HEALTH_CHECK_URL)" != $STATUS ]]; do
+    printf "FAIL"
+    ATTEMPTS=$[ATTEMPTS + 1]
+
+    if (( $ATTEMPTS >= $MAX_ATTEMPTS )); then
+      echo -e "\nERROR: Health check max attempts reached for $HEALTH_CHECK_URL" >&2
+      exit 1
+    else
+      printf " (Waiting $INTERVAL seconds...)\n"
+      sleep $INTERVAL
+    fi
+
+    printf "Attempt ($(($ATTEMPTS + 1))/$MAX_ATTEMPTS): "
+  done
+  echo "SUCCESS"
+  echo -e "== HTTP Health check complete. ==\n"
+fi

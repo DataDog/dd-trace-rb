@@ -20,7 +20,15 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
 
-  context '#initialize' do
+  shared_examples 'a simple rule that matches all spans' do |options = { sample_rate: 1.0 }|
+    it do
+      expect(rule.matcher.name).to eq(Datadog::Sampling::SimpleMatcher::MATCH_ALL)
+      expect(rule.matcher.service).to eq(Datadog::Sampling::SimpleMatcher::MATCH_ALL)
+      expect(rule.sampler.sample_rate).to eq(options[:sample_rate])
+    end
+  end
+
+  describe '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
     it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Sampling::TokenBucket) }
@@ -41,7 +49,9 @@ RSpec.describe Datadog::Sampling::RuleSampler do
           .and_return(0.5)
       end
 
-      it { expect(rule_sampler.default_sampler).to be_a(Datadog::RateSampler) }
+      it_behaves_like 'a simple rule that matches all spans', sample_rate: 0.5 do
+        let(:rule) { rule_sampler.rules.last }
+      end
     end
 
     context 'with rate_limit' do
@@ -59,7 +69,9 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     context 'with default_sample_rate' do
       subject(:rule_sampler) { described_class.new(rules, default_sample_rate: 1.0) }
 
-      it { expect(rule_sampler.default_sampler).to be_a(Datadog::RateSampler) }
+      it_behaves_like 'a simple rule that matches all spans', sample_rate: 1.0 do
+        let(:rule) { rule_sampler.rules.last }
+      end
     end
   end
 
@@ -166,6 +178,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
   describe '#update' do
     subject(:update) { rule_sampler.update(rates) }
+
     let(:rates) { { 'service:my-service,env:test' => rand } }
 
     context 'when configured with a default sampler' do

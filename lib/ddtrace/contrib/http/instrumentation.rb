@@ -14,12 +14,12 @@ module Datadog
       # Instrumentation for Net::HTTP
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Span hook invoked after request is completed.
         def self.after_request(&block)
-          if block_given?
+          if block
             # Set hook
             @after_request = block
           else
@@ -32,15 +32,14 @@ module Datadog
         module InstanceMethods
           include Datadog::Contrib::HttpAnnotationHelper
 
-          def request(req, body = nil, &block) # :yield: +response+
+          # :yield: +response+
+          def request(req, body = nil, &block)
             host, = host_and_port(req)
             request_options = datadog_configuration(host)
             pin = datadog_pin(request_options)
             return super(req, body, &block) unless pin && pin.tracer
 
-            if Datadog::Contrib::HTTP.should_skip_tracing?(req, pin.tracer)
-              return super(req, body, &block)
-            end
+            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req, pin.tracer)
 
             pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
@@ -108,6 +107,7 @@ module Datadog
 
           def set_analytics_sample_rate(span, request_options)
             return unless analytics_enabled?(request_options)
+
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate(request_options))
           end
 

@@ -4,6 +4,7 @@ require 'ddtrace/sampling/rate_limiter'
 
 RSpec.describe Datadog::Sampling::TokenBucket do
   subject(:bucket) { described_class.new(rate, max_tokens) }
+
   let(:rate) { 1 }
   let(:max_tokens) { 10 }
 
@@ -19,15 +20,18 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
   describe '#allow?' do
     subject(:conform) { bucket.allow?(size) }
+
     let(:size) { 1 }
 
     context 'with message the same size of or smaller than available tokens' do
       let(:size) { max_tokens }
+
       it { is_expected.to eq(true) }
     end
 
     context 'with message larger than available tokens' do
       let(:size) { max_tokens + 1 }
+
       it { is_expected.to eq(false) }
     end
 
@@ -46,6 +50,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
       context 'with any message' do
         let(:size) { 1 }
+
         it { is_expected.to eq(false) }
       end
 
@@ -56,11 +61,13 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
         context 'with message the same size of or smaller than replenished tokens' do
           let(:size) { rate }
+
           it { is_expected.to eq(true) }
         end
 
         context 'with message larger than replenished tokens' do
           let(:size) { rate + 1 }
+
           it { is_expected.to eq(false) }
         end
       end
@@ -104,6 +111,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
       context 'with a conforming message' do
         let(:size) { max_tokens }
+
         it { is_expected.to eq(1.0) }
 
         context 'and one non-conforming message' do
@@ -115,6 +123,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
       context 'with a non-conforming message' do
         let(:size) { max_tokens + 1 }
+
         it { is_expected.to eq(0.0) }
       end
     end

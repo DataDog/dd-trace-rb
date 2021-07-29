@@ -7,9 +7,9 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis mini app test' do
-  before(:each) { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  before(:each) do
+  before do
     Datadog.configure { |c| c.use :redis }
 
     # Configure client instance with custom options
@@ -29,7 +29,7 @@ RSpec.describe 'Redis mini app test' do
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
   context 'when a trace is performed' do
-    before(:each) do
+    before do
       # now this is how you make sure that the redis spans are sub-spans
       # of the apps parent spans:
       tracer.trace('publish') do |span|

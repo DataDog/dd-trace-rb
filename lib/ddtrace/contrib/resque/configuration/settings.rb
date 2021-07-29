@@ -23,7 +23,23 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :workers, default: []
+
+          # A list Ruby worker classes to be instrumented.
+          # The value of `nil` has special semantics: it instruments all workers dynamically.
+          #
+          # TODO: 1.0: Automatic patching should be the default behavior.
+          # We should not provide this option in the future,
+          # as our integrations should always instrument all possible scenarios when feasible.
+          option :workers, default: nil do |o|
+            o.on_set do |value|
+              unless value.nil?
+                Datadog.logger.warn(
+                  "DEPRECATED: Resque integration now instruments all workers. \n" \
+                  'The `workers:` option is unnecessary and will be removed in the future.'
+                )
+              end
+            end
+          end
           option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
         end
       end

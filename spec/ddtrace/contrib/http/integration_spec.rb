@@ -9,6 +9,7 @@ RSpec.describe Datadog::Contrib::HTTP::Integration do
 
   describe '.version' do
     subject(:version) { described_class.version }
+
     it { is_expected.to eq(Gem::Version.new(RUBY_VERSION)) }
   end
 
@@ -17,22 +18,32 @@ RSpec.describe Datadog::Contrib::HTTP::Integration do
 
     context 'when Net::HTTP is defined' do
       before { stub_const('Net::HTTP', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when Net::HTTP is not defined' do
       before { hide_const('Net::HTTP') }
+
       it { is_expected.to be false }
     end
   end
 
+  describe '#auto_instrument?' do
+    subject(:auto_instrument?) { integration.auto_instrument? }
+
+    it { is_expected.to be(true) }
+  end
+
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::HTTP::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::HTTP::Patcher }
   end
 end

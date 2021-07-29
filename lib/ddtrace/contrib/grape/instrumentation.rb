@@ -4,8 +4,8 @@ module Datadog
       # Instrumentation for Grape::Endpoint
       module Instrumentation
         def self.included(base)
-          base.singleton_class.send(:prepend, ClassMethods)
-          base.send(:prepend, InstanceMethods)
+          base.singleton_class.prepend(ClassMethods)
+          base.prepend(InstanceMethods)
         end
 
         # ClassMethods - implementing instrumentation
