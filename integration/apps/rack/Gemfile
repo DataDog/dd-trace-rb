@@ -6,6 +6,8 @@ source 'https://rubygems.org' do
   gem 'rack'
   gem 'redis'
   gem 'sidekiq'
+  gem 'resque'
+  gem 'rake'
 
   gem 'dogstatsd-ruby'
   gem 'google-protobuf'

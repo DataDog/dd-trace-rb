@@ -1,6 +1,7 @@
 require 'rack'
 require 'json'
 
+require_relative 'resque_background_job'
 require_relative 'sidekiq_background_job'
 
 module Acme
@@ -17,6 +18,8 @@ module Acme
         '/health/detailed' => { controller: controllers[:health], action: :detailed_check },
         '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
         '/basic/default' => { controller: controllers[:basic], action: :default },
+        '/background_jobs/read_resque' => { controller: controllers[:background_jobs], action: :read_resque },
+        '/background_jobs/write_resque' => { controller: controllers[:background_jobs], action: :write_resque },
         '/background_jobs/read_sidekiq' => { controller: controllers[:background_jobs], action: :read_sidekiq },
         '/background_jobs/write_sidekiq' => { controller: controllers[:background_jobs], action: :write_sidekiq },
       )
@@ -94,11 +97,21 @@ module Acme
 
     class BackgroundJobs
       def read_sidekiq(request)
-        ['200', { 'Content-Type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')), "\n"]]
+        ['200', { 'Content-Type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
       end
 
       def write_sidekiq(request)
         SidekiqBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
+
+        ['202', {}, []]
+      end
+
+      def read_resque(request)
+        ['200', { 'Content-Type' => 'application/json' }, [ResqueBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+      end
+
+      def write_resque(request)
+        ResqueBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
 
         ['202', {}, []]
       end
