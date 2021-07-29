@@ -709,7 +709,7 @@ RSpec.describe Datadog::Configuration::Components do
             enabled?: true,
             started?: false,
             ignore_thread: nil,
-            max_frames: settings.profiling.max_frames,
+            max_frames: settings.profiling.advanced.max_frames,
             max_time_usage_pct: 2.0
           )
         end
@@ -732,7 +732,7 @@ RSpec.describe Datadog::Configuration::Components do
         subject(:recorder) { profiler.scheduler.recorder }
 
         it do
-          is_expected.to have_attributes(max_size: settings.profiling.max_events)
+          is_expected.to have_attributes(max_size: settings.profiling.advanced.max_events)
         end
       end
 
