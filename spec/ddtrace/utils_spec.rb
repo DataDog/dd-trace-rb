@@ -14,10 +14,7 @@ RSpec.describe Datadog::Utils do
     end
 
     it 'returns unique numbers on successive calls' do
-      # This is the same assumption of non-collision we have in our production systems.
-
-      ids = Array.new(100) { described_class.next_id }.uniq
-      expect(ids).to have(100).items
+      is_expected.to_not eq(described_class.next_id)
     end
 
     it 'returns unique numbers in a threaded environment' do
@@ -37,7 +34,7 @@ RSpec.describe Datadog::Utils do
       it 'generates unique ids across forks' do
         ids = Array.new(3) do
           _, stdout = expect_in_fork { puts next_id }
-          stdout
+          stdout.to_i
         end.uniq
 
         expect(ids).to have(3).items
