@@ -13,7 +13,7 @@ module SynchronizationHelpers
       pid = fork do
         # Capture forked output
         $stdout.reopen(fork_stdout)
-        $stderr.reopen(fork_stderr) # STDOUT captures test failures
+        $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
 
         yield
       end
