@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'json'
 
 RSpec.describe 'Basic scenarios' do
   include_context 'integration test'
@@ -8,8 +9,22 @@ RSpec.describe 'Basic scenarios' do
     it { is_expected.to be_a_kind_of(Net::HTTPOK) }
   end
 
-  context 'profiling health' do
-    subject { get('health/profiling') }
-    it { is_expected.to be_a_kind_of(Net::HTTPOK), "Got #{subject.inspect} with body: '#{subject.body}'" }
+  context 'component checks' do
+    subject { get('health/detailed') }
+
+    let(:json_result) { JSON.parse(subject.body, symbolize_names: true) }
+
+    it { is_expected.to be_a_kind_of(Net::HTTPOK) }
+
+    it 'should be profiling' do
+      expect(json_result).to include(
+        profiler_available: true,
+        profiler_threads: contain_exactly('Datadog::Profiling::Collectors::Stack', 'Datadog::Profiling::Scheduler')
+      )
+    end
+
+    it 'webserver sanity checking' do
+      puts "      Webserver: #{json_result.fetch(:webserver_process)}"
+    end
   end
 end

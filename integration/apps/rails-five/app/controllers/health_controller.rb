@@ -1,3 +1,5 @@
+require 'json'
+
 class HealthController < ApplicationController
   #
   # Check if web application is responsive
@@ -7,13 +9,11 @@ class HealthController < ApplicationController
     head :no_content
   end
 
-  def profiling_check
-    return render(body: "Profiler not running\n", status: 503) unless Datadog.profiler
-
-    ["Datadog::Profiling::Collectors::Stack", "Datadog::Profiling::Scheduler"].each do |name|
-      return render(body: "Profiler thread missing: #{name}\n", status: 503) unless Thread.list.map(&:name).include?(name)
-    end
-
-    render body: "Profiling check OK\n"
+  def detailed_check
+    render json: {
+      webserver_process: $PROGRAM_NAME,
+      profiler_available: !!Datadog.profiler,
+      profiler_threads: Thread.list.map(&:name).filter { |it| it && it.include?('Profiling') }
+    }
   end
 end
