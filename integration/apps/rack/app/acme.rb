@@ -1,4 +1,5 @@
 require 'rack'
+require 'json'
 
 require_relative 'sidekiq_background_job'
 
@@ -13,7 +14,7 @@ module Acme
       Router.new(
         '/' => { controller: controllers[:health], action: :check },
         '/health' => { controller: controllers[:health], action: :check },
-        '/health/profiling' => { controller: controllers[:health], action: :profiling_check },
+        '/health/detailed' => { controller: controllers[:health], action: :detailed_check },
         '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
         '/basic/default' => { controller: controllers[:basic], action: :default },
         '/background_jobs/read_sidekiq' => { controller: controllers[:background_jobs], action: :read_sidekiq },
@@ -82,14 +83,12 @@ module Acme
         ['204', {}, []]
       end
 
-      def profiling_check(request)
-        raise 'Profiler is not running' unless Datadog.profiler
-
-        ["Datadog::Profiling::Collectors::Stack", "Datadog::Profiling::Scheduler"].each do |name|
-          raise "Profiler thread missing: #{name}" unless Thread.list.map(&:name).include?(name)
-        end
-
-        ['200', { 'Content-Type' => 'text/plain' }, ['Profiling check OK']]
+      def detailed_check(request)
+        ['200', { 'Content-Type' => 'application/json'}, [JSON.pretty_generate(
+          webserver_process: $PROGRAM_NAME,
+          profiler_available: !!Datadog.profiler,
+          profiler_threads: Thread.list.map(&:name).filter { |it| it && it.include?('Profiling') }
+        )], "\n"]
       end
     end
 
