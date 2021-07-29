@@ -94,7 +94,7 @@ module Acme
 
     class BackgroundJobs
       def read_sidekiq(request)
-        ['200', { 'Content-Type' => 'text/plain' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).inspect, "\n"]]
+        ['200', { 'Content-Type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')), "\n"]]
       end
 
       def write_sidekiq(request)

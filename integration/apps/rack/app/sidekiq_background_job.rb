@@ -1,5 +1,6 @@
 require 'redis'
 require 'sidekiq'
+require 'json'
 
 # To exercise sidekiq, this class allows us to write some key and value to redis asynchronously (in a background job)
 # and to read it synchronously (so we can return its value easily in a web request).
@@ -21,6 +22,12 @@ class SidekiqBackgroundJob
   def perform(key, value)
     puts "SidekiqBackgroundJob#perform(#{key}, #{value})"
 
-    REDIS.set("sidekiq-background-job-key-#{key}", value)
+    REDIS.set("sidekiq-background-job-key-#{key}", JSON.pretty_generate(
+      key: key,
+      value: value,
+      sidekiq_process: $PROGRAM_NAME,
+      profiler_available: !!Datadog.profiler,
+      profiler_threads: Thread.list.map(&:name).filter { |it| it && it.include?('Profiling') }
+    ))
   end
 end
