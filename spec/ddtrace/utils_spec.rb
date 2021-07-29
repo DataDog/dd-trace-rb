@@ -9,8 +9,8 @@ RSpec.describe Datadog::Utils do
       is_expected.to be_between(1, 2**62 - 1)
     end
 
-    it 'fits in a CRuby VALUE slot', if: Datadog::Core::Environment::ObjectSpace.estimate_bytesize_supported? do
-      expect(Datadog::Core::Environment::ObjectSpace.estimate_bytesize(next_id)).to eq(0)
+    it 'fits in a CRuby VALUE slot', if: ObjectSpaceHelper.estimate_bytesize_supported? do
+      expect(ObjectSpaceHelper.estimate_bytesize(next_id)).to eq(0)
     end
 
     it 'returns unique numbers on successive calls' do
