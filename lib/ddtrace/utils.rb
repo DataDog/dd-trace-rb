@@ -11,10 +11,11 @@ module Datadog
     # with the default one. Using the default prng, we could break code that
     # would rely on srand/rand sequences.
 
-    # Return a span id
+    # Return a randomly generated integer, valid as a Span ID or Trace ID.
+    # This method is thread-safe and fork-safe.
     def self.next_id
       after_fork! { reset! }
-      id_rng.rand(Datadog::Span::RUBY_MAX_ID)
+      id_rng.rand(Datadog::Span::RUBY_MAX_ID) # TODO: This should never return zero
     end
 
     def self.id_rng
@@ -27,6 +28,14 @@ module Datadog
 
     private_class_method :id_rng, :reset!
 
+    # Stringifies `value` and ensures the outcome is
+    # string is no longer than `size`.
+    # `omission` replaces the end of the output if
+    # `value.to_s` does not fit in `size`, to signify
+    # truncation.
+    #
+    # If `omission.size` is larger than `size`, the output
+    # will still be `omission.size` in length.
     def self.truncate(value, size, omission = '...'.freeze)
       string = value.to_s
 
@@ -43,6 +52,8 @@ module Datadog
       string
     end
 
+    # Ensure `str` is a valid UTF-8, ready to be
+    # sent through the tracer transport.
     def self.utf8_encode(str, options = {})
       str = str.to_s
 

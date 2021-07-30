@@ -351,6 +351,11 @@ Naming/FileName:
 Style/OptionalBooleanParameter:
   Enabled: false
 
+Lint/UnusedBlockArgument:
+  # Required keyword arguments normally cannot be omitted or renamed:
+  # Example: in `proc{|unused:|}`, `unused` cannot be renamed to `_unused`.
+  AllowUnusedKeywordArguments: true
+
 Style/TrailingCommaInArguments:
   Enabled: false
 
