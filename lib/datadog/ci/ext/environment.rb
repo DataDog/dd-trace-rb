@@ -201,7 +201,9 @@ module Datadog
         end
 
         def extract_github_actions(env)
-          branch, tag = branch_or_tag(env['GITHUB_HEAD_REF'] || env['GITHUB_REF'])
+          ref = env['GITHUB_HEAD_REF']
+          ref = env['GITHUB_REF'] if ref.nil? || ref.empty?
+          branch, tag = branch_or_tag(ref)
 
           {
             Datadog::Ext::Git::TAG_BRANCH => branch,
