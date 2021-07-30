@@ -21,7 +21,7 @@ RSpec.describe Datadog::Utils do
       it 'generates unique ids across forks' do
         ids = Array.new(3) do
           result = expect_in_fork { puts next_id }
-          result[:stdout].to_i
+          Integer(result[:stdout])
         end.uniq
 
         expect(ids).to have(3).items
