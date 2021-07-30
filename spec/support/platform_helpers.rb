@@ -31,4 +31,10 @@ module PlatformHelpers
   def mac?
     OS.mac?
   end
+
+  # Feature support
+
+  def supports_fork?
+    Process.respond_to?(:fork)
+  end
 end
