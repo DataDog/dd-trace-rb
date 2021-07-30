@@ -355,3 +355,15 @@ Lint/UnusedBlockArgument:
   # Required keyword arguments normally cannot be omitted or renamed:
   # Example: in `proc{|unused:|}`, `unused` cannot be renamed to `_unused`.
   AllowUnusedKeywordArguments: true
+
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+
+Style/TrailingCommaInBlockArgs:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
