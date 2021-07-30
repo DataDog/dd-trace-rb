@@ -116,7 +116,7 @@ module Datadog
 
           trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(
             tracer: tracer,
-            extract_trace_resource: settings.profiling.advanced.extract_trace_resource,
+            extract_trace_resource: settings.profiling.advanced.extract_trace_resource
           )
 
           recorder = build_profiler_recorder(settings)
