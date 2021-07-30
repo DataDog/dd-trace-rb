@@ -83,7 +83,6 @@ Lint/MissingCopEnableDirective:
     - 'spec/support/tracer_helpers.rb'
     - 'test/contrib/rails/controller_test.rb'
     - 'test/contrib/rails/errors_test.rb'
-    - 'test/tracer_test.rb'
 
 # Offense count: 32
 Lint/MissingSuper:

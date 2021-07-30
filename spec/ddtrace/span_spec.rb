@@ -23,6 +23,32 @@ RSpec.describe Datadog::Span do
     Datadog.configuration.reset!
   end
 
+  describe '#initialize' do
+    context 'resource' do
+      context 'with no value provided' do
+        it 'defaults to name' do
+          expect(span.resource).to eq(name)
+        end
+      end
+
+      context 'with nil' do
+        let(:span_options) { { resource: nil } }
+
+        it 'respects the explicitly provided nil' do
+          expect(span.resource).to be_nil
+        end
+      end
+
+      context 'with a value' do
+        let(:span_options) { { resource: 'my resource' } }
+
+        it 'honors provided value' do
+          expect(span.resource).to eq('my resource')
+        end
+      end
+    end
+  end
+
   context 'ids' do
     it do
       expect(span.span_id).to be_nonzero
