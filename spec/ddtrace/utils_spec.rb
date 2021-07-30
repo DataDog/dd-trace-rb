@@ -17,19 +17,6 @@ RSpec.describe Datadog::Utils do
       is_expected.to_not eq(described_class.next_id)
     end
 
-    it 'returns unique numbers in a threaded environment' do
-      barrier = Concurrent::CyclicBarrier.new(100)
-      threads = Array.new(100) do
-        Thread.new do
-          barrier.wait
-          described_class.next_id
-        end
-      end
-
-      ids = threads.map(&:value).uniq
-      expect(ids).to have(100).items
-    end
-
     context 'after forking', if: PlatformHelpers.supports_fork? do
       it 'generates unique ids across forks' do
         ids = Array.new(3) do
