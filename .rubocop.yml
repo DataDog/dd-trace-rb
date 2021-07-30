@@ -350,3 +350,15 @@ Naming/FileName:
 # Enforces boolean parameters with default to be keyword arguments.
 Style/OptionalBooleanParameter:
   Enabled: false
+
+Style/TrailingCommaInArguments:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+
+Style/TrailingCommaInBlockArgs:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
