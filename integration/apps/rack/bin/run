@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 
-# Start application process
 puts "\n== Starting application process =="
 
 process = (ARGV[0] || Datadog::DemoEnv.process)
