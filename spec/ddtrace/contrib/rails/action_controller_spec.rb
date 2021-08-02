@@ -29,21 +29,17 @@ RSpec.describe 'Rails ActionController' do
     let(:action) { controller.action(name) }
     let(:env) { {} }
 
-    shared_examples_for 'a successful dispatch' do
-      it do
-        expect { result }.to_not raise_error
-        expect(result).to be_a_kind_of(Array)
-        expect(result).to have(3).items
-        expect(spans).to have(1).items
-        expect(spans.first.name).to eq('rails.action_controller')
-      end
-    end
-
     describe 'for a controller' do
       context 'that inherits from ActionController::Metal' do
         let(:base_class) { ActionController::Metal }
 
-        it_behaves_like 'a successful dispatch'
+        it do
+          expect { result }.to_not raise_error
+          expect(result).to be_a_kind_of(Array)
+          expect(result).to have(3).items
+          expect(spans).to have(1).items
+          expect(spans.first.name).to eq('rails.action_controller')
+        end
 
         context 'when response is overridden' do
           context 'with an Array' do
@@ -92,6 +88,24 @@ RSpec.describe 'Rails ActionController' do
               expect(spans).to have(1).items
               expect(spans.first.name).to eq('rails.action_controller')
             end
+          end
+        end
+
+        describe 'span resource' do
+          let(:observed) { {} }
+          let(:controller) do
+            observed = self.observed
+            stub_const('TestController', Class.new(base_class) do
+              define_method(:index) do
+                observed[:active_span_resource] = Datadog.tracer.active_span.resource
+              end
+            end)
+          end
+
+          it 'sets the span resource before calling the controller' do
+            result
+
+            expect(observed[:active_span_resource]).to eq 'TestController#index'
           end
         end
       end

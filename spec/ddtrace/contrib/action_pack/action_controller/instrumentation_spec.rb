@@ -27,7 +27,8 @@ RSpec.describe Datadog::Contrib::ActionPack::ActionController::Instrumentation d
             # which is typical if the controller is configured to handle exceptions.
             request_exception: action_dispatch_exception
           },
-          tracing_context: {}
+          tracing_context: {},
+          exception_controller?: false,
         }
       end
 
