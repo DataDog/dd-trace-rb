@@ -38,8 +38,11 @@ module Datadog
         Datadog.configure do |c|
           c.reduce_log_verbosity
           # This will activate auto-instrumentation for Rails
+          prefix = ENV[Ext::Environment::ENV_SERVICE_PREFIX]
+
           integrations.each do |integration_name|
-            c.use integration_name
+            options = prefix ? { service_name: "#{prefix}#{integration_name}" } : {}
+            c.use integration_name, options
           end
         end
       end

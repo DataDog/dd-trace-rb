@@ -4,6 +4,7 @@ module Datadog
       ENV_API_KEY = 'DD_API_KEY'.freeze
       ENV_ENVIRONMENT = 'DD_ENV'.freeze
       ENV_SERVICE = 'DD_SERVICE'.freeze
+      ENV_SERVICE_PREFIX = 'DD_SERVICE_PREFIX'.freeze
       ENV_SITE = 'DD_SITE'.freeze
       ENV_TAGS = 'DD_TAGS'.freeze
       ENV_VERSION = 'DD_VERSION'.freeze

@@ -100,6 +100,20 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
 
       expect(route_span).to_not have_error
     end
+
+    context 'when `DD_SERVICE_PREFIX` env variable is set' do
+      around do |example|
+        ClimateControl.modify('DD_SERVICE_PREFIX' => 'my_app-') do
+          example.run
+        end
+      end
+
+      it 'adds the prefix to all names of all services' do
+        is_expected.to be_ok
+
+        expect(sqlite_span.service).to eq('my_app-sqlite')
+      end
+    end
   end
 end
 
