@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/grpc/configuration/settings'
 require 'ddtrace/contrib/grpc/patcher'

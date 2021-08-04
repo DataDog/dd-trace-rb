@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/sinatra/configuration/settings'
 require 'ddtrace/contrib/sinatra/patcher'

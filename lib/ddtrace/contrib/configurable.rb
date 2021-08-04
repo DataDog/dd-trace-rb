@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/configuration/resolver'
 require 'ddtrace/contrib/configuration/settings'
 

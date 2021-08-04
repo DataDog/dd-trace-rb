@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/rails/support/base'
 require 'spec/ddtrace/contrib/rails/support/deprecation'
 

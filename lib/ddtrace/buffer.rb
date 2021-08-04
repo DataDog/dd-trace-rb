@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/diagnostics/health'
 
 # Trace buffer that accumulates traces for a consumer.

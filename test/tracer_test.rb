@@ -1,3 +1,4 @@
+# typed: false
 require 'helper'
 require 'ddtrace/tracer'
 

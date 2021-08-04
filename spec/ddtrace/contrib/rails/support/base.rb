@@ -1,3 +1,4 @@
+# typed: ignore
 require 'rails/all'
 require 'ddtrace'
 

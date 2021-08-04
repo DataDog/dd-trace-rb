@@ -1,3 +1,4 @@
+# typed: false
 require 'ffi'
 
 module Datadog

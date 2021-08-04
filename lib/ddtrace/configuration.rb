@@ -1,3 +1,4 @@
+# typed: true
 require 'forwardable'
 require 'ddtrace/configuration/pin_setup'
 require 'ddtrace/configuration/settings'

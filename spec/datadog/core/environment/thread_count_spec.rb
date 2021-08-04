@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 require 'datadog/core/environment/thread_count'
 

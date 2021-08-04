@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/workers/async'
 require 'ddtrace/workers/loop'
 

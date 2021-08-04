@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module VERSION
     MAJOR = 0

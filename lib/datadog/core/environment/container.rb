@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/core/environment/cgroup'
 
 module Datadog

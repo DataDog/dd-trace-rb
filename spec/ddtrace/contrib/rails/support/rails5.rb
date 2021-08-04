@@ -1,3 +1,4 @@
+# typed: ignore
 require 'rails/all'
 
 require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true

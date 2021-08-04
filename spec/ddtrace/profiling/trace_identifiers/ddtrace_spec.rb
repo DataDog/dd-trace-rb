@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/profiling/trace_identifiers/ddtrace'
 
 require 'ddtrace/tracer'

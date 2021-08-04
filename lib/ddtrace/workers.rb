@@ -1,3 +1,4 @@
+# typed: true
 require 'time'
 
 require 'ddtrace/workers/trace_writer'

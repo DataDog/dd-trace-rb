@@ -1,3 +1,4 @@
+# typed: false
 # frozen_string_literal: true
 
 require 'ddtrace/contrib/sneakers/tracer'

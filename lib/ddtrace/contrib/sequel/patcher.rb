@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/sequel/database'
 require 'ddtrace/contrib/sequel/dataset'

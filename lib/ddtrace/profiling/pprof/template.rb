@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/profiling/pprof/payload'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/builder'

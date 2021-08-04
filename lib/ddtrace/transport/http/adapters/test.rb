@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/response'
 
 module Datadog
