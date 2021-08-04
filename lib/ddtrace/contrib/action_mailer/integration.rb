@@ -25,12 +25,18 @@ module Datadog
           super && version >= MINIMUM_VERSION && !defined?(::ActiveSupport::Notifications).nil?
         end
 
+        # enabled by rails integration so should only auto instrument
+        # if detected that it is being used without rails
+        def auto_instrument?
+          !Datadog::Contrib::Rails::Utils.railtie_supported?
+        end
+
         def default_configuration
           Configuration::Settings.new
         end
 
         def patcher
-          Patcher
+          ActionMailer::Patcher
         end
       end
     end
