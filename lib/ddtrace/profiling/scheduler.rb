@@ -15,9 +15,9 @@ module Datadog
       MINIMUM_INTERVAL_SECONDS = 0
 
       # Profiles with duration less than this will not be reported
-      MINIMUM_FLUSH_CONTENT_SECONDS = 1
+      PROFILE_DURATION_THRESHOLD_SECONDS = 1
 
-      private_constant :DEFAULT_INTERVAL_SECONDS, :MINIMUM_INTERVAL_SECONDS, :MINIMUM_FLUSH_CONTENT_SECONDS
+      private_constant :DEFAULT_INTERVAL_SECONDS, :MINIMUM_INTERVAL_SECONDS, :PROFILE_DURATION_THRESHOLD_SECONDS
 
       attr_reader \
         :exporters,
@@ -102,7 +102,7 @@ module Datadog
         # Get events from recorder
         flush = recorder.flush
 
-        if duration_too_short?(flush)
+        if duration_below_threshold?(flush)
           Datadog.logger.debug do
             "Skipped exporting profiling events as profile duration is below minimum (#{flush.event_count} events skipped)"
           end
@@ -126,8 +126,8 @@ module Datadog
         flush
       end
 
-      def duration_too_short?(flush)
-        (flush.finish - flush.start) < MINIMUM_FLUSH_CONTENT_SECONDS
+      def duration_below_threshold?(flush)
+        (flush.finish - flush.start) < PROFILE_DURATION_THRESHOLD_SECONDS
       end
     end
   end
