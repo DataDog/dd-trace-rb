@@ -13,14 +13,18 @@ RSpec.describe 'Rails Rack' do
       '/soft_error' => 'test#soft_error',
       '/error_handled_by_rescue_from' => 'test#error_handled_by_rescue_from',
       '/error_partial' => 'test#error_partial',
-      '/internal_server_error' => 'errors#internal_server_error'
+      '/internal_server_error' => 'errors#internal_server_error',
+      '/span_resource' => 'test#span_resource',
+      '/custom_span_resource' => 'test#custom_span_resource',
     }
   end
 
+  let(:observed) { {} }
   let(:layout) { 'application' }
   let(:controllers) { [controller, errors_controller] }
   let(:controller) do
     layout_ = layout
+    observed = self.observed
     stub_const('TestController', Class.new(ActionController::Base) do
       include ::Rails.application.routes.url_helpers
 
@@ -73,6 +77,21 @@ RSpec.describe 'Rails Rack' do
 
       def error_partial
         render 'error_partial'
+      end
+
+      define_method(:span_resource) do
+        active_span = Datadog.tracer.active_span
+        observed[:active_span] = { name: active_span.name, resource: active_span.resource }
+        root_span = Datadog.tracer.active_root_span
+        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
+
+        head :ok
+      end
+
+      def custom_span_resource
+        Datadog.tracer.active_span.resource = 'CustomSpanResource'
+
+        head :ok
       end
     end)
   end
@@ -354,6 +373,30 @@ RSpec.describe 'Rails Rack' do
 
       expect(partial_span).to have_error
       expect(partial_span).to have_error_type('ActionView::Template::Error')
+    end
+  end
+
+  describe 'span resource' do
+    subject(:response) { get '/span_resource' }
+
+    before do
+      is_expected.to be_ok
+    end
+
+    it 'sets the controller span resource before calling the controller' do
+      expect(observed[:active_span]).to eq(name: 'rails.action_controller', resource: 'TestController#span_resource')
+    end
+
+    it 'sets the request span resource before calling the controller' do
+      expect(observed[:root_span]).to eq(name: 'rack.request', resource: 'TestController#span_resource')
+    end
+
+    context 'a custom controller span resource is applied' do
+      subject(:response) { get '/custom_span_resource' }
+
+      it 'propagates the custom controller span resource to the request span resource' do
+        expect(request_span.resource).to eq('CustomSpanResource')
+      end
     end
   end
 end
