@@ -1,3 +1,4 @@
+# typed: ignore
 ENV['RAILS_ENV'] = 'production'
 require 'English'
 

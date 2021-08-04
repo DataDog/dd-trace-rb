@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/active_support/notifications/event'
 
 module Datadog

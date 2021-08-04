@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/utils/object_set'
 
 module Datadog

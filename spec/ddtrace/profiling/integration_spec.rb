@@ -1,3 +1,4 @@
+# typed: ignore
 require 'spec_helper'
 require 'ddtrace/profiling/spec_helper'
 
@@ -31,14 +32,50 @@ RSpec.describe 'profiling integration test' do
 
     let(:trace_id) { 0 }
     let(:span_id) { 0 }
+    let(:trace_resource_container) { nil }
 
     let(:stack_samples) do
       [
-        build_stack_sample(stack_one, 100, trace_id, span_id, 100),
-        build_stack_sample(stack_two, 100, trace_id, span_id, 200),
-        build_stack_sample(stack_one, 101, trace_id, span_id, 400),
-        build_stack_sample(stack_two, 101, trace_id, span_id, 800),
-        build_stack_sample(stack_two, 101, trace_id, span_id, 1600)
+        build_stack_sample(
+          locations: stack_one,
+          thread_id: 100,
+          trace_id: trace_id,
+          span_id: span_id,
+          trace_resource_container: trace_resource_container,
+          cpu_time_ns: 100
+        ),
+        build_stack_sample(
+          locations: stack_two,
+          thread_id: 100,
+          trace_id: trace_id,
+          span_id: span_id,
+          trace_resource_container: trace_resource_container,
+          cpu_time_ns: 200
+        ),
+        build_stack_sample(
+          locations: stack_one,
+          thread_id: 101,
+          trace_id: trace_id,
+          span_id: span_id,
+          trace_resource_container: trace_resource_container,
+          cpu_time_ns: 400
+        ),
+        build_stack_sample(
+          locations: stack_two,
+          thread_id: 101,
+          trace_id: trace_id,
+          span_id: span_id,
+          trace_resource_container: trace_resource_container,
+          cpu_time_ns: 800
+        ),
+        build_stack_sample(
+          locations: stack_two,
+          thread_id: 101,
+          trace_id: trace_id,
+          span_id: span_id,
+          trace_resource_container: trace_resource_container,
+          cpu_time_ns: 1600
+        )
       ]
     end
 
@@ -57,7 +94,8 @@ RSpec.describe 'profiling integration test' do
     let(:collector) do
       Datadog::Profiling::Collectors::Stack.new(
         recorder,
-        trace_identifiers_helper: Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer),
+        trace_identifiers_helper:
+          Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer, extract_trace_resource: true),
         max_frames: 400
       )
     end
@@ -272,6 +310,7 @@ RSpec.describe 'profiling integration test' do
         context 'when trace and span IDs are available' do
           let(:trace_id) { rand(1e9) }
           let(:span_id) { rand(1e9) }
+          let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('example trace resource') }
 
           it 'is well formed with trace and span ID labels' do
             expect(sample.last.to_h).to eq(
@@ -289,13 +328,19 @@ RSpec.describe 'profiling integration test' do
                 },
                 {
                   key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
-                  str: string_id_for(stack_samples.last.trace_id.to_s),
+                  str: string_id_for(trace_id.to_s),
                   num: 0,
                   num_unit: 0
                 },
                 {
                   key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_SPAN_ID),
-                  str: string_id_for(stack_samples.last.span_id.to_s),
+                  str: string_id_for(span_id.to_s),
+                  num: 0,
+                  num_unit: 0
+                },
+                {
+                  key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
+                  str: string_id_for('example trace resource'),
                   num: 0,
                   num_unit: 0
                 }

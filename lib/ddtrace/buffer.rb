@@ -1,5 +1,5 @@
+# typed: true
 require 'ddtrace/diagnostics/health'
-require 'datadog/core/environment/object_space'
 
 # Trace buffer that accumulates traces for a consumer.
 # Consumption can happen from a different thread.

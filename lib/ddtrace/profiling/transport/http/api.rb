@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/profiling/encoding/profile'
 require 'ddtrace/profiling/transport/http/api/spec'

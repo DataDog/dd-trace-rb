@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/resolver'
 require 'ddtrace/vendor/active_record/connection_specification'
 require_relative 'makara_resolver'

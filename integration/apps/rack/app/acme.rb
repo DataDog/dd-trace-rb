@@ -1,4 +1,8 @@
 require 'rack'
+require 'json'
+
+require_relative 'resque_background_job'
+require_relative 'sidekiq_background_job'
 
 module Acme
   class Application
@@ -11,16 +15,21 @@ module Acme
       Router.new(
         '/' => { controller: controllers[:health], action: :check },
         '/health' => { controller: controllers[:health], action: :check },
-        '/health/profiling' => { controller: controllers[:health], action: :profiling_check },
+        '/health/detailed' => { controller: controllers[:health], action: :detailed_check },
         '/basic/fibonacci' => { controller: controllers[:basic], action: :fibonacci },
-        '/basic/default' => { controller: controllers[:basic], action: :default }
+        '/basic/default' => { controller: controllers[:basic], action: :default },
+        '/background_jobs/read_resque' => { controller: controllers[:background_jobs], action: :read_resque },
+        '/background_jobs/write_resque' => { controller: controllers[:background_jobs], action: :write_resque },
+        '/background_jobs/read_sidekiq' => { controller: controllers[:background_jobs], action: :read_sidekiq },
+        '/background_jobs/write_sidekiq' => { controller: controllers[:background_jobs], action: :write_sidekiq },
       )
     end
 
     def controllers
       {
         basic: Controllers::Basic.new,
-        health: Controllers::Health.new
+        health: Controllers::Health.new,
+        background_jobs: Controllers::BackgroundJobs.new,
       }
     end
   end
@@ -77,14 +86,34 @@ module Acme
         ['204', {}, []]
       end
 
-      def profiling_check(request)
-        raise 'Profiler is not running' unless Datadog.profiler
+      def detailed_check(request)
+        ['200', { 'Content-Type' => 'application/json'}, [JSON.pretty_generate(
+          webserver_process: $PROGRAM_NAME,
+          profiler_available: !!Datadog.profiler,
+          profiler_threads: Thread.list.map(&:name).filter { |it| it && it.include?('Profiling') }
+        )], "\n"]
+      end
+    end
 
-        ["Datadog::Profiling::Collectors::Stack", "Datadog::Profiling::Scheduler"].each do |name|
-          raise "Profiler thread missing: #{name}" unless Thread.list.map(&:name).include?(name)
-        end
+    class BackgroundJobs
+      def read_sidekiq(request)
+        ['200', { 'Content-Type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+      end
 
-        ['200', { 'Content-Type' => 'text/plain' }, ['Profiling check OK']]
+      def write_sidekiq(request)
+        SidekiqBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
+
+        ['202', {}, []]
+      end
+
+      def read_resque(request)
+        ['200', { 'Content-Type' => 'application/json' }, [ResqueBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+      end
+
+      def write_resque(request)
+        ResqueBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
+
+        ['202', {}, []]
       end
     end
   end

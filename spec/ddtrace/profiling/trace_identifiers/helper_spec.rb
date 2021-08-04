@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/profiling/trace_identifiers/helper'
 require 'ddtrace/profiling/trace_identifiers/ddtrace'
 
@@ -5,8 +6,11 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
   let(:thread) { instance_double(Thread) }
   let(:api1) { instance_double(Datadog::Profiling::TraceIdentifiers::Ddtrace, 'api1') }
   let(:api2) { instance_double(Datadog::Profiling::TraceIdentifiers::Ddtrace, 'api2') }
+  let(:extract_trace_resource) { true }
 
-  subject(:trace_identifiers_helper) { described_class.new(tracer: nil, supported_apis: [api1, api2]) }
+  subject(:trace_identifiers_helper) do
+    described_class.new(tracer: nil, extract_trace_resource: extract_trace_resource, supported_apis: [api1, api2])
+  end
 
   describe '::DEFAULT_SUPPORTED_APIS' do
     it 'contains the Datadog trace identifiers' do
@@ -53,6 +57,26 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
 
       it do
         expect(trace_identifiers_for).to be nil
+      end
+    end
+
+    context 'when the api provider returns a trace resource container together with the trace identifiers' do
+      before do
+        allow(api1)
+          .to receive(:trace_identifiers_for)
+          .and_return([:api1_trace_id, :api1_span_id, :api1_trace_resource_container])
+      end
+
+      it 'returns the trace resource container together with the trace identifiers' do
+        expect(trace_identifiers_for).to eq [:api1_trace_id, :api1_span_id, :api1_trace_resource_container]
+      end
+
+      context 'and extract_trace_resource is set to false' do
+        let(:extract_trace_resource) { false }
+
+        it 'returns the trace identifiers but removes the trace resource container' do
+          expect(trace_identifiers_for).to eq [:api1_trace_id, :api1_span_id]
+        end
       end
     end
   end

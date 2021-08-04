@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module ContextFlush
     # Consumes only completed traces (where all spans have finished)

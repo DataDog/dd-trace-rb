@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'rack/test'
@@ -18,7 +19,9 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:url) { '/' }
   let(:http_method) { 'GET' }
   let(:resource) { "#{http_method} #{url}" }
+  let(:observed) { {} }
   let(:sinatra_routes) do
+    observed = self.observed
     lambda do
       get '/' do
         headers['X-Request-ID'] = 'test id'
@@ -61,6 +64,15 @@ RSpec.describe 'Sinatra instrumentation' do
 
       get '/erb_literal' do
         erb '<%= msg %>', locals: { msg: 'hello' }
+      end
+
+      get '/span_resource' do
+        active_span = Datadog.tracer.active_span
+        observed[:active_span] = { name: active_span.name, resource: active_span.resource }
+        root_span = Datadog.tracer.active_root_span
+        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
+
+        'ok'
       end
     end
   end
@@ -345,6 +357,22 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.parent).to be(rack_span)
 
             expect(rack_span.resource).to eq('GET 404')
+          end
+        end
+
+        describe 'span resource' do
+          subject(:response) { get '/span_resource' }
+
+          before do
+            is_expected.to be_ok
+          end
+
+          it 'sets the route span resource before calling the route' do
+            expect(observed[:active_span]).to eq(name: 'sinatra.route', resource: 'GET /span_resource')
+          end
+
+          it 'sets the request span resource before calling the route' do
+            expect(observed[:root_span]).to eq(name: 'sinatra.request', resource: 'GET /span_resource')
           end
         end
       end

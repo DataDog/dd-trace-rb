@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 
 module Datadog

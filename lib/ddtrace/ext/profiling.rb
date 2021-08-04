@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Ext
     module Profiling
@@ -10,6 +11,7 @@ module Datadog
         LABEL_KEY_SPAN_ID = 'span id'.freeze
         LABEL_KEY_THREAD_ID = 'thread id'.freeze
         LABEL_KEY_TRACE_ID = 'trace id'.freeze
+        LABEL_KEY_TRACE_ENDPOINT = 'trace endpoint'.freeze
         SAMPLE_VALUE_NO_VALUE = 0
         VALUE_TYPE_CPU = 'cpu-time'.freeze
         VALUE_TYPE_WALL = 'wall-time'.freeze

@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/cpu'

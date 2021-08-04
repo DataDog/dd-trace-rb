@@ -1,3 +1,4 @@
+# typed: true
 require 'set'
 require 'ddtrace/contrib/active_support/notifications/subscription'
 

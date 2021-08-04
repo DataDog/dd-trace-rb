@@ -1,3 +1,4 @@
+# typed: ignore
 logger = Logger.new($stdout)
 logger.level = Logger::INFO
 

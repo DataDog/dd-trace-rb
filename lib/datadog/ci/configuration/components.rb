@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/ci/context_flush'
 
 module Datadog

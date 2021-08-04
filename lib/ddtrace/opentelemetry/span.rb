@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/environment'
 
 module Datadog

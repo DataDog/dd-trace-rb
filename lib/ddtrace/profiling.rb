@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/core/environment/variable_helpers'
 require 'ddtrace/utils/only_once'
 

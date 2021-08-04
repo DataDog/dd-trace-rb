@@ -1,3 +1,4 @@
+# typed: false
 require 'set'
 require 'datadog/contrib'
 require 'ddtrace/configuration/settings'

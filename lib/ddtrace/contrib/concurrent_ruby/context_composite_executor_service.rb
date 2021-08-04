@@ -1,3 +1,4 @@
+# typed: true
 require 'concurrent/executor/executor_service'
 
 module Datadog

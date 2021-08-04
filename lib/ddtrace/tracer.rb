@@ -1,3 +1,4 @@
+# typed: true
 require 'logger'
 require 'pathname'
 
@@ -84,14 +85,13 @@ module Datadog
 
       @default_service = options[:default_service]
       @enabled = options.fetch(:enabled, true)
-      @provider = options.fetch(:context_provider, Datadog::DefaultContextProvider.new)
+      @provider = options[:context_provider] || Datadog::DefaultContextProvider.new
       @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
       @tags = options.fetch(:tags, {})
       @writer = options.fetch(:writer) { Datadog::Writer.new }
 
       # Instance variables
       @mutex = Mutex.new
-      @provider ||= Datadog::DefaultContextProvider.new # @provider should never be nil
 
       # Enable priority sampling by default
       activate_priority_sampling!(@sampler)

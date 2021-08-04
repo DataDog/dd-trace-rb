@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/httprb/configuration/settings'
 require 'ddtrace/contrib/configuration/resolvers/pattern_resolver'

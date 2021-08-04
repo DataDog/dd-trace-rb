@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/logger'
@@ -114,7 +115,10 @@ module Datadog
 
           # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-          trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer)
+          trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(
+            tracer: tracer,
+            extract_trace_resource: settings.profiling.advanced.extract_trace_resource
+          )
 
           recorder = build_profiler_recorder(settings)
           collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
@@ -170,7 +174,7 @@ module Datadog
         def build_profiler_recorder(settings)
           event_classes = [Datadog::Profiling::Events::StackSample]
 
-          Datadog::Profiling::Recorder.new(event_classes, settings.profiling.max_events)
+          Datadog::Profiling::Recorder.new(event_classes, settings.profiling.advanced.max_events)
         end
 
         def build_profiler_collectors(settings, recorder, trace_identifiers_helper)
@@ -178,7 +182,7 @@ module Datadog
             Datadog::Profiling::Collectors::Stack.new(
               recorder,
               trace_identifiers_helper: trace_identifiers_helper,
-              max_frames: settings.profiling.max_frames
+              max_frames: settings.profiling.advanced.max_frames
               # TODO: Provide proc that identifies Datadog worker threads?
               # ignore_thread: settings.profiling.ignore_profiler
             )

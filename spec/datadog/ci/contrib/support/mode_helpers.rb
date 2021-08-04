@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration/settings'
 require 'ddtrace/configuration/components'
 

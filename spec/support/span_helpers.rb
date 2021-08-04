@@ -1,3 +1,4 @@
+# typed: false
 module SpanHelpers
   RSpec::Matchers.define :have_error do
     match do |span|

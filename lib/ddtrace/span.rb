@@ -1,3 +1,4 @@
+# typed: true
 # frozen_string_literal: true
 
 require 'time'
@@ -52,12 +53,17 @@ module Datadog
       Ext::NET::TAG_HOSTNAME => true
     }.freeze
 
-    attr_accessor :name, :service, :resource, :span_type,
+    # Simple indirection used to contain the latest resource name for a span.
+    # The profiler keeps a reference to these objects while sampling so it can extract the latest resource after the
+    # fact, as some integrations only set the correct name at the end of the span.
+    ResourceContainer = Struct.new(:latest)
+
+    attr_accessor :name, :service, :span_type,
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled,
                   :tracer, :context
 
-    attr_reader :parent, :start_time, :end_time
+    attr_reader :parent, :start_time, :end_time, :resource_container
 
     attr_writer :duration
 
@@ -75,7 +81,7 @@ module Datadog
 
       @name = name
       @service = options.fetch(:service, nil)
-      @resource = options.fetch(:resource, name)
+      @resource_container = ResourceContainer.new(options.fetch(:resource, name))
       @span_type = options.fetch(:span_type, nil)
 
       @span_id = Datadog::Utils.next_id
@@ -283,7 +289,7 @@ module Datadog
         trace_id: @trace_id,
         name: @name,
         service: @service,
-        resource: @resource,
+        resource: resource,
         type: @span_type,
         meta: @meta,
         metrics: @metrics,
@@ -337,7 +343,7 @@ module Datadog
       packer.write('service')
       packer.write(@service)
       packer.write('resource')
-      packer.write(@resource)
+      packer.write(resource)
       packer.write('type')
       packer.write(@span_type)
       packer.write('meta')
@@ -369,7 +375,7 @@ module Datadog
         q.text "Trace ID: #{@trace_id}\n"
         q.text "Type: #{@span_type}\n"
         q.text "Service: #{@service}\n"
-        q.text "Resource: #{@resource}\n"
+        q.text "Resource: #{resource}\n"
         q.text "Error: #{@status}\n"
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
@@ -406,6 +412,14 @@ module Datadog
       else
         @duration_end - @duration_start
       end
+    end
+
+    def resource
+      @resource_container.latest
+    end
+
+    def resource=(resource)
+      @resource_container.latest = resource
     end
 
     private

@@ -1,3 +1,4 @@
+# typed: ignore
 require 'action_view/testing/resolvers'
 
 # ActionText requires an ApplicationController to be defined since Rails 6

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/active_model_serializers/configuration/settings'
 require 'ddtrace/contrib/active_model_serializers/patcher'

@@ -1,3 +1,4 @@
+# typed: ignore
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 require 'pry'
@@ -26,6 +27,7 @@ require 'support/http_helpers'
 require 'support/log_helpers'
 require 'support/metric_helpers'
 require 'support/network_helpers'
+require 'support/object_space_helper'
 require 'support/platform_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'

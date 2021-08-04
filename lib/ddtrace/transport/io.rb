@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/encoding'
 require 'ddtrace/transport/io/client'
 require 'ddtrace/transport/io/traces'

@@ -1,3 +1,4 @@
+# typed: false
 def skip_building_extension?
   # We don't support JRuby for profiling, and JRuby doesn't support native extensions, so let's just skip this entire
   # thing so that JRuby users of dd-trace-rb aren't impacted.

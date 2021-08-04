@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 require 'ddtrace/pipeline'
 require_relative 'support/helper'

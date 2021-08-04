@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/env'
@@ -28,7 +29,9 @@ module Datadog
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-            resource: env['REQUEST_METHOD']
+            # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
+            # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
+            resource: nil,
           ) do |span|
             begin
               Sinatra::Env.set_datadog_span(env, @app_instance, span)
@@ -45,6 +48,10 @@ module Datadog
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
               span.set_tag(Ext::TAG_APP_NAME, @app_instance.settings.name)
+
+              # If this app handled the request, then Contrib::Sinatra::Tracer OR Contrib::Sinatra::Base set the
+              # resource; if no resource was set, let's use a fallback
+              span.resource = env['REQUEST_METHOD'] if span.resource.nil?
 
               # TODO: This backfills the non-matching Sinatra app with a "#{method} #{path}"
               # TODO: resource name. This shouldn't be the case, as that app has never handled

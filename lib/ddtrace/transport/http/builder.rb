@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/instance'

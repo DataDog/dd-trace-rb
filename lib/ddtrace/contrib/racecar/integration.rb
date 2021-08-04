@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/racecar/configuration/settings'
 require 'ddtrace/contrib/racecar/patcher'

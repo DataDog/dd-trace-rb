@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/buffer'
 require 'ddtrace/utils/string_table'
 require 'ddtrace/utils/object_set'

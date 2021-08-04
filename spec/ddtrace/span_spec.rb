@@ -1,3 +1,4 @@
+# typed: ignore
 require 'spec_helper'
 require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/net'
 require 'datadog/core/environment/socket'
 require 'ddtrace/runtime/metrics'

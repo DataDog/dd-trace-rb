@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -484,14 +485,14 @@ RSpec.shared_examples 'trace buffer' do
   let(:max_size) { 0 }
 
   def measure_traces_size(traces)
-    traces.inject(Datadog::Core::Environment::ObjectSpace.estimate_bytesize(traces)) do |sum, trace|
+    traces.inject(ObjectSpaceHelper.estimate_bytesize(traces)) do |sum, trace|
       sum + measure_trace_size(trace)
     end
   end
 
   def measure_trace_size(trace)
-    trace.inject(Datadog::Core::Environment::ObjectSpace.estimate_bytesize(trace)) do |sum, span|
-      sum + Datadog::Core::Environment::ObjectSpace.estimate_bytesize(span)
+    trace.inject(ObjectSpaceHelper.estimate_bytesize(trace)) do |sum, span|
+      sum + ObjectSpaceHelper.estimate_bytesize(span)
     end
   end
 

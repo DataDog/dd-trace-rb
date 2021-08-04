@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/sidekiq/ext'
 

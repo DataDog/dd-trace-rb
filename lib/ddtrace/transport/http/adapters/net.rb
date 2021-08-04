@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/response'
 require 'ddtrace/vendor/multipart-post/net/http/post/multipart'
 

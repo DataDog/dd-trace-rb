@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'datadog/ci/contrib/rspec/example'
 
