@@ -12,7 +12,9 @@ module Datadog
       include Workers::Polling
 
       DEFAULT_INTERVAL_SECONDS = 60
-      MIN_INTERVAL_SECONDS = 0
+      MINIMUM_INTERVAL_SECONDS = 0
+
+      private_constant :DEFAULT_INTERVAL_SECONDS, :MINIMUM_INTERVAL_SECONDS
 
       attr_reader \
         :exporters,
@@ -90,7 +92,7 @@ module Datadog
 
         # Update wait time to try to wake consistently on time.
         # Don't drop below the minimum interval.
-        self.loop_wait_time = [loop_base_interval - run_time, MIN_INTERVAL_SECONDS].max
+        self.loop_wait_time = [loop_base_interval - run_time, MINIMUM_INTERVAL_SECONDS].max
       end
 
       def flush_events
