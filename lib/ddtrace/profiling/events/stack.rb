@@ -33,10 +33,8 @@ module Datadog
             thread_id,
             trace_id,
             span_id,
-            [
-              frames.collect(&:hash),
-              total_frame_count
-            ]
+            frames.collect(&:hash),
+            total_frame_count
           ].hash
         end
       end
@@ -68,33 +66,6 @@ module Datadog
 
           @cpu_time_interval_ns = cpu_time_interval_ns
           @wall_time_interval_ns = wall_time_interval_ns
-        end
-      end
-
-      # Describes a stack sample with exception
-      class StackExceptionSample < Stack
-        attr_reader \
-          :exception
-
-        def initialize(
-          timestamp,
-          frames,
-          total_frame_count,
-          thread_id,
-          trace_id,
-          span_id,
-          exception
-        )
-          super(
-            timestamp,
-            frames,
-            total_frame_count,
-            thread_id,
-            trace_id,
-            span_id
-          )
-
-          @exception = exception
         end
       end
     end
