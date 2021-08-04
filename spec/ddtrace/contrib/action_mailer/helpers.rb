@@ -1,7 +1,7 @@
 require 'rails'
 
 RSpec.shared_context 'ActionMailer helpers' do
-  before(:each) do
+  before do
     if ActionMailer::Base.respond_to?(:delivery_method)
       ActionMailer::Base.delivery_method = :test
     else

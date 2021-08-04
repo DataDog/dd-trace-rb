@@ -17,7 +17,7 @@ RSpec.describe 'ActionMailer patcher' do
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     if Datadog::Contrib::ActionMailer::Integration.compatible?
       Datadog.configure do |c|
         c.use :action_mailer, configuration_options
@@ -49,7 +49,7 @@ RSpec.describe 'ActionMailer patcher' do
       spans.select { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_DELIVER }.first
     end
 
-    before(:each) do
+    before do
       UserMailer.test_mail(1).deliver_now
     end
 
