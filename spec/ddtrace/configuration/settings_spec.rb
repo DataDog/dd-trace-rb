@@ -539,51 +539,70 @@ RSpec.describe Datadog::Configuration::Settings do
       end
     end
 
-    describe '#max_events' do
-      subject(:max_events) { settings.profiling.max_events }
+    describe '#advanced' do
+      describe '#max_events' do
+        subject(:max_events) { settings.profiling.advanced.max_events }
 
-      it { is_expected.to eq(32768) }
-    end
-
-    describe '#max_events=' do
-      it 'updates the #max_events setting' do
-        expect { settings.profiling.max_events = 1234 }
-          .to change { settings.profiling.max_events }
-          .from(32768)
-          .to(1234)
+        it { is_expected.to eq(32768) }
       end
-    end
 
-    describe '#max_frames' do
-      subject(:max_frames) { settings.profiling.max_frames }
+      describe '#max_events=' do
+        it 'updates the #max_events setting' do
+          expect { settings.profiling.advanced.max_events = 1234 }
+            .to change { settings.profiling.advanced.max_events }
+            .from(32768)
+            .to(1234)
+        end
+      end
 
-      context "when #{Datadog::Ext::Profiling::ENV_MAX_FRAMES}" do
-        around do |example|
-          ClimateControl.modify(Datadog::Ext::Profiling::ENV_MAX_FRAMES => environment) do
-            example.run
+      describe '#max_frames' do
+        subject(:max_frames) { settings.profiling.advanced.max_frames }
+
+        context "when #{Datadog::Ext::Profiling::ENV_MAX_FRAMES}" do
+          around do |example|
+            ClimateControl.modify(Datadog::Ext::Profiling::ENV_MAX_FRAMES => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq(400) }
+          end
+
+          context 'is defined' do
+            let(:environment) { '123' }
+
+            it { is_expected.to eq(123) }
           end
         end
+      end
 
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to eq(400) }
-        end
-
-        context 'is defined' do
-          let(:environment) { '123' }
-
-          it { is_expected.to eq(123) }
+      describe '#max_frames=' do
+        it 'updates the #max_frames setting' do
+          expect { settings.profiling.advanced.max_frames = 456 }
+            .to change { settings.profiling.advanced.max_frames }
+            .from(400)
+            .to(456)
         end
       end
-    end
 
-    describe '#max_frames=' do
-      it 'updates the #max_frames setting' do
-        expect { settings.profiling.max_frames = 456 }
-          .to change { settings.profiling.max_frames }
-          .from(400)
-          .to(456)
+      describe '#extract_trace_resource' do
+        subject(:extract_trace_resource) { settings.profiling.advanced.extract_trace_resource }
+
+        it 'defaults to true' do
+          is_expected.to be true
+        end
+      end
+
+      describe '#extract_trace_resource=' do
+        it 'updates the #extract_trace_resource setting' do
+          expect { settings.profiling.advanced.extract_trace_resource = false }
+            .to change { settings.profiling.advanced.extract_trace_resource }
+            .from(true)
+            .to(false)
+        end
       end
     end
 

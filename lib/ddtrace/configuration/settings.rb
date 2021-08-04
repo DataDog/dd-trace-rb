@@ -159,13 +159,19 @@ module Datadog
           end
         end
 
-        option :max_events, default: 32768
+        settings :advanced do
+          option :max_events, default: 32768
 
-        # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
-        # produced profiles. Increasing this may increase the overhead of profiling.
-        option :max_frames do |o|
-          o.default { env_to_int(Ext::Profiling::ENV_MAX_FRAMES, 400) }
-          o.lazy
+          # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
+          # produced profiles. Increasing this may increase the overhead of profiling.
+          option :max_frames do |o|
+            o.default { env_to_int(Ext::Profiling::ENV_MAX_FRAMES, 400) }
+            o.lazy
+          end
+
+          # When using profiling together with tracing, this controls if trace resources (usually the endpoint names)
+          # are gathered and reported together with profiles.
+          option :extract_trace_resource, default: true
         end
 
         settings :upload do
