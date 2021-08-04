@@ -23,7 +23,7 @@ module Datadog
 
           def span_type
             # deliver.action_mailer sends emails
-            Datadog::Ext::AppTypes::Worker
+            Datadog::Ext::AppTypes::WORKER
           end
 
           def process(span, event, _id, payload)

@@ -42,11 +42,11 @@ RSpec.describe 'ActionMailer patcher' do
     end
 
     let(:span) do
-      spans.select { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_PROCESS }.first
+      spans.find { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_PROCESS }
     end
 
     let(:deliver_span) do
-      spans.select { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_DELIVER }.first
+      spans.find { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_DELIVER }
     end
 
     before do
