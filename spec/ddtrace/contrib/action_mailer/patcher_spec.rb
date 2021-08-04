@@ -61,6 +61,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(span.resource).to eq(mailer)
         expect(span.get_tag('action_mailer.action')).to eq(action)
         expect(span.get_tag('action_mailer.mailer')).to eq(mailer)
+        expect(span.span_type).to eq('template')
         expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
       end
 
@@ -70,6 +71,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
+        expect(deliver_span.span_type).to eq('worker')
         expect(deliver_span.get_tag('action_mailer.message_id')).to_not be nil
         expect(deliver_span.status).to_not eq(Datadog::Ext::Errors::STATUS)
       end

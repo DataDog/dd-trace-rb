@@ -22,7 +22,7 @@ module Datadog
           end
 
           def span_type
-            # ActionMailer creates emails like a controller
+            # deliver.action_mailer sends emails
             Datadog::Ext::AppTypes::Worker
           end
 

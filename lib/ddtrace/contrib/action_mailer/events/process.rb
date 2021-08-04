@@ -22,8 +22,8 @@ module Datadog
           end
 
           def span_type
-            # ActionMailer creates emails like a controller
-            Datadog::Ext::AppTypes::Web
+            # process.action_mailer processes email and renders partial templates
+            Datadog::Ext::HTTP::TEMPLATE
           end
 
           def process(span, event, _id, payload)
