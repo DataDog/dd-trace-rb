@@ -142,7 +142,11 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '#flush_events' do
     subject(:flush_events) { scheduler.send(:flush_events) }
 
-    let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
+    let(:flush_start) { Time.now }
+    let(:flush_finish) { flush_start + 1 }
+    let(:flush) do
+      instance_double(Datadog::Profiling::Flush, event_count: event_count, start: flush_start, finish: flush_finish)
+    end
 
     before { expect(recorder).to receive(:flush).and_return(flush) }
 
@@ -183,6 +187,26 @@ RSpec.describe Datadog::Profiling::Scheduler do
           is_expected.to be flush
 
           expect(exporters).to all(have_received(:export).with(flush))
+        end
+      end
+
+      context 'when the flush contains less than 1s of profiling data' do
+        let(:flush_finish) { super() - 0.01 }
+
+        it 'does not export' do
+          exporters.each do |exporter|
+            expect(exporter).to_not receive(:export)
+          end
+
+          flush_events
+        end
+
+        it 'logs a debug message' do
+          expect(Datadog.logger).to receive(:debug) do |&message|
+            expect(message.call).to include 'Skipped exporting'
+          end
+
+          flush_events
         end
       end
     end
