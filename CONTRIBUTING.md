@@ -44,7 +44,7 @@ If at all possible, also provide:
  - Code sample or test that reproduces the problem
  - An explanation of what causes the bug and/or how it can be fixed
 
-Reports that include rich detail are better, and ones with code that reproduce the bug are best. Bug requests are triaged, reviewed, and added to [our Community project](https://github.com/DataDog/dd-trace-rb/projects/2).
+Reports that include rich detail are better, and ones with code that reproduce the bug are best.
 
 ## Have a patch?
 
@@ -71,8 +71,6 @@ We also recommend that you share in your description:
  - Screenshots, code samples, or other visual aids that demonstrate the changes or how they are implemented
  - Benchmarks if the feature is anticipated to have performance implications
  - Any limitations, constraints or risks that are important to consider
-
-Pull requests will be reviewed and added to [our Community project](https://github.com/DataDog/dd-trace-rb/projects/2).
 
 For more information on common topics such as debugging locally, or how to write new integrations, check out [our development guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md). If at any point you have a question or need assistance with your pull request, feel free to mention a project member! We're always happy to help contributors with their pull requests.
 
