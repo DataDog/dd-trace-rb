@@ -1,6 +1,8 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/action_view/configuration/settings'
 require 'ddtrace/contrib/action_view/patcher'
+require 'ddtrace/contrib/rails/utils'
 
 module Datadog
   module Contrib
@@ -30,6 +32,12 @@ module Datadog
 
         def self.compatible?
           super && version >= MINIMUM_VERSION
+        end
+
+        # enabled by rails integration so should only auto instrument
+        # if detected that it is being used without rails
+        def auto_instrument?
+          !Datadog::Contrib::Rails::Utils.railtie_supported?
         end
 
         def default_configuration

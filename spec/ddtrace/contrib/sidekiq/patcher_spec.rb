@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 require_relative 'support/helper'
 
@@ -11,8 +12,11 @@ RSpec.describe Datadog::Contrib::Sidekiq::Patcher do
     Sidekiq.server_middleware.clear
 
     allow(Sidekiq).to receive(:server?).and_return(server)
+
     # NB: This is needed because we want to patch multiple times.
-    allow(described_class).to receive(:do_once).with(:patch).and_yield
+    if described_class.instance_variable_get(:@patch_only_once)
+      described_class.instance_variable_get(:@patch_only_once).send(:reset_ran_once_state_for_tests)
+    end
   end
 
   # NB: This needs to be after the before block above so that the use :sidekiq

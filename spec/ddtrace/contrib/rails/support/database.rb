@@ -1,3 +1,4 @@
+# typed: ignore
 # load the right adapter according to installed gem
 module Datadog
   module Contrib
@@ -8,11 +9,11 @@ module Datadog
 
           # rubocop:disable Metrics/MethodLength
           def load_adapter!
-            [
-              'pg',
-              'mysql2',
-              'activerecord-jdbcpostgresql-adapter',
-              'activerecord-jdbcmysql-adapter'
+            %w[
+              pg
+              mysql2
+              activerecord-jdbcpostgresql-adapter
+              activerecord-jdbcmysql-adapter
             ].each do |adapter|
               begin
                 require adapter

@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'logger'
@@ -8,7 +9,7 @@ require 'spec/ddtrace/contrib/rails/support/database'
 require 'spec/ddtrace/contrib/rails/support/application'
 
 # logger
-logger = Logger.new(STDOUT)
+logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
 # Rails settings

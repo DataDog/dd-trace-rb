@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 
@@ -91,8 +92,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       expect(sqlite_span.name).to eq('sqlite.query')
       expect(sqlite_span.service).to eq('sqlite')
       expect(sqlite_span.resource).to eq('SELECT 42')
-      # TODO: hardcoded vendor+name to unblock CI to support rails 6.1
-      # investigate why adapter_name and database_name are resolving to default values
+
       expect(sqlite_span.get_tag('active_record.db.vendor')).to eq('sqlite')
       expect(sqlite_span.get_tag('active_record.db.name')).to eq(':memory:')
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?

@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 require 'securerandom'
@@ -11,7 +12,7 @@ RSpec.describe 'Rack integration tests' do
 
   let(:rack_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :rack, rack_options
     end
@@ -37,7 +38,7 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      before(:each) do
+      before do
         is_expected.to be_not_found
         expect(spans).to have(1).items
       end
@@ -69,7 +70,7 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      before(:each) do
+      before do
         is_expected.to be_ok
         expect(spans).to have(1).items
       end
@@ -179,7 +180,7 @@ RSpec.describe 'Rack integration tests' do
           let(:rack_options) { super().merge(service_name: service_name) }
           let(:service_name) { 'custom-rack' }
 
-          after(:each) do
+          after do
             Datadog.configure do |c|
               c.use :rack, service_name: Datadog::Contrib::Rack::Ext::SERVICE_NAME
             end
@@ -231,7 +232,7 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      before(:each) do
+      before do
         expect(response.status).to eq(400)
         expect(spans).to have(1).items
       end
@@ -263,7 +264,7 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      before(:each) do
+      before do
         is_expected.to be_server_error
         expect(spans).to have(1).items
       end
@@ -297,7 +298,7 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        before(:each) do
+        before do
           expect { response }.to raise_error(StandardError)
           expect(spans).to have(1).items
         end
@@ -332,7 +333,7 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        before(:each) do
+        before do
           expect { response }.to raise_error(NoMemoryError)
           expect(spans).to have(1).items
         end
@@ -379,7 +380,7 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        before(:each) do
+        before do
           is_expected.to be_ok
           expect(spans).to have(1).items
         end
@@ -407,7 +408,7 @@ RSpec.describe 'Rack integration tests' do
       end
 
       context 'that raises a server error' do
-        before(:each) do
+        before do
           is_expected.to be_server_error
           expect(spans).to have(1).items
         end
@@ -511,7 +512,7 @@ RSpec.describe 'Rack integration tests' do
       describe 'subsequent GET requests' do
         subject(:responses) { [(get '/leak'), (get '/success')] }
 
-        before(:each) do
+        before do
           responses.each { |response| expect(response).to be_ok }
           expect(spans).to have(1).items
         end
@@ -545,7 +546,7 @@ RSpec.describe 'Rack integration tests' do
       end
 
       context 'when configured to tag headers' do
-        before(:each) do
+        before do
           Datadog.configure do |c|
             c.use :rack, headers: {
               request: [
@@ -566,7 +567,7 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        after(:each) do
+        after do
           # Reset to default headers
           Datadog.configure do |c|
             c.use :rack, headers: {}
@@ -585,7 +586,7 @@ RSpec.describe 'Rack integration tests' do
               }
             end
 
-            before(:each) do
+            before do
               is_expected.to be_ok
               expect(spans).to have(1).items
             end

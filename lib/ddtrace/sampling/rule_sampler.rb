@@ -1,3 +1,4 @@
+# typed: true
 require 'forwardable'
 
 require 'ddtrace/ext/priority'
@@ -5,6 +6,7 @@ require 'ddtrace/ext/priority'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling/rate_limiter'
+require 'ddtrace/sampling/rule'
 
 module Datadog
   module Sampling
@@ -45,15 +47,8 @@ module Datadog
         @default_sampler = if default_sampler
                              default_sampler
                            elsif default_sample_rate
-                             # We want to allow 0.0 to drop all traces, but \RateSampler
-                             # considers 0.0 an invalid rate and falls back to 100% sampling.
-                             #
-                             # We address that here by not setting the rate in the constructor,
-                             # but using the setter method.
-                             #
-                             # We don't want to make this change directly to \RateSampler
-                             # because it breaks its current contract to existing users.
-                             Datadog::RateSampler.new.tap { |s| s.sample_rate = default_sample_rate }
+                             # Add to the end of the rule list a rule always matches any span
+                             @rules << SimpleRule.new(sample_rate: default_sample_rate)
                            else
                              RateByServiceSampler.new(1.0, env: -> { Datadog.tracer.tags[:env] })
                            end
@@ -88,6 +83,7 @@ module Datadog
 
       def update(*args)
         return false unless @default_sampler.respond_to?(:update)
+
         @default_sampler.update(*args)
       end
 
@@ -109,7 +105,7 @@ module Datadog
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
       rescue StandardError => e
-        Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
         yield(span)
       end
 

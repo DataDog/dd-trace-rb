@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/integration'
@@ -11,7 +12,7 @@ module Datadog
       module MultiPatch
         def self.included(base)
           # No need to prepend here since add method is included into Multi class
-          base.send(:include, InstanceMethods)
+          base.include(InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation

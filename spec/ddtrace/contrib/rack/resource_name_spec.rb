@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'rack/test'
 
@@ -15,7 +16,7 @@ RSpec.describe 'Rack integration with other middleware' do
     }
   end
 
-  before(:each) do
+  before do
     # Undo the Rack middleware name patch
     Datadog.registry[:rack].patcher::PATCHERS.each do |patcher|
       remove_patch!(patcher)
@@ -26,7 +27,7 @@ RSpec.describe 'Rack integration with other middleware' do
     end
   end
 
-  after(:each) do
+  after do
     Datadog.registry[:rack].reset_configuration!
   end
 
@@ -67,7 +68,9 @@ RSpec.describe 'Rack integration with other middleware' do
 
   context 'which receives an incoming HTTP request' do
     subject(:response) { get '/', {}, headers }
+
     let(:headers) { {} }
+
     include_context 'app with middleware'
 
     context 'which runs the full stack' do

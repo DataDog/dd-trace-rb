@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/context_flush'
@@ -41,6 +42,7 @@ end
 
 RSpec.describe Datadog::ContextFlush::Partial do
   subject(:context_flush) { described_class.new(min_spans_before_partial_flush: min_spans_for_partial) }
+
   let(:min_spans_for_partial) { 2 }
 
   describe '#consume' do
@@ -93,6 +95,7 @@ RSpec.describe Datadog::ContextFlush::Partial do
           # and +context.delete_span_if+ all finished spans are consumed.
 
           let(:finished_spans) { [] }
+
           before { allow(context).to receive(:delete_span_if).and_return(finished_spans) }
 
           it 'returns finished spans' do

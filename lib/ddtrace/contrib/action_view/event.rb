@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/active_support/notifications/event'
 
 module Datadog
@@ -6,16 +7,12 @@ module Datadog
       # Defines basic behavior for an ActionView event.
       module Event
         def self.included(base)
-          base.send(:include, ActiveSupport::Notifications::Event)
-          base.send(:extend, ClassMethods)
+          base.include(ActiveSupport::Notifications::Event)
+          base.extend(ClassMethods)
         end
 
         # Class methods for ActionView events.
         module ClassMethods
-          def span_options
-            { service: configuration[:service_name] }
-          end
-
           def tracer
             -> { configuration[:tracer] }
           end
@@ -25,7 +22,7 @@ module Datadog
           end
 
           def record_exception(span, payload)
-            if payload [:exception_object]
+            if payload[:exception_object]
               span.set_error(payload[:exception_object])
             elsif payload[:exception]
               # Fallback for ActiveSupport < 5.0

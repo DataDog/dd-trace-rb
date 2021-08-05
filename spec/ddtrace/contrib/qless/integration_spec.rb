@@ -1,3 +1,4 @@
+# typed: ignore
 require 'spec_helper'
 
 require 'ddtrace/contrib/qless/integration'
@@ -26,11 +27,13 @@ RSpec.describe Datadog::Contrib::Qless::Integration do
 
     context 'when Qless is defined' do
       before { stub_const('Qless', Class.new) }
+
       it { is_expected.to be true }
     end
 
     context 'when Qless is not defined' do
       before { hide_const('Qless') }
+
       it { is_expected.to be false }
     end
   end
@@ -58,11 +61,13 @@ RSpec.describe Datadog::Contrib::Qless::Integration do
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
+
     it { is_expected.to be_a_kind_of(Datadog::Contrib::Qless::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
+
     it { is_expected.to be Datadog::Contrib::Qless::Patcher }
   end
 end

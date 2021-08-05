@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
@@ -6,13 +7,14 @@ RSpec.describe Datadog::Contrib::Registerable do
   describe 'implemented' do
     subject(:registerable_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 
     describe 'class behavior' do
       describe '#register_as' do
         subject(:register_as) { registerable_class.register_as(name, options) }
+
         let(:name) { :foo }
         let(:options) { {} }
 
@@ -61,6 +63,7 @@ RSpec.describe Datadog::Contrib::Registerable do
 
     describe 'instance behavior' do
       subject(:registerable_object) { registerable_class.new(name, options) }
+
       let(:name) { :foo }
       let(:options) { {} }
 

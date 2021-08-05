@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/instance'
@@ -36,6 +37,7 @@ module Datadog
           @default_adapter = if type.is_a?(Symbol)
                                registry_klass = REGISTRY.get(type)
                                raise UnknownAdapterError, type if registry_klass.nil?
+
                                registry_klass.new(*args)
                              else
                                type
@@ -67,6 +69,7 @@ module Datadog
 
         def default_api=(key)
           raise UnknownApiError, key unless @apis.key?(key)
+
           @default_api = key
         end
 
@@ -93,7 +96,7 @@ module Datadog
               api_options[:headers] = @default_headers.merge((api_options[:headers] || {}))
 
               # Add API::Instance with all settings
-              instances[key] = API::Instance.new(
+              instances[key] = api_instance_class.new(
                 spec,
                 adapter,
                 api_options
@@ -103,6 +106,10 @@ module Datadog
               instances.with_fallbacks(key => fallback) unless fallback.nil?
             end
           end
+        end
+
+        def api_instance_class
+          API::Instance
         end
 
         # Raised when the API key does not match known APIs.

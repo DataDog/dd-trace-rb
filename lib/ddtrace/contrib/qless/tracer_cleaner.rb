@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     module Qless
@@ -16,6 +17,7 @@ module Datadog
         def forked?
           pin = Datadog::Pin.get_from(::Qless)
           return false unless pin
+
           pin.config[:forked] == true
         end
 

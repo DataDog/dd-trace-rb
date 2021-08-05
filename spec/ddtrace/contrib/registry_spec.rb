@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
@@ -25,6 +26,7 @@ RSpec.describe Datadog::Contrib::Registry do
 
       describe '#each' do
         let(:spy) { [] }
+
         it do
           entry_one = registry.add(:foo, double('foo class'), true)
           entry_two = registry.add(:bar, double('bar class'), true)
@@ -55,16 +57,19 @@ RSpec.describe Datadog::Contrib::Registry do
           describe 'returns an entry with' do
             describe '#name' do
               subject { entry.name }
+
               it { is_expected.to eq(name) }
             end
 
             describe '#klass' do
               subject { entry.klass }
+
               it { is_expected.to be(klass) }
             end
 
             describe '#auto_patch' do
               subject { entry.auto_patch }
+
               it { is_expected.to eq(auto_patch) }
             end
           end

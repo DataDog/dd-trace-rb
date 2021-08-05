@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/encoding'
 require 'ddtrace/transport/io/client'
 require 'ddtrace/transport/io/traces'
@@ -17,7 +18,7 @@ module Datadog
       # Pass options to override any settings.
       def default(options = {})
         new(
-          options.fetch(:out, STDOUT),
+          options.fetch(:out, $stdout),
           options.fetch(:encoder, Encoding::JSONEncoder)
         )
       end

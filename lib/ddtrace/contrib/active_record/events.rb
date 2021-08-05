@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/active_record/events/instantiation'
 require 'ddtrace/contrib/active_record/events/sql'
 

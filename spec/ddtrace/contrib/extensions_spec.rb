@@ -1,7 +1,7 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/contrib/extensions'
 
 RSpec.describe Datadog::Contrib::Extensions do
   shared_context 'registry with integration' do
@@ -28,9 +28,7 @@ RSpec.describe Datadog::Contrib::Extensions do
     describe Datadog do
       describe '#configure' do
         include_context 'registry with integration' do
-          before do
-            allow(Datadog.configuration).to receive(:registry).and_return(registry)
-          end
+          before { stub_const('Datadog::Contrib::REGISTRY', registry) }
         end
 
         context 'given a block' do
@@ -41,7 +39,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
             it 'configures & patches the integration' do
               expect(integration).to receive(:configure).with(:default, any_args)
-              expect(integration).to receive(:patch)
+              expect(integration).to receive(:patch).and_call_original
               configure
             end
           end
@@ -51,7 +49,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
             it 'configures & patches the integration' do
               expect(integration).to receive(:configure).with(:default, any_args)
-              expect(integration).to receive(:patch)
+              expect(integration).to receive(:patch).and_call_original
               configure
             end
           end
@@ -59,6 +57,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
         context 'given a target and options' do
           subject(:configure) { described_class.configure(target, opts) }
+
           let(:target) { double('target') }
           let(:opts) { {} }
 
@@ -70,7 +69,28 @@ RSpec.describe Datadog::Contrib::Extensions do
     describe Datadog::Configuration::Settings do
       include_context 'registry with integration'
 
-      subject(:settings) { described_class.new(registry: registry) }
+      subject(:settings) { described_class.new }
+
+      before { stub_const('Datadog::Contrib::REGISTRY', registry) }
+
+      describe '.registry' do
+        it 'return global REGISTRY on deprecated access' do
+          expect(Datadog.logger).to receive(:warn).with(/Deprecated access to `Datadog.configuration.registry`/)
+
+          expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
+        end
+      end
+
+      describe '.registry=' do
+        it 'to not change registry on deprecated assignment attempt' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer supported and was ignored/)
+
+          settings.registry = double('Overriding registry')
+
+          allow(Datadog.logger).to receive(:warn)
+          expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
+        end
+      end
 
       describe '#[]' do
         context 'when the integration doesn\'t exist' do
@@ -82,8 +102,36 @@ RSpec.describe Datadog::Contrib::Extensions do
         end
       end
 
+      describe '#configuration' do
+        include_context 'registry with integration'
+
+        subject(:configuration) { settings.configuration(integration_name, matcher) }
+
+        let(:matcher) { double('matcher') }
+        let(:options) { {} }
+        let(:default_settings) { settings.configuration(integration_name) }
+
+        before { settings.use(integration_name, options) }
+
+        context 'with a matching described configuration' do
+          let(:options) { { describes: matcher } }
+
+          it 'retrieves the described configuration' do
+            is_expected.to_not eq(default_settings)
+            is_expected.to be_a(Datadog::Contrib::Configuration::Settings)
+          end
+        end
+
+        context 'with no matching described configuration' do
+          it 'retrieves the default configuration' do
+            is_expected.to eq(default_settings)
+          end
+        end
+      end
+
       describe '#use' do
         subject(:result) { settings.use(integration_name, options) }
+
         let(:options) { {} }
 
         context 'for a generic integration' do

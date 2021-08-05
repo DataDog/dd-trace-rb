@@ -1,3 +1,4 @@
+# typed: true
 # frozen_string_literal: true
 
 require 'ddtrace/contrib/analytics'
@@ -14,7 +15,7 @@ module Datadog
 
         def call(deserialized_msg, delivery_info, metadata, handler)
           trace_options = {
-            service:   configuration[:service_name],
+            service: configuration[:service_name],
             span_type: Datadog::Ext::AppTypes::WORKER,
             on_error: configuration[:error_handler]
           }
@@ -32,9 +33,7 @@ module Datadog
             request_span.set_tag(Ext::TAG_JOB_ROUTING_KEY, delivery_info.routing_key)
             request_span.set_tag(Ext::TAG_JOB_QUEUE, delivery_info.consumer.queue.name)
 
-            if configuration[:tag_body]
-              request_span.set_tag(Ext::TAG_JOB_BODY, deserialized_msg)
-            end
+            request_span.set_tag(Ext::TAG_JOB_BODY, deserialized_msg) if configuration[:tag_body]
 
             @app.call(deserialized_msg, delivery_info, metadata, handler)
           end

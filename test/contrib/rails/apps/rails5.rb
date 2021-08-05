@@ -1,3 +1,4 @@
+# typed: ignore
 require 'contrib/rails/apps/application'
 
 module Rails5
@@ -6,7 +7,7 @@ module Rails5
 end
 
 def initialize_rails!
-  Rails5::Application.test_config()
+  Rails5::Application.test_config
 end
 
 def rails_initialized?

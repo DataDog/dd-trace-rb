@@ -1,3 +1,4 @@
+# typed: ignore
 LogHelpers.without_warnings do
   require 'qless'
 end
@@ -52,6 +53,8 @@ RSpec.shared_context 'Qless job' do
   end
 
   def delete_all_redis_keys
+    # rubocop:disable Style/HashEachMethods
+    # This LOOKS like a Ruby hash but ISN'T -- so it doesn't have the `each_key` method that Rubocop suggests
     client.redis.keys.each { |k| client.redis.del k }
   end
 

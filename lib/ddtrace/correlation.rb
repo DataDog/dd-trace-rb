@@ -1,5 +1,6 @@
+# typed: false
 require 'ddtrace/ext/correlation'
-require 'ddtrace/environment'
+require 'datadog/core/environment/variable_helpers'
 
 module Datadog
   # Contains behavior for managing correlations with tracing
@@ -32,6 +33,7 @@ module Datadog
     # Produces a CorrelationIdentifier from the Context provided
     def identifier_from_context(context)
       return Identifier.new.freeze if context.nil?
+
       Identifier.new(context.trace_id, context.span_id).freeze
     end
   end

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/rake/configuration/settings'
 require 'ddtrace/contrib/rake/patcher'
@@ -18,7 +19,7 @@ module Datadog
         end
 
         def self.loaded?
-          !defined?(::Rake).nil?
+          !defined?(::Rake::Task).nil?
         end
 
         def self.compatible?

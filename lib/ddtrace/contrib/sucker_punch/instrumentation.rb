@@ -1,3 +1,4 @@
+# typed: false
 require 'sucker_punch'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sucker_punch/ext'
@@ -10,6 +11,7 @@ module Datadog
         module_function
 
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/AbcSize
         def patch!
           # rubocop:disable Metrics/BlockLength
           ::SuckerPunch::Job::ClassMethods.class_eval do
@@ -34,6 +36,7 @@ module Datadog
             rescue => e
               ::SuckerPunch.__exception_handler.call(e, self, args)
             end
+            ruby2_keywords :__run_perform if respond_to?(:ruby2_keywords, true)
 
             alias_method :__perform_async, :perform_async
             def perform_async(*args)
@@ -46,6 +49,7 @@ module Datadog
                 __perform_async(*args)
               end
             end
+            ruby2_keywords :perform_async if respond_to?(:ruby2_keywords, true)
 
             alias_method :__perform_in, :perform_in
             def perform_in(interval, *args)
@@ -59,6 +63,7 @@ module Datadog
                 __perform_in(interval, *args)
               end
             end
+            ruby2_keywords :perform_in if respond_to?(:ruby2_keywords, true)
 
             private
 

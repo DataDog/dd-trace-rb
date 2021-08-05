@@ -15,11 +15,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN set -ex; \
         apt-get update; \
         mkdir -p /usr/share/man/man1; \
-        apt-get install -y --no-install-recommends \
+        apt-get install --force-yes --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim; \
+            tzdata rsync vim less; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -61,6 +61,16 @@ RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cac
   && tar -C /usr/local/bin -xzvf /tmp/dockerize-linux-amd64.tar.gz \
   && rm -rf /tmp/dockerize-linux-amd64.tar.gz \
   && dockerize --version
+
+# Install Protobuf compiler
+RUN export PROTOC_URL="https://github.com/protocolbuffers/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip" \
+  && echo Protoc URL: $PROTOC_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /tmp/protoc.zip "${PROTOC_URL}" \
+  && ls -lha /tmp/protoc.zip \
+  && unzip /tmp/protoc.zip -d /tmp/protoc \
+  && mv /tmp/protoc/bin/* /usr/bin \
+  && rm -rf /tmp/protoc /tmp/protoc.zip \
+  && protoc --version
 
 # Install RubyGems
 RUN gem update --system 2.7.9

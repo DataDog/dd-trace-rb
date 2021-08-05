@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/rack/ext'
 
@@ -8,9 +9,9 @@ module Datadog
         # Custom settings for the Rack integration
         class Settings < Contrib::Configuration::Settings
           DEFAULT_HEADERS = {
-            response: [
-              'Content-Type',
-              'X-Request-ID'
+            response: %w[
+              Content-Type
+              X-Request-ID
             ]
           }.freeze
 

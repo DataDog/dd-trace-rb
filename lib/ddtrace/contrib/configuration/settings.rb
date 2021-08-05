@@ -1,4 +1,6 @@
+# typed: false
 require 'ddtrace/configuration/base'
+require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
@@ -7,6 +9,8 @@ module Datadog
       class Settings
         include Datadog::Configuration::Base
 
+        DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
         option :enabled, default: true
@@ -14,7 +18,7 @@ module Datadog
         option :tracer do |o|
           o.delegate_to { Datadog.tracer }
           o.on_set do |_value|
-            log_deprecation_warning(:tracer)
+            log_deprecation_warning
           end
         end
 
@@ -41,11 +45,9 @@ module Datadog
           the correct tracer internally.
           ).freeze
 
-        include Datadog::Patcher # DEV includes #do_once here. We should move that logic to a generic component.
-
-        def log_deprecation_warning(method_name)
-          do_once(method_name) do
-            Datadog.logger.warn("#{method_name}:#{DEPRECATION_WARNING}:#{caller.join("\n")}")
+        def log_deprecation_warning
+          DEPRECATION_WARN_ONLY_ONCE.run do
+            Datadog.logger.warn("tracer:#{DEPRECATION_WARNING}:#{caller.join("\n")}")
           end
         end
       end

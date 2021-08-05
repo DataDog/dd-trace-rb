@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module OpenTracer
     # OpenTracing propagator for Datadog::OpenTracer::Tracer

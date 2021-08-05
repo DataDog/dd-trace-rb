@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace'
 require 'mongo'
 
@@ -10,7 +11,7 @@ RSpec.describe 'Mongo crash regression #1235' do
   let(:port) { ENV.fetch('TEST_MONGODB_PORT', 27017).to_i }
   let(:database) { 'test' }
 
-  before(:each) do
+  before do
     # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
@@ -43,6 +44,6 @@ RSpec.describe 'Mongo crash regression #1235' do
   it 'does not crash on exit' do
     expect { subject }.to_not output(/^\[BUG\] /).to_stderr_from_any_process
 
-    expect(subject.success?).to be_truthy
+    expect(subject).to be_success
   end
 end

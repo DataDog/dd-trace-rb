@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Transport
     module HTTP
@@ -41,6 +42,14 @@ module Datadog
 
         def headers=(value)
           self[:headers] = value
+        end
+
+        def form
+          self[:form] ||= {}
+        end
+
+        def form=(value)
+          self[:form] = value
         end
       end
     end

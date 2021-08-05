@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
 
@@ -19,6 +20,7 @@ module Datadog
     def self.extract(metadata)
       metadata = Carrier.new(metadata)
       return Datadog::Context.new unless metadata.valid?
+
       Datadog::Context.new(trace_id: metadata.trace_id,
                            span_id: metadata.parent_id,
                            sampling_priority: metadata.sampling_priority,

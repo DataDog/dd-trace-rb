@@ -1,3 +1,4 @@
+# typed: ignore
 require 'contrib/rails/apps/application'
 
 module Rails6
@@ -17,7 +18,7 @@ module Rails6
 end
 
 def initialize_rails!
-  Rails6::Application.test_config()
+  Rails6::Application.test_config
 end
 
 def rails_initialized?

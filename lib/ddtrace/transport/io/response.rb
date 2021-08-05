@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/response'
 
 module Datadog
@@ -6,14 +7,12 @@ module Datadog
       # Response from HTTP transport for traces
       class Response
         include Transport::Response
-        include Transport::Traces::Response
 
         attr_reader \
           :result
 
-        def initialize(result, trace_count = 1)
+        def initialize(result)
           @result = result
-          @trace_count = trace_count
         end
 
         def ok?

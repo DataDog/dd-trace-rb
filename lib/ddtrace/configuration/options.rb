@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration/option_set'
 require 'ddtrace/configuration/option_definition'
 require 'ddtrace/configuration/option_definition_set'
@@ -7,17 +8,15 @@ module Datadog
     # Behavior for a configuration object that has options
     module Options
       def self.included(base)
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class behavior for a configuration object with options
       module ClassMethods
         def options
-          @options ||= begin
-            # Allows for class inheritance of option definitions
-            superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
-          end
+          # Allows for class inheritance of option definitions
+          @options ||= superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
         end
 
         protected
@@ -51,6 +50,7 @@ module Datadog
         def define_helpers(helpers)
           helpers.each do |name, block|
             next unless block.is_a?(Proc)
+
             define_method(name, &block)
           end
         end
@@ -102,9 +102,7 @@ module Datadog
         end
 
         def assert_valid_option!(name)
-          unless option_defined?(name)
-            raise(InvalidOptionError, "#{self.class.name} doesn't define the option: #{name}")
-          end
+          raise(InvalidOptionError, "#{self.class.name} doesn't define the option: #{name}") unless option_defined?(name)
         end
       end
 

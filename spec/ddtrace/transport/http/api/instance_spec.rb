@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/transport/http/api/instance'
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Transport::HTTP::API::Instance do
     context 'given headers' do
       let(:options) { { headers: headers } }
       let(:headers) { { 'X-Test-Header' => 'true' } }
+
       it { expect(instance.headers).to eq(headers) }
     end
   end

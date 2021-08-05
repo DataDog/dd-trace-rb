@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/sidekiq/ext'
@@ -17,11 +18,11 @@ module Datadog
 
         def patch
           require_relative 'resque_job'
-          get_option(:workers).each { |worker| worker.extend(ResqueJob) }
-        end
 
-        def get_option(option)
-          Datadog.configuration[:resque].get_option(option)
+          ::Resque::Job.prepend(Resque::Job)
+
+          workers = Datadog.configuration[:resque][:workers] || []
+          workers.each { |worker| worker.extend(ResqueJob) }
         end
       end
     end

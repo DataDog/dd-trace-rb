@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/concurrent_ruby/context_composite_executor_service'
 
 module Datadog

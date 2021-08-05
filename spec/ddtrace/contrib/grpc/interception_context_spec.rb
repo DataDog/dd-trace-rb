@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -7,6 +8,7 @@ require 'ddtrace'
 
 RSpec.describe GRPC::InterceptionContext do
   subject(:interception_context) { described_class.new }
+
   let(:configuration_options) { { service_name: 'rspec' } }
 
   describe '#intercept!' do

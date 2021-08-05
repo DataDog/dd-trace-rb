@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
@@ -11,7 +12,7 @@ module Datadog
       # Mysql2::Client patch module
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Mysql2::Client patch instance methods

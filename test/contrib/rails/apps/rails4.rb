@@ -1,3 +1,4 @@
+# typed: ignore
 require 'contrib/rails/apps/application'
 
 module Rails4
@@ -7,7 +8,7 @@ module Rails4
 end
 
 def initialize_rails!
-  Rails4::Application.test_config()
+  Rails4::Application.test_config
 end
 
 def rails_initialized?

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/logger'
 require 'ddtrace/transport/http'
 
@@ -16,15 +17,10 @@ module Datadog
       def initialize(options = {})
         transport_options = options.fetch(:transport_options, {})
 
-        if transport_options.is_a?(Proc)
-          transport_options = { on_build: transport_options }
-        end
-
-        transport_options[:hostname] = options[:hostname] if options.key?(:hostname)
-        transport_options[:port] = options[:port] if options.key?(:port)
+        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
 
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(transport_options)
+          Transport::HTTP.default(**transport_options)
         end
       end
 
@@ -41,7 +37,7 @@ module Datadog
         flush_traces(traces)
       rescue StandardError => e
         Datadog.logger.error(
-          "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
+          "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
         )
       end
 
@@ -65,10 +61,8 @@ module Datadog
         traces.each do |trace|
           next if trace.first.nil?
 
-          hostname = Datadog::Runtime::Socket.hostname
-          unless hostname.nil? || hostname.empty?
-            trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname)
-          end
+          hostname = Datadog::Core::Environment::Socket.hostname
+          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
         end
       end
 
@@ -83,10 +77,6 @@ module Datadog
       class FlushCompleted < Event
         def initialize
           super(:flush_completed)
-        end
-
-        def publish(response)
-          super(response)
         end
       end
     end
@@ -127,10 +117,15 @@ module Datadog
 
       # NOTE: #perform is wrapped by other modules:
       #       Polling --> Async --> IntervalLoop --> AsyncTraceWriter --> TraceWriter
+      #
+      # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#perform is spec'd to return the
+      # result from the writer, whereas this method always returns nil.
       def perform(traces)
         super(traces).tap do |responses|
           loop_back_off! if responses.find(&:server_error?)
         end
+
+        nil
       end
 
       def stop(*args)
@@ -148,6 +143,7 @@ module Datadog
         [buffer.pop]
       end
 
+      # Are there more traces to be processed next?
       def work_pending?
         !buffer.empty?
       end
@@ -187,6 +183,8 @@ module Datadog
         @async = false if @writer_fork_policy == FORK_POLICY_SYNC
       end
 
+      # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#write is spec'd to return the
+      # result from the writer, whereas this method returns something else when running in async mode.
       def write(trace)
         # Start worker thread. If the process has forked, it will trigger #after_fork to
         # reconfigure the worker accordingly.

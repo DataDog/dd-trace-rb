@@ -1,3 +1,4 @@
+# typed: true
 require 'set'
 
 module Datadog
@@ -56,6 +57,7 @@ module Datadog
 
         def auth_command?(command_args)
           return false unless command_args.is_a?(Array) && !command_args.empty?
+
           command_args.first.to_sym == :auth
         end
 

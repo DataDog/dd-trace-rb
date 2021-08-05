@@ -1,3 +1,4 @@
+# typed: true
 require 'date'
 require 'json'
 require 'rbconfig'
@@ -7,13 +8,13 @@ module Datadog
     # A holistic collection of the environment in which ddtrace is running.
     # This logger should allow for easy reporting by users to Datadog support.
     #
-    # rubocop:disable Style/DoubleNegation
     module EnvironmentLogger
       class << self
         # Outputs environment information to {Datadog.logger}.
         # Executes only for the lifetime of the program.
         def log!(transport_responses)
-          return if @executed || !log?
+          return if (defined?(@executed) && @executed) || !log?
+
           @executed = true
 
           data = EnvironmentCollector.new.collect!(transport_responses)
@@ -22,7 +23,7 @@ module Datadog
           log_environment!(data.to_json)
           log_error!('Agent Error'.freeze, data[:agent_error]) if data[:agent_error]
         rescue => e
-          Datadog.logger.warn("Failed to collect environment information: #{e} location: #{e.backtrace.first}")
+          Datadog.logger.warn("Failed to collect environment information: #{e} Location: #{Array(e.backtrace).first}")
         end
 
         private
@@ -73,14 +74,14 @@ module Datadog
 
       # @return [String] "ruby"
       def lang
-        Ext::Runtime::LANG
+        Core::Environment::Ext::LANG
       end
 
       # Supported Ruby language version.
       # Will be distinct from VM version for non-MRI environments.
       # @return [String]
       def lang_version
-        Ext::Runtime::LANG_VERSION
+        Core::Environment::Ext::LANG_VERSION
       end
 
       # @return [String] configured application environment
@@ -165,6 +166,7 @@ module Datadog
       def tags
         tags = Datadog.configuration.tags
         return nil if tags.empty?
+
         hash_serializer(tags)
       end
 
@@ -258,7 +260,7 @@ module Datadog
 
       # Capture all active integration settings into "integrationName_settingName: value" entries.
       def instrumented_integrations_settings
-        Hash[instrumented_integrations.flat_map do |name, integration|
+        instrumented_integrations.flat_map do |name, integration|
           integration.configuration.to_h.flat_map do |setting, value|
             next [] if setting == :tracer # Skip internal Ruby objects
 
@@ -266,7 +268,7 @@ module Datadog
             # handlers possibly causing errors.
             [[:"integration_#{name}_#{setting}", value.to_s]]
           end
-        end]
+        end.to_h
       end
 
       # Outputs "k1:v1,k2:v2,..."

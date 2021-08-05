@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/integration'
 require 'ddtrace/contrib/analytics'
@@ -17,7 +18,8 @@ module Datadog
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               service: service_name,
-              resource: format_resource(keywords[:method])
+              resource: format_resource(keywords[:method]),
+              on_error: error_handler
             }
             metadata = keywords[:call].metadata
 
@@ -44,6 +46,7 @@ module Datadog
           def annotate!(span, metadata)
             metadata.each do |header, value|
               next if reserved_headers.include?(header)
+
               span.set_tag(header, value)
             end
 

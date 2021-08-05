@@ -1,3 +1,4 @@
+# typed: false
 require 'sucker_punch'
 
 module Datadog
@@ -10,13 +11,11 @@ module Datadog
         module_function
 
         def patch!
-          ::SuckerPunch.class_eval do
-            class << self
-              alias_method :__exception_handler, :exception_handler
+          ::SuckerPunch.singleton_class.class_eval do
+            alias_method :__exception_handler, :exception_handler
 
-              def exception_handler
-                ::Datadog::Contrib::SuckerPunch::ExceptionHandler::METHOD
-              end
+            def exception_handler
+              ::Datadog::Contrib::SuckerPunch::ExceptionHandler::METHOD
             end
           end
         end

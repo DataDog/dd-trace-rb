@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'rack/test'
@@ -15,8 +16,68 @@ RSpec.describe 'Sinatra instrumentation' do
   subject(:response) { get url }
 
   let(:configuration_options) { {} }
+  let(:url) { '/' }
+  let(:http_method) { 'GET' }
+  let(:resource) { "#{http_method} #{url}" }
+  let(:observed) { {} }
+  let(:sinatra_routes) do
+    observed = self.observed
+    lambda do
+      get '/' do
+        headers['X-Request-ID'] = 'test id'
+        'ok'
+      end
 
-  let(:span) { spans.select { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST }[-1] }
+      get '/wildcard/*' do
+        params['splat'][0]
+      end
+
+      get '/error' do
+        raise 'test error'
+      end
+
+      get '/client_error' do
+        halt 400, 'bad request'
+      end
+
+      get '/server_error' do
+        halt 500, 'server error'
+      end
+
+      get '/erb' do
+        headers['Cache-Control'] = 'max-age=0'
+
+        erb :msg, locals: { msg: 'hello' }
+      end
+
+      get '/erb_manual_injection' do
+        headers['Cache-Control'] = 'max-age=0'
+
+        erb :msg_manual_injection, locals: { msg: 'hello' }
+      end
+
+      get '/erb_manual_injection_no_env' do
+        headers['Cache-Control'] = 'max-age=0'
+
+        erb :msg_manual_injection_no_env, locals: { msg: 'hello' }
+      end
+
+      get '/erb_literal' do
+        erb '<%= msg %>', locals: { msg: 'hello' }
+      end
+
+      get '/span_resource' do
+        active_span = Datadog.tracer.active_span
+        observed[:active_span] = { name: active_span.name, resource: active_span.resource }
+        root_span = Datadog.tracer.active_root_span
+        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
+
+        'ok'
+      end
+    end
+  end
+
+  let(:span) { spans.reverse.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST } }
   let(:route_span) { spans.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE } }
 
   let(:app) { sinatra_app }
@@ -51,10 +112,6 @@ RSpec.describe 'Sinatra instrumentation' do
     end
   end
 
-  let(:url) { '/' }
-  let(:http_method) { 'GET' }
-  let(:resource) { "#{http_method} #{url}" }
-
   shared_examples 'sinatra examples' do |opts = {}|
     let(:nested_span_count) { defined?(mount_nested_app) && mount_nested_app ? 1 : 0 }
 
@@ -83,6 +140,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
           it_behaves_like 'analytics for integration', ignore_global_flag: false do
             before { is_expected.to be_ok }
+
             let(:analytics_enabled_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_ENABLED }
             let(:analytics_sample_rate_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
@@ -301,6 +359,22 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(rack_span.resource).to eq('GET 404')
           end
         end
+
+        describe 'span resource' do
+          subject(:response) { get '/span_resource' }
+
+          before do
+            is_expected.to be_ok
+          end
+
+          it 'sets the route span resource before calling the route' do
+            expect(observed[:active_span]).to eq(name: 'sinatra.route', resource: 'GET /span_resource')
+          end
+
+          it 'sets the request span resource before calling the route' do
+            expect(observed[:root_span]).to eq(name: 'sinatra.request', resource: 'GET /span_resource')
+          end
+        end
       end
 
       context 'with a custom service name' do
@@ -321,6 +395,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
     context 'when the tracer is disabled' do
       subject(:response) { get '/' }
+
       let(:tracer) { get_test_tracer(enabled: false) }
 
       it do
@@ -333,6 +408,7 @@ RSpec.describe 'Sinatra instrumentation' do
   shared_examples 'header tags' do
     context 'and a simple request is made' do
       subject(:response) { get '/', query_string, headers }
+
       let(:query_string) { {} }
       let(:headers) { {} }
 
@@ -363,6 +439,7 @@ RSpec.describe 'Sinatra instrumentation' do
     context 'default' do
       context 'and a simple request is made' do
         subject(:response) { get '/', query_string, headers }
+
         let(:query_string) { {} }
         let(:headers) { {} }
 
@@ -392,6 +469,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
       context 'and a simple request is made' do
         subject(:response) { get '/', query_string, headers }
+
         let(:query_string) { {} }
         let(:headers) { {} }
 
@@ -411,53 +489,6 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not eq(2.0)
           end
         end
-      end
-    end
-  end
-
-  let(:sinatra_routes) do
-    lambda do
-      get '/' do
-        headers['X-Request-ID'] = 'test id'
-        'ok'
-      end
-
-      get '/wildcard/*' do
-        params['splat'][0]
-      end
-
-      get '/error' do
-        raise 'test error'
-      end
-
-      get '/client_error' do
-        halt 400, 'bad request'
-      end
-
-      get '/server_error' do
-        halt 500, 'server error'
-      end
-
-      get '/erb' do
-        headers['Cache-Control'] = 'max-age=0'
-
-        erb :msg, locals: { msg: 'hello' }
-      end
-
-      get '/erb_manual_injection' do
-        headers['Cache-Control'] = 'max-age=0'
-
-        erb :msg_manual_injection, locals: { msg: 'hello' }
-      end
-
-      get '/erb_manual_injection_no_env' do
-        headers['Cache-Control'] = 'max-age=0'
-
-        erb :msg_manual_injection_no_env, locals: { msg: 'hello' }
-      end
-
-      get '/erb_literal' do
-        erb '<%= msg %>', locals: { msg: 'hello' }
       end
     end
   end
@@ -581,7 +612,6 @@ RSpec.describe 'Sinatra instrumentation' do
   end
 
   RSpec::Matchers.define :be_request_span do |opts = {}|
-    # rubocop:disable Style/RedundantSelf
     match(notify_expectation_failures: true) do |span|
       app_name = opts[:app_name] || self.app_name
       expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)

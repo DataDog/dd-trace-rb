@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
@@ -9,7 +10,7 @@ class MiddlewareWorker
 
   from_queue 'middleware-demo', ack: false
 
-  def work_with_params(msg, delivery_info, metadata)
+  def work_with_params(msg, _delivery_info, _metadata)
     msg
   end
 end
@@ -19,7 +20,7 @@ class FailingMiddlewareWorker
 
   from_queue 'failing-middleware-demo', ack: false
 
-  def work_with_params(msg, delivery_info, metadata)
+  def work_with_params(_msg, _delivery_info, _metadata)
     raise ZeroDivisionError, 'failed'
   end
 end
@@ -27,8 +28,8 @@ end
 RSpec.describe Datadog::Contrib::Sneakers::Tracer do
   let(:sneakers_tracer) { described_class.new }
   let(:configuration_options) { {} }
-  let(:queue) { double() }
-  let(:exchange) { double() }
+  let(:queue) { double }
+  let(:exchange) { double }
 
   before do
     allow(queue).to receive(:name).and_return(queue_name)
@@ -59,10 +60,10 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       worker.do_work(delivery_info, metadata, message, handler)
     end
 
-    let(:delivery_info) { double() }
+    let(:delivery_info) { double }
     let(:message) { Sneakers::ContentType.deserialize('{"foo":"bar"}', 'application/json') }
     let(:handler) { Object.new }
-    let(:metadata) { double() }
+    let(:metadata) { double }
     let(:routing_key) { 'something' }
     let(:consumer) { double('Consumer') }
 

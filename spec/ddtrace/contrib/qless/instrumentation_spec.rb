@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/qless/integration'
@@ -10,7 +11,7 @@ RSpec.describe 'Qless instrumentation' do
 
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     delete_all_redis_keys
 
     # Patch Qless
@@ -28,7 +29,7 @@ RSpec.describe 'Qless instrumentation' do
 
   shared_examples 'job execution tracing' do
     context 'that succeeds' do
-      before(:each) do
+      before do
         perform_job(job_class, job_args)
       end
 
@@ -51,7 +52,7 @@ RSpec.describe 'Qless instrumentation' do
     end
 
     context 'that fails' do
-      before(:each) do
+      before do
         # Rig the job to fail
         expect(job_class).to receive(:perform) do
           raise error_class, error_message
@@ -83,7 +84,7 @@ RSpec.describe 'Qless instrumentation' do
   context 'without forking' do
     let(:worker) { Qless::Workers::SerialWorker.new(reserver) }
 
-    it_should_behave_like 'job execution tracing'
+    it_behaves_like 'job execution tracing'
 
     it 'ensures worker is not using forking' do
       expect(worker.class).to eq(Qless::Workers::SerialWorker)
@@ -98,7 +99,7 @@ RSpec.describe 'Qless instrumentation' do
 
   context 'with forking' do
     before do
-      skip unless PlatformHelpers.supports_fork?
+      skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
 
       # Ensures worker is using forking
       expect(worker.class).to eq(Qless::Workers::ForkingWorker)

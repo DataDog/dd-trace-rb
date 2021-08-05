@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/resque/configuration/settings'
 require 'ddtrace/contrib/resque/patcher'
@@ -25,7 +26,7 @@ module Datadog
 
         def self.compatible?
           super \
-            && version >= Gem::Version.new('1.0') \
+            && version >= MINIMUM_VERSION \
             && version < MAXIMUM_VERSION
         end
 

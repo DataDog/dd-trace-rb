@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -127,6 +128,7 @@ RSpec.describe 'Rails database' do
 
   context 'with custom database_service' do
     subject(:query) { Article.count }
+
     let(:database_service) { 'customer-db' }
 
     it 'doing a database call uses the proper service name if it is changed' do

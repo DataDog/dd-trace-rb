@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/active_support/cache/patcher'
 
 module Datadog
@@ -35,11 +36,7 @@ module Datadog
           end
 
           # Decorate Cache patcher with Redis support
-          Cache::Patcher.instance_eval do
-            class << self
-              prepend Redis::Patcher
-            end
-          end
+          Cache::Patcher.singleton_class.prepend(Redis::Patcher)
         end
       end
     end

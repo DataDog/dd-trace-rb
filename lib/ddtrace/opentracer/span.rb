@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module OpenTracer
     # OpenTracing adapter for Datadog::Span
@@ -73,9 +74,7 @@ module Datadog
         super # Log deprecation warning
 
         # If the fields specify an error
-        if fields.key?(:'error.object')
-          datadog_span.set_error(fields[:'error.object'])
-        end
+        datadog_span.set_error(fields[:'error.object']) if fields.key?(:'error.object')
       end
 
       # Add a log entry to this span
@@ -83,9 +82,7 @@ module Datadog
       # @param fields [Hash] Additional information to log
       def log_kv(timestamp: Time.now, **fields)
         # If the fields specify an error
-        if fields.key?(:'error.object')
-          datadog_span.set_error(fields[:'error.object'])
-        end
+        datadog_span.set_error(fields[:'error.object']) if fields.key?(:'error.object')
       end
 
       # Finish the {Span}

@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -10,7 +11,7 @@ require 'ddtrace'
 RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
 
-  before(:each) do
+  before do
     Datadog.configure do |c|
       c.use :redis, configuration_options
     end
@@ -72,7 +73,7 @@ RSpec.describe 'Redis test' do
 
     context 'roundtrip' do
       # Run a roundtrip
-      before(:each) do
+      before do
         expect(redis.set('FOO', 'bar')).to eq('OK')
         expect(redis.get('FOO')).to eq('bar')
       end
@@ -109,7 +110,7 @@ RSpec.describe 'Redis test' do
     end
 
     context 'arguments wrapped in array' do
-      before(:each) do
+      before do
         expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
       end
 
@@ -127,7 +128,8 @@ RSpec.describe 'Redis test' do
 
     context 'command_args disabled' do
       let(:configuration_options) { { command_args: false } }
-      before(:each) do
+
+      before do
         expect(redis.call([:set, 'FOO', 'bar'])).to eq('OK')
       end
 
@@ -144,7 +146,7 @@ RSpec.describe 'Redis test' do
     end
 
     context 'pipeline' do
-      before(:each) do
+      before do
         redis.pipelined do
           responses << redis.set('v1', '0')
           responses << redis.set('v2', '0')
@@ -178,6 +180,7 @@ RSpec.describe 'Redis test' do
 
       describe 'command_args disabled' do
         subject(:span) { spans[-1] }
+
         let(:configuration_options) { { command_args: false } }
 
         it 'hides the sensitive params' do
@@ -195,7 +198,7 @@ RSpec.describe 'Redis test' do
         redis.call 'THIS_IS_NOT_A_REDIS_FUNC', 'THIS_IS_NOT_A_VALID_ARG'
       end
 
-      before(:each) do
+      before do
         expect { bad_call }.to raise_error(Redis::CommandError, "ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'")
       end
 
@@ -229,8 +232,8 @@ RSpec.describe 'Redis test' do
         it do
           expect(span.name).to eq('redis.command')
           expect(span.service).to eq('redis')
-          expect(span.resource).to eq('SET K ' + 'x' * 47 + '...')
-          expect(span.get_tag('redis.raw_command')).to eq('SET K ' + 'x' * 47 + '...')
+          expect(span.resource).to eq("SET K #{'x' * 47}...")
+          expect(span.get_tag('redis.raw_command')).to eq("SET K #{'x' * 47}...")
         end
 
         it_behaves_like 'a span with common tags'

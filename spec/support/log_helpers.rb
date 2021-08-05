@@ -1,3 +1,4 @@
+# typed: false
 module LogHelpers
   def without_warnings(&block)
     LogHelpers.without_warnings(&block)
@@ -56,7 +57,7 @@ module LogHelpers
         # Scans each pattern against each line, increments count if it matches.
         lines = buffer.string.lines
         lines.each do |line|
-          pattern_matches.keys.each do |pattern|
+          pattern_matches.each_key do |pattern|
             pattern_matches[pattern] += 1 if line.match(pattern)
           end
         end

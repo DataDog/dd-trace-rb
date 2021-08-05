@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics'
 
 module Datadog
@@ -13,6 +14,10 @@ module Datadog
           else
             ::Rails.application.class.to_s.underscore
           end
+        end
+
+        def self.railtie_supported?
+          !(defined?(::Rails::VERSION::MAJOR) && ::Rails::VERSION::MAJOR >= 3 && defined?(::Rails::Railtie)).nil?
         end
       end
     end

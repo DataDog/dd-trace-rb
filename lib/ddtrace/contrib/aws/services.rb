@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     # rubocop:disable Metrics/ModuleLength:
@@ -52,6 +53,7 @@ module Datadog
         ElasticLoadBalancingV2
         ElasticTranscoder
         ElasticsearchService
+        EventBridge
         Firehose
         GameLift
         Glacier
@@ -98,6 +100,7 @@ module Datadog
         STS
         SWF
         ServiceCatalog
+        Schemas
         Shield
         SimpleDB
         Snowball

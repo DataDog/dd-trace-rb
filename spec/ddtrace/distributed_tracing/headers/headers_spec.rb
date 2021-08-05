@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -9,6 +10,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
   subject(:headers) do
     described_class.new(env)
   end
+
   let(:env) { {} }
 
   # Helper to format env header keys
@@ -23,11 +25,13 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
 
     context 'header value is nil' do
       let(:env) { { env_header('request_id') => nil } }
+
       it { expect(headers.header('request_id')).to be_nil }
     end
 
     context 'header value is empty string' do
       let(:env) { { env_header('request_id') => '' } }
+
       it { expect(headers.header('request_id')).to be_nil }
     end
 
@@ -41,6 +45,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
       ].each do |header|
         context "fetched as #{header}" do
           let(:env) { { env_header('request_id') => 'rid' } }
+
           it { expect(headers.header(header)).to eq('rid') }
         end
       end
@@ -77,6 +82,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
       ].each do |value, expected|
         context value.inspect do
           let(:env) { { env_header('trace_id') => value } }
+
           it { expect(headers.id('trace_id')).to eq(expected) }
         end
       end
@@ -96,6 +102,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
       ].each do |value, expected|
         context value.inspect do
           let(:env) { { env_header('trace_id') => value } }
+
           it { expect(headers.id('trace_id', 16)).to eq(expected) }
         end
       end
@@ -133,6 +140,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
       ].each do |value, expected|
         context value.inspect do
           let(:env) { { env_header('trace_id') => value } }
+
           it { expect(headers.number('trace_id')).to eq(expected) }
         end
       end
@@ -156,6 +164,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::Headers do
       ].each do |value, expected|
         context value.inspect do
           let(:env) { { env_header('trace_id') => value } }
+
           it { expect(headers.number('trace_id', 16)).to eq(expected) }
         end
       end

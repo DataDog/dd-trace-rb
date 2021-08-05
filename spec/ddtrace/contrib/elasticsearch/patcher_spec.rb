@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
@@ -10,7 +11,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
-  let(:client) { Elasticsearch::Client.new(url: server) }
+  let(:client) { Elasticsearch::Client.new(url: server, adapter: :net_http) }
   let(:configuration_options) { {} }
 
   before do

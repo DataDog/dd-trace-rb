@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 
 # Load integrations so they're available
@@ -10,7 +11,6 @@ require 'ddtrace/contrib/support/spec_helper'
 ].each do |integration|
   begin
     require integration
-  # rubocop:disable Lint/HandleExceptions
   rescue LoadError
     # If library isn't available, it can't be instrumented.
   end
@@ -48,6 +48,7 @@ RSpec.describe 'transport with integrations' do
 
       describe '#send_traces' do
         subject(:send_traces) { transport.send_traces(traces) }
+
         let(:traces) { get_test_traces(1) }
 
         it 'does not produce traces for itself' do
@@ -58,6 +59,7 @@ RSpec.describe 'transport with integrations' do
 
     context 'given the default transport' do
       let(:transport) { Datadog::Transport::HTTP.default }
+
       it_behaves_like 'an uninstrumented transport'
     end
 

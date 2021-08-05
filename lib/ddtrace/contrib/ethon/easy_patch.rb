@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/integration'
@@ -11,10 +12,10 @@ module Datadog
       # Ethon EasyPatch
       module EasyPatch
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
+
         # InstanceMethods - implementing instrumentation
-        # rubocop:disable Metrics/ModuleLength
         module InstanceMethods
           include Datadog::Contrib::HttpAnnotationHelper
 
@@ -36,12 +37,14 @@ module Datadog
           def perform
             load_datadog_configuration_for(url)
             return super unless tracer_enabled?
+
             datadog_before_request
             super
           end
 
           def complete
             return super unless tracer_enabled?
+
             begin
               response_options = mirror.options
               response_code = (response_options[:response_code] || response_options[:code]).to_i
@@ -100,20 +103,20 @@ module Datadog
           def datadog_tag_request
             span = @datadog_span
             method = Ext::NOT_APPLICABLE_METHOD
-            if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
-              method = @datadog_method.to_s
-            end
+            method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
             span.resource = method
             # Tag as an external peer service
             span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-            return unless uri
-            span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
+            this_uri = uri
+            return unless this_uri
+
+            span.set_tag(Datadog::Ext::HTTP::URL, this_uri.path)
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
-            span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
-            span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+            span.set_tag(Datadog::Ext::NET::TARGET_HOST, this_uri.host)
+            span.set_tag(Datadog::Ext::NET::TARGET_PORT, this_uri.port)
           end
 
           def set_span_error_message(message)
@@ -124,7 +127,6 @@ module Datadog
 
           def uri
             URI.parse(url)
-          # rubocop:disable Lint/HandleExceptions
           rescue URI::InvalidURIError
           end
 

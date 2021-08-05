@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/errors'
 require 'ddtrace/contrib/analytics'
@@ -33,16 +34,26 @@ module Datadog
             end
           end
 
-          def endpoint_start_process(*)
+          def endpoint_start_process(_name, _start, _finish, _id, payload)
             return if Thread.current[KEY_RUN]
             return unless enabled?
 
+            # collect endpoint details
+            endpoint = payload.fetch(:endpoint)
+            api_view = api_view(endpoint.options[:for])
+            request_method = endpoint.options.fetch(:method).first
+            path = endpoint_expand_path(endpoint)
+            resource = "#{api_view} #{request_method} #{path}"
+
             # Store the beginning of a trace
-            tracer.trace(
+            span = tracer.trace(
               Ext::SPAN_ENDPOINT_RUN,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND
+              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              resource: resource,
             )
+
+            try_setting_rack_request_resource(payload, span.resource)
 
             Thread.current[KEY_RUN] = true
           rescue StandardError => e
@@ -51,6 +62,7 @@ module Datadog
 
           def endpoint_run(name, start, finish, id, payload)
             return unless Thread.current[KEY_RUN]
+
             Thread.current[KEY_RUN] = false
 
             return unless enabled?
@@ -60,43 +72,30 @@ module Datadog
 
             begin
               # collect endpoint details
-              api = payload[:endpoint].options[:for]
-              # If the API inherits from Grape::API in version >= 1.2.0
-              # then the API will be an instance and the name must be derived from the base.
-              # See https://github.com/ruby-grape/grape/issues/1825
-              api_view = if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
-                           api.base.to_s
-                         else
-                           api.to_s
-                         end
+              endpoint = payload.fetch(:endpoint)
+              api_view = api_view(endpoint.options[:for])
+              request_method = endpoint.options.fetch(:method).first
+              path = endpoint_expand_path(endpoint)
 
-              path = payload[:endpoint].options[:path].join('/')
-              resource = "#{api_view}##{path}"
-              span.resource = resource
-
-              # set the request span resource if it's a `rack.request` span
-              request_span = payload[:env][Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-              if !request_span.nil? && request_span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
-                request_span.resource = resource
-              end
+              try_setting_rack_request_resource(payload, span.resource)
 
               # Set analytics sample rate
-              if analytics_enabled?
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
-              end
+              Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
 
-              if exception_is_error?(payload[:exception_object])
-                span.set_error(payload[:exception_object])
-              end
+              span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
               # override the current span with this notification values
               span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
+              span.set_tag(Ext::TAG_ROUTE_METHOD, request_method)
+
+              span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
+              span.set_tag(Datadog::Ext::HTTP::URL, path)
             ensure
               span.start(start)
               span.finish(finish)
@@ -123,6 +122,7 @@ module Datadog
 
           def endpoint_render(name, start, finish, id, payload)
             return unless Thread.current[KEY_RENDER]
+
             Thread.current[KEY_RENDER] = false
 
             return unless enabled?
@@ -135,9 +135,7 @@ module Datadog
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
-              if exception_is_error?(payload[:exception_object])
-                span.set_error(payload[:exception_object])
-              end
+              span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
             ensure
               span.start(start)
               span.finish(finish)
@@ -164,17 +162,13 @@ module Datadog
 
             begin
               # Set analytics sample rate
-              if analytics_enabled?
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate)
-              end
+              Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
 
               # catch thrown exceptions
-              if exception_is_error?(payload[:exception_object])
-                span.set_error(payload[:exception_object])
-              end
+              span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
               span.set_tag(Ext::TAG_FILTER_TYPE, type.to_s)
             ensure
@@ -186,6 +180,25 @@ module Datadog
           end
 
           private
+
+          def api_view(api)
+            # If the API inherits from Grape::API in version >= 1.2.0
+            # then the API will be an instance and the name must be derived from the base.
+            # See https://github.com/ruby-grape/grape/issues/1825
+            if defined?(::Grape::API::Instance) && api <= ::Grape::API::Instance
+              api.base.to_s
+            else
+              api.to_s
+            end
+          end
+
+          def endpoint_expand_path(endpoint)
+            route_path = endpoint.options[:path]
+            namespace = endpoint.routes.first && endpoint.routes.first.namespace || ''
+
+            parts = (namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
+            parts.join('/').prepend('/')
+          end
 
           def tracer
             datadog_configuration[:tracer]
@@ -208,6 +221,7 @@ module Datadog
             return false unless exception
             return true unless matcher
             return true unless exception.respond_to?('status')
+
             matcher.include?(exception.status)
           end
 
@@ -217,6 +231,13 @@ module Datadog
 
           def datadog_configuration
             Datadog.configuration[:grape]
+          end
+
+          def try_setting_rack_request_resource(payload, resource)
+            request_span = payload[:env][Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+            if !request_span.nil? && request_span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
+              request_span.resource = resource
+            end
           end
         end
       end

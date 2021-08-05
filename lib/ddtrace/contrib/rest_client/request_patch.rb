@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/integration'
@@ -10,7 +11,7 @@ module Datadog
       # RestClient RequestPatch
       module RequestPatch
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation
@@ -54,9 +55,7 @@ module Datadog
             yield(span).tap do |response|
               # Verify return value is a response
               # If so, add additional tags.
-              if response.is_a?(::RestClient::Response)
-                span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code)
-              end
+              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code) if response.is_a?(::RestClient::Response)
             end
           rescue ::RestClient::ExceptionWithResponse => e
             span.set_error(e) if Datadog::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)

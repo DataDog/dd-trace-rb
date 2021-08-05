@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'dalli'
@@ -21,7 +22,7 @@ RSpec.describe Datadog::Contrib::Dalli::Quantize do
 
       it { expect(formatted_command.size).to eq(Datadog::Contrib::Dalli::Ext::QUANTIZE_MAX_CMD_LENGTH) }
       it { is_expected.to end_with('...') }
-      it { is_expected.to eq('set foo ' + 'A' * 89 + '...') }
+      it { is_expected.to eq("set foo #{'A' * 89}...") }
     end
 
     context 'different encodings' do

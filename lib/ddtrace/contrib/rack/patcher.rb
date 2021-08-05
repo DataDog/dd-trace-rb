@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Contrib
     module Rack
@@ -53,9 +54,7 @@ module Datadog
             end
           end
 
-          following = if middleware.instance_variable_defined?('@app')
-                        middleware.instance_variable_get('@app')
-                      end
+          following = (middleware.instance_variable_get('@app') if middleware.instance_variable_defined?('@app'))
 
           retain_middleware_name(following)
         end

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'redis'
@@ -5,7 +6,7 @@ require 'hiredis'
 require 'ddtrace'
 
 RSpec.describe 'Redis replace method test' do
-  before(:each) do
+  before do
     skip unless ENV['TEST_DATADOG_INTEGRATION']
 
     Datadog.configure do |c|

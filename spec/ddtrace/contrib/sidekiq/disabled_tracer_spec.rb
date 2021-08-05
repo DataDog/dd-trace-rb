@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require_relative 'support/helper'
 
@@ -5,6 +6,7 @@ RSpec.describe 'Disabled tracer' do
   include_context 'Sidekiq testing'
 
   subject(:perform_async) { job_class.perform_async }
+
   let(:job_class) { EmptyWorker }
 
   before do

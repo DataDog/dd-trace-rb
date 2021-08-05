@@ -1,9 +1,11 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/worker'
 
 RSpec.describe Datadog::Worker do
   subject(:worker) { described_class.new(&block) }
+
   let(:block) { proc {} }
 
   describe '#initialize' do
@@ -14,10 +16,12 @@ RSpec.describe Datadog::Worker do
 
   describe '#perform' do
     subject(:perform) { worker.perform(*args) }
+
     let(:args) { [:a, :b] }
 
     context 'when no task has been set' do
       let(:block) { nil }
+
       it { is_expected.to be nil }
       it { expect { perform }.to_not raise_error }
     end

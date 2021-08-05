@@ -1,38 +1,8 @@
 version: '3.2'
 services:
   # MRI
-  tracer-2.0:
-    image: palazzem/docker-library:ddtrace_rb_2_0_0
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - presto
-      - redis
-    env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_REDIS_HOST=redis
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - bundle-2.0:/usr/local/bundle
-      - gemfiles-2.0:/app/gemfiles
   tracer-2.1:
-    image: palazzem/docker-library:ddtrace_rb_2_1_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -61,9 +31,8 @@ services:
     volumes:
       - .:/app
       - bundle-2.1:/usr/local/bundle
-      - gemfiles-2.1:/app/gemfiles
   tracer-2.2:
-    image: palazzem/docker-library:ddtrace_rb_2_2_10
+    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -92,9 +61,8 @@ services:
     volumes:
       - .:/app
       - bundle-2.2:/usr/local/bundle
-      - gemfiles-2.2:/app/gemfiles
   tracer-2.3:
-    image: palazzem/docker-library:ddtrace_rb_2_3_8
+    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
     depends_on:
       - ddagent
@@ -123,9 +91,8 @@ services:
     volumes:
       - .:/app
       - bundle-2.3:/usr/local/bundle
-      - gemfiles-2.3:/app/gemfiles
   tracer-2.4:
-    image: palazzem/docker-library:ddtrace_rb_2_4_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
     command: /bin/bash
     depends_on:
       - ddagent
@@ -154,9 +121,8 @@ services:
     volumes:
       - .:/app
       - bundle-2.4:/usr/local/bundle
-      - gemfiles-2.4:/app/gemfiles
   tracer-2.5:
-    image: marcotc/docker-library:ddtrace_rb_2_5_6
+    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     command: /bin/bash
     depends_on:
       - ddagent
@@ -185,9 +151,8 @@ services:
     volumes:
       - .:/app
       - bundle-2.5:/usr/local/bundle
-      - gemfiles-2.5:/app/gemfiles
   tracer-2.6:
-    image: marcotc/docker-library:ddtrace_rb_2_6_4
+    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
     command: /bin/bash
     depends_on:
       - ddagent
@@ -216,9 +181,8 @@ services:
     volumes:
       - .:/app
       - bundle-2.6:/usr/local/bundle
-      - gemfiles-2.6:/app/gemfiles
   tracer-2.7:
-    image: marcotc/docker-library:ddtrace_rb_2_7_0
+    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
     command: /bin/bash
     depends_on:
       - ddagent
@@ -247,10 +211,36 @@ services:
     volumes:
       - .:/app
       - bundle-2.7:/usr/local/bundle
-      - gemfiles-2.7:/app/gemfiles
+  tracer-3.0:
+    image: ivoanjo/docker-library:ddtrace_rb_3_0_1
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-3.0:/usr/local/bundle
   # JRuby
-  tracer-jruby-9.2:
-    image: marcotc/docker-library:ddtrace_rb_jruby_9_2
+  tracer-jruby-9.2.0.0:
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
     command: /bin/bash
     depends_on:
       - ddagent
@@ -278,8 +268,68 @@ services:
     tty: true
     volumes:
       - .:/app
-      - bundle-jruby-9.2:/usr/local/bundle
-      - gemfiles-jruby-9.2:/app/gemfiles
+      - bundle-jruby-9.2.0.0:/usr/local/bundle
+  tracer-jruby-9.2-latest:
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - presto
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_PRESTO_HOST=presto
+      - TEST_PRESTO_PORT=8080
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.2-latest:/usr/local/bundle
+  # TruffleRuby
+  tracer-truffleruby-21.1.0:
+    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_1_0
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - presto
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_PRESTO_HOST=presto
+      - TEST_PRESTO_PORT=8080
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-truffleruby-21.1.0:/usr/local/bundle
   ddagent:
     image: datadog/agent
     environment:
@@ -338,7 +388,8 @@ services:
     ports:
       - "${TEST_POSTGRES_PORT}:5432"
   presto:
-    image:  prestosql/presto
+    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+    image: starburstdata/presto:332-e.9
     expose:
       - "8080"
     ports:
@@ -350,7 +401,6 @@ services:
     ports:
       - "${TEST_REDIS_PORT}:6379"
 volumes:
-  bundle-2.0:
   bundle-2.1:
   bundle-2.2:
   bundle-2.3:
@@ -358,13 +408,7 @@ volumes:
   bundle-2.5:
   bundle-2.6:
   bundle-2.7:
-  bundle-jruby-9.2:
-  gemfiles-2.0:
-  gemfiles-2.1:
-  gemfiles-2.2:
-  gemfiles-2.3:
-  gemfiles-2.4:
-  gemfiles-2.5:
-  gemfiles-2.6:
-  gemfiles-2.7:
-  gemfiles-jruby-9.2:
+  bundle-3.0:
+  bundle-jruby-9.2.0.0:
+  bundle-jruby-9.2-latest:
+  bundle-truffleruby-21.1.0:

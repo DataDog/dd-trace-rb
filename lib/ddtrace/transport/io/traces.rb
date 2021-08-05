@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/transport/traces'
 
 require 'ddtrace/transport/io/response'
@@ -10,10 +11,18 @@ module Datadog
       module Traces
         # Response from HTTP transport for traces
         class Response < IO::Response
+          include Transport::Traces::Response
+
+          def initialize(result, trace_count = 1)
+            super(result)
+            @trace_count = trace_count
+          end
         end
 
         # Extensions for HTTP client
         module Client
+          include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
           def send_traces(traces)
             # Build a request
             req = Transport::Traces::Request.new(Parcel.new(traces))
@@ -84,7 +93,7 @@ module Datadog
         end
 
         # Add traces behavior to transport components
-        IO::Client.send(:include, Traces::Client)
+        IO::Client.include(Traces::Client)
       end
     end
   end

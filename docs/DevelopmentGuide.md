@@ -9,6 +9,8 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Writing tests](#writing-tests)
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
+     - [Running benchmarks](#running-benchmarks)
+     - [Type checking](#type-checking)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -114,6 +116,34 @@ Because you are likely not running all tests locally, your report will contain p
 You *must* check the CI step `coverage` for the complete test coverage report, ensuring coverage is not
 decreased.
 
+**Ensuring tests don't leak resources**
+
+Tests execution can create resources that are hard to track: threads, sockets, files, etc. Because these resources can come
+from the both the test setup as well as the code under test, making sure all resources are properly disposed is important
+to prevent the application from inadvertently creating cumulative resources during its execution.
+
+When running tests that utilize threads, you might see an error message similar to this one:
+
+```
+Test leaked 1 thread: "Datadog::Workers::AsyncTransport integration tests"
+Ensure all threads are terminated when test finishes:
+1: #<Thread:0x00007fcbc99863d0 /Users/marco.costa/work/dd-trace-rb/spec/spec_helper.rb:145 sleep> (Thread)
+Thread Creation Site:
+        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:245:in 'new'
+        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:245:in 'block (4 levels) in <top (required)>'
+Thread Backtrace:
+        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:262:in 'sleep'
+        .dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:262:in 'block (5 levels) in <top (required)>'
+        ./dd-trace-rb/spec/spec_helper.rb:147:in 'block in initialize'
+```
+
+This means that this test did not finish all threads by the time the test had finished. In this case, the thread
+creation can be traced to `workers_integration_spec.rb:245:in 'new'`. The thread itself is sleeping at `workers_integration_spec.rb:262:in 'sleep'`.
+
+The actionable in this case would be to ensure that the thread created in `workers_integration_spec.rb:245` is properly terminated by invoking `Thread#join` during the test tear down, which will wait for the thread to finish before returning.
+
+Depending on the situation, the thread in question might need to be forced to terminate. It's recommended to have a mechanism in place to terminate it (a shared variable that changes value when the thread should exit), but as a last resort, `Thread#terminate` forces the thread to finish. Keep in mind that regardless of the termination method, `Thread#join` must be called to ensure that the thread has completely finished its shutdown process.
+
 ### Checking code quality
 
 **Linting**
@@ -133,6 +163,19 @@ $ bundle exec rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
+
+## Type checking
+
+This library uses the [Sorbet](https://sorbet.org/) type checker. Sorbet can be run with `bundle exec srb tc` (or `bundle exec rake
+typecheck`). There's also Language Server Protocol support, if your editor supports it.
+
+Type checking can be controlled on a file-by-file manner, using a `# typed: ...` comment. The default (when none is provided) is assuming `# typed: false`.
+
+Things to note:
+
+* For compatibility with older Rubies, we use Sorbet but do not yet allow type annotations in the codebase. If Sorbet is blocking you, feel free to use `# typed: false` or `# typed: ignore` with a quick note on why this was needed. In many cases, Sorbet can typecheck a file correctly with no extra type annotations.
+
+* Most integration-specific code will reference optional external dependencies which Sorbet cannot see into. You'll probably need to use `# typed: false` or `# typed: ignore`  for those files as well.
 
 ## Appendix
 

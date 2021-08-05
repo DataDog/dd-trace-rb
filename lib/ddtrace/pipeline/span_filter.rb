@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Pipeline
     # SpanFilter implements a processor that filters entire span subtrees
@@ -10,7 +11,7 @@ module Datadog
         @criteria = filter || block
       end
 
-      # Note: this SpanFilter implementation only handles traces in which child spans appear
+      # NOTE: this SpanFilter implementation only handles traces in which child spans appear
       # after parent spans in the trace array. If in the future child spans can be before
       # parent spans, then the code below will need to be updated.
       def call(trace)

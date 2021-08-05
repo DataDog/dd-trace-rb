@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/instrumentation'
@@ -16,8 +17,8 @@ module Datadog
         end
 
         def patch
-          ::Mongo::Address.send(:include, Instrumentation::Address)
-          ::Mongo::Client.send(:include, Instrumentation::Client)
+          ::Mongo::Address.include(Instrumentation::Address)
+          ::Mongo::Client.include(Instrumentation::Client)
           add_mongo_monitoring
         end
 

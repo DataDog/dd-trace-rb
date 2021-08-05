@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/action_view/events'
@@ -31,12 +32,12 @@ module Datadog
             #  Rendering events are not nested in this version, creating
             #  render_partial spans outside of the parent render_template span.
             #  We fall back to manual patching instead.
-            ::ActionView::TemplateRenderer.send(:prepend, Instrumentation::TemplateRenderer::RailsLessThan4)
-            ::ActionView::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
+            ::ActionView::TemplateRenderer.prepend(Instrumentation::TemplateRenderer::RailsLessThan4)
+            ::ActionView::PartialRenderer.prepend(Instrumentation::PartialRenderer::RailsLessThan4)
           elsif defined?(::ActionView::Rendering) && defined?(::ActionView::Partials::PartialRenderer)
             # NOTE: Rails < 3.1 compatibility: different classes are used
-            ::ActionView::Rendering.send(:prepend, Instrumentation::TemplateRenderer::Rails30)
-            ::ActionView::Partials::PartialRenderer.send(:prepend, Instrumentation::PartialRenderer::RailsLessThan4)
+            ::ActionView::Rendering.prepend(Instrumentation::TemplateRenderer::Rails30)
+            ::ActionView::Partials::PartialRenderer.prepend(Instrumentation::PartialRenderer::RailsLessThan4)
           else
             Datadog.logger.debug('Expected Template/Partial classes not found; template rendering disabled')
           end

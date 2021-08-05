@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/action_cable/ext'
@@ -8,8 +9,8 @@ module Datadog
       # Defines basic behaviors for an event.
       module Event
         def self.included(base)
-          base.send(:include, ActiveSupport::Notifications::Event)
-          base.send(:extend, ClassMethods)
+          base.include(ActiveSupport::Notifications::Event)
+          base.extend(ClassMethods)
         end
 
         # Class methods for events.
@@ -34,8 +35,8 @@ module Datadog
       # but to start a fresh tracing context.
       module RootContextEvent
         def self.included(base)
-          base.send(:include, ActiveSupport::Notifications::Event)
-          base.send(:extend, ClassMethods)
+          base.include(ActiveSupport::Notifications::Event)
+          base.extend(ClassMethods)
         end
 
         # Class methods for events.
@@ -56,6 +57,7 @@ module Datadog
           # preventing such a leak.
           def ensure_clean_context!
             return unless configuration[:tracer].call_context.current_span
+
             configuration[:tracer].provider.context = Context.new
           end
         end

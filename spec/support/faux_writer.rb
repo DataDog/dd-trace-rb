@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/writer'
 
 require 'support/faux_transport'
@@ -51,6 +52,7 @@ class FauxWriter < Datadog::Writer
     @mutex.synchronize do
       return [] unless @spans
       return [] if @spans.empty?
+
       spans = @spans[0]
       @spans = @spans[1..@spans.size]
       spans

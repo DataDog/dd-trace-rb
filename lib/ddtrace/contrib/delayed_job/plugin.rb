@@ -1,3 +1,4 @@
+# typed: ignore
 require 'delayed/plugin'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/delayed_job/ext'
@@ -12,7 +13,6 @@ module Datadog
 
           tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
                                       on_error: configuration[:error_handler]) do |span|
-
             set_sample_rate(span)
 
             # Measure service stats

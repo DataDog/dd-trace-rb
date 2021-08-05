@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/redis/vendor/resolver'
 
 module Datadog
@@ -6,12 +7,19 @@ module Datadog
       module Configuration
         UNIX_SCHEME = 'unix'.freeze
 
-        # Converts Symbols, Strings, and Hashes to a normalized connection settings Hash.
+        # Converts String URLs and Hashes to a normalized connection settings Hash.
         class Resolver < Contrib::Configuration::Resolver
-          def resolve(key_or_hash)
-            return :default if key_or_hash == :default
+          # @param [Hash,String] Redis connection information
+          def resolve(hash)
+            super(parse_matcher(hash))
+          end
 
-            normalize(connection_resolver.resolve(key_or_hash))
+          protected
+
+          def parse_matcher(matcher)
+            matcher = { url: matcher } if matcher.is_a?(String)
+
+            normalize(connection_resolver.resolve(matcher))
           end
 
           def normalize(hash)

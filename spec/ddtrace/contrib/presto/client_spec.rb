@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -34,7 +35,28 @@ RSpec.describe 'Presto::Client instrumentation' do
 
   let(:presto_client_gem_version) { Gem.loaded_specs['presto-client'].version }
 
-  before(:each) do
+  # Using a global here so that after presto is online we don't keep repeating this check for other tests
+  # rubocop:disable Style/GlobalVars
+  before do
+    unless $presto_is_online
+      try_wait_until(attempts: 100, backoff: 0.1) { presto_online? }
+      $presto_is_online = true
+    end
+  end
+
+  def presto_online?
+    client.run('SELECT 1')
+    true
+  rescue Presto::Client::PrestoQueryError => e
+    if e.message.include?('Presto server is still initializing')
+      puts 'Presto not online yet'
+      false
+    else
+      raise
+    end
+  end
+
+  before do
     Datadog.configure do |c|
       c.use :presto, configuration_options
     end
@@ -208,7 +230,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
 
     describe '#run operation' do
-      before(:each) { client.run('SELECT 1') }
+      before { client.run('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
@@ -224,15 +246,13 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       context 'a failed query' do
-        before(:each) do
+        before do
           clear_spans!
           begin
             client.run('SELECT banana')
-          # rubocop:disable Lint/HandleExceptions
-          rescue
+          rescue Presto::Client::PrestoQueryError
             # do nothing
           end
-          # rubocop:enable Lint/HandleExceptions
         end
 
         it_behaves_like 'a Presto trace'
@@ -262,7 +282,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       context 'with no block paramter' do
-        before(:each) { client.query('SELECT 1') }
+        before { client.query('SELECT 1') }
 
         it_behaves_like 'a Presto trace'
         it_behaves_like 'a configurable Presto trace'
@@ -272,7 +292,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       context 'given a block parameter' do
-        before(:each) { client.query('SELECT 1') { nil } }
+        before { client.query('SELECT 1') { nil } }
 
         it_behaves_like 'a Presto trace'
         it_behaves_like 'a configurable Presto trace'
@@ -283,7 +303,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
 
     describe '#kill operation' do
-      before(:each) do
+      before do
         client.kill('a_query_id')
       end
 
@@ -305,7 +325,7 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
 
     describe '#run_with_names operation' do
-      before(:each) { client.run_with_names('SELECT 1') }
+      before { client.run_with_names('SELECT 1') }
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'

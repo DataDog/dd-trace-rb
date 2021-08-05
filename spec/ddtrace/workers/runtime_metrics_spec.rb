@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -5,17 +6,20 @@ require 'ddtrace/workers/runtime_metrics'
 
 RSpec.describe Datadog::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(options) }
-  let(:metrics) { instance_double(Datadog::Runtime::Metrics) }
+
+  let(:metrics) { instance_double(Datadog::Runtime::Metrics, close: nil) }
   let(:options) { { metrics: metrics, enabled: true } }
 
   before { allow(metrics).to receive(:flush) }
-  after { worker.stop(true, 0) }
+
+  after { worker.stop(true, 5) }
 
   describe '#initialize' do
     it { expect(worker).to be_a_kind_of(Datadog::Workers::Polling) }
 
     context 'by default' do
       subject(:worker) { described_class.new }
+
       it { expect(worker.enabled?).to be false }
       it { expect(worker.loop_base_interval).to eq 10 }
       it { expect(worker.loop_back_off_ratio).to eq 1.2 }
@@ -24,36 +28,42 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
     context 'when :enabled is given' do
       let(:options) { super().merge(enabled: true) }
+
       it { expect(worker.enabled?).to be true }
     end
 
     context 'when :enabled is not given' do
       before { options.delete(:enabled) }
+
       it { expect(worker.enabled?).to be false }
     end
 
     context 'when :interval is given' do
       let(:value) { double }
       let(:options) { super().merge(interval: value) }
+
       it { expect(worker.loop_base_interval).to be value }
     end
 
     context 'when :back_off_ratio is given' do
       let(:value) { double }
       let(:options) { super().merge(back_off_ratio: value) }
+
       it { expect(worker.loop_back_off_ratio).to be value }
     end
 
     context 'when :back_off_max is given' do
       let(:value) { double }
       let(:options) { super().merge(back_off_max: value) }
+
       it { expect(worker.loop_back_off_max).to be value }
     end
   end
 
   describe '#perform' do
     subject(:perform) { worker.perform }
-    after { worker.stop(true, 0) }
+
+    after { worker.stop(true, 5) }
 
     context 'when #enabled? is true' do
       before { allow(worker).to receive(:enabled?).and_return(true) }
@@ -75,7 +85,8 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   describe '#enabled=' do
     subject(:set_enabled_value) { worker.enabled = value }
-    after { worker.stop(true, 0) }
+
+    after { worker.stop(true, 5) }
 
     context 'when not running' do
       before do
@@ -177,6 +188,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   describe '#associate_with_span' do
     subject(:associate_with_span) { worker.associate_with_span(span) }
+
     let(:span) { instance_double(Datadog::Span) }
 
     before do
@@ -193,9 +205,53 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
   end
 
+  describe '#stop' do
+    subject(:stop) { worker.stop(*args, **kwargs) }
+
+    let(:args) { %w[foo bar] }
+    let(:kwargs) { {} }
+
+    before do
+      allow(worker.metrics).to receive(:close)
+    end
+
+    it 'closes metrics and stops worker' do
+      stop
+
+      expect(worker.enabled?).to be(false)
+      expect(worker.running?).to be(false)
+      expect(worker.metrics).to have_received(:close)
+    end
+
+    context 'with close_metrics: false' do
+      let(:kwargs) { { close_metrics: false } }
+
+      it 'does not close metrics, but stops worker' do
+        stop
+
+        expect(worker.running?).to be(false)
+        expect(worker.metrics).to_not have_received(:close)
+      end
+    end
+
+    context 'with async thread not started' do
+      it 'does not lazily initialize stopped worker' do
+        expect(worker.running?).to be(false)
+
+        stop
+
+        # Try to initialize async thread
+        worker.perform
+
+        expect(worker.running?).to be(false)
+      end
+    end
+  end
+
   describe 'forwarded methods' do
     describe '#register_service' do
       subject(:register_service) { worker.register_service(service) }
+
       let(:service) { double('service') }
 
       before { allow(worker.metrics).to receive(:register_service) }
@@ -224,7 +280,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
 
     describe 'forking' do
-      before { skip unless PlatformHelpers.supports_fork? }
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       let(:options) do
         {
@@ -236,6 +292,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
       context 'when the process forks' do
         before { allow(metrics).to receive(:flush) }
+
         after { worker.stop }
 
         context 'with FORK_POLICY_STOP fork policy' do

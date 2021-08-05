@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/analytics'
 
 RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
@@ -64,6 +65,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is set' do
           let(:analytics_sample_rate) { 0.5 }
+
           around do |example|
             ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
               example.run
@@ -115,6 +117,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is set' do
           let(:analytics_sample_rate) { 0.5 }
+
           around do |example|
             ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
               example.run
@@ -167,6 +170,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is set' do
           let(:analytics_sample_rate) { 0.5 }
+
           around do |example|
             ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
               example.run
@@ -219,6 +223,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is set' do
           let(:analytics_sample_rate) { 0.5 }
+
           around do |example|
             ClimateControl.modify(analytics_sample_rate_var => analytics_sample_rate.to_s) do
               example.run
@@ -261,6 +266,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
     let(:analytics_enabled) { defined?(super) ? super() : analytics_enabled }
 
     before { Datadog.configuration.analytics.enabled = analytics_enabled }
+
     after { Datadog.configuration.reset! }
   end
 
@@ -276,6 +282,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
         context 'is set' do
           let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
           let(:analytics_sample_rate) { 0.5 }
+
           it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
         end
       end
@@ -308,6 +315,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
         context 'is set' do
           let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
           let(:analytics_sample_rate) { 0.5 }
+
           it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
         end
       end

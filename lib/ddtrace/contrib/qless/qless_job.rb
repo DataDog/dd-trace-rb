@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/analytics'
 require 'qless'
@@ -9,6 +10,7 @@ module Datadog
       module QlessJob
         def around_perform(job)
           return super unless datadog_configuration && tracer
+
           tracer.trace(Ext::SPAN_JOB, span_options) do |span|
             span.resource = job.klass_name
             span.span_type = Datadog::Ext::AppTypes::WORKER

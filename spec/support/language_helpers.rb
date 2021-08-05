@@ -1,3 +1,4 @@
+# typed: false
 module LanguageHelpers
   module HashHelpers
     # Introduced in Ruby 2.5
@@ -19,5 +20,4 @@ module LanguageHelpers
   end
 end
 
-# Prepend was private in Ruby 2.0
-Hash.send(:prepend, LanguageHelpers::HashHelpers)
+Hash.prepend(LanguageHelpers::HashHelpers)

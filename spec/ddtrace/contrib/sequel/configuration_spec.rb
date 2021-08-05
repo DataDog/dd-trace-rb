@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 
@@ -7,7 +8,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/sequel/patcher'
 
 RSpec.describe 'Sequel configuration' do
-  before(:each) do
+  before do
     skip unless Datadog::Contrib::Sequel::Integration.compatible?
   end
 
@@ -35,7 +36,7 @@ RSpec.describe 'Sequel configuration' do
     end
 
     describe 'when configured' do
-      after(:each) { Datadog.configuration[:sequel].reset! }
+      after { Datadog.configuration[:sequel].reset! }
 
       context 'only with defaults' do
         # Expect it to be the normalized adapter name.

@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     # Registry is a collection of integrations.
@@ -17,9 +18,9 @@ module Datadog
         end
       end
 
-      def each
+      def each(&block)
         @mutex.synchronize do
-          @data.each { |_, entry| yield(entry) }
+          @data.each_value(&block)
         end
       end
 
