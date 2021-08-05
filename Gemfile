@@ -75,6 +75,3 @@ gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'] if RUBY_PLATFORM != 'j
 # For type checking
 gem 'sorbet', '>= 0.5.6513', '< 0.6' if RUBY_VERSION >= '2.3.0'
 gem 'spoom', '~> 1.1' if RUBY_VERSION >= '2.4.0'
-
-gem 'grape'
-gem 'rack-test'
