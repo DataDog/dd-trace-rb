@@ -115,7 +115,7 @@ RSpec.describe GRPC::InterceptionContext do
           let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a non-peer service span'
       end
 
       context 'request response call type' do
