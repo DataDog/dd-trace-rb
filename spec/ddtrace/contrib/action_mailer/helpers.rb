@@ -4,6 +4,10 @@ require 'rails'
 
 RSpec.shared_context 'ActionMailer helpers' do
   before do
+    # internal to tests only as instrumentatioin relies on ASN
+    # but we patch here to ensure emails dont actually get set.
+    # older rubies may have this live on `DeliveryJob` instead of `Base`
+    # https://github.com/rails/rails/blob/e43d0ddb0359858fdb93e86b158987da81698a3d/guides/source/testing.md#the-basic-test-case
     if ActionMailer::Base.respond_to?(:delivery_method)
       ActionMailer::Base.delivery_method = :test
     else
