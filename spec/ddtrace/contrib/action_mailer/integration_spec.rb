@@ -1,5 +1,6 @@
-require 'ddtrace/contrib/support/spec_helper'
+# typed: ignore
 
+require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/action_mailer/integration'
 
 RSpec.describe Datadog::Contrib::ActionMailer::Integration do
