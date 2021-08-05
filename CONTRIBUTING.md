@@ -20,8 +20,6 @@ Additionally, if you can, include:
  - Links to similar features that would serve as a good comparison
  - (Any other details that would be useful for implementing this feature!)
 
-Feature requests will be reviewed, discussed, and then added to [our Community project](https://github.com/DataDog/dd-trace-rb/projects/2).
-
 ## Found a bug?
 
 For any urgent matters (such as outages) or issues concerning the Datadog service or UI, contact our support team via https://docs.datadoghq.com/help/ for direct, faster assistance.
