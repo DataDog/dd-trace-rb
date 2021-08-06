@@ -2,14 +2,20 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
+def ruby_version?(version)
+  full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
+
+  Gem::Version.new(full_version) <= Gem::Version.new(RUBY_VERSION) &&
+    Gem::Version.new(RUBY_VERSION) < Gem::Version.new(full_version).bump
+end
+
 def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
     gem 'cucumber', ">=#{version}.0.0", "<#{version + 1}.0.0"
   end
 end
 
-if Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+if ruby_version?('2.1')
   appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
@@ -132,8 +138,8 @@ if Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.2')
   appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
@@ -324,8 +330,8 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.3')
   appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
@@ -527,8 +533,8 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.4')
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1'
@@ -644,8 +650,8 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.5')
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1', platform: :ruby
@@ -881,8 +887,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.6')
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
@@ -1082,8 +1088,8 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'dogstatsd-ruby', '~> 4'
     end
   end
-elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.0.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.7')
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
@@ -1286,7 +1292,8 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'dogstatsd-ruby', '~> 4'
     end
   end
-elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('3.0')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
