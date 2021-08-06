@@ -8,9 +8,7 @@ def self.gem_cucumber(version)
   end
 end
 
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
-  raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
-elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
+if Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
       && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
   appraise 'rails30-postgres' do
     gem 'test-unit'
