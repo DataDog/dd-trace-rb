@@ -43,6 +43,7 @@ RSpec.shared_context 'Rails 6 base application' do
 
       instance_eval(&during_init)
 
+      config.active_job.queue_adapter = :inline
       if ENV['USE_SIDEKIQ']
         config.active_job.queue_adapter = :sidekiq
         # add Sidekiq middleware
@@ -70,7 +71,11 @@ RSpec.shared_context 'Rails 6 base application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = :sidekiq if ENV['USE_SIDEKIQ']
+      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                            :sidekiq
+                                                          else
+                                                            :inline
+                                                          end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         # When running in full application mode, Rails tries to monitor
