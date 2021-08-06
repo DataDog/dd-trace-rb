@@ -156,11 +156,11 @@ module Datadog
           # *before* the thread had time to finish the initialization
           return unless current_cpu_time_ns
 
-          last_cpu_time_ns = (thread[THREAD_LAST_CPU_TIME_KEY] || current_cpu_time_ns)
+          last_cpu_time_ns = (thread.thread_variable_get(THREAD_LAST_CPU_TIME_KEY) || current_cpu_time_ns)
           interval = current_cpu_time_ns - last_cpu_time_ns
 
           # Update CPU time for thread
-          thread[THREAD_LAST_CPU_TIME_KEY] = current_cpu_time_ns
+          thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, current_cpu_time_ns)
 
           # Return interval
           interval
@@ -248,7 +248,7 @@ module Datadog
         # By resetting the last cpu time seen, we start with a clean slate every time we start the stack collector.
         def reset_cpu_time_tracking
           thread_api.list.each do |thread|
-            thread[THREAD_LAST_CPU_TIME_KEY] = nil
+            thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, nil)
           end
         end
       end

@@ -72,7 +72,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it 'cleans up any leftover cpu tracking state in existing threads' do
-        expect(thread).to receive(:[]=).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
+        expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
 
         start
       end
@@ -347,12 +347,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             .and_return(current_cpu_time)
 
           allow(thread)
-            .to receive(:[])
+            .to receive(:thread_variable_get)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY)
             .and_return(last_cpu_time)
 
           expect(thread)
-            .to receive(:[]=)
+            .to receive(:thread_variable_set)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
         end
 
@@ -499,14 +499,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             .and_return(current_cpu_time)
 
           expect(thread)
-            .to receive(:[]=)
+            .to receive(:thread_variable_set)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
         end
 
         context 'and the thread CPU time has not been retrieved before' do
           before do
             allow(thread)
-              .to receive(:[])
+              .to receive(:thread_variable_get)
               .with(described_class::THREAD_LAST_CPU_TIME_KEY)
               .and_return(nil)
           end
@@ -523,7 +523,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
           before do
             allow(thread)
-              .to receive(:[])
+              .to receive(:thread_variable_get)
               .with(described_class::THREAD_LAST_CPU_TIME_KEY)
               .and_return(last_cpu_time)
           end
