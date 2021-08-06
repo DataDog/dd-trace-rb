@@ -71,28 +71,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(thread_api).to receive(:list).and_return([thread])
       end
 
-      context 'when there is existing cpu time tracking state in threads' do
-        before do
-          expect(thread).to receive(:[]).with(described_class::THREAD_LAST_CPU_TIME_KEY).and_return(12345)
-        end
+      it 'cleans up any leftover cpu tracking state in existing threads' do
+        expect(thread).to receive(:[]=).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
 
-        it 'resets the existing state back to nil' do
-          expect(thread).to receive(:[]=).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
-
-          start
-        end
-      end
-
-      context 'when there is no cpu time tracking state in threads' do
-        before do
-          allow(thread).to receive(:[]).and_return(nil)
-        end
-
-        it 'does nothing' do
-          expect(thread).to_not receive(:[]=)
-
-          start
-        end
+        start
       end
     end
   end
