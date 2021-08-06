@@ -42,9 +42,7 @@ Then within this container you can [run tests](#running-tests), or [run code qua
 
 ## Testing
 
-The test suite uses both [Minitest](https://github.com/seattlerb/minitest) and [RSpec](https://rspec.info/) tests to verify the correctness of both the core trace library and its integrations.
-
-Minitest is deprecated in favor of RSpec; all new tests should be written in RSpec, and only existing minitests should be updated.
+The test suite uses [RSpec](https://rspec.info/) tests to verify the correctness of both the core trace library and its integrations.
 
 ### Writing tests
 
@@ -68,9 +66,6 @@ Simplest way to run tests is to run `bundle exec rake ci`, which will run the en
 Run the tests for the core library with:
 
 ```
-# Run Minitest
-$ bundle exec rake test:main
-# Run RSpec
 $ bundle exec rake spec:main
 ```
 
