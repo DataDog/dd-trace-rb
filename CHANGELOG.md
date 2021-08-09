@@ -2,6 +2,44 @@
 
 ## [Unreleased]
 
+## [0.52.0] - 2021-08-09
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.52.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.51.1...v0.52.0
+
+### Added
+
+- Add Sorbet typechecker to dd-trace-rb ([#1607][])
+
+  Note that no inline type signatures were added, to avoid a hard dependency on sorbet.
+
+- Profiler: Add support for annotating profiler stacks with the resource of the active web trace, if any ([#1623][])
+
+  Note that this data is not yet visible on the profiling interface.
+
+- Add error_handler option to GRPC tracer configuration ([#1583][]) ([@fteem][])
+- User-friendly handling of slow submissions on shutdown ([#1601][])
+- Profiler: Add experimental toggle to disable the profiling native extension ([#1594][])
+- Profiler: Bootstrap profiling native extension ([#1584][])
+
+### Changed
+
+- Profiler: Profiling data is no longer reported when there's less than 1 second of data to report ([#1630][])
+- Move Grape span resource setting to beginning of request ([#1629])
+- Set resource in Sinatra spans at the beginning of requests, and delay setting fallback resource to end of requests ([#1628][])
+- Move Rails span resource setting to beginning of request ([#1626][])
+- Make registry a global constant repository ([#1572][])
+- Profiler: Remove automatic agentless support ([#1590][])
+
+### Fixed
+
+- Profiler: Fix CPU-time accounting in Profiling when fibers are used ([#1636][])
+- Don't set peer.service tag on grpc.server spans ([#1632][])
+- CI-App: Fix GitHub actions environment variable extraction ([#1622][])
+- Additional Faraday 1.4+ cgroup parsing formats ([#1595][])
+- Avoid shipping development cruft files in gem releases ([#1585][])
+
 ## [0.51.1] - 2021-07-13
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.51.1
@@ -2490,10 +2528,27 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1561]: https://github.com/DataDog/dd-trace-rb/issues/1561
 [#1566]: https://github.com/DataDog/dd-trace-rb/issues/1566
 [#1570]: https://github.com/DataDog/dd-trace-rb/issues/1570
+[#1572]: https://github.com/DataDog/dd-trace-rb/issues/1572
 [#1576]: https://github.com/DataDog/dd-trace-rb/issues/1576
+[#1583]: https://github.com/DataDog/dd-trace-rb/issues/1583
+[#1584]: https://github.com/DataDog/dd-trace-rb/issues/1584
+[#1585]: https://github.com/DataDog/dd-trace-rb/issues/1585
 [#1586]: https://github.com/DataDog/dd-trace-rb/issues/1586
 [#1587]: https://github.com/DataDog/dd-trace-rb/issues/1587
+[#1590]: https://github.com/DataDog/dd-trace-rb/issues/1590
 [#1592]: https://github.com/DataDog/dd-trace-rb/issues/1592
+[#1594]: https://github.com/DataDog/dd-trace-rb/issues/1594
+[#1595]: https://github.com/DataDog/dd-trace-rb/issues/1595
+[#1601]: https://github.com/DataDog/dd-trace-rb/issues/1601
+[#1607]: https://github.com/DataDog/dd-trace-rb/issues/1607
+[#1622]: https://github.com/DataDog/dd-trace-rb/issues/1622
+[#1623]: https://github.com/DataDog/dd-trace-rb/issues/1623
+[#1626]: https://github.com/DataDog/dd-trace-rb/issues/1626
+[#1628]: https://github.com/DataDog/dd-trace-rb/issues/1628
+[#1629]: https://github.com/DataDog/dd-trace-rb/issues/1629
+[#1630]: https://github.com/DataDog/dd-trace-rb/issues/1630
+[#1632]: https://github.com/DataDog/dd-trace-rb/issues/1632
+[#1636]: https://github.com/DataDog/dd-trace-rb/issues/1636
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2545,6 +2600,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@evan-waters]: https://github.com/evan-waters
 [@fledman]: https://github.com/fledman
 [@frsantos]: https://github.com/frsantos
+[@fteem]: https://github.com/fteem
 [@gaborszakacs]: https://github.com/gaborszakacs
 [@giancarlocosta]: https://github.com/giancarlocosta
 [@gingerlime]: https://github.com/gingerlime
