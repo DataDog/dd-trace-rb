@@ -71,7 +71,8 @@ module Datadog
     # and then <tt>finish()</tt> once the tracer operation is over.
     #
     # * +service+: the service name for this span
-    # * +resource+: the resource this span refers, or +name+ if it's missing
+    # * +resource+: the resource this span refers, or +name+ if it's missing.
+    #     +nil+ can be used as a placeholder, when the resource value is not yet known at +#initialize+ time.
     # * +span_type+: the type of the span (such as +http+, +db+ and so on)
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
