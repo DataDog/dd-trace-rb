@@ -26,7 +26,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.51.1...v0.52.0
 ### Changed
 
 - Profiler: Profiling data is no longer reported when there's less than 1 second of data to report ([#1630][])
-- Move Grape span resource setting to beginning of request ([#1629])
+- Move Grape span resource setting to beginning of request ([#1629][])
 - Set resource in Sinatra spans at the beginning of requests, and delay setting fallback resource to end of requests ([#1628][])
 - Move Rails span resource setting to beginning of request ([#1626][])
 - Make registry a global constant repository ([#1572][])
