@@ -6,6 +6,7 @@ module Datadog
     module Runtime
       TAG_ID = 'runtime-id'.freeze
       TAG_LANG = 'language'.freeze
+      TAG_PID = 'system.pid'.freeze
 
       # Metrics
       module Metrics
