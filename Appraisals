@@ -259,6 +259,7 @@ elsif ruby_version?('2.2')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
+    gem 'redis-rails'
   end
 
   appraise 'rails5-postgres-sidekiq' do
@@ -454,6 +455,8 @@ elsif ruby_version?('2.3')
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'redis-rails'
+    gem 'redis-store', '> 1.6.0'
   end
 
   appraise 'rails5-postgres-sidekiq' do
@@ -570,6 +573,7 @@ elsif ruby_version?('2.4')
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'redis-rails'
   end
 
   appraise 'rails5-postgres-sidekiq' do
@@ -697,6 +701,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'redis-rails'
   end
 
   appraise 'rails5-postgres-sidekiq' do
@@ -755,6 +760,7 @@ elsif ruby_version?('2.5')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
+    gem 'redis-rails'
   end
 
   appraise 'rails6-postgres-sidekiq' do
@@ -925,6 +931,7 @@ elsif ruby_version?('2.6')
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+      gem 'redis-rails'
     end
 
     appraise 'rails5-postgres-sidekiq' do
@@ -971,6 +978,7 @@ elsif ruby_version?('2.6')
       gem 'redis', '>= 4.0.1'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+      gem 'redis-rails'
     end
 
     appraise 'rails6-postgres-sidekiq' do
@@ -1115,7 +1123,6 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -1124,10 +1131,10 @@ elsif ruby_version?('2.7')
     appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+      gem 'redis-rails'
     end
 
     appraise 'rails5-postgres-sidekiq' do
@@ -1163,7 +1170,6 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
@@ -1172,10 +1178,10 @@ elsif ruby_version?('2.7')
     appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
-      gem 'redis-rails'
       gem 'redis'
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
+      gem 'redis-rails'
     end
 
     appraise 'rails6-postgres-sidekiq' do

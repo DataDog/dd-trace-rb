@@ -28,11 +28,17 @@ RSpec.shared_context 'Rails 6 base application' do
 
     klass.send(:define_method, :initialize) do |*args|
       super(*args)
-      redis_cache = [:redis_cache_store, { url: ENV['REDIS_URL'] }]
+      redis_cache =
+        if Gem.loaded_specs['redis-activesupport']
+          [:redis_store, { url: ENV['REDIS_URL'] }]
+        else
+          [:redis_cache_store, { url: ENV['REDIS_URL'] }]
+        end
       file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
 
       config.load_defaults '6.0'
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
+      config.active_record.cache_versioning = false if Gem.loaded_specs['redis-activesupport']
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
