@@ -229,10 +229,15 @@ end
 
 desc 'CI task; it runs all tests for current version of Ruby'
 task :ci do
-  if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
-    raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
-  elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+  def ruby_version?(version)
+    full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
+
+    Gem::Version.new(full_version) <= Gem::Version.new(RUBY_VERSION) &&
+      Gem::Version.new(RUBY_VERSION) < Gem::Version.new(full_version).bump
+  end
+
+  if ruby_version?('2.1')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -298,8 +303,9 @@ task :ci do
     declare 'bundle exec appraisal rails32-postgres rake spec:action_view'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
     declare 'bundle exec appraisal rails32-postgres rake spec:active_support'
-  elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION)\
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+
+  elsif ruby_version?('2.2')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -383,8 +389,9 @@ task :ci do
     declare 'bundle exec appraisal rails4-postgres rake spec:rails'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
-  elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+
+  elsif ruby_version?('2.3')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -473,8 +480,9 @@ task :ci do
     # explicitly test resque-2x compatability
     declare 'bundle exec appraisal resque2-redis3 rake spec:resque'
     declare 'bundle exec appraisal resque2-redis4 rake spec:resque'
-  elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
+
+  elsif ruby_version?('2.4')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -549,8 +557,9 @@ task :ci do
     # explicitly test cucumber compatibility
     declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
-  elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
-        && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
+
+  elsif ruby_version?('2.5')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -648,8 +657,9 @@ task :ci do
     declare 'bundle exec appraisal cucumber3 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
     declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
-  elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
+
+  elsif ruby_version?('2.6')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -751,8 +761,9 @@ task :ci do
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
     end
-  elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.0.0')
+
+  elsif ruby_version?('2.7')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
@@ -853,7 +864,9 @@ task :ci do
       declare 'bundle exec appraisal cucumber4 rake spec:cucumber'
       declare 'bundle exec appraisal cucumber5 rake spec:cucumber'
     end
-  elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
+
+  elsif ruby_version?('3.0')
+
     # Main library
     declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
