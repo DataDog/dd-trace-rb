@@ -130,7 +130,7 @@ RSpec.describe Datadog::Tracer do
         end
 
         context 'with multiple tags' do
-          it do
+          it 'sets all tags' do
             tracer.set_tags(host: 'h1', custom_tag: 'my-tag')
 
             is_expected.to include('host' => 'h1')
@@ -270,15 +270,17 @@ RSpec.describe Datadog::Tracer do
       end
 
       context 'when starting a span' do
-        it do
+        it 'yields span provided block' do
           expect { |b| tracer.trace(name, &b) }.to yield_with_args(
             a_kind_of(Datadog::Span)
           )
         end
 
-        it { expect(trace).to eq(result) }
+        it 'returns block result' do
+          expect(trace).to eq(result)
+        end
 
-        it do
+        it 'sets the span name from the name argument' do
           trace
           expect(span.name).to eq(name)
         end
@@ -311,7 +313,7 @@ RSpec.describe Datadog::Tracer do
             allow(writer).to receive(:write)
           end
 
-          it do
+          it 'records span flushing to logger' do
             expect(Datadog.logger).to receive(:debug).with(including('Writing 1 span'))
             expect(Datadog.logger).to receive(:debug).with(including('Name: span.name'))
 
@@ -327,7 +329,7 @@ RSpec.describe Datadog::Tracer do
       end
 
       context 'when nesting spans' do
-        it do
+        it 'propagates parent span and service name to children' do
           tracer.trace('parent', service: 'service-parent') do
             tracer.trace('child1') { |s| s.set_tag('tag', 'tag_1') }
             tracer.trace('child2', service: 'service-child2') { |s| s.set_tag('tag', 'tag_2') }
@@ -434,7 +436,7 @@ RSpec.describe Datadog::Tracer do
         let(:error) { error_class.new('error message') }
         let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
 
-        it do
+        it 'sets span error status and information' do
           expect { trace }.to raise_error(error)
 
           expect(span).to have_error
@@ -458,7 +460,7 @@ RSpec.describe Datadog::Tracer do
 
         context 'and the on_error option' do
           context 'is not provided' do
-            it do
+            it 'propagates the error' do
               expect_any_instance_of(Datadog::Span).to receive(:set_error)
                 .with(error)
               expect { trace }.to raise_error(error)
@@ -564,7 +566,7 @@ RSpec.describe Datadog::Tracer do
     let(:context) { instance_double(Datadog::Context) }
 
     context 'given no arguments' do
-      it do
+      it 'returns the currently active, default context' do
         expect(tracer.provider)
           .to receive(:context)
           .with(nil)
@@ -579,7 +581,7 @@ RSpec.describe Datadog::Tracer do
 
       let(:key) { Thread.current }
 
-      it do
+      it 'returns the context associated with the key' do
         expect(tracer.provider)
           .to receive(:context)
           .with(key)
@@ -597,7 +599,7 @@ RSpec.describe Datadog::Tracer do
     context 'given no arguments' do
       subject(:active_span) { tracer.active_span }
 
-      it do
+      it 'returns the currently active, default active span' do
         expect(tracer.call_context).to receive(:current_span).and_return(span)
         is_expected.to be(span)
       end
@@ -608,7 +610,7 @@ RSpec.describe Datadog::Tracer do
 
       let(:key) { double('key') }
 
-      it do
+      it 'returns the active span associated with the key' do
         expect(tracer)
           .to receive(:call_context)
           .with(key)
@@ -630,7 +632,7 @@ RSpec.describe Datadog::Tracer do
     context 'given no arguments' do
       subject(:active_root_span) { tracer.active_root_span }
 
-      it do
+      it 'returns the currently active, default root span' do
         expect(tracer.call_context).to receive(:current_root_span).and_return(span)
         is_expected.to be(span)
       end
@@ -641,7 +643,7 @@ RSpec.describe Datadog::Tracer do
 
       let(:key) { double('key') }
 
-      it do
+      it 'returns the root span associated with the key' do
         expect(tracer)
           .to receive(:call_context)
           .with(key)
