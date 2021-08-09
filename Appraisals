@@ -2,27 +2,31 @@ lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
+def ruby_version?(version)
+  full_version = "#{version}.0" # Turn 2.1 into 2.1.0 otherwise #bump below doesn't work as expected
+
+  Gem::Version.new(full_version) <= Gem::Version.new(RUBY_VERSION) &&
+    Gem::Version.new(RUBY_VERSION) < Gem::Version.new(full_version).bump
+end
+
 def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
     gem 'cucumber', ">=#{version}.0.0", "<#{version + 1}.0.0"
   end
 end
 
-if Gem::Version.new(RUBY_VERSION) < Gem::Version.new(Datadog::VERSION::MINIMUM_RUBY_VERSION)
-  raise NotImplementedError, "Ruby versions < #{Datadog::VERSION::MINIMUM_RUBY_VERSION} are not supported!"
-elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+if ruby_version?('2.1')
   appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails30-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
   end
@@ -30,8 +34,8 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'mysql2', '0.3.21', platform: :ruby
-    gem 'activerecord-mysql-adapter', platform: :ruby
+    gem 'mysql2', '0.3.21'
+    gem 'activerecord-mysql-adapter'
     gem 'rack-cache', '1.7.1'
     gem 'sqlite3', '~> 1.3.5'
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
@@ -40,14 +44,14 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-postgres' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails32-postgres-redis' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'redis-rails'
     gem 'redis', '< 4.0'
     gem 'rack-cache', '1.7.1'
@@ -56,35 +60,35 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails4-mysql2' do
     gem 'rails', '4.2.11.1'
-    gem 'mysql2', '< 1', platform: :ruby
+    gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails4-postgres' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails4-semantic-logger' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
   appraise 'rails4-postgres-redis' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis-rails'
     gem 'redis', '< 4.0'
     gem 'sprockets', '< 4'
@@ -94,7 +98,7 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'contrib-old' do
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'activerecord', '3.2.22.5'
-    gem 'activerecord-mysql-adapter', platform: :ruby
+    gem 'activerecord-mysql-adapter'
     gem 'aws-sdk', '~> 2.0'
     gem 'concurrent-ruby'
     gem 'dalli'
@@ -109,8 +113,8 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'httpclient'
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '< 2.5'
-    gem 'mysql2', '0.3.21', platform: :ruby
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'mysql2', '0.3.21'
+    gem 'pg', '< 1.0'
     gem 'rack', '1.4.7'
     gem 'rack-cache', '1.7.1'
     gem 'rack-test', '0.7.0'
@@ -134,19 +138,19 @@ elsif Gem::Version.new('2.1.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.2')
   appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails30-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
   end
@@ -154,8 +158,8 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'mysql2', '0.3.21', platform: :ruby
-    gem 'activerecord-mysql-adapter', platform: :ruby
+    gem 'mysql2', '0.3.21'
+    gem 'activerecord-mysql-adapter'
     gem 'rack-cache', '1.7.1'
     gem 'sqlite3', '~> 1.3.5'
   end
@@ -163,14 +167,14 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-postgres' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails32-postgres-redis' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'redis-rails'
     gem 'redis', '< 4.0'
     gem 'rack-cache', '1.7.1'
@@ -179,35 +183,35 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails4-mysql2' do
     gem 'rails', '4.2.11.1'
-    gem 'mysql2', '< 1', platform: :ruby
+    gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails4-postgres' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails4-semantic-logger' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
   appraise 'rails4-postgres-redis' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis-rails'
     gem 'redis', '< 4.0'
     gem 'sprockets', '< 4'
@@ -216,7 +220,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails4-postgres-sidekiq' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sidekiq'
     gem 'activejob'
     gem 'sprockets', '< 4'
@@ -225,7 +229,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-mysql2' do
     gem 'rails', '5.2.3'
-    gem 'mysql2', '< 1', platform: :ruby
+    gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
@@ -233,7 +237,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres' do
     gem 'rails', '5.2.3'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
@@ -241,7 +245,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres-redis' do
     gem 'rails', '5.2.3'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -250,7 +254,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '5.2.3'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -259,7 +263,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '5.2.3'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sidekiq'
     gem 'activejob'
     gem 'sprockets', '< 4'
@@ -269,7 +273,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-semantic-logger' do
     gem 'rails', '5.2.3'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
@@ -286,7 +290,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
-    gem 'pg', platform: :ruby
+    gem 'pg'
     gem 'presto-client', '>=  0.5.14'
     gem 'ethon'
     gem 'excon'
@@ -300,7 +304,7 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'lograge', '~> 0.11'
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '>= 2.8.0'
-    gem 'mysql2', '< 0.5', platform: :ruby
+    gem 'mysql2', '< 0.5'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
@@ -326,19 +330,19 @@ elsif Gem::Version.new('2.2.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.4.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.3')
   appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails30-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
   end
@@ -346,8 +350,8 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'mysql2', '0.3.21', platform: :ruby
-    gem 'activerecord-mysql-adapter', platform: :ruby
+    gem 'mysql2', '0.3.21'
+    gem 'activerecord-mysql-adapter'
     gem 'rack-cache', '1.7.1'
     gem 'sqlite3', '~> 1.3.5'
   end
@@ -355,14 +359,14 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-postgres' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails32-postgres-redis' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'redis-rails'
     gem 'redis', '< 4.0'
     gem 'rack-cache', '1.7.1'
@@ -371,35 +375,35 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'rails32-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
-    gem 'pg', '0.15.1', platform: :ruby
+    gem 'pg', '0.15.1'
     gem 'sidekiq', '4.0.0'
     gem 'rack-cache', '1.7.1'
   end
 
   appraise 'rails4-mysql2' do
     gem 'rails', '4.2.11.1'
-    gem 'mysql2', '< 1', platform: :ruby
+    gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails4-postgres' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails4-semantic-logger' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
   appraise 'rails4-postgres-redis' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis-rails'
     gem 'redis', '< 4.0'
     gem 'sprockets', '< 4'
@@ -408,7 +412,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails4-postgres-sidekiq' do
     gem 'rails', '4.2.11.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sidekiq'
     gem 'activejob'
     gem 'sprockets', '< 4'
@@ -417,21 +421,21 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
-    gem 'mysql2', '< 1', platform: :ruby
+    gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails5-postgres' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails5-postgres-redis' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -439,14 +443,14 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-semantic-logger' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
   appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -454,7 +458,7 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sidekiq'
     gem 'activejob'
     gem 'sprockets', '< 4'
@@ -497,8 +501,8 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'lograge', '~> 0.11'
     gem 'makara'
     gem 'mongo', '>= 2.8.0'
-    gem 'mysql2', '< 0.5', platform: :ruby
-    gem 'pg', platform: :ruby
+    gem 'mysql2', '< 0.5'
+    gem 'pg'
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
@@ -529,32 +533,32 @@ elsif Gem::Version.new('2.3.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.5.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.4')
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
-    gem 'mysql2', '< 1', platform: :ruby
+    gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails5-postgres' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
   appraise 'rails5-semantic-logger' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
   appraise 'rails5-postgres-redis' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -562,7 +566,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
@@ -570,7 +574,7 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
 
   appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '~> 5.2.1'
-    gem 'pg', '< 1.0', platform: :ruby
+    gem 'pg', '< 1.0'
     gem 'sidekiq'
     gem 'activejob'
     gem 'sprockets', '< 4'
@@ -614,8 +618,8 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
     gem 'lograge', '~> 0.11'
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '!= 2.15.0' # TODO: FIX TEST BREAKAGES ON 2.15.0
-    gem 'mysql2', '< 0.5', platform: :ruby
-    gem 'pg', platform: :ruby
+    gem 'mysql2', '< 0.5'
+    gem 'pg'
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5', '< 2.3.0' # Locked until https://github.com/zendesk/racecar/issues/252 is addressed
@@ -646,8 +650,8 @@ elsif Gem::Version.new('2.4.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.5')
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1', platform: :ruby
@@ -883,8 +887,8 @@ elsif Gem::Version.new('2.5.0') <= Gem::Version.new(RUBY_VERSION) \
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
-elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.6')
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
@@ -1084,8 +1088,8 @@ elsif Gem::Version.new('2.6.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'dogstatsd-ruby', '~> 4'
     end
   end
-elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
-      && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.0.0')
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('2.7')
   if RUBY_PLATFORM != 'java'
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
@@ -1288,7 +1292,8 @@ elsif Gem::Version.new('2.7.0') <= Gem::Version.new(RUBY_VERSION) \
       gem 'dogstatsd-ruby', '~> 4'
     end
   end
-elsif Gem::Version.new('3.0.0') <= Gem::Version.new(RUBY_VERSION)
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('3.0')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby

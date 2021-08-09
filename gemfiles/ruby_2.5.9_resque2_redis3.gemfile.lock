@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack
 
@@ -135,6 +135,15 @@ GEM
       rack (~> 2.2)
       rack-protection (= 2.1.0)
       tilt (~> 2.0)
+    sorbet (0.5.9013)
+      sorbet-static (= 0.5.9013)
+    sorbet-runtime (0.5.9013)
+    sorbet-static (0.5.9013-x86_64-linux)
+    spoom (1.1.2)
+      colorize
+      sorbet (>= 0.5.6347)
+      sorbet-runtime
+      thor (>= 0.19.2)
     thor (1.1.0)
     tilt (2.0.10)
     unicode-display_width (2.0.0)
@@ -171,7 +180,7 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  rake (>= 10.5, < 13.0.4)
+  rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   redis (< 4.0)
@@ -185,6 +194,8 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
   simplecov!
+  sorbet (>= 0.5.6513, < 0.6)
+  spoom (~> 1.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   yard (~> 0.9)

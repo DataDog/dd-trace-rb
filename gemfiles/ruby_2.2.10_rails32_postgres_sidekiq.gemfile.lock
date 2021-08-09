@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack
 
@@ -172,7 +172,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.2)
   benchmark-ips (~> 2.8)
@@ -196,7 +195,7 @@ DEPENDENCIES
   pry-stack_explorer
   rack-cache (= 1.7.1)
   rails (= 3.2.22.5)
-  rake (>= 10.5, < 13.0.4)
+  rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   rexml (< 3.2.5)

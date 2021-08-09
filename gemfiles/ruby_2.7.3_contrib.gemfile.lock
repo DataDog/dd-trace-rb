@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack
 
@@ -1468,9 +1468,18 @@ GEM
       rake (~> 12.3)
       serverengine (~> 2.1.0)
       thor
+    sorbet (0.5.9013)
+      sorbet-static (= 0.5.9013)
+    sorbet-runtime (0.5.9013)
+    sorbet-static (0.5.9013-x86_64-linux)
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
+    spoom (1.1.2)
+      colorize
+      sorbet (>= 0.5.6347)
+      sorbet-runtime
+      thor (>= 0.19.2)
     sqlite3 (1.4.2)
     sucker_punch (3.0.1)
       concurrent-ruby (~> 1.0)
@@ -1572,6 +1581,8 @@ DEPENDENCIES
   simplecov!
   sinatra
   sneakers (>= 2.12.0)
+  sorbet (>= 0.5.6513, < 0.6)
+  spoom (~> 1.1)
   sqlite3 (~> 1.4.1)
   sucker_punch
   typhoeus

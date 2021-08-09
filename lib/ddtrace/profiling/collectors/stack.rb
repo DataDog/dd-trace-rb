@@ -156,11 +156,11 @@ module Datadog
           # *before* the thread had time to finish the initialization
           return unless current_cpu_time_ns
 
-          last_cpu_time_ns = (thread[THREAD_LAST_CPU_TIME_KEY] || current_cpu_time_ns)
+          last_cpu_time_ns = (thread.thread_variable_get(THREAD_LAST_CPU_TIME_KEY) || current_cpu_time_ns)
           interval = current_cpu_time_ns - last_cpu_time_ns
 
           # Update CPU time for thread
-          thread[THREAD_LAST_CPU_TIME_KEY] = current_cpu_time_ns
+          thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, current_cpu_time_ns)
 
           # Return interval
           interval
@@ -237,7 +237,7 @@ module Datadog
         end
 
         # If the profiler is started for a while, stopped and then restarted OR whenever the process forks, we need to
-        # clean up the per-thread cpu time counters we keep, so that the first sample after starting doesn't end up with:
+        # clean up any leftover per-thread cpu time counters, so that the first sample after starting doesn't end up with:
         #
         # a) negative time: At least on my test docker container, and on the reliability environment, after the process
         #    forks, the clock reference changes and (old cpu time - new cpu time) can be < 0
@@ -248,7 +248,7 @@ module Datadog
         # By resetting the last cpu time seen, we start with a clean slate every time we start the stack collector.
         def reset_cpu_time_tracking
           thread_api.list.each do |thread|
-            thread[THREAD_LAST_CPU_TIME_KEY] = nil if thread[THREAD_LAST_CPU_TIME_KEY]
+            thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, nil)
           end
         end
       end

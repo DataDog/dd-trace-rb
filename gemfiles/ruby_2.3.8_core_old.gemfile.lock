@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack
 
@@ -77,6 +77,9 @@ GEM
       json (>= 1.8, < 3)
       simplecov-html (~> 0.10.0)
     simplecov-html (0.10.2)
+    sorbet (0.5.9013)
+      sorbet-static (= 0.5.9013)
+    sorbet-static (0.5.9013-x86_64-linux)
     thor (1.1.0)
     webmock (3.13.0)
       addressable (>= 2.3.6)
@@ -108,13 +111,14 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  rake (>= 10.5, < 13.0.4)
+  rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.4.1)
   simplecov (~> 0.17)
+  sorbet (>= 0.5.6513, < 0.6)
   webmock (>= 3.10.0)
   yard (~> 0.9)
 
