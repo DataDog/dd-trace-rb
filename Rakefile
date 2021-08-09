@@ -163,16 +163,7 @@ namespace :spec do
 end
 
 namespace :test do
-  task all: [:main,
-             :rails]
-
-  Rake::TestTask.new(:main) do |t|
-    t.libs << %w[test lib]
-    t.test_files = FileList['test/**/*_test.rb'].reject do |path|
-      path.include?('contrib') ||
-        path.include?('redis')
-    end
-  end
+  task all: [:rails]
 
   Rake::TestTask.new(:rails) do |t|
     t.libs << %w[test lib]
@@ -239,7 +230,6 @@ task :ci do
   if ruby_version?('2.1')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -307,7 +297,6 @@ task :ci do
   elsif ruby_version?('2.2')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -393,7 +382,6 @@ task :ci do
   elsif ruby_version?('2.3')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -484,7 +472,6 @@ task :ci do
   elsif ruby_version?('2.4')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -561,7 +548,6 @@ task :ci do
   elsif ruby_version?('2.5')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -661,7 +647,6 @@ task :ci do
   elsif ruby_version?('2.6')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -765,7 +750,6 @@ task :ci do
   elsif ruby_version?('2.7')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
@@ -868,7 +852,6 @@ task :ci do
   elsif ruby_version?('3.0')
 
     # Main library
-    declare 'bundle exec rake test:main'
     declare 'bundle exec rake spec:main'
     declare 'bundle exec appraisal core-old rake spec:main'
     declare 'bundle exec rake spec:contrib'
