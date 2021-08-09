@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack
 
@@ -58,7 +58,7 @@ GEM
     dogstatsd-ruby (5.2.0)
     erubis (2.7.0)
     ffi (1.12.2)
-    google-protobuf (3.6.1-x86_64-linux)
+    google-protobuf (3.6.1)
     hashdiff (1.0.1)
     hike (1.2.3)
     i18n (0.9.5)
@@ -182,7 +182,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.2)
   benchmark-ips (~> 2.8)
@@ -206,7 +205,7 @@ DEPENDENCIES
   pry-stack_explorer
   rack-cache (= 1.7.1)
   rails (= 3.2.22.5)
-  rake (>= 10.5, < 13.0.4)
+  rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   redis (< 4.0)
