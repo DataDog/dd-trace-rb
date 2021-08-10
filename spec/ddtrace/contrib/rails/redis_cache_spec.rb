@@ -26,6 +26,22 @@ MESSAGE
 
     allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with('REDIS_URL').and_return("redis://#{host}:#{port}")
+
+    if ENV['EXPECT_RAILS_ACTIVESUPPORT'] == 'true'
+      require 'redis-activesupport'
+
+      expect(cache_store_name).to(
+        eq('redis_store'),
+        'Tests are running with ENV["EXPECT_RAILS_ACTIVESUPPORT"] = true but the test application is not using ' \
+        'the rails-activesupport gem.'
+      )
+    else
+      expect(cache_store_name).to(
+        eq('redis_cache_store'),
+        'Tests are running without ENV["EXPECT_RAILS_ACTIVESUPPORT"] being set but the test application is not using ' \
+        'the rails built-in redis support.'
+      )
+    end
   end
 
   before { app }
@@ -43,8 +59,7 @@ MESSAGE
   let(:key) { 'custom-key' }
 
   let(:cache_store_name) do
-    if Gem.loaded_specs['redis-activesupport'] \
-       && Gem::Version.new(Rails::VERSION::STRING) < Gem::Version.new('5.2')
+    if Gem.loaded_specs['redis-activesupport']
       'redis_store'
     else
       'redis_cache_store'
@@ -53,7 +68,7 @@ MESSAGE
 
   let(:cache) { Rails.cache }
 
-  after { cache.clear }
+  after { cache && cache.clear }
 
   shared_examples 'reader method' do |method|
     subject(:read) { cache.public_send(method, key) }
