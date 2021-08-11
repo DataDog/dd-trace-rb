@@ -5,7 +5,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
-
+require 'ddtrace/utils/only_once'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/tracer_middleware'
 require 'ddtrace/contrib/sinatra/env'
@@ -77,6 +77,9 @@ module Datadog
 
         # Method overrides for Sinatra::Base
         module Base
+          MISSING_REQUEST_SPAN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+          private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
+
           def render(engine, data, *)
             tracer = Datadog.configuration[:sinatra][:tracer]
             return super unless tracer.enabled
@@ -121,8 +124,18 @@ module Datadog
                 else
                   Sinatra::Env.datadog_span(env, self.class)
                 end
-              if sinatra_request_span # DEV: Is it possible for sinatra_request_span to ever be nil here?
+              if sinatra_request_span
                 sinatra_request_span.resource = span.resource
+              else
+                MISSING_REQUEST_SPAN_ONLY_ONCE.run do
+                  Datadog.logger.warn do
+                    'Sinatra integration is misconfigured, reported traces will be missing request metadata ' \
+                    'such as path and HTTP status code. ' \
+                    'Did you forget to add `register Datadog::Contrib::Sinatra::Tracer` to your ' \
+                    '`Sinatra::Base` subclass? ' \
+                    'See <https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#sinatra> for more details.'
+                  end
+                end
               end
 
               Contrib::Analytics.set_measured(span)
