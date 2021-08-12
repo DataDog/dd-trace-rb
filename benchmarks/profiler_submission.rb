@@ -42,15 +42,14 @@ class ProfilerSubmission
     output_pprof = @adapter_buffer.last[:form]["data[0]"].io
 
     expected_hashes = [
-      "75c65dec2d5d750faca3e905486c39ba44219636ac1bea15d5d624b741d4b62a",
-      "6780c47b3e271f2abe0346fd40ac358f6a34270b3a8f5743aacd1970bbbbc6f5"
+      "cf2d47ce25f3d2541327ab509ca7bfb6a3a0aa30ce18a428cbcc476e4e137878",
     ]
     current_hash = Digest::SHA256.hexdigest(Zlib::GzipReader.new(output_pprof).read)
 
     if expected_hashes.include?(current_hash)
       puts "Output hash #{current_hash} matches known signature"
     else
-      puts "WARNING: Unexpected pprof output -- unknown hash. Hashes seem to differ due to some of our dependencies changing, " \
+      puts "WARNING: Unexpected pprof output -- unknown hash (#{current_hash}). Hashes seem to differ due to some of our dependencies changing, " \
         "but it can also indicate that encoding output has become corrupted."
     end
   end
