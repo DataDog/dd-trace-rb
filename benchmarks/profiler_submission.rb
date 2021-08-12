@@ -4,6 +4,7 @@ return unless __FILE__ == $PROGRAM_NAME
 require 'benchmark/ips'
 require 'ddtrace'
 require 'pry'
+require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of encoding pprofs and trying to submit them
 #
@@ -56,7 +57,7 @@ class ProfilerSubmission
 
   def run_benchmark
     Benchmark.ips do |x|
-      x.config(time: 10, warmup: 2)
+      x.config(time: 10, warmup: 2, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission'))
 
       x.report("exporter #{ENV['CONFIG']}") do
         run_once
