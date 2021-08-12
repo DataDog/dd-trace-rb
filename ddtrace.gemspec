@@ -34,7 +34,7 @@ Gem::Specification.new do |spec|
     .reject { |f| f.match(%r{^(test|spec|features|[.]circleci|[.]github|[.]dd-ci|benchmarks|gemfiles|integration|tasks|sorbet)/}) }
     .reject do |f|
       ['.dockerignore', '.env', '.gitattributes', '.gitlab-ci.yml', '.rspec', '.rubocop.yml',
-       '.rubocop_todo.yml', '.simplecov', 'Appraisals', 'Gemfile', 'Rakefile', 'docker-compose.yml'].include?(f)
+       '.rubocop_todo.yml', '.simplecov', 'Appraisals', 'Gemfile', 'Rakefile', 'docker-compose.yml', '.pryrc'].include?(f)
     end
   spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
