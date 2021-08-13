@@ -131,14 +131,6 @@ RSpec.describe 'Rails Rack' do
     end)
   end
 
-  let(:controller_spans) do
-    expect(spans).to have_at_least(2).items
-    spans
-  end
-
-  let(:request_span) { spans[0] }
-  let(:controller_span) { spans[1] }
-
   let(:spans) do
     if rails_older_than_3_2
       # Rails < 3.2 creates synthetic intermediate templates internally.
@@ -178,6 +170,14 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span.get_tag('rails.route.controller')).to eq('TestController')
       expect(controller_span).to be_measured
 
+      expect(cache_span.name).to eq('rails.cache')
+      expect(cache_span.span_type).to eq('cache')
+      expect(cache_span.resource).to eq('SET')
+      expect(cache_span.service).to eq("#{app_name}-cache")
+      expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+      expect(cache_span.get_tag('rails.cache.key')).to eq('empty-key')
+      expect(cache_span).to_not be_measured
+
       expect(render_span.name).to eq('rails.render_template')
       expect(render_span.span_type).to eq('template')
       expect(render_span.service).to eq(Datadog.configuration[:rails][:service_name])
@@ -186,14 +186,6 @@ RSpec.describe 'Rails Rack' do
       expect(render_span.get_tag('rails.layout')).to eq('layouts/application') unless rails_older_than_3_2
       expect(render_span.get_tag('rails.layout')).to include('layouts/application')
       expect(render_span).to be_measured
-
-      expect(cache_span.name).to eq('rails.cache')
-      expect(cache_span.span_type).to eq('cache')
-      expect(cache_span.resource).to eq('SET')
-      expect(cache_span.service).to eq("#{app_name}-cache")
-      expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
-      expect(cache_span.get_tag('rails.cache.key')).to eq('empty-key')
-      expect(cache_span).to_not be_measured
     end
 
     it 'tracing does not affect response body' do
@@ -229,14 +221,6 @@ RSpec.describe 'Rails Rack' do
 
       _rack_span, _controller_span, inner_partial_span, outer_partial_span, template_span = spans
 
-      expect(outer_partial_span.name).to eq('rails.render_partial')
-      expect(outer_partial_span.span_type).to eq('template')
-      expect(outer_partial_span.resource).to eq('_outer_partial.html.erb')
-      expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb') unless rails_older_than_3_2
-      expect(outer_partial_span.get_tag('rails.template_name')).to include('_outer_partial.html')
-      expect(outer_partial_span).to be_measured
-      expect(outer_partial_span.parent).to eq(template_span)
-
       expect(inner_partial_span.name).to eq('rails.render_partial')
       expect(inner_partial_span.span_type).to eq('template')
       expect(inner_partial_span.resource).to eq('_inner_partial.html.erb')
@@ -244,6 +228,14 @@ RSpec.describe 'Rails Rack' do
       expect(inner_partial_span.get_tag('rails.template_name')).to include('_inner_partial.html')
       expect(inner_partial_span).to be_measured
       expect(inner_partial_span.parent).to eq(outer_partial_span)
+
+      expect(outer_partial_span.name).to eq('rails.render_partial')
+      expect(outer_partial_span.span_type).to eq('template')
+      expect(outer_partial_span.resource).to eq('_outer_partial.html.erb')
+      expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb') unless rails_older_than_3_2
+      expect(outer_partial_span.get_tag('rails.template_name')).to include('_outer_partial.html')
+      expect(outer_partial_span).to be_measured
+      expect(outer_partial_span.parent).to eq(template_span)
     end
 
     it 'tracing does not affect response body' do
@@ -255,7 +247,7 @@ RSpec.describe 'Rails Rack' do
     subject(:response) { get '/nonexistent_template' }
 
     before do
-      skip 'Event-based instrumentation cannot suffer from this issue' if Rails.version >= '4.0.0'
+      skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
     end
 
     it 'traces complete stack' do
@@ -318,16 +310,6 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(controller_span).to have_error_stack
 
-      expect(template_span.name).to eq('rails.render_template')
-      expect(template_span.resource).to eq('partial_does_not_exist.html.erb') # Fallback value due to missing template
-      expect(template_span.span_type).to eq('template')
-      expect(template_span.get_tag('rails.template_name')).to eq('partial_does_not_exist.html.erb')
-      expect(template_span.get_tag('rails.layout')).to eq('layouts/application')
-      expect(template_span).to have_error
-      expect(template_span).to have_error_type('ActionView::Template::Error')
-      expect(template_span).to have_error_message(include('Missing partial test/no_partial_here'))
-      expect(template_span).to have_error_stack
-
       expect(partial_span.name).to eq('rails.render_partial')
       expect(partial_span.resource).to eq('rails.render_partial') # Fallback value due to missing partial
       expect(partial_span.span_type).to eq('template')
@@ -337,6 +319,16 @@ RSpec.describe 'Rails Rack' do
       expect(partial_span).to have_error_type('ActionView::MissingTemplate')
       expect(partial_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(partial_span).to have_error_stack
+
+      expect(template_span.name).to eq('rails.render_template')
+      expect(template_span.resource).to eq('partial_does_not_exist.html.erb') # Fallback value due to missing template
+      expect(template_span.span_type).to eq('template')
+      expect(template_span.get_tag('rails.template_name')).to eq('partial_does_not_exist.html.erb')
+      expect(template_span.get_tag('rails.layout')).to eq('layouts/application')
+      expect(template_span).to have_error
+      expect(template_span).to have_error_type('ActionView::Template::Error')
+      expect(template_span).to have_error_message(include('Missing partial test/no_partial_here'))
+      expect(template_span).to have_error_stack
     end
   end
 
@@ -346,11 +338,8 @@ RSpec.describe 'Rails Rack' do
     it 'traces with error information' do
       is_expected.to be_server_error
 
-      expect(controller_span.name).to eq('rails.action_controller')
-      expect(controller_span).to have_error
-      expect(controller_span).to have_error_type('ZeroDivisionError')
-      expect(controller_span).to have_error_message('divided by 0')
-      expect(controller_span).to have_error_stack
+      expect(spans).to have(2).items
+      request_span, controller_span = spans
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
@@ -360,6 +349,12 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('500')
       expect(request_span).to have_error
       expect(request_span).to have_error_stack(match(/rack_spec\.rb.*\berror\b/))
+
+      expect(controller_span.name).to eq('rails.action_controller')
+      expect(controller_span).to have_error
+      expect(controller_span).to have_error_type('ZeroDivisionError')
+      expect(controller_span).to have_error_message('divided by 0')
+      expect(controller_span).to have_error_stack
     end
   end
 
@@ -369,11 +364,8 @@ RSpec.describe 'Rails Rack' do
     it 'traces without explicit exception information' do
       is_expected.to be_server_error
 
-      expect(controller_span.name).to eq('rails.action_controller')
-      expect(controller_span).to have_error
-      expect(controller_span).to_not have_error_type
-      expect(controller_span).to_not have_error_message
-      expect(controller_span).to_not have_error_stack
+      expect(spans).to have(3).items
+      request_span, controller_span, _template_span = spans
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
@@ -383,6 +375,12 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('520')
       expect(request_span).to have_error
       expect(request_span).to_not have_error_stack
+
+      expect(controller_span.name).to eq('rails.action_controller')
+      expect(controller_span).to have_error
+      expect(controller_span).to_not have_error_type
+      expect(controller_span).to_not have_error_message
+      expect(controller_span).to_not have_error_stack
     end
   end
 
@@ -392,11 +390,8 @@ RSpec.describe 'Rails Rack' do
     it 'traces complete stack' do
       is_expected.to be_server_error
 
-      expect(controller_span.name).to eq('rails.action_controller')
-      expect(controller_span).to have_error
-      expect(controller_span).to have_error_type('ZeroDivisionError')
-      expect(controller_span).to have_error_message('divided by 0')
-      expect(controller_span).to have_error_stack
+      expect(spans).to have(2).items
+      request_span, controller_span = spans
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
@@ -409,6 +404,12 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_message('divided by 0')
       expect(request_span).to have_error_stack(match(/rack_spec\.rb.*\berror\b/))
       expect(request_span).to have_error_stack(match(/rack_spec\.rb.*\bsub_error\b/))
+
+      expect(controller_span.name).to eq('rails.action_controller')
+      expect(controller_span).to have_error
+      expect(controller_span).to have_error_type('ZeroDivisionError')
+      expect(controller_span).to have_error_message('divided by 0')
+      expect(controller_span).to have_error_stack
     end
   end
 
@@ -418,15 +419,18 @@ RSpec.describe 'Rails Rack' do
     it 'does not propagate error status to Rack span' do
       is_expected.to be_ok
 
-      expect(controller_span.name).to eq('rails.action_controller')
-      expect(controller_span).to have_error
-      expect(controller_span).to have_error_type('RescuableError')
+      expect(spans).to have(3).items
+      request_span, controller_span, _template_span = spans
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')
       expect(request_span).to_not have_error
+
+      expect(controller_span.name).to eq('rails.action_controller')
+      expect(controller_span).to have_error
+      expect(controller_span).to have_error_type('RescuableError')
     end
   end
 
@@ -439,11 +443,14 @@ RSpec.describe 'Rails Rack' do
     it 'does not override trace resource names' do
       is_expected.to be_server_error
 
-      expect(controller_span).to have_error
-      expect(controller_span.resource).to eq('ErrorsController#internal_server_error')
+      expect(spans).to have(2).items
+      request_span, controller_span = spans
 
       expect(request_span).to have_error
       expect(request_span.resource).to_not eq(controller_span.resource)
+
+      expect(controller_span).to have_error
+      expect(controller_span.resource).to eq('ErrorsController#internal_server_error')
     end
   end
 
@@ -469,7 +476,7 @@ RSpec.describe 'Rails Rack' do
   context 'with an explicitly raised 404' do
     subject { get '/explicitly_not_found' }
 
-    it 'does not mark span as error' do
+    it 'does captures the attempted URL information' do
       is_expected.to be_not_found
 
       expect(spans).to have_at_least(1).item
@@ -481,11 +488,27 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.url')).to eq('/explicitly_not_found')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('404')
+    end
 
-      if rails_older_than_3_2
-        # Old Rails does not have ActionDispatch::ExceptionWrapper, thus lets the error bubble up.
+    context 'on Rails < 3.2' do
+      before { skip('This test only applies to Rails < 3.2') unless rails_older_than_3_2 }
+
+      # Old Rails does not have ActionDispatch::ExceptionWrapper, thus lets the error bubble up.
+      it 'makes rack span as error' do
+        is_expected.to be_not_found
+
+        request_span = spans[0]
         expect(request_span).to have_error
-      else
+      end
+    end
+
+    context 'on Rails >= 3.2' do
+      before { skip('This test only applies to Rails >= 3.2') if rails_older_than_3_2 }
+
+      it 'does not mark rack span as error' do
+        is_expected.to be_not_found
+
+        request_span = spans[0]
         expect(request_span).to_not have_error
       end
     end
@@ -547,12 +570,6 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to have_error_stack
       expect(controller_span).to have_error_message
 
-      expect(render_span).to have_error
-      expect(render_span).to have_error_type('ActionView::Template::Error')
-
-      expect(partial_span).to have_error
-      expect(partial_span).to have_error_type('ActionView::Template::Error')
-
       expect(partial_span.name).to eq('rails.render_partial')
       expect(partial_span.span_type).to eq('template')
       if rails_older_than_3_2
@@ -565,6 +582,9 @@ RSpec.describe 'Rails Rack' do
       expect(partial_span).to have_error
       expect(partial_span).to have_error_type('ActionView::Template::Error')
       expect(partial_span).to have_error_message('divided by 0')
+
+      expect(render_span).to have_error
+      expect(render_span).to have_error_type('ActionView::Template::Error')
     end
   end
 
@@ -587,6 +607,9 @@ RSpec.describe 'Rails Rack' do
       subject(:response) { get '/custom_span_resource' }
 
       it 'propagates the custom controller span resource to the request span resource' do
+        expect(spans).to have(2).items
+        request_span, _controller_span = spans
+
         expect(request_span.resource).to eq('CustomSpanResource')
       end
     end
