@@ -13,7 +13,7 @@ require 'ddtrace/profiling/encoding/profile'
 
 RSpec.describe 'profiling integration test' do
   before do
-    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
   end
 
   let(:tracer) { instance_double(Datadog::Tracer) }
