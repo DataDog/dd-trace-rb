@@ -59,6 +59,7 @@ RSpec.describe 'GraphQL patcher' do
         # {GraphQL::Execution::Execute}
         # does not execute authorization code.
         if schema.query_execution_strategy == GraphQL::Execution::Execute
+          pp spans
           expect(spans).to have(9).items
         else
           valid_resource_names += [
@@ -66,6 +67,7 @@ RSpec.describe 'GraphQL patcher' do
             'Query.authorized'
           ]
 
+          pp spans
           expect(spans).to have(11).items
         end
 
