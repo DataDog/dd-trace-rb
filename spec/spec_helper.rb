@@ -99,7 +99,7 @@ RSpec.configure do |config|
       # successive failures. The output is very verbose and, at that point,
       # it's better to work on fixing the very first occurrences.
       $background_thread_leak_reports ||= 0
-      if $background_thread_leak_reports >= 10
+      if $background_thread_leak_reports >= 3
         unless $background_thread_leak_warned ||= false
           warn RSpec::Core::Formatters::ConsoleCodes.wrap(
             "Too many leaky thread reports! Suppressing further reports.\n" \
@@ -178,7 +178,7 @@ RSpec.configure do |config|
 
         # Warn about leakly thread
         warn RSpec::Core::Formatters::ConsoleCodes.wrap(
-          "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
+          "\nSpec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
           "Ensure all threads are terminated when test finishes.\n" \
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
           "\n" \
