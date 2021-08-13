@@ -11,13 +11,13 @@ RSpec.describe Datadog::CI::Contrib::RSpec::Integration do
   describe '.version' do
     subject(:version) { described_class.version }
 
-    context 'when the "rspec" gem is loaded' do
-      include_context 'loaded gems', 'rspec' => described_class::MINIMUM_VERSION
+    context 'when the "rspec-core" gem is loaded' do
+      include_context 'loaded gems', 'rspec-core' => described_class::MINIMUM_VERSION
       it { is_expected.to be_a_kind_of(Gem::Version) }
     end
 
-    context 'when "rspec" gem is not loaded' do
-      include_context 'loaded gems', 'rspec' => nil
+    context 'when "rspec-core" gem is not loaded' do
+      include_context 'loaded gems', 'rspec-core' => nil
       it { is_expected.to be nil }
     end
   end
@@ -33,20 +33,20 @@ RSpec.describe Datadog::CI::Contrib::RSpec::Integration do
   describe '.compatible?' do
     subject(:compatible?) { described_class.compatible? }
 
-    context 'when "rspec" gem is loaded with a version' do
+    context 'when "rspec-core" gem is loaded with a version' do
       context 'that is less than the minimum' do
-        include_context 'loaded gems', 'rspec' => decrement_gem_version(described_class::MINIMUM_VERSION)
+        include_context 'loaded gems', 'rspec-core' => decrement_gem_version(described_class::MINIMUM_VERSION)
         it { is_expected.to be false }
       end
 
       context 'that meets the minimum version' do
-        include_context 'loaded gems', 'rspec' => described_class::MINIMUM_VERSION
+        include_context 'loaded gems', 'rspec-core' => described_class::MINIMUM_VERSION
         it { is_expected.to be true }
       end
     end
 
     context 'when gem is not loaded' do
-      include_context 'loaded gems', 'rspec' => nil
+      include_context 'loaded gems', 'rspec-core' => nil
       it { is_expected.to be false }
     end
   end
