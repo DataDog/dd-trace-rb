@@ -1434,7 +1434,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | MRI Versions  | JRuby Versions | Rails Versions |
 | ------------- | -------------- | -------------- |
-|  2.0          |                |  3.0 - 3.2     |
 |  2.1          |                |  3.0 - 4.2     |
 |  2.2 - 2.3    |                |  3.0 - 5.2     |
 |  2.4          |                |  4.2.8 - 5.2   |
