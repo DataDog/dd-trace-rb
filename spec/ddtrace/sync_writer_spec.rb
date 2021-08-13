@@ -51,7 +51,7 @@ RSpec.describe Datadog::SyncWriter do
       context 'enabled' do
         before { Datadog.configuration.report_hostname = true }
 
-        after { Datadog.configuration.reset! }
+        after { without_warnings { Datadog.configuration.reset! } }
 
         it 'reports the hostname as part of the root span' do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|
@@ -69,7 +69,7 @@ RSpec.describe Datadog::SyncWriter do
       context 'disabled' do
         before { Datadog.configuration.report_hostname = false }
 
-        after { Datadog.configuration.reset! }
+        after { without_warnings { Datadog.configuration.reset! } }
 
         it 'does not report the hostname' do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|

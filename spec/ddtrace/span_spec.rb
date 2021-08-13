@@ -20,7 +20,7 @@ RSpec.describe Datadog::Span do
   end
 
   after do
-    Datadog.configuration.reset!
+    without_warnings { Datadog.configuration.reset! }
   end
 
   describe '#initialize' do
@@ -298,7 +298,7 @@ RSpec.describe Datadog::Span do
         end
       end
 
-      after { Datadog.configuration.reset! }
+      after { without_warnings { Datadog.configuration.reset! } }
 
       let(:time_now) { ::Time.utc(2020, 1, 1) }
 
