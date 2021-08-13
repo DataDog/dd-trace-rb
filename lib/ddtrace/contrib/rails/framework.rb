@@ -48,6 +48,7 @@ module Datadog
             activate_active_support!(datadog_config, rails_config)
             activate_action_pack!(datadog_config, rails_config)
             activate_action_view!(datadog_config, rails_config)
+            activate_active_job!(datadog_config, rails_config)
             activate_active_record!(datadog_config, rails_config)
             activate_lograge!(datadog_config, rails_config)
             activate_semantic_logger!(datadog_config, rails_config)
@@ -112,6 +113,15 @@ module Datadog
           datadog_config.use(
             :action_view,
             service_name: rails_config[:service_name]
+          )
+        end
+
+        def self.activate_active_job!(datadog_config, rails_config)
+          return unless defined?(::ActiveJob)
+
+          datadog_config.use(
+            :active_job,
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
           )
         end
 
