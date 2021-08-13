@@ -243,12 +243,8 @@ RSpec.describe 'Rails Rack' do
     end
   end
 
-  context 'trying to render a nonexistent template' do
+  context 'trying to render a nonexistent template', if: Rails.version >= '4.0.0' do
     subject(:response) { get '/nonexistent_template' }
-
-    before do
-      skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
-    end
 
     it 'traces complete stack' do
       is_expected.to be_server_error
@@ -282,12 +278,8 @@ RSpec.describe 'Rails Rack' do
     end
   end
 
-  context 'trying to render a nonexistent partial template' do
+  context 'trying to render a nonexistent partial template', if: Rails.version >= '4.0.0' do
     subject(:response) { get '/nonexistent_partial' }
-
-    before do
-      skip 'Event-based instrumentation cannot suffer from this issue' if Rails.version >= '4.0.0'
-    end
 
     it 'traces complete stack' do
       is_expected.to be_server_error
@@ -490,9 +482,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('404')
     end
 
-    context 'on Rails < 3.2' do
-      before { skip('This test only applies to Rails < 3.2') unless rails_older_than_3_2 }
-
+    context 'on Rails < 3.2', if: Rails.version < '3.2' do
       # Old Rails does not have ActionDispatch::ExceptionWrapper, thus lets the error bubble up.
       it 'makes rack span as error' do
         is_expected.to be_not_found
@@ -502,9 +492,7 @@ RSpec.describe 'Rails Rack' do
       end
     end
 
-    context 'on Rails >= 3.2' do
-      before { skip('This test only applies to Rails >= 3.2') if rails_older_than_3_2 }
-
+    context 'on Rails >= 3.2', if: Rails.version >= '3.2' do
       it 'does not mark rack span as error' do
         is_expected.to be_not_found
 
