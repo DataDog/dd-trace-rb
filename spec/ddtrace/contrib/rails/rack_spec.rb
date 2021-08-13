@@ -243,8 +243,12 @@ RSpec.describe 'Rails Rack' do
     end
   end
 
-  context 'trying to render a nonexistent template', if: Rails.version >= '4.0.0' do
+  context 'trying to render a nonexistent template' do
     subject(:response) { get '/nonexistent_template' }
+
+    before do
+      skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
+    end
 
     it 'traces complete stack' do
       is_expected.to be_server_error
@@ -278,8 +282,12 @@ RSpec.describe 'Rails Rack' do
     end
   end
 
-  context 'trying to render a nonexistent partial template', if: Rails.version >= '4.0.0' do
+  context 'trying to render a nonexistent partial template' do
     subject(:response) { get '/nonexistent_partial' }
+
+    before do
+      skip 'Recent versions use events, and cannot suffer from this issue' if Rails.version >= '4.0.0'
+    end
 
     it 'traces complete stack' do
       is_expected.to be_server_error
@@ -356,8 +364,8 @@ RSpec.describe 'Rails Rack' do
     it 'traces without explicit exception information' do
       is_expected.to be_server_error
 
-      expect(spans).to have(3).items
-      request_span, controller_span, _template_span = spans
+      expect(spans).to have_at_least(2).items
+      request_span, controller_span = spans
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
