@@ -78,12 +78,16 @@ module GraphQL
         'execute_multiplex' => 'execute.graphql',
         'execute_query' => 'execute.graphql',
         'execute_query_lazy' => 'execute.graphql',
+        # New types below TODO: find all missing types or better, find a consistent pattern
+        # 'authorized' => 'authorized.graphql',
       }
 
-      SPECIAL =
+      # SPECIAL =
 
         def platform_trace(platform_key, key, data)
-          tracer.trace(key, resource: platform_key, service: service_name) do |span|
+          # DataDogTracing.platform_keys[key] || "#{key.split('_')[0]}.graphql"
+          name = "#{key.split('_')[0]}.graphql"
+          tracer.trace(name, resource: platform_key, service: service_name) do |span|
             span.span_type = 'custom'
 
             if key == 'execute_multiplex'

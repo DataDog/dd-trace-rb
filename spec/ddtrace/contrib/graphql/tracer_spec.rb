@@ -55,11 +55,12 @@ RSpec.describe 'GraphQL patcher' do
           'validate.graphql'
         ]
 
+        print_trace(spans)
+
         # Legacy execution strategy
         # {GraphQL::Execution::Execute}
         # does not execute authorization code.
         if schema.query_execution_strategy == GraphQL::Execution::Execute
-          pp spans
           expect(spans).to have(9).items
         else
           valid_resource_names += [
@@ -67,7 +68,6 @@ RSpec.describe 'GraphQL patcher' do
             'Query.authorized'
           ]
 
-          pp spans
           expect(spans).to have(11).items
         end
 
@@ -102,5 +102,71 @@ RSpec.describe 'GraphQL patcher' do
     let(:expected_execution_strategy) { GraphQL::Execution::Execute }
 
     it_behaves_like 'Schema patcher'
+  end
+end
+
+
+
+def print_active_spans(context = ::Datadog.tracer.call_context, *roots)
+  print_trace(context.instance_variable_get(:@trace), *roots)
+end
+
+def print_trace(spans, *roots)
+  roots = spans.select { |s| !s.parent } if roots.empty?
+
+  return STDERR.puts "No root!" if roots.empty?
+
+  roots.map { |root| print_with_root(spans, root) }
+end
+
+def print_with_root(spans, root)
+  start_time = root.start_time
+  end_time = root.end_time
+
+  # print_span(start_time, end_time, root)
+
+
+  spans.sort_by(&:start_time).each do |span|
+    print_span(start_time, end_time, span)
+  end
+
+  # parent = root
+  # while (span = parent = next_span(spans, parent))
+  #   print_span(start_time, end_time, span)
+  # end
+end
+
+def next_span(spans, parent)
+  spans.find { |s| s.parent_id == parent.span_id }
+end
+
+def print_span(start_time, end_time, span)
+  unless end_time # Unfinished spans
+    unfinished = true
+    end_time = Time.now
+  end
+
+  size = 100
+  total_time = (end_time - start_time).to_f
+
+  prefix = ' ' * ((span.start_time.to_f - start_time.to_f) / total_time * size).to_i
+  print prefix
+
+  label = "#{span.name}:#{span.resource}(#{short_id(span.span_id)},↑#{short_id(span.parent_id)})"
+  print label
+
+  suffix = '─' * [size - ((end_time.to_f - span.end_time.to_f) / total_time * size) - prefix.size - label.size, 0].max
+  print suffix
+
+  puts
+end
+
+def short_id(id)
+  (id % 1000000).to_s(36)
+end
+
+class Datadog::Span
+  def short_id
+    Kernel.send(:short_id, span_id)
   end
 end
