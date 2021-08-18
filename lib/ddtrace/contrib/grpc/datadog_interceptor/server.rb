@@ -62,7 +62,10 @@ module Datadog
           def reserved_headers
             [Datadog::Ext::DistributedTracing::GRPC_METADATA_TRACE_ID,
              Datadog::Ext::DistributedTracing::GRPC_METADATA_PARENT_ID,
-             Datadog::Ext::DistributedTracing::GRPC_METADATA_SAMPLING_PRIORITY]
+             Datadog::Ext::DistributedTracing::GRPC_METADATA_SAMPLING_PRIORITY,
+             Ext::TAG_AUTH].concat(
+               (configuration[:metadata][:server] && configuration[:metadata][:server][:exclude]) || []
+             )
           end
 
           def format_resource(proto_method)
@@ -72,6 +75,10 @@ module Datadog
                         .split('::')
                         .<<(proto_method.name)
                         .join('.')
+          end
+
+          def configuration
+            Datadog.configuration[:grpc]
           end
         end
       end

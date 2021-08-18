@@ -45,7 +45,7 @@ RSpec.describe 'tracing on the server connection' do
   describe '#request_response' do
     let(:keywords) do
       { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum' }),
+        call: instance_double('GRPC::ActiveCall', metadata: { some: 'datum', thing_to_filter: 'sensitive_info' }),
         method: instance_double(Method, owner: 'My::Server', name: 'endpoint') }
     end
 
@@ -87,6 +87,14 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to_not have_error
           expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
         end
+      end
+    end
+
+    context 'with server-side metadata configuration' do
+      let(:configuration_options) { { service_name: 'rspec', metadata: { server: { exclude: ['thing_to_filter'] } } } }
+
+      it do
+        expect(span.get_tag('sensitive_info')).to be_nil
       end
     end
   end

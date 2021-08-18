@@ -29,7 +29,10 @@ RSpec.describe 'tracing on the client connection' do
       { request: instance_double(Object),
         call: instance_double('GRPC::ActiveCall'),
         method: 'MyService.Endpoint',
-        metadata: { some: 'datum' } }
+        metadata: {
+          some: 'datum',
+          thing_to_filter: 'sensitive_info'
+        } }
     end
 
     let(:default_client_interceptor) do
@@ -39,6 +42,7 @@ RSpec.describe 'tracing on the client connection' do
     let(:configured_client_interceptor) do
       Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
         c.service_name = 'cepsr'
+        c.metadata = { client: { exclude: ['thing_to_filter'] } }
       end
     end
 
@@ -64,6 +68,7 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.resource).to eq 'myservice.endpoint' }
     specify { expect(span.get_tag('error.stack')).to be_nil }
     specify { expect(span.get_tag(:some)).to eq 'datum' }
+    specify { expect(span.get_tag(:thing_to_filter)).to be_nil }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }

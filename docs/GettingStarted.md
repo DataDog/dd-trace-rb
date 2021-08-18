@@ -1054,6 +1054,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `grpc` instrumentation | `'grpc'` |
 | `error_handler` | Custom error handler invoked when a request is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `metadata` | Hash of grpc client or server metadata fields to exclude as span tags on the `grpc.client` and `grpc.server` spans, respectively. Accepts `client` and `server` keys set to a Hash with an `exclude` key set to Array values e.g. `['authorization']`. | `{ client: { exclude: [] }, server: { exclude: [] } }` |
 
 **Configuring clients to use different settings**
 

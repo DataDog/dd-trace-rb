@@ -32,7 +32,11 @@ module Datadog
           private
 
           def annotate!(span, metadata)
-            span.set_tags(metadata)
+            metadata.each do |header, value|
+              next if reserved_headers.include?(header)
+
+              span.set_tag(header, value)
+            end
 
             # Tag as an external peer service
             span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
@@ -44,6 +48,10 @@ module Datadog
               .inject!(span.context, metadata)
           rescue StandardError => e
             Datadog.logger.debug("GRPC client trace failed: #{e}")
+          end
+
+          def reserved_headers
+            (configuration[:metadata][:client] && configuration[:metadata][:client][:exclude]) || []
           end
 
           def format_resource(proto_method)
