@@ -42,9 +42,10 @@ RSpec.describe 'tracing on the client connection' do
     let(:configured_client_interceptor) do
       Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
         c.service_name = 'cepsr'
-        c.metadata = { client: { exclude: ['thing_to_filter'] } }
       end
     end
+
+    let(:configuration_options) { { service_name: 'rspec', metadata: { client: { exclude: ['thing_to_filter'] } } } }
 
     it 'replaces default service name' do
       default_client_interceptor.request_response(**keywords) {}

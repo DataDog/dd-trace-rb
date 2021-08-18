@@ -60,6 +60,10 @@ module Datadog
                         .reject(&:empty?)
                         .join('.')
           end
+
+          def configuration
+            Datadog.configuration[:grpc]
+          end
         end
       end
     end

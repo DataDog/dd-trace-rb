@@ -94,6 +94,8 @@ RSpec.describe 'tracing on the server connection' do
       let(:configuration_options) { { service_name: 'rspec', metadata: { server: { exclude: ['thing_to_filter'] } } } }
 
       it do
+        subject.request_response(**keywords) {}
+
         expect(span.get_tag('sensitive_info')).to be_nil
       end
     end
