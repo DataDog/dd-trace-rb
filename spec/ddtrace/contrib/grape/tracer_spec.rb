@@ -16,8 +16,11 @@ RSpec.describe 'Grape instrumentation' do
   let(:run_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
   let(:run_filter_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN_FILTERS } }
   let(:span) { spans.last }
+  let(:observed) { {} }
 
   let(:testing_api) do
+    observed = self.observed
+
     # patch Grape before the application
     Datadog::Contrib::Grape::Patcher.patch
 
@@ -80,10 +83,20 @@ RSpec.describe 'Grape instrumentation' do
           end
         end
       end
+
+      resource :span_resource do
+        get :span_resource do
+          root_span = Datadog.tracer.active_root_span
+          observed[:root_span] = { name: root_span.name, resource: root_span.resource }
+          'OK'
+        end
+      end
     end)
   end
 
   let(:rack_testing_api) do
+    observed = self.observed
+
     # patch Grape before the application
     Datadog::Contrib::Grape::Patcher.patch
 
@@ -96,6 +109,22 @@ RSpec.describe 'Grape instrumentation' do
       desc 'Returns an error'
       get :hard_failure do
         raise StandardError, 'Ouch!'
+      end
+
+      resource :span_resource_rack do
+        get :span_resource do
+          endpoint_span = Datadog.tracer.active_span.parent
+          observed[:endpoint_span] = { name: endpoint_span.name, resource: endpoint_span.resource }
+          root_span = Datadog.tracer.active_root_span
+          observed[:root_span] = { name: root_span.name, resource: root_span.resource }
+          'OK'
+        end
+
+        get :custom_span_resource do
+          endpoint_span = Datadog.tracer.active_span.parent
+          endpoint_span.resource = 'CustomSpanResource'
+          'OK'
+        end
       end
     end)
 
@@ -498,6 +527,19 @@ RSpec.describe 'Grape instrumentation' do
         end
       end
     end
+
+    describe 'span resource' do
+      subject(:response) { get '/span_resource/span_resource' }
+
+      before do
+        is_expected.to be_ok
+      end
+
+      it 'sets the request (root) span resource before calling the endpoint' do
+        expect(observed[:root_span])
+          .to eq(name: 'grape.endpoint_run', resource: 'TestingAPI GET /span_resource/span_resource')
+      end
+    end
   end
 
   context 'with rack' do
@@ -519,7 +561,7 @@ RSpec.describe 'Grape instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it 'intergrates with the Rack integration' do
+      it 'integrates with the Rack integration' do
         is_expected.to be_ok
         expect(response.body).to eq('OK')
         expect(spans.length).to eq(3)
@@ -632,6 +674,32 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.resource).to eq('GET 404')
         expect(rack_span).to_not have_error
         expect(rack_span.parent).to be_nil
+      end
+    end
+
+    describe 'span resource' do
+      subject(:response) { get '/api/span_resource_rack/span_resource' }
+
+      before do
+        is_expected.to be_ok
+      end
+
+      it 'sets the request (grape) span resource before calling the endpoint' do
+        expect(observed[:endpoint_span])
+          .to eq(name: 'grape.endpoint_run', resource: 'RackTestingAPI GET /span_resource_rack/span_resource')
+      end
+
+      it 'sets the rack (root) span resource before calling the endpoint' do
+        expect(observed[:root_span])
+          .to eq(name: 'rack.request', resource: 'RackTestingAPI GET /span_resource_rack/span_resource')
+      end
+
+      context 'when a custom request span resource is applied' do
+        subject(:response) { get '/api/span_resource_rack/custom_span_resource' }
+
+        it 'propagates the custom request span resource to the rack (root) span resource' do
+          expect(spans.last.resource).to eq('CustomSpanResource')
+        end
       end
     end
   end

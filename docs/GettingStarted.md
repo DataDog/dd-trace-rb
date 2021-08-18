@@ -31,6 +31,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Action Mailer](#action-mailer)
      - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
+     - [Active Job](#active-job)
      - [Active Record](#active-record)
      - [Active Support](#active-support)
      - [AWS](#aws)
@@ -393,6 +394,7 @@ For a list of available integrations, and their configuration options, please re
 | Action View              | `action_view`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Action Pack              | `action_pack`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Active Job               | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | *[Link](#active-job)*               | *[Link](https://github.com/rails/rails/tree/master/activejob)*             |
 | Active Record            | `active_record`            | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | Active Support           | `active_support`           | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
@@ -531,6 +533,27 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | ---| --- | --- |
 | `service_name` | Service name used for rendering instrumentation. | `action_pack` |
+
+### Active Job
+
+Most of the time, Active Job is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'activejob'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :active_job, options
+end
+
+ExampleJob.perform_later
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
 
 ### Active Record
 
@@ -1456,7 +1479,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | MRI Versions  | JRuby Versions | Rails Versions |
 | ------------- | -------------- | -------------- |
-|  2.0          |                |  3.0 - 3.2     |
 |  2.1          |                |  3.0 - 4.2     |
 |  2.2 - 2.3    |                |  3.0 - 5.2     |
 |  2.4          |                |  4.2.8 - 5.2   |

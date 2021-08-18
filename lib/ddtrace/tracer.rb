@@ -200,7 +200,7 @@ module Datadog
       if parent.nil?
         # root span
         @sampler.sample!(span)
-        span.set_tag('system.pid', Process.pid)
+        span.set_tag(Datadog::Ext::Runtime::TAG_PID, Process.pid)
         span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Core::Environment::Identity.id)
 
         if ctx && ctx.trace_id

@@ -8,9 +8,9 @@ module Datadog
     class Recorder
       attr_reader :max_size
 
-      def initialize(event_classes, max_size)
+      def initialize(event_classes, max_size, last_flush_time: Time.now.utc)
         @buffers = {}
-        @last_flush_time = Time.now.utc
+        @last_flush_time = last_flush_time
         @max_size = max_size
 
         # Add a buffer for each class

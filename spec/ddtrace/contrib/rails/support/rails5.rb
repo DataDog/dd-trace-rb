@@ -28,7 +28,12 @@ RSpec.shared_context 'Rails 5 base application' do
 
     klass.send(:define_method, :initialize) do |*args|
       super(*args)
-      redis_cache = [:redis_cache_store, { url: ENV['REDIS_URL'] }]
+      redis_cache =
+        if Gem.loaded_specs['redis-activesupport']
+          [:redis_store, { url: ENV['REDIS_URL'] }]
+        else
+          [:redis_cache_store, { url: ENV['REDIS_URL'] }]
+        end
       file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
 
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
@@ -39,6 +44,7 @@ RSpec.shared_context 'Rails 5 base application' do
       config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 
+      config.active_job.queue_adapter = :inline
       if ENV['USE_SIDEKIQ']
         config.active_job.queue_adapter = :sidekiq
         # add Sidekiq middleware
@@ -66,7 +72,11 @@ RSpec.shared_context 'Rails 5 base application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = :sidekiq
+      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                            :sidekiq
+                                                          else
+                                                            :inline
+                                                          end
 
       before_test_init.call
       initialize!

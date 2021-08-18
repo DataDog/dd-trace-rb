@@ -609,6 +609,35 @@ RSpec.describe 'Sinatra instrumentation' do
         end
       end
     end
+
+    context 'when modular app does not register the Datadog::Contrib::Sinatra::Tracer middleware' do
+      let(:sinatra_app) do
+        sinatra_routes = self.sinatra_routes
+        stub_const('App', Class.new(Sinatra::Base) do
+          instance_exec(&sinatra_routes)
+        end)
+      end
+
+      subject(:response) { get url }
+
+      before do
+        allow(Datadog.logger).to receive(:warn)
+        Datadog::Contrib::Sinatra::Tracer::Base
+          .const_get('MISSING_REQUEST_SPAN_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
+      end
+
+      it { is_expected.to be_ok }
+
+      it 'logs a warning' do
+        expect(Datadog.logger).to receive(:warn) do |&message|
+          expect(message.call).to include 'Sinatra integration is misconfigured'
+        end
+
+        # NOTE: We actually need to check that the request finished ok, as sinatra may otherwise "swallow" an RSpec
+        # exception and thus the test will appear to pass because the RSpec exception doesn't propagate out
+        is_expected.to be_ok
+      end
+    end
   end
 
   RSpec::Matchers.define :be_request_span do |opts = {}|

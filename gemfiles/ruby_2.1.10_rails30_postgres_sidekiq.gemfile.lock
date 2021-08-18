@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack (< 1.4)
 
@@ -60,7 +60,7 @@ GEM
     erubis (2.6.6)
       abstract (>= 1.0.0)
     ffi (1.12.2)
-    google-protobuf (3.6.1-x86_64-linux)
+    google-protobuf (3.6.1)
     hashdiff (1.0.1)
     i18n (0.5.4)
     json (1.8.6)
@@ -164,7 +164,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.2)
   benchmark-ips (~> 2.8)
@@ -188,7 +187,7 @@ DEPENDENCIES
   pry-stack_explorer
   rack-cache (= 1.7.1)
   rails (= 3.0.20)
-  rake (>= 10.5, < 13.0.4)
+  rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   rexml (< 3.2.5)

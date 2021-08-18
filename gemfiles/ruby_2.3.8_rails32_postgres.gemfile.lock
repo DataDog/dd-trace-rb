@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.51.0)
+    ddtrace (0.52.0)
       ffi (~> 1.0)
       msgpack
 
@@ -142,6 +142,9 @@ GEM
       json (>= 1.8, < 3)
       simplecov-html (~> 0.10.0)
     simplecov-html (0.10.2)
+    sorbet (0.5.9013)
+      sorbet-static (= 0.5.9013)
+    sorbet-static (0.5.9013-x86_64-linux)
     sprockets (2.2.3)
       hike (~> 1.2)
       multi_json (~> 1.0)
@@ -165,7 +168,6 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord-jdbcpostgresql-adapter
   addressable (~> 2.4.0)
   appraisal (~> 2.2)
   benchmark-ips (~> 2.8)
@@ -189,13 +191,14 @@ DEPENDENCIES
   pry-stack_explorer
   rack-cache (= 1.7.1)
   rails (= 3.2.22.5)
-  rake (>= 10.5, < 13.0.4)
+  rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
   rspec (~> 3.10)
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.4.1)
   simplecov (~> 0.17)
+  sorbet (>= 0.5.6513, < 0.6)
   test-unit
   webmock (>= 3.10.0)
   yard (~> 0.9)

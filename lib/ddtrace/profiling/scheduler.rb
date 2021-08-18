@@ -12,7 +12,12 @@ module Datadog
       include Workers::Polling
 
       DEFAULT_INTERVAL_SECONDS = 60
-      MIN_INTERVAL_SECONDS = 0
+      MINIMUM_INTERVAL_SECONDS = 0
+
+      # Profiles with duration less than this will not be reported
+      PROFILE_DURATION_THRESHOLD_SECONDS = 1
+
+      private_constant :DEFAULT_INTERVAL_SECONDS, :MINIMUM_INTERVAL_SECONDS, :PROFILE_DURATION_THRESHOLD_SECONDS
 
       attr_reader \
         :exporters,
@@ -90,12 +95,20 @@ module Datadog
 
         # Update wait time to try to wake consistently on time.
         # Don't drop below the minimum interval.
-        self.loop_wait_time = [loop_base_interval - run_time, MIN_INTERVAL_SECONDS].max
+        self.loop_wait_time = [loop_base_interval - run_time, MINIMUM_INTERVAL_SECONDS].max
       end
 
       def flush_events
         # Get events from recorder
         flush = recorder.flush
+
+        if duration_below_threshold?(flush)
+          Datadog.logger.debug do
+            "Skipped exporting profiling events as profile duration is below minimum (#{flush.event_count} events skipped)"
+          end
+
+          return flush
+        end
 
         # Send events to each exporter
         if flush.event_count > 0
@@ -111,6 +124,10 @@ module Datadog
         end
 
         flush
+      end
+
+      def duration_below_threshold?(flush)
+        (flush.finish - flush.start) < PROFILE_DURATION_THRESHOLD_SECONDS
       end
     end
   end

@@ -18,7 +18,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
         enabled?: true,
         exporters: exporters,
         fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
-        loop_base_interval: described_class::DEFAULT_INTERVAL_SECONDS,
+        loop_base_interval: described_class.const_get(:DEFAULT_INTERVAL_SECONDS),
         recorder: recorder
       )
     end
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     it 'changes its wait interval after flushing' do
       expect(scheduler).to receive(:loop_wait_time=) do |value|
-        expected_interval = described_class::DEFAULT_INTERVAL_SECONDS - flush_time
+        expected_interval = described_class.const_get(:DEFAULT_INTERVAL_SECONDS) - flush_time
         expect(value).to be <= expected_interval
       end
 
@@ -130,9 +130,9 @@ RSpec.describe Datadog::Profiling::Scheduler do
       let(:options) { { **super(), interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
-      it "floors the wait interval to #{described_class::MIN_INTERVAL_SECONDS}" do
+      it "floors the wait interval to #{described_class.const_get(:MINIMUM_INTERVAL_SECONDS)}" do
         expect(scheduler).to receive(:loop_wait_time=)
-          .with(described_class::MIN_INTERVAL_SECONDS)
+          .with(described_class.const_get(:MINIMUM_INTERVAL_SECONDS))
 
         flush_and_wait
       end
@@ -142,7 +142,11 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '#flush_events' do
     subject(:flush_events) { scheduler.send(:flush_events) }
 
-    let(:flush) { instance_double(Datadog::Profiling::Flush, event_count: event_count) }
+    let(:flush_start) { Time.now }
+    let(:flush_finish) { flush_start + 1 }
+    let(:flush) do
+      instance_double(Datadog::Profiling::Flush, event_count: event_count, start: flush_start, finish: flush_finish)
+    end
 
     before { expect(recorder).to receive(:flush).and_return(flush) }
 
@@ -183,6 +187,26 @@ RSpec.describe Datadog::Profiling::Scheduler do
           is_expected.to be flush
 
           expect(exporters).to all(have_received(:export).with(flush))
+        end
+      end
+
+      context 'when the flush contains less than 1s of profiling data' do
+        let(:flush_finish) { super() - 0.01 }
+
+        it 'does not export' do
+          exporters.each do |exporter|
+            expect(exporter).to_not receive(:export)
+          end
+
+          flush_events
+        end
+
+        it 'logs a debug message' do
+          expect(Datadog.logger).to receive(:debug) do |&message|
+            expect(message.call).to include 'Skipped exporting'
+          end
+
+          flush_events
         end
       end
     end

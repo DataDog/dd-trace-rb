@@ -41,6 +41,7 @@ RSpec.shared_context 'Rails 4 base application' do
       config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 
+      config.active_job.queue_adapter = :inline
       if ENV['USE_SIDEKIQ']
         config.active_job.queue_adapter = :sidekiq
         # add Sidekiq middleware
@@ -68,7 +69,11 @@ RSpec.shared_context 'Rails 4 base application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = :sidekiq
+      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                            :sidekiq
+                                                          else
+                                                            :inline
+                                                          end
 
       before_test_init.call
       initialize!
