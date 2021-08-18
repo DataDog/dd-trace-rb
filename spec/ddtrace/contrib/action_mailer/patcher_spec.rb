@@ -103,7 +103,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(deliver_span.get_tag('action_mailer.to')).to eq('test@example.com')
         expect(deliver_span.get_tag('action_mailer.from')).to eq('test@example.com')
         expect(deliver_span.get_tag('action_mailer.subject')).to eq('miniswan')
-        expect(deliver_span.get_tag('action_mailer.bcc')).to eq('test_a@example.com, test_b@example.com')
+        expect(deliver_span.get_tag('action_mailer.bcc')).to eq('test_a@example.com,test_b@example.com')
         expect(deliver_span.get_tag('action_mailer.cc')).to eq('test_c@example.com,test_d@example.com')
       end
     end

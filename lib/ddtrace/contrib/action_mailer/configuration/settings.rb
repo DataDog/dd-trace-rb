@@ -23,7 +23,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :email_date, default: false
+          option :email_data, default: false
         end
       end
     end
