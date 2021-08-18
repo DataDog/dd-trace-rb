@@ -12,6 +12,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_GRPC_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'grpc'.freeze
         SPAN_CLIENT = 'grpc.client'.freeze
+        SPAN_SERVICE = 'grpc.service'.freeze
       end
     end
   end

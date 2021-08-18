@@ -62,8 +62,7 @@ module Datadog
           def reserved_headers
             [Datadog::Ext::DistributedTracing::GRPC_METADATA_TRACE_ID,
              Datadog::Ext::DistributedTracing::GRPC_METADATA_PARENT_ID,
-             Datadog::Ext::DistributedTracing::GRPC_METADATA_SAMPLING_PRIORITY,
-             Ext::TAG_AUTH].concat(
+             Datadog::Ext::DistributedTracing::GRPC_METADATA_SAMPLING_PRIORITY].concat(
                (configuration[:metadata][:server] && configuration[:metadata][:server][:exclude]) || []
              )
           end
