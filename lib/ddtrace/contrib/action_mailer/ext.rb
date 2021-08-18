@@ -24,7 +24,7 @@ module Datadog
         TAG_BCC = 'action_mailer.bcc'.freeze
         TAG_CC = 'action_mailer.cc'.freeze
         TAG_DATE = 'action_mailer.date'.freeze
-        TAG_PERFORM = 'action_mailer.perform_deliveries'.freeze
+        TAG_PERFORM_DELIVERIES = 'action_mailer.perform_deliveries'.freeze
       end
     end
   end
