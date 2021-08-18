@@ -17,6 +17,14 @@ module Datadog
         TAG_ACTION = 'action_mailer.action'.freeze
         TAG_MAILER = 'action_mailer.mailer'.freeze
         TAG_MSG_ID = 'action_mailer.message_id'.freeze
+
+        TAG_SUBJECT = 'action_mailer.subject'.freeze
+        TAG_TO = 'action_mailer.to'.freeze
+        TAG_FROM = 'action_mailer.from'.freeze
+        TAG_BCC = 'action_mailer.bcc'.freeze
+        TAG_CC = 'action_mailer.cc'.freeze
+        TAG_DATE = 'action_mailer.date'.freeze
+        TAG_PERFORM = 'action_mailer.perform_deliveries'.freeze
       end
     end
   end
