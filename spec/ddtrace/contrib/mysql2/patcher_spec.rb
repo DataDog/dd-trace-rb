@@ -39,16 +39,6 @@ RSpec.describe 'Mysql2::Client patcher' do
     Datadog.registry[:mysql2].reset_configuration!
   end
 
-  context 'pin' do
-    subject(:pin) { client.datadog_pin }
-
-    it 'has the correct attributes' do
-      expect(pin.service).to eq(service_name)
-      expect(pin.app).to eq('mysql2')
-      expect(pin.app_type).to eq('db')
-    end
-  end
-
   describe 'tracing' do
     describe '#query' do
       context 'when the tracer is disabled' do

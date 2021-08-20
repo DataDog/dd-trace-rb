@@ -1,4 +1,11 @@
 GIT
+  remote: https://github.com/DataDog/datadog-instrumentation-ruby
+  revision: 8a009f7246072f69c44b4692b75c6fd2e3334eb9
+  branch: master
+  specs:
+    datadog-instrumentation (0.0.1)
+
+GIT
   remote: https://github.com/DataDog/simplecov
   revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
   ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
@@ -1300,9 +1307,6 @@ GEM
     mime-types-data (3.2021.0704)
     mini_portile2 (2.5.3)
     minitest (5.10.1)
-    minitest-around (0.5.0)
-      minitest (~> 5.0)
-    minitest-stub_any_instance (1.0.2)
     mongo (2.14.0)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
@@ -1524,6 +1528,7 @@ DEPENDENCIES
   concurrent-ruby
   cucumber
   dalli
+  datadog-instrumentation!
   ddtrace!
   delayed_job
   delayed_job_active_record
@@ -1541,9 +1546,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   makara
   memory_profiler (~> 0.9)
-  minitest (= 5.10.1)
-  minitest-around (= 0.5.0)
-  minitest-stub_any_instance (= 1.0.2)
   mongo (>= 2.8.0, != 2.15.0)
   mysql2 (< 1)
   opentracing (>= 0.4.1)

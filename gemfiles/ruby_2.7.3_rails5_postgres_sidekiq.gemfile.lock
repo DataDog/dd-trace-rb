@@ -1,4 +1,11 @@
 GIT
+  remote: https://github.com/DataDog/datadog-instrumentation-ruby
+  revision: 8a009f7246072f69c44b4692b75c6fd2e3334eb9
+  branch: master
+  specs:
+    datadog-instrumentation (0.0.1)
+
+GIT
   remote: https://github.com/DataDog/simplecov
   revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
   ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
@@ -110,9 +117,6 @@ GEM
     mini_mime (1.1.0)
     mini_portile2 (2.5.3)
     minitest (5.10.1)
-    minitest-around (0.5.0)
-      minitest (~> 5.0)
-    minitest-stub_any_instance (1.0.2)
     msgpack (1.4.2)
     nio4r (2.5.7)
     nokogiri (1.11.7)
@@ -260,14 +264,12 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
+  datadog-instrumentation!
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
-  minitest (= 5.10.1)
-  minitest-around (= 0.5.0)
-  minitest-stub_any_instance (= 1.0.2)
   opentracing (>= 0.4.1)
   os (~> 1.1)
   pg (< 1.0)

@@ -61,6 +61,8 @@ end
 # @see https://github.com/DataDog/dogstatsd-ruby/issues/182
 gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 gem 'opentracing', '>= 0.4.1'
+# TODO: Promote this to ddtrace.gemspec. (Or contrib package? Only used by contrib.)
+gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'
 
 # Profiler optional dependencies
 # NOTE: We're excluding versions 3.7.0 and 3.7.1 for the reasons documented in #1424 and the big comment in
