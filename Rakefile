@@ -108,6 +108,7 @@ namespace :spec do
   # Datadog Tracing integrations
   [
     :action_cable,
+    :action_mailer,
     :action_pack,
     :action_view,
     :active_model_serializers,
@@ -585,12 +586,15 @@ task :ci do
     declare 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
     declare 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
+    declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails5-postgres rake spec:rails'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
+    declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails6-postgres rake spec:rails'
     declare 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
+    declare 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
     declare 'bundle exec appraisal rails61-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails61-postgres rake spec:rails'
     declare 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
@@ -679,12 +683,15 @@ task :ci do
       declare 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
       declare 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
       declare 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails61-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails61-postgres rake spec:rails'
       declare 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
@@ -776,9 +783,11 @@ task :ci do
       declare 'bundle exec appraisal rails5-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails5-postgres rake spec:rails'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails6-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails6-postgres rake spec:rails'
       declare 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails61-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails61-postgres rake spec:rails'
       declare 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
@@ -852,6 +861,7 @@ task :ci do
 
       # Rails
       declare 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
+      declare 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
       declare 'bundle exec appraisal rails61-mysql2 rake spec:rails'
       declare 'bundle exec appraisal rails61-postgres rake spec:rails'
       declare 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'

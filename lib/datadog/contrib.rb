@@ -26,6 +26,7 @@ module Datadog
 end
 
 require 'ddtrace/contrib/action_cable/integration'
+require 'ddtrace/contrib/action_mailer/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/active_model_serializers/integration'
