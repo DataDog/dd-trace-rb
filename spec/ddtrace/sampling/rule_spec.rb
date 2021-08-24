@@ -5,7 +5,7 @@ require 'ddtrace/sampling/matcher'
 require 'ddtrace/sampling/rule'
 
 RSpec.describe Datadog::Sampling::Rule do
-  let(:span) { Datadog::Span.new(nil, span_name, service: span_service) }
+  let(:span) { Datadog::SpanOperation.new(span_name, service: span_service) }
   let(:span_name) { 'operation.name' }
   let(:span_service) { nil }
 

@@ -99,7 +99,7 @@ RSpec.describe 'ddtrace integration' do
 
       it 'does not error on tracing with block' do
         value = Datadog.tracer.trace('test') do |span|
-          expect(span).to be_a(Datadog::Span)
+          expect(span).to be_a(Datadog::SpanOperation)
           :return
         end
 

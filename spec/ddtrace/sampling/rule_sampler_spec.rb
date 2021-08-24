@@ -13,7 +13,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
 
-  let(:span) { Datadog::Span.new(nil, 'dummy') }
+  let(:span) { Datadog::SpanOperation.new('dummy') }
 
   before do
     allow(default_sampler).to receive(:sample?).with(span).and_return(nil)
