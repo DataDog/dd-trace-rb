@@ -7,7 +7,7 @@ require 'ddtrace/sampler'
 RSpec.shared_examples 'sampler with sample rate' do |sample_rate|
   subject(:sampler_sample_rate) { sampler.sample_rate(span) }
 
-  let(:span) { Datadog::Span.new(nil, 'dummy') }
+  let(:span) { Datadog::SpanOperation.new('dummy') }
 
   it { is_expected.to eq(sample_rate) }
 end
@@ -22,9 +22,9 @@ RSpec.describe Datadog::AllSampler do
   describe '#sample!' do
     let(:spans) do
       [
-        Datadog::Span.new(nil, '', trace_id: 1),
-        Datadog::Span.new(nil, '', trace_id: 2),
-        Datadog::Span.new(nil, '', trace_id: 3)
+        Datadog::SpanOperation.new('', trace_id: 1),
+        Datadog::SpanOperation.new('', trace_id: 2),
+        Datadog::SpanOperation.new('', trace_id: 3)
       ]
     end
 
@@ -79,9 +79,9 @@ RSpec.describe Datadog::RateSampler do
   describe '#sample!' do
     let(:spans) do
       [
-        Datadog::Span.new(nil, '', trace_id: 1),
-        Datadog::Span.new(nil, '', trace_id: 2),
-        Datadog::Span.new(nil, '', trace_id: 3)
+        Datadog::SpanOperation.new('', trace_id: 1),
+        Datadog::SpanOperation.new('', trace_id: 2),
+        Datadog::SpanOperation.new('', trace_id: 3)
       ]
     end
 
@@ -91,7 +91,7 @@ RSpec.describe Datadog::RateSampler do
 
       let(:spans) do
         Array.new(span_count) do
-          Datadog::Span.new(nil, '', trace_id: rng.rand(Datadog::Span::EXTERNAL_MAX_ID))
+          Datadog::SpanOperation.new('', trace_id: rng.rand(Datadog::Span::EXTERNAL_MAX_ID))
         end
       end
       let(:expected_num_of_sampled_spans) { span_count * sample_rate }
@@ -131,7 +131,7 @@ RSpec.describe Datadog::RateByKeySampler do
 
   let(:default_key) { 'default-key' }
 
-  let(:span) { Datadog::Span.new(tracer, 'test-span') }
+  let(:span) { Datadog::SpanOperation.new('test-span', tracer: tracer) }
   let(:resolver) { ->(span) { span.name } } # Resolve +span.name+ to the lookup key.
 
   describe '#sample!' do
@@ -176,7 +176,7 @@ RSpec.describe Datadog::RateByServiceSampler do
   describe '#resolve' do
     subject(:resolve) { sampler.resolve(span) }
 
-    let(:span) { instance_double(Datadog::Span, service: service_name) }
+    let(:span) { instance_double(Datadog::SpanOperation, service: service_name) }
     let(:service_name) { 'my-service' }
 
     context 'when the sampler is not configured with an :env option' do
@@ -299,7 +299,7 @@ RSpec.describe Datadog::PrioritySampler do
 
     shared_examples_for 'priority sampling' do
       context 'given a span without a context' do
-        let(:span) { Datadog::Span.new(nil, '', trace_id: 1) }
+        let(:span) { Datadog::SpanOperation.new('', trace_id: 1) }
 
         it do
           expect(sample).to be true
@@ -308,7 +308,7 @@ RSpec.describe Datadog::PrioritySampler do
       end
 
       context 'given a span with a context' do
-        let(:span) { Datadog::Span.new(nil, '', trace_id: 1, context: context) }
+        let(:span) { Datadog::SpanOperation.new('', trace_id: 1, context: context) }
         let(:context) { Datadog::Context.new }
 
         context 'but no sampling priority' do

@@ -161,7 +161,7 @@ RSpec.describe 'Resque instrumentation' do
     context 'trace context' do
       before do
         expect(job_class).to receive(:perform) do
-          expect(tracer.active_span).to be_a_kind_of(Datadog::Span)
+          expect(tracer.active_span).to be_a_kind_of(Datadog::SpanOperation)
           expect(tracer.active_span.parent_id).to eq(0)
         end
 

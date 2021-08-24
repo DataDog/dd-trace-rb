@@ -19,8 +19,8 @@ module Datadog
       end
     end
 
-    # Extension for Datadog::Span
-    module Span
+    # Extension for Datadog::SpanOperation
+    module SpanOperation
       def set_tag(key, value)
         # Configure sampling priority if they give us a forced tracing tag
         # DEV: Do not set if the value they give us is explicitly "false"

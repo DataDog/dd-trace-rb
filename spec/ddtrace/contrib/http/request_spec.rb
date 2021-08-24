@@ -105,7 +105,7 @@ RSpec.describe 'net/http requests' do
         context 'which defines each parameter' do
           let(:callback) do
             proc do |span, http, request, response|
-              expect(span).to be_a_kind_of(Datadog::Span)
+              expect(span).to be_a_kind_of(Datadog::SpanOperation)
               expect(http).to be_a_kind_of(Net::HTTP)
               expect(request).to be_a_kind_of(Net::HTTP::Get)
               expect(response).to be_a_kind_of(Net::HTTPNotFound)

@@ -1,18 +1,20 @@
 # typed: true
+require 'forwardable'
 require 'logger'
 require 'pathname'
 
-require 'ddtrace/ext/environment'
-require 'ddtrace/span'
-require 'ddtrace/context'
-require 'ddtrace/logger'
-require 'ddtrace/writer'
 require 'datadog/core/environment/identity'
-require 'ddtrace/sampler'
-require 'ddtrace/sampling'
+require 'ddtrace/context'
 require 'ddtrace/correlation'
 require 'ddtrace/event'
+require 'ddtrace/ext/environment'
+require 'ddtrace/forced_tracing'
+require 'ddtrace/logger'
+require 'ddtrace/sampler'
+require 'ddtrace/sampling'
+require 'ddtrace/span'
 require 'ddtrace/utils/only_once'
+require 'ddtrace/writer'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
@@ -139,17 +141,56 @@ module Datadog
 
     # Guess context and parent from child_of entry.
     def guess_context_and_parent(child_of)
-      # call_context should not be in this code path, as start_span
-      # should never try and pick an existing context, but only get
-      # it from the parameters passed to it (child_of)
-      return [Datadog::Context.new, nil] unless child_of
-
-      return [child_of, child_of.current_span] if child_of.is_a?(Context)
-
-      [child_of.context, child_of]
+      case child_of
+      when Context
+        [child_of, child_of.current_span]
+      when SpanOperation
+        [child_of.context, child_of]
+      when Span
+        [nil, child_of]
+      else
+        # Start of a trace
+        [Context.new, nil]
+      end
     end
 
-    # Return a span that will trace an operation called \name. This method allows
+    # Build a span that will trace an operation called \name. This method allows
+    # parenting passing \child_of as an option. If it's missing, the newly created span is a
+    # root span. Available options are:
+    #
+    # * +service+: the service name for this span
+    # * +resource+: the resource this span refers, or \name if it's missing
+    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
+    # * +tags+: extra tags which should be added to the span.
+    def build_span(name, options = {})
+      # Resolve context, parent
+      context, parent = guess_context_and_parent(options[:child_of])
+
+      # Build span options
+      options[:tracer] = self
+      options[:context] = context
+      options[:child_of] = parent
+      options[:service] ||= (parent && parent.service) || default_service
+      options[:tags] =  if @tags.any? && options[:tags]
+                          # Combine default tags with provided tags,
+                          # preferring provided tags.
+                          @tags.merge(options[:tags])
+                        else
+                          # Use provided tags or default tags if none.
+                          options[:tags] || @tags.dup
+                        end
+
+      # Build a new span operation
+      span = Datadog::SpanOperation.new(name, options)
+
+      # If it's a root span...
+      @sampler.sample!(span) if parent.nil?
+
+      span
+    end
+
+    # Build and start a span that will trace an operation called \name. This method allows
     # parenting passing \child_of as an option. If it's missing, the newly created span is a
     # root span. Available options are:
     #
@@ -160,41 +201,19 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
-      start_time = options[:start_time]
-      tags = options.fetch(:tags, {})
-
-      span_options = options.select do |k, _v|
-        # Filter options, we want no side effects with unexpected args.
-        ALLOWED_SPAN_OPTIONS.include?(k)
-      end
-
-      ctx, parent = guess_context_and_parent(options[:child_of])
-      span_options[:context] = ctx unless ctx.nil?
-
-      span = Span.new(self, name, span_options)
-      if parent.nil?
-        # root span
-        @sampler.sample!(span)
-        span.set_tag(Datadog::Ext::Runtime::TAG_PID, Process.pid)
-        span.set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Core::Environment::Identity.id)
-
-        if ctx && ctx.trace_id
-          span.trace_id = ctx.trace_id
-          span.parent_id = ctx.span_id unless ctx.span_id.nil?
-        end
-      else
-        # child span
-        span.parent = parent # sets service, trace_id, parent_id, sampled
-      end
-
-      span.set_tags(@tags) unless @tags.empty?
-      span.set_tags(tags) unless tags.empty?
-      span.start(start_time)
-
-      # this could at some point be optional (start_active_span vs start_manual_span)
-      ctx.add_span(span) unless ctx.nil?
-
+      span = build_span(name, options)
+      span.start(options[:start_time])
       span
+    end
+
+    def record_span(operation)
+      operation.service ||= default_service
+      record_context(operation.context) if operation.context
+      operation.span
+    end
+
+    def finish_span(operation, end_time = nil)
+      operation.finish(end_time)
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
@@ -296,7 +315,7 @@ module Datadog
     # method will figure out what to do, submitting a +span+ for recording
     # is like trying to record its +context+.
     def record(context)
-      context = context.context if context.is_a?(Datadog::Span)
+      context = context.context if context.is_a?(Datadog::SpanOperation)
       return if context.nil?
 
       record_context(context)
@@ -420,5 +439,79 @@ module Datadog
       :guess_context_and_parent,
       :record_context,
       :write
+  end
+
+  # Represents the act of taking a span measurement.
+  # It gives a Span a context which can be used to
+  # manage and decorate the Span.
+  # When completed, it yields the Span.
+  class SpanOperation
+    extend Forwardable
+
+    INCLUDED_METHODS = [:==].to_set.freeze
+    EXCLUDED_METHODS = [:finish, :parent, :parent=].to_set.freeze
+
+    def initialize(span_name, options = {})
+      # Resolve service name
+      parent = options[:child_of]
+      options[:service] ||= parent.service unless parent.nil?
+
+      # Build span
+      @span = Span.new(
+        span_name,
+        options
+      )
+      @tracer = options[:tracer]
+      @context = options[:context]
+
+      # Add span to the context, if provided.
+      @context.add_span(self) if @context
+
+      if parent.nil?
+        # Root span: set default tags.
+        set_tag(Datadog::Ext::Runtime::TAG_PID, Process.pid)
+        set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Core::Environment::Identity.id)
+      else
+        # Only set parent if explicitly provided.
+        # We don't want it to override context-derived
+        # IDs if it's a distributed trace w/o a parent span.
+        self.parent = parent
+      end
+
+      # Set tags if provided.
+      set_tags(options[:tags]) if options.key?(:tags)
+    end
+
+    attr_reader :parent
+    attr_accessor :span, :tracer, :context
+
+    # Set span parent
+    def parent=(parent)
+      @parent = parent
+      span.parent = parent && parent.span
+    end
+
+    def finish(end_time = nil)
+      return span if finished?
+
+      # Stop the span
+      span.stop(end_time)
+
+      begin
+        context.close_span(self) if context
+        tracer.record_span(self) if tracer
+      rescue StandardError => e
+        Datadog.logger.debug("error recording finished trace: #{e} Backtrace: #{e.backtrace.first(3)}")
+        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
+      end
+
+      span
+    end
+
+    # Forward instance methods except ones that would cause identity issues
+    def_delegators :span, *(Span.instance_methods(false).to_set - EXCLUDED_METHODS)
+
+    # Additional extensions
+    prepend ForcedTracing::SpanOperation
   end
 end

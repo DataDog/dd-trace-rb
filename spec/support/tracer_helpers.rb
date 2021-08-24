@@ -112,9 +112,9 @@ module TracerHelpers
     }
 
     n.times do
-      span1 = Datadog::Span.new(nil, 'client.testing', defaults).start.finish
-      span2 = Datadog::Span.new(nil, 'client.testing', defaults).start.finish
-      span2.set_parent(span1)
+      span1 = Datadog::Span.new('client.testing', defaults).start.stop
+      span2 = Datadog::Span.new('client.testing', defaults).start.stop
+      span2.parent = span1
       traces << [span1, span2]
     end
 

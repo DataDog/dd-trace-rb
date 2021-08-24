@@ -86,8 +86,8 @@ RSpec.describe Datadog::SyncWriter do
     end
 
     context 'with filtering' do
-      let(:filtered_trace) { [Datadog::Span.new(nil, 'span_1')] }
-      let(:unfiltered_trace) { [Datadog::Span.new(nil, 'span_2')] }
+      let(:filtered_trace) { [Datadog::Span.new('span_1')] }
+      let(:unfiltered_trace) { [Datadog::Span.new('span_2')] }
 
       before do
         allow(transport).to receive(:send_traces).and_call_original
