@@ -8,10 +8,8 @@ require 'json'
 require 'msgpack'
 
 RSpec.describe Datadog::Span do
-  subject(:span) { described_class.new(tracer, name, context: context, **span_options) }
+  subject(:span) { described_class.new(name, **span_options) }
 
-  let(:tracer) { get_test_tracer }
-  let(:context) { Datadog::Context.new }
   let(:name) { 'my.span' }
   let(:span_options) { {} }
 
@@ -74,7 +72,7 @@ RSpec.describe Datadog::Span do
       subject(:parent=) { span.parent = parent }
 
       context 'to a span' do
-        let(:parent) { described_class.new(tracer, 'parent', **parent_span_options) }
+        let(:parent) { described_class.new('parent', **parent_span_options) }
         let(:parent_span_options) { {} }
 
         before do
@@ -119,8 +117,8 @@ RSpec.describe Datadog::Span do
     end
   end
 
-  describe '#finish' do
-    subject(:finish) { span.finish }
+  describe '#stop' do
+    subject(:stop) { span.stop }
 
     it 'calculates duration' do
       expect(span.start_time).to be_nil
@@ -133,25 +131,22 @@ RSpec.describe Datadog::Span do
       expect(span.to_hash[:duration]).to be >= 0
     end
 
-    context 'with multiple calls to finish' do
+    context 'with multiple calls to stop' do
       it 'does not flush the span more than once' do
-        allow(context).to receive(:close_span).once
-        allow(tracer).to receive(:record).once
-
         subject
-        expect(span.finish).to be_falsey
+        expect(span.stop).to be_falsey
       end
 
       it 'does not modify the span' do
         end_time = subject.end_time
 
-        expect(span.finish).to be_falsey
+        expect(span.stop).to be_falsey
         expect(span.end_time).to eq(end_time)
       end
     end
 
-    context 'with finish time provided' do
-      subject(:finish) { span.finish(time) }
+    context 'with stop time provided' do
+      subject(:stop) { span.stop(time) }
 
       let(:time) { Time.now }
 
@@ -163,59 +158,25 @@ RSpec.describe Datadog::Span do
       end
     end
 
+    describe '#stopped?' do
+      it { expect { subject }.to change { span.stopped? }.from(false).to(true) }
+    end
+
+    # DEPRECATED: Use #stopped? instead.
     describe '#finished?' do
       it { expect { subject }.to change { span.finished? }.from(false).to(true) }
     end
 
-    context 'when an error occurs while closing the span on the context' do
-      include_context 'health metrics'
-
-      let(:error) { error_class.new }
-      let(:error_class) { stub_const('SpanCloseError', Class.new(StandardError)) }
-
-      RSpec::Matchers.define :a_record_finish_error do |error|
-        match { |actual| actual == "error recording finished trace: #{error}" }
-      end
-
-      before do
-        allow(Datadog.logger).to receive(:debug)
-        allow(context).to receive(:close_span)
-          .with(span)
-          .and_raise(error)
-        finish
-      end
-
-      it 'logs a debug message' do
-        expect(Datadog.logger).to have_received(:debug)
-          .with(a_record_finish_error(error))
-      end
-
-      it 'sends a span finish error metric' do
-        expect(health_metrics).to have_received(:error_span_finish)
-          .with(1, tags: ["error:#{error_class.name}"])
-      end
-    end
-
     context 'when service' do
       subject(:service) do
-        finish
+        stop
         span.service
       end
 
       context 'is set' do
         let(:service_value) { 'span-service' }
-
         before { span.service = service_value }
-
         it { is_expected.to eq service_value }
-      end
-
-      context 'is not set' do
-        let(:default_service) { 'default-service' }
-
-        before { allow(tracer).to receive(:default_service).and_return(default_service) }
-
-        it { is_expected.to eq default_service }
       end
     end
   end
@@ -239,7 +200,7 @@ RSpec.describe Datadog::Span do
       it 'uses monotonic time' do
         span.start
         sleep(0.0002)
-        span.finish
+        span.stop
         expect((subject.to_f * 1e9).to_i).to be > 0
 
         expect(span.end_time).to eq static_time
@@ -257,7 +218,7 @@ RSpec.describe Datadog::Span do
       it 'does not use monotonic time' do
         span.start(start_time)
         sleep(duration_wall_time)
-        span.finish
+        span.stop
 
         expect(subject).to be_within(1).of(duration_wall_time * 1e9)
       end
@@ -268,7 +229,7 @@ RSpec.describe Datadog::Span do
         it 'respects the exact times provided' do
           span.start(start_time)
           sleep(duration_wall_time)
-          span.finish(end_time)
+          span.stop(end_time)
 
           expect(subject).to eq(123.456)
         end
@@ -284,7 +245,7 @@ RSpec.describe Datadog::Span do
       it 'does not use monotonic time' do
         span.start
         sleep(duration_wall_time)
-        span.finish(end_time)
+        span.stop(end_time)
 
         expect(subject).to be_within(1).of(duration_wall_time * 1e9)
       end
@@ -304,7 +265,7 @@ RSpec.describe Datadog::Span do
 
       it 'sets the start time to the provider time' do
         span.start
-        span.finish
+        span.stop
 
         expect(span.start_time).to eq(time_now)
       end
@@ -595,67 +556,6 @@ RSpec.describe Datadog::Span do
         expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be value
       end
     end
-
-    shared_examples 'setting sampling priority tag' do |key, expected_value|
-      before { set_tag }
-
-      context "given #{key}" do
-        let(:key) { key }
-
-        context 'with nil value' do
-          # This could be `nil`, or any other value, as long as it isn't "false"
-          let(:value) { nil }
-
-          it 'sets the correct sampling priority' do
-            expect(context.sampling_priority).to eq(expected_value)
-          end
-
-          it 'does not set a tag' do
-            expect(span.get_tag(key)).to be nil
-          end
-        end
-
-        context 'with true value' do
-          # We only check for `== false`, but test with `true` to be sure it works
-          let(:value) { true }
-
-          it 'sets the correct sampling priority' do
-            expect(context.sampling_priority).to eq(expected_value)
-          end
-
-          it 'does not set a tag' do
-            expect(span.get_tag(key)).to be nil
-          end
-        end
-
-        context 'with false value' do
-          let(:value) { false }
-
-          it 'does not set the sampling priority' do
-            expect(context.sampling_priority).to_not eq(expected_value)
-          end
-
-          it 'does not set a tag' do
-            expect(span.get_tag(key)).to be nil
-          end
-        end
-      end
-    end
-
-    # TODO: Remove when ForcedTracing is fully deprecated
-    it_behaves_like('setting sampling priority tag',
-                    Datadog::Ext::ForcedTracing::TAG_KEEP,
-                    Datadog::Ext::Priority::USER_KEEP)
-    it_behaves_like('setting sampling priority tag',
-                    Datadog::Ext::ForcedTracing::TAG_DROP,
-                    Datadog::Ext::Priority::USER_REJECT)
-
-    it_behaves_like('setting sampling priority tag',
-                    Datadog::Ext::ManualTracing::TAG_KEEP,
-                    Datadog::Ext::Priority::USER_KEEP)
-    it_behaves_like('setting sampling priority tag',
-                    Datadog::Ext::ManualTracing::TAG_DROP,
-                    Datadog::Ext::Priority::USER_REJECT)
   end
 
   describe '#set_tags' do
@@ -736,8 +636,8 @@ RSpec.describe Datadog::Span do
       )
     end
 
-    context 'with a finished span' do
-      before { span.finish }
+    context 'with a stopped span' do
+      before { span.stop }
 
       it 'includes timing information' do
         is_expected.to include(

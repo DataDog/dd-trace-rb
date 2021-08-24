@@ -8,7 +8,7 @@ RSpec.describe Datadog::ForcedTracing do
   describe '.keep' do
     subject(:keep) { described_class.keep(span) }
 
-    let(:span) { instance_double(Datadog::Span, context: trace_context) }
+    let(:span) { instance_double(Datadog::SpanOperation, context: trace_context) }
     let(:trace_context) { instance_double(Datadog::Context) }
 
     context 'given span' do
@@ -43,7 +43,7 @@ RSpec.describe Datadog::ForcedTracing do
   describe '.drop' do
     subject(:drop) { described_class.drop(span) }
 
-    let(:span) { instance_double(Datadog::Span, context: trace_context) }
+    let(:span) { instance_double(Datadog::SpanOperation, context: trace_context) }
     let(:trace_context) { instance_double(Datadog::Context) }
 
     context 'given span' do
@@ -76,7 +76,7 @@ RSpec.describe Datadog::ForcedTracing do
   end
 end
 
-RSpec.describe Datadog::ForcedTracing::Span do
+RSpec.describe Datadog::ForcedTracing::SpanOperation do
   subject(:test_object) { test_class.new }
 
   describe '#set_tag' do
@@ -94,7 +94,7 @@ RSpec.describe Datadog::ForcedTracing::Span do
         s = span
 
         klass = Class.new do
-          prepend Datadog::ForcedTracing::Span
+          prepend Datadog::ForcedTracing::SpanOperation
         end
 
         klass.tap do

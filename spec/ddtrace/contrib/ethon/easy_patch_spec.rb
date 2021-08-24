@@ -53,7 +53,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     it 'creates a span' do
       subject
-      expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::Span)
+      expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::SpanOperation)
     end
 
     context 'when split by domain' do
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it 'cleans up @datadog_span' do
         expect { subject }.to change { easy.instance_eval { @datadog_span } }
-          .from(an_instance_of(Datadog::Span)).to(nil)
+          .from(an_instance_of(Datadog::SpanOperation)).to(nil)
       end
     end
   end
