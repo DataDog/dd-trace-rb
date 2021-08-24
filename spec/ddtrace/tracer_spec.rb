@@ -12,32 +12,10 @@ RSpec.describe Datadog::Tracer do
   after { tracer.shutdown! }
 
   shared_context 'parent span' do
-    let(:trace_id) { SecureRandom.uuid }
-    let(:span_id) { SecureRandom.uuid }
+    let(:parent_span) { tracer.start_span('parent', service: service) }
     let(:service) { 'test-service' }
-
-    before do
-      allow(context).to receive(:add_span)
-    end
-
-    let(:parent_span) do
-      instance_double(
-        Datadog::Span,
-        context: context,
-        trace_id: trace_id,
-        span_id: span_id,
-        service: service,
-        sampled: true
-      )
-    end
-
-    let(:context) do
-      instance_double(
-        Datadog::Context,
-        trace_id: trace_id,
-        span_id: span_id
-      )
-    end
+    let(:trace_id) { parent_span.trace_id }
+    let(:span_id) { parent_span.span_id }
   end
 
   describe '::new' do
@@ -148,7 +126,7 @@ RSpec.describe Datadog::Tracer do
     let(:name) { 'span.name' }
     let(:options) { {} }
 
-    it { is_expected.to be_a_kind_of(Datadog::Span) }
+    it { is_expected.to be_a_kind_of(Datadog::SpanOperation) }
 
     it 'does not belong to current the context by default' do
       tracer.trace('parent') do |active_span|
@@ -272,7 +250,7 @@ RSpec.describe Datadog::Tracer do
       context 'when starting a span' do
         it 'yields span provided block' do
           expect { |b| tracer.trace(name, &b) }.to yield_with_args(
-            a_kind_of(Datadog::Span)
+            a_kind_of(Datadog::SpanOperation)
           )
         end
 
@@ -362,6 +340,111 @@ RSpec.describe Datadog::Tracer do
             tracer.trace(name) do |child_span|
               expect(child_span.get_tag('runtime-id')).to be_nil
               expect(child_span.get_tag('system.pid')).to be_nil
+            end
+          end
+        end
+
+        context 'with spans that finish out of order' do
+          context 'within a trace' do
+            subject!(:trace) do
+              tracer.trace('grandparent') do
+                child, grandchild = nil
+
+                tracer.trace('parent') do
+                  child = tracer.trace('child')
+                  grandchild = tracer.trace('grandchild')
+                end
+
+                child.finish
+                grandchild.finish
+
+                tracer.trace('uncle') do
+                  tracer.trace('nephew').finish
+                end
+              end
+            end
+
+            it 'has correct relationships' do
+              grandparent = spans.find { |s| s.name == 'grandparent' }
+              parent = spans.find { |s| s.name == 'parent' }
+              child = spans.find { |s| s.name == 'child' }
+              grandchild = spans.find { |s| s.name == 'grandchild' }
+              uncle = spans.find { |s| s.name == 'uncle' }
+              nephew = spans.find { |s| s.name == 'nephew' }
+
+              expect(spans.all? { |s| s.trace_id == grandparent.trace_id }).to be true
+
+              expect(grandparent.parent).to be nil
+              expect(parent.parent).to be grandparent
+              expect(child.parent).to be parent
+              expect(grandchild.parent).to be child
+              expect(uncle.parent).to be grandparent
+              expect(nephew.parent).to be uncle
+            end
+          end
+
+          context 'across traces' do
+            subject!(:trace) do
+              child, grandchild = nil
+              tracer.trace('grandparent') do
+                tracer.trace('parent') do
+                  child = tracer.trace('child')
+                  grandchild = tracer.trace('grandchild')
+                end
+              end
+
+              tracer.trace('great uncle') do
+                tracer.trace('second cousin').finish
+              end
+
+              child.finish
+              grandchild.finish
+            end
+
+            # TODO: Skip for now, but keep this test because it demonstrates something we should fix.
+            before { skip('There is no fix currently available for this failure.') }
+
+            it 'has correct relationships' do
+              grandparent = spans.find { |s| s.name == 'grandparent' }
+              parent = spans.find { |s| s.name == 'parent' }
+              child = spans.find { |s| s.name == 'child' }
+              grandchild = spans.find { |s| s.name == 'grandchild' }
+              great_uncle = spans.find { |s| s.name == 'great uncle' }
+              second_cousin = spans.find { |s| s.name == 'second cousin' }
+
+              expect(
+                [
+                  grandparent,
+                  parent,
+                  child,
+                  grandchild
+                ].all? { |s| s.trace_id == grandparent.trace_id }
+              ).to be true
+              expect(grandparent.parent).to be nil
+              expect(parent.parent).to be grandparent
+              expect(child.parent).to be parent
+              expect(grandchild.parent).to be child
+
+              expect(
+                [
+                  great_uncle,
+                  second_cousin
+                ].all? { |s| s.trace_id == great_uncle.trace_id }
+              ).to be true
+              expect(great_uncle.parent).to be nil
+              expect(second_cousin.parent).to be great_uncle
+
+              # Should be separate traces (can't have two root spans for a trace)
+              # TODO: This fails because when "grandparent" completes, it has unfinished
+              #       spans still present in the context. This prevents the context from resetting.
+              #       Thus when "great uncle" starts, it still shares the same trace ID as "grandparent"
+              #
+              #       When unfinished spans are present at trace complete, we need to decide what to do.
+              #       We could detach the context from the thread, and give the thread a new context.
+              #       This way unfinished spans could complete later, without holding the current context hostage.
+              #       However, this has a risk of causing Context objects to leak, if each unfinished span is
+              #       somehow held onto by instrumentation.
+              expect(grandparent.trace_id).to_not eq(great_uncle.trace_id)
             end
           end
         end
@@ -461,7 +544,7 @@ RSpec.describe Datadog::Tracer do
         context 'and the on_error option' do
           context 'is not provided' do
             it 'propagates the error' do
-              expect_any_instance_of(Datadog::Span).to receive(:set_error)
+              expect_any_instance_of(Datadog::SpanOperation).to receive(:set_error)
                 .with(error)
               expect { trace }.to raise_error(error)
             end
@@ -473,7 +556,7 @@ RSpec.describe Datadog::Tracer do
                 expect do |b|
                   tracer.trace(name, on_error: b.to_proc, &block)
                 end.to yield_with_args(
-                  a_kind_of(Datadog::Span),
+                  a_kind_of(Datadog::SpanOperation),
                   error
                 )
               end.to raise_error(error)
@@ -712,7 +795,7 @@ RSpec.describe Datadog::Tracer do
     end
 
     context 'with trace' do
-      let(:trace) { [Datadog::Span.new(tracer, 'dummy')] }
+      let(:trace) { [Datadog::Span.new('dummy')] }
 
       before do
         expect_any_instance_of(Datadog::ContextFlush::Finished)

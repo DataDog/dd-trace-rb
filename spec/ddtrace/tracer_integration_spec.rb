@@ -51,8 +51,8 @@ RSpec.describe Datadog::Tracer do
 
           # And create child span from propagated context
           tracer.trace(child_span_name) do |child_span|
-            @child_span = child_span
-            @child_root_span = tracer.active_root_span
+            @child_span = child_span.span
+            @child_root_span = tracer.active_root_span.span
           end
         end
       end
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Tracer do
       shared_examples_for 'a synthetics-sourced trace' do
         before do
           tracer.trace('local.operation') do |local_span|
-            @local_span = local_span
+            @local_span = local_span.span
             @local_context = tracer.call_context
           end
         end
