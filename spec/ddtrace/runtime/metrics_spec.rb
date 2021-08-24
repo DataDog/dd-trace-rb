@@ -25,7 +25,7 @@ RSpec.describe Datadog::Runtime::Metrics do
   describe '#associate_with_span' do
     subject(:associate_with_span) { runtime_metrics.associate_with_span(span) }
 
-    let(:span) { Datadog::Span.new(nil, 'dummy', service: service) }
+    let(:span) { Datadog::SpanOperation.new('dummy', service: service) }
     let(:service) { 'parser' }
 
     context 'when enabled' do
