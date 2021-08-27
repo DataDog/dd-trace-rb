@@ -64,9 +64,7 @@ module Datadog
           end
 
           # If user defined metadata is defined, overwrite
-          extract_user_defined_git(env).each do |key, value|
-            tags[key] = value
-          end
+          tags.merge!(extract_user_defined_git(env))
 
           tags.reject { |_, v| v.nil? }
         end
@@ -342,7 +340,7 @@ module Datadog
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_NAME => env['DD_GIT_COMMIT_COMMITTER_NAME'],
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => env['DD_GIT_COMMIT_COMMITTER_DATE']
-          }.reject { |_, v| v.nil? }
+          }.reject { |_, v| v.nil? || v.empty? }
         end
 
         def git_commit_users
