@@ -118,6 +118,43 @@ RSpec.describe Datadog::CI::Ext::Environment do
           expect(Datadog.logger).to have_received(:debug).with(/No such file or directory - git/).at_least(1).time
         end
       end
+
+      context 'user provided metadata' do
+        include_context 'with git fixture', 'gitdir_with_commit'
+        let(:environment_variables) {
+          {
+            'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
+            'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
+            'DD_GIT_BRANCH' => 'my-branch',
+            'DD_GIT_TAG' => 'my-tag',
+            'DD_GIT_COMMIT_MESSAGE' => 'provided message',
+            'DD_GIT_COMMIT_AUTHOR_NAME' => 'user',
+            'DD_GIT_COMMIT_AUTHOR_EMAIL' => 'user@provided.com',
+            'DD_GIT_COMMIT_AUTHOR_DATE' => '2021-06-18T18:35:10+00:00',
+            'DD_GIT_COMMIT_COMMITTER_NAME' => 'user committer',
+            'DD_GIT_COMMIT_COMMITTER_EMAIL' => 'user-committer@provided.com',
+            'DD_GIT_COMMIT_COMMITTER_DATE' => '2021-06-19T18:35:10+00:00',
+          }
+        }
+
+        it 'returns user provided metadata' do
+          is_expected.to eq(
+            {
+              'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
+              'git.branch' => 'my-branch',
+              'git.commit.author.date' => '2021-06-18T18:35:10+00:00',
+              'git.commit.author.email' => 'user@provided.com',
+              'git.commit.author.name' => 'user',
+              'git.commit.committer.date' => '2021-06-19T18:35:10+00:00',
+              'git.commit.committer.email' => 'user-committer@provided.com',
+              'git.commit.committer.name' => 'user committer',
+              'git.commit.message' => 'provided message',
+              'git.commit.sha' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
+              'git.repository_url' => 'https://datadoghq.com/git/test.git'
+            }
+          )
+        end
+      end
     end
   end
 end

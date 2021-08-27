@@ -63,6 +63,11 @@ module Datadog
             tags[key] ||= value
           end
 
+          # If user defined metadata is defined, overwrite
+          extract_user_defined_git.each do |key, value|
+            tags[key] = value
+          end
+
           tags.reject { |_, v| v.nil? }
         end
 
@@ -323,6 +328,21 @@ module Datadog
             Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE']
           }
         end
+
+        def extract_user_defined_git(env)
+          {
+            Datadog::Ext::Git::TAG_REPOSITORY_URL => env['DD_GIT_REPOSITORY_URL'],
+            Datadog::Ext::Git::TAG_COMMIT_SHA => env['DD_GIT_COMMIT_SHA'],
+            Datadog::Ext::Git::TAG_BRANCH => env['DD_GIT_BRANCH'],
+            Datadog::Ext::Git::TAG_TAG => env['DD_GIT_TAG'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['DD_GIT_COMMIT_AUTHOR_NAME'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['DD_GIT_COMMIT_AUTHOR_EMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_DATE => env['DD_GIT_COMMIT_AUTHOR_DATE'],
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_NAME => env['DD_GIT_COMMIT_COMMITTER_NAME'],
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => env['DD_GIT_COMMIT_COMMITTER_DATE']
+          }
 
         def git_commit_users
           # Get committer and author information in one command.
