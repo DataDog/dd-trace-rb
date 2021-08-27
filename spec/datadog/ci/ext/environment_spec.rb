@@ -121,7 +121,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
 
       context 'user provided metadata' do
         include_context 'with git fixture', 'gitdir_with_commit'
-        let(:environment_variables) do
+        let(:env) do
           {
             'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
             'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
@@ -142,6 +142,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
             {
               'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
               'git.branch' => 'my-branch',
+              'git.tag' => 'my-tag',
               'git.commit.author.date' => '2021-06-18T18:35:10+00:00',
               'git.commit.author.email' => 'user@provided.com',
               'git.commit.author.name' => 'user',
@@ -150,7 +151,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
               'git.commit.committer.name' => 'user committer',
               'git.commit.message' => 'provided message',
               'git.commit.sha' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
-              'git.repository_url' => 'https://datadoghq.com/git/test.git'
+              'git.repository_url' => 'https://datadoghq.com/git/user-provided.git'
             }
           )
         end

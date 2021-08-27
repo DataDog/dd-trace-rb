@@ -335,7 +335,7 @@ module Datadog
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['DD_GIT_COMMIT_SHA'],
             Datadog::Ext::Git::TAG_BRANCH => env['DD_GIT_BRANCH'],
             Datadog::Ext::Git::TAG_TAG => env['DD_GIT_TAG'],
-            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE'],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['DD_GIT_COMMIT_MESSAGE'],
             Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['DD_GIT_COMMIT_AUTHOR_NAME'],
             Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['DD_GIT_COMMIT_AUTHOR_EMAIL'],
             Datadog::Ext::Git::TAG_COMMIT_AUTHOR_DATE => env['DD_GIT_COMMIT_AUTHOR_DATE'],
