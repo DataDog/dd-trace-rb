@@ -343,6 +343,7 @@ module Datadog
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => env['DD_GIT_COMMIT_COMMITTER_DATE']
           }
+        end
 
         def git_commit_users
           # Get committer and author information in one command.
