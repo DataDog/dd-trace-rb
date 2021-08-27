@@ -64,7 +64,7 @@ module Datadog
           end
 
           # If user defined metadata is defined, overwrite
-          extract_user_defined_git.each do |key, value|
+          extract_user_defined_git(env).each do |key, value|
             tags[key] = value
           end
 
