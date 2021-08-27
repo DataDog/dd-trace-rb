@@ -342,7 +342,7 @@ module Datadog
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_NAME => env['DD_GIT_COMMIT_COMMITTER_NAME'],
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
             Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => env['DD_GIT_COMMIT_COMMITTER_DATE']
-          }
+          }.reject{ |k, v| v.nil? }
         end
 
         def git_commit_users
