@@ -149,7 +149,7 @@ RSpec.describe Datadog::CI::Ext::Environment do
               'git.commit.committer.date' => env['DD_GIT_COMMIT_COMMITTER_DATE'],
               'git.commit.committer.email' => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
               'git.commit.committer.name' => env['DD_GIT_COMMIT_COMMITTER_NAME'],
-              'git.commit.message' => env['DD_GIT_COMMIT_AUTHOR_NAME'],
+              'git.commit.message' => env['DD_GIT_COMMIT_MESSAGE'],
               'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
               'git.repository_url' => env['DD_GIT_REPOSITORY_URL']
             }
