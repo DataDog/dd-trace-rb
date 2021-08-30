@@ -329,18 +329,18 @@ module Datadog
 
         def extract_user_defined_git(env)
           {
-            Datadog::Ext::Git::TAG_REPOSITORY_URL => env['DD_GIT_REPOSITORY_URL'],
-            Datadog::Ext::Git::TAG_COMMIT_SHA => env['DD_GIT_COMMIT_SHA'],
-            Datadog::Ext::Git::TAG_BRANCH => env['DD_GIT_BRANCH'],
-            Datadog::Ext::Git::TAG_TAG => env['DD_GIT_TAG'],
-            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env['DD_GIT_COMMIT_MESSAGE'],
-            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['DD_GIT_COMMIT_AUTHOR_NAME'],
-            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env['DD_GIT_COMMIT_AUTHOR_EMAIL'],
-            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_DATE => env['DD_GIT_COMMIT_AUTHOR_DATE'],
-            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_NAME => env['DD_GIT_COMMIT_COMMITTER_NAME'],
-            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
-            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => env['DD_GIT_COMMIT_COMMITTER_DATE']
-          }.reject { |_, v| v.nil? || v.empty? }
+            Datadog::Ext::Git::TAG_REPOSITORY_URL => env[Datadog::Ext::Git::ENV_REPOSITORY_URL],
+            Datadog::Ext::Git::TAG_COMMIT_SHA => env[Datadog::Ext::Git::ENV_COMMIT_SHA],
+            Datadog::Ext::Git::TAG_BRANCH => env[Datadog::Ext::Git::ENV_BRANCH],
+            Datadog::Ext::Git::TAG_TAG => env[Datadog::Ext::Git::ENV_TAG],
+            Datadog::Ext::Git::TAG_COMMIT_MESSAGE => env[Datadog::Ext::Git::ENV_COMMIT_MESSAGE],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env[Datadog::Ext::Git::ENV_COMMIT_AUTHOR_NAME],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => env[Datadog::Ext::Git::ENV_COMMIT_AUTHOR_EMAIL],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_DATE => env[Datadog::Ext::Git::ENV_COMMIT_AUTHOR_DATE],
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_NAME => env[Datadog::Ext::Git::ENV_COMMIT_COMMITTER_NAME],
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_EMAIL => env[Datadog::Ext::Git::ENV_COMMIT_COMMITTER_EMAIL],
+            Datadog::Ext::Git::TAG_COMMIT_COMMITTER_DATE => env[Datadog::Ext::Git::ENV_COMMIT_COMMITTER_DATE]
+          }.reject { |_, v| v.strip.nil? || v.strip.empty? }
         end
 
         def git_commit_users

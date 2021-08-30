@@ -141,17 +141,17 @@ RSpec.describe Datadog::CI::Ext::Environment do
           is_expected.to eq(
             {
               'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
-              'git.branch' => 'my-branch',
-              'git.tag' => 'my-tag',
-              'git.commit.author.date' => '2021-06-18T18:35:10+00:00',
-              'git.commit.author.email' => 'user@provided.com',
-              'git.commit.author.name' => 'user',
-              'git.commit.committer.date' => '2021-06-19T18:35:10+00:00',
-              'git.commit.committer.email' => 'user-committer@provided.com',
-              'git.commit.committer.name' => 'user committer',
-              'git.commit.message' => 'provided message',
-              'git.commit.sha' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
-              'git.repository_url' => 'https://datadoghq.com/git/user-provided.git'
+              'git.branch' => env['DD_GIT_BRANCH'],
+              'git.tag' => env['DD_GIT_TAG'],
+              'git.commit.author.date' => env['DD_GIT_COMMIT_AUTHOR_DATE'],
+              'git.commit.author.email' => env['DD_GIT_COMMIT_AUTHOR_EMAIL'],
+              'git.commit.author.name' => env['DD_GIT_COMMIT_AUTHOR_NAME'],
+              'git.commit.committer.date' => env['DD_GIT_COMMIT_COMMITTER_DATE'],
+              'git.commit.committer.email' => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
+              'git.commit.committer.name' => env['DD_GIT_COMMIT_COMMITTER_NAME'],
+              'git.commit.message' => env['DD_GIT_COMMIT_AUTHOR_NAME'],
+              'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
+              'git.repository_url' => env['DD_GIT_REPOSITORY_URL']
             }
           )
         end
