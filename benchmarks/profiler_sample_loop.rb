@@ -4,6 +4,7 @@ return unless __FILE__ == $PROGRAM_NAME
 require 'benchmark/ips'
 require 'ddtrace'
 require 'pry'
+require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
@@ -37,13 +38,13 @@ class ProfilerSampleLoopBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      x.config(time: 10, warmup: 2)
+      x.config(time: 10, warmup: 2, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop'))
 
       x.report("stack collector #{ENV['CONFIG']}") do
         @stack_collector.collect_and_wait
       end
 
-      x.save! 'profiler-sample-loop-results'
+      x.save! 'profiler-sample-loop-results.json'
       x.compare!
     end
 
