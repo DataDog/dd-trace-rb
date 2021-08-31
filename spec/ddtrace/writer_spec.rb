@@ -240,7 +240,7 @@ RSpec.describe Datadog::Writer do
           context 'enabled' do
             before { Datadog.configuration.report_hostname = true }
 
-            after { Datadog.configuration.reset! }
+            after { without_warnings { Datadog.configuration.reset! } }
 
             it do
               expect(transport).to receive(:send_traces) do |traces|
@@ -256,7 +256,7 @@ RSpec.describe Datadog::Writer do
           context 'disabled' do
             before { Datadog.configuration.report_hostname = false }
 
-            after { Datadog.configuration.reset! }
+            after { without_warnings { Datadog.configuration.reset! } }
 
             it do
               expect(writer.transport).to receive(:send_traces) do |traces|

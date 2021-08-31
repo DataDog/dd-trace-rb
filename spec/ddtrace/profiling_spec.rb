@@ -115,6 +115,9 @@ RSpec.describe Datadog::Profiling do
   describe '::protobuf_loaded_successfully?' do
     subject(:protobuf_loaded_successfully?) { described_class.send(:protobuf_loaded_successfully?) }
 
+    # NOTE: Be careful not to leave leftover state here, as marking protobuf as failed makes Profiling.supported?
+    # return false and may impact other tests.
+
     before do
       # Remove any previous state
       if described_class.instance_variable_defined?(:@protobuf_loaded)
@@ -122,6 +125,11 @@ RSpec.describe Datadog::Profiling do
       end
 
       allow(Kernel).to receive(:warn)
+    end
+
+    after do
+      # Remove leftover state
+      described_class.remove_instance_variable(:@protobuf_loaded)
     end
 
     context 'when there is an issue requiring protobuf' do

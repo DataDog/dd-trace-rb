@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/action_mailer/events/process'
 require 'ddtrace/contrib/action_mailer/events/deliver'
 

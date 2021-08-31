@@ -4,9 +4,9 @@ require 'ddtrace/ext/analytics'
 RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.configuration.reset!
+    without_warnings { Datadog.configuration.reset! }
     example.run
-    Datadog.configuration.reset!
+    without_warnings { Datadog.configuration.reset! }
   end
 
   context 'when not configured' do
@@ -267,7 +267,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
     before { Datadog.configuration.analytics.enabled = analytics_enabled }
 
-    after { Datadog.configuration.reset! }
+    after { without_warnings { Datadog.configuration.reset! } }
   end
 
   context 'when configured by configuration options' do

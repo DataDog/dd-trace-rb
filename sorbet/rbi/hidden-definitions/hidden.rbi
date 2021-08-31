@@ -155,7 +155,7 @@ class Array
 end
 
 class Array
-  def self.try_convert(_); end
+  def self.try_convert(arg); end
 end
 
 BasicObject::BasicObject = BasicObject
@@ -187,7 +187,7 @@ class BigDecimal
 end
 
 class BigDecimal
-  def self.interpret_loosely(_); end
+  def self.interpret_loosely(arg); end
 end
 
 class Binding
@@ -317,7 +317,7 @@ class Bundler::Fetcher::CompactIndex::ClientFetcher
 end
 
 class Bundler::Fetcher::CompactIndex::ClientFetcher
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -626,7 +626,7 @@ module Bundler::Plugin::API::Source
 
   def dependency_names=(dependency_names); end
 
-  def double_check_for(*_); end
+  def double_check_for(*arg); end
 
   def eql?(other); end
 
@@ -1165,11 +1165,11 @@ module Bundler::Thor::Base::ClassMethods
 
   def arguments(); end
 
-  def attr_accessor(*_); end
+  def attr_accessor(*arg); end
 
-  def attr_reader(*_); end
+  def attr_reader(*arg); end
 
-  def attr_writer(*_); end
+  def attr_writer(*arg); end
 
   def baseclass(); end
 
@@ -1399,9 +1399,9 @@ class Bundler::Thor::Group
 
   def self.invoke_from_option(*names, &block); end
 
-  def self.printable_commands(*_); end
+  def self.printable_commands(*arg); end
 
-  def self.printable_tasks(*_); end
+  def self.printable_tasks(*arg); end
 
   def self.remove_invocation(*names); end
 
@@ -1719,7 +1719,7 @@ class Bundler::Thor::Shell::Basic
 
   def say_status(status, message, log_status=T.unsafe(nil)); end
 
-  def set_color(string, *_); end
+  def set_color(string, *arg); end
 
   def show_diff(destination, content); end
 
@@ -2474,7 +2474,7 @@ class Bundler::VersionRanges::NEq
 end
 
 class Bundler::VersionRanges::NEq
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -2509,13 +2509,13 @@ class Bundler::VersionRanges::ReqR::Endpoint
 end
 
 class Bundler::VersionRanges::ReqR::Endpoint
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
 
 class Bundler::VersionRanges::ReqR
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -3154,7 +3154,7 @@ class Datadog::CRubyTraceBuffer
 end
 
 class Datadog::Configuration::AgentSettingsResolver::AgentSettings
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -3290,6 +3290,39 @@ class Datadog::Contrib::ActionCable::Integration
   include ::Datadog::Contrib::Registerable::InstanceMethods
 end
 
+class Datadog::Contrib::ActionMailer::Configuration::Settings
+  def email_data(); end
+
+  def email_data=(value); end
+end
+
+module Datadog::Contrib::ActionMailer::Events::Deliver
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActionMailer::Events::Deliver
+  extend ::Datadog::Contrib::ActionMailer::Event::ClassMethods
+end
+
+module Datadog::Contrib::ActionMailer::Events::Process
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActionMailer::Events::Process
+  extend ::Datadog::Contrib::ActionMailer::Event::ClassMethods
+end
+
+class Datadog::Contrib::ActionMailer::Integration
+  include ::Datadog::Contrib::Configurable
+  include ::Datadog::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Contrib::Patchable
+  include ::Datadog::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Contrib::Registerable
+  include ::Datadog::Contrib::Registerable::InstanceMethods
+end
+
 class Datadog::Contrib::ActionPack::Configuration::Settings
   def controller_service(); end
 
@@ -3334,6 +3367,75 @@ module Datadog::Contrib::ActionView::Events::RenderTemplate
 end
 
 class Datadog::Contrib::ActionView::Integration
+  include ::Datadog::Contrib::Configurable
+  include ::Datadog::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Contrib::Patchable
+  include ::Datadog::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Contrib::Registerable
+  include ::Datadog::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Contrib::ActiveJob::Configuration::Settings
+  def error_handler(); end
+
+  def error_handler=(value); end
+end
+
+module Datadog::Contrib::ActiveJob::Events::Discard
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActiveJob::Events::Discard
+  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Contrib::ActiveJob::Events::Enqueue
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActiveJob::Events::Enqueue
+  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Contrib::ActiveJob::Events::EnqueueAt
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActiveJob::Events::EnqueueAt
+  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Contrib::ActiveJob::Events::EnqueueRetry
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActiveJob::Events::EnqueueRetry
+  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Contrib::ActiveJob::Events::Perform
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActiveJob::Events::Perform
+  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Contrib::ActiveJob::Events::RetryStopped
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Contrib::ActiveJob::Events::RetryStopped
+  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
+end
+
+class Datadog::Contrib::ActiveJob::Integration
   include ::Datadog::Contrib::Configurable
   include ::Datadog::Contrib::Configurable::InstanceMethods
   include ::Datadog::Contrib::Patchable
@@ -4020,7 +4122,7 @@ class Datadog::Contrib::Redis::Integration
 end
 
 class Datadog::Contrib::Registry::Entry
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -4171,13 +4273,13 @@ class Datadog::Contrib::SuckerPunch::Integration
 end
 
 class Datadog::Core::Environment::Cgroup::Descriptor
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
 
 class Datadog::Core::Environment::Container::Descriptor
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -4235,7 +4337,7 @@ module Datadog::Metrics::Helpers
 end
 
 class Datadog::Metrics::Metric
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -4249,27 +4351,27 @@ class Datadog::Profiling::Collectors::Stack
 end
 
 module Datadog::Profiling::Ext::NativePthread
-  def pthread_self(*_); end
+  def pthread_self(*arg); end
 end
 
 module Datadog::Profiling::Ext::NativePthread
-  def self.pthread_self(*_); end
+  def self.pthread_self(*arg); end
 end
 
 class Datadog::Profiling::Flush
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
 
 class Datadog::Profiling::Pprof::Converter::EventGroup
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
 
 class Datadog::Profiling::Pprof::Payload
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -4289,7 +4391,7 @@ class Datadog::Span
 end
 
 class Datadog::Span::ResourceContainer
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -4485,7 +4587,7 @@ end
 class DidYouMean::NullChecker
   def corrections(); end
 
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 class DidYouMean::ParseDimensions
@@ -4557,7 +4659,7 @@ module Dir::Tmpname
 end
 
 class Dir
-  def self.exists?(_); end
+  def self.exists?(arg); end
 end
 
 module Docile
@@ -4586,24 +4688,24 @@ class ERB::Compiler::Scanner
 end
 
 class Encoding
-  def _dump(*_); end
+  def _dump(*arg); end
   CESU_8 = ::T.let(nil, ::T.untyped)
 end
 
 class Encoding::Converter
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 class Encoding
-  def self._load(_); end
+  def self._load(arg); end
 end
 
 module Enumerable
-  def sum(*_); end
+  def sum(*arg); end
 end
 
 class Enumerator
-  def +(_); end
+  def +(arg); end
 
   def each_with_index(); end
 end
@@ -4617,7 +4719,7 @@ class Enumerator::ArithmeticSequence
 
   def exclude_end?(); end
 
-  def last(*_); end
+  def last(*arg); end
 
   def step(); end
 end
@@ -4632,9 +4734,9 @@ class Enumerator::Chain
 end
 
 class Enumerator::Generator
-  def each(*_, &blk); end
+  def each(*arg, &blk); end
 
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 class Enumerator::Lazy
@@ -4653,7 +4755,7 @@ class Enumerator::Yielder
 end
 
 class Enumerator
-  def self.produce(*_); end
+  def self.produce(*arg); end
 end
 
 class Errno::EAUTH
@@ -4825,7 +4927,7 @@ end
 
 class Etc::Group
   extend ::Enumerable
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.each(&blk); end
 
@@ -4864,7 +4966,7 @@ end
 
 class Etc::Passwd
   extend ::Enumerable
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.each(&blk); end
 
@@ -5090,9 +5192,9 @@ class FalseClass
 end
 
 class Fiber
-  def initialize(*_); end
+  def initialize(*arg); end
 
-  def transfer(*_); end
+  def transfer(*arg); end
 end
 
 class Fiber
@@ -5105,9 +5207,9 @@ class File
 end
 
 class File
-  def self.absolute_path?(_); end
+  def self.absolute_path?(arg); end
 
-  def self.exists?(_); end
+  def self.exists?(arg); end
 
   def self.read_binary(file); end
 end
@@ -5789,15 +5891,15 @@ end
 class Hash
   include ::JSON::Ext::Generator::GeneratorMethods::Hash
   include ::LanguageHelpers::HashHelpers
-  def deconstruct_keys(_); end
+  def deconstruct_keys(arg); end
 end
 
 class Hash
-  def self.ruby2_keywords_hash(_); end
+  def self.ruby2_keywords_hash(arg); end
 
-  def self.ruby2_keywords_hash?(_); end
+  def self.ruby2_keywords_hash?(arg); end
 
-  def self.try_convert(_); end
+  def self.try_convert(arg); end
 end
 
 module Hashdiff
@@ -5823,29 +5925,29 @@ class IO
 
   def cursor=(cursor); end
 
-  def cursor_down(_); end
+  def cursor_down(arg); end
 
-  def cursor_left(_); end
+  def cursor_left(arg); end
 
-  def cursor_right(_); end
+  def cursor_right(arg); end
 
-  def cursor_up(_); end
+  def cursor_up(arg); end
 
   def echo=(echo); end
 
   def echo?(); end
 
-  def erase_line(_); end
+  def erase_line(arg); end
 
-  def erase_screen(_); end
+  def erase_screen(arg); end
 
-  def getch(*_); end
+  def getch(*arg); end
 
-  def getpass(*_); end
+  def getpass(*arg); end
 
-  def goto(_, _1); end
+  def goto(arg, arg1); end
 
-  def goto_column(_); end
+  def goto_column(arg); end
 
   def iflush(); end
 
@@ -5853,7 +5955,7 @@ class IO
 
   def noecho(); end
 
-  def nonblock(*_); end
+  def nonblock(*arg); end
 
   def nonblock=(nonblock); end
 
@@ -5863,27 +5965,27 @@ class IO
 
   def oflush(); end
 
-  def pathconf(_); end
+  def pathconf(arg); end
 
   def pressed?(); end
 
-  def raw(*_); end
+  def raw(*arg); end
 
-  def raw!(*_); end
+  def raw!(*arg); end
 
   def ready?(); end
 
-  def scroll_backward(_); end
+  def scroll_backward(arg); end
 
-  def scroll_forward(_); end
+  def scroll_forward(arg); end
 
   def set_encoding_by_bom(); end
 
-  def wait(*_); end
+  def wait(*arg); end
 
-  def wait_readable(*_); end
+  def wait_readable(*arg); end
 
-  def wait_writable(*_); end
+  def wait_writable(*arg); end
 
   def winsize(); end
 
@@ -5893,9 +5995,9 @@ end
 class IO::ConsoleMode
   def echo=(echo); end
 
-  def raw(*_); end
+  def raw(*arg); end
 
-  def raw!(*_); end
+  def raw!(*arg); end
 end
 
 class IO::ConsoleMode
@@ -5906,7 +6008,7 @@ IO::EWOULDBLOCKWaitReadable = IO::EAGAINWaitReadable
 IO::EWOULDBLOCKWaitWritable = IO::EAGAINWaitWritable
 
 class IO
-  def self.console(*_); end
+  def self.console(*arg); end
 
   def self.console_size(); end
 
@@ -5952,7 +6054,7 @@ module IRB::Color
 end
 
 class IRB::Context
-  def __exit__(*_); end
+  def __exit__(*arg); end
 
   def __inspect__(); end
 
@@ -6013,7 +6115,7 @@ class IRB::DefaultEncodings
 end
 
 class IRB::DefaultEncodings
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -6203,11 +6305,11 @@ class Integer
 end
 
 class JSON::Ext::Generator::State
-  def self.from_state(_); end
+  def self.from_state(arg); end
 end
 
 class JSON::Ext::Parser
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 JSON::Parser = JSON::Ext::Parser
@@ -6299,47 +6401,6 @@ module MethodSource::CodeHelpers::IncompleteExpression
   RBX_ONLY_REGEXPS = ::T.let(nil, ::T.untyped)
 end
 
-MiniTest = Minitest
-
-module Minitest
-  ENCS = ::T.let(nil, ::T.untyped)
-  VERSION = ::T.let(nil, ::T.untyped)
-end
-
-module Minitest::Around
-  VERSION = ::T.let(nil, ::T.untyped)
-end
-
-module Minitest::Assertions
-  E = ::T.let(nil, ::T.untyped)
-  UNDEFINED = ::T.let(nil, ::T.untyped)
-end
-
-class Minitest::Runnable
-  SIGNALS = ::T.let(nil, ::T.untyped)
-end
-
-class Minitest::Spec
-  TYPES = ::T.let(nil, ::T.untyped)
-end
-
-module Minitest::Spec::DSL
-  TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class Minitest::Test
-  PASSTHROUGH_EXCEPTIONS = ::T.let(nil, ::T.untyped)
-  TEARDOWN_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class Minitest::Unit
-  VERSION = ::T.let(nil, ::T.untyped)
-end
-
-module MinitestAround
-  VERSION = ::T.let(nil, ::T.untyped)
-end
-
 class Monitor
   def enter(); end
 
@@ -6367,7 +6428,7 @@ class Monitor
 
   def try_mon_enter(); end
 
-  def wait_for_cond(_, _1); end
+  def wait_for_cond(arg, arg1); end
 end
 
 module MonitorMixin
@@ -6376,10 +6437,6 @@ end
 
 class MonitorMixin::ConditionVariable
   def initialize(monitor); end
-end
-
-module Mutex_m
-  VERSION = ::T.let(nil, ::T.untyped)
 end
 
 class NameError
@@ -6591,39 +6648,39 @@ class ObjectSpace::InternalObjectWrapper
 end
 
 module ObjectSpace
-  def self.allocation_class_path(_); end
+  def self.allocation_class_path(arg); end
 
-  def self.allocation_generation(_); end
+  def self.allocation_generation(arg); end
 
-  def self.allocation_method_id(_); end
+  def self.allocation_method_id(arg); end
 
-  def self.allocation_sourcefile(_); end
+  def self.allocation_sourcefile(arg); end
 
-  def self.allocation_sourceline(_); end
+  def self.allocation_sourceline(arg); end
 
-  def self.count_imemo_objects(*_); end
+  def self.count_imemo_objects(*arg); end
 
-  def self.count_nodes(*_); end
+  def self.count_nodes(*arg); end
 
-  def self.count_objects_size(*_); end
+  def self.count_objects_size(*arg); end
 
-  def self.count_symbols(*_); end
+  def self.count_symbols(*arg); end
 
-  def self.count_tdata_objects(*_); end
+  def self.count_tdata_objects(*arg); end
 
-  def self.dump(*_); end
+  def self.dump(*arg); end
 
-  def self.dump_all(*_); end
+  def self.dump_all(*arg); end
 
-  def self.internal_class_of(_); end
+  def self.internal_class_of(arg); end
 
-  def self.internal_super_of(_); end
+  def self.internal_super_of(arg); end
 
-  def self.memsize_of(_); end
+  def self.memsize_of(arg); end
 
-  def self.memsize_of_all(*_); end
+  def self.memsize_of_all(*arg); end
 
-  def self.reachable_objects_from(_); end
+  def self.reachable_objects_from(arg); end
 
   def self.reachable_objects_from_root(); end
 
@@ -6643,7 +6700,7 @@ class OpenSSL::BN
 
   def -@(); end
 
-  def /(_); end
+  def /(arg); end
 
   def negative?(); end
 end
@@ -6658,11 +6715,11 @@ class OpenSSL::KDF::KDFError
 end
 
 module OpenSSL::KDF
-  def self.hkdf(*_); end
+  def self.hkdf(*arg); end
 
-  def self.pbkdf2_hmac(*_); end
+  def self.pbkdf2_hmac(*arg); end
 
-  def self.scrypt(*_); end
+  def self.scrypt(*arg); end
 end
 
 class OpenSSL::OCSP::Request
@@ -6676,7 +6733,7 @@ class OpenSSL::PKey::EC
 end
 
 class OpenSSL::PKey::EC::Point
-  def to_octet_string(_); end
+  def to_octet_string(arg); end
 end
 
 module OpenSSL::SSL
@@ -6887,11 +6944,11 @@ class Parser::StaticEnvironment
 end
 
 class Pathname
-  def fnmatch?(*_); end
+  def fnmatch?(*arg); end
 
-  def glob(*_); end
+  def glob(*arg); end
 
-  def make_symlink(_); end
+  def make_symlink(arg); end
 end
 
 module PimpMyChangelog
@@ -6905,9 +6962,9 @@ class PimpMyChangelog::Pimper
 end
 
 class Proc
-  def <<(_); end
+  def <<(arg); end
 
-  def >>(_); end
+  def >>(arg); end
 
   def clone(); end
 end
@@ -7459,7 +7516,7 @@ class RDoc::Parser::RipperStateLex::Token
 end
 
 class RDoc::Parser::RipperStateLex::Token
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -8060,11 +8117,11 @@ end
 RakeFileUtils = Rake::FileUtilsExt
 
 class Random
-  def self.bytes(_); end
+  def self.bytes(arg); end
 end
 
 class Range
-  def %(_); end
+  def %(arg); end
 
   def entries(); end
 
@@ -8671,7 +8728,7 @@ class Reline::CursorPos
 end
 
 class Reline::CursorPos
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -8831,7 +8888,7 @@ class Reline::KillRing::RingPoint
 end
 
 class Reline::KillRing::RingPoint
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -9198,7 +9255,7 @@ class Ripper
 
   def filename(); end
 
-  def initialize(*_); end
+  def initialize(*arg); end
 
   def lineno(); end
 
@@ -9273,7 +9330,7 @@ class Ripper::Lexer::Elem
 end
 
 class Ripper::Lexer::Elem
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -9303,7 +9360,7 @@ class Ripper::Lexer::State
 end
 
 class Ripper::Lexer::State
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -9735,13 +9792,13 @@ class Ripper::TokenPattern::MatchError
 end
 
 class Ripper::TokenPattern
-  def self.compile(*_); end
+  def self.compile(*arg); end
 end
 
 class Ripper
-  def self.dedent_string(_, _1); end
+  def self.dedent_string(arg, arg1); end
 
-  def self.lex_state_name(_); end
+  def self.lex_state_name(arg); end
 
   def self.token_match(src, pattern); end
 end
@@ -9841,7 +9898,7 @@ class RuboCop::AST::NodePattern::Compiler::Debug::Colorizer::Result
 end
 
 class RuboCop::AST::NodePattern::Compiler::Debug::Colorizer::Result
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -10079,6 +10136,7 @@ module RuboCop::AST::Version
 end
 
 class RuboCop::CLI
+  DEFAULT_PARALLEL_OPTIONS = ::T.let(nil, ::T.untyped)
   STATUS_ERROR = ::T.let(nil, ::T.untyped)
   STATUS_INTERRUPTED = ::T.let(nil, ::T.untyped)
   STATUS_OFFENSES = ::T.let(nil, ::T.untyped)
@@ -10180,6 +10238,15 @@ class RuboCop::Cop::Bundler::GemComment
   VERSION_SPECIFIERS_OPTION = ::T.let(nil, ::T.untyped)
 end
 
+class RuboCop::Cop::Bundler::GemFilename
+  GEMFILE_FILES = ::T.let(nil, ::T.untyped)
+  GEMS_RB_FILES = ::T.let(nil, ::T.untyped)
+  MSG_GEMFILE_MISMATCHED = ::T.let(nil, ::T.untyped)
+  MSG_GEMFILE_REQUIRED = ::T.let(nil, ::T.untyped)
+  MSG_GEMS_RB_MISMATCHED = ::T.let(nil, ::T.untyped)
+  MSG_GEMS_RB_REQUIRED = ::T.let(nil, ::T.untyped)
+end
+
 class RuboCop::Cop::Bundler::GemVersion
   FORBIDDEN_MSG = ::T.let(nil, ::T.untyped)
   REQUIRED_MSG = ::T.let(nil, ::T.untyped)
@@ -10231,7 +10298,6 @@ end
 module RuboCop::Cop::FrozenStringLiteral
   FROZEN_STRING_LITERAL = ::T.let(nil, ::T.untyped)
   FROZEN_STRING_LITERAL_ENABLED = ::T.let(nil, ::T.untyped)
-  FROZEN_STRING_LITERAL_TYPES = ::T.let(nil, ::T.untyped)
 end
 
 class RuboCop::Cop::Gemspec::DateAssignment
@@ -10568,7 +10634,6 @@ class RuboCop::Cop::Layout::RescueEnsureAlignment
   ANCESTOR_TYPES = ::T.let(nil, ::T.untyped)
   ANCESTOR_TYPES_WITH_ACCESS_MODIFIERS = ::T.let(nil, ::T.untyped)
   MSG = ::T.let(nil, ::T.untyped)
-  RUBY_2_5_ANCESTOR_TYPES = ::T.let(nil, ::T.untyped)
 end
 
 class RuboCop::Cop::Layout::SingleLineBlockChain
@@ -10691,6 +10756,10 @@ end
 class RuboCop::Cop::Lint::AmbiguousOperator
   AMBIGUITIES = ::T.let(nil, ::T.untyped)
   MSG_FORMAT = ::T.let(nil, ::T.untyped)
+end
+
+class RuboCop::Cop::Lint::AmbiguousRange
+  MSG = ::T.let(nil, ::T.untyped)
 end
 
 class RuboCop::Cop::Lint::AmbiguousRegexpLiteral
@@ -12334,7 +12403,7 @@ end
 
 class RuboCop::Cop::Style::Encoding
   ENCODING_PATTERN = ::T.let(nil, ::T.untyped)
-  MSG_UNNECESSARY = ::T.let(nil, ::T.untyped)
+  MSG = ::T.let(nil, ::T.untyped)
   SHEBANG = ::T.let(nil, ::T.untyped)
 end
 
@@ -12836,6 +12905,10 @@ class RuboCop::Cop::Style::RedundantSelfAssignment
   MSG = ::T.let(nil, ::T.untyped)
 end
 
+class RuboCop::Cop::Style::RedundantSelfAssignmentBranch
+  MSG = ::T.let(nil, ::T.untyped)
+end
+
 class RuboCop::Cop::Style::RedundantSort
   MSG = ::T.let(nil, ::T.untyped)
   RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
@@ -12919,6 +12992,7 @@ end
 
 class RuboCop::Cop::Style::SpecialGlobalVars
   ENGLISH_VARS = ::T.let(nil, ::T.untyped)
+  LIBRARY_NAME = ::T.let(nil, ::T.untyped)
   MSG_BOTH = ::T.let(nil, ::T.untyped)
   MSG_ENGLISH = ::T.let(nil, ::T.untyped)
   MSG_REGULAR = ::T.let(nil, ::T.untyped)
@@ -13218,18 +13292,22 @@ class RuboCop::Formatter::SimpleTextFormatter
 end
 
 class RuboCop::MagicComment
+  KEYWORDS = ::T.let(nil, ::T.untyped)
   TOKEN = ::T.let(nil, ::T.untyped)
 end
 
 class RuboCop::MagicComment::EmacsComment
   FORMAT = ::T.let(nil, ::T.untyped)
   OPERATOR = ::T.let(nil, ::T.untyped)
+  REGEXP = ::T.let(nil, ::T.untyped)
   SEPARATOR = ::T.let(nil, ::T.untyped)
 end
 
 class RuboCop::MagicComment::VimComment
   FORMAT = ::T.let(nil, ::T.untyped)
+  KEYWORDS = ::T.let(nil, ::T.untyped)
   OPERATOR = ::T.let(nil, ::T.untyped)
+  REGEXP = ::T.let(nil, ::T.untyped)
   SEPARATOR = ::T.let(nil, ::T.untyped)
 end
 
@@ -13583,7 +13661,7 @@ end
 module RubyVM::MJIT
   def self.enabled?(); end
 
-  def self.pause(*_); end
+  def self.pause(*arg); end
 
   def self.resume(); end
 end
@@ -13873,22 +13951,12 @@ module Spoom
   VERSION = ::T.let(nil, ::T.untyped)
 end
 
-class Spoom::Cli::Bump
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
 class Spoom::Cli::Coverage
   DATA_DIR = ::T.let(nil, ::T.untyped)
 end
 
 module Spoom::Cli::Helper
   HIGHLIGHT_COLOR = ::T.let(nil, ::T.untyped)
-end
-
-module Spoom::Cli::Helper
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
 end
 
 class Spoom::Cli::Run
@@ -13914,18 +13982,6 @@ module Spoom::Coverage::D3
   COLOR_TRUE = ::T.let(nil, ::T.untyped)
 end
 
-class Spoom::Coverage::D3::Base
-  extend ::T::Private::Abstract::Hooks
-  extend ::T::InterfaceWrapper::Helpers
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-module Spoom::Coverage::D3
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
 class Spoom::Coverage::Page
   TEMPLATE = ::T.let(nil, ::T.untyped)
 end
@@ -13934,89 +13990,8 @@ class Spoom::Coverage::Snapshot
   STRICTNESSES = ::T.let(nil, ::T.untyped)
 end
 
-class Spoom::Coverage::Snapshot
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::Coverage::Template
-  extend ::T::Private::Abstract::Hooks
-  extend ::T::InterfaceWrapper::Helpers
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-module Spoom::Coverage
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::FileTree::Node
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::FileTree
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-module Spoom::Git
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::LSP::Diagnostic
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
 class Spoom::LSP::DocumentSymbol
   SYMBOL_KINDS = ::T.let(nil, ::T.untyped)
-end
-
-class Spoom::LSP::DocumentSymbol
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::LSP::Hover
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::LSP::Location
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::LSP::Position
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-module Spoom::LSP::PrintableSymbol
-  extend ::T::Private::Abstract::Hooks
-  extend ::T::InterfaceWrapper::Helpers
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::LSP::Range
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::LSP::SignatureHelp
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::Printer
-  extend ::T::Private::Abstract::Hooks
-  extend ::T::InterfaceWrapper::Helpers
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
 end
 
 module Spoom::Sorbet
@@ -14025,38 +14000,13 @@ module Spoom::Sorbet
   GEM_PATH = ::T.let(nil, ::T.untyped)
 end
 
-class Spoom::Sorbet::Config
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::Sorbet::Errors::Error
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
 class Spoom::Sorbet::Errors::Parser
   ERROR_LINE_MATCH_REGEX = ::T.let(nil, ::T.untyped)
   HEADER = ::T.let(nil, ::T.untyped)
 end
 
-class Spoom::Sorbet::Errors::Parser
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-module Spoom::Sorbet::Errors
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
 module Spoom::Sorbet::MetricsParser
   DEFAULT_PREFIX = ::T.let(nil, ::T.untyped)
-end
-
-module Spoom::Sorbet::MetricsParser
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
 end
 
 module Spoom::Sorbet::Sigils
@@ -14070,22 +14020,7 @@ module Spoom::Sorbet::Sigils
   VALID_STRICTNESS = ::T.let(nil, ::T.untyped)
 end
 
-module Spoom::Sorbet::Sigils
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
 module Spoom::Sorbet
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-class Spoom::Timeline
-  extend ::T::Private::Methods::MethodHooks
-  extend ::T::Private::Methods::SingletonMethodHooks
-end
-
-module Spoom
-  extend ::T::Private::Methods::MethodHooks
   extend ::T::Private::Methods::SingletonMethodHooks
 end
 
@@ -14106,7 +14041,7 @@ class StringScanner
 
   def fixed_anchor?(); end
 
-  def initialize(*_); end
+  def initialize(*arg); end
   Id = ::T.let(nil, ::T.untyped)
   Version = ::T.let(nil, ::T.untyped)
 end
@@ -14114,9 +14049,9 @@ end
 class Struct
   def deconstruct(); end
 
-  def deconstruct_keys(_); end
+  def deconstruct_keys(arg); end
 
-  def filter(*_); end
+  def filter(*arg); end
 end
 
 class Struct::CompletionJourneyData
@@ -14138,7 +14073,7 @@ class Struct::CompletionJourneyData
 end
 
 class Struct::CompletionJourneyData
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -14160,7 +14095,7 @@ class Struct::Key
 end
 
 class Struct::Key
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -14176,7 +14111,7 @@ class Struct::MenuInfo
 end
 
 class Struct::MenuInfo
-  def self.[](*_); end
+  def self.[](*arg); end
 
   def self.members(); end
 end
@@ -16432,7 +16367,7 @@ module YARD::Templates::Template
 
   def class(); end
 
-  def class=(_); end
+  def class=(arg); end
 
   def erb(section, &block); end
 
@@ -16533,17 +16468,17 @@ class YARD::Verifier
 end
 
 class Zlib::Deflate
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 class Zlib::GzipReader
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 class Zlib::GzipWriter
-  def initialize(*_); end
+  def initialize(*arg); end
 end
 
 class Zlib::Inflate
-  def initialize(*_); end
+  def initialize(*arg); end
 end
