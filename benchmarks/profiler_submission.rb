@@ -1,5 +1,9 @@
 # typed: true
-return unless __FILE__ == $PROGRAM_NAME
+
+# Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
+VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+
+return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require 'benchmark/ips'
 require 'ddtrace'
@@ -57,13 +61,14 @@ class ProfilerSubmission
 
   def run_benchmark
     Benchmark.ips do |x|
-      x.config(time: 10, warmup: 2, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission'))
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0.001} : {time: 10, warmup: 2}
+      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission'))
 
       x.report("exporter #{ENV['CONFIG']}") do
         run_once
       end
 
-      x.save! 'profiler-submission-results.json'
+      x.save! 'profiler-submission-results.json' unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

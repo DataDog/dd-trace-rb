@@ -7,7 +7,7 @@ require 'ddtrace/profiling/pprof/builder'
 
 RSpec.describe Datadog::Profiling::Pprof::Builder do
   before do
-    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
   end
 
   subject(:builder) { described_class.new }

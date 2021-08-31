@@ -6,7 +6,7 @@ require 'ddtrace/profiling/pprof/template'
 
 RSpec.describe Datadog::Profiling::Pprof::Template do
   before do
-    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
   end
 
   subject(:template) { described_class.new(mappings) }
