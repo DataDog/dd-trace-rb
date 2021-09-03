@@ -4,17 +4,17 @@ LogHelpers.without_warnings do
 end
 
 RSpec.shared_context 'GraphQL base schema types' do
-  let(:query_type_name) { 'Query' }
+  let(:query_type_name) { 'TestQuery' }
   let(:object_type_name) { 'Foo' }
   let(:object_class) do
-    Class.new do
+    stub_const('TestClass', Class.new do
       attr_accessor :id, :name
 
       def initialize(id, name = 'bar')
         @id = id
         @name = name
       end
-    end
+    end)
   end
 end
 

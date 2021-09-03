@@ -58,14 +58,14 @@ module Contrib
 
           # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
           write_lock = Mutex.new
-          allow(instance).to receive(:write) do |trace|
-            instance.instance_exec do
-              write_lock.synchronize do
-                @spans ||= []
-                @spans << trace
-              end
-            end
-          end
+          # allow(instance).to receive(:write) do |trace|
+          #   instance.instance_exec do
+          #     write_lock.synchronize do
+          #       @spans ||= []
+          #       @spans << trace
+          #     end
+          #   end
+          # end
 
           instance
         end

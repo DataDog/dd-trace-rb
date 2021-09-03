@@ -135,16 +135,27 @@ module TracerHelpers
     @spans ||= writer.spans
   end
 
-  # Returns the only span in the current tracer writer.
+  # Returns the only span in the active tracer writer.
   #
-  # This method will not allow for ambiguous use,
-  # meaning it will throw an error when more than
-  # one span is available.
+  # This method will not allow for ambiguous use:
+  # it will raise an error when more than one span could be returned.
   def span
     @span ||= begin
-      expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans are available"
+      expect(spans).to have(1).item, "Requested the only span, but #{spans.size} spans were created: #{spans}"
       spans.first
     end
+  end
+
+  # Returns the only root span in the active tracer writer.
+  #
+  # This method will not allow for ambiguous use:
+  # it will raise an error when more than one span could be returned.
+  def root_span
+    @root_span ||= begin
+                     root_spans = spans.reject(&:parent)
+                     expect(root_spans).to have(1).item, "Requested the only root span, but #{spans.size} root spans were created: #{root_spans}"
+                     root_spans.first
+                   end
   end
 
   def clear_spans!
