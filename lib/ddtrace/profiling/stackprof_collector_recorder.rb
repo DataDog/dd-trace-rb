@@ -57,7 +57,8 @@ module Datadog
 
       def profile_to_recorder(profile)
         frames = profile.fetch(:frames)
-        raw_samples = profile[:raw]
+
+        raw_samples = profile[:raw] || []
 
         events = []
 
@@ -87,7 +88,7 @@ module Datadog
           sample_position = count_position + 1
         end
 
-        @recorder.push(events)
+        @recorder.push(events) unless events.empty?
       end
 
       # def samples_to_locations(frames, samples)
