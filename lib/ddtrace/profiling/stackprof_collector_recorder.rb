@@ -75,10 +75,10 @@ module Datadog
           count = raw_samples[count_position]
 
           events << Events::StackSample.new(
-            0, # fake timestamp -- avoids using Timenow
+            0, # fake timestamp -- avoids using Time.now
             the_samples.reverse.map { |sample| all_backtrace_locations.fetch(sample) },
             the_samples.size,
-            1, # fake thread id,
+            :unsupported, # thread_id
             nil, # trace_id
             nil, # span_id
             nil, # no cpu time
@@ -90,19 +90,6 @@ module Datadog
 
         @recorder.push(events) unless events.empty?
       end
-
-      # def samples_to_locations(frames, samples)
-      #   samples.map do |sample|
-      #     frame = frames.fetch(sample)
-
-      #     @stack_sample_event_recorder.cache(:backtrace_locations).fetch(
-      #       frame.fetch(:name),
-      #       frame[:line] || 0,
-      #       frame.fetch(:file),
-      #       &@build_backtrace_location
-      #     )
-      #   end
-      # end
 
       def frames_to_backtrace_locations(frames)
         frames.each_with_object({}) do |(key, frame), locations|
