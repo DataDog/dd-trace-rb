@@ -7,6 +7,7 @@ require 'datadog/core/environment/class_count'
 require 'datadog/core/environment/gc'
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/thread_count'
+require 'datadog/core/environment/vm_cache'
 
 module Datadog
   module Runtime
@@ -58,12 +59,25 @@ module Datadog
             gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, Core::Environment::ClassCount.value)
           end
         end
+
         try_flush do
           if Core::Environment::ThreadCount.available?
             gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, Core::Environment::ThreadCount.value)
           end
         end
+
         try_flush { gc_metrics.each { |metric, value| gauge(metric, value) } if Core::Environment::GC.available? }
+
+        try_flush do
+          if Core::Environment::VMCache.available?
+            gauge(Ext::Runtime::Metrics::METRIC_GLOBAL_CONSTANT_STATE, Core::Environment::VMCache.global_constant_state)
+
+            # global_method_state is not available since Ruby >= 3.0,
+            # as method caching was moved to a per-class basis.
+            global_method_state = Core::Environment::VMCache.global_method_state
+            gauge(Ext::Runtime::Metrics::METRIC_GLOBAL_METHOD_STATE, global_method_state) if global_method_state
+          end
+        end
       end
 
       def gc_metrics

@@ -171,6 +171,34 @@ RSpec.describe Datadog::Runtime::Metrics do
           end
         end
       end
+
+      context 'including VMCache stats', if: PlatformHelpers.mri? do
+        before { allow(runtime_metrics).to receive(:gauge) }
+
+        context 'with Ruby < 3', if: RUBY_VERSION < '3.0.0' do
+          it 'records global cache counters' do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Ext::Runtime::Metrics::METRIC_GLOBAL_CONSTANT_STATE, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Ext::Runtime::Metrics::METRIC_GLOBAL_METHOD_STATE, kind_of(Numeric))
+              .once
+          end
+        end
+
+        context 'with Ruby >= 3', if: RUBY_VERSION >= '3.0.0' do
+          it 'records constant cache counter' do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Ext::Runtime::Metrics::METRIC_GLOBAL_CONSTANT_STATE, kind_of(Numeric))
+              .once
+          end
+        end
+      end
     end
 
     it_behaves_like 'a flush of all runtime metrics'
