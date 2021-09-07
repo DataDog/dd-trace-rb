@@ -1,5 +1,4 @@
 # typed: false
-require 'datadog/contrib'
 
 module Datadog
   module Contrib
