@@ -1,5 +1,4 @@
 # typed: false
-require 'ddtrace'
 
 module Datadog
   module Contrib
