@@ -9,6 +9,7 @@ static VALUE sample_thread(VALUE thread);
 static VALUE to_sample(int frames_count, VALUE* frames, int* lines);
 
 int borrowed_from_ruby_sources_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
+VALUE thread_id_for(VALUE thread);
 
 void Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -48,9 +49,10 @@ static VALUE sample_thread(VALUE thread) {
   int lines[MAX_STACK_DEPTH];
 
   int stack_depth = borrowed_from_ruby_sources_rb_profile_frames(thread, 0, MAX_STACK_DEPTH, frames, lines);
-  VALUE sample = to_sample(stack_depth, frames, lines);
+  VALUE stack = to_sample(stack_depth, frames, lines);
+  VALUE thread_id = thread_id_for(thread);
 
-  return rb_ary_new_from_args(3, thread, INT2FIX(stack_depth), sample);
+  return rb_ary_new_from_args(4, thread, INT2FIX(stack_depth), stack, thread_id);
 }
 
 

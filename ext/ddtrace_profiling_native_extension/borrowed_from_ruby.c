@@ -137,3 +137,11 @@ int borrowed_from_ruby_sources_rb_profile_frames(VALUE thread, int start, int li
 
     return i;
 }
+
+// Not borrowed from Ruby, but useful to be in this file since it needs the MJIT header
+VALUE thread_id_for(VALUE thread) {
+  // In here we're assuming that what we got is really a Thread or its subclass
+  rb_thread_t *thread_pointer = (rb_thread_t*) DATA_PTR(thread);
+
+  return LONG2FIX(thread_pointer->thread_id);
+}
