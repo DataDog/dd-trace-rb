@@ -1,5 +1,6 @@
-#include <ruby.h>
-#include <stdio.h>
+
+#include "extconf.h"
+#include RUBY_MJIT_HEADER
 
 static VALUE native_working_p(VALUE self);
 

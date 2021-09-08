@@ -21,6 +21,31 @@ end
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
+# This warning gets really annoying when we include the Ruby mjit header file,
+# let's omit it
+$CFLAGS << " " << "-Wno-unused-function"
+
+# Really dislike the "define everything at the beginning of the function" thing, sorry!
+$CFLAGS << " " << "-Wno-declaration-after-statement"
+
+create_header
+
+# Use MJIT header to get access to Ruby internal structures.
+
+# The Ruby MJIT header is always (afaik?) suffixed with the exact RUBY version,
+# including patch (e.g. 2.7.2). Thus, we add to the header file a definition
+# containing the exact file, so that it can be used in a #include in the C code.
+header_contents =
+  File.read($extconf_h)
+    .sub("#endif",
+      <<~EXTCONF_H.strip
+        #define RUBY_MJIT_HEADER "rb_mjit_min_header-#{RUBY_VERSION}.h"
+
+        #endif
+      EXTCONF_H
+    )
+File.open($extconf_h, "w") { |file| file.puts(header_contents) }
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
