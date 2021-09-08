@@ -2537,7 +2537,7 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 **Setup**
 
-To get started with profiling, follow the [Profiler Getting Started Guide](https://docs.datadoghq.com/tracing/profiler/getting_started/?code-lang=ruby).
+To get started with profiling, follow the [Enabling the Ruby Profiler](https://docs.datadoghq.com/tracing/profiler/enabling/ruby/) guide.
 
 #### Troubleshooting
 
