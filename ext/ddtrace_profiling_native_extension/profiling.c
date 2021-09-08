@@ -52,7 +52,7 @@ static VALUE sample_thread(VALUE thread) {
   VALUE stack = to_sample(stack_depth, frames, lines);
   VALUE thread_id = thread_id_for(thread);
 
-  return rb_ary_new_from_args(4, thread, INT2FIX(stack_depth), stack, thread_id);
+  return rb_ary_new_from_args(3, thread, thread_id, stack);
 }
 
 
