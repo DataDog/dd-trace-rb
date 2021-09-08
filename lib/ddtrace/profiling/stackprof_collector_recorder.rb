@@ -59,12 +59,15 @@ module Datadog
         frames = profile.fetch(:frames)
 
         raw_samples = profile[:raw] || []
+        raw_timestamps = profile[:raw_timestamp_deltas] || []
 
         events = []
 
         all_backtrace_locations = frames_to_backtrace_locations(frames)
 
         sample_position = 0
+        raw_timestamps_position = 0
+
         while sample_position < raw_samples.size
           length = raw_samples[sample_position]
           stack_start_position = sample_position + 1
@@ -73,6 +76,8 @@ module Datadog
 
           the_samples = raw_samples[stack_start_position..stack_end_position]
           count = raw_samples[count_position]
+          timestamps_in_microseconds = raw_timestamps[raw_timestamps_position...(raw_timestamps_position + count)]
+          raise 'Raw timestamps missing' unless timestamps_in_microseconds.size == count
 
           events << Events::StackSample.new(
             0, # fake timestamp -- avoids using Time.now
@@ -81,11 +86,13 @@ module Datadog
             :unsupported, # thread_id
             nil, # trace_id
             nil, # span_id
-            nil, # no cpu time
-            1000000 * count, # sample rate for stackprof * times seen
+            nil, # trace_resource_container
+            nil, # cpu time
+            timestamps_in_microseconds.reduce(:+) * 1000, # "wall clock-ish" time
           )
 
           sample_position = count_position + 1
+          raw_timestamps_position += count
         end
 
         @recorder.push(events) unless events.empty?
