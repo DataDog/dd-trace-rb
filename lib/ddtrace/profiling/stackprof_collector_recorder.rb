@@ -19,9 +19,13 @@ module Datadog
       end
 
       def start
-        StackProf.start(mode: :wall, raw: true, aggregate: false)
-        Datadog.logger.debug("Started stackprof profiling")
+        StackProf.start(mode: mode, raw: true, aggregate: false)
+        Datadog.logger.debug("Started stackprof profiling in #{mode}")
         @needs_flushing = true
+      end
+
+      def mode
+        @mode ||= ENV['DD_PROFILING_STACKPROFHACK_CPU'] == 'true' ? :cpu : :wall
       end
 
       def stop(*_)
@@ -79,6 +83,8 @@ module Datadog
           timestamps_in_microseconds = raw_timestamps[raw_timestamps_position...(raw_timestamps_position + count)]
           raise 'Raw timestamps missing' unless timestamps_in_microseconds.size == count
 
+          sample_time = timestamps_in_microseconds.reduce(:+) * 1000
+
           events << Events::StackSample.new(
             0, # fake timestamp -- avoids using Time.now
             the_samples.reverse.map { |sample| all_backtrace_locations.fetch(sample) },
@@ -87,8 +93,8 @@ module Datadog
             nil, # trace_id
             nil, # span_id
             nil, # trace_resource_container
-            nil, # cpu time
-            timestamps_in_microseconds.reduce(:+) * 1000, # "wall clock-ish" time
+            (sample_time if mode == :cpu), # cpu time
+            (sample_time unless mode == :cpu), # "wall clock-ish" time
           )
 
           sample_position = count_position + 1
