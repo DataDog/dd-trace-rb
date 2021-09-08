@@ -118,6 +118,44 @@ RSpec.describe Datadog::CI::Ext::Environment do
           expect(Datadog.logger).to have_received(:debug).with(/No such file or directory - git/).at_least(1).time
         end
       end
+
+      context 'user provided metadata' do
+        include_context 'with git fixture', 'gitdir_with_commit'
+        let(:env) do
+          {
+            'DD_GIT_REPOSITORY_URL' => 'https://datadoghq.com/git/user-provided.git',
+            'DD_GIT_COMMIT_SHA' => '9322ca1d57975b49b8c00b449d21b06660ce8b5c',
+            'DD_GIT_BRANCH' => 'my-branch',
+            'DD_GIT_TAG' => 'my-tag',
+            'DD_GIT_COMMIT_MESSAGE' => 'provided message',
+            'DD_GIT_COMMIT_AUTHOR_NAME' => 'user',
+            'DD_GIT_COMMIT_AUTHOR_EMAIL' => 'user@provided.com',
+            'DD_GIT_COMMIT_AUTHOR_DATE' => '2021-06-18T18:35:10+00:00',
+            'DD_GIT_COMMIT_COMMITTER_NAME' => 'user committer',
+            'DD_GIT_COMMIT_COMMITTER_EMAIL' => 'user-committer@provided.com',
+            'DD_GIT_COMMIT_COMMITTER_DATE' => '2021-06-19T18:35:10+00:00',
+          }
+        end
+
+        it 'returns user provided metadata' do
+          is_expected.to eq(
+            {
+              'ci.workspace_path' => "#{Dir.pwd}/spec/datadog/ci/ext/fixtures/git",
+              'git.branch' => env['DD_GIT_BRANCH'],
+              'git.tag' => env['DD_GIT_TAG'],
+              'git.commit.author.date' => env['DD_GIT_COMMIT_AUTHOR_DATE'],
+              'git.commit.author.email' => env['DD_GIT_COMMIT_AUTHOR_EMAIL'],
+              'git.commit.author.name' => env['DD_GIT_COMMIT_AUTHOR_NAME'],
+              'git.commit.committer.date' => env['DD_GIT_COMMIT_COMMITTER_DATE'],
+              'git.commit.committer.email' => env['DD_GIT_COMMIT_COMMITTER_EMAIL'],
+              'git.commit.committer.name' => env['DD_GIT_COMMIT_COMMITTER_NAME'],
+              'git.commit.message' => env['DD_GIT_COMMIT_MESSAGE'],
+              'git.commit.sha' => env['DD_GIT_COMMIT_SHA'],
+              'git.repository_url' => env['DD_GIT_REPOSITORY_URL']
+            }
+          )
+        end
+      end
     end
   end
 end
