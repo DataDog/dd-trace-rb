@@ -8,8 +8,12 @@ static VALUE sample_threads(VALUE self);
 static VALUE sample_thread(VALUE thread);
 static VALUE to_sample(int frames_count, VALUE* frames, int* lines);
 
+// From borrowed_from_ruby.c
 int borrowed_from_ruby_sources_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
 VALUE thread_id_for(VALUE thread);
+
+// From Ruby internal.h
+int ruby_thread_has_gvl_p(void);
 
 void Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -54,7 +58,6 @@ static VALUE sample_thread(VALUE thread) {
 
   return rb_ary_new_from_args(3, thread, thread_id, stack);
 }
-
 
 static VALUE to_sample(int frames_count, VALUE* frames, int* lines) {
   VALUE result = rb_ary_new();
