@@ -80,12 +80,52 @@ RSpec.describe 'ActionCable patcher' do
   context 'with channel' do
     let(:channel_class) do
       stub_const('ChatChannel', Class.new(ActionCable::Channel::Base) do
+        def subscribed; end
+
+        def unsubscribed; end
+
         def foo(_data); end
       end)
     end
 
     let(:channel_instance) { channel_class.new(connection, '{id: 1}', id: 1) }
     let(:connection) { double('connection', logger: Logger.new($stdout), transmit: nil, identifiers: []) }
+
+    context 'on subscribe' do
+      subject(:subscribe) { channel_instance.subscribe_to_channel }
+
+      # Action Text requires ApplicationController
+      before { stub_const('ApplicationController', Class.new) }
+
+      it 'traces the subscribe hook' do
+        subscribe
+
+        expect(span.service).to eq('action_cable')
+        expect(span.name).to eq('action_cable.subscribe')
+        expect(span.span_type).to eq('web')
+        expect(span.resource).to eq('ChatChannel#subscribe')
+        expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
+        expect(span).to_not have_error
+      end
+    end
+
+    context 'on unsubscribe' do
+      subject(:unsubscribe) { channel_instance.unsubscribe_from_channel }
+
+      # Action Text requires ApplicationController
+      before { stub_const('ApplicationController', Class.new) }
+
+      it 'traces the unsubscribe hook' do
+        unsubscribe
+
+        expect(span.service).to eq('action_cable')
+        expect(span.name).to eq('action_cable.unsubscribe')
+        expect(span.span_type).to eq('web')
+        expect(span.resource).to eq('ChatChannel#unsubscribe')
+        expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
+        expect(span).to_not have_error
+      end
+    end
 
     context 'on perform action' do
       subject(:perform) { channel_instance.perform_action(data) }
