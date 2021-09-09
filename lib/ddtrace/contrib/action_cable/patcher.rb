@@ -21,6 +21,7 @@ module Datadog
         def patch
           Events.subscribe!
           ::ActionCable::Connection::Base.prepend(Instrumentation::ActionCableConnection)
+          ::ActionCable::Channel::Base.include(Instrumentation::ActionCableChannel)
         end
       end
     end
