@@ -165,7 +165,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 2. Install the gem with `bundle install`
 
-3. You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
+3. You can configure, override, or disable any specific integration settings by also adding a Rails manual instrumentation configuration file (next).
 
 #### Manual instrumentation
 
@@ -205,7 +205,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     require 'ddtrace/auto_instrument'
     ```
 
-    You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
+    You can configure, override, or disable any specific integration settings by also adding a Ruby manual configuration block (next).
 
 #### Manual instrumentation
 
@@ -405,7 +405,7 @@ For a list of available integrations, and their configuration options, please re
 | Grape                    | `grape`                    | `>= 1.0`                 | `>= 1.0`                  | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
-| http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#http-rb)*                  | *[Link](https://github.com/httprb/http)*                                       |
+| http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#httprb)*                  | *[Link](https://github.com/httprb/http)*                                       |
 | httpclient                | `httpclient`              | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
 | httpx                     | `httpx`                   | `>= 0.11`                | `>= 0.11`                 | *[Link](#httpx)*                    | *[Link](https://gitlab.com/honeyryderchuck/httpx)*                             |
 | Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
@@ -2125,7 +2125,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [Rack](#rack)
 - [Rails](#rails)
 - [Sinatra](#sinatra)
-- [http.rb](#http-rb)
+- [http.rb](#httprb)
 - [httpclient](#httpclient)
 - [httpx](#httpx)
 
