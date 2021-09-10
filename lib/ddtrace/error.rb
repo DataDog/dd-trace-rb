@@ -37,6 +37,8 @@ module Datadog
         backtrace = String.new
         backtrace_for(ex, backtrace, message)
 
+        return backtrace
+
         # Avoid circular causes
         causes = {}
         causes[ex] = true
