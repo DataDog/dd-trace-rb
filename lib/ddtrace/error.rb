@@ -75,10 +75,12 @@ module Datadog
         if trace[1]
           # Ident stack trace for caller lines, to separate
           # them from the main error lines.
-          trace[1..-1].each do |line|
-            backtrace << "\n\tfrom "
-            backtrace << line
-          end
+
+          # this loop is also with pretty high cost
+          # trace[1..-1].each do |line|
+          #   backtrace << "\n\tfrom "
+          #   backtrace << line
+          # end
         end
 
         backtrace << "\n"
