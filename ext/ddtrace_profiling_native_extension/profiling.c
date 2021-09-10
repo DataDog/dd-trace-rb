@@ -7,12 +7,15 @@
 
 static VALUE native_working_p(VALUE self);
 static VALUE sample_threads(VALUE self);
+static VALUE do_sample_threads();
 static VALUE sample_thread(VALUE thread);
 static VALUE to_sample(int frames_count, VALUE* frames, int* lines);
 static VALUE start_timer(VALUE self);
 static void install_signal_handler(void);
 static void handle_signal(int _signal, siginfo_t *_info, void *_ucontext);
 static void job_callback(void* arg);
+
+VALUE sampling_results;
 
 // From borrowed_from_ruby.c
 int borrowed_from_ruby_sources_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
@@ -31,6 +34,9 @@ void Init_ddtrace_profiling_native_extension(void) {
 
   rb_define_singleton_method(native_extension_module, "sample_threads", sample_threads, 0);
   rb_define_singleton_method(native_extension_module, "start_timer", start_timer, 0);
+
+  sampling_results = rb_ary_new();
+  rb_define_variable("$sampling_results", &sampling_results);
 }
 
 static VALUE native_working_p(VALUE self) {
@@ -38,6 +44,10 @@ static VALUE native_working_p(VALUE self) {
 }
 
 static VALUE sample_threads(VALUE self) {
+  return do_sample_threads();
+}
+
+static VALUE do_sample_threads() {
   if (!ruby_thread_has_gvl_p()) {
     rb_fatal("Expected to have GVL");
   }
@@ -107,10 +117,12 @@ static void install_signal_handler(void) {
 }
 
 static void handle_signal(int _signal, siginfo_t *_info, void *_ucontext) {
-  fprintf(stderr, "Tick!\n");
+  // fprintf(stderr, "Tick!\n");
   rb_postponed_job_register_one(0, job_callback, NULL);
 }
 
 static void job_callback(void* _payload) {
-  fprintf(stderr, "Job callback!\n");
+  // fprintf(stderr, "Job callback!\n");
+
+  rb_ary_push(sampling_results, do_sample_threads());
 }
