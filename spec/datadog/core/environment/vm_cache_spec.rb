@@ -6,10 +6,18 @@ RSpec.describe Datadog::Core::Environment::VMCache do
   describe '.available?' do
     subject(:available?) { described_class.available? }
 
-    it { is_expected.to eq(PlatformHelpers.mri?) }
+    context 'with CRuby', if: PlatformHelpers.mri? do
+      it { is_expected.to be_truthy }
+    end
+
+    context 'with non-CRuby', unless: PlatformHelpers.mri? do
+      it { is_expected.to be_falsey }
+    end
   end
 
-  context 'with CRuby', if: PlatformHelpers.mri? do
+  context 'with CRuby' do
+    before { skip('This feature is only supported in CRuby') unless PlatformHelpers.mri? }
+
     describe '.global_constant_state' do
       subject(:global_constant_state) { described_class.global_constant_state }
 

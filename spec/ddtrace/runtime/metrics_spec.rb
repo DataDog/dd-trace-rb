@@ -172,8 +172,12 @@ RSpec.describe Datadog::Runtime::Metrics do
         end
       end
 
-      context 'including VMCache stats', if: PlatformHelpers.mri? do
-        before { allow(runtime_metrics).to receive(:gauge) }
+      context 'including VMCache stats' do
+        before do
+          skip('This feature is only supported in CRuby') unless PlatformHelpers.mri?
+
+          allow(runtime_metrics).to receive(:gauge)
+        end
 
         context 'with Ruby < 3', if: RUBY_VERSION < '3.0.0' do
           it 'records global cache counters' do
