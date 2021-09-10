@@ -36,7 +36,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     it 'samples all threads' do
-      expect(described_class.sample_threads).to be nil
+      result = described_class.sample_threads
+
+      binding.pry
+
+      expect(result).to be nil
     end
   end
 end

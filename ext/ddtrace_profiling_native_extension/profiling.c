@@ -1,5 +1,7 @@
 #include <ruby.h>
 #include <ruby/debug.h>
+#include <signal.h>
+#include <sys/time.h>
 
 #define MAX_STACK_DEPTH 400 // FIXME: Need to handle when this is not enough
 
@@ -7,6 +9,10 @@ static VALUE native_working_p(VALUE self);
 static VALUE sample_threads(VALUE self);
 static VALUE sample_thread(VALUE thread);
 static VALUE to_sample(int frames_count, VALUE* frames, int* lines);
+static VALUE start_timer(VALUE self);
+static void install_signal_handler(void);
+static void handle_signal(int _signal, siginfo_t *_info, void *_ucontext);
+static void job_callback(void* arg);
 
 // From borrowed_from_ruby.c
 int borrowed_from_ruby_sources_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
@@ -24,6 +30,7 @@ void Init_ddtrace_profiling_native_extension(void) {
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
   rb_define_singleton_method(native_extension_module, "sample_threads", sample_threads, 0);
+  rb_define_singleton_method(native_extension_module, "start_timer", start_timer, 0);
 }
 
 static VALUE native_working_p(VALUE self) {
@@ -69,4 +76,41 @@ static VALUE to_sample(int frames_count, VALUE* frames, int* lines) {
   }
 
   return result;
+}
+
+static VALUE start_timer(VALUE self) {
+  install_signal_handler();
+
+  struct itimerval timer_config;
+
+  timer_config.it_interval.tv_sec = 1;
+  timer_config.it_interval.tv_usec = 0;
+  timer_config.it_value.tv_sec = 1;
+  timer_config.it_value.tv_usec = 0;
+
+  setitimer(ITIMER_REAL, &timer_config, NULL);
+
+  return Qtrue;
+}
+
+static void install_signal_handler(void) {
+  struct sigaction signal_handler_config;
+
+  sigemptyset(&signal_handler_config.sa_mask);
+  signal_handler_config.sa_handler = NULL;
+  signal_handler_config.sa_flags = SA_RESTART | SA_SIGINFO;
+  signal_handler_config.sa_sigaction = handle_signal;
+
+  if (sigaction(SIGALRM, &signal_handler_config, NULL) != 0) {
+    rb_fatal("Could not install signal handler");
+  }
+}
+
+static void handle_signal(int _signal, siginfo_t *_info, void *_ucontext) {
+  fprintf(stderr, "Tick!\n");
+  rb_postponed_job_register_one(0, job_callback, NULL);
+}
+
+static void job_callback(void* _payload) {
+  fprintf(stderr, "Job callback!\n");
 }
