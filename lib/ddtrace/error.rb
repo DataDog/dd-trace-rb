@@ -12,7 +12,9 @@ module Datadog
         case value
         when Error then value
         when Array then new(*value)
-        when Exception then new(value.class, value.message, full_backtrace(value))
+        when Exception
+          message = value.message # sometimes calling `message` method is with very high cost
+          new(value.class, message, full_backtrace(value, message))
         when ContainsMessage then new(value.class, value.message)
         else BlankError
         end
@@ -31,7 +33,7 @@ module Datadog
       # `ex.full_message(highlight: false, order: :top)`
       # but it's around 3x faster in our benchmark test
       # at `error_spec.rb`.
-      def full_backtrace(ex)
+      def full_backtrace(ex, message = nil)
         backtrace = String.new
         backtrace_for(ex, backtrace)
 
@@ -41,7 +43,7 @@ module Datadog
 
         cause = ex
         while (cause = cause.cause) && !causes.key?(cause)
-          backtrace_for(cause, backtrace)
+          backtrace_for(cause, backtrace, message)
           causes[cause] = true
         end
 
@@ -56,7 +58,7 @@ module Datadog
       # 	from error_spec.rb:61:in `caller'
       #   ...
       # ```
-      def backtrace_for(ex, backtrace)
+      def backtrace_for(ex, backtrace, message = nil)
         trace = ex.backtrace
         return unless trace
 
@@ -64,7 +66,7 @@ module Datadog
           # Add Exception information to error line
           backtrace << trace[0]
           backtrace << ': '
-          backtrace << ex.message.to_s
+          backtrace << message || '<`message` for causes of the exception is not available due to a performance issue.>'
           backtrace << ' ('
           backtrace << ex.class.to_s
           backtrace << ')'
