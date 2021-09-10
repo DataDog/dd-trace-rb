@@ -14,8 +14,10 @@ module Datadog
         when Array then new(*value)
         when Exception
           # message = value.message[0..4096] # sometimes calling `message` method is with very high cost
-          message - 'skip message'
-          new(value.class, message, full_backtrace(value, message))
+          # message - 'skip message'
+          # new(value.class, message, full_backtrace(value, message))
+
+          # do nothing
         when ContainsMessage then new(value.class, value.message)
         else BlankError
         end
