@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/appraisal/all/appraisal.rbi
 #
-# appraisal-2.4.0
+# appraisal-2.4.1
 
 module Appraisal
 end

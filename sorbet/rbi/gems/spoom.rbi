@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/spoom/all/spoom.rbi
 #
-# spoom-1.1.1
+# spoom-1.1.2
 
 module Spoom
   def self.exec(*args, &blk); end
@@ -28,6 +28,8 @@ class Spoom::Sorbet::Config
   def copy(*args, &blk); end
   def ignore; end
   def initialize(*args, &blk); end
+  def no_stdlib(*args, &blk); end
+  def no_stdlib=(arg0); end
   def options_string(*args, &blk); end
   def paths(*args, &blk); end
   def self.parse_file(*args, &blk); end
@@ -360,6 +362,7 @@ module Spoom::Cli::Helper
   def sorbet_config(*args, &blk); end
   def sorbet_config_file(*args, &blk); end
   def yellow(*args, &blk); end
+  extend T::Helpers
   extend T::Private::Methods::MethodHooks
   extend T::Private::Methods::SingletonMethodHooks
   extend T::Sig
@@ -816,6 +819,7 @@ module Spoom::Git
   def self.checkout(*args, &blk); end
   def self.commit_time(*args, &blk); end
   def self.commit_timestamp(*args, &blk); end
+  def self.current_branch(*args, &blk); end
   def self.diff(*args, &blk); end
   def self.epoch_to_time(*args, &blk); end
   def self.exec(*args, &blk); end
@@ -824,6 +828,7 @@ module Spoom::Git
   def self.rev_parse(*args, &blk); end
   def self.show(*args, &blk); end
   def self.sorbet_intro_commit(*args, &blk); end
+  def self.sorbet_removal_commit(*args, &blk); end
   def self.workdir_clean?(*args, &blk); end
   extend T::Private::Methods::MethodHooks
   extend T::Private::Methods::SingletonMethodHooks

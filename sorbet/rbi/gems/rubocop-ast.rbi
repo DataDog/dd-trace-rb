@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/rubocop-ast/all/rubocop-ast.rbi
 #
-# rubocop-ast-1.8.0
+# rubocop-ast-1.11.0
 
 module RuboCop
 end
@@ -859,6 +859,10 @@ class RuboCop::AST::ArrayNode < RuboCop::AST::Node
   def square_brackets?; end
   def values; end
 end
+class RuboCop::AST::AsgnNode < RuboCop::AST::Node
+  def expression; end
+  def name; end
+end
 class RuboCop::AST::BlockNode < RuboCop::AST::Node
   def argument_list; end
   def arguments; end
@@ -898,6 +902,11 @@ class RuboCop::AST::CaseNode < RuboCop::AST::Node
   def keyword; end
   def when_branches; end
   include RuboCop::AST::ConditionalNode
+end
+class RuboCop::AST::CasgnNode < RuboCop::AST::Node
+  def expression; end
+  def name; end
+  def namespace; end
 end
 class RuboCop::AST::ClassNode < RuboCop::AST::Node
   def body; end
@@ -1030,6 +1039,18 @@ class RuboCop::AST::ModuleNode < RuboCop::AST::Node
 end
 class RuboCop::AST::NextNode < RuboCop::AST::Node
   include RuboCop::AST::ParameterizedNode::WrappedArguments
+end
+class RuboCop::AST::OpAsgnNode < RuboCop::AST::Node
+  def assignment_node; end
+  def expression; end
+  def name; end
+  def operator; end
+end
+class RuboCop::AST::AndAsgnNode < RuboCop::AST::OpAsgnNode
+  def operator; end
+end
+class RuboCop::AST::OrAsgnNode < RuboCop::AST::OpAsgnNode
+  def operator; end
 end
 class RuboCop::AST::OrNode < RuboCop::AST::Node
   def alternate_operator; end

@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/rubocop-performance/all/rubocop-performance.rbi
 #
-# rubocop-performance-1.11.4
+# rubocop-performance-1.11.5
 
 module RuboCop
 end
@@ -281,6 +281,7 @@ class RuboCop::Cop::Performance::RedundantEqualityComparisonBlock < RuboCop::Cop
   def on_block(node); end
   def one_block_argument?(block_arguments); end
   def same_block_argument_and_is_a_argument?(block_body, block_argument); end
+  def use_block_argument_in_method_argument_of_operand?(block_argument, operand); end
   def use_equality_comparison_block?(block_body); end
   extend RuboCop::Cop::AutoCorrector
   extend RuboCop::Cop::TargetRubyVersion
