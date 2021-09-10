@@ -35,7 +35,7 @@ module Datadog
       # at `error_spec.rb`.
       def full_backtrace(ex, message = nil)
         backtrace = String.new
-        backtrace_for(ex, backtrace)
+        backtrace_for(ex, backtrace, message)
 
         # Avoid circular causes
         causes = {}
@@ -43,7 +43,7 @@ module Datadog
 
         cause = ex
         while (cause = cause.cause) && !causes.key?(cause)
-          backtrace_for(cause, backtrace, message)
+          backtrace_for(cause, backtrace, nil)
           causes[cause] = true
         end
 
