@@ -33,7 +33,7 @@ module Datadog
         def maybe_extract_resource(root_span)
           return unless root_span
 
-          root_span.resource_container if root_span.span_type == Datadog::Ext::HTTP::TYPE_INBOUND
+          root_span.resource if root_span.span_type == Datadog::Ext::HTTP::TYPE_INBOUND
         end
       end
     end

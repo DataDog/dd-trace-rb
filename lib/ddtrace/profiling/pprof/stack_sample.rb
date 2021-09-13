@@ -51,6 +51,15 @@ module Datadog
           end
         end
 
+        # This is invoked by Converter#group_events as it builds EventGroups
+        # We can customize aggregation of the group by overriding this.
+        def update_group(event_group, event, values)
+          super
+
+          # Use most recent event; its properties may have better data.
+          event_group.sample = event if event_group.sample.timestamp < event.timestamp
+        end
+
         def build_sample(stack_sample, values)
           locations = builder.build_locations(
             stack_sample.frames,
@@ -64,7 +73,7 @@ module Datadog
           )
         end
 
-        def build_sample_values(stack_sample)
+        def build_event_values(stack_sample)
           no_value = Datadog::Ext::Profiling::Pprof::SAMPLE_VALUE_NO_VALUE
           values = super(stack_sample)
           values[sample_value_index(:cpu_time_ns)] = stack_sample.cpu_time_interval_ns || no_value
@@ -96,7 +105,7 @@ module Datadog
               str: builder.string_table.fetch(span_id.to_s)
             )
 
-            trace_resource = stack_sample.trace_resource_container && stack_sample.trace_resource_container.latest
+            trace_resource = stack_sample.trace_resource
             if trace_resource && !trace_resource.empty?
               labels << Perftools::Profiles::Label.new(
                 key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),
