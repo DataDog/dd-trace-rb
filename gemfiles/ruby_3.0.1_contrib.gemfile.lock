@@ -1333,7 +1333,7 @@ GEM
       mime-types-data (~> 3.2015)
     mime-types-data (3.2021.0901)
     minitest (5.14.4)
-    mongo (2.15.1)
+    mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
     msgpack (1.4.2)
@@ -1565,7 +1565,7 @@ DEPENDENCIES
   httpclient
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
-  mongo (>= 2.8.0, != 2.15.0)
+  mongo (>= 2.8.0, < 2.15.0)
   mysql2 (>= 0.5.3)
   opentracing (>= 0.4.1)
   os (~> 1.1)

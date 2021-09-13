@@ -55,7 +55,7 @@ gem "hiredis"
 gem "http"
 gem "httpclient"
 gem "makara", ">= 0.6.0.pre"
-gem "mongo", ">= 2.8.0", "!= 2.15.0"
+gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "mysql2", ">= 0.5.3", platform: :ruby
 gem "pg", ">= 1.1", platform: :ruby
 gem "presto-client", ">=  0.5.14"

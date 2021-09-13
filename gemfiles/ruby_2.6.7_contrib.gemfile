@@ -56,7 +56,7 @@ gem "http"
 gem "httpclient"
 gem "lograge", "~> 0.11"
 gem "makara"
-gem "mongo", ">= 2.8.0", "!= 2.15.0"
+gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "mysql2", "< 1", platform: :ruby
 gem "pg", platform: :ruby
 gem "presto-client", ">=  0.5.14"
