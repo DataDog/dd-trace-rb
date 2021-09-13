@@ -6632,6 +6632,7 @@ class Object
   STDIN = ::T.let(nil, ::T.untyped)
   STDOUT = ::T.let(nil, ::T.untyped)
   TOPLEVEL_BINDING = ::T.let(nil, ::T.untyped)
+  VALIDATE_BENCHMARK_MODE = ::T.let(nil, ::T.untyped)
 end
 
 class Object

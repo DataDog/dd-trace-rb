@@ -5,7 +5,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/edit/master/lib/rainbow/all/rainbow.rbi
 #
-# typed: strong
+# typed: ignore
 
 module Rainbow
   sig { returns(T::Boolean) }
