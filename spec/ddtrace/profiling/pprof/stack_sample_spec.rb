@@ -299,6 +299,61 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
         it_behaves_like 'independent stack samples'
       end
+
+      context 'with identical traces but different stacks and resource names' do
+        let(:stack_samples) { [first, second, third] }
+        let(:most_recent_trace_resource) { 'PostController#show' }
+
+        # First sample has unique stack
+        let(:first) do
+          build_stack_sample(
+            locations: nil, # Builds unique stack
+            thread_id: thread_id,
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_resource: 'GET 200'
+          )
+        end
+
+        # Second sample has same stack as third but "old" resource name
+        let(:second) do
+          build_stack_sample(
+            locations: stack,
+            thread_id: thread_id,
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_resource: 'GET 200'
+          )
+        end
+
+        # Third sample overlaps with second sample, but has updated resource name
+        let(:third) do
+          build_stack_sample(
+            locations: stack,
+            thread_id: thread_id,
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_resource: most_recent_trace_resource
+          )
+        end
+
+        it 'returns two Perftools::Profiles::Sample with most recent trace_resource for both' do
+          is_expected.to be_kind_of(Array)
+          is_expected.to have(2).item
+          is_expected.to include(kind_of(Perftools::Profiles::Sample))
+
+          # Find key for trace resource label
+          trace_resource_label_key_id = builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT)
+
+          build_samples.each do |sample|
+            # Find the trace resource label for this sample
+            trace_resource_label = sample.label.find { |l| l.key == trace_resource_label_key_id }
+
+            # Ensure it matches the most recent trace resource name
+            expect(builder.string_table[trace_resource_label.str]).to eq(most_recent_trace_resource)
+          end
+        end
+      end
     end
   end
 
