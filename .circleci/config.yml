@@ -288,6 +288,10 @@ orbs:
           - *step_run_all_tests
           - store_test_results:
               path: /tmp/rspec
+          - run:
+              name: Upload to CI Visibility
+              command: |
+                datadog-ci junit upload --service dd-trace-rb-unit-tests /tmp/rspec
           - persist_to_workspace:
               root: .
               paths:
