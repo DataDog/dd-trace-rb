@@ -5,7 +5,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/edit/master/lib/rainbow/all/rainbow.rbi
 #
-# typed: strong
+# typed: ignore
 
 module Rainbow
   sig { returns(T::Boolean) }
@@ -30,7 +30,7 @@ module Rainbow
       sig { returns(Integer) }
       attr_reader :num
 
-      sig { params(ground: Symbol, num: Integer).void }
+      sig { params(ground: Symbol, num: Integer).returns(Indexed) }
       def initialize(ground, num); end
 
       sig { returns(T::Array[Integer]) }
@@ -46,7 +46,7 @@ module Rainbow
       sig { returns(String) }
       def self.valid_names; end
 
-      sig { params(ground: Symbol, name: Symbol).void }
+      sig { params(ground: Symbol, name: Symbol).returns(Named) }
       def initialize(ground, name); end
     end
 
@@ -57,7 +57,7 @@ module Rainbow
       sig { params(value: Numeric).returns(Integer) }
       def to_ansi_domain(value); end
 
-      sig { params(ground: Symbol, values: Integer).void }
+      sig { params(ground: Symbol, values: Integer).returns(RGB) }
       def initialize(ground, *values); end
 
       sig { returns(T::Array[Integer]) }
@@ -73,7 +73,7 @@ module Rainbow
       sig { returns(String) }
       def self.valid_names; end
 
-      sig { params(ground: Symbol, name: Symbol).void }
+      sig { params(ground: Symbol, name: Symbol).returns(X11Named) }
       def initialize(ground, name); end
     end
   end
@@ -260,7 +260,7 @@ module Rainbow
     sig { returns(T::Boolean) }
     attr_accessor :enabled
 
-    sig { params(enabled: T::Boolean).void }
+    sig { params(enabled: T::Boolean).returns(Wrapper) }
     def initialize(enabled = true); end
 
     sig { params(string: String).returns(T.any(Rainbow::Presenter, Rainbow::NullPresenter)) }

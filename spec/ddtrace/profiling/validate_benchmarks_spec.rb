@@ -1,3 +1,4 @@
+# typed: false
 RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0' && PlatformHelpers.supports_fork?) do
   around do |example|
     ClimateControl.modify('VALIDATE_BENCHMARK' => 'true') do
