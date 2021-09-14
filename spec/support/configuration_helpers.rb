@@ -25,7 +25,7 @@ module ConfigurationHelpers
   end
 
   def decrement_gem_version(version)
-    segments = version.dup.segments
+    segments = version.segments.dup
     segments.reverse.each_with_index do |value, i|
       if value.to_i > 0
         segments[segments.length - 1 - i] -= 1

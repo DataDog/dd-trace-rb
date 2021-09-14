@@ -137,12 +137,17 @@ RSpec.describe 'Rails Rack' do
       # We remove these during testing, as we are more interested in asserting
       # controller and template spans.
       super().reject { |s| SYNTHETIC_3_2_SPANS.include?(s.resource) }
+    # elsif true # TODO change this
+    #   super().reject { |s| SYNTHETIC_6_SPANS.include?(s.resource) }
     else
       super()
     end
   end
 
   SYNTHETIC_3_2_SPANS = %w[_request_and_response.erb missing_template.erb].freeze
+
+  # Default error page rendering spans
+  SYNTHETIC_6_SPANS = %w[_request_and_response.html.erb template_error.html.erb _source.html.erb _trace.html.erb].freeze
 
   context 'with a full request' do
     subject(:response) { get '/full' }

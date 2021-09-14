@@ -45,7 +45,7 @@ RSpec.shared_context 'Rails 6 base application' do
       config.hosts.clear # Allow requests for any hostname during tests
 
       # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
-      config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
+      # config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
 
       instance_eval(&during_init)
 

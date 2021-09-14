@@ -41,7 +41,7 @@ RSpec.shared_context 'Rails 5 base application' do
       config.eager_load = false
       config.consider_all_requests_local = true
 
-      config.middleware.delete ActionDispatch::DebugExceptions
+      # config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 
       config.active_job.queue_adapter = :inline

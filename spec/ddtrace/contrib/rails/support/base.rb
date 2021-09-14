@@ -35,7 +35,7 @@ RSpec.shared_context 'Rails base application' do
 
   let(:initialize_block) do
     middleware = rails_middleware
-    debug_mw = debug_middleware
+    # debug_mw = debug_middleware
     logger = self.logger
 
     proc do
@@ -72,7 +72,7 @@ RSpec.shared_context 'Rails base application' do
         config.lograge.keep_original_rails_log = true
       end
 
-      config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
+      # config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
       middleware.each { |m| config.middleware.use m }
     end
   end
@@ -92,6 +92,26 @@ RSpec.shared_context 'Rails base application' do
 
       # Force connection to initialize, and dump some spans
       application_record.connection
+
+      # Skip default Rails exception page rendering.
+      # This avoid polluting the trace under test
+      # with render and partial_render templates for the
+      # error page.
+      #
+      # We could completely disable the {DebugExceptions} middleware,
+      # but that affects Rails' internal error propagation logic.
+      # render_for_browser_request(request, wrapper)
+      if Rails.version >= '3.2'
+        allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
+          wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
+
+          if Rails.version < '4.0'
+            this.send(:render, wrapper.status_code, 'Test error response body')
+          else
+            this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
+          end
+        end
+      end
     end
   end
 end

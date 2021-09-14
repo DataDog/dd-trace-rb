@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 require 'ddtrace/contrib/rails/utils'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
@@ -45,17 +45,33 @@ module Datadog
         end
 
         def add_middleware(app)
-          # Add trace middleware
+          # Add trace middleware at the top of the middleware stack,
+          # to ensure we capture the complete execution time.
           app.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
 
-          # Insert right after Rails exception handling middleware, because if it's before,
-          # it catches and swallows the error. If it's too far after, custom middleware can find itself
-          # between, and raise exceptions that don't end up getting tagged on the request properly.
-          # e.g lost stack trace.
-          app.middleware.insert_after(
-            ActionDispatch::ShowExceptions,
-            Datadog::Contrib::Rails::ExceptionMiddleware
-          )
+          # Some Rails middleware can swallow an application error, preventing
+          # the error propagation to the encompassing Rack span.
+          #
+          # We insert our own middleware right before these Rails middleware
+          # have a chance to swallow the error.
+          #
+          # Because there's more than one possible middleware that swallows errors,
+          # we insert our middleware before all the offending ones.
+          # At this point of the application lifecycle the complete middleware stack,
+          # is not yet defined, thus we can't decide which exact Rails middleware we want to
+          # insert ourselves before. We resort to inserting ourselves as many times as needed,
+          # once per offending middleware.
+          #
+          # Note: because the middleware stack is push/pop, "before" and "after" are reversed
+          # for our use case: we insert ourselves with "after" a middleware to ensure we are
+          # able to pop the request "before" it.
+          if defined?(::ActionDispatch::DebugExceptions)
+            # Rails >= 3.2
+            app.middleware.insert_after(::ActionDispatch::DebugExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
+          else
+            # Rails < 3.2
+            app.middleware.insert_after(::ActionDispatch::ShowExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
+          end
         end
 
         def add_logger(app)
