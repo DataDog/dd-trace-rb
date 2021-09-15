@@ -148,7 +148,7 @@ module Datadog
           locations = convert_backtrace_locations(locations)
 
           thread_id = thread.object_id
-          trace_id, span_id, trace_resource = trace_identifiers_helper.trace_identifiers_for(thread)
+          root_span_id, span_id, trace_resource = trace_identifiers_helper.trace_identifiers_for(thread)
           cpu_time = get_cpu_time_interval!(thread)
           wall_time_interval_ns =
             get_elapsed_since_last_sample_and_set_value(thread, THREAD_LAST_WALL_CLOCK_KEY, current_wall_time_ns)
@@ -158,7 +158,7 @@ module Datadog
             locations,
             stack_size,
             thread_id,
-            trace_id,
+            root_span_id,
             span_id,
             trace_resource,
             cpu_time,

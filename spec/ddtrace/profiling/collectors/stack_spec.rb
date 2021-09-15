@@ -348,27 +348,27 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'and there is an active trace for the thread' do
-        let(:trace_identifiers) { [trace_id, span_id] }
+        let(:trace_identifiers) { [root_span_id, span_id] }
 
-        let(:trace_id) { rand(1e12) }
+        let(:root_span_id) { rand(1e12) }
         let(:span_id) { rand(1e12) }
 
-        it 'builds an event including the trace id and span id' do
+        it 'builds an event including the root span id and span id' do
           is_expected.to have_attributes(
-            trace_id: trace_id,
+            root_span_id: root_span_id,
             span_id: span_id,
             trace_resource: nil
           )
         end
 
         context 'and a trace_resource is provided' do
-          let(:trace_identifiers) { [trace_id, span_id, trace_resource] }
+          let(:trace_identifiers) { [root_span_id, span_id, trace_resource] }
 
           let(:trace_resource) { double('trace resource') }
 
-          it 'builds an event including the trace id, span id, and trace_resource' do
+          it 'builds an event including the root span id, span id, and trace_resource' do
             is_expected.to have_attributes(
-              trace_id: trace_id,
+              root_span_id: root_span_id,
               span_id: span_id,
               trace_resource: trace_resource
             )
@@ -379,9 +379,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context 'and there is no active trace for the thread' do
         let(:trace_identifiers) { nil }
 
-        it 'builds an event with nil trace id and span id' do
+        it 'builds an event with nil root span id and span id' do
           is_expected.to have_attributes(
-            trace_id: nil,
+            root_span_id: nil,
             span_id: nil
           )
         end

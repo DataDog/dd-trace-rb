@@ -97,9 +97,9 @@ The profiler backend links a trace covering a given time interval to the profile
 whenever they share the same `runtime-id`.
 
 To further enable filtering of a profile to show only samples related to a given trace/span, each sample taken by the
-profiler is tagged with the trace_id and span_id for the given trace/span.
+profiler is tagged with the `local root span id` and `span id` for the given trace/span.
 
-This is done using the `Datadog::Profiling::TraceIdentifiers::Helper` that retrieves a trace_id and span_id, if
+This is done using the `Datadog::Profiling::TraceIdentifiers::Helper` that retrieves a `root_span_id` and `span_id`, if
 available, from the supported tracers. This helper is called by the `Collectors::Stack` during sampling.
 
 Note that if a given trace executes too fast, it's possible that the profiler will not contain any samples for that

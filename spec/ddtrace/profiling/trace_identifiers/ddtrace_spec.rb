@@ -15,57 +15,65 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
     subject(:trace_identifiers_for) { datadog_trace_identifiers.trace_identifiers_for(thread) }
 
     context 'when there is an active datadog trace for the thread' do
-      let(:trace_id) { rand(1e12) }
       let(:span_id) { rand(1e12) }
+      let(:span) { instance_double(Datadog::Span, span_id: span_id) }
+      let(:root_span_id) { rand(1e12) }
+      let(:root_span_type) { nil }
+      let(:root_span) { instance_double(Datadog::Span, span_id: root_span_id, span_type: root_span_type) }
+
       let(:context) do
-        instance_double(Datadog::Context, trace_id: trace_id, span_id: span_id, current_root_span: root_span)
+        instance_double(Datadog::Context, current_span_and_root_span: [span, root_span])
       end
 
       before do
         expect(tracer).to receive(:call_context).with(thread).and_return(context)
       end
 
-      context 'when root span is not available' do
-        let(:root_span) { nil }
+      context "when root span type is 'web'" do
+        let(:root_span_type) { 'web' }
+        let(:resource) { 'example trace resource' }
 
-        it 'returns the identifiers and no trace resource' do
-          trace_identifiers_for
+        before do
+          allow(root_span).to receive(:resource).and_return(resource)
+        end
 
-          expect(trace_identifiers_for).to eq [trace_id, span_id, nil]
+        it 'returns the identifiers and the trace container' do
+          expect(trace_identifiers_for).to eq [root_span_id, span_id, resource]
         end
       end
 
-      context 'when root span is available' do
-        let(:root_span) { instance_double(Datadog::Span, span_type: root_span_type) }
+      context "when root span type is not 'web'" do
+        let(:root_span_type) { 'not web' }
 
-        context "when root span type is 'web'" do
-          let(:root_span_type) { 'web' }
-          let(:resource) { 'example trace resource' }
-
-          before do
-            allow(root_span).to receive(:resource).and_return(resource)
-          end
-
-          it 'returns the identifiers and it returns the trace resource' do
-            trace_identifiers_for
-
-            expect(trace_identifiers_for).to eq [trace_id, span_id, resource]
-          end
+        it 'returns the identifiers and no trace resource' do
+          expect(trace_identifiers_for).to eq [root_span_id, span_id, nil]
         end
 
-        context "when root span type is not 'web'" do
-          let(:root_span_type) { 'not web' }
+        it 'does not retrieve the resource' do
+          trace_identifiers_for
 
-          it 'returns the identifiers and no trace resource' do
-            trace_identifiers_for
+          expect(root_span).to_not receive(:resource)
+        end
+      end
 
-            expect(trace_identifiers_for).to eq [trace_id, span_id, nil]
-          end
+      context 'when root span is not available' do
+        let(:root_span) { nil }
+
+        it do
+          expect(trace_identifiers_for).to be nil
+        end
+      end
+
+      context 'when span is not available' do
+        let(:span) { nil }
+
+        it do
+          expect(trace_identifiers_for).to be nil
         end
       end
     end
 
-    context 'when there is no active datadog trace for the thread' do
+    context 'when no datadog trace is active for the thread' do
       context 'and an empty context is returned' do
         before do
           expect(tracer).to receive(:call_context).and_return(Datadog::Context.new)
