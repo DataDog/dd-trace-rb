@@ -44,9 +44,6 @@ RSpec.shared_context 'Rails 6 base application' do
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
 
-      # Avoid eager-loading Rails sub-component, ActionDispatch, before initialization
-      # config.middleware.delete ActionDispatch::DebugExceptions if defined?(ActionDispatch::DebugExceptions)
-
       instance_eval(&during_init)
 
       config.active_job.queue_adapter = :inline

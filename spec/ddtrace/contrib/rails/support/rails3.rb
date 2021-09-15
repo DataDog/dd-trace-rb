@@ -43,7 +43,6 @@ RSpec.shared_context 'Rails 3 base application' do
       config.action_view.javascript_expansions = {}
       config.action_view.stylesheet_expansions = {}
 
-      # config.middleware.delete ActionDispatch::DebugExceptions if Rails.version >= '3.2.22.5'
       instance_eval(&during_init)
     end
 

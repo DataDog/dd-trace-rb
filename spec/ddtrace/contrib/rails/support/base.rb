@@ -35,7 +35,6 @@ RSpec.shared_context 'Rails base application' do
 
   let(:initialize_block) do
     middleware = rails_middleware
-    # debug_mw = debug_middleware
     logger = self.logger
 
     proc do
@@ -72,7 +71,6 @@ RSpec.shared_context 'Rails base application' do
         config.lograge.keep_original_rails_log = true
       end
 
-      # config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
       middleware.each { |m| config.middleware.use m }
     end
   end
