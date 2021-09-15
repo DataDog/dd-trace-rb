@@ -55,13 +55,6 @@ module Datadog
           # We insert our own middleware right before these Rails middleware
           # have a chance to swallow the error.
           #
-          # Because there's more than one possible middleware that swallows errors,
-          # we insert our middleware before all the offending ones.
-          # At this point of the application lifecycle the complete middleware stack,
-          # is not yet defined, thus we can't decide which exact Rails middleware we want to
-          # insert ourselves before. We resort to inserting ourselves as many times as needed,
-          # once per offending middleware.
-          #
           # Note: because the middleware stack is push/pop, "before" and "after" are reversed
           # for our use case: we insert ourselves with "after" a middleware to ensure we are
           # able to pop the request "before" it.
