@@ -32,6 +32,8 @@ services:
       # Use these for a specific revision of ddtrace
       # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
       # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
+      # Enable building the profiling native extension
+      - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
     expose:
       - "80"
     stdin_open: true
