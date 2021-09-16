@@ -47,7 +47,7 @@ class ProfilerSubmission
     output_pprof = @adapter_buffer.last[:form]["data[0]"].io
 
     expected_hashes = [
-      "cf2d47ce25f3d2541327ab509ca7bfb6a3a0aa30ce18a428cbcc476e4e137878",
+      "395dd7e65b35be6eede78ac9be072df8d6d79653f8c248691ad9bdd1d8b507de",
     ]
     current_hash = Digest::SHA256.hexdigest(Zlib::GzipReader.new(output_pprof).read)
 
@@ -62,7 +62,7 @@ class ProfilerSubmission
   def run_benchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0.001} : {time: 10, warmup: 2}
-      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission'))
+      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission_v2'))
 
       x.report("exporter #{ENV['CONFIG']}") do
         run_once
