@@ -3,6 +3,7 @@
 
 # typed: strong
 module ::ActionCable::Connection::Base; end
+module ::ActionCable::Channel::Base; end
 module ::ActionDispatch::ExceptionWrapper; end
 module ::ActionDispatch::Response; end
 module ::ActionView::PartialRenderer; end
