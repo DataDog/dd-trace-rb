@@ -230,7 +230,7 @@ module Datadog
         def extract_gitlab(env)
           url = env['CI_PIPELINE_URL']
           {
-            Datadog::Ext::Git::TAG_BRANCH => env['CI_PIPELINE_SOURCE'] == 'merge_request_event' ? env['CI_MERGE_REQUEST_SOURCE_BRANCH_NAME'] : env['CI_COMMIT_BRANCH'],
+            Datadog::Ext::Git::TAG_BRANCH => env['CI_COMMIT_REF_NAME'],
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
             Datadog::Ext::Git::TAG_REPOSITORY_URL => env['CI_REPOSITORY_URL'],
             Datadog::Ext::Git::TAG_TAG => env['CI_COMMIT_TAG'],
