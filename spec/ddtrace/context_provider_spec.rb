@@ -30,6 +30,7 @@ RSpec.describe Datadog::DefaultContextProvider do
       it do
         expect(local_context)
           .to receive(:local)
+          .with(nil)
           .and_return(trace_context)
 
         subject
@@ -137,11 +138,18 @@ RSpec.describe Datadog::ThreadLocalContext do
     context 'given a thread' do
       subject(:local) { thread_local_context.local(thread) }
 
-      let(:thread) { Thread.new {} }
-
       it 'retrieves the context for the provided thread' do
         is_expected.to be_a_kind_of(Datadog::Context)
         expect(local).to_not be(thread_local_context.local)
+      end
+
+      context 'that is nil' do
+        let(:thread) { nil }
+
+        it 'retrieves the context from the current thread' do
+          is_expected.to be_a_kind_of(Datadog::Context)
+          expect(local).to be(thread_local_context.local)
+        end
       end
     end
   end

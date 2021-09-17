@@ -64,8 +64,10 @@ module Datadog
     #
     # This method makes use of a \ContextProvider that is automatically set during the tracer
     # initialization, or while using a library instrumentation.
-    def call_context(key = nil)
-      @provider.context(key)
+    #
+    # @param thread [Thread] the thread to retrieve the context from. Defaults to current thread.
+    def call_context(thread = nil)
+      @provider.context(thread)
     end
 
     # Initialize a new \Tracer used to create, sample and submit spans that measure the

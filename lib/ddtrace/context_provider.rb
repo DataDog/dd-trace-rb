@@ -15,8 +15,8 @@ module Datadog
     end
 
     # Return the local context.
-    def context(key = nil)
-      current_context = key.nil? ? @context.local : @context.local(key)
+    def context(thread = nil)
+      current_context = @context.local(thread)
 
       # Rebuild/reset context after a fork
       #
@@ -55,7 +55,10 @@ module Datadog
     end
 
     # Return the thread-local context.
-    def local(thread = Thread.current)
+    #
+    # @param thread [Thread] defaults to current thread if +nil+
+    def local(thread = nil)
+      thread ||= Thread.current
       thread[@key] ||= Datadog::Context.new
     end
   end
