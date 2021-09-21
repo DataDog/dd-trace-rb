@@ -626,7 +626,7 @@ elsif ruby_version?('2.4')
     gem 'pg'
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
-    gem 'racecar', '>= 0.3.5', '< 2.3.0' # Locked until https://github.com/zendesk/racecar/issues/252 is addressed
+    gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-test'
     gem 'rake', '>= 12.3'

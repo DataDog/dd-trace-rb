@@ -50,7 +50,7 @@ GEM
     dogstatsd-ruby (5.2.0)
     ffi (1.15.4)
     gherkin (5.1.0)
-    google-protobuf (3.17.3-x86_64-linux)
+    google-protobuf (3.18.0-x86_64-linux)
     hashdiff (1.0.1)
     memory_profiler (0.9.14)
     method_source (0.9.2)
@@ -123,7 +123,7 @@ GEM
     simplecov-html (0.12.3)
     sorbet (0.5.9120)
       sorbet-static (= 0.5.9120)
-    sorbet-runtime (0.5.9120)
+    sorbet-runtime (0.5.9152)
     sorbet-static (0.5.9120-x86_64-linux)
     spoom (1.1.2)
       colorize
@@ -131,7 +131,7 @@ GEM
       sorbet-runtime
       thor (>= 0.19.2)
     thor (1.1.0)
-    unicode-display_width (2.0.0)
+    unicode-display_width (2.1.0)
     webmock (3.13.0)
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
