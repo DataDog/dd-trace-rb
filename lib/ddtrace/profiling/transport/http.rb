@@ -65,20 +65,21 @@ module Datadog
         end
 
         private_class_method def self.default_adapter
-          :net_http
+          Datadog::Ext::Transport::HTTP::ADAPTER
         end
 
         private_class_method def self.configure_for_agent(transport, profiling_upload_timeout_seconds:, agent_settings:)
           apis = API.agent_defaults
 
           transport.adapter(
-            default_adapter,
-            agent_settings.hostname,
-            agent_settings.port,
+            agent_settings.adapter,
+            hostname: agent_settings.hostname,
+            port: agent_settings.port,
             # We explictly use profiling_upload_timeout_seconds instead of agent_settings.timeout because profile
             # uploads are bigger and thus we employ a separate configuration.
             timeout: profiling_upload_timeout_seconds,
-            ssl: agent_settings.ssl
+            ssl: agent_settings.ssl,
+            filepath: agent_settings.uds_path,
           )
           transport.api(API::V1, apis[API::V1], default: true)
 
@@ -111,9 +112,12 @@ module Datadog
         end
 
         # Add adapters to registry
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net, :net_http)
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test, :test)
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket, :unix)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net,
+                                                        Datadog::Ext::Transport::HTTP::ADAPTER)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test,
+                                                        Datadog::Ext::Transport::Test::ADAPTER)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket,
+                                                        Datadog::Ext::Transport::UnixSocket::ADAPTER)
       end
     end
   end

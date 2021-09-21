@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'ddtrace/transport/http/adapters/unix_socket'
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
-  subject(:adapter) { described_class.new(filepath, options) }
+  subject(:adapter) { described_class.new(filepath, **options) }
 
   let(:filepath) { double('filepath') }
   let(:timeout) { double('timeout') }
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
       it do
         is_expected.to have_attributes(
           filepath: filepath,
-          timeout: described_class::DEFAULT_TIMEOUT
+          timeout: 1
         )
       end
     end

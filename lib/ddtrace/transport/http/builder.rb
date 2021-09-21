@@ -33,12 +33,12 @@ module Datadog
           yield(self) if block_given?
         end
 
-        def adapter(type, *args)
+        def adapter(type, *args, **kwargs)
           @default_adapter = if type.is_a?(Symbol)
                                registry_klass = REGISTRY.get(type)
                                raise UnknownAdapterError, type if registry_klass.nil?
 
-                               registry_klass.new(*args)
+                               registry_klass.new(*args, **kwargs)
                              else
                                type
                              end

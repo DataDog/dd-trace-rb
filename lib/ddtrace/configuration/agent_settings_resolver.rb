@@ -20,23 +20,38 @@ module Datadog
     class AgentSettingsResolver
       AgentSettings = \
         Struct.new(
+          :adapter,
           :ssl,
           :hostname,
           :port,
+          :uds_path,
           :timeout_seconds,
           :deprecated_for_removal_transport_configuration_proc,
-          :deprecated_for_removal_transport_configuration_options
+          :deprecated_for_removal_transport_configuration_options,
+          :default_settings?
         ) do
           def initialize(
+            adapter:,
             ssl:,
             hostname:,
             port:,
+            uds_path:,
             timeout_seconds:,
             deprecated_for_removal_transport_configuration_proc:,
-            deprecated_for_removal_transport_configuration_options:
+            deprecated_for_removal_transport_configuration_options:,
+            default_settings:
           )
-            super(ssl, hostname, port, timeout_seconds, deprecated_for_removal_transport_configuration_proc, \
-              deprecated_for_removal_transport_configuration_options)
+            super(
+              adapter,
+              ssl,
+              hostname,
+              port,
+              uds_path,
+              timeout_seconds,
+              deprecated_for_removal_transport_configuration_proc,
+              deprecated_for_removal_transport_configuration_options,
+              default_settings
+            )
             freeze
           end
         end
@@ -51,16 +66,34 @@ module Datadog
         :logger,
         :settings
 
+      attr_writer :default_settings
+
       def initialize(settings, logger: Datadog.logger)
         @settings = settings
         @logger = logger
+        @default_settings = nil
       end
 
       def call
+        # If no agent settings have been provided, we try to connect using a local unix socket.
+        # We only do so if the socket is present when `ddtrace` runs.
+        #
+        # Note we still haven't exposed a way to to configure unix socket connectivity using
+        # environment variables, only using the custom configuration proc.
+        adapter_ = if default_settings && (uds_path_ = uds_path)
+                     Ext::Transport::UnixSocket::ADAPTER
+                   else
+                     # We can't invoke private methods with `self.method` in Ruby < 2.7, thus
+                     # the local variable has to be renamed to avoid conflict.
+                     adapter
+                   end
+
         AgentSettings.new(
+          adapter: adapter_,
           ssl: ssl?,
           hostname: hostname,
           port: port,
+          uds_path: uds_path_,
           timeout_seconds: timeout_seconds,
           # NOTE: When provided, the deprecated_for_removal_transport_configuration_proc can override all
           # values above (ssl, hostname, port, timeout), or even make them irrelevant (by using an unix socket or
@@ -68,8 +101,13 @@ module Datadog
           # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
           # that we know nothing of until we actually call it.
           deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
+          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options,
+          default_settings: default_settings
         )
+      end
+
+      def adapter
+        Ext::Transport::HTTP::ADAPTER
       end
 
       def hostname
@@ -126,7 +164,25 @@ module Datadog
       end
 
       def ssl?
-        !parsed_url.nil? && parsed_url.scheme == 'https'
+        if parsed_url
+          self.default_settings = false
+
+          parsed_url.scheme == 'https'
+        else
+          false
+        end
+      end
+
+      # Unix socket path in the file system
+      def uds_path
+        return @uds_path if defined?(@uds_path)
+
+        # We currently don't have an exposed configuration setting for unix socket path.
+        # This is a `ddtrace` limitation.
+        #
+        # Also, we only use the default unix socket if it is already present.
+        # This is by design, as we still want to use the default host:port if no unix socket is present.
+        @uds_path = (Ext::Transport::UnixSocket::DEFAULT_PATH if File.exist?(Ext::Transport::UnixSocket::DEFAULT_PATH))
       end
 
       def timeout_seconds
@@ -134,7 +190,11 @@ module Datadog
       end
 
       def deprecated_for_removal_transport_configuration_proc
-        settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
+        if settings.tracer.transport_options.is_a?(Proc)
+          self.default_settings = false
+
+          settings.tracer.transport_options
+        end
       end
 
       def deprecated_for_removal_transport_configuration_options
@@ -146,8 +206,29 @@ module Datadog
             "ddtrace version (c.tracer.transport_options contained '#{options.inspect}')."
           )
 
+          self.default_settings = false
+
           options
         end
+      end
+
+      # Have any options been provided, or are we using only the internal defaults?
+      def default_settings
+        return @default_settings unless @default_settings.nil?
+
+        # Read all values to ensure they all had a chance to set
+        # `@default_settings` to +false+ if applicable.
+        adapter
+        ssl?
+        hostname
+        port
+        timeout_seconds
+        deprecated_for_removal_transport_configuration_proc
+        deprecated_for_removal_transport_configuration_options
+
+        # If no reader has set `@default_settings` to +false+, it is +true+.
+        @default_settings = true if @default_settings.nil?
+        @default_settings
       end
 
       def parsed_url
@@ -182,6 +263,8 @@ module Datadog
 
         if detected_configurations_in_priority_order.any?
           warn_if_configuration_mismatch(detected_configurations_in_priority_order)
+
+          self.default_settings = false
 
           # The configurations are listed in priority, so we only need to look at the first; if there's more than
           # one, we emit a warning above

@@ -38,16 +38,20 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
     let(:agent_settings) do
       instance_double(
         Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+        adapter: adapter,
         hostname: hostname,
         port: port,
         ssl: ssl,
+        uds_path: uds_path,
         deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
       )
     end
+    let(:adapter) { :net_http }
     let(:hostname) { double('hostname') }
     let(:port) { double('port') }
     let(:profiling_upload_timeout_seconds) { double('timeout') }
     let(:ssl) { true }
+    let(:uds_path) { double('uds_path') }
     let(:deprecated_for_removal_transport_configuration_proc) { nil }
 
     it 'returns a transport with provided options configured for agent mode' do

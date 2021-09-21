@@ -1,5 +1,6 @@
 # typed: false
 require 'net/http'
+require 'ddtrace/ext/transport'
 require 'ddtrace/transport/http/adapters/net'
 
 module Datadog
@@ -8,15 +9,14 @@ module Datadog
       module Adapters
         # Adapter for Unix sockets
         class UnixSocket < Adapters::Net
-          DEFAULT_TIMEOUT = 1
-
           attr_reader \
             :filepath,
             :timeout
 
-          def initialize(filepath, options = {})
-            @filepath = filepath
-            @timeout = options.fetch(:timeout, DEFAULT_TIMEOUT)
+          # @deprecated Positional parameters are deprecated. Use named parameters instead.
+          def initialize(filepath = nil, **options)
+            @filepath = filepath || options[:filepath]
+            @timeout = options.fetch(:timeout, Ext::Transport::UnixSocket::DEFAULT_TIMEOUT_SECONDS)
           end
 
           def open(&block)

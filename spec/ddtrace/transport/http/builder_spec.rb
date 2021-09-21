@@ -18,6 +18,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
 
       let(:type) { :foo }
       let(:args) { [double('arg1'), double('arg2')] }
+      let(:kwargs) { {} }
 
       context 'that matches an adapter in the registry' do
         let(:adapter_class) { double('adapter class') }
@@ -29,7 +30,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
             .and_return(adapter_class)
 
           expect(adapter_class).to receive(:new)
-            .with(*args)
+            .with(*args, **kwargs)
             .and_return(adapter_object)
         end
 

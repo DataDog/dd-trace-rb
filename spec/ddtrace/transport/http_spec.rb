@@ -61,9 +61,11 @@ RSpec.describe Datadog::Transport::HTTP do
 
       let(:options) { {} }
 
+      let(:adapter) { :net_http }
       let(:ssl) { nil }
       let(:hostname) { nil }
       let(:port) { nil }
+      let(:uds_path) { nil }
       let(:timeout_seconds) { nil }
       let(:deprecated_for_removal_transport_configuration_proc) { nil }
       let(:deprecated_for_removal_transport_configuration_options) { nil }
@@ -71,9 +73,11 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:agent_settings) do
         instance_double(
           Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+          adapter: adapter,
           ssl: ssl,
           hostname: hostname,
           port: port,
+          uds_path: uds_path,
           timeout_seconds: timeout_seconds,
           deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
           deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options

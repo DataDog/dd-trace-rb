@@ -16,9 +16,10 @@ module Datadog
 
           DEFAULT_TIMEOUT = 30
 
-          def initialize(hostname, port, options = {})
-            @hostname = hostname
-            @port = port
+          # @deprecated Positional parameters are deprecated. Use named parameters instead.
+          def initialize(hostname = nil, port = nil, **options)
+            @hostname = hostname || options[:hostname]
+            @port = port || options[:port]
             @timeout = options[:timeout] || DEFAULT_TIMEOUT
             @ssl = options.key?(:ssl) ? options[:ssl] == true : false
           end

@@ -11,8 +11,9 @@ module Datadog
             :buffer,
             :status
 
-          def initialize(buffer = nil)
-            @buffer = buffer
+          # @deprecated Positional parameters are deprecated. Use named parameters instead.
+          def initialize(buffer = nil, **options)
+            @buffer = buffer || options[:buffer]
             @mutex = Mutex.new
             @status = 200
           end

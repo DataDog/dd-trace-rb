@@ -31,11 +31,12 @@ module Datadog
       def default(agent_settings: Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS, **options)
         new do |transport|
           transport.adapter(
-            default_adapter,
-            agent_settings.hostname,
-            agent_settings.port,
+            agent_settings.adapter,
+            hostname: agent_settings.hostname,
+            port: agent_settings.port,
             timeout: agent_settings.timeout_seconds,
-            ssl: agent_settings.ssl
+            ssl: agent_settings.ssl,
+            filepath: agent_settings.uds_path
           )
           transport.headers default_headers
 
@@ -80,7 +81,7 @@ module Datadog
       end
 
       def default_adapter
-        :net_http
+        Ext::Transport::HTTP::ADAPTER
       end
 
       def default_hostname(logger: Datadog.logger)
@@ -111,9 +112,9 @@ module Datadog
       end
 
       # Add adapters to registry
-      Builder::REGISTRY.set(Adapters::Net, :net_http)
-      Builder::REGISTRY.set(Adapters::Test, :test)
-      Builder::REGISTRY.set(Adapters::UnixSocket, :unix)
+      Builder::REGISTRY.set(Adapters::Net, Ext::Transport::HTTP::ADAPTER)
+      Builder::REGISTRY.set(Adapters::Test, Ext::Transport::Test::ADAPTER)
+      Builder::REGISTRY.set(Adapters::UnixSocket, Ext::Transport::UnixSocket::ADAPTER)
     end
   end
 end
