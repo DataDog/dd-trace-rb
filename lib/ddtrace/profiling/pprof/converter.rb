@@ -92,8 +92,9 @@ module Datadog
 
         def update_group(event_group, event, values)
           # Update values for group
-          event_group.values.each_with_index do |group_value, i|
-            event_group.values[i] = group_value + values[i]
+          group_values = event_group.values
+          group_values.each_with_index do |group_value, i|
+            group_values[i] = group_value + values[i]
           end
         end
       end
