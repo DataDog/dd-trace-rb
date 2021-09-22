@@ -19,6 +19,7 @@ module Datadog
         MIN_INTERVAL = 0.01
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
         THREAD_LAST_WALL_CLOCK_KEY = :datadog_profiler_last_wall_clock
+        DEFAULT_MAX_THREADS_SAMPLED = 16
 
         attr_reader \
           :recorder,
@@ -34,6 +35,7 @@ module Datadog
           trace_identifiers_helper:, # Usually an instance of Datadog::Profiling::TraceIdentifiers::Helper
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
+          max_threads_sampled: DEFAULT_MAX_THREADS_SAMPLED,
           thread_api: Thread,
           fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
           interval: MIN_INTERVAL,
@@ -44,6 +46,7 @@ module Datadog
           @trace_identifiers_helper = trace_identifiers_helper
           @ignore_thread = ignore_thread
           @max_time_usage_pct = max_time_usage_pct
+          @max_threads_sampled = max_threads_sampled
           @thread_api = thread_api
 
           # Workers::Async::Thread settings
@@ -90,7 +93,7 @@ module Datadog
           current_wall_time_ns = Datadog::Utils::Time.get_time * 1e9
 
           # Collect backtraces from each thread
-          thread_api.list.each do |thread|
+          threads_to_sample.each do |thread|
             next unless thread.alive?
             next if ignore_thread.is_a?(Proc) && ignore_thread.call(thread)
 
@@ -243,6 +246,34 @@ module Datadog
           thread.thread_variable_set(key, current_value)
 
           current_value - last_value
+        end
+
+        # Whenever there are more than max_threads_sampled active, we only sample a subset of them.
+        # We do this to avoid impacting the latency of the service being profiled. We want to avoid doing
+        # a big burst of work all at once (sample everything), and instead do a little work each time
+        # (sample a bit by bit).
+        #
+        # Because we pick the threads to sample randomly, we'll eventually sample all threads -- just not at once.
+        # Notice also that this will interact with our dynamic sampling mechanism -- if samples are faster, we take
+        # them more often, if they are slower, we take them less often -- which again means that over a longer period
+        # we should take sample roughly the same samples.
+        #
+        # One downside of this approach is that if there really are many threads, the resulting wall clock times
+        # in a one minute profile may "drift" around the 60 second mark, e.g. maybe we only sampled a thread once per
+        # second and only 59 times, so we'll report 59s, but on the next report we'll include the missing one, so
+        # then the result will be 61s. I've observed 60 +- 1.68 secs for an app with ~65 threads, given the
+        # default maximum of 16 threads. This seems a reasonable enough margin of error given the improvement to
+        # latency (especially on such a large application! -> even bigger latency impact if we tried to sample all
+        # threads).
+        #
+        def threads_to_sample
+          all_threads = thread_api.list
+
+          if all_threads.size > @max_threads_sampled
+            all_threads.sample(@max_threads_sampled)
+          else
+            all_threads
+          end
         end
       end
     end
