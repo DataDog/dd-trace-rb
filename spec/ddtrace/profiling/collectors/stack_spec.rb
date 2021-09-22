@@ -164,27 +164,26 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe '#collect_events' do
+    let(:options) { { **super(), thread_api: thread_api } }
+    let(:thread_api) { class_double(Thread, current: Thread.current) }
+    let(:threads) { [Thread.current] }
+
     subject(:collect_events) { collector.collect_events }
 
     before do
+      allow(thread_api).to receive(:list).and_return(threads)
       allow(recorder).to receive(:push)
     end
 
-    context 'by default' do
-      it 'produces stack events' do
-        is_expected.to be_a_kind_of(Array)
-        is_expected.to include(kind_of(Datadog::Profiling::Events::StackSample))
-      end
+    it 'produces stack events' do
+      is_expected.to be_a_kind_of(Array)
+      is_expected.to include(kind_of(Datadog::Profiling::Events::StackSample))
     end
 
     context 'when the thread' do
       let(:thread) { instance_double(Thread, alive?: alive?) }
       let(:threads) { [thread] }
       let(:alive?) { true }
-
-      before do
-        allow(Thread).to receive(:list).and_return(threads)
-      end
 
       context 'is dead' do
         let(:alive?) { false }
