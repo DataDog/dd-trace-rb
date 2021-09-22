@@ -18,6 +18,7 @@ module Datadog
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0
         MIN_INTERVAL = 0.01
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
+        DEFAULT_MAX_THREADS_SAMPLED = 16
 
         attr_reader \
           :recorder,
@@ -25,6 +26,7 @@ module Datadog
           :trace_identifiers_helper,
           :ignore_thread,
           :max_time_usage_pct,
+          :max_threads_sampled,
           :thread_api
 
         def initialize(
@@ -33,6 +35,7 @@ module Datadog
           trace_identifiers_helper:, # Usually an instance of Datadog::Profiling::TraceIdentifiers::Helper
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
+          max_threads_sampled: DEFAULT_MAX_THREADS_SAMPLED,
           thread_api: Thread,
           fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
           interval: MIN_INTERVAL,
@@ -43,6 +46,7 @@ module Datadog
           @trace_identifiers_helper = trace_identifiers_helper
           @ignore_thread = ignore_thread
           @max_time_usage_pct = max_time_usage_pct
+          @max_threads_sampled = max_threads_sampled
           @thread_api = thread_api
 
           # Workers::Async::Thread settings
@@ -100,7 +104,7 @@ module Datadog
           @last_wall_time = current_wall_time
 
           # Collect backtraces from each thread
-          thread_api.list.each do |thread|
+          threads_to_sample.each do |thread|
             next unless thread.alive?
             next if ignore_thread.is_a?(Proc) && ignore_thread.call(thread)
 
@@ -249,6 +253,24 @@ module Datadog
         def reset_cpu_time_tracking
           thread_api.list.each do |thread|
             thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, nil)
+          end
+        end
+
+        # Whenever there are more than max_threads_sampled active, we only sample a subset of them.
+        # We do this to avoid impacting the latency of the service being profiled. We want to avoid doing
+        # a big burst of work all at once (sample everything), and instead do a little work each time
+        # (sample a bit by bit).
+        # Because we pick the threads to sample randomly, we'll eventually sample all threads -- just not at once.
+        # Notice also that this will interact with our dynamic sampling mechanism -- if samples are faster, we take
+        # them more often, if they are slower, we take them less often -- which again means that over a longer period
+        # we should take sample roughly the same samples.
+        def threads_to_sample
+          all_threads = thread_api.list
+
+          if all_threads.size > max_threads_sampled
+            all_threads.sample(max_threads_sampled)
+          else
+            all_threads
           end
         end
       end

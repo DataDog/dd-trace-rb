@@ -5,6 +5,8 @@ require 'ddtrace/profiling/spec_helper'
 require 'ddtrace/profiling/collectors/stack'
 require 'ddtrace/profiling/trace_identifiers/helper'
 require 'ddtrace/profiling/recorder'
+require 'set'
+require 'timeout'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collector) { described_class.new(recorder, **options) }
@@ -164,9 +166,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe '#collect_events' do
-    let(:options) { { **super(), thread_api: thread_api } }
+    let(:options) { { **super(), thread_api: thread_api, max_threads_sampled: max_threads_sampled } }
     let(:thread_api) { class_double(Thread, current: Thread.current) }
     let(:threads) { [Thread.current] }
+    let(:max_threads_sampled) { 3 }
 
     subject(:collect_events) { collector.collect_events }
 
@@ -178,6 +181,53 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     it 'produces stack events' do
       is_expected.to be_a_kind_of(Array)
       is_expected.to include(kind_of(Datadog::Profiling::Events::StackSample))
+    end
+
+    describe 'max_threads_sampled behavior' do
+      context 'when number of threads to be sample is <= max_threads_sampled' do
+        let(:threads) { Array.new(max_threads_sampled) { |n| instance_double(Thread, "Thread #{n}", alive?: true) } }
+
+        it 'samples all threads' do
+          sampled_threads = []
+          expect(collector).to receive(:collect_thread_event).exactly(max_threads_sampled).times do |thread, *_|
+            sampled_threads << thread
+          end
+
+          result = collect_events
+
+          expect(result.size).to be max_threads_sampled
+          expect(sampled_threads).to eq threads
+        end
+      end
+
+      context 'when number of threads to be sample is > max_threads_sampled' do
+        let(:threads) { Array.new(max_threads_sampled + 1) { |n| instance_double(Thread, "Thread #{n}", alive?: true) } }
+
+        it 'samples exactly max_threads_sampled threads' do
+          sampled_threads = []
+          expect(collector).to receive(:collect_thread_event).exactly(max_threads_sampled).times do |thread, *_|
+            sampled_threads << thread
+          end
+
+          result = collect_events
+
+          expect(result.size).to be max_threads_sampled
+          expect(threads).to include(*sampled_threads)
+        end
+
+        it 'eventually samples all threads' do
+          sampled_threads = Set.new
+          allow(collector).to receive(:collect_thread_event) { |thread, *_| sampled_threads << thread }
+
+          begin
+            Timeout.timeout(1) { collector.collect_events while sampled_threads.size != threads.size }
+          rescue => Timeout::Error
+            raise 'Failed to eventually sample all threads in time given'
+          end
+
+          expect(threads).to contain_exactly(*sampled_threads.to_a)
+        end
+      end
     end
 
     context 'when the thread' do
