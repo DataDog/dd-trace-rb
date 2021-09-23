@@ -61,7 +61,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       start
     end
 
-    describe 'cpu time tracking state handling' do
+    describe 'leftover tracking state handling' do
       let(:options) { { **super(), thread_api: thread_api } }
 
       let(:thread_api) { class_double(Thread) }
@@ -71,8 +71,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(thread_api).to receive(:list).and_return([thread])
       end
 
-      it 'cleans up any leftover cpu tracking state in existing threads' do
+      it 'cleans up any leftover tracking state in existing threads' do
         expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
+        expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, nil)
 
         start
       end
@@ -205,12 +206,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      context 'doesn\'t have an associated event' do
+      context "doesn't have an associated event" do
         before do
-          expect(collector)
-            .to receive(:collect_thread_event)
-            .with(thread, kind_of(Integer))
-            .and_return(nil)
+          expect(collector).to receive(:collect_thread_event).and_return(nil)
         end
 
         it 'no event is produced' do
@@ -223,10 +221,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:event) { instance_double(Datadog::Profiling::Events::StackSample) }
 
         before do
-          expect(collector)
-            .to receive(:collect_thread_event)
-            .with(thread, kind_of(Integer))
-            .and_return(event)
+          expect(collector).to receive(:collect_thread_event).and_return(event)
         end
 
         it 'records the event' do
@@ -238,10 +233,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe '#collect_thread_event' do
-    subject(:collect_events) { collector.collect_thread_event(thread, wall_time_interval_ns) }
+    subject(:collect_events) { collector.collect_thread_event(thread, current_wall_time) }
 
     let(:thread) { double('Thread', backtrace_locations: backtrace) }
-    let(:wall_time_interval_ns) { double('wall time interval in nanoseconds') }
+    let(:last_wall_time) { 42.0 }
+    let(:current_wall_time) { 123.0 }
 
     context 'when the backtrace is empty' do
       let(:backtrace) { nil }
@@ -270,6 +266,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       before do
         expect(trace_identifiers_helper).to receive(:trace_identifiers_for).with(thread).and_return(trace_identifiers)
+
+        allow(thread)
+          .to receive(:thread_variable_get).with(described_class::THREAD_LAST_WALL_CLOCK_KEY).and_return(last_wall_time)
+        allow(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, anything)
+      end
+
+      it 'updates the last wall clock value for the thread with the current_wall_time' do
+        expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, current_wall_time)
+
+        collect_events
       end
 
       context 'and there is an active trace for the thread' do
@@ -322,7 +328,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             total_frame_count: backtrace.length,
             thread_id: thread.object_id,
             cpu_time_interval_ns: nil,
-            wall_time_interval_ns: wall_time_interval_ns
+            wall_time_interval_ns: current_wall_time - last_wall_time
           )
         end
       end
@@ -364,7 +370,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             total_frame_count: backtrace.length,
             thread_id: thread.object_id,
             cpu_time_interval_ns: cpu_interval,
-            wall_time_interval_ns: wall_time_interval_ns
+            wall_time_interval_ns: current_wall_time - last_wall_time
           )
         end
       end

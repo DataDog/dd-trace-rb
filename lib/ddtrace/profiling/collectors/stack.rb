@@ -18,6 +18,7 @@ module Datadog
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0
         MIN_INTERVAL = 0.01
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
+        THREAD_LAST_WALL_CLOCK_KEY = :datadog_profiler_last_wall_clock
 
         attr_reader \
           :recorder,
@@ -63,7 +64,6 @@ module Datadog
         end
 
         def start
-          @last_wall_time = Datadog::Utils::Time.get_time
           reset_cpu_time_tracking
           perform
         end
@@ -87,24 +87,14 @@ module Datadog
 
         def collect_events
           events = []
-
-          # Compute wall time interval
-          current_wall_time = Datadog::Utils::Time.get_time
-          last_wall_time = if instance_variable_defined?(:@last_wall_time)
-                             @last_wall_time
-                           else
-                             current_wall_time
-                           end
-
-          wall_time_interval_ns = ((current_wall_time - last_wall_time).round(9) * 1e9).to_i
-          @last_wall_time = current_wall_time
+          current_wall_time_ns = Datadog::Utils::Time.get_time * 1e9
 
           # Collect backtraces from each thread
           thread_api.list.each do |thread|
             next unless thread.alive?
             next if ignore_thread.is_a?(Proc) && ignore_thread.call(thread)
 
-            event = collect_thread_event(thread, wall_time_interval_ns)
+            event = collect_thread_event(thread, current_wall_time_ns)
             events << event unless event.nil?
           end
 
@@ -114,7 +104,7 @@ module Datadog
           events
         end
 
-        def collect_thread_event(thread, wall_time_interval_ns)
+        def collect_thread_event(thread, current_wall_time_ns)
           locations = thread.backtrace_locations
           return if locations.nil?
 
@@ -128,6 +118,8 @@ module Datadog
           thread_id = thread.respond_to?(:pthread_thread_id) ? thread.pthread_thread_id : thread.object_id
           trace_id, span_id, trace_resource_container = trace_identifiers_helper.trace_identifiers_for(thread)
           cpu_time = get_cpu_time_interval!(thread)
+          wall_time_interval_ns =
+            get_elapsed_since_last_sample_and_set_value(thread, THREAD_LAST_WALL_CLOCK_KEY, current_wall_time_ns)
 
           Events::StackSample.new(
             nil,
@@ -230,10 +222,10 @@ module Datadog
         end
 
         # If the profiler is started for a while, stopped and then restarted OR whenever the process forks, we need to
-        # clean up any leftover per-thread cpu time counters, so that the first sample after starting doesn't end up with:
+        # clean up any leftover per-thread counters, so that the first sample after starting doesn't end up with:
         #
         # a) negative time: At least on my test docker container, and on the reliability environment, after the process
-        #    forks, the clock reference changes and (old cpu time - new cpu time) can be < 0
+        #    forks, the cpu time reference changes and (old cpu time - new cpu time) can be < 0
         #
         # b) large amount of time: if the profiler was started, then stopped for some amount of time, and then
         #    restarted, we don't want the first sample to be "blamed" for multiple minutes of CPU time
@@ -242,6 +234,7 @@ module Datadog
         def reset_cpu_time_tracking
           thread_api.list.each do |thread|
             thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, nil)
+            thread.thread_variable_set(THREAD_LAST_WALL_CLOCK_KEY, nil)
           end
         end
 
