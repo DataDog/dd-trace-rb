@@ -132,7 +132,8 @@ module Datadog
 
           datadog_config.use(
             :active_job,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}",
+            log_injection: rails_config[:log_injection]
           )
         end
 

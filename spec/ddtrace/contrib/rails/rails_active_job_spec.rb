@@ -20,6 +20,7 @@ require 'ddtrace/contrib/active_job/integration'
 
 RSpec.describe 'ActiveJob' do
   before { skip unless defined? ::ActiveJob }
+  after { remove_patch!(:active_job) }
   include_context 'Rails test application'
 
   context 'with active_job instrumentation' do
@@ -30,6 +31,7 @@ RSpec.describe 'ActiveJob' do
 
       stub_const('ExampleJob', Class.new(ActiveJob::Base) do
         def perform(test_retry: false, test_discard: false)
+          ActiveJob::Base.logger.info 'MINASWAN'
           JOB_EXECUTIONS.increment
           raise JobRetryError if test_retry
           raise JobDiscardError if test_discard
@@ -43,8 +45,11 @@ RSpec.describe 'ActiveJob' do
 
     before do
       Datadog.configure do |c|
-        c.use :active_job
+        c.use :active_job, log_injection: true
       end
+
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
 
       # initialize the application
       app
@@ -163,6 +168,16 @@ RSpec.describe 'ActiveJob' do
       if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(span.get_tag('active_job.job.priority')).to eq(-10)
       end
+    end
+
+    it 'injects active correlation into logs' do
+      job_class.set(queue: :elephants, priority: -10).perform_later
+
+      logs = log_output.string
+      span = spans.find { |s| s.name == 'active_job.perform' }
+
+      expect(logs).to include(span.trace_id.to_s)
+      expect(logs).to include('MINASWAN')
     end
   end
 
