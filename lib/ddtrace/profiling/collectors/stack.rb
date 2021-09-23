@@ -156,14 +156,7 @@ module Datadog
           # *before* the thread had time to finish the initialization
           return unless current_cpu_time_ns
 
-          last_cpu_time_ns = (thread.thread_variable_get(THREAD_LAST_CPU_TIME_KEY) || current_cpu_time_ns)
-          interval = current_cpu_time_ns - last_cpu_time_ns
-
-          # Update CPU time for thread
-          thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, current_cpu_time_ns)
-
-          # Return interval
-          interval
+          get_elapsed_since_last_sample_and_set_value(thread, THREAD_LAST_CPU_TIME_KEY, current_cpu_time_ns)
         end
 
         def compute_wait_time(used_time)
@@ -250,6 +243,13 @@ module Datadog
           thread_api.list.each do |thread|
             thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, nil)
           end
+        end
+
+        def get_elapsed_since_last_sample_and_set_value(thread, key, current_value)
+          last_value = thread.thread_variable_get(key) || current_value
+          thread.thread_variable_set(key, current_value)
+
+          current_value - last_value
         end
       end
     end
