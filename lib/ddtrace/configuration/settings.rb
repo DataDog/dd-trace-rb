@@ -161,6 +161,7 @@ module Datadog
         end
 
         settings :advanced do
+          # This should never be reduced, as it can cause the resulting profiles to become biased
           option :max_events, default: 32768
 
           # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
