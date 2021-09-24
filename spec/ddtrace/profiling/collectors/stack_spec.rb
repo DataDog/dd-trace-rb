@@ -67,17 +67,34 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:options) { { **super(), thread_api: thread_api } }
 
       let(:thread_api) { class_double(Thread) }
-      let(:thread) { instance_double(Thread) }
-
-      before do
-        expect(thread_api).to receive(:list).and_return([thread])
-      end
+      let(:thread) { instance_double(Thread, 'Dummy thread') }
 
       it 'cleans up any leftover tracking state in existing threads' do
+        expect(thread_api).to receive(:list).and_return([thread])
+
         expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
         expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, nil)
 
         start
+      end
+
+      context 'Process::Waiter crash regression tests' do
+        # See cthread.rb for more details
+
+        before do
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+            skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+          end
+          skip 'Test case only applies to MRI Ruby' if RUBY_ENGINE != 'ruby'
+        end
+
+        it 'can clean up leftover tracking state on an instance of Process::Waiter without crashing' do
+          with_profiling_extensions_in_fork do
+            expect(thread_api).to receive(:list).and_return([Process.detach(fork { sleep })])
+
+            start
+          end
+        end
       end
     end
   end
@@ -465,8 +482,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       it 'can sample an instance of Process::Waiter without crashing' do
         with_profiling_extensions_in_fork do
-          Process.detach(fork {})
-          process_waiter_thread = Thread.list.find { |thread| thread.instance_of?(Process::Waiter) }
+          process_waiter_thread = Process.detach(fork { sleep })
 
           expect(collector.collect_thread_event(process_waiter_thread, 0)).to be_truthy
         end

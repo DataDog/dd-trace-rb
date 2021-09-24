@@ -64,6 +64,10 @@ module Datadog
           @build_backtrace_location = method(:build_backtrace_location).to_proc
           # Cache this buffer, since it's pretty expensive to keep accessing it
           @stack_sample_event_recorder = recorder[Events::StackSample]
+          # See below for details on why this is needed
+          @needs_process_waiter_workaround =
+            Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
+            Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
         end
 
         def start
@@ -236,12 +240,20 @@ module Datadog
         # By resetting the last cpu time seen, we start with a clean slate every time we start the stack collector.
         def reset_cpu_time_tracking
           thread_api.list.each do |thread|
+            # See below for details on why this is needed
+            next if @needs_process_waiter_workaround && thread.is_a?(::Process::Waiter)
+
             thread.thread_variable_set(THREAD_LAST_CPU_TIME_KEY, nil)
             thread.thread_variable_set(THREAD_LAST_WALL_CLOCK_KEY, nil)
           end
         end
 
         def get_elapsed_since_last_sample_and_set_value(thread, key, current_value)
+          # See cthread.rb for more details, but this is a workaround for https://bugs.ruby-lang.org/issues/17807 ;
+          # using all thread_variable related methods on these instances also triggers a crash and for now we just
+          # skip it for the affected Rubies
+          return 0 if @needs_process_waiter_workaround && thread.is_a?(::Process::Waiter)
+
           last_value = thread.thread_variable_get(key) || current_value
           thread.thread_variable_set(key, current_value)
 
