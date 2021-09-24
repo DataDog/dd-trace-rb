@@ -22,6 +22,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   before do
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
+
     allow(recorder)
       .to receive(:[])
       .with(Datadog::Profiling::Events::StackSample)
