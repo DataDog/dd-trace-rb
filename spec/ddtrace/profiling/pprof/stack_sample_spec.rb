@@ -92,7 +92,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { 1 }
       let(:trace_id) { 2 }
       let(:span_id) { 3 }
-      let(:trace_resource_container) { Datadog::Span::ResourceContainer.new("resource#{rand(1e9)}") }
+      let(:trace_resource) { "resource#{rand(1e9)}" }
       let(:stack) { Thread.current.backtrace_locations }
 
       context 'with identical threads, stacks, trace and span IDs' do
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
-              trace_resource_container,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -163,7 +163,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
-              trace_resource_container,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { 1 }
       let(:trace_id) { 2 }
       let(:span_id) { 3 }
-      let(:trace_resource_container) { Datadog::Span::ResourceContainer.new("resource#{rand(1e9)}") }
+      let(:trace_resource) { "resource#{rand(1e9)}" }
       let(:stack) { Thread.current.backtrace_locations }
 
       shared_examples_for 'independent stack samples' do
@@ -262,7 +262,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
-              trace_resource_container,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -276,7 +276,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               thread_id,
               trace_id,
               span_id,
-              trace_resource_container,
+              trace_resource,
               rand(1e9),
               rand(1e9)
             )
@@ -298,6 +298,61 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         end
 
         it_behaves_like 'independent stack samples'
+      end
+
+      context 'with identical traces but different stacks and resource names' do
+        let(:stack_samples) { [first, second, third] }
+        let(:most_recent_trace_resource) { 'PostController#show' }
+
+        # First sample has unique stack
+        let(:first) do
+          build_stack_sample(
+            locations: nil, # Builds unique stack
+            thread_id: thread_id,
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_resource: 'GET 200'
+          )
+        end
+
+        # Second sample has same stack as third but "old" resource name
+        let(:second) do
+          build_stack_sample(
+            locations: stack,
+            thread_id: thread_id,
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_resource: 'GET 200'
+          )
+        end
+
+        # Third sample overlaps with second sample, but has updated resource name
+        let(:third) do
+          build_stack_sample(
+            locations: stack,
+            thread_id: thread_id,
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_resource: most_recent_trace_resource
+          )
+        end
+
+        it 'returns two Perftools::Profiles::Sample with most recent trace_resource for both' do
+          is_expected.to be_kind_of(Array)
+          is_expected.to have(2).item
+          is_expected.to include(kind_of(Perftools::Profiles::Sample))
+
+          # Find key for trace resource label
+          trace_resource_label_key_id = builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT)
+
+          build_samples.each do |sample|
+            # Find the trace resource label for this sample
+            trace_resource_label = sample.label.find { |l| l.key == trace_resource_label_key_id }
+
+            # Ensure it matches the most recent trace resource name
+            expect(builder.string_table[trace_resource_label.str]).to eq(most_recent_trace_resource)
+          end
+        end
       end
     end
   end
@@ -339,8 +394,8 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
     end
   end
 
-  describe '#build_sample_values' do
-    subject(:build_sample_values) { converter.build_sample_values(stack_sample) }
+  describe '#build_event_values' do
+    subject(:build_event_values) { converter.build_event_values(stack_sample) }
 
     let(:stack_sample) { build_stack_sample }
 
@@ -418,12 +473,12 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           thread_id: thread_id,
           trace_id: trace_id,
           span_id: span_id,
-          trace_resource_container: trace_resource_container
+          trace_resource: trace_resource
         )
       end
 
       let(:thread_id) { rand(1e9) }
-      let(:trace_resource_container) { nil }
+      let(:trace_resource) { nil }
 
       context 'when trace and span IDs are' do
         context 'set' do
@@ -440,7 +495,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           it_behaves_like 'contains span ID label'
 
           context 'when trace resource is non-empty' do
-            let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('example trace resource') }
+            let(:trace_resource) { 'example trace resource' }
 
             it do
               is_expected.to be_kind_of(Array)
@@ -454,7 +509,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           end
 
           context 'when trace resource is empty' do
-            let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('') }
+            let(:trace_resource) { '' }
 
             it do
               is_expected.to be_kind_of(Array)

@@ -4390,12 +4390,6 @@ class Datadog::Span
   include ::Datadog::OpenTelemetry::Span
 end
 
-class Datadog::Span::ResourceContainer
-  def self.[](*arg); end
-
-  def self.members(); end
-end
-
 class Datadog::Statsd
   COUNTER_TYPE = ::T.let(nil, ::T.untyped)
   CRITICAL = ::T.let(nil, ::T.untyped)
