@@ -23,7 +23,7 @@ module Datadog
         # This default was picked based on the current sampling performance and on expected concurrency on an average
         # Ruby MRI application. Lowering this optimizes for latency (less impact each time we sample), and raising
         # optimizes for coverage (less chance to miss what a given thread is doing).
-        DEFAULT_MAX_THREADS_SAMPLED = 16
+        DEFAULT_MAX_THREADS_SAMPLED = 4
 
         attr_reader \
           :recorder,
