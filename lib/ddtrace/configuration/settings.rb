@@ -161,7 +161,9 @@ module Datadog
         end
 
         settings :advanced do
-          # This should never be reduced, as it can cause the resulting profiles to become biased
+          # This should never be reduced, as it can cause the resulting profiles to become biased.
+          # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
+          # per second for a 60 second period.
           option :max_events, default: 32768
 
           # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
