@@ -19,6 +19,10 @@ module Datadog
         MIN_INTERVAL = 0.01
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
         THREAD_LAST_WALL_CLOCK_KEY = :datadog_profiler_last_wall_clock
+
+        # This default was picked based on the current sampling performance and on expected concurrency on an average
+        # Ruby MRI application. Lowering this optimizes for latency (less impact each time we sample), and raising
+        # optimizes for coverage (less chance to miss what a given thread is doing).
         DEFAULT_MAX_THREADS_SAMPLED = 16
 
         attr_reader \
