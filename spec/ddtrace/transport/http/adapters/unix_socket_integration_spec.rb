@@ -10,10 +10,10 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 RSpec.describe 'Adapters::UnixSocket integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(filepath, options) }
+  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
   let(:filepath) { '/tmp/ddtrace_unix_test.sock' }
-  let(:options) { { timeout: timeout } }
+  let(:options) { { filepath: filepath, timeout: timeout } }
   let(:timeout) { 2 }
 
   shared_context 'Unix socket server' do
