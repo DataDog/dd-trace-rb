@@ -98,7 +98,7 @@ module Datadog
 
         def collect_events
           events = []
-          current_wall_time_ns = Datadog::Utils::Time.get_time * 1e9
+          current_wall_time_ns = get_current_wall_time_timestamp_ns
 
           # Collect backtraces from each thread
           threads_to_sample.each do |thread|
@@ -290,6 +290,10 @@ module Datadog
           else
             all_threads
           end
+        end
+
+        def get_current_wall_time_timestamp_ns
+          Datadog::Utils::Time.get_time(:nanosecond)
         end
       end
     end

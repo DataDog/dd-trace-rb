@@ -305,8 +305,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     subject(:collect_events) { collector.collect_thread_event(thread, current_wall_time) }
 
     let(:thread) { double('Thread', backtrace_locations: backtrace) }
-    let(:last_wall_time) { 42.0 }
-    let(:current_wall_time) { 123.0 }
+    let(:last_wall_time) { 42 }
+    let(:current_wall_time) { 123 }
 
     context 'when the backtrace is empty' do
       let(:backtrace) { nil }
@@ -771,6 +771,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
     end
+  end
+
+  describe '#get_current_wall_time_timestamp_ns' do
+    subject(:get_current_wall_time_timestamp_ns) { collector.send(:get_current_wall_time_timestamp_ns) }
+
+    # Must always be an Integer, as pprof does not allow for non-integer floating point values
+    it { is_expected.to be_a_kind_of(Integer) }
   end
 
   # Why? When mocking Thread.current, we break fiber-local variables (sometimes mistakenly referred to as
