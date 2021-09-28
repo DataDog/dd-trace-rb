@@ -170,9 +170,16 @@ module Datadog
             o.lazy
           end
 
-          # When using profiling together with tracing, this controls if trace resources (usually the endpoint names)
-          # are gathered and reported together with profiles.
-          option :extract_trace_resource, default: true
+          settings :endpoint do
+            settings :collection do
+              # When using profiling together with tracing, this controls if endpoint names
+              # are gathered and reported together with profiles.
+              option :enabled do |o|
+                o.default { true }
+                o.lazy
+              end
+            end
+          end
         end
 
         settings :upload do
