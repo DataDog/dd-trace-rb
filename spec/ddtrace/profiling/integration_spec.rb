@@ -15,9 +15,7 @@ RSpec.describe 'profiling integration test' do
   before do
     skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
 
-    unless Datadog::Profiling.supported?
-      raise "Profiling did not loaded: #{Datadog::Profiling.unsupported_reason}"
-    end
+    raise "Profiling did not loaded: #{Datadog::Profiling.unsupported_reason}" unless Datadog::Profiling.supported?
   end
 
   let(:tracer) { instance_double(Datadog::Tracer) }
