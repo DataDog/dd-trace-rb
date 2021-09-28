@@ -27,8 +27,7 @@ module Datadog
           :uds_path,
           :timeout_seconds,
           :deprecated_for_removal_transport_configuration_proc,
-          :deprecated_for_removal_transport_configuration_options,
-          :default_settings?
+          :deprecated_for_removal_transport_configuration_options
         ) do
           def initialize(
             adapter:,
@@ -38,8 +37,7 @@ module Datadog
             uds_path:,
             timeout_seconds:,
             deprecated_for_removal_transport_configuration_proc:,
-            deprecated_for_removal_transport_configuration_options:,
-            default_settings:
+            deprecated_for_removal_transport_configuration_options:
           )
             super(
               adapter,
@@ -50,7 +48,6 @@ module Datadog
               timeout_seconds,
               deprecated_for_removal_transport_configuration_proc,
               deprecated_for_removal_transport_configuration_options,
-              default_settings
             )
             freeze
           end
@@ -66,12 +63,9 @@ module Datadog
         :logger,
         :settings
 
-      attr_writer :default_settings
-
       def initialize(settings, logger: Datadog.logger)
         @settings = settings
         @logger = logger
-        @default_settings = nil
       end
 
       def call
@@ -80,7 +74,7 @@ module Datadog
         #
         # Note we still haven't exposed a way to to configure unix socket connectivity using
         # environment variables, only using the custom configuration proc.
-        adapter_ = if default_settings && (uds_path_ = uds_path)
+        adapter_ = if should_use_uds_fallback?
                      Ext::Transport::UnixSocket::ADAPTER
                    else
                      # We can't invoke private methods with `self.method` in Ruby < 2.7, thus
@@ -93,7 +87,7 @@ module Datadog
           ssl: ssl?,
           hostname: hostname,
           port: port,
-          uds_path: uds_path_,
+          uds_path: uds_path,
           timeout_seconds: timeout_seconds,
           # NOTE: When provided, the deprecated_for_removal_transport_configuration_proc can override all
           # values above (ssl, hostname, port, timeout), or even make them irrelevant (by using an unix socket or
@@ -101,8 +95,7 @@ module Datadog
           # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
           # that we know nothing of until we actually call it.
           deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options,
-          default_settings: default_settings
+          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         )
       end
 
@@ -110,27 +103,28 @@ module Datadog
         Ext::Transport::HTTP::ADAPTER
       end
 
-      def hostname
-        pick_from(
-          configurations_in_priority_order: [
-            DetectedConfiguration.new(
-              friendly_name: "'c.tracer.hostname'",
-              value: settings.tracer.hostname
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url && parsed_url.hostname
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} environment variable",
-              value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
-            )
-          ],
-          or_use_default: Datadog::Ext::Transport::HTTP::DEFAULT_HOST
+      def configured_hostname
+        return @configured_hostname if defined?(@configured_hostname)
+
+        @configured_hostname = pick_from(
+          DetectedConfiguration.new(
+            friendly_name: "'c.tracer.hostname'",
+            value: settings.tracer.hostname
+          ),
+          DetectedConfiguration.new(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+            value: parsed_url && parsed_url.hostname
+          ),
+          DetectedConfiguration.new(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} environment variable",
+            value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
+          )
         )
       end
 
-      def port
+      def configured_port
+        return @configured_port if defined?(@configured_port)
+
         port_from_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT]
         parsed_port_from_env =
           if port_from_env
@@ -144,45 +138,37 @@ module Datadog
             end
           end
 
-        pick_from(
-          configurations_in_priority_order: [
-            DetectedConfiguration.new(
-              friendly_name: '"c.tracer.port"',
-              value: settings.tracer.port
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
-              value: parsed_url && parsed_url.port
-            ),
-            DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
-              value: parsed_port_from_env
-            )
-          ],
-          or_use_default: Datadog::Ext::Transport::HTTP::DEFAULT_PORT
+        @configured_port = pick_from(
+          DetectedConfiguration.new(
+            friendly_name: '"c.tracer.port"',
+            value: settings.tracer.port
+          ),
+          DetectedConfiguration.new(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+            value: parsed_url && parsed_url.port
+          ),
+          DetectedConfiguration.new(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
+            value: parsed_port_from_env
+          )
         )
       end
 
       def ssl?
-        if parsed_url
-          self.default_settings = false
+        !parsed_url.nil? && parsed_url.scheme == 'https'
+      end
 
-          parsed_url.scheme == 'https'
-        else
-          false
-        end
+      def hostname
+        configured_hostname || (should_use_uds_fallback? ? nil : Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
+      end
+
+      def port
+        configured_port || (should_use_uds_fallback? ? nil : Datadog::Ext::Transport::HTTP::DEFAULT_PORT)
       end
 
       # Unix socket path in the file system
       def uds_path
-        return @uds_path if defined?(@uds_path)
-
-        # We currently don't have an exposed configuration setting for unix socket path.
-        # This is a `ddtrace` limitation.
-        #
-        # Also, we only use the default unix socket if it is already present.
-        # This is by design, as we still want to use the default host:port if no unix socket is present.
-        @uds_path = (Ext::Transport::UnixSocket::DEFAULT_PATH if File.exist?(Ext::Transport::UnixSocket::DEFAULT_PATH))
+        uds_fallback
       end
 
       def timeout_seconds
@@ -190,11 +176,7 @@ module Datadog
       end
 
       def deprecated_for_removal_transport_configuration_proc
-        if settings.tracer.transport_options.is_a?(Proc)
-          self.default_settings = false
-
-          settings.tracer.transport_options
-        end
+        settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
       end
 
       def deprecated_for_removal_transport_configuration_options
@@ -206,29 +188,28 @@ module Datadog
             "ddtrace version (c.tracer.transport_options contained '#{options.inspect}')."
           )
 
-          self.default_settings = false
-
           options
         end
       end
 
-      # Have any options been provided, or are we using only the internal defaults?
-      def default_settings
-        return @default_settings unless @default_settings.nil?
+      # We only use the default unix socket if it is already present.
+      # This is by design, as we still want to use the default host:port if no unix socket is present.
+      def uds_fallback
+        return @uds_fallback if defined?(@uds_fallback)
 
-        # Read all values to ensure they all had a chance to set
-        # `@default_settings` to +false+ if applicable.
-        adapter
-        ssl?
-        hostname
-        port
-        timeout_seconds
-        deprecated_for_removal_transport_configuration_proc
-        deprecated_for_removal_transport_configuration_options
+        @uds_fallback =
+          if configured_hostname.nil? &&
+             configured_port.nil? &&
+             deprecated_for_removal_transport_configuration_proc.nil? &&
+             deprecated_for_removal_transport_configuration_options.nil? &&
+             File.exist?(Ext::Transport::UnixSocket::DEFAULT_PATH)
 
-        # If no reader has set `@default_settings` to +false+, it is +true+.
-        @default_settings = true if @default_settings.nil?
-        @default_settings
+            Ext::Transport::UnixSocket::DEFAULT_PATH
+          end
+      end
+
+      def should_use_uds_fallback?
+        uds_fallback != nil
       end
 
       def parsed_url
@@ -258,19 +239,15 @@ module Datadog
         @unparsed_url_from_env ||= ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL]
       end
 
-      def pick_from(configurations_in_priority_order:, or_use_default:)
+      def pick_from(*configurations_in_priority_order)
         detected_configurations_in_priority_order = configurations_in_priority_order.select(&:value?)
 
         if detected_configurations_in_priority_order.any?
           warn_if_configuration_mismatch(detected_configurations_in_priority_order)
 
-          self.default_settings = false
-
           # The configurations are listed in priority, so we only need to look at the first; if there's more than
           # one, we emit a warning above
           detected_configurations_in_priority_order.first.value
-        else
-          or_use_default
         end
       end
 

@@ -20,18 +20,18 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     {
       adapter: adapter,
       ssl: false,
-      hostname: '127.0.0.1',
-      port: 8126,
+      hostname: hostname,
+      port: port,
       uds_path: uds_path,
       timeout_seconds: 1,
       deprecated_for_removal_transport_configuration_proc: nil,
       deprecated_for_removal_transport_configuration_options: nil,
-      default_settings?: default_settings
     }
   end
 
   let(:adapter) { :net_http }
-  let(:default_settings) { true }
+  let(:hostname) { '127.0.0.1' }
+  let(:port) { 8126 }
   let(:uds_path) { nil }
 
   before do
@@ -53,6 +53,8 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
       let(:adapter) { :unix }
       let(:uds_path) { '/var/run/datadog/apm.socket' }
+      let(:hostname) { nil }
+      let(:port) { nil }
 
       it 'configures the agent to connect to unix:/var/run/datadog/apm.socket' do
         expect(resolver).to have_attributes settings
@@ -73,8 +75,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   describe 'http adapter hostname' do
-    let(:default_settings) { false }
-
     context 'when a custom hostname is specified via environment variable' do
       let(:environment) { { 'DD_AGENT_HOST' => 'custom-hostname' } }
 
@@ -147,8 +147,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   describe 'http adapter port' do
-    let(:default_settings) { false }
-
     context 'when a custom port is specified via environment variable' do
       let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
 
@@ -158,7 +156,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
       context 'when the custom port is invalid' do
         let(:environment) { { 'DD_TRACE_AGENT_PORT' => 'this-is-an-invalid-port' } }
-        let(:default_settings) { true }
 
         before do
           allow(logger).to receive(:warn)
@@ -240,8 +237,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   context 'when a custom url is specified via environment variable' do
-    let(:default_settings) { false }
-
     let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234' } }
 
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
@@ -315,7 +310,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
     context 'when the uri scheme is not http OR https' do
       let(:environment) { { 'DD_TRACE_AGENT_URL' => 'steam://custom-hostname:1234' } }
-      let(:default_settings) { true }
 
       before do
         allow(logger).to receive(:warn)
@@ -334,8 +328,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   context 'when a proc is configured in tracer.transport_options' do
-    let(:default_settings) { false }
-
     let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
 
     before do
@@ -353,8 +345,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
 
   context 'when a non-empty hash is configured in tracer.transport_options' do
-    let(:default_settings) { false }
-
     let(:deprecated_for_removal_transport_configuration_options) { { batman: :cool } }
 
     before do

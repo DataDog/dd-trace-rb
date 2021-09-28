@@ -30,8 +30,12 @@ RSpec.describe Datadog::Transport::HTTP do
 
   describe '.default' do
     subject(:default) { described_class.default }
+    let(:env_agent_settings) { Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS }
 
-    it 'returns an HTTP transport with default configuration' do
+    # This test changes based on the environment tests are running. We have other
+    # tests around each specific environment scenario, while this one specifically
+    # ensures that we are matching the default environment settings.
+    it 'returns a transport with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
       expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
 
@@ -45,14 +49,21 @@ RSpec.describe Datadog::Transport::HTTP do
 
       default.apis.each_value do |api|
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
-        expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
-        expect(api.adapter.hostname).to \
-          eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname)
-        expect(api.adapter.port).to eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port)
-        expect(api.adapter.timeout).to \
-          eq(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.timeout_seconds)
-        expect(api.adapter.ssl).to be(Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.ssl)
+        expect(api.adapter.timeout).to eq(env_agent_settings.timeout_seconds)
         expect(api.headers).to include(described_class.default_headers)
+
+        case env_agent_settings.adapter
+        when :net_http
+          expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
+          expect(api.adapter.hostname).to eq(env_agent_settings.hostname)
+          expect(api.adapter.port).to eq(env_agent_settings.port)
+          expect(api.adapter.ssl).to be(env_agent_settings.ssl)
+        when :unix
+          expect(api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::UnixSocket)
+          expect(api.adapter.filepath).to eq(env_agent_settings.uds_path)
+        else
+          raise("Unknown default adapter: #{env_agent_settings.adapter}")
+        end
       end
     end
 
