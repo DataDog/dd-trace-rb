@@ -594,7 +594,27 @@ RSpec.describe Datadog::Configuration::Settings do
           describe '#enabled' do
             subject(:enabled) { settings.profiling.advanced.endpoint.collection.enabled }
 
-            it { is_expected.to be true }
+            context "when #{Datadog::Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED}" do
+              around do |example|
+                ClimateControl.modify(Datadog::Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED => environment) do
+                  example.run
+                end
+              end
+
+              context 'is not defined' do
+                let(:environment) { nil }
+
+                it { is_expected.to be true }
+              end
+
+              { 'true' => true, 'false' => false }.each do |string, value|
+                context "is defined as #{string}" do
+                  let(:environment) { string }
+
+                  it { is_expected.to be value }
+                end
+              end
+            end
           end
 
           describe '#enabled=' do

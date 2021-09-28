@@ -175,7 +175,7 @@ module Datadog
               # When using profiling together with tracing, this controls if endpoint names
               # are gathered and reported together with profiles.
               option :enabled do |o|
-                o.default { true }
+                o.default { env_to_bool(Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED, true) }
                 o.lazy
               end
             end
