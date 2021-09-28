@@ -96,7 +96,7 @@ RSpec.describe 'profiling integration test' do
       Datadog::Profiling::Collectors::Stack.new(
         recorder,
         trace_identifiers_helper:
-          Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer, extract_trace_resource: true),
+          Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer, endpoint_collection_enabled: true),
         max_frames: 400
       )
     end
