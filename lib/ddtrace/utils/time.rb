@@ -7,13 +7,12 @@ module Datadog
 
       module_function
 
-      # Current monotonic time.
-      # Falls back to `now` if monotonic clock
-      # is not available.
+      # Current monotonic time
       #
-      # @return [Float] in seconds, since some unspecified starting point
-      def get_time
-        Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      # @param unit [Symbol] unit for the resulting value, same as ::Process#clock_gettime, defaults to :float_second
+      # @return [Numeric] timestamp in the requested unit, since some unspecified starting point
+      def get_time(unit = :float_second)
+        Process.clock_gettime(Process::CLOCK_MONOTONIC, unit)
       end
 
       # Current wall time.
