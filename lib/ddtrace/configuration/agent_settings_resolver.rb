@@ -79,21 +79,8 @@ module Datadog
       end
 
       def call
-        # If no agent settings have been provided, we try to connect using a local unix socket.
-        # We only do so if the socket is present when `ddtrace` runs.
-        #
-        # Note we still haven't exposed a way to to configure unix socket connectivity using
-        # environment variables, only using the custom configuration proc.
-        adapter_ = if should_use_uds_fallback?
-                     Ext::Transport::UnixSocket::ADAPTER
-                   else
-                     # We can't invoke private methods with `self.method` in Ruby < 2.7, thus
-                     # the local variable has to be renamed to avoid conflict.
-                     adapter
-                   end
-
         AgentSettings.new(
-          adapter: adapter_,
+          adapter: adapter,
           ssl: ssl?,
           hostname: hostname,
           port: port,
@@ -110,7 +97,13 @@ module Datadog
       end
 
       def adapter
-        Ext::Transport::HTTP::ADAPTER
+        # If no agent settings have been provided, we try to connect using a local unix socket.
+        # We only do so if the socket is present when `ddtrace` runs.
+        if should_use_uds_fallback?
+          Ext::Transport::UnixSocket::ADAPTER
+        else
+          Ext::Transport::HTTP::ADAPTER
+        end
       end
 
       def configured_hostname
