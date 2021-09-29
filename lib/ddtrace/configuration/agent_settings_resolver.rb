@@ -174,8 +174,10 @@ module Datadog
         uds_fallback
       end
 
+      # Defaults to +nil+, letting the adapter choose what default
+      # works best in their case.
       def timeout_seconds
-        Datadog::Ext::Transport::HTTP::DEFAULT_TIMEOUT_SECONDS
+        nil
       end
 
       def deprecated_for_removal_transport_configuration_proc

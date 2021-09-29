@@ -18,7 +18,9 @@ module Datadog
           # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize(uds_path = nil, **options)
             @filepath = uds_path || options[:uds_path]
-            @timeout = options.fetch(:timeout, Ext::Transport::UnixSocket::DEFAULT_TIMEOUT_SECONDS)
+            raise ArgumentError, 'uds_path required' unless @filepath
+
+            @timeout = options[timeout] || Ext::Transport::UnixSocket::DEFAULT_TIMEOUT_SECONDS
           end
 
           def self.build(agent_settings)
