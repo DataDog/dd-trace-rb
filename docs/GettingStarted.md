@@ -2388,7 +2388,7 @@ Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.'
 
 ### Configuring the transport layer
 
-By default, the tracer submits trace data using the Unix socket `/var/run/datadog/apm.socket`, if one is created by the Agent. Otherwise, it connects with `Net::HTTP` to `127.0.0.1:8126`, the default TCP location the Agent listens on.
+By default, the tracer submits trace data using the Unix socket `/var/run/datadog/apm.socket`, if one is created by the Agent. Otherwise, it connects via HTTP to `127.0.0.1:8126`, the default TCP location the Agent listens on.
 
 However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
 
