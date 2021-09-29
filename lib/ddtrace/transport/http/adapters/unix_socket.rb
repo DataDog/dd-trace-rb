@@ -10,18 +10,20 @@ module Datadog
         # Adapter for Unix sockets
         class UnixSocket < Adapters::Net
           attr_reader \
-            :filepath,
+            :filepath, # DEV(1.0): Rename to `uds_path`
             :timeout
 
+          alias_method :uds_path, :filepath
+
           # @deprecated Positional parameters are deprecated. Use named parameters instead.
-          def initialize(filepath = nil, **options)
-            @filepath = filepath || options[:filepath]
+          def initialize(uds_path = nil, **options)
+            @filepath = uds_path || options[:uds_path]
             @timeout = options.fetch(:timeout, Ext::Transport::UnixSocket::DEFAULT_TIMEOUT_SECONDS)
           end
 
           def self.build(agent_settings)
             new(
-              filepath: agent_settings.uds_path,
+              uds_path: agent_settings.uds_path,
               timeout: agent_settings.timeout_seconds,
             )
           end
@@ -29,7 +31,7 @@ module Datadog
           def open(&block)
             # Open connection
             connection = HTTP.new(
-              filepath,
+              uds_path,
               read_timeout: timeout,
               continue_timeout: timeout
             )
@@ -38,7 +40,7 @@ module Datadog
           end
 
           def url
-            "http+unix://#{filepath}?timeout=#{timeout}"
+            "http+unix://#{uds_path}?timeout=#{timeout}"
           end
 
           # Re-implements Net:HTTP with underlying Unix socket
@@ -46,19 +48,21 @@ module Datadog
             DEFAULT_TIMEOUT = 1
 
             attr_reader \
-              :filepath,
+              :filepath, # DEV(1.0): Rename to `uds_path`
               :unix_socket
 
-            def initialize(filepath, options = {})
+            alias_method :uds_path, :filepath
+
+            def initialize(uds_path, options = {})
               super('localhost', 80)
-              @filepath = filepath
+              @filepath = uds_path
               @read_timeout = options.fetch(:read_timeout, DEFAULT_TIMEOUT)
               @continue_timeout = options.fetch(:continue_timeout, DEFAULT_TIMEOUT)
               @debug_output = options[:debug_output] if options.key?(:debug_output)
             end
 
             def connect
-              @unix_socket = UNIXSocket.open(filepath)
+              @unix_socket = UNIXSocket.open(uds_path)
               @socket = ::Net::BufferedIO.new(@unix_socket).tap do |socket|
                 socket.read_timeout = @read_timeout
                 socket.continue_timeout = @continue_timeout

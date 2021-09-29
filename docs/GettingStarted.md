@@ -2416,7 +2416,7 @@ To use, first configure your trace agent to listen by Unix socket, then configur
 ```ruby
 Datadog.configure do |c|
   c.tracer.transport_options = proc { |t|
-    # Provide filepath to trace agent Unix socket
+    # Provide local path to trace agent Unix socket
     t.adapter :unix, '/tmp/ddagent/trace.sock'
   }
 end
