@@ -792,12 +792,12 @@ RSpec.describe Datadog::Configuration::Components do
           end
 
           [true, false].each do |value|
-            context "when extract_trace_resource is #{value}" do
-              before { settings.profiling.advanced.extract_trace_resource = value }
+            context "when endpoint_collection_enabled is #{value}" do
+              before { settings.profiling.advanced.endpoint.collection.enabled = value }
 
-              it "initializes the TraceIdentifiers::Helper with extract_trace_resource: #{value}" do
+              it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
                 expect(Datadog::Profiling::TraceIdentifiers::Helper)
-                  .to receive(:new).with(tracer: tracer, extract_trace_resource: value)
+                  .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
 
                 build_profiler
               end

@@ -589,20 +589,42 @@ RSpec.describe Datadog::Configuration::Settings do
         end
       end
 
-      describe '#extract_trace_resource' do
-        subject(:extract_trace_resource) { settings.profiling.advanced.extract_trace_resource }
+      describe '#endpoint' do
+        describe '#collection' do
+          describe '#enabled' do
+            subject(:enabled) { settings.profiling.advanced.endpoint.collection.enabled }
 
-        it 'defaults to true' do
-          is_expected.to be true
-        end
-      end
+            context "when #{Datadog::Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED}" do
+              around do |example|
+                ClimateControl.modify(Datadog::Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED => environment) do
+                  example.run
+                end
+              end
 
-      describe '#extract_trace_resource=' do
-        it 'updates the #extract_trace_resource setting' do
-          expect { settings.profiling.advanced.extract_trace_resource = false }
-            .to change { settings.profiling.advanced.extract_trace_resource }
-            .from(true)
-            .to(false)
+              context 'is not defined' do
+                let(:environment) { nil }
+
+                it { is_expected.to be true }
+              end
+
+              { 'true' => true, 'false' => false }.each do |string, value|
+                context "is defined as #{string}" do
+                  let(:environment) { string }
+
+                  it { is_expected.to be value }
+                end
+              end
+            end
+          end
+
+          describe '#enabled=' do
+            it 'updates the #enabled setting' do
+              expect { settings.profiling.advanced.endpoint.collection.enabled = false }
+                .to change { settings.profiling.advanced.endpoint.collection.enabled }
+                .from(true)
+                .to(false)
+            end
+          end
         end
       end
     end
