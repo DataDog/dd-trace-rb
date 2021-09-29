@@ -49,7 +49,6 @@ RSpec.describe Datadog::Transport::HTTP do
 
       default.apis.each_value do |api|
         expect(api).to be_a_kind_of(Datadog::Transport::HTTP::API::Instance)
-        expect(api.adapter.timeout).to eq(env_agent_settings.timeout_seconds)
         expect(api.headers).to include(described_class.default_headers)
 
         case env_agent_settings.adapter
