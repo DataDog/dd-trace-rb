@@ -61,7 +61,7 @@ RSpec.describe 'sucker_punch instrumentation' do
     it_behaves_like 'measured span for integration', true do
       before do
         dummy_worker_success
-        try_wait_until { fetch_spans.any? }
+        try_wait_until { fetch_spans.length == 2 }
       end
     end
 
@@ -84,7 +84,7 @@ RSpec.describe 'sucker_punch instrumentation' do
 
     it 'instruments successful enqueuing' do
       is_expected.to be true
-      try_wait_until { fetch_spans.any? }
+      try_wait_until { fetch_spans.length == 2 }
 
       expect(enqueue_span.service).to eq('sucker_punch')
       expect(enqueue_span.name).to eq('sucker_punch.perform_async')
@@ -103,7 +103,7 @@ RSpec.describe 'sucker_punch instrumentation' do
     it_behaves_like 'measured span for integration', true do
       before do
         dummy_worker_fail
-        try_wait_until { fetch_spans.any? }
+        try_wait_until { fetch_spans.length == 2 }
       end
     end
 
@@ -130,13 +130,13 @@ RSpec.describe 'sucker_punch instrumentation' do
     it_behaves_like 'measured span for integration', true do
       before do
         dummy_worker_delay
-        try_wait_until { fetch_spans.any? }
+        try_wait_until { fetch_spans.length == 2 }
       end
     end
 
     it 'instruments enqueuing for a delayed job' do
       dummy_worker_delay
-      try_wait_until { fetch_spans.any? }
+      try_wait_until { fetch_spans.length == 2 }
 
       expect(enqueue_span.service).to eq('sucker_punch')
       expect(enqueue_span.name).to eq('sucker_punch.perform_in')
