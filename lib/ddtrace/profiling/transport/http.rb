@@ -71,16 +71,7 @@ module Datadog
         private_class_method def self.configure_for_agent(transport, profiling_upload_timeout_seconds:, agent_settings:)
           apis = API.agent_defaults
 
-          transport.adapter(
-            agent_settings.adapter,
-            hostname: agent_settings.hostname,
-            port: agent_settings.port,
-            # We explictly use profiling_upload_timeout_seconds instead of agent_settings.timeout because profile
-            # uploads are bigger and thus we employ a separate configuration.
-            timeout: profiling_upload_timeout_seconds,
-            ssl: agent_settings.ssl,
-            filepath: agent_settings.uds_path,
-          )
+          transport.adapter(agent_settings.merge(timeout_seconds: profiling_upload_timeout_seconds))
           transport.api(API::V1, apis[API::V1], default: true)
 
           # NOTE: This proc, when it exists, usually overrides the transport specified above

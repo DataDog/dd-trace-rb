@@ -13,6 +13,39 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
   end
 
   describe '#adapter' do
+    context 'given AgentSettings' do
+      subject(:adapter) { builder.adapter(config) }
+
+      let(:config) do
+        instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings, adapter: config_adapter)
+      end
+      let(:config_adapter) { :adapter_foo }
+
+      before do
+        allow(Datadog::Configuration::AgentSettingsResolver::AgentSettings).to receive(:===).with(config).and_return(true)
+      end
+
+      context 'that matches an adapter in the registry' do
+        let(:adapter_class) { double('adapter class') }
+        let(:adapter_object) { double('adapter object') }
+
+        before do
+          allow(described_class::REGISTRY).to receive(:get).with(config_adapter).and_return(adapter_class)
+
+          expect(adapter_class).to receive(:build).with(config).and_return(adapter_object)
+        end
+
+        it 'changes the default adapter' do
+          is_expected.to be adapter_object
+          expect(builder.default_adapter).to be adapter_object
+        end
+      end
+
+      context 'that does not match an adapter in the registry' do
+        it { expect { adapter }.to raise_error(described_class::UnknownAdapterError) }
+      end
+    end
+
     context 'given a symbol' do
       subject(:adapter) { builder.adapter(type, *args) }
 

@@ -30,14 +30,7 @@ module Datadog
       # Pass a block to override any settings.
       def default(agent_settings: Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS, **options)
         new do |transport|
-          transport.adapter(
-            agent_settings.adapter,
-            hostname: agent_settings.hostname,
-            port: agent_settings.port,
-            timeout: agent_settings.timeout_seconds,
-            ssl: agent_settings.ssl,
-            filepath: agent_settings.uds_path
-          )
+          transport.adapter(agent_settings)
           transport.headers default_headers
 
           if agent_settings.deprecated_for_removal_transport_configuration_options

@@ -51,6 +51,16 @@ module Datadog
             )
             freeze
           end
+
+          def merge(**member_values)
+            new_struct = dup
+
+            member_values.each do |member, value|
+              new_struct[member] = value
+            end
+
+            new_struct
+          end
         end
 
       def self.call(settings, logger: Datadog.logger)

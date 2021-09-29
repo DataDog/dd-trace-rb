@@ -1,4 +1,5 @@
 # typed: true
+require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/instance'
@@ -33,14 +34,20 @@ module Datadog
           yield(self) if block_given?
         end
 
-        def adapter(type, *args, **kwargs)
-          @default_adapter = if type.is_a?(Symbol)
-                               registry_klass = REGISTRY.get(type)
-                               raise UnknownAdapterError, type if registry_klass.nil?
+        def adapter(config, *args, **kwargs)
+          @default_adapter = case config
+                             when Configuration::AgentSettingsResolver::AgentSettings
+                               registry_klass = REGISTRY.get(config.adapter)
+                               raise UnknownAdapterError, config.adapter if registry_klass.nil?
+
+                               registry_klass.build(config)
+                             when Symbol
+                               registry_klass = REGISTRY.get(config)
+                               raise UnknownAdapterError, config if registry_klass.nil?
 
                                registry_klass.new(*args, **kwargs)
                              else
-                               type
+                               config
                              end
         end
 

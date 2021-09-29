@@ -19,6 +19,13 @@ module Datadog
             @timeout = options.fetch(:timeout, Ext::Transport::UnixSocket::DEFAULT_TIMEOUT_SECONDS)
           end
 
+          def self.build(agent_settings)
+            new(
+              filepath: agent_settings.uds_path,
+              timeout: agent_settings.timeout_seconds,
+            )
+          end
+
           def open(&block)
             # Open connection
             connection = HTTP.new(

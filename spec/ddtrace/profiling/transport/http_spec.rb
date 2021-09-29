@@ -36,14 +36,15 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
     let(:options) { { agent_settings: agent_settings } }
 
     let(:agent_settings) do
-      instance_double(
-        Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+      Datadog::Configuration::AgentSettingsResolver::AgentSettings.new(
         adapter: adapter,
         hostname: hostname,
         port: port,
         ssl: ssl,
         uds_path: uds_path,
-        deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
+        timeout_seconds: nil,
+        deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+        deprecated_for_removal_transport_configuration_options: nil,
       )
     end
     let(:adapter) { :net_http }

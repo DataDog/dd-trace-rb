@@ -24,6 +24,15 @@ module Datadog
             @ssl = options.key?(:ssl) ? options[:ssl] == true : false
           end
 
+          def self.build(agent_settings)
+            new(
+              hostname: agent_settings.hostname,
+              port: agent_settings.port,
+              timeout: agent_settings.timeout_seconds,
+              ssl: agent_settings.ssl
+            )
+          end
+
           def open(&block)
             # DEV Initializing +Net::HTTP+ directly help us avoid expensive
             # options processing done in +Net::HTTP.start+:

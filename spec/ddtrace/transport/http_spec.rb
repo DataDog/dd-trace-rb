@@ -82,8 +82,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:deprecated_for_removal_transport_configuration_options) { nil }
 
       let(:agent_settings) do
-        instance_double(
-          Datadog::Configuration::AgentSettingsResolver::AgentSettings,
+        Datadog::Configuration::AgentSettingsResolver::AgentSettings.new(
           adapter: adapter,
           ssl: ssl,
           hostname: hostname,
