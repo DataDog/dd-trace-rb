@@ -11,6 +11,7 @@ module Datadog
             :buffer,
             :status
 
+          # @param buffer [Array] an optional array that will capture all spans sent to this adapter, defaults to +nil+
           # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize(buffer = nil, **options)
             @buffer = buffer || options[:buffer]

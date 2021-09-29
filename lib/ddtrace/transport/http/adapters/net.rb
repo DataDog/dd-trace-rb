@@ -18,12 +18,8 @@ module Datadog
 
           # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize(hostname = nil, port = nil, **options)
-            @hostname = hostname || options[:hostname]
-            raise ArgumentError, 'hostname required' unless @hostname
-
-            @port = port || options[:port]
-            raise ArgumentError, 'port required' unless @port
-
+            @hostname = hostname || options.fetch(:hostname)
+            @port = port || options.fetch(:port)
             @timeout = options[:timeout] || DEFAULT_TIMEOUT
             @ssl = options.key?(:ssl) ? options[:ssl] == true : false
           end
