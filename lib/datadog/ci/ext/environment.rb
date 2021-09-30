@@ -134,6 +134,8 @@ module Datadog
             TAG_PIPELINE_NUMBER => build_id,
             TAG_PIPELINE_URL => pipeline_url,
             TAG_JOB_URL => job_url,
+            TAG_STAGE_NAME => env['SYSTEM_STAGEDISPLAYNAME'],
+            TAG_JOB_NAME => env['SYSTEM_JOBDISPLAYNAME'],
             Datadog::Ext::Git::TAG_REPOSITORY_URL =>
               env['SYSTEM_PULLREQUEST_SOURCEREPOSITORYURI'] || env['BUILD_REPOSITORY_URI'],
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['SYSTEM_PULLREQUEST_SOURCECOMMITID'] || env['BUILD_SOURCEVERSION'],
