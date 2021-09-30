@@ -230,12 +230,17 @@ module Datadog
         end
 
         def extract_gitlab(env)
+          commit_author_name, commit_author_email = extract_name_email(env['CI_COMMIT_AUTHOR'])
+
           url = env['CI_PIPELINE_URL']
           {
             Datadog::Ext::Git::TAG_BRANCH => env['CI_COMMIT_REF_NAME'],
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['CI_COMMIT_SHA'],
             Datadog::Ext::Git::TAG_REPOSITORY_URL => env['CI_REPOSITORY_URL'],
             Datadog::Ext::Git::TAG_TAG => env['CI_COMMIT_TAG'],
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => commit_author_name,
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_EMAIL => commit_author_email,
+            Datadog::Ext::Git::TAG_COMMIT_AUTHOR_DATE => env['CI_COMMIT_TIMESTAMP'],
             TAG_STAGE_NAME => env['CI_JOB_STAGE'],
             TAG_JOB_NAME => env['CI_JOB_NAME'],
             TAG_JOB_URL => env['CI_JOB_URL'],
@@ -259,7 +264,7 @@ module Datadog
           {
             Datadog::Ext::Git::TAG_BRANCH => branch,
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['GIT_COMMIT'],
-            Datadog::Ext::Git::TAG_REPOSITORY_URL => env['GIT_URL'],
+            Datadog::Ext::Git::TAG_REPOSITORY_URL => env['GIT_URL'] || env['GIT_URL_1'],
             Datadog::Ext::Git::TAG_TAG => tag,
             TAG_PIPELINE_ID => env['BUILD_TAG'],
             TAG_PIPELINE_NAME => name,
@@ -317,7 +322,7 @@ module Datadog
           {
             TAG_PROVIDER_NAME => 'bitrise',
             TAG_PIPELINE_ID => env['BITRISE_BUILD_SLUG'],
-            TAG_PIPELINE_NAME => env['BITRISE_APP_TITLE'],
+            TAG_PIPELINE_NAME => env['BITRISE_TRIGGERED_WORKFLOW_ID'],
             TAG_PIPELINE_NUMBER => env['BITRISE_BUILD_NUMBER'],
             TAG_PIPELINE_URL => env['BITRISE_BUILD_URL'],
             TAG_WORKSPACE_PATH => env['BITRISE_SOURCE_DIR'],
@@ -449,13 +454,22 @@ module Datadog
 
         def branch_or_tag(branch_or_tag)
           branch = tag = nil
-          if branch_or_tag.include?('tags/')
+          if !branch_or_tag.nil? && branch_or_tag.include?('tags/')
             tag = branch_or_tag
           else
             branch = branch_or_tag
           end
 
           [branch, tag]
+        end
+
+        def extract_name_email(name_and_email)
+          if name_and_email.include? '<'
+            name_and_email =~ /^([^<]*)<([^>]*)>$/
+            [$1.strip, $2]
+          else
+            [nil, name_and_email]
+          end
         end
       end
       # rubocop:enable Metrics/ModuleLength:
