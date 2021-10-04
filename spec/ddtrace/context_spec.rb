@@ -72,7 +72,7 @@ RSpec.describe Datadog::Context do
 
     def new_span
       Datadog::SpanOperation.new(double('name')).tap do |span|
-        allow(span).to receive(:context=)
+        allow(span).to receive(:detach_from_context!)
       end
     end
 
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Context do
           end
 
           it 'sends overflow metric' do
-            expect(overflow_span).to have_received(:context=).with(nil)
+            expect(overflow_span).to have_received(:detach_from_context!)
             expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
             expect(health_metrics).to have_received(:error_context_overflow)
