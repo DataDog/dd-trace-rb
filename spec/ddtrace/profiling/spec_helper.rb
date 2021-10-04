@@ -83,7 +83,7 @@ module ProfileHelpers
     thread_id: nil,
     trace_id: nil,
     span_id: nil,
-    trace_resource_container: nil,
+    trace_resource: nil,
     cpu_time_ns: nil,
     wall_time_ns: nil
   )
@@ -98,7 +98,7 @@ module ProfileHelpers
       thread_id || rand(1e9),
       trace_id || rand(1e9),
       span_id || rand(1e9),
-      trace_resource_container || Datadog::Span::ResourceContainer.new("resource#{rand(1e9)}"),
+      trace_resource || "resource#{rand(1e9)}",
       cpu_time_ns || rand(1e9),
       wall_time_ns || rand(1e9)
     )

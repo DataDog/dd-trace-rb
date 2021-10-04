@@ -13,7 +13,7 @@ module Datadog
           :thread_id,
           :trace_id,
           :span_id,
-          :trace_resource_container
+          :trace_resource
 
         def initialize(
           timestamp,
@@ -22,7 +22,7 @@ module Datadog
           thread_id,
           trace_id,
           span_id,
-          trace_resource_container
+          trace_resource
         )
           super(timestamp)
 
@@ -31,14 +31,14 @@ module Datadog
           @thread_id = thread_id
           @trace_id = trace_id
           @span_id = span_id
-          @trace_resource_container = trace_resource_container
+          @trace_resource = trace_resource
 
           @hash = [
             thread_id,
             trace_id,
             span_id,
-            # trace_resource_container is deliberately not included -- events that share the same (trace_id, span_id)
-            # pair should also have the same trace_resource_container
+            # trace_resource is deliberately not included -- events that share the same (trace_id, span_id)
+            # trace_resource might not match between pairs, but they refer to the same trace.
             frames.collect(&:hash),
             total_frame_count
           ].hash
@@ -58,7 +58,7 @@ module Datadog
           thread_id,
           trace_id,
           span_id,
-          trace_resource_container,
+          trace_resource,
           cpu_time_interval_ns,
           wall_time_interval_ns
         )
@@ -69,7 +69,7 @@ module Datadog
             thread_id,
             trace_id,
             span_id,
-            trace_resource_container
+            trace_resource
           )
 
           @cpu_time_interval_ns = cpu_time_interval_ns

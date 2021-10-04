@@ -30,6 +30,7 @@ module Datadog
         def initialize(*_)
           super
 
+          @most_recent_trace_samples = {}
           @processed_unique_stacks = 0
           @processed_with_trace_ids = 0
         end
@@ -40,7 +41,26 @@ module Datadog
         end
 
         def stack_sample_group_key(stack_sample)
+          # We want to make sure we have the most recent sample for any trace.
+          # (This is done here to save an iteration over all samples.)
+          update_most_recent_trace_sample(stack_sample)
+
           stack_sample.hash
+        end
+
+        # Track the most recent sample for each trace
+        def update_most_recent_trace_sample(stack_sample)
+          return unless stack_sample.trace_id && stack_sample.trace_resource
+
+          # Update trace resource with most recent value
+          if (most_recent_trace_sample = @most_recent_trace_samples[stack_sample.trace_id])
+            if most_recent_trace_sample.timestamp < stack_sample.timestamp
+              @most_recent_trace_samples[stack_sample.trace_id] = stack_sample
+            end
+          else
+            # Add trace resource
+            @most_recent_trace_samples[stack_sample.trace_id] = stack_sample
+          end
         end
 
         def build_samples(stack_samples)
@@ -64,7 +84,7 @@ module Datadog
           )
         end
 
-        def build_sample_values(stack_sample)
+        def build_event_values(stack_sample)
           no_value = Datadog::Ext::Profiling::Pprof::SAMPLE_VALUE_NO_VALUE
           values = super(stack_sample)
           values[sample_value_index(:cpu_time_ns)] = stack_sample.cpu_time_interval_ns || no_value
@@ -96,7 +116,13 @@ module Datadog
               str: builder.string_table.fetch(span_id.to_s)
             )
 
-            trace_resource = stack_sample.trace_resource_container && stack_sample.trace_resource_container.latest
+            # Use most up-to-date trace resource, if available.
+            # Otherwise, use the trace resource provided.
+            trace_resource = (
+              @most_recent_trace_samples[stack_sample.trace_id] \
+              || stack_sample
+            ).trace_resource
+
             if trace_resource && !trace_resource.empty?
               labels << Perftools::Profiles::Label.new(
                 key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ENDPOINT),

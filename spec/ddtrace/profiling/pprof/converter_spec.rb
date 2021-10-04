@@ -66,11 +66,11 @@ RSpec.describe Datadog::Profiling::Pprof::Converter do
       end
     end
 
-    context 'when #build_sample_values returns values' do
+    context 'when #build_event_values returns values' do
       let(:converter) { child_class.new(builder, sample_type_mappings) }
       let(:child_class) do
         Class.new(described_class) do
-          def build_sample_values(event)
+          def build_event_values(event)
             values = super(event)
             values.each_with_index { |_v, i| values[i] = 1 }
           end
@@ -115,8 +115,8 @@ RSpec.describe Datadog::Profiling::Pprof::Converter do
     it { expect { add_events! }.to raise_error(NotImplementedError) }
   end
 
-  describe '#build_sample_values' do
-    subject(:build_sample_values) { converter.build_sample_values(event) }
+  describe '#build_event_values' do
+    subject(:build_event_values) { converter.build_event_values(event) }
 
     let(:event) { double('event') }
 

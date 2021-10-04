@@ -258,10 +258,7 @@ if Datadog::Profiling::Ext::CPU.supported?
         end
       end
 
-      let(:process_waiter_thread) do
-        Process.detach(fork {})
-        Thread.list.find { |thread| thread.instance_of?(Process::Waiter) }
-      end
+      let(:process_waiter_thread) { Process.detach(fork { sleep }) }
 
       describe 'the crash' do
         # Let's not get surprised if this shows up in other Ruby versions

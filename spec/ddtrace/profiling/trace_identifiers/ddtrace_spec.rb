@@ -40,16 +40,16 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
 
         context "when root span type is 'web'" do
           let(:root_span_type) { 'web' }
-          let(:resource_container) { Datadog::Span::ResourceContainer.new('example trace resource') }
+          let(:resource) { 'example trace resource' }
 
           before do
-            allow(root_span).to receive(:resource_container).and_return(resource_container)
+            allow(root_span).to receive(:resource).and_return(resource)
           end
 
           it 'returns the identifiers and it returns the trace resource' do
             trace_identifiers_for
 
-            expect(trace_identifiers_for).to eq [trace_id, span_id, resource_container]
+            expect(trace_identifiers_for).to eq [trace_id, span_id, resource]
           end
         end
 

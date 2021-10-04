@@ -555,6 +555,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
+| `log_injection` | Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Active Job logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section. | `false` |
 
 ### Active Record
 

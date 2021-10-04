@@ -14,6 +14,8 @@ require 'ddtrace/profiling/encoding/profile'
 RSpec.describe 'profiling integration test' do
   before do
     skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
+
+    raise "Profiling did not load: #{Datadog::Profiling.unsupported_reason}" unless Datadog::Profiling.supported?
   end
 
   let(:tracer) { instance_double(Datadog::Tracer) }
@@ -32,7 +34,7 @@ RSpec.describe 'profiling integration test' do
 
     let(:trace_id) { 0 }
     let(:span_id) { 0 }
-    let(:trace_resource_container) { nil }
+    let(:trace_resource) { nil }
 
     let(:stack_samples) do
       [
@@ -41,7 +43,7 @@ RSpec.describe 'profiling integration test' do
           thread_id: 100,
           trace_id: trace_id,
           span_id: span_id,
-          trace_resource_container: trace_resource_container,
+          trace_resource: trace_resource,
           cpu_time_ns: 100
         ),
         build_stack_sample(
@@ -49,7 +51,7 @@ RSpec.describe 'profiling integration test' do
           thread_id: 100,
           trace_id: trace_id,
           span_id: span_id,
-          trace_resource_container: trace_resource_container,
+          trace_resource: trace_resource,
           cpu_time_ns: 200
         ),
         build_stack_sample(
@@ -57,7 +59,7 @@ RSpec.describe 'profiling integration test' do
           thread_id: 101,
           trace_id: trace_id,
           span_id: span_id,
-          trace_resource_container: trace_resource_container,
+          trace_resource: trace_resource,
           cpu_time_ns: 400
         ),
         build_stack_sample(
@@ -65,7 +67,7 @@ RSpec.describe 'profiling integration test' do
           thread_id: 101,
           trace_id: trace_id,
           span_id: span_id,
-          trace_resource_container: trace_resource_container,
+          trace_resource: trace_resource,
           cpu_time_ns: 800
         ),
         build_stack_sample(
@@ -73,7 +75,7 @@ RSpec.describe 'profiling integration test' do
           thread_id: 101,
           trace_id: trace_id,
           span_id: span_id,
-          trace_resource_container: trace_resource_container,
+          trace_resource: trace_resource,
           cpu_time_ns: 1600
         )
       ]
@@ -96,7 +98,7 @@ RSpec.describe 'profiling integration test' do
       Datadog::Profiling::Collectors::Stack.new(
         recorder,
         trace_identifiers_helper:
-          Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer, extract_trace_resource: true),
+          Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer, endpoint_collection_enabled: true),
         max_frames: 400
       )
     end
@@ -311,7 +313,7 @@ RSpec.describe 'profiling integration test' do
         context 'when trace and span IDs are available' do
           let(:trace_id) { rand(1e9) }
           let(:span_id) { rand(1e9) }
-          let(:trace_resource_container) { Datadog::Span::ResourceContainer.new('example trace resource') }
+          let(:trace_resource) { 'example trace resource' }
 
           it 'is well formed with trace and span ID labels' do
             expect(sample.last.to_h).to eq(

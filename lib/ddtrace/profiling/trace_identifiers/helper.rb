@@ -20,10 +20,10 @@ module Datadog
         def initialize(
           tracer:,
           # If this is disabled, the helper will strip the optional trace_resource_container even if provided by the api
-          extract_trace_resource:,
+          endpoint_collection_enabled:,
           supported_apis: DEFAULT_SUPPORTED_APIS.map { |api| api.new(tracer: tracer) }
         )
-          @extract_trace_resource = extract_trace_resource
+          @endpoint_collection_enabled = endpoint_collection_enabled
           @supported_apis = supported_apis
         end
 
@@ -34,7 +34,7 @@ module Datadog
             trace_identifiers = api.trace_identifiers_for(thread)
 
             if trace_identifiers
-              return @extract_trace_resource ? trace_identifiers : trace_identifiers[0..1]
+              return @endpoint_collection_enabled ? trace_identifiers : trace_identifiers[0..1]
             end
           end
 
