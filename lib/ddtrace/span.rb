@@ -58,7 +58,7 @@ module Datadog
                   :status, :sampled,
                   :tracer, :context
 
-    attr_reader :parent, :start_time, :end_time, :resource_container
+    attr_reader :parent, :start_time, :end_time
 
     attr_writer :duration
 
