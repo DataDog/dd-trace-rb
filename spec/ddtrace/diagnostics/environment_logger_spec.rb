@@ -38,7 +38,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       expect(logger).to have_received(:info).with start_with('DATADOG TRACER CONFIGURATION') do |msg|
         json = JSON.parse(msg.partition('-')[2].strip)
         expect(json).to match(
-          'agent_url' => "http://#{agent_hostname}:8126?timeout=1",
+          'agent_url' => start_with("http://#{agent_hostname}:8126?timeout="),
           'analytics_enabled' => false,
           'date' => '2020-01-01T00:00:00+00:00',
           'debug' => false,
@@ -129,7 +129,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       it 'with a default tracer' do
         is_expected.to match(
           agent_error: nil,
-          agent_url: "http://#{agent_hostname}:8126?timeout=1",
+          agent_url: start_with("http://#{agent_hostname}:8126?timeout="),
           analytics_enabled: false,
           date: '2020-01-01T00:00:00+00:00',
           dd_version: nil,

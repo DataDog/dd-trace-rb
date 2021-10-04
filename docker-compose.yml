@@ -31,6 +31,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.1:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.2:
     image: ivoanjo/docker-library:ddtrace_rb_2_2_10
     command: /bin/bash
@@ -61,6 +62,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.2:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.3:
     image: ivoanjo/docker-library:ddtrace_rb_2_3_8
     command: /bin/bash
@@ -91,6 +93,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.3:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.4:
     image: ivoanjo/docker-library:ddtrace_rb_2_4_10
     command: /bin/bash
@@ -121,6 +124,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.4:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.5:
     image: ivoanjo/docker-library:ddtrace_rb_2_5_9
     command: /bin/bash
@@ -151,6 +155,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.5:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
     image: ivoanjo/docker-library:ddtrace_rb_2_6_7
     command: /bin/bash
@@ -181,6 +186,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.6:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
     image: ivoanjo/docker-library:ddtrace_rb_2_7_3
     command: /bin/bash
@@ -211,6 +217,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.7:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
     image: ivoanjo/docker-library:ddtrace_rb_3_0_1
     command: /bin/bash
@@ -238,6 +245,7 @@ services:
     volumes:
       - .:/app
       - bundle-3.0:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # JRuby
   tracer-jruby-9.2.0.0:
     image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
@@ -269,6 +277,7 @@ services:
     volumes:
       - .:/app
       - bundle-jruby-9.2.0.0:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.2-latest:
     image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
     command: /bin/bash
@@ -299,6 +308,7 @@ services:
     volumes:
       - .:/app
       - bundle-jruby-9.2-latest:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
   tracer-truffleruby-21.1.0:
     image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_1_0
@@ -330,18 +340,22 @@ services:
     volumes:
       - .:/app
       - bundle-truffleruby-21.1.0:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
     environment:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=00000000000000000000000000000000
+      - "DD_API_KEY=${DD_API_KEY}"
+      - DD_APM_RECEIVER_SOCKET=/var/run/datadog/apm.socket
     expose:
       - "8125/udp"
       - "8126"
     ports:
       - "${DD_METRIC_AGENT_PORT}:8125/udp"
       - "${DD_TRACE_AGENT_PORT}:8126"
+    volumes:
+      - ddagent_var_run:/var/run/datadog
   elasticsearch:
     # Note: ES 5.0 dies with error:
     # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
@@ -412,3 +426,4 @@ volumes:
   bundle-jruby-9.2.0.0:
   bundle-jruby-9.2-latest:
   bundle-truffleruby-21.1.0:
+  ddagent_var_run:

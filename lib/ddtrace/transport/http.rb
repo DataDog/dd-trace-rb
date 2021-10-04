@@ -30,13 +30,7 @@ module Datadog
       # Pass a block to override any settings.
       def default(agent_settings: Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS, **options)
         new do |transport|
-          transport.adapter(
-            default_adapter,
-            agent_settings.hostname,
-            agent_settings.port,
-            timeout: agent_settings.timeout_seconds,
-            ssl: agent_settings.ssl
-          )
+          transport.adapter(agent_settings)
           transport.headers default_headers
 
           if agent_settings.deprecated_for_removal_transport_configuration_options
@@ -80,7 +74,7 @@ module Datadog
       end
 
       def default_adapter
-        :net_http
+        Ext::Transport::HTTP::ADAPTER
       end
 
       def default_hostname(logger: Datadog.logger)
@@ -111,9 +105,9 @@ module Datadog
       end
 
       # Add adapters to registry
-      Builder::REGISTRY.set(Adapters::Net, :net_http)
-      Builder::REGISTRY.set(Adapters::Test, :test)
-      Builder::REGISTRY.set(Adapters::UnixSocket, :unix)
+      Builder::REGISTRY.set(Adapters::Net, Ext::Transport::HTTP::ADAPTER)
+      Builder::REGISTRY.set(Adapters::Test, Ext::Transport::Test::ADAPTER)
+      Builder::REGISTRY.set(Adapters::UnixSocket, Ext::Transport::UnixSocket::ADAPTER)
     end
   end
 end

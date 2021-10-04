@@ -10,15 +10,15 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 RSpec.describe 'Adapters::UnixSocket integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(filepath, options) }
+  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
-  let(:filepath) { '/tmp/ddtrace_unix_test.sock' }
-  let(:options) { { timeout: timeout } }
+  let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
+  let(:options) { { uds_path: uds_path, timeout: timeout } }
   let(:timeout) { 2 }
 
   shared_context 'Unix socket server' do
     # Server
-    let(:server) { UNIXServer.new(filepath) }
+    let(:server) { UNIXServer.new(uds_path) }
     let(:messages) { [] }
 
     # HTTP
@@ -41,7 +41,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     let(:http_init_signal) { Queue.new }
 
     def cleanup_socket
-      File.delete(filepath) if File.exist?(filepath)
+      File.delete(uds_path) if File.exist?(uds_path)
     end
 
     before do

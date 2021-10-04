@@ -2389,7 +2389,9 @@ Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.'
 
 ### Configuring the transport layer
 
-By default, the tracer submits trace data using `Net::HTTP` to `127.0.0.1:8126`, the default location for the Datadog trace agent process. However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
+By default, the tracer submits trace data using the Unix socket `/var/run/datadog/apm.socket`, if one is created by the Agent. Otherwise, it connects via HTTP to `127.0.0.1:8126`, the default TCP location the Agent listens on.
+
+However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
 
 Some basic settings, such as hostname and port, can be configured using [tracer settings](#tracer-settings).
 
@@ -2415,7 +2417,7 @@ To use, first configure your trace agent to listen by Unix socket, then configur
 ```ruby
 Datadog.configure do |c|
   c.tracer.transport_options = proc { |t|
-    # Provide filepath to trace agent Unix socket
+    # Provide local path to trace agent Unix socket
     t.adapter :unix, '/tmp/ddagent/trace.sock'
   }
 end

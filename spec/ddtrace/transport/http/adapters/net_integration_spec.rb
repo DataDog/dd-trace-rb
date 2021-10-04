@@ -10,7 +10,7 @@ require 'ddtrace/transport/http/adapters/net'
 RSpec.describe 'Adapters::Net tracing integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname, port) }
+  subject(:adapter) { Datadog::Transport::HTTP::Adapters::Net.new(hostname: hostname, port: port) }
 
   shared_context 'HTTP server' do
     # HTTP

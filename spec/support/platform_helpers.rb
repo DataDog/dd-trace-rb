@@ -33,6 +33,12 @@ module PlatformHelpers
     OS.mac?
   end
 
+  # Environment
+
+  def ci?
+    ENV.key?('CI')
+  end
+
   # Feature support
 
   def supports_fork?

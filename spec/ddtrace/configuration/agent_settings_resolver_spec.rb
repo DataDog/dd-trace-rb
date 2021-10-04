@@ -16,22 +16,49 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   let(:ddtrace_settings) { Datadog::Configuration::Settings.new }
   let(:logger) { instance_double(Datadog::Logger) }
 
-  let(:default_settings) do
+  let(:settings) do
     {
+      adapter: adapter,
       ssl: false,
-      hostname: '127.0.0.1',
-      port: 8126,
-      timeout_seconds: 1,
+      hostname: hostname,
+      port: port,
+      uds_path: uds_path,
+      timeout_seconds: nil,
       deprecated_for_removal_transport_configuration_proc: nil,
-      deprecated_for_removal_transport_configuration_options: nil
+      deprecated_for_removal_transport_configuration_options: nil,
     }
+  end
+
+  let(:adapter) { :net_http }
+  let(:hostname) { '127.0.0.1' }
+  let(:port) { 8126 }
+  let(:uds_path) { nil }
+
+  before do
+    # Environment does not have existing unix socket for the base testing case
+    allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(false)
   end
 
   subject(:resolver) { described_class.call(ddtrace_settings, logger: logger) }
 
   context 'by default' do
     it 'contacts the agent using the http adapter, using hostname 127.0.0.1 and port 8126' do
-      expect(resolver).to have_attributes default_settings
+      expect(resolver).to have_attributes settings
+    end
+
+    context 'with default unix socket present' do
+      before do
+        expect(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(true)
+      end
+
+      let(:adapter) { :unix }
+      let(:uds_path) { '/var/run/datadog/apm.socket' }
+      let(:hostname) { nil }
+      let(:port) { nil }
+
+      it 'configures the agent to connect to unix:/var/run/datadog/apm.socket' do
+        expect(resolver).to have_attributes settings
+      end
     end
   end
 
@@ -40,7 +67,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       let(:environment) { { 'DD_AGENT_HOST' => 'custom-hostname' } }
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
       end
     end
 
@@ -50,7 +77,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
       end
 
       context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
@@ -61,7 +88,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the hostname specified via code' do
-          expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
+          expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
         end
 
         it 'logs a warning' do
@@ -79,7 +106,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the hostname specified via code' do
-          expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
+          expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
         end
 
         it 'logs a warning' do
@@ -96,7 +123,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**default_settings, hostname: 'custom-hostname')
+        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
       end
     end
   end
@@ -106,7 +133,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
 
       it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**default_settings, port: 1234)
+        expect(resolver).to have_attributes(**settings, port: 1234)
       end
 
       context 'when the custom port is invalid' do
@@ -123,7 +150,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'falls back to the defaults' do
-          expect(resolver).to have_attributes default_settings
+          expect(resolver).to have_attributes settings
         end
       end
     end
@@ -134,7 +161,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**default_settings, port: 1234)
+        expect(resolver).to have_attributes(**settings, port: 1234)
       end
 
       context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
@@ -145,7 +172,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the port specified via code' do
-          expect(resolver).to have_attributes(**default_settings, port: 1234)
+          expect(resolver).to have_attributes(**settings, port: 1234)
         end
 
         it 'logs a warning' do
@@ -163,7 +190,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
 
         it 'prioritizes the port specified via code' do
-          expect(resolver).to have_attributes(**default_settings, port: 1234)
+          expect(resolver).to have_attributes(**settings, port: 1234)
         end
 
         it 'logs a warning' do
@@ -180,7 +207,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**default_settings, port: 1234)
+        expect(resolver).to have_attributes(**settings, port: 1234)
       end
     end
   end
@@ -190,7 +217,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
     it 'contacts the agent using the http adapter, using the custom hostname and port' do
       expect(resolver).to have_attributes(
-        **default_settings,
+        **settings,
         ssl: false,
         hostname: 'custom-hostname',
         port: 1234
@@ -259,7 +286,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
 
       it 'falls back to the defaults' do
-        expect(resolver).to have_attributes default_settings
+        expect(resolver).to have_attributes settings
       end
 
       it 'logs a warning' do
@@ -279,7 +306,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
     it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do
       expect(resolver).to have_attributes(
-        **default_settings,
+        **settings,
         deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
       )
     end
@@ -295,7 +322,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
     it 'includes the given hash in the resolved settings as the deprecated_for_removal_transport_configuration_options' do
       expect(resolver).to have_attributes(
-        **default_settings,
+        **settings,
         deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
       )
     end

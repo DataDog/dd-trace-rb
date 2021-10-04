@@ -740,6 +740,10 @@ RSpec.describe Datadog::Configuration::Components do
       shared_examples_for 'profiler with default exporters' do
         subject(:http_exporter) { profiler.scheduler.exporters.first }
 
+        before do
+          allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(false)
+        end
+
         it 'has an HTTP exporter' do
           expect(profiler.scheduler.exporters).to have(1).item
           expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
