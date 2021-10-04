@@ -52,6 +52,8 @@ module Datadog
             freeze
           end
 
+          # Returns a frozen copy of this struct
+          # with the provided +member_values+ modified.
           def merge(**member_values)
             new_struct = dup
 
@@ -59,7 +61,7 @@ module Datadog
               new_struct[member] = value
             end
 
-            new_struct
+            new_struct.freeze
           end
         end
 
