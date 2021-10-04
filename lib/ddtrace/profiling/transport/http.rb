@@ -64,10 +64,6 @@ module Datadog
           end
         end
 
-        private_class_method def self.default_adapter
-          Datadog::Ext::Transport::HTTP::ADAPTER
-        end
-
         private_class_method def self.configure_for_agent(transport, profiling_upload_timeout_seconds:, agent_settings:)
           apis = API.agent_defaults
 
@@ -88,7 +84,7 @@ module Datadog
           port = site_uri.port
 
           transport.adapter(
-            default_adapter,
+            Datadog::Ext::Transport::HTTP::ADAPTER,
             hostname,
             port,
             timeout: profiling_upload_timeout_seconds,
