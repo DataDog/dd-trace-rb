@@ -35,6 +35,9 @@ RSpec.describe Datadog::Transport::HTTP do
     # This test changes based on the environment tests are running. We have other
     # tests around each specific environment scenario, while this one specifically
     # ensures that we are matching the default environment settings.
+    #
+    # TODO: we should deprecate the use of Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS
+    # and thus remove this test scenario.
     it 'returns a transport with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
       expect(default.current_api_id).to eq(Datadog::Transport::HTTP::API::V4)
