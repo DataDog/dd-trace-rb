@@ -108,7 +108,7 @@ module Datadog
         # larger trace. This is a catch-all to reduce global memory usage.
         if full?
           # Detach the span from the context; it's being dropped and ignored.
-          operation.context = nil
+          operation.detach_from_context!
           Datadog.logger.debug("context full, ignoring span #{operation.name}")
 
           # If overflow has already occurred, don't send this metric.

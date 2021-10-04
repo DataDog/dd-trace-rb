@@ -101,6 +101,10 @@ module Datadog
       span.parent = parent && parent.span
     end
 
+    def detach_from_context!
+      @context = nil
+    end
+
     def finish(end_time = nil)
       return span if finished?
 
