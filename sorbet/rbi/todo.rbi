@@ -68,6 +68,10 @@ module ::Sequel::SQL::Expression; end
 module ::Sequel::VERSION; end
 module ::Shoryuken; end
 module ::Sidekiq; end
+module ::Sidekiq::Launcher; end
+module ::Sidekiq::Processor; end
+module ::Sidekiq::Scheduled; end
+module ::Sidekiq::Scheduled::Poller; end
 module ::Sinatra; end
 module ::Sinatra::Application; end
 module ::Sinatra::Base; end
