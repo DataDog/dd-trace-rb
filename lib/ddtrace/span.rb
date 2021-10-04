@@ -68,15 +68,23 @@ module Datadog
     # * +span_type+: the type of the span (such as +http+, +db+ and so on)
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
-    def initialize(name, options = {})
+    def initialize(
+      name,
+      parent_id: 0,
+      resource: name,
+      service: nil,
+      span_type: nil,
+      tags: nil,
+      trace_id: nil
+    )
       @name = name
-      @service = options.fetch(:service, nil)
-      @resource = options.fetch(:resource, name)
-      @span_type = options.fetch(:span_type, nil)
+      @service = service
+      @resource = resource
+      @span_type = span_type
 
       @span_id = Datadog::Utils.next_id
-      @parent_id = options.fetch(:parent_id, 0)
-      @trace_id = options.fetch(:trace_id, Datadog::Utils.next_id)
+      @parent_id = parent_id
+      @trace_id = trace_id || Datadog::Utils.next_id
 
       @meta = {}
       @metrics = {}
@@ -99,6 +107,9 @@ module Datadog
       # is known that we have to use wall clock to measure duration.
       @duration_start = nil
       @duration_end = nil
+
+      # Set tags if provided.
+      set_tags(tags) if tags
     end
 
     # Set the given key / value tag pair on the span. Keys and values
