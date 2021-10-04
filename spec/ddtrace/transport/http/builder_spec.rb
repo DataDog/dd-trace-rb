@@ -17,13 +17,18 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
       subject(:adapter) { builder.adapter(config) }
 
       let(:config) do
-        instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings, adapter: config_adapter)
+        Datadog::Configuration::AgentSettingsResolver::AgentSettings.new(
+          adapter: config_adapter,
+          ssl: nil,
+          hostname: nil,
+          port: nil,
+          uds_path: nil,
+          timeout_seconds: nil,
+          deprecated_for_removal_transport_configuration_proc: nil,
+          deprecated_for_removal_transport_configuration_options: nil,
+        )
       end
       let(:config_adapter) { :adapter_foo }
-
-      before do
-        allow(Datadog::Configuration::AgentSettingsResolver::AgentSettings).to receive(:===).with(config).and_return(true)
-      end
 
       context 'that matches an adapter in the registry' do
         let(:adapter_class) { double('adapter class') }
