@@ -62,18 +62,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     end
   end
 
-  shared_examples 'respects user-provided configuration' do
-    context 'with default unix socket present' do
-      before do
-        allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(true)
-      end
-
-      it 'does not override user-provided configuration with default unix socket' do
-        expect(resolver).to_not have_attributes(adapter: :unix, uds_path: '/var/run/datadog/apm.socket')
-      end
-    end
-  end
-
   describe 'http adapter hostname' do
     context 'when a custom hostname is specified via environment variable' do
       let(:environment) { { 'DD_AGENT_HOST' => 'custom-hostname' } }
@@ -81,8 +69,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       it 'contacts the agent using the http adapter, using the custom hostname' do
         expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'when a custom hostname is specified via code using "tracer.hostname ="' do
@@ -129,8 +115,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
           resolver
         end
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'when a custom hostname is specified via code using "tracer(hostname: ...)"' do
@@ -141,8 +125,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       it 'contacts the agent using the http adapter, using the custom hostname' do
         expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
   end
 
@@ -171,8 +153,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
           expect(resolver).to have_attributes settings
         end
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'when a custom port is specified via code using "tracer.port = "' do
@@ -219,8 +199,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
           resolver
         end
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'when a custom port is specified via code using "tracer(port: ...)"' do
@@ -231,8 +209,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       it 'contacts the agent using the http adapter, using the custom port' do
         expect(resolver).to have_attributes(**settings, port: 1234)
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
   end
 
@@ -269,8 +245,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
         resolver
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
@@ -294,8 +268,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
         resolver
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'when the uri scheme is https' do
@@ -304,8 +276,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       it 'contacts the agent using the http adapter, using ssl: true' do
         expect(resolver).to have_attributes(ssl: true)
       end
-
-      it_behaves_like 'respects user-provided configuration'
     end
 
     context 'when the uri scheme is not http OR https' do
@@ -340,8 +310,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
       )
     end
-
-    it_behaves_like 'respects user-provided configuration'
   end
 
   context 'when a non-empty hash is configured in tracer.transport_options' do
@@ -364,8 +332,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
       resolver
     end
-
-    it_behaves_like 'respects user-provided configuration'
   end
 
   describe '#log_warning' do
