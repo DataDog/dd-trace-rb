@@ -13,8 +13,51 @@ module Datadog
   class SpanOperation
     extend Forwardable
 
-    INCLUDED_METHODS = [:==].to_set.freeze
-    EXCLUDED_METHODS = [:finish, :parent, :parent=].to_set.freeze
+    FORWARDED_METHODS = [
+      :allocations,
+      :clear_metric,
+      :clear_tag,
+      :duration,
+      :duration=,
+      :end_time,
+      :end_time=,
+      :get_metric,
+      :get_tag,
+      :name,
+      :name=,
+      :parent_id,
+      :parent_id=,
+      :pretty_print,
+      :resource,
+      :resource=,
+      :sampled,
+      :sampled=,
+      :service,
+      :service=,
+      :set_error,
+      :set_metric,
+      :set_parent,
+      :set_tag,
+      :set_tags,
+      :span_id,
+      :span_id=,
+      :span_type,
+      :span_type=,
+      :start,
+      :start_time,
+      :start_time=,
+      :started?,
+      :status,
+      :status=,
+      :stop,
+      :stopped?,
+      :to_hash,
+      :to_json,
+      :to_msgpack,
+      :to_s,
+      :trace_id,
+      :trace_id=
+    ].to_set.freeze
 
     def initialize(span_name, options = {})
       # Resolve service name
@@ -73,8 +116,12 @@ module Datadog
       span
     end
 
+    def finished?
+      span.stopped?
+    end
+
     # Forward instance methods except ones that would cause identity issues
-    def_delegators :span, *(Span.instance_methods(false).to_set - EXCLUDED_METHODS)
+    def_delegators :span, *FORWARDED_METHODS
 
     # Additional extensions
     prepend ForcedTracing::SpanOperation
