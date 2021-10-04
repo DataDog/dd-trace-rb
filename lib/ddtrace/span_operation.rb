@@ -64,11 +64,16 @@ module Datadog
       parent = options[:child_of]
       options[:service] ||= parent.service unless parent.nil?
 
-      # Build span
-      @span = Span.new(
-        span_name,
-        options
-      )
+      # Build span options
+      span_options = {}
+      span_options[:parent_id] = options[:parent_id] if options.key?(:parent_id)
+      span_options[:resource] = options[:resource] if options.key?(:resource)
+      span_options[:service] = options[:service] if options.key?(:service)
+      span_options[:span_type] = options[:span_type] if options.key?(:span_type)
+      span_options[:tags] = options[:tags] if options.key?(:tags)
+      span_options[:trace_id] = options[:trace_id] if options.key?(:trace_id)
+
+      @span = Span.new(span_name, **span_options)
       @tracer = options[:tracer]
       @context = options[:context]
 
@@ -85,9 +90,6 @@ module Datadog
         # IDs if it's a distributed trace w/o a parent span.
         self.parent = parent
       end
-
-      # Set tags if provided.
-      set_tags(options[:tags]) if options.key?(:tags)
     end
 
     attr_reader :parent
