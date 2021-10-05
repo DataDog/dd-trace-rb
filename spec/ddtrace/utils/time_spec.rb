@@ -40,4 +40,18 @@ RSpec.describe Datadog::Utils::Time do
       end
     end
   end
+
+  describe '#as_utc_epoch_ns' do
+    let(:time) { Time.iso8601('2021-01-01T01:02:03.405060708Z') }
+
+    subject(:as_utc_epoch_ns) { described_class.as_utc_epoch_ns(time) }
+
+    it 'converts a time object into nanoseconds since UTC epoch' do
+      expect(as_utc_epoch_ns).to be 1609462923405060708
+    end
+
+    it 'can round trip without losing precision' do
+      expect(Time.at(as_utc_epoch_ns.to_r / 1_000_000_000)).to eq time
+    end
+  end
 end
