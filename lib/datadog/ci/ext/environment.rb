@@ -464,12 +464,13 @@ module Datadog
         end
 
         def extract_name_email(name_and_email)
-          if name_and_email.include? '<'
-            match = /^([^<]*)<([^>]*)>$/.match(name_and_email)
-            [match[1].strip, match[2]]
-          else
-            [nil, name_and_email]
+          if name_and_email.include?('<') && (match = /^([^<]*)<([^>]*)>$/.match(name_and_email))
+            name = match[1].strip if match[1]
+            email = match[2]
+            return [name, email] if name && email
           end
+
+          [nil, name_and_email]
         end
       end
       # rubocop:enable Metrics/ModuleLength:
