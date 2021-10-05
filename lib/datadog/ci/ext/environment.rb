@@ -465,7 +465,10 @@ module Datadog
 
         def extract_name_email(name_and_email)
           if name_and_email.include?('<') && (match = /^([^<]*)<([^>]*)>$/.match(name_and_email))
-            name = match[1].strip if match[1]
+            name = nil
+            if match[1]
+              name = match[1].strip
+            end
             email = match[2]
             return [name, email] if name && email
           end
