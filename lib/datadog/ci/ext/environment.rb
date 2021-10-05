@@ -454,7 +454,7 @@ module Datadog
 
         def branch_or_tag(branch_or_tag)
           branch = tag = nil
-          if !branch_or_tag.nil? && branch_or_tag.include?('tags/')
+          if branch_or_tag && branch_or_tag.include?('tags/')
             tag = branch_or_tag
           else
             branch = branch_or_tag
