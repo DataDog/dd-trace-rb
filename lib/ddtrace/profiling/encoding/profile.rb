@@ -37,7 +37,7 @@ module Datadog
             end
 
             # Build the profile and encode it
-            template.to_pprof
+            template.to_pprof(start: flush.start, finish: flush.finish)
           end
         end
       end

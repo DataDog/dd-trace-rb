@@ -8,7 +8,9 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
   describe '::encode' do
     subject(:encode) { described_class.encode(flush) }
 
-    let(:flush) { instance_double(Datadog::Profiling::Flush, event_groups: event_groups) }
+    let(:flush) do
+      instance_double(Datadog::Profiling::Flush, event_groups: event_groups, start: start_time, finish: finish_time)
+    end
     let(:event_groups) { [event_group] }
     let(:event_group) { instance_double(Datadog::Profiling::EventGroup, event_class: event_class, events: events) }
     let(:event_class) { double('event class') }
@@ -17,6 +19,8 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     let(:template) { instance_double(Datadog::Profiling::Pprof::Template) }
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:payload) { instance_double(Datadog::Profiling::Pprof::Payload) }
+    let(:start_time) { Time.utc(2020) }
+    let(:finish_time) { Time.utc(2021) }
 
     before do
       expect(Datadog::Profiling::Pprof::Template)
@@ -31,6 +35,7 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
 
       expect(template)
         .to receive(:to_pprof)
+        .with(start: start_time, finish: finish_time)
         .and_return(payload)
         .ordered
     end
@@ -38,14 +43,8 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     it { is_expected.to be payload }
 
     context 'debug logging' do
-      let(:flush) do
-        instance_double(
-          Datadog::Profiling::Flush,
-          event_groups: event_groups,
-          start: Time.utc(2020),
-          finish: Time.utc(2021),
-          event_count: 42
-        )
+      before do
+        allow(flush).to receive(:event_count).and_return(42)
       end
 
       let(:template) { instance_double(Datadog::Profiling::Pprof::Template, debug_statistics: 'template_debug_statistics') }
