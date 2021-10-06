@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.52.0)
+    ddtrace (0.53.0)
       ffi (~> 1.0)
       msgpack
 
@@ -59,7 +59,7 @@ GEM
     erubis (2.6.6)
       abstract (>= 1.0.0)
     ffi (1.15.4)
-    google-protobuf (3.17.3-x86_64-linux)
+    google-protobuf (3.17.3)
     hashdiff (1.0.1)
     i18n (0.5.4)
     json (1.8.6)
