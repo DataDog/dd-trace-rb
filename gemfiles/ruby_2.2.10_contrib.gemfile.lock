@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.52.0)
+    ddtrace (0.53.0)
       ffi (~> 1.0)
       msgpack
 
@@ -1223,7 +1223,7 @@ GEM
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
     ffi (1.12.2)
-    google-protobuf (3.6.1-x86_64-linux)
+    google-protobuf (3.6.1)
     googleapis-common-protos-types (1.0.4)
       google-protobuf (~> 3.0)
     grape (1.2.5)
@@ -1234,7 +1234,7 @@ GEM
       rack-accept
       virtus (>= 1.0.0)
     graphql (1.12.16)
-    grpc (1.19.0-x86_64-linux)
+    grpc (1.19.0)
       google-protobuf (~> 3.1)
       googleapis-common-protos-types (~> 1.0.0)
     hashdiff (1.0.1)

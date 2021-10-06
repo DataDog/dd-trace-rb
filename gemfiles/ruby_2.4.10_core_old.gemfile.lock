@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.52.0)
+    ddtrace (0.53.0)
       ffi (~> 1.0)
       msgpack
 
