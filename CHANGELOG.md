@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [0.53.0] - 2021-10-06
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.53.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.52.0...v0.53.0
+
+### Added
+
+- ActiveJob integration ([#1639][]) ([@bensheldon][])
+- Instrument Action Cable subscribe/unsubscribe hooks ([#1674][]) ([@agrobbin][])
+- Instrument Sidekiq server internal events (heartbeat, job fetch, and scheduled push) ([#1685][]) ([@agrobbin][])
+- Correlate Active Job logs to the active DataDog trace ([#1694][]) ([@agrobbin][])
+- Runtime Metrics: Global VM cache statistics ([#1680][])
+- Automatically send traces to agent Unix socket if present ([#1700][])
+- CI-App: User Provided Git Metadata ([#1662][])
+
+### Changed
+
+- Profiler: Set Sinatra resource setting at beginning of request and delay setting fallback resource ([#1628][])
+- Profiler: Use most recent event for trace resource name ([#1695][])
+- Profiler: Limit number of threads per sample ([#1699][])
+- Profiler: Rename `extract_trace_resource` to `endpoint.collection.enabled` ([#1702][])
+
+### Fixed
+
+- Capture Rails exception before default error page is rendered ([#1684][])
+- `NoMethodError` in sinatra integration when Tracer middleware is missing ([#1643][], [#1644][]) ([@mscrivo][])
+- CI-App: Require `rspec-core` for RSpec integration ([#1654][]) ([@elliterate][])
+- CI-App: Use the merge request branch on merge requests ([#1687][]) ([@carlallen][])
+- Remove circular dependencies. ([#1668][]) ([@saturnflyer][])
+- Links in the Table of Contents ([#1661][]) ([@chychkan][])
+- CI-App: Fix CI Visibility Spec Tests ([#1706][])
+
+### Refactored
+
+- Profiler: pprof encoding benchmark and improvements ([#1511][])
+
 ## [0.52.0] - 2021-08-09
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.52.0
@@ -1810,7 +1847,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.48.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.53.0...master
+[0.53.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.52.0...v0.53.0
+[0.52.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.51.1...v0.52.0
 [0.51.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.51.0...v0.51.1
 [0.51.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.50.0...v0.51.0
 [0.48.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.47.0...v0.48.0
@@ -2511,6 +2550,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1507]: https://github.com/DataDog/dd-trace-rb/issues/1507
 [#1509]: https://github.com/DataDog/dd-trace-rb/issues/1509
 [#1510]: https://github.com/DataDog/dd-trace-rb/issues/1510
+[#1511]: https://github.com/DataDog/dd-trace-rb/issues/1511
 [#1523]: https://github.com/DataDog/dd-trace-rb/issues/1523
 [#1524]: https://github.com/DataDog/dd-trace-rb/issues/1524
 [#1529]: https://github.com/DataDog/dd-trace-rb/issues/1529
@@ -2549,6 +2589,24 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1630]: https://github.com/DataDog/dd-trace-rb/issues/1630
 [#1632]: https://github.com/DataDog/dd-trace-rb/issues/1632
 [#1636]: https://github.com/DataDog/dd-trace-rb/issues/1636
+[#1639]: https://github.com/DataDog/dd-trace-rb/issues/1639
+[#1643]: https://github.com/DataDog/dd-trace-rb/issues/1643
+[#1644]: https://github.com/DataDog/dd-trace-rb/issues/1644
+[#1654]: https://github.com/DataDog/dd-trace-rb/issues/1654
+[#1661]: https://github.com/DataDog/dd-trace-rb/issues/1661
+[#1662]: https://github.com/DataDog/dd-trace-rb/issues/1662
+[#1668]: https://github.com/DataDog/dd-trace-rb/issues/1668
+[#1674]: https://github.com/DataDog/dd-trace-rb/issues/1674
+[#1680]: https://github.com/DataDog/dd-trace-rb/issues/1680
+[#1684]: https://github.com/DataDog/dd-trace-rb/issues/1684
+[#1685]: https://github.com/DataDog/dd-trace-rb/issues/1685
+[#1687]: https://github.com/DataDog/dd-trace-rb/issues/1687
+[#1694]: https://github.com/DataDog/dd-trace-rb/issues/1694
+[#1695]: https://github.com/DataDog/dd-trace-rb/issues/1695
+[#1699]: https://github.com/DataDog/dd-trace-rb/issues/1699
+[#1700]: https://github.com/DataDog/dd-trace-rb/issues/1700
+[#1702]: https://github.com/DataDog/dd-trace-rb/issues/1702
+[#1706]: https://github.com/DataDog/dd-trace-rb/issues/1706
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2577,11 +2635,14 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@awendt]: https://github.com/awendt
 [@bartekbsh]: https://github.com/bartekbsh
 [@benhutton]: https://github.com/benhutton
+[@bensheldon]: https://github.com/bensheldon
 [@bheemreddy181]: https://github.com/bheemreddy181
 [@blaines]: https://github.com/blaines
 [@brafales]: https://github.com/brafales
 [@bzf]: https://github.com/bzf
 [@callumj]: https://github.com/callumj
+[@carlallen]: https://github.com/carlallen
+[@chychkan]: https://github.com/chychkan
 [@cjford]: https://github.com/cjford
 [@ck3g]: https://github.com/ck3g
 [@components]: https://github.com/components
@@ -2593,6 +2654,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@dorner]: https://github.com/dorner
 [@drcapulet]: https://github.com/drcapulet
 [@e1senh0rn]: https://github.com/e1senh0rn
+[@elliterate]: https://github.com/elliterate
 [@elyalvarado]: https://github.com/elyalvarado
 [@ericmustin]: https://github.com/ericmustin
 [@erict-square]: https://github.com/erict-square
@@ -2632,6 +2694,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@mdross95]: https://github.com/mdross95
 [@michaelkl]: https://github.com/michaelkl
 [@mriddle]: https://github.com/mriddle
+[@mscrivo]: https://github.com/mscrivo
 [@mstruve]: https://github.com/mstruve
 [@mustela]: https://github.com/mustela
 [@nic-lan]: https://github.com/nic-lan
@@ -2647,6 +2710,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@renchap]: https://github.com/renchap
 [@ricbartm]: https://github.com/ricbartm
 [@roccoblues]: https://github.com/roccoblues
+[@saturnflyer]: https://github.com/saturnflyer
 [@sco11morgan]: https://github.com/sco11morgan
 [@senny]: https://github.com/senny
 [@shayonj]: https://github.com/shayonj
