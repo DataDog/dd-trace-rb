@@ -37,6 +37,7 @@ module Datadog
                     service: configuration[:service_name]
                   },
                   framework: Ext::FRAMEWORK,
+                  framework_version: Gem.loaded_specs['rspec'].version.to_s,
                   test_name: test_name,
                   test_suite: file_path,
                   test_type: Ext::TEST_TYPE
