@@ -220,7 +220,7 @@ module DatadogThreadDebugger
     wrapped = lambda do |*thread_args|
       block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
     end
-    wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)
+    wrapped.send(:ruby2_keywords) if wrapped.respond_to?(:ruby2_keywords, true)
 
     super(*args, &wrapped)
   end
