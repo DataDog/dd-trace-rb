@@ -1,6 +1,7 @@
 # typed: false
 require 'spec_helper'
 
+require 'time'
 require 'ddtrace/utils/time'
 
 RSpec.describe Datadog::Utils::Time do
@@ -52,6 +53,13 @@ RSpec.describe Datadog::Utils::Time do
 
     it 'can round trip without losing precision' do
       expect(Time.at(as_utc_epoch_ns.to_r / 1_000_000_000)).to eq time
+    end
+
+    it 'can correctly handle non-UTC time objects' do
+      # same as :time above, but in a different timezone
+      non_utc_time = Time.iso8601('2021-01-01T06:32:03.405060708+05:30')
+
+      expect(as_utc_epoch_ns).to eq described_class.as_utc_epoch_ns(non_utc_time)
     end
   end
 end
