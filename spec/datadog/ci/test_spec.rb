@@ -32,7 +32,7 @@ RSpec.describe Datadog::CI::Test do
 
     context 'when given a block' do
       subject(:trace) { described_class.trace(tracer, span_name, options, &block) }
-      let(:span) { Datadog::SpanOperation.new(span_name, tracer: tracer) }
+      let(:span) { Datadog::SpanOperation.new(span_name) }
       let(:block) { proc { |s| block_spy.call(s) } }
       # rubocop:disable RSpec/VerifiedDoubles
       let(:block_result) { double('result') }
@@ -61,7 +61,7 @@ RSpec.describe Datadog::CI::Test do
 
     context 'when not given a block' do
       subject(:trace) { described_class.trace(tracer, span_name, options) }
-      let(:span) { Datadog::SpanOperation.new(span_name, tracer: tracer) }
+      let(:span) { Datadog::SpanOperation.new(span_name) }
 
       before do
         allow(tracer)
@@ -84,7 +84,7 @@ RSpec.describe Datadog::CI::Test do
 
   describe '::set_tags!' do
     subject(:set_tags!) { described_class.set_tags!(span, tags) }
-    let(:span) { Datadog::SpanOperation.new(span_name, tracer: tracer) }
+    let(:span) { Datadog::SpanOperation.new(span_name) }
     let(:tags) { {} }
 
     before do
