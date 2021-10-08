@@ -525,37 +525,6 @@ RSpec.describe Datadog::Span do
         end
       end
     end
-
-    # context 'that conflicts with a metric' do
-    #   it 'removes the metric'
-    #   it 'adds a new tag'
-    # end
-
-    context 'given Datadog::Ext::Analytics::TAG_ENABLED' do
-      let(:key) { Datadog::Ext::Analytics::TAG_ENABLED }
-      let(:value) { true }
-
-      before { set_tag }
-
-      it 'sets the analytics sample rate' do
-        # Both should return the same tag
-        expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
-        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
-      end
-    end
-
-    context 'given Datadog::Ext::Analytics::TAG_SAMPLE_RATE' do
-      let(:key) { Datadog::Ext::Analytics::TAG_SAMPLE_RATE }
-      let(:value) { 0.5 }
-
-      before { set_tag }
-
-      it 'sets the analytics sample rate' do
-        # Both should return the same tag
-        expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(value)
-        expect(span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be value
-      end
-    end
   end
 
   describe '#set_tags' do
