@@ -131,7 +131,7 @@ RSpec.describe Datadog::RateByKeySampler do
 
   let(:default_key) { 'default-key' }
 
-  let(:span) { Datadog::SpanOperation.new('test-span', tracer: tracer) }
+  let(:span) { Datadog::SpanOperation.new('test-span') }
   let(:resolver) { ->(span) { span.name } } # Resolve +span.name+ to the lookup key.
 
   describe '#sample!' do
