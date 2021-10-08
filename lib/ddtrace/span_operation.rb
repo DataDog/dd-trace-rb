@@ -74,7 +74,6 @@ module Datadog
       span_options[:trace_id] = options[:trace_id] if options.key?(:trace_id)
 
       @span = Span.new(span_name, **span_options)
-      @tracer = options[:tracer]
       @context = options[:context]
 
       # Add span to the context, if provided.
@@ -93,7 +92,11 @@ module Datadog
     end
 
     attr_reader :parent
-    attr_accessor :span, :tracer, :context
+    attr_accessor :span, :context
+
+    def on_finished
+      @on_finished ||= OperationFinished.new
+    end
 
     # Set span parent
     def parent=(parent)
@@ -111,13 +114,16 @@ module Datadog
       # Stop the span
       span.stop(end_time)
 
+      # Close the context
       begin
         context.close_span(self) if context
-        tracer.record_span(self) if tracer
       rescue StandardError => e
-        Datadog.logger.debug("error recording finished trace: #{e} Backtrace: #{e.backtrace.first(3)}")
+        Datadog.logger.debug("Error closing finished span operation on context: #{e} Backtrace: #{e.backtrace.first(3)}")
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
+
+      # Trigger finished event
+      on_finished.publish(self)
 
       span
     end
@@ -131,5 +137,12 @@ module Datadog
 
     # Additional extensions
     prepend ForcedTracing::SpanOperation
+
+    # Triggered when the span is finished, regardless of error.
+    class OperationFinished < Datadog::Event
+      def initialize
+        super(:operation_finished)
+      end
+    end
   end
 end
