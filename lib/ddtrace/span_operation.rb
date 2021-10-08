@@ -2,6 +2,8 @@ require 'forwardable'
 
 require 'datadog/core/environment/identity'
 require 'ddtrace/ext/runtime'
+require 'ddtrace/ext/manual_tracing'
+
 require 'ddtrace/span'
 require 'ddtrace/forced_tracing'
 
@@ -59,6 +61,12 @@ module Datadog
       :trace_id=
     ].to_set.freeze
 
+    attr_reader :parent
+    attr_accessor :span, :context
+
+    # Forward instance methods except ones that would cause identity issues
+    def_delegators :span, *FORWARDED_METHODS
+
     def initialize(span_name, options = {})
       # Resolve service name
       parent = options[:child_of]
@@ -89,13 +97,6 @@ module Datadog
         # IDs if it's a distributed trace w/o a parent span.
         self.parent = parent
       end
-    end
-
-    attr_reader :parent
-    attr_accessor :span, :context
-
-    def on_finished
-      @on_finished ||= OperationFinished.new
     end
 
     # Set span parent
@@ -132,11 +133,9 @@ module Datadog
       span.stopped?
     end
 
-    # Forward instance methods except ones that would cause identity issues
-    def_delegators :span, *FORWARDED_METHODS
-
-    # Additional extensions
-    prepend ForcedTracing::SpanOperation
+    def on_finished
+      @on_finished ||= OperationFinished.new
+    end
 
     # Triggered when the span is finished, regardless of error.
     class OperationFinished < Datadog::Event
@@ -144,5 +143,25 @@ module Datadog
         super(:operation_finished)
       end
     end
+
+    # Defines forced tracing behavior
+    module ForcedTracing
+      def set_tag(key, value)
+        # Configure sampling priority if they give us a forced tracing tag
+        # DEV: Do not set if the value they give us is explicitly "false"
+        case key
+        when Ext::ManualTracing::TAG_KEEP
+          Datadog::ForcedTracing.keep(self) unless value == false
+        when Ext::ManualTracing::TAG_DROP
+          Datadog::ForcedTracing.drop(self) unless value == false
+        else
+          # Otherwise, set the tag normally.
+          super if defined?(super)
+        end
+      end
+    end
+
+    # Additional extensions
+    prepend ForcedTracing
   end
 end
