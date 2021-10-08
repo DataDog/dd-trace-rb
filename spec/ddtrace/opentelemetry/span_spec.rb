@@ -8,7 +8,7 @@ RSpec.describe Datadog::OpenTelemetry::Span do
   context 'when implemented in Datadog::Span' do
     before { expect(Datadog::Span <= described_class).to be true }
 
-    subject(:span) { Datadog::Span.new(name, tracer: tracer) }
+    subject(:span) { Datadog::Span.new(name) }
 
     let(:tracer) { instance_double(Datadog::Tracer) }
     let(:name) { 'opentelemetry.span' }
