@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace'
+require 'ddtrace/utils/time'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/pprof/template'
 require 'ddtrace/profiling/collectors/stack'
@@ -195,7 +196,7 @@ RSpec.describe 'profiling integration test' do
   end
 
   describe 'building a Perftools::Profiles::Profile using Pprof::Template' do
-    subject(:build_profile) { template.to_pprof }
+    subject(:build_profile) { template.to_pprof(start: start, finish: finish) }
 
     let(:template) { Datadog::Profiling::Pprof::Template.for_event_classes(event_classes) }
     let(:event_classes) { events.keys.uniq }
@@ -204,6 +205,8 @@ RSpec.describe 'profiling integration test' do
         Datadog::Profiling::Events::StackSample => stack_samples
       }
     end
+    let(:start) { Time.now }
+    let(:finish) { start + 60 * 60 }
 
     def rand_int
       rand(1e3)
@@ -238,11 +241,14 @@ RSpec.describe 'profiling integration test' do
       it { is_expected.to be_kind_of(Perftools::Profiles::Profile) }
 
       it 'is well formed' do
+        start_ns = Datadog::Utils::Time.as_utc_epoch_ns(start)
+        finish_ns = Datadog::Utils::Time.as_utc_epoch_ns(finish)
+
         is_expected.to have_attributes(
           drop_frames: 0,
           keep_frames: 0,
-          time_nanos: 0,
-          duration_nanos: 0,
+          time_nanos: start_ns,
+          duration_nanos: finish_ns - start_ns,
           period_type: nil,
           period: 0,
           comment: [],
