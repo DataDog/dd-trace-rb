@@ -39,7 +39,7 @@ module Datadog
                   service: configuration[:service_name]
                 },
                 framework: Ext::FRAMEWORK,
-                framework_version: Gem.loaded_specs['cucumber'].version.to_s,
+                framework_version: Datadog::CI::Contrib::Cucumber::Integration.version.to_s,
                 test_name: event.test_case.name,
                 test_suite: event.test_case.location.file,
                 test_type: Ext::TEST_TYPE
