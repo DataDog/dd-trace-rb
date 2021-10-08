@@ -8,8 +8,7 @@ require 'ddtrace/ext/environment'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
-require 'ddtrace/ext/priority'
-require 'ddtrace/analytics'
+
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/utils/time'
 
@@ -22,8 +21,6 @@ module Datadog
   #
   # rubocop:disable Metrics/ClassLength
   class Span
-    prepend Analytics::Span
-
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
