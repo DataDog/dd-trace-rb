@@ -42,6 +42,7 @@ module Datadog
 
         # Set contextual tags
         span.set_tag(Ext::Test::TAG_FRAMEWORK, tags[:framework]) if tags[:framework]
+        span.set_tag(Ext::Test::TAG_FRAMEWORK_VERSION, tags[:framework_version]) if tags[:framework_version]
         span.set_tag(Ext::Test::TAG_NAME, tags[:test_name]) if tags[:test_name]
         span.set_tag(Ext::Test::TAG_SUITE, tags[:test_suite]) if tags[:test_suite]
         span.set_tag(Ext::Test::TAG_TYPE, tags[:test_type]) if tags[:test_type]

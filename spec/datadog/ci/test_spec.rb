@@ -123,6 +123,18 @@ RSpec.describe Datadog::CI::Test do
       end
     end
 
+    context 'when :framework_version is given' do
+      let(:tags) { { framework_version: framework_version } }
+      let(:framework_version) { 'framework_version' }
+
+      before { set_tags! }
+
+      it do
+        expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK_VERSION))
+          .to eq(framework_version)
+      end
+    end
+
     context 'when :test_name is given' do
       let(:tags) { { test_name: test_name } }
       let(:test_name) { 'test name' }
