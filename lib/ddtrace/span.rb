@@ -231,8 +231,6 @@ module Datadog
 
       self
     end
-    # DEPRECATED: Use #stop instead
-    alias finish stop
 
     # Return a string representation of the span.
     def to_s
@@ -385,7 +383,6 @@ module Datadog
     def stopped?
       !@end_time.nil?
     end
-    # DEPRECATED: Use #stopped? instead
     alias finished? stopped?
 
     def duration
