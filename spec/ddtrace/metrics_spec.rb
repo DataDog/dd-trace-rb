@@ -121,13 +121,13 @@ RSpec.describe Datadog::Metrics do
         end
 
         context 'with incompatible 5.x version' do
-          let(:version) { Gem::Version.new('5.0.0') }
+          let(:version) { Gem::Version.new('5.2.0') }
 
           it { is_expected.to be false }
         end
 
         context 'with compatible 5.x version' do
-          let(:version) { Gem::Version.new('5.2.0') }
+          let(:version) { Gem::Version.new('5.3.0') }
 
           it { is_expected.to be true }
         end
@@ -153,13 +153,13 @@ RSpec.describe Datadog::Metrics do
         end
 
         context 'with incompatible 5.x version' do
-          let(:gem_version_number) { '5.0.0' }
+          let(:gem_version_number) { '5.2.0' }
 
           it { is_expected.to be false }
         end
 
         context 'with compatible 5.x version' do
-          let(:gem_version_number) { '5.2.0' }
+          let(:gem_version_number) { '5.3.0' }
 
           it { is_expected.to be true }
         end
@@ -272,8 +272,8 @@ RSpec.describe Datadog::Metrics do
 
     let(:statsd_client) { instance_double(Datadog::Statsd) }
     let(:options) do
-      # This tests is run with both ~> 4.0 and latest dogstatsd-ruby.
-      if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new('5.2.0')
+      # This test is run with both ~> 4.0 and latest dogstatsd-ruby.
+      if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new('5.3.0')
         { single_thread: true }
       else
         {}
