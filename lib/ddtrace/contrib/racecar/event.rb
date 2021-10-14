@@ -66,7 +66,7 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless configuration[:tracer].call_context.current_span
+            return unless configuration[:tracer].active_span
 
             configuration[:tracer].provider.context = Context.new
           end
