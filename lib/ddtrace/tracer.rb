@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 require 'logger'
 require 'pathname'
 
