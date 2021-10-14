@@ -225,15 +225,6 @@ RSpec.describe Datadog::Tracer do
             expect(span.get_tag('my')).to eq('tag')
           end
         end
-
-        context 'start_time:' do
-          let(:options) { { start_time: start_time } }
-          let(:start_time) { Time.utc(2021, 8, 3) }
-
-          it 'sets the span start_time' do
-            expect(span.start_time).to eq(start_time)
-          end
-        end
       end
     end
 
@@ -245,6 +236,15 @@ RSpec.describe Datadog::Tracer do
 
       it_behaves_like 'shared #trace behavior' do
         before { trace }
+
+        context 'start_time:' do
+          let(:options) { { start_time: start_time } }
+          let(:start_time) { Time.utc(2021, 8, 3) }
+
+          it 'is ignored' do
+            expect(span.start_time).to_not eq(start_time)
+          end
+        end
       end
 
       context 'when starting a span' do
@@ -584,6 +584,15 @@ RSpec.describe Datadog::Tracer do
 
       it_behaves_like 'shared #trace behavior' do
         let(:span) { trace }
+
+        context 'start_time:' do
+          let(:options) { { start_time: start_time } }
+          let(:start_time) { Time.utc(2021, 8, 3) }
+
+          it 'sets the span start_time' do
+            expect(span.start_time).to eq(start_time)
+          end
+        end
       end
 
       context 'with child_of: option' do

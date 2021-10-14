@@ -288,15 +288,14 @@ module Datadog
         # TODO: Should migrate any span mutation instructions into its own block,
         #       separate from the actual instrumented code.
         begin
+          # Filter out invalid options & build a span
+          options = options.dup.tap { |opts| opts.delete(:start_time) }
           span = build_span(name, options)
         rescue StandardError => e
           Datadog.logger.debug("Failed to build span: #{e}")
           yield(nil)
         else
-          span.measure(
-            start_time: options[:start_time],
-            &block
-          )
+          span.measure(&block)
         end
       else
         start_span(name, options)
