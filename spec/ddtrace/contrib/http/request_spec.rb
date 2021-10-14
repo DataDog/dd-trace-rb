@@ -43,7 +43,6 @@ RSpec.describe 'net/http requests' do
       before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
 
       let(:content) { JSON.parse(response.body) }
-      let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('200')
@@ -77,7 +76,6 @@ RSpec.describe 'net/http requests' do
       before { stub_request(:get, "#{uri}#{path}").to_return(status: 404, body: body) }
 
       let(:body) { '{ "code": 404, message": "Not found!" }' }
-      let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('404')
@@ -104,8 +102,8 @@ RSpec.describe 'net/http requests' do
 
         context 'which defines each parameter' do
           let(:callback) do
-            proc do |span, http, request, response|
-              expect(span).to be_a_kind_of(Datadog::SpanOperation)
+            proc do |span_op, http, request, response|
+              expect(span_op).to be_a_kind_of(Datadog::SpanOperation)
               expect(http).to be_a_kind_of(Net::HTTP)
               expect(request).to be_a_kind_of(Net::HTTP::Get)
               expect(response).to be_a_kind_of(Net::HTTPNotFound)
@@ -117,11 +115,11 @@ RSpec.describe 'net/http requests' do
 
         context 'which changes the error status' do
           let(:callback) do
-            proc do |span, _http, _request, response|
+            proc do |span_op, _http, _request, response|
               case response.code.to_i
               when 400...599
                 if response.class.body_permitted? && !response.body.nil?
-                  span.set_error([response.class, response.body[0...4095]])
+                  span_op.set_error([response.class, response.body[0...4095]])
                 end
               end
             end
@@ -146,8 +144,6 @@ RSpec.describe 'net/http requests' do
 
     context 'that returns 201' do
       before { stub_request(:post, "#{uri}#{path}").to_return(status: 201) }
-
-      let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('201')
@@ -179,7 +175,6 @@ RSpec.describe 'net/http requests' do
 
       let(:request) { Net::HTTP::Get.new(path) }
       let(:path) { '/my/path' }
-      let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
         expect(spans).to have(1).items
@@ -209,7 +204,6 @@ RSpec.describe 'net/http requests' do
 
       let(:path) { '/my/path' }
       let(:service_name) { 'bar' }
-      let(:span) { spans.first }
 
       it 'generates a well-formed trace' do
         expect(response.code).to eq('200')
@@ -226,7 +220,6 @@ RSpec.describe 'net/http requests' do
     subject(:response) { client.get(path) }
 
     let(:path) { '/my/path' }
-    let(:span) { spans.first }
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
     before { stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}') }
@@ -401,7 +394,6 @@ RSpec.describe 'net/http requests' do
 
     context 'that raises a timeout' do
       let(:timeout_error) { Net::OpenTimeout.new('execution expired') }
-      let(:span) { spans.first }
 
       before { stub_request(:get, "#{uri}#{path}").to_raise(timeout_error) }
 
@@ -424,7 +416,6 @@ RSpec.describe 'net/http requests' do
     context 'that raises an error' do
       let(:custom_error_message) { 'example error' }
       let(:custom_error) { StandardError.new(custom_error_message) }
-      let(:span) { spans.first }
 
       before { stub_request(:get, "#{uri}#{path}").to_raise(custom_error) }
 
