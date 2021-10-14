@@ -2,6 +2,7 @@
 *.rbc
 *.swp
 *.nix
+*.vim
 /.config
 /coverage/
 /InstalledFiles
