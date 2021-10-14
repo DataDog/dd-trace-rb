@@ -13,8 +13,8 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
     let(:options) { {} }
     let(:payload) { {} }
     let(:block) do
-      proc do |span, name, id, payload|
-        spy.call(span, name, id, payload)
+      proc do |span_op, name, id, payload|
+        spy.call(span_op, name, id, payload)
       end
     end
     let(:spy) { double('spy') }
@@ -29,19 +29,19 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:id) { double('id') }
         let(:payload) { {} }
 
-        let(:span) { instance_double(Datadog::SpanOperation) }
+        let(:span_op) { instance_double(Datadog::SpanOperation) }
 
         it do
-          expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
-          expect(span).to receive(:start).with(start).and_return(span).ordered
-          expect(spy).to receive(:call).with(span, name, id, payload).ordered
-          expect(span).to receive(:finish).with(finish).and_return(span).ordered
-          is_expected.to be(span)
+          expect(tracer).to receive(:trace).with(span_name, options).and_return(span_op).ordered
+          expect(span_op).to receive(:start).with(start).and_return(span_op).ordered
+          expect(spy).to receive(:call).with(span_op, name, id, payload).ordered
+          expect(span_op).to receive(:finish).with(finish).and_return(span_op).ordered
+          is_expected.to be(span_op)
         end
 
         context 'when block raises an error' do
           let(:block) do
-            proc do |_span, _name, _id, _payload|
+            proc do |_span_op, _name, _id, _payload|
               raise ArgumentError, 'Fail!'
             end
           end
@@ -49,10 +49,10 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           around { |example| without_errors { example.run } }
 
           it 'finishes tracing anyways' do
-            expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
-            expect(span).to receive(:start).with(start).and_return(span).ordered
-            expect(span).to receive(:finish).with(finish).and_return(span).ordered
-            is_expected.to be(span)
+            expect(tracer).to receive(:trace).with(span_name, options).and_return(span_op).ordered
+            expect(span_op).to receive(:start).with(start).and_return(span_op).ordered
+            expect(span_op).to receive(:finish).with(finish).and_return(span_op).ordered
+            is_expected.to be(span_op)
           end
         end
       end
@@ -62,20 +62,21 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
         let(:name) { double('name') }
         let(:id) { double('id') }
-        let(:span) { double('span') }
+        let(:span_op) { double('span_op') }
 
-        it do
-          expect(tracer).to receive(:trace).with(span_name, options).and_return(span)
-          is_expected.to be(span)
+        it 'returns the span operation' do
+          expect(tracer).to receive(:trace).with(span_name, options).and_return(span_op)
+          is_expected.to be(span_op)
         end
 
-        it 'sets the parent span' do
-          parent = tracer.trace('parent_span')
+        it 'sets the parent span operation' do
+          parent = tracer.trace('parent_span_operation')
           expect(subject.parent_id).to eq parent.span_id
         end
 
-        it 'sets span in payload' do
-          expect { subject }.to change { payload[:datadog_span] }.to be_instance_of(Datadog::SpanOperation)
+        it 'sets span operation in payload' do
+          expect(tracer).to receive(:trace).with(span_name, options).and_return(span_op)
+          expect { subject }.to change { payload[:datadog_span] }.to be(span_op)
         end
 
         it 'provides a mutable copy of options to Tracer#trace' do
@@ -90,13 +91,13 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:name) { double('name') }
         let(:id) { double('id') }
 
-        let(:span) { instance_double(Datadog::SpanOperation) }
-        let(:payload) { { datadog_span: span } }
+        let(:span_op) { instance_double(Datadog::SpanOperation) }
+        let(:payload) { { datadog_span: span_op } }
 
         it do
-          expect(spy).to receive(:call).with(span, name, id, payload).ordered
-          expect(span).to receive(:finish).and_return(span).ordered
-          is_expected.to be(span)
+          expect(spy).to receive(:call).with(span_op, name, id, payload).ordered
+          expect(span_op).to receive(:finish).and_return(span_op).ordered
+          is_expected.to be(span_op)
         end
       end
 
@@ -147,12 +148,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
           shared_examples_for 'an after_trace callback' do
             context 'on #finish' do
-              let(:span) { instance_double(Datadog::SpanOperation) }
-              let(:payload) { { datadog_span: span } }
+              let(:span_op) { instance_double(Datadog::SpanOperation) }
+              let(:payload) { { datadog_span: span_op } }
 
               it do
                 expect(spy).to receive(:call).ordered
-                expect(span).to receive(:finish).ordered
+                expect(span_op).to receive(:finish).ordered
                 expect(callback_spy).to receive(:call).ordered
                 subscription.finish(double('name'), double('id'), payload)
               end

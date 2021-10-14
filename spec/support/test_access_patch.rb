@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 # Give access to otherwise private members
 module Datadog
   class Writer
@@ -17,8 +17,8 @@ module Datadog
   end
 
   class Context
-    remove_method :current_span
-    attr_accessor :trace, :sampled, :finished_spans, :current_span
+    remove_method :current_span_op
+    attr_accessor :trace, :sampled, :finished_spans, :current_span_op
   end
 
   class Span

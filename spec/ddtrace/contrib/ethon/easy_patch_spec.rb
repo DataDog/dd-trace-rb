@@ -42,7 +42,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   describe '#perform' do
     subject { easy.perform }
 
-    let(:span) { easy.instance_eval { @datadog_span } }
+    let(:span_op) { easy.instance_eval { @datadog_span } }
 
     before do
       expect(::Ethon::Curl).to receive(:easy_perform).and_return(0)
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       expect(easy).to receive(:complete)
     end
 
-    it 'creates a span' do
+    it 'creates a span operation' do
       subject
       expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::SpanOperation)
     end
@@ -61,9 +61,9 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it do
         subject
-        expect(span.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
-        expect(span.service).to eq('example.com')
-        expect(span.resource).to eq('N/A')
+        expect(span_op.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
+        expect(span_op.service).to eq('example.com')
+        expect(span_op.resource).to eq('N/A')
       end
 
       context 'and the host matches a specific configuration' do
@@ -83,12 +83,13 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
         it 'uses the configured service name over the domain name and the correct describes block' do
           subject
-          expect(span.service).to eq('baz')
+          expect(span_op.service).to eq('baz')
         end
       end
     end
 
     it_behaves_like 'span' do
+      let(:span) { span_op.span }
       before { subject }
 
       let(:method) { 'N/A' }
@@ -99,6 +100,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it_behaves_like 'analytics for integration' do
+      let(:span) { span_op.span }
       before { subject }
 
       let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
@@ -106,6 +108,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it_behaves_like 'measured span for integration', false do
+      let(:span) { span_op.span }
       before { subject }
     end
   end
@@ -124,7 +127,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       expect { subject }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
     end
 
-    it 'cleans up span stored on easy' do
+    it 'cleans up span operation stored on easy' do
       subject
       expect(easy.instance_eval { @datadog_span }).to be_nil
     end
@@ -218,7 +221,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
     end
 
-    context 'with span initialized' do
+    context 'with span operation initialized' do
       before do
         expect(easy).to receive(:url).and_return('http://example.com/test').at_least(:once)
         easy.datadog_before_request

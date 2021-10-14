@@ -7,21 +7,21 @@ RSpec.describe Datadog::CI::Test do
   let(:tracer) { instance_double(Datadog::Tracer) }
   let(:span_name) { 'span name' }
 
-  shared_examples_for 'default test span tags' do
+  shared_examples_for 'default test span operation tags' do
     it do
       expect(Datadog::Contrib::Analytics)
         .to have_received(:set_measured)
-        .with(span)
+        .with(span_op)
     end
 
     it do
-      expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND))
+      expect(span_op.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND))
         .to eq(Datadog::CI::Ext::AppTypes::TEST)
     end
 
     it do
       Datadog::CI::Ext::Environment.tags(ENV).each do |key, value|
-        expect(span.get_tag(key))
+        expect(span_op.get_tag(key))
           .to eq(value)
       end
     end
@@ -32,7 +32,7 @@ RSpec.describe Datadog::CI::Test do
 
     context 'when given a block' do
       subject(:trace) { described_class.trace(tracer, span_name, options, &block) }
-      let(:span) { Datadog::SpanOperation.new(span_name) }
+      let(:span_op) { Datadog::SpanOperation.new(span_name) }
       let(:block) { proc { |s| block_spy.call(s) } }
       # rubocop:disable RSpec/VerifiedDoubles
       let(:block_result) { double('result') }
@@ -46,7 +46,7 @@ RSpec.describe Datadog::CI::Test do
           .to receive(:trace) do |trace_span_name, trace_span_options, &trace_block|
             expect(trace_span_name).to be(span_name)
             expect(trace_span_options).to eq({ span_type: Datadog::CI::Ext::AppTypes::TEST })
-            trace_block.call(span)
+            trace_block.call(span_op)
           end
 
         allow(Datadog::Contrib::Analytics).to receive(:set_measured)
@@ -54,14 +54,14 @@ RSpec.describe Datadog::CI::Test do
         trace
       end
 
-      it_behaves_like 'default test span tags'
-      it { expect(block_spy).to have_received(:call).with(span) }
+      it_behaves_like 'default test span operation tags'
+      it { expect(block_spy).to have_received(:call).with(span_op) }
       it { is_expected.to be(block_result) }
     end
 
     context 'when not given a block' do
       subject(:trace) { described_class.trace(tracer, span_name, options) }
-      let(:span) { Datadog::SpanOperation.new(span_name) }
+      let(:span_op) { Datadog::SpanOperation.new(span_name) }
 
       before do
         allow(tracer)
@@ -70,36 +70,36 @@ RSpec.describe Datadog::CI::Test do
             span_name,
             { span_type: Datadog::CI::Ext::AppTypes::TEST }
           )
-          .and_return(span)
+          .and_return(span_op)
 
         allow(Datadog::Contrib::Analytics).to receive(:set_measured)
 
         trace
       end
 
-      it_behaves_like 'default test span tags'
-      it { is_expected.to be(span) }
+      it_behaves_like 'default test span operation tags'
+      it { is_expected.to be(span_op) }
     end
   end
 
   describe '::set_tags!' do
-    subject(:set_tags!) { described_class.set_tags!(span, tags) }
-    let(:span) { Datadog::SpanOperation.new(span_name) }
+    subject(:set_tags!) { described_class.set_tags!(span_op, tags) }
+    let(:span_op) { Datadog::SpanOperation.new(span_name) }
     let(:tags) { {} }
 
     before do
       allow(Datadog::Contrib::Analytics).to receive(:set_measured)
     end
 
-    it_behaves_like 'default test span tags' do
+    it_behaves_like 'default test span operation tags' do
       before { set_tags! }
     end
 
-    context 'when span has a context' do
+    context 'when span operation has a context' do
       let(:context) { instance_double(Datadog::Context) }
 
       before do
-        allow(span).to receive(:context).and_return(context)
+        allow(span_op).to receive(:context).and_return(context)
         allow(context).to receive(:origin=)
         set_tags!
       end
@@ -118,7 +118,7 @@ RSpec.describe Datadog::CI::Test do
       before { set_tags! }
 
       it do
-        expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK))
+        expect(span_op.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK))
           .to eq(framework)
       end
     end
@@ -130,7 +130,7 @@ RSpec.describe Datadog::CI::Test do
       before { set_tags! }
 
       it do
-        expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK_VERSION))
+        expect(span_op.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK_VERSION))
           .to eq(framework_version)
       end
     end
@@ -142,7 +142,7 @@ RSpec.describe Datadog::CI::Test do
       before { set_tags! }
 
       it do
-        expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME))
+        expect(span_op.get_tag(Datadog::CI::Ext::Test::TAG_NAME))
           .to eq(test_name)
       end
     end
@@ -154,7 +154,7 @@ RSpec.describe Datadog::CI::Test do
       before { set_tags! }
 
       it do
-        expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE))
+        expect(span_op.get_tag(Datadog::CI::Ext::Test::TAG_SUITE))
           .to eq(test_suite)
       end
     end
@@ -166,7 +166,7 @@ RSpec.describe Datadog::CI::Test do
       before { set_tags! }
 
       it do
-        expect(span.get_tag(Datadog::CI::Ext::Test::TAG_TYPE))
+        expect(span_op.get_tag(Datadog::CI::Ext::Test::TAG_TYPE))
           .to eq(test_type)
       end
     end
@@ -175,7 +175,7 @@ RSpec.describe Datadog::CI::Test do
       context 'for the architecture platform' do
         subject(:tag) do
           set_tags!
-          span.get_tag(Datadog::CI::Ext::Test::TAG_OS_ARCHITECTURE)
+          span_op.get_tag(Datadog::CI::Ext::Test::TAG_OS_ARCHITECTURE)
         end
 
         it { is_expected.to eq('x86_64').or eq('i686').or start_with('arm') }
@@ -184,7 +184,7 @@ RSpec.describe Datadog::CI::Test do
       context 'for the OS platform' do
         subject(:tag) do
           set_tags!
-          span.get_tag(Datadog::CI::Ext::Test::TAG_OS_PLATFORM)
+          span_op.get_tag(Datadog::CI::Ext::Test::TAG_OS_PLATFORM)
         end
 
         context 'with Linux', if: PlatformHelpers.linux? do
@@ -203,7 +203,7 @@ RSpec.describe Datadog::CI::Test do
       context 'for the runtime name' do
         subject(:tag) do
           set_tags!
-          span.get_tag(Datadog::CI::Ext::Test::TAG_RUNTIME_NAME)
+          span_op.get_tag(Datadog::CI::Ext::Test::TAG_RUNTIME_NAME)
         end
 
         context 'with MRI', if: PlatformHelpers.mri? do
@@ -226,7 +226,7 @@ RSpec.describe Datadog::CI::Test do
       context 'for the runtime version' do
         subject(:tag) do
           set_tags!
-          span.get_tag(Datadog::CI::Ext::Test::TAG_RUNTIME_VERSION)
+          span_op.get_tag(Datadog::CI::Ext::Test::TAG_RUNTIME_VERSION)
         end
 
         context 'with MRI', if: PlatformHelpers.mri? do
@@ -249,16 +249,16 @@ RSpec.describe Datadog::CI::Test do
   end
 
   describe '::passed!' do
-    subject(:passed!) { described_class.passed!(span) }
-    let(:span) { instance_double(Datadog::SpanOperation) }
+    subject(:passed!) { described_class.passed!(span_op) }
+    let(:span_op) { instance_double(Datadog::SpanOperation) }
 
     before do
-      allow(span).to receive(:set_tag)
+      allow(span_op).to receive(:set_tag)
       passed!
     end
 
     it do
-      expect(span)
+      expect(span_op)
         .to have_received(:set_tag)
         .with(
           Datadog::CI::Ext::Test::TAG_STATUS,
@@ -268,24 +268,24 @@ RSpec.describe Datadog::CI::Test do
   end
 
   describe '::failed!' do
-    let(:span) { instance_double(Datadog::SpanOperation) }
+    let(:span_op) { instance_double(Datadog::SpanOperation) }
 
     before do
-      allow(span).to receive(:status=)
-      allow(span).to receive(:set_tag)
-      allow(span).to receive(:set_error)
+      allow(span_op).to receive(:status=)
+      allow(span_op).to receive(:set_tag)
+      allow(span_op).to receive(:set_error)
       failed!
     end
 
-    shared_examples 'failed test span' do
+    shared_examples 'failed test span operation' do
       it do
-        expect(span)
+        expect(span_op)
           .to have_received(:status=)
           .with(1)
       end
 
       it do
-        expect(span)
+        expect(span_op)
           .to have_received(:set_tag)
           .with(
             Datadog::CI::Ext::Test::TAG_STATUS,
@@ -295,20 +295,20 @@ RSpec.describe Datadog::CI::Test do
     end
 
     context 'when no exception is given' do
-      subject(:failed!) { described_class.failed!(span) }
+      subject(:failed!) { described_class.failed!(span_op) }
 
-      it_behaves_like 'failed test span'
-      it { expect(span).to_not have_received(:set_error) }
+      it_behaves_like 'failed test span operation'
+      it { expect(span_op).to_not have_received(:set_error) }
     end
 
     context 'when exception is given' do
-      subject(:failed!) { described_class.failed!(span, exception) }
+      subject(:failed!) { described_class.failed!(span_op, exception) }
       let(:exception) { instance_double(StandardError) }
 
-      it_behaves_like 'failed test span'
+      it_behaves_like 'failed test span operation'
 
       it do
-        expect(span)
+        expect(span_op)
           .to have_received(:set_error)
           .with(exception)
       end
@@ -316,17 +316,17 @@ RSpec.describe Datadog::CI::Test do
   end
 
   describe '::skipped!' do
-    let(:span) { instance_double(Datadog::SpanOperation) }
+    let(:span_op) { instance_double(Datadog::SpanOperation) }
 
     before do
-      allow(span).to receive(:set_tag)
-      allow(span).to receive(:set_error)
+      allow(span_op).to receive(:set_tag)
+      allow(span_op).to receive(:set_error)
       skipped!
     end
 
-    shared_examples 'skipped test span' do
+    shared_examples 'skipped test span operation' do
       it do
-        expect(span)
+        expect(span_op)
           .to have_received(:set_tag)
           .with(
             Datadog::CI::Ext::Test::TAG_STATUS,
@@ -336,20 +336,20 @@ RSpec.describe Datadog::CI::Test do
     end
 
     context 'when no exception is given' do
-      subject(:skipped!) { described_class.skipped!(span) }
+      subject(:skipped!) { described_class.skipped!(span_op) }
 
-      it_behaves_like 'skipped test span'
-      it { expect(span).to_not have_received(:set_error) }
+      it_behaves_like 'skipped test span operation'
+      it { expect(span_op).to_not have_received(:set_error) }
     end
 
     context 'when exception is given' do
-      subject(:skipped!) { described_class.skipped!(span, exception) }
+      subject(:skipped!) { described_class.skipped!(span_op, exception) }
       let(:exception) { instance_double(StandardError) }
 
-      it_behaves_like 'skipped test span'
+      it_behaves_like 'skipped test span operation'
 
       it do
-        expect(span)
+        expect(span_op)
           .to have_received(:set_error)
           .with(exception)
       end
