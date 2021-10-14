@@ -31,7 +31,7 @@ module Datadog
       !version.nil? && version >= Gem::Version.new('3.3.0') &&
         # dogstatsd-ruby >= 5.0 & < 5.2.0 has known issues with process forks
         # and do not support the single thread mode we use to avoid this problem.
-        !(version >= Gem::Version.new('5.0') && version < Gem::Version.new('5.2'))
+        !(version >= Gem::Version.new('5.0') && version < Gem::Version.new('5.3'))
     end
 
     def enabled?
@@ -274,7 +274,7 @@ module Datadog
       IGNORED_STATSD_ONLY_ONCE.run do
         Datadog.logger.warn(
           'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
-          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.2'` on your Gemfile or gems.rb file."
+          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file."
         )
       end
     end
