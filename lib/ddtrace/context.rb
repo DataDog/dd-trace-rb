@@ -98,9 +98,15 @@ module Datadog
 
     def add_span(operation)
       @mutex.synchronize do
-        # Make the span follow the current span, unless there isn't one.
-        operation.trace_id = @parent_trace_id unless @parent_trace_id.nil?
-        operation.parent_id = @parent_span_id unless @parent_span_id.nil?
+        # Make the span follow the current span
+        if @current_span
+          operation.parent = @current_span
+        # If there isn't a current span, inherit the trace & parent ID if available.
+        # This happens when the trace originates from a distributed trace.
+        else
+          operation.trace_id = @parent_trace_id unless @parent_trace_id.nil?
+          operation.parent_id = @parent_span_id unless @parent_span_id.nil?
+        end
 
         # If hitting the hard limit, just drop spans. This is really a rare case
         # as it means despite the soft limit, the hard limit is reached, so the trace
