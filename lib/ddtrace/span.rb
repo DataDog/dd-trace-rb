@@ -52,7 +52,10 @@ module Datadog
                   :span_id, :trace_id, :parent_id,
                   :status, :sampled
 
-    attr_reader :parent, :start_time, :end_time
+    attr_reader \
+      :parent, # DEPRECATED: Remove when #parent= is migrated to SpanOperation
+      :start_time,
+      :end_time
 
     attr_writer :duration
 
@@ -235,6 +238,8 @@ module Datadog
 
     # Set this span's parent, inheriting any properties not explicitly set.
     # If the parent is nil, set the span zero values.
+    #
+    # # DEPRECATED: To be removed and migrated to SpanOperation#parent=
     def parent=(parent)
       @parent = parent
 
