@@ -35,8 +35,8 @@ module Datadog
     #
     # For instance:
     #
-    #   tracer.trace('operation_name', service='rake_tasks') do |span|
-    #     span.set_tag('task.name', 'script')
+    #   tracer.trace('operation_name', service='rake_tasks') do |span_op|
+    #     span_op.set_tag('task.name', 'script')
     #   end
     #
     #   tracer.shutdown!
@@ -180,32 +180,32 @@ module Datadog
                         end
 
       # Build a new span operation
-      span = Datadog::SpanOperation.new(name, options)
+      span_op = Datadog::SpanOperation.new(name, options)
 
       # Subscribe to events
-      span.events.after_finish.subscribe(:tracer_span_finished) do |span_op|
-        record_span(span_op)
+      span_op.events.after_finish.subscribe(:tracer_span_finished) do |op|
+        record_span(op)
       end
 
       # Wrap default error behavior with custom handler if provided
       if options[:on_error].respond_to?(:call)
-        span.events.on_error.wrap(:default) do |original, span_op, error|
+        span_op.events.on_error.wrap(:default) do |original, op, error|
           begin
-            options[:on_error].call(span_op, error)
+            options[:on_error].call(op, error)
           rescue StandardError => e
             Datadog.logger.debug(
               "Custom on_error handler failed, using fallback behavior. \
                Error: #{e.message} Location: #{e.backtrace.first}"
             )
-            original.call(span_op, error) if original
+            original.call(op, error) if original
           end
         end
       end
 
       # If it's a root span...
-      @sampler.sample!(span) if parent.nil?
+      @sampler.sample!(span_op) if parent.nil?
 
-      span
+      span_op
     end
 
     # Build and start a span that will trace an operation called \name. This method allows
@@ -219,17 +219,17 @@ module Datadog
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
     def start_span(name, options = {})
-      span = build_span(name, options)
-      span.start(options[:start_time])
-      span
+      span_op = build_span(name, options)
+      span_op.start(options[:start_time])
+      span_op
     end
 
     # Records the span (& its context)
-    def record_span(operation)
+    def record_span(span_op)
       begin
-        operation.service ||= default_service
-        record_context(operation.context) if operation.context
-        operation.span
+        span_op.service ||= default_service
+        record_context(span_op.context) if span_op.context
+        span_op.span
       rescue StandardError => e
         Datadog.logger.debug("Error recording finished trace: #{e} Backtrace: #{e.backtrace.first}")
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
@@ -239,20 +239,20 @@ module Datadog
     # Return a +span+ that will trace an operation called +name+. You could trace your code
     # using a <tt>do-block</tt> like:
     #
-    #   tracer.trace('web.request') do |span|
-    #     span.service = 'my-web-site'
-    #     span.resource = '/'
-    #     span.set_tag('http.method', request.request_method)
+    #   tracer.trace('web.request') do |span_op|
+    #     span_op.service = 'my-web-site'
+    #     span_op.resource = '/'
+    #     span_op.set_tag('http.method', request.request_method)
     #     do_something()
     #   end
     #
     # The <tt>tracer.trace()</tt> method can also be used without a block in this way:
     #
-    #   span = tracer.trace('web.request', service: 'my-web-site')
+    #   span_op = tracer.trace('web.request', service: 'my-web-site')
     #   do_something()
-    #   span.finish()
+    #   span_op.finish()
     #
-    # Remember that in this case, calling <tt>span.finish()</tt> is mandatory.
+    # Remember that in this case, calling <tt>span_op.finish()</tt> is mandatory.
     #
     # When a Trace is started, <tt>trace()</tt> will store the created span; subsequent spans will
     # become it's children and will inherit some properties:
@@ -284,12 +284,12 @@ module Datadog
         begin
           # Filter out invalid options & build a span
           options = options.dup.tap { |opts| opts.delete(:start_time) }
-          span = build_span(name, options)
+          span_op = build_span(name, options)
         rescue StandardError => e
           Datadog.logger.debug("Failed to build span: #{e}")
           yield(nil)
         else
-          span.measure(&block)
+          span_op.measure(&block)
         end
       else
         start_span(name, options)

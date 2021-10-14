@@ -13,15 +13,15 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
 
-  let(:span) { Datadog::SpanOperation.new('dummy') }
+  let(:span_op) { Datadog::SpanOperation.new('dummy') }
 
   before do
-    allow(default_sampler).to receive(:sample?).with(span).and_return(nil)
+    allow(default_sampler).to receive(:sample?).with(span_op).and_return(nil)
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
 
-  shared_examples 'a simple rule that matches all spans' do |options = { sample_rate: 1.0 }|
+  shared_examples 'a simple rule that matches all span operations' do |options = { sample_rate: 1.0 }|
     it do
       expect(rule.matcher.name).to eq(Datadog::Sampling::SimpleMatcher::MATCH_ALL)
       expect(rule.matcher.service).to eq(Datadog::Sampling::SimpleMatcher::MATCH_ALL)
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
           .and_return(0.5)
       end
 
-      it_behaves_like 'a simple rule that matches all spans', sample_rate: 0.5 do
+      it_behaves_like 'a simple rule that matches all span operations', sample_rate: 0.5 do
         let(:rule) { rule_sampler.rules.last }
       end
     end
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     context 'with default_sample_rate' do
       subject(:rule_sampler) { described_class.new(rules, default_sample_rate: 1.0) }
 
-      it_behaves_like 'a simple rule that matches all spans', sample_rate: 1.0 do
+      it_behaves_like 'a simple rule that matches all span operations', sample_rate: 1.0 do
         let(:rule) { rule_sampler.rules.last }
       end
     end
@@ -82,30 +82,30 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     let(:sample_rate) { 0.8 }
 
     before do
-      allow(rule).to receive(:match?).with(span).and_return(true)
-      allow(rule).to receive(:sample?).with(span).and_return(sampled)
-      allow(rule).to receive(:sample_rate).with(span).and_return(sample_rate)
+      allow(rule).to receive(:match?).with(span_op).and_return(true)
+      allow(rule).to receive(:sample?).with(span_op).and_return(sampled)
+      allow(rule).to receive(:sample_rate).with(span_op).and_return(sample_rate)
     end
   end
 
   describe '#sample!' do
-    subject(:sample) { rule_sampler.sample!(span) }
+    subject(:sample) { rule_sampler.sample!(span_op) }
 
-    shared_examples 'a sampled! span' do
+    shared_examples 'a sampled! span operation' do
       before { subject }
 
       it { is_expected.to eq(expected_sampled) }
 
-      it 'sets `span.sampled` flag' do
-        expect(span.sampled).to eq(expected_sampled)
+      it 'sets `span_op.sampled` flag' do
+        expect(span_op.sampled).to eq(expected_sampled)
       end
 
       it 'sets rule metrics' do
-        expect(span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to eq(sample_rate)
+        expect(span_op.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to eq(sample_rate)
       end
 
       it 'sets limiter metrics' do
-        expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to eq(effective_rate)
+        expect(span_op.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to eq(effective_rate)
       end
     end
 
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         context 'and not rate limited' do
           let(:allow?) { true }
 
-          it_behaves_like 'a sampled! span' do
+          it_behaves_like 'a sampled! span operation' do
             let(:expected_sampled) { true }
           end
         end
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         context 'and rate limited' do
           let(:allow?) { false }
 
-          it_behaves_like 'a sampled! span' do
+          it_behaves_like 'a sampled! span operation' do
             let(:expected_sampled) { false }
           end
         end
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       context 'and not sampled' do
         let(:sampled) { false }
 
-        it_behaves_like 'a sampled! span' do
+        it_behaves_like 'a sampled! span operation' do
           let(:expected_sampled) { false }
           let(:effective_rate) { nil } # Rate limiter was not evaluated
         end
@@ -146,14 +146,14 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       let(:delegated) { double }
 
       before do
-        allow(default_sampler).to receive(:sample!).with(span).and_return(delegated)
+        allow(default_sampler).to receive(:sample!).with(span_op).and_return(delegated)
       end
 
       it { is_expected.to eq(delegated) }
 
       it 'skips metrics' do
-        expect(span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to be_nil
-        expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
+        expect(span_op.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to be_nil
+        expect(span_op.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
       end
 
       context 'when the default sampler is a RateByServiceSampler' do
@@ -162,17 +162,17 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
         it 'sets the agent rate metric' do
           expect(default_sampler).to receive(:sample_rate)
-            .with(span)
+            .with(span_op)
             .and_return(sample_rate)
           sample
-          expect(span.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(sample_rate)
+          expect(span_op.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(sample_rate)
         end
       end
     end
   end
 
   describe '#sample?' do
-    subject(:sample) { rule_sampler.sample?(span) }
+    subject(:sample) { rule_sampler.sample?(span_op) }
 
     it { expect { subject }.to raise_error(StandardError, 'RuleSampler cannot be evaluated without side-effects') }
   end

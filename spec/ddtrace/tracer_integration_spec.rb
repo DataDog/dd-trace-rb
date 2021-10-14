@@ -33,14 +33,13 @@ RSpec.describe Datadog::Tracer do
 
       let(:trace) do
         # Create parent span
-        tracer.trace(parent_span_name) do |parent_span|
-          @parent_span = parent_span
-          parent_span.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP
-          parent_span.context.origin = 'synthetics'
+        tracer.trace(parent_span_name) do |parent_span_op|
+          parent_span_op.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP
+          parent_span_op.context.origin = 'synthetics'
 
           # Propagate it via headers
           headers = {}
-          Datadog::HTTPPropagator.inject!(parent_span.context, headers)
+          Datadog::HTTPPropagator.inject!(parent_span_op.context, headers)
           headers = Hash[headers.map { |k, v| ["http-#{k}".upcase!.tr('-', '_'), v] }]
 
           # Then extract it from the same headers
@@ -50,8 +49,7 @@ RSpec.describe Datadog::Tracer do
           tracer.provider.context = propagated_context
 
           # And create child span from propagated context
-          tracer.trace(child_span_name) do |child_span|
-            @child_span = child_span.span
+          tracer.trace(child_span_name) do |_child_span_op|
             @child_root_span = tracer.active_root_span.span
           end
         end
@@ -146,8 +144,8 @@ RSpec.describe Datadog::Tracer do
 
       shared_examples_for 'a synthetics-sourced trace' do
         before do
-          tracer.trace('local.operation') do |local_span|
-            @local_span = local_span.span
+          tracer.trace('local.operation') do |local_span_op|
+            @local_span = local_span_op.span
             @local_context = tracer.call_context
           end
         end
