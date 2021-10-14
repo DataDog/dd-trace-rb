@@ -360,8 +360,6 @@ RSpec.describe Datadog::Context do
       expect(current_root_span).to be root_span
       expect(current_root_span).to be context.current_root_span
     end
-
-    # NOTE: The rest of the behavior tests for setting the root span is in #current_root_span
   end
 
   describe '#origin' do
