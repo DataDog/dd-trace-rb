@@ -9,15 +9,8 @@ module Datadog
         attr_reader :parent
         attr_reader :name
 
-        # TODO: logger
-        def logger
-          @logger ||= ::Logger.new(STDOUT)
-          @logger.level = ::Logger::DEBUG
-          @logger
-        end
-
         def initialize(name, parent = nil, reactive_engine = nil)
-          logger.debug { "operation: #{name} initialize" }
+          Datadog.logger.debug { "operation: #{name} initialize" }
           @name = name
           @parent = parent
           @reactive = reactive_engine || parent && parent.reactive || Reactive::Engine.new
@@ -40,7 +33,7 @@ module Datadog
         end
 
         def finalize
-          logger.debug { "operation: #{name} finalize" }
+          Datadog.logger.debug { "operation: #{name} finalize" }
           Thread.current[:datadog_security_active_operation] = parent
         end
 

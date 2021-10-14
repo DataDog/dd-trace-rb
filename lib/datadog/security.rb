@@ -1,9 +1,14 @@
 require 'datadog/security/configuration'
+require 'datadog/security/writer'
 
 module Datadog
   # Namespace for Datadog Security instrumentation
   module Security
     include Configuration
+
+    def self.writer
+      @writer ||= Writer.new
+    end
   end
 end
 
