@@ -223,11 +223,6 @@ module Datadog
       span
     end
 
-    # Ends the span
-    def finish_span(operation, end_time = nil)
-      operation.finish(end_time)
-    end
-
     # Records the span (& its context)
     def record_span(operation)
       begin
