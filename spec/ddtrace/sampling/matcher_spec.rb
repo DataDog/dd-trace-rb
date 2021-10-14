@@ -4,12 +4,12 @@ require 'spec_helper'
 require 'ddtrace/sampling/matcher'
 
 RSpec.describe Datadog::Sampling::SimpleMatcher do
-  let(:span) { Datadog::SpanOperation.new(span_name, service: span_service) }
+  let(:span_op) { Datadog::SpanOperation.new(span_name, service: span_service) }
   let(:span_name) { 'operation.name' }
   let(:span_service) { nil }
 
   describe '#match?' do
-    subject(:match?) { rule.match?(span) }
+    subject(:match?) { rule.match?(span_op) }
 
     context 'with a name matcher' do
       let(:rule) { described_class.new(name: name) }
@@ -133,12 +133,12 @@ RSpec.describe Datadog::Sampling::SimpleMatcher do
 end
 
 RSpec.describe Datadog::Sampling::ProcMatcher do
-  let(:span) { Datadog::SpanOperation.new(span_name, service: span_service) }
+  let(:span_op) { Datadog::SpanOperation.new(span_name, service: span_service) }
   let(:span_name) { 'operation.name' }
   let(:span_service) { nil }
 
   describe '#match?' do
-    subject(:match?) { rule.match?(span) }
+    subject(:match?) { rule.match?(span_op) }
 
     let(:rule) { described_class.new(&block) }
 
