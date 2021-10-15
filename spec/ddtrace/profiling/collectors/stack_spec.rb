@@ -308,13 +308,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:last_wall_time) { 42 }
     let(:current_wall_time) { 123 }
 
-    context 'when the backtrace is empty' do
+    context 'when the backtrace is nil' do
       let(:backtrace) { nil }
 
       it { is_expected.to be nil }
     end
 
-    context 'when the backtrace is not empty' do
+    context 'when the backtrace is not nil' do
       let(:backtrace) do
         Array.new(backtrace_size) do
           instance_double(
@@ -468,6 +468,20 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             expect(frames).to be_a_kind_of(Array)
             expect(frames.length).to eq(backtrace.length)
           end
+        end
+      end
+
+      context 'when the backtrace is empty' do
+        let(:backtrace) { [] }
+
+        it 'builds an event that includes a includes a synthetic placeholder frame to mark execution in native code' do
+          is_expected.to have_attributes(
+            total_frame_count: 1,
+            frames: [Datadog::Profiling::BacktraceLocation.new('', 0, 'In native code')],
+            timestamp: kind_of(Float),
+            thread_id: thread.object_id,
+            wall_time_interval_ns: current_wall_time - last_wall_time,
+          )
         end
       end
     end

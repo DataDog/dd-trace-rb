@@ -19,6 +19,7 @@ module Datadog
         MIN_INTERVAL = 0.01
         THREAD_LAST_CPU_TIME_KEY = :datadog_profiler_last_cpu_time
         THREAD_LAST_WALL_CLOCK_KEY = :datadog_profiler_last_wall_clock
+        SYNTHETIC_STACK_IN_NATIVE_CODE = [BacktraceLocation.new('', 0, 'In native code').freeze].freeze
 
         # This default was picked based on the current sampling performance and on expected concurrency on an average
         # Ruby MRI application. Lowering this optimizes for latency (less impact each time we sample), and raising
@@ -118,6 +119,26 @@ module Datadog
         def collect_thread_event(thread, current_wall_time_ns)
           locations = thread.backtrace_locations
           return if locations.nil?
+
+          # Having empty locations means that the thread is alive, but we don't know what it's doing:
+          #
+          # 1. It can be starting up
+          #    ```
+          #    > Thread.new { sleep }.backtrace
+          #    => [] # <-- note the thread hasn't actually started running sleep yet, we got there first
+          #    ```
+          # 2. It can be running native code
+          #    ```
+          #    > t = Process.detach(fork { sleep })
+          #    => #<Process::Waiter:0x00007ffe7285f7a0 run>
+          #    > t.backtrace
+          #    => [] # <-- this can happen even minutes later, e.g. it's not a race as in 1.
+          #    ```
+          #    This effect has been observed in threads created by the Iodine web server and the ffi gem
+          #
+          # To give customers visibility into these threads, we replace the empty stack with one containing a
+          # synthetic placeholder frame, so that these threads are properly represented in the UX.
+          locations = SYNTHETIC_STACK_IN_NATIVE_CODE if locations.empty?
 
           # Get actual stack size then trim the stack
           stack_size = locations.length
