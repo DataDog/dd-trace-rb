@@ -33,7 +33,7 @@ RSpec.describe 'profiling integration test' do
       @stack_two ||= Array(Thread.current.backtrace_locations)[1..3]
     end
 
-    let(:trace_id) { 0 }
+    let(:root_span_id) { 0 }
     let(:span_id) { 0 }
     let(:trace_resource) { nil }
 
@@ -42,7 +42,7 @@ RSpec.describe 'profiling integration test' do
         build_stack_sample(
           locations: stack_one,
           thread_id: 100,
-          trace_id: trace_id,
+          root_span_id: root_span_id,
           span_id: span_id,
           trace_resource: trace_resource,
           cpu_time_ns: 100
@@ -50,7 +50,7 @@ RSpec.describe 'profiling integration test' do
         build_stack_sample(
           locations: stack_two,
           thread_id: 100,
-          trace_id: trace_id,
+          root_span_id: root_span_id,
           span_id: span_id,
           trace_resource: trace_resource,
           cpu_time_ns: 200
@@ -58,7 +58,7 @@ RSpec.describe 'profiling integration test' do
         build_stack_sample(
           locations: stack_one,
           thread_id: 101,
-          trace_id: trace_id,
+          root_span_id: root_span_id,
           span_id: span_id,
           trace_resource: trace_resource,
           cpu_time_ns: 400
@@ -66,7 +66,7 @@ RSpec.describe 'profiling integration test' do
         build_stack_sample(
           locations: stack_two,
           thread_id: 101,
-          trace_id: trace_id,
+          root_span_id: root_span_id,
           span_id: span_id,
           trace_resource: trace_resource,
           cpu_time_ns: 800
@@ -74,7 +74,7 @@ RSpec.describe 'profiling integration test' do
         build_stack_sample(
           locations: stack_two,
           thread_id: 101,
-          trace_id: trace_id,
+          root_span_id: root_span_id,
           span_id: span_id,
           trace_resource: trace_resource,
           cpu_time_ns: 1600
@@ -163,6 +163,7 @@ RSpec.describe 'profiling integration test' do
       around do |example|
         Datadog.tracer.trace('profiler.test') do |span|
           @current_span = span
+          @current_root_span = Datadog.tracer.active_root_span
           example.run
         end
         Datadog.tracer.shutdown!
@@ -183,7 +184,7 @@ RSpec.describe 'profiling integration test' do
             raise 'No stack samples matching current thread!' if stack_samples.empty?
 
             stack_samples.each do |stack_sample|
-              expect(stack_sample.trace_id).to eq(@current_span.trace_id)
+              expect(stack_sample.root_span_id).to eq(@current_root_span.span_id)
               expect(stack_sample.span_id).to eq(@current_span.span_id)
             end
 
@@ -317,7 +318,7 @@ RSpec.describe 'profiling integration test' do
         end
 
         context 'when trace and span IDs are available' do
-          let(:trace_id) { rand(1e9) }
+          let(:root_span_id) { rand(1e9) }
           let(:span_id) { rand(1e9) }
           let(:trace_resource) { 'example trace resource' }
 
@@ -336,8 +337,8 @@ RSpec.describe 'profiling integration test' do
                   num_unit: 0
                 },
                 {
-                  key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
-                  str: string_id_for(trace_id.to_s),
+                  key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_LOCAL_ROOT_SPAN_ID),
+                  str: string_id_for(root_span_id.to_s),
                   num: 0,
                   num_unit: 0
                 },

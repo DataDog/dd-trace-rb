@@ -343,6 +343,25 @@ RSpec.describe Datadog::Context do
     end
   end
 
+  describe '#current_span_and_root_span' do
+    subject(:current_span_and_root_span) { context.current_span_and_root_span }
+
+    let(:span) { Datadog::Span.new(tracer, 'span', context: context) }
+    let(:root_span) { Datadog::Span.new(tracer, 'root span', context: context) }
+
+    it 'returns the current span as well as the current root span' do
+      context.add_span(root_span)
+      context.add_span(span)
+
+      current_span, current_root_span = current_span_and_root_span
+
+      expect(current_span).to be span
+      expect(current_span).to be context.current_span
+      expect(current_root_span).to be root_span
+      expect(current_root_span).to be context.current_root_span
+    end
+  end
+
   describe '#origin' do
     context 'with nil' do
       before { context.origin = nil }

@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
   end
 
   describe '::DEFAULT_SUPPORTED_APIS' do
-    it 'contains the Datadog trace identifiers' do
+    it 'contains the trace identifier extraction class for ddtrace' do
       expect(described_class.const_get(:DEFAULT_SUPPORTED_APIS))
         .to eq([::Datadog::Profiling::TraceIdentifiers::Ddtrace])
     end
@@ -24,11 +24,11 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
 
     context 'when the first api provider returns trace identifiers' do
       before do
-        allow(api1).to receive(:trace_identifiers_for).and_return([:api1_trace_id, :api1_span_id])
+        allow(api1).to receive(:trace_identifiers_for).and_return([:api1_root_span_id, :api1_span_id])
       end
 
       it 'returns the first api provider trace identifiers' do
-        expect(trace_identifiers_for).to eq [:api1_trace_id, :api1_span_id]
+        expect(trace_identifiers_for).to eq [:api1_root_span_id, :api1_span_id]
       end
 
       it 'does not attempt to read trace identifiers from the second api provider' do
@@ -41,11 +41,11 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
     context 'when the first api provider does not return trace identifiers, but the second one does' do
       before do
         allow(api1).to receive(:trace_identifiers_for).and_return(nil)
-        allow(api2).to receive(:trace_identifiers_for).and_return([:api2_trace_id, :api2_span_id])
+        allow(api2).to receive(:trace_identifiers_for).and_return([:api2_root_span_id, :api2_span_id])
       end
 
       it 'returns the second api provider trace identifiers' do
-        expect(trace_identifiers_for).to eq [:api2_trace_id, :api2_span_id]
+        expect(trace_identifiers_for).to eq [:api2_root_span_id, :api2_span_id]
       end
     end
 
@@ -64,18 +64,18 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
       before do
         allow(api1)
           .to receive(:trace_identifiers_for)
-          .and_return([:api1_trace_id, :api1_span_id, :api1_trace_resource_container])
+          .and_return([:api1_root_span_id, :api1_span_id, :api1_trace_resource_container])
       end
 
       it 'returns the trace resource container together with the trace identifiers' do
-        expect(trace_identifiers_for).to eq [:api1_trace_id, :api1_span_id, :api1_trace_resource_container]
+        expect(trace_identifiers_for).to eq [:api1_root_span_id, :api1_span_id, :api1_trace_resource_container]
       end
 
       context 'and endpoint_collection_enabled is set to false' do
         let(:endpoint_collection_enabled) { false }
 
         it 'returns the trace identifiers but removes the trace resource container' do
-          expect(trace_identifiers_for).to eq [:api1_trace_id, :api1_span_id]
+          expect(trace_identifiers_for).to eq [:api1_root_span_id, :api1_span_id]
         end
       end
     end

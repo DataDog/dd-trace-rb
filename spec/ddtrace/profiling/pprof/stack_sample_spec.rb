@@ -90,14 +90,18 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:second_key) { converter.stack_sample_group_key(second) }
 
       let(:thread_id) { 1 }
-      let(:trace_id) { 2 }
+      let(:root_span_id) { 2 }
       let(:span_id) { 3 }
       let(:trace_resource) { "resource#{rand(1e9)}" }
       let(:stack) { Thread.current.backtrace_locations }
 
-      context 'with identical threads, stacks, trace and span IDs' do
-        let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
-        let(:second) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+      context 'with identical threads, stacks, root_span and span IDs' do
+        let(:first) do
+          build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+        end
+        let(:second) do
+          build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+        end
 
         before { expect(first.frames).to eq(second.frames) }
 
@@ -105,11 +109,13 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
 
       context 'with identical threads and stacks but different' do
-        context 'trace IDs' do
-          let(:other_trace_id) { 3 }
-          let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+        context 'root span IDs' do
+          let(:other_root_span_id) { 3 }
+          let(:first) do
+            build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+          end
           let(:second) do
-            build_stack_sample(locations: stack, thread_id: thread_id, trace_id: other_trace_id, span_id: span_id)
+            build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: other_root_span_id, span_id: span_id)
           end
 
           before { expect(first.frames).to eq(second.frames) }
@@ -119,9 +125,11 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
         context 'span IDs' do
           let(:other_span_id) { 4 }
-          let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:first) do
+            build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+          end
           let(:second) do
-            build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: other_span_id)
+            build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: other_span_id)
           end
 
           before { expect(first.frames).to eq(second.frames) }
@@ -132,8 +140,12 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'with identical threads and different' do
         context 'stacks' do
-          let(:first) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
-          let(:second) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:first) do
+            build_stack_sample(locations: nil, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+          end
+          let(:second) do
+            build_stack_sample(locations: nil, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+          end
 
           before { expect(first.frames).to_not eq(second.frames) }
 
@@ -147,7 +159,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length,
               thread_id,
-              trace_id,
+              root_span_id,
               span_id,
               trace_resource,
               rand(1e9),
@@ -161,7 +173,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length + 1,
               thread_id,
-              trace_id,
+              root_span_id,
               span_id,
               trace_resource,
               rand(1e9),
@@ -196,7 +208,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
     context 'given stack samples' do
       let(:thread_id) { 1 }
-      let(:trace_id) { 2 }
+      let(:root_span_id) { 2 }
       let(:span_id) { 3 }
       let(:trace_resource) { "resource#{rand(1e9)}" }
       let(:stack) { Thread.current.backtrace_locations }
@@ -222,9 +234,13 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         end
       end
 
-      context 'with identical threads, stacks, trace and span IDs' do
-        let(:first) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
-        let(:second) { build_stack_sample(locations: stack, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+      context 'with identical threads, stacks, root_span and span IDs' do
+        let(:first) do
+          build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+        end
+        let(:second) do
+          build_stack_sample(locations: stack, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+        end
 
         before { expect(first.frames).to eq(second.frames) }
 
@@ -245,8 +261,12 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
 
       context 'with identical threads and different' do
         context 'stacks' do
-          let(:first) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
-          let(:second) { build_stack_sample(locations: nil, thread_id: thread_id, trace_id: trace_id, span_id: span_id) }
+          let(:first) do
+            build_stack_sample(locations: nil, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+          end
+          let(:second) do
+            build_stack_sample(locations: nil, thread_id: thread_id, root_span_id: root_span_id, span_id: span_id)
+          end
 
           before { expect(first.frames).to_not eq(second.frames) }
 
@@ -260,7 +280,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length,
               thread_id,
-              trace_id,
+              root_span_id,
               span_id,
               trace_resource,
               rand(1e9),
@@ -274,7 +294,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
               stack,
               stack.length + 1,
               thread_id,
-              trace_id,
+              root_span_id,
               span_id,
               trace_resource,
               rand(1e9),
@@ -309,7 +329,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           build_stack_sample(
             locations: nil, # Builds unique stack
             thread_id: thread_id,
-            trace_id: trace_id,
+            root_span_id: root_span_id,
             span_id: span_id,
             trace_resource: 'GET 200'
           )
@@ -320,7 +340,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           build_stack_sample(
             locations: stack,
             thread_id: thread_id,
-            trace_id: trace_id,
+            root_span_id: root_span_id,
             span_id: span_id,
             trace_resource: 'GET 200'
           )
@@ -331,7 +351,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           build_stack_sample(
             locations: stack,
             thread_id: thread_id,
-            trace_id: trace_id,
+            root_span_id: root_span_id,
             span_id: span_id,
             trace_resource: most_recent_trace_resource
           )
@@ -427,15 +447,15 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       end
     end
 
-    shared_examples_for 'contains trace ID label' do |index = 1|
-      subject(:trace_id_label) { build_sample_labels[index] }
+    shared_examples_for 'contains root span ID label' do |index = 1|
+      subject(:root_span_id_label) { build_sample_labels[index] }
 
       it { is_expected.to be_kind_of(Perftools::Profiles::Label) }
 
       it do
         is_expected.to have_attributes(
-          key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
-          str: string_id_for(stack_sample.trace_id.to_s)
+          key: string_id_for(Datadog::Ext::Profiling::Pprof::LABEL_KEY_LOCAL_ROOT_SPAN_ID),
+          str: string_id_for(stack_sample.root_span_id.to_s)
         )
       end
     end
@@ -471,7 +491,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         instance_double(
           Datadog::Profiling::Events::StackSample,
           thread_id: thread_id,
-          trace_id: trace_id,
+          root_span_id: root_span_id,
           span_id: span_id,
           trace_resource: trace_resource
         )
@@ -480,9 +500,9 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
       let(:thread_id) { rand(1e9) }
       let(:trace_resource) { nil }
 
-      context 'when trace and span IDs are' do
+      context 'when root_span and span IDs are' do
         context 'set' do
-          let(:trace_id) { rand(1e9) }
+          let(:root_span_id) { rand(1e9) }
           let(:span_id) { rand(1e9) }
 
           it do
@@ -491,7 +511,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
           end
 
           it_behaves_like 'contains thread ID label'
-          it_behaves_like 'contains trace ID label'
+          it_behaves_like 'contains root span ID label'
           it_behaves_like 'contains span ID label'
 
           context 'when trace resource is non-empty' do
@@ -503,7 +523,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
             end
 
             it_behaves_like 'contains thread ID label'
-            it_behaves_like 'contains trace ID label'
+            it_behaves_like 'contains root span ID label'
             it_behaves_like 'contains span ID label'
             it_behaves_like('contains trace endpoint label', trace_endpoint: 'example trace resource')
           end
@@ -517,13 +537,13 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
             end
 
             it_behaves_like 'contains thread ID label'
-            it_behaves_like 'contains trace ID label'
+            it_behaves_like 'contains root span ID label'
             it_behaves_like 'contains span ID label'
           end
         end
 
         context '0' do
-          let(:trace_id) { 0 }
+          let(:root_span_id) { 0 }
           let(:span_id) { 0 }
 
           it do
@@ -535,7 +555,7 @@ RSpec.describe Datadog::Profiling::Pprof::StackSample do
         end
 
         context 'nil' do
-          let(:trace_id) { nil }
+          let(:root_span_id) { nil }
           let(:span_id) { nil }
 
           it do
