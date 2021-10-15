@@ -128,10 +128,10 @@ RSpec.describe Datadog::Tracer do
 
     it { is_expected.to be_a_kind_of(Datadog::SpanOperation) }
 
-    it 'does not belong to current the context by default' do
+    it 'belongs to current the context by default' do
       tracer.trace('parent') do |active_span|
-        expect(start_span.parent).to_not eq(active_span)
-        expect(start_span.context).to_not eq(active_span.context)
+        expect(start_span.parent).to eq(active_span)
+        expect(start_span.context).to eq(active_span.context)
       end
     end
 
