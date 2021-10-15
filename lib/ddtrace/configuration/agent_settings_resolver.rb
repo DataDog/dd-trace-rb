@@ -264,8 +264,8 @@ module Datadog
         log_warning(
           'Configuration mismatch: values differ between ' \
           "#{detected_configurations_in_priority_order
-            .map { |config| "#{config.friendly_name} ('#{config.value}')" }.join(' and ')}" \
-          ". Using '#{detected_configurations_in_priority_order.first.value}'."
+            .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(' and ')}" \
+          ". Using #{detected_configurations_in_priority_order.first.value.inspect}."
         )
       end
 
