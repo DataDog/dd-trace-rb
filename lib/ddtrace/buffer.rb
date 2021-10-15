@@ -213,16 +213,9 @@ module Datadog
       # `slice!` with a {Range} argument.
       @items.slice!(@max_size, FIXNUM_MAX)
 
-      # we should replace a random trace with the new one
+      # We should replace a random trace with the new one
       replace_index = rand(@items.size)
-      replaced_trace = @items.delete_at(replace_index)
-      @items << item
-
-      # We might have deleted an element right when the buffer
-      # was drained, thus +replaced_trace+ will be +nil+.
-      # In that case, nothing was replaced, and this method
-      # performed a simple insertion into the buffer.
-      replaced_trace
+      @items[replace_index] = item
     end
   end
 
