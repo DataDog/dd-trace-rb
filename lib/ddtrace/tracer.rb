@@ -163,6 +163,7 @@ module Datadog
     # * +tags+: extra tags which should be added to the span.
     def build_span(name, options = {})
       # Resolve context, parent
+      options[:child_of] = call_context unless options.key?(:child_of)
       context, parent = guess_context_and_parent(options[:child_of])
 
       # Build span options
@@ -272,8 +273,6 @@ module Datadog
     #   If not set, defaults to Tracer.call_context
     # * +tags+: extra tags which should be added to the span.
     def trace(name, options = {}, &block)
-      options[:child_of] ||= call_context
-
       if block
         # If building a span somehow fails, try to run the original code anyways.
         # This may help if it were manual instrumentation. However, if the code
