@@ -163,7 +163,7 @@ module Datadog
 
         begin
           Integer(value)
-        rescue ArgumentError
+        rescue ArgumentError, TypeError
           log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
 
           nil

@@ -530,7 +530,7 @@ RSpec.describe 'Tracer integration tests' do
 
     let(:tracer) { Datadog::Tracer.new }
     let(:hostname) { double('hostname') }
-    let(:port) { double('port') }
+    let(:port) { 34567 }
     let(:settings) { Datadog::Configuration::Settings.new }
     let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 

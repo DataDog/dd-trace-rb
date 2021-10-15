@@ -210,9 +210,27 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
       end
 
-      context 'when the port is an invalid value' do
+      context 'when the port is an invalid string value' do
         before do
           ddtrace_settings.tracer.port = 'kaboom'
+
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+
+      context 'when the port is an invalid object' do
+        before do
+          ddtrace_settings.tracer.port = Object.new
 
           allow(logger).to receive(:warn)
         end
