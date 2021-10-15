@@ -4,6 +4,7 @@
 require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/string_table'
+require 'ddtrace/utils/time'
 
 module Datadog
   module Profiling
@@ -47,14 +48,19 @@ module Datadog
           Perftools::Profiles::Profile.encode(profile).force_encoding(DEFAULT_ENCODING)
         end
 
-        def build_profile
+        def build_profile(start:, finish:)
+          start_ns = Datadog::Utils::Time.as_utc_epoch_ns(start)
+          finish_ns = Datadog::Utils::Time.as_utc_epoch_ns(finish)
+
           Perftools::Profiles::Profile.new(
             sample_type: @sample_types.messages,
             sample: @samples,
             mapping: @mappings.messages,
             location: @locations.values,
             function: @functions.messages,
-            string_table: @string_table.strings
+            string_table: @string_table.strings,
+            time_nanos: start_ns,
+            duration_nanos: finish_ns - start_ns,
           )
         end
 

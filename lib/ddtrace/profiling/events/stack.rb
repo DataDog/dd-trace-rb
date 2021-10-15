@@ -11,7 +11,7 @@ module Datadog
           :frames,
           :total_frame_count,
           :thread_id,
-          :trace_id,
+          :root_span_id,
           :span_id,
           :trace_resource
 
@@ -20,7 +20,7 @@ module Datadog
           frames,
           total_frame_count,
           thread_id,
-          trace_id,
+          root_span_id,
           span_id,
           trace_resource
         )
@@ -29,16 +29,16 @@ module Datadog
           @frames = frames
           @total_frame_count = total_frame_count
           @thread_id = thread_id
-          @trace_id = trace_id
+          @root_span_id = root_span_id
           @span_id = span_id
           @trace_resource = trace_resource
 
           @hash = [
             thread_id,
-            trace_id,
+            root_span_id,
             span_id,
-            # trace_resource is deliberately not included -- events that share the same (trace_id, span_id)
-            # trace_resource might not match between pairs, but they refer to the same trace.
+            # trace_resource is deliberately not included -- events that share the same (root_span_id, span_id) refer
+            # to the same trace
             frames.collect(&:hash),
             total_frame_count
           ].hash
@@ -56,7 +56,7 @@ module Datadog
           frames,
           total_frame_count,
           thread_id,
-          trace_id,
+          root_span_id,
           span_id,
           trace_resource,
           cpu_time_interval_ns,
@@ -67,7 +67,7 @@ module Datadog
             frames,
             total_frame_count,
             thread_id,
-            trace_id,
+            root_span_id,
             span_id,
             trace_resource
           )

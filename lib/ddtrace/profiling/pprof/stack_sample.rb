@@ -32,7 +32,7 @@ module Datadog
 
           @most_recent_trace_samples = {}
           @processed_unique_stacks = 0
-          @processed_with_trace_ids = 0
+          @processed_with_trace = 0
         end
 
         def add_events!(stack_samples)
@@ -48,18 +48,18 @@ module Datadog
           stack_sample.hash
         end
 
-        # Track the most recent sample for each trace
+        # Track the most recent sample for each trace (identified by root span id)
         def update_most_recent_trace_sample(stack_sample)
-          return unless stack_sample.trace_id && stack_sample.trace_resource
+          return unless stack_sample.root_span_id && stack_sample.trace_resource
 
           # Update trace resource with most recent value
-          if (most_recent_trace_sample = @most_recent_trace_samples[stack_sample.trace_id])
+          if (most_recent_trace_sample = @most_recent_trace_samples[stack_sample.root_span_id])
             if most_recent_trace_sample.timestamp < stack_sample.timestamp
-              @most_recent_trace_samples[stack_sample.trace_id] = stack_sample
+              @most_recent_trace_samples[stack_sample.root_span_id] = stack_sample
             end
           else
             # Add trace resource
-            @most_recent_trace_samples[stack_sample.trace_id] = stack_sample
+            @most_recent_trace_samples[stack_sample.root_span_id] = stack_sample
           end
         end
 
@@ -100,15 +100,15 @@ module Datadog
             )
           ]
 
-          trace_id = stack_sample.trace_id || 0
+          root_span_id = stack_sample.root_span_id || 0
           span_id = stack_sample.span_id || 0
 
-          if trace_id != 0 && span_id != 0
-            @processed_with_trace_ids += 1
+          if root_span_id != 0 && span_id != 0
+            @processed_with_trace += 1
 
             labels << Perftools::Profiles::Label.new(
-              key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_TRACE_ID),
-              str: builder.string_table.fetch(trace_id.to_s)
+              key: builder.string_table.fetch(Datadog::Ext::Profiling::Pprof::LABEL_KEY_LOCAL_ROOT_SPAN_ID),
+              str: builder.string_table.fetch(root_span_id.to_s)
             )
 
             labels << Perftools::Profiles::Label.new(
@@ -118,10 +118,7 @@ module Datadog
 
             # Use most up-to-date trace resource, if available.
             # Otherwise, use the trace resource provided.
-            trace_resource = (
-              @most_recent_trace_samples[stack_sample.trace_id] \
-              || stack_sample
-            ).trace_resource
+            trace_resource = @most_recent_trace_samples.fetch(stack_sample.root_span_id, stack_sample).trace_resource
 
             if trace_resource && !trace_resource.empty?
               labels << Perftools::Profiles::Label.new(
@@ -135,7 +132,7 @@ module Datadog
         end
 
         def debug_statistics
-          "unique stacks: #{@processed_unique_stacks}, of which had active traces: #{@processed_with_trace_ids}"
+          "unique stacks: #{@processed_unique_stacks}, of which had active traces: #{@processed_with_trace}"
         end
       end
     end

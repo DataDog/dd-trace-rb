@@ -40,6 +40,12 @@ module Datadog
         after = get_time
         after - before
       end
+
+      def as_utc_epoch_ns(time)
+        # we use #to_r instead of #to_f because Float doesn't have enough precision to represent exact nanoseconds, see
+        # https://rubyapi.org/3.0/o/time#method-i-to_f
+        (time.to_r * 1_000_000_000).to_i
+      end
     end
   end
 end

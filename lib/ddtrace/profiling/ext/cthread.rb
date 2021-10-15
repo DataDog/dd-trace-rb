@@ -85,7 +85,7 @@ module Datadog
             update_native_ids
             yield(*t_args)
           end
-          wrapped_block.ruby2_keywords if wrapped_block.respond_to?(:ruby2_keywords, true)
+          wrapped_block.send(:ruby2_keywords) if wrapped_block.respond_to?(:ruby2_keywords, true)
 
           super(*args, &wrapped_block)
         end
@@ -143,7 +143,7 @@ module Datadog
             ::Thread.current.send(:update_native_ids)
             yield(*t_args)
           end
-          wrapped_block.ruby2_keywords if wrapped_block.respond_to?(:ruby2_keywords, true)
+          wrapped_block.send(:ruby2_keywords) if wrapped_block.respond_to?(:ruby2_keywords, true)
 
           super(*args, &wrapped_block)
         end

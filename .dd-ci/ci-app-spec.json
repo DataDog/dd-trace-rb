@@ -3,6 +3,7 @@
   "test.name",
   "test.status",
   "test.framework",
+  "test.framework_version",
   "test.type",
   "ci.provider.name",
   "ci.pipeline.id",

@@ -126,14 +126,17 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
   end
 
   describe '#to_pprof' do
-    subject(:to_pprof) { template.to_pprof }
+    subject(:to_pprof) { template.to_pprof(start: start, finish: finish) }
 
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:data) { instance_double(String) }
+    let(:start) { instance_double(::Time, 'Start time') }
+    let(:finish) { instance_double(::Time, 'Finish time') }
 
     before do
       expect(template.builder)
         .to receive(:build_profile)
+        .with(start: start, finish: finish)
         .and_return(profile)
 
       expect(template.builder)

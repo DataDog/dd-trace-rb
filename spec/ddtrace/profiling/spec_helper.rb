@@ -46,19 +46,19 @@ module ProfileHelpers
 
     stack_samples = [
       build_stack_sample(
-        locations: stack_one, thread_id: 100, trace_id: 0, span_id: 0, cpu_time_ns: 100, wall_time_ns: 100
+        locations: stack_one, thread_id: 100, root_span_id: 0, span_id: 0, cpu_time_ns: 100, wall_time_ns: 100
       ),
       build_stack_sample(
-        locations: stack_two, thread_id: 100, trace_id: 0, span_id: 0, cpu_time_ns: 200, wall_time_ns: 200
+        locations: stack_two, thread_id: 100, root_span_id: 0, span_id: 0, cpu_time_ns: 200, wall_time_ns: 200
       ),
       build_stack_sample(
-        locations: stack_one, thread_id: 101, trace_id: 0, span_id: 0, cpu_time_ns: 400, wall_time_ns: 400
+        locations: stack_one, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 400, wall_time_ns: 400
       ),
       build_stack_sample(
-        locations: stack_two, thread_id: 101, trace_id: 0, span_id: 0, cpu_time_ns: 800, wall_time_ns: 800
+        locations: stack_two, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 800, wall_time_ns: 800
       ),
       build_stack_sample(
-        locations: stack_two, thread_id: 101, trace_id: 0, span_id: 0, cpu_time_ns: 1600, wall_time_ns: 1600
+        locations: stack_two, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 1600, wall_time_ns: 1600
       )
     ]
 
@@ -81,7 +81,7 @@ module ProfileHelpers
   def build_stack_sample(
     locations: nil,
     thread_id: nil,
-    trace_id: nil,
+    root_span_id: nil,
     span_id: nil,
     trace_resource: nil,
     cpu_time_ns: nil,
@@ -96,7 +96,7 @@ module ProfileHelpers
       end,
       locations.length,
       thread_id || rand(1e9),
-      trace_id || rand(1e9),
+      root_span_id || rand(1e9),
       span_id || rand(1e9),
       trace_resource || "resource#{rand(1e9)}",
       cpu_time_ns || rand(1e9),
