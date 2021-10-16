@@ -71,9 +71,7 @@ RSpec.describe Datadog::Context do
     let(:span_op) { new_span_op }
 
     def new_span_op
-      Datadog::SpanOperation.new(double('name')).tap do |span_op|
-        allow(span_op).to receive(:detach_from_context!)
-      end
+      Datadog::SpanOperation.new(double('name'))
     end
 
     context 'given a span operation' do
@@ -100,10 +98,10 @@ RSpec.describe Datadog::Context do
 
           it 'doesn\'t add the span operation to the context' do
             expect(context.current_span_op).to be existing_span_op
+            is_expected.to be false
           end
 
           it 'sends overflow metric' do
-            expect(overflow_span_op).to have_received(:detach_from_context!)
             expect(Datadog.logger).to have_received(:debug)
               .with(a_context_overflow_error)
             expect(health_metrics).to have_received(:error_context_overflow)
@@ -370,15 +368,23 @@ RSpec.describe Datadog::Context do
     subject(:annotate_for_flush!) { context.delete_span_if(&block) }
 
     context 'when the Context contains spans' do
-      let!(:remaining_span_op) do
-        Datadog::SpanOperation.new('span.remaining', context: context).tap(&:finish)
+      let(:remaining_span_op) do
+        Datadog::SpanOperation.new('span.remaining')
       end
 
-      let!(:deleted_span_op) do
-        Datadog::SpanOperation.new('deleted', context: context).tap(&:finish)
+      let(:deleted_span_op) do
+        Datadog::SpanOperation.new('deleted')
       end
 
       let(:block) { proc { |s| s == deleted_span_op } }
+
+      before do
+        [remaining_span_op, deleted_span_op].each do |span_op|
+          context.add_span(span_op)
+          span_op.finish
+          context.close_span(span_op)
+        end
+      end
 
       it 'returns deleted spans' do
         is_expected.to contain_exactly(deleted_span_op.span)
