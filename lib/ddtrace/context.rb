@@ -101,23 +101,11 @@ module Datadog
 
     def add_span(span_op)
       @mutex.synchronize do
-        # Make the span follow the current span
-        if @current_span_op
-          span_op.parent = @current_span_op
-        # If there isn't a current span, inherit the trace & parent ID if available.
-        # This happens when the trace originates from a distributed trace.
-        else
-          span_op.trace_id = @parent_trace_id unless @parent_trace_id.nil?
-          span_op.parent_id = @parent_span_id unless @parent_span_id.nil?
-        end
-
         # If hitting the hard limit, just drop spans. This is really a rare case
         # as it means despite the soft limit, the hard limit is reached, so the trace
         # by default has 10000 spans, all of which belong to unfinished parts of a
         # larger trace. This is a catch-all to reduce global memory usage.
         if full?
-          # Detach the span from the context; it's being dropped and ignored.
-          span_op.detach_from_context!
           Datadog.logger.debug("context full, ignoring span #{span_op.name}")
 
           # If overflow has already occurred, don't send this metric.
@@ -127,14 +115,15 @@ module Datadog
             @overflow = true
           end
 
-          return
+          return false
         end
 
         # Add the span to the context
-        span_op.context = self
         self.current_span_op = span_op
         @current_root_span_op = span_op if @trace.empty?
         @trace << span_op
+
+        true
       end
     end
 

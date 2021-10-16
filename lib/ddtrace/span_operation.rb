@@ -62,8 +62,16 @@ module Datadog
       :trace_id=
     ].to_set.freeze
 
-    attr_reader :events, :parent
-    attr_accessor :span, :context
+    attr_reader \
+      :events,
+      :parent
+
+    # TODO: Deprecate use of #context.
+    #       Context should be accessed from the tracer.
+    #       This attribute is provided for backwards compatibility only.
+    attr_accessor \
+      :context,
+      :span
 
     # Forward instance methods to Span except ones that would cause identity issues
     def_delegators :span, *FORWARDED_METHODS
@@ -85,9 +93,6 @@ module Datadog
       @span = Span.new(span_name, **span_options)
       @context = options[:context]
       @events = options[:events] || Events.new
-
-      # Add span to the context, if provided.
-      @context.add_span(self) if @context
 
       if parent.nil?
         # Root span: set default tags.
@@ -157,10 +162,6 @@ module Datadog
       span.parent = parent && parent.span
     end
 
-    def detach_from_context!
-      @context = nil
-    end
-
     def start(start_time = nil)
       # A span should not be started twice. However, this is existing
       # behavior and so we maintain it for backward compatibility for those
@@ -181,14 +182,6 @@ module Datadog
 
       # Stop the span
       span.stop(end_time)
-
-      # Close the context
-      begin
-        context.close_span(self) if context
-      rescue StandardError => e
-        Datadog.logger.debug("Error closing finished span operation on context: #{e} Backtrace: #{e.backtrace.first(3)}")
-        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
-      end
 
       # Trigger after_finish event
       events.after_finish.publish(self)
