@@ -137,21 +137,6 @@ module Datadog
       @tags = @tags.merge(string_tags)
     end
 
-    # Guess context and parent from child_of entry.
-    def guess_context_and_parent(child_of)
-      case child_of
-      when Context
-        [child_of, child_of.current_span]
-      when SpanOperation
-        [child_of.context, child_of]
-      when Span
-        [nil, child_of]
-      else
-        # Start of a trace
-        [Context.new, nil]
-      end
-    end
-
     # Build a span that will trace an operation called \name. This method allows
     # parenting passing \child_of as an option. If it's missing, the newly created span is a
     # root span. Available options are:
@@ -162,47 +147,29 @@ module Datadog
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +tags+: extra tags which should be added to the span.
     def build_span(name, options = {})
-      # Resolve context, parent
-      options[:child_of] = call_context unless options.key?(:child_of)
-      context, parent = guess_context_and_parent(options[:child_of])
-
-      # Build span options
-      options[:context] = context
-      options[:child_of] = parent
-      options[:service] ||= (parent && parent.service) || default_service
-      options[:tags] =  if @tags.any? && options[:tags]
-                          # Combine default tags with provided tags,
-                          # preferring provided tags.
-                          @tags.merge(options[:tags])
-                        else
-                          # Use provided tags or default tags if none.
-                          options[:tags] || @tags.dup
-                        end
+      # Resolve span options:
+      # Context, parent, service name, etc.
+      options = build_span_options(options)
+      context = options[:context]
+      parent = options[:parent]
 
       # Build a new span operation
       span_op = Datadog::SpanOperation.new(name, options)
 
-      # Subscribe to events
-      span_op.events.after_finish.subscribe(:tracer_span_finished) do |op|
-        record_span(op)
+      # Add span operation to context
+      if context && context.add_span(span_op)
+        # Subscribe to finish event to close and record.
+        subscribe_span_finish(span_op, context)
+      else
+        # Could not add the span (context is probably full)
+        # Disassociate the span from the context
+        span_op.context = nil
       end
 
-      # Wrap default error behavior with custom handler if provided
-      if options[:on_error].respond_to?(:call)
-        span_op.events.on_error.wrap(:default) do |original, op, error|
-          begin
-            options[:on_error].call(op, error)
-          rescue StandardError => e
-            Datadog.logger.debug(
-              "Custom on_error handler failed, using fallback behavior. \
-               Error: #{e.message} Location: #{e.backtrace.first}"
-            )
-            original.call(op, error) if original
-          end
-        end
-      end
+      # Subscribe to the error event to run any custom error behavior.
+      subscribe_on_error(span_op, options[:on_error])
 
-      # If it's a root span...
+      # If it's a root span, sample it.
       @sampler.sample!(span_op) if parent.nil?
 
       span_op
@@ -222,18 +189,6 @@ module Datadog
       span_op = build_span(name, options)
       span_op.start(options[:start_time])
       span_op
-    end
-
-    # Records the span (& its context)
-    def record_span(span_op)
-      begin
-        span_op.service ||= default_service
-        record_context(span_op.context) if span_op.context
-        span_op.span
-      rescue StandardError => e
-        Datadog.logger.debug("Error recording finished trace: #{e} Backtrace: #{e.backtrace.first}")
-        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
-      end
     end
 
     # Return a +span+ that will trace an operation called +name+. You could trace your code
@@ -296,10 +251,6 @@ module Datadog
       end
     end
 
-    def trace_completed
-      @trace_completed ||= TraceCompleted.new
-    end
-
     # Record the given +context+. For compatibility with previous versions,
     # +context+ can also be a span. It is similar to the +child_of+ argument,
     # method will figure out what to do, submitting a +span+ for recording
@@ -309,18 +260,6 @@ module Datadog
       return if context.nil?
 
       record_context(context)
-    end
-
-    # Consume trace from +context+, according to +@context_flush+
-    # criteria.
-    #
-    # \ContextFlush#consume! can return nil or an empty list if the
-    # trace is not available to flush or if the trace has not been
-    # chosen to be sampled.
-    def record_context(context)
-      trace = @context_flush.consume!(context)
-
-      write(trace) if @enabled && trace && !trace.empty?
     end
 
     # Return the current active span or +nil+.
@@ -338,20 +277,8 @@ module Datadog
       Datadog::Correlation.identifier_from_context(call_context(key))
     end
 
-    # Send the trace to the writer to enqueue the spans list in the agent
-    # sending queue.
-    def write(trace)
-      return if @writer.nil?
-
-      if Datadog.configuration.diagnostics.debug
-        Datadog.logger.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
-        str = String.new('')
-        PP.pp(trace, str)
-        Datadog.logger.debug(str)
-      end
-
-      @writer.write(trace)
-      trace_completed.publish(trace)
+    def trace_completed
+      @trace_completed ||= TraceCompleted.new
     end
 
     # Triggered whenever a trace is completed
@@ -367,6 +294,130 @@ module Datadog
         super(trace)
       end
       # rubocop:enable Lint/UselessMethodDefinition
+    end
+
+    private
+
+    def build_span_options(options = {})
+      # Resolve context and parent, unless parenting is explicitly nullified.
+      if options.key?(:child_of) && options[:child_of].nil?
+        context = Context.new
+        parent = nil
+      else
+        context, parent = resolve_context_and_parent(options[:child_of])
+      end
+
+      # Build span options
+      options[:child_of] = parent
+      options[:context] = context
+      options[:service] ||= (parent && parent.service) || default_service
+      options[:tags] = resolve_tags(options[:tags])
+
+      # If a parent span isn't defined, use context's trace/span ID if available.
+      # Necessary when root span isn't available, e.g. distributed trace.
+      unless parent
+        if (span_id = (context && context.span_id))
+          options[:parent_id] = span_id
+        end
+
+        if (trace_id = (context && context.trace_id))
+          options[:trace_id] = trace_id
+        end
+      end
+
+      options
+    end
+
+    def resolve_context_and_parent(child_of)
+      context = child_of.is_a?(Context) ? child_of : call_context
+      parent = if child_of.is_a?(Context)
+                 child_of.current_span
+               else
+                 child_of || context.current_span
+               end
+
+      [context, parent]
+    end
+
+    def resolve_tags(tags)
+      if @tags.any? && tags
+        # Combine default tags with provided tags,
+        # preferring provided tags.
+        @tags.merge(tags)
+      else
+        # Use provided tags or default tags if none.
+        tags || @tags.dup
+      end
+    end
+
+    # Close the span on the context and record the finished span.
+    def subscribe_span_finish(span_op, context)
+      span_op.events.after_finish.subscribe(:tracer_span_finished) do |op|
+        begin
+          context.close_span(op) if context
+          record_span(op)
+        rescue StandardError => e
+          Datadog.logger.debug("Error closing finished span operation: #{e} Backtrace: #{e.backtrace.first(3)}")
+          Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
+        end
+      end
+    end
+
+    # Call custom error handler but fallback to default behavior on failure.
+    def subscribe_on_error(span_op, error_handler)
+      return unless error_handler.respond_to?(:call)
+
+      span_op.events.on_error.wrap(:default) do |original, op, error|
+        begin
+          error_handler.call(op, error)
+        rescue StandardError => e
+          Datadog.logger.debug(
+            "Custom on_error handler failed, using fallback behavior. \
+             Error: #{e.message} Location: #{e.backtrace.first}"
+          )
+          original.call(op, error) if original
+        end
+      end
+    end
+
+    # Records the span (& its context)
+    def record_span(span_op)
+      begin
+        span_op.service ||= default_service
+        record_context(span_op.context) if span_op.context
+        span_op.span
+      rescue StandardError => e
+        Datadog.logger.debug("Error recording finished trace: #{e} Backtrace: #{e.backtrace.first}")
+        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
+      end
+    end
+
+    # Consume trace from +context+, according to +@context_flush+
+    # criteria.
+    #
+    # \ContextFlush#consume! can return nil or an empty list if the
+    # trace is not available to flush or if the trace has not been
+    # chosen to be sampled.
+    def record_context(context)
+      trace = @context_flush.consume!(context)
+
+      write(trace) if @enabled && trace && !trace.empty?
+    end
+
+    # Send the trace to the writer to enqueue the spans list in the agent
+    # sending queue.
+    def write(trace)
+      return if @writer.nil?
+
+      if Datadog.configuration.diagnostics.debug
+        Datadog.logger.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
+        str = String.new('')
+        PP.pp(trace, str)
+        Datadog.logger.debug(str)
+      end
+
+      @writer.write(trace)
+      trace_completed.publish(trace)
     end
 
     # TODO: Move this kind of configuration building out of the tracer.
@@ -421,14 +472,5 @@ module Datadog
     def deactivate_priority_sampling!(base_sampler = nil)
       @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
     end
-
-    private \
-      :activate_priority_sampling!,
-      :configure_writer,
-      :deactivate_priority_sampling!,
-      :guess_context_and_parent,
-      :record_span,
-      :record_context,
-      :write
   end
 end
