@@ -14,7 +14,11 @@ module Datadog
     end
 
     # Add a new ``item`` in the local queue. This method doesn't block the execution
-    # even if the buffer is full. In that case, a random item is discarded.
+    # even if the buffer is full.
+    #
+    # When the buffer is full, we try to ensure that we are fairly sampling newly
+    # pushed traces by randomly inserting them into the buffer slots. This discards
+    # old traces randomly while trying to ensure that recent traces are still captured.
     def push(item)
       return if closed?
 
@@ -214,7 +218,7 @@ module Datadog
       @items.slice!(@max_size, FIXNUM_MAX)
 
       # We should replace a random trace with the new one
-      replace_index = rand(@items.size)
+      replace_index = rand(@max_size)
       @items[replace_index] = item
     end
   end
