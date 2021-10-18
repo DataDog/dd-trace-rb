@@ -20,6 +20,12 @@ module Datadog
         def uses
           @uses
         end
+
+        def [](key)
+          found = @uses.select { |k, v| k == key }.first
+
+          found.last if found
+        end
       end
 
       module ClassMethods

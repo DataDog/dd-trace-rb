@@ -22,6 +22,7 @@ module Datadog
             Instrumentation.gateway.watch('rack.request') do |request|
               block = false
               waf_context = request.env['datadog.waf.context']
+              waf_rules = request.env['datadog.waf.rules']
 
               Reactive::Operation.new('rack.request') do |op|
                 if defined?(Datadog::Tracer) && Datadog.respond_to?(:tracer) && (tracer = Datadog.tracer)
@@ -36,33 +37,33 @@ module Datadog
                 end
 
                 addresses = [
-                  #'request.user_agent',
-                  #'request.params',
                   'request.headers',
-                  #'request.referer',
-                  #'request.path',
+                  'request.uri.raw',
+                  'request.query',
+                  'request.cookies',
+                  'request.body',
+                  # TODO: 'request.path_params',
                 ]
                 op.subscribe(*addresses) do |*values|
+                  Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}"}
                   headers = values[0]
-                  #user_agent = values[0]
-                  #params = values[1]
-                  #headers = values[2]
-                  #referer = values[3]
-                  #path = values[4]
-                  Datadog.logger.debug { "headers: #{headers}"}
+                  headers_no_cookies = headers.dup.tap { |h| h.delete('cookie') }
+                  uri_raw = values[1]
+                  query = values[2]
+                  cookies = values[3]
+                  body = values[4]
+                  Datadog.logger.debug { "headers: #{headers}" }
+                  Datadog.logger.debug { "headers_no_cookie: #{headers_no_cookies}" }
 
                   waf_args = {
-                    # 'server.request.cookies'
-                    # 'server.request.body' =>
-                    #'server.request.query' => params.keys.flatten,
-                    #'server.request.path_params' => params.values.flatten,
+                    'server.request.cookies' => cookies,
+                    'server.request.body' => body,
+                    'server.request.query' => query,
+                    'server.request.uri.raw' => uri_raw,
                     'server.request.headers' => headers,
-                    'server.request.headers.no_cookies' => headers, # TODO: strip cookies
-                    #"#.request.env['HTTP_REFERER']" => referer,
-                    #'#.client_user_agent' => user_agent,
-                    #'#.request_path' => path,
+                    'server.request.headers.no_cookies' => headers_no_cookies,
+                    # TODO: 'server.request.path_params' => path_params,
                   }
-                  #Datadog.logger.debug { "WAF args:\n" << JSON.pretty_generate(waf_args) }
 
                   fail if waf_context.context_obj.null?
                   action, result = waf_context.run(waf_args)
@@ -75,7 +76,7 @@ module Datadog
                       active_span.set_tag('appsec.event', 'true')
                       active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
                     end
-                    record_event({ waf_result: result, span: active_span, request: request }, false)
+                    record_event({ waf_result: result, waf_rules: waf_rules, span: active_span, request: request }, false)
                   when :block
                     Datadog.logger.debug { "WAF: #{result.inspect}" }
                     if active_span
@@ -83,7 +84,7 @@ module Datadog
                       active_span.set_tag('appsec.event', 'true')
                       active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
                     end
-                    record_event({ waf_result: result, span: active_span, request: request }, true)
+                    record_event({ waf_result: result, waf_rules: waf_rules, span: active_span, request: request }, true)
                     block = true
                   when :good
                     Datadog.logger.debug { "WAF OK: #{result.inspect}" }
@@ -101,16 +102,18 @@ module Datadog
                 end
 
                 block = catch(:block) do
-                  #op.publish('request.params', request.params)
-                  op.publish('request.headers', {'user-agent' => request.user_agent })
-                  #op.publish('request.headers', request.each_header.to_a.to_h)
-                  #op.publish('request.referer', request.get_header('HTTP_REFERER'))
-                  #op.publish('request.user_agent', request.get_header('HTTP_USER_AGENT'))
-                  #op.publish('request.path', request.script_name + request.path)
+                  op.publish('request.query', request.query_string)
+                  op.publish('request.headers', (request.each_header.each_with_object({}) { |(k, v), h| h[k.gsub(/^HTTP_/, '').downcase.gsub('_', '-')] = v if k =~ /^HTTP_/ }))
+                  op.publish('request.uri.raw', request.url)
+                  op.publish('request.cookies', request.cookies)
+                  # TODO: op.publish('request.path_params', { k: v }) # route params only?
+                  # TODO: op.publish('request.path', request.script_name + request.path) # unused for now
+                  body = request.body.read
+                  request.body.rewind
+                  op.publish('request.body', body)
                   nil
                 end
-
-              end
+              end if defined?(Datadog::Security::WAF)
 
               block
             end
@@ -123,6 +126,7 @@ module Datadog
             request = data[:request]
             env = Datadog.configuration.env || 'test.lloeki'
             tags = Datadog.configuration.tags
+            rules = data[:waf_rules]
 
             timestamp = Time.now.utc.iso8601
 
@@ -145,6 +149,7 @@ module Datadog
             events = []
 
             data[:waf_result].data.each do |waf|
+              name = rules['events'].select { |e| e["id"] == waf['rule'] }.map { |e| e['name'] }.first
               waf['filter'].each do |filter|
                 event = {
                   event_id: SecureRandom.uuid,
@@ -155,7 +160,7 @@ module Datadog
                   blocked: blocked,
                   rule: {
                     id: waf['rule'],
-                    name: waf['rule'],
+                    name: name,
                     # set: waf['flow'], TODO: what is this?
                   },
                   rule_match: {
