@@ -14,7 +14,11 @@ module Datadog
     end
 
     # Add a new ``item`` in the local queue. This method doesn't block the execution
-    # even if the buffer is full. In that case, a random item is discarded.
+    # even if the buffer is full.
+    #
+    # When the buffer is full, we try to ensure that we are fairly sampling newly
+    # pushed traces by randomly inserting them into the buffer slots. This discards
+    # old traces randomly while trying to ensure that recent traces are still captured.
     def push(item)
       return if closed?
 
@@ -64,7 +68,7 @@ module Datadog
 
     protected
 
-    # Segment items into two distinct segments: underflow and overflow.
+    # Segment items into two segments: underflow and overflow.
     # Underflow are items that will fit into buffer.
     # Overflow are items that will exceed capacity, after underflow is added.
     # Returns each array, and nil if there is no underflow/overflow.
@@ -176,9 +180,6 @@ module Datadog
   # Buffer that stores objects, has a maximum size, and
   # can be safely used concurrently with CRuby.
   #
-  # Under extreme concurrency scenarios, this class can exceed
-  # its +max_size+ by up to 4%.
-  #
   # Because singular +Array+ operations are thread-safe in CRuby,
   # we can implement the trace buffer without an explicit lock,
   # while making the compromise of allowing the buffer to go
@@ -187,7 +188,6 @@ module Datadog
   # On the following scenario:
   # * 4.5 million spans/second.
   # * Pushed into a single CRubyTraceBuffer from 1000 threads.
-  # The buffer can exceed its maximum size by no more than 4%.
   #
   # This implementation allocates less memory and is faster
   # than {Datadog::ThreadSafeBuffer}.
@@ -195,19 +195,31 @@ module Datadog
   # @see spec/ddtrace/benchmark/buffer_benchmark_spec.rb Buffer benchmarks
   # @see https://github.com/ruby-concurrency/concurrent-ruby/blob/c1114a0c6891d9634f019f1f9fe58dcae8658964/lib/concurrent-ruby/concurrent/array.rb#L23-L27
   class CRubyBuffer < Buffer
+    # A very large number to allow us to effectively
+    # drop all items when invoking `slice!(i, FIXNUM_MAX)`.
+    FIXNUM_MAX = (1 << 62) - 1
+
     # Add a new ``trace`` in the local queue. This method doesn't block the execution
     # even if the buffer is full. In that case, a random trace is discarded.
     def replace!(item)
-      # we should replace a random trace with the new one
-      replace_index = rand(@items.size)
-      replaced_trace = @items.delete_at(replace_index)
-      @items << item
+      # Ensure buffer stays within +max_size+ items.
+      # This can happen when there's concurrent modification
+      # between a call the check in `full?` and the `add!` call in
+      # `full? ? replace!(item) : add!(item)`.
+      #
+      # We can still have `@items.size > @max_size` for a short period of
+      # time, but we will always try to correct it here.
+      #
+      # `slice!` is performed before `delete_at` & `<<` to avoid always
+      # removing the item that was just inserted.
+      #
+      # DEV: `slice!` with two integer arguments is ~10% faster than
+      # `slice!` with a {Range} argument.
+      @items.slice!(@max_size, FIXNUM_MAX)
 
-      # We might have deleted an element right when the buffer
-      # was drained, thus +replaced_trace+ will be +nil+.
-      # In that case, nothing was replaced, and this method
-      # performed a simple insertion into the buffer.
-      replaced_trace
+      # We should replace a random trace with the new one
+      replace_index = rand(@max_size)
+      @items[replace_index] = item
     end
   end
 
