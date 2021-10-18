@@ -17,6 +17,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.52.0...v0.53.0
 - Runtime Metrics: Global VM cache statistics ([#1680][])
 - Automatically send traces to agent Unix socket if present ([#1700][])
 - CI-App: User Provided Git Metadata ([#1662][])
+- ActionMailer integration ([#1280][])
 
 ### Changed
 
