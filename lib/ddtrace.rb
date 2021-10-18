@@ -8,6 +8,9 @@ require 'datadog/tracing/contrib/extensions'
 require 'datadog/opentelemetry/extensions'
 require 'ddtrace/auto_instrument_base'
 
+# Load appsec
+require 'datadog/security/autoload'
+
 # Global namespace that includes all Datadog functionality.
 # @public_api
 module Datadog
