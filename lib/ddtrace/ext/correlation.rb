@@ -7,6 +7,8 @@ module Datadog
       ATTR_SPAN_ID = 'dd.span_id'.freeze
       ATTR_TRACE_ID = 'dd.trace_id'.freeze
       ATTR_VERSION = 'dd.version'.freeze
+
+      ENV_LOGS_INJECTION_ENABLED = 'DD_LOGS_INJECTION'.freeze
     end
   end
 end

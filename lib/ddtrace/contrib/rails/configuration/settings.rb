@@ -84,7 +84,7 @@ module Datadog
           end
 
           option :log_injection do |o|
-            o.default { env_to_bool(Ext::ENV_LOGS_INJECTION_ENABLED, false) }
+            o.default { Datadog.configuration.log_injection }
             o.lazy
           end
         end

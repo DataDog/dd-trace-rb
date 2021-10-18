@@ -25,7 +25,10 @@ module Datadog
 
           option :service_name, default: Ext::SERVICE_NAME
           option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
-          option :log_injection, default: false
+          option :log_injection do |o|
+            o.default { Datadog.configuration.log_injection }
+            o.lazy
+          end
         end
       end
     end
