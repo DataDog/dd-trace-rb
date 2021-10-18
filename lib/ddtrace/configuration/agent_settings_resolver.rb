@@ -130,33 +130,44 @@ module Datadog
       def configured_port
         return @configured_port if defined?(@configured_port)
 
-        port_from_env = ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT]
         parsed_port_from_env =
-          if port_from_env
-            begin
-              Integer(port_from_env)
-            rescue ArgumentError
-              log_warning(
-                "Invalid value for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable " \
-                "('#{port_from_env}'). Ignoring this configuration."
-              )
-            end
-          end
+          try_parsing_as_integer(
+            friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
+            value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT],
+          )
+
+        parsed_settings_tracer_port =
+          try_parsing_as_integer(
+            friendly_name: '"c.tracer.port"',
+            value: settings.tracer.port,
+          )
 
         @configured_port = pick_from(
           DetectedConfiguration.new(
             friendly_name: '"c.tracer.port"',
-            value: settings.tracer.port
+            value: parsed_settings_tracer_port,
           ),
           DetectedConfiguration.new(
             friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
-            value: parsed_url && parsed_url.port
+            value: parsed_url && parsed_url.port,
           ),
           DetectedConfiguration.new(
             friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
-            value: parsed_port_from_env
+            value: parsed_port_from_env,
           )
         )
+      end
+
+      def try_parsing_as_integer(value:, friendly_name:)
+        return unless value
+
+        begin
+          Integer(value)
+        rescue ArgumentError, TypeError
+          log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
+
+          nil
+        end
       end
 
       def ssl?
@@ -264,8 +275,8 @@ module Datadog
         log_warning(
           'Configuration mismatch: values differ between ' \
           "#{detected_configurations_in_priority_order
-            .map { |config| "#{config.friendly_name} ('#{config.value}')" }.join(' and ')}" \
-          ". Using '#{detected_configurations_in_priority_order.first.value}'."
+            .map { |config| "#{config.friendly_name} (#{config.value.inspect})" }.join(' and ')}" \
+          ". Using #{detected_configurations_in_priority_order.first.value.inspect}."
         )
       end
 

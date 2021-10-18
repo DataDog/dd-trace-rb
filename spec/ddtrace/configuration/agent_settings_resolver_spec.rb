@@ -199,6 +199,52 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
           resolver
         end
       end
+
+      context 'when the port is specified as a string instead of a number' do
+        before do
+          ddtrace_settings.tracer.port = '1234'
+        end
+
+        it 'contacts the agent using the http adapter, using the custom port' do
+          expect(resolver).to have_attributes(**settings, port: 1234)
+        end
+      end
+
+      context 'when the port is an invalid string value' do
+        before do
+          ddtrace_settings.tracer.port = 'kaboom'
+
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+
+      context 'when the port is an invalid object' do
+        before do
+          ddtrace_settings.tracer.port = Object.new
+
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
     end
 
     context 'when a custom port is specified via code using "tracer(port: ...)"' do
