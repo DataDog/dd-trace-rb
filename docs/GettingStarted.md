@@ -540,7 +540,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 Most of the time, Active Job is set up as part of Rails, but it can be activated separately:
 
 ```ruby
-require 'activejob'
+require 'active_job'
 require 'ddtrace'
 
 Datadog.configure do |c|
