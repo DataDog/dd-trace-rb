@@ -405,6 +405,38 @@ services:
       - .:/app
       - bundle-jruby-9.2-latest:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-jruby-9.3-latest:
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_3_4_0
+    platform: linux/x86_64
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - presto
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_PRESTO_HOST=presto
+      - TEST_PRESTO_PORT=8080
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.3-latest:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
   tracer-truffleruby-21.3.0:
     image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_3_0
@@ -534,5 +566,6 @@ volumes:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2.8.0:
   bundle-jruby-9.2-latest:
+  bundle-jruby-9.3-latest:
   bundle-truffleruby-21.3.0:
   ddagent_var_run:
