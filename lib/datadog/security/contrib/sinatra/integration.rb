@@ -14,7 +14,7 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('1.4.0')
 
-          register_as :sinatra, auto_patch: false
+          register_as :sinatra
 
           def self.version
             Gem.loaded_specs['sinatra'] && Gem.loaded_specs['sinatra'].version
@@ -28,8 +28,8 @@ module Datadog
             super && version >= MINIMUM_VERSION
           end
 
-          def auto_instrument?
-            false
+          def self.auto_instrument?
+            true
           end
 
           def default_configuration
