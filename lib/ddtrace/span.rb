@@ -387,10 +387,10 @@ module Datadog
     alias finished? stopped?
 
     def duration
-      if @duration_end.nil? || @duration_start.nil?
-        @end_time - @start_time
-      else
+      if @duration_start && @duration_end
         @duration_end - @duration_start
+      elsif @start_time && @end_time
+        @end_time - @start_time
       end
     end
 
