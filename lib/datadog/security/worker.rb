@@ -57,24 +57,28 @@ module Datadog
         uri = URI("#{@adapter.ssl ? 'https' : 'http'}://#{@adapter.hostname}:#{@adapter.port}#{path}")
         Datadog.logger.debug { uri.to_s }
 
-        Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
-          req = Net::HTTP::Post.new(uri.path)
-          req['X-Api-Version'] = 'v0.1.0'
-          req['Content-Type'] = 'application/json'
-          req.body = JSON.dump({
-            protocol_version: 1,
-            idempotency_key: SecureRandom.uuid,
-            events: events,
-          })
+        begin
+          Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
+            req = Net::HTTP::Post.new(uri.path)
+            req['X-Api-Version'] = 'v0.1.0'
+            req['Content-Type'] = 'application/json'
+            req.body = JSON.dump({
+              protocol_version: 1,
+              idempotency_key: SecureRandom.uuid,
+              events: events,
+            })
 
-          res = http.request(req)
+            res = http.request(req)
 
-          case res
-          when Net::HTTPSuccess
-            Datadog.logger.debug { "success" }
-          else
-            Datadog.logger.debug { "failed: #{res.inspect}" }
+            case res
+            when Net::HTTPSuccess
+              Datadog.logger.debug { "success" }
+            else
+              Datadog.logger.debug { "failed: #{res.inspect}" }
+            end
           end
+        rescue StandardError => e
+          Datadog.logger.error { "Internal error during HTTP transport request. Cause: #{e.message}" }
         end
       end
     end
