@@ -124,18 +124,18 @@ module Datadog
           def record_event(data, blocked)
             span = data[:span]
             request = data[:request]
-            env = Datadog.configuration.env || 'test.lloeki'
+            env = Datadog.configuration.env
             tags = Datadog.configuration.tags
             rules = data[:waf_rules]
 
             timestamp = Time.now.utc.iso8601
 
             tags = [
-              "service:#{span.service}",
-              "env:#{env}",
               '_dd.appsec.enabled:1',
               '_dd.runtime_family:ruby',
             ]
+            tags << "service:#{span.service}"
+            tags << "env:#{env}" if env
 
             request_headers = request.each_header.each_with_object({}) { |(k, v), h| h[k.gsub(/^HTTP_/, '').downcase.gsub('_', '-')] = v if k =~ /^HTTP_/ }
             hostname = Socket.gethostname
