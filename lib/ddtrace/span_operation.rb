@@ -163,12 +163,8 @@ module Datadog
     end
 
     def start(start_time = nil)
-      # A span should not be started twice. However, this is existing
-      # behavior and so we maintain it for backward compatibility for those
-      # who are using async manual instrumentation that may rely on this
-      #
-      # Don't overwrite the start time of a completed span.
-      return self if stopped?
+      # Don't overwrite the start time of a started span.
+      return self if started?
 
       # Trigger before_start event
       events.before_start.publish(self)
