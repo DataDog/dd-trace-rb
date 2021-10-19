@@ -5,7 +5,7 @@ module Datadog
       module Integration
         @registry = {}
 
-        RegisteredIntegration = Struct.new(:klass, :options)
+        RegisteredIntegration = Struct.new(:name, :klass, :options)
 
         def self.included(base)
           base.extend(ClassMethods)
@@ -23,12 +23,13 @@ module Datadog
 
         def self.register(integration, name, options)
           puts "registering #{integration.inspect} as #{name.inspect} with #{options.inspect}"
-          registry[name] = RegisteredIntegration.new(integration, options)
+          registry[name] = RegisteredIntegration.new(name, integration, options)
         end
 
         def self.registry
           @registry
         end
+
       end
     end
   end

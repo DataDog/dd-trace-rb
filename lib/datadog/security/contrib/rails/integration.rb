@@ -28,8 +28,8 @@ module Datadog
             super && version >= MINIMUM_VERSION
           end
 
-          def auto_instrument?
-            false
+          def self.auto_instrument?
+            true
           end
 
           def default_configuration
