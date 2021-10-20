@@ -7,7 +7,6 @@ module Datadog
         module Database
           module_function
 
-          # rubocop:disable Metrics/MethodLength
           def load_adapter!
             %w[
               pg
@@ -18,26 +17,7 @@ module Datadog
               begin
                 require adapter
 
-                if adapter == 'pg'
-                  connector = postgres_url
-                  # old versions of Rails (eg 3.0) require that sort of Monkey Patching,
-                  # since using ActiveRecord is tricky (version mismatch etc.)
-                  if ::Rails.version < '3.2.22.5'
-                    ::Rails::Application::Configuration.class_eval do
-                      def database_configuration
-                        { 'test' => { 'adapter' => 'postgresql',
-                                      'encoding' => 'utf8',
-                                      'reconnect' => false,
-                                      'database' => ENV.fetch('TEST_POSTGRES_DB', 'postgres'),
-                                      'pool' => 5,
-                                      'username' => ENV.fetch('TEST_POSTGRES_USER', 'postgres'),
-                                      'password' => ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres'),
-                                      'host' => ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1'),
-                                      'port' => ENV.fetch('TEST_POSTGRES_PORT', 5432) } }
-                      end
-                    end
-                  end
-                elsif adapter.include?('postgres')
+                if adapter == 'pg' || adapter.include?('postgres')
                   connector = postgres_url
                 elsif adapter.include?('mysql')
                   connector = mysql_url
