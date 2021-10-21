@@ -1,11 +1,11 @@
 # typed: false
-require 'ddtrace/patcher'
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/elasticsearch/ext'
+require 'ddtrace/utils'
 
 module Datadog
   module Contrib
@@ -35,7 +35,7 @@ module Datadog
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
             alias_method :initialize_without_datadog, :initialize
-            Datadog::Patcher.without_warnings do
+            Datadog::Utils.without_warnings do
               remove_method :initialize
             end
 
