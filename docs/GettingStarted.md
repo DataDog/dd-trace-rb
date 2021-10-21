@@ -555,7 +555,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
-| `log_injection` | Injects [Trace Correlation](#trace-correlation) information into Active Job logs. | `true` |
 
 ### Active Record
 
@@ -1475,7 +1474,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
 | `service_name` | Service name used when tracing application requests (on the `rack` level) | `'<app_name>'` (inferred from your Rails application namespace) |
 | `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
-| `log_injection` | Injects [Trace Correlation](#trace-correlation) information into Rails logs. | `true` |
 
 **Supported versions**
 
