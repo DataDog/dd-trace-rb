@@ -1653,7 +1653,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
-| `workers` | **[DEPRECATED]** Limits instrumented worker classes to only the ones specified in an array (e.g. `[MyJob]`). If not provided, instruments all workers. | `nil` |
 
 ### Rest Client
 
