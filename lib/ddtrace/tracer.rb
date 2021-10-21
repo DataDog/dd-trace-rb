@@ -22,23 +22,12 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    SERVICES_DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-    SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-
     attr_reader :sampler, :tags, :provider, :context_flush
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
     DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
-
-    def services
-      SERVICES_DEPRECATION_WARN_ONLY_ONCE.run do
-        Datadog.logger.warn('services: Usage of Tracer.services has been deprecated')
-      end
-
-      {}
-    end
 
     # Shorthand that calls the `shutdown!` method of a registered worker.
     # It's useful to ensure that the Trace Buffer is properly flushed before
@@ -128,20 +117,6 @@ module Datadog
                          else
                            Datadog::ContextFlush::Finished.new
                          end
-      end
-    end
-
-    # Set the information about the given service. A valid example is:
-    #
-    #   tracer.set_service_info('web-application', 'rails', 'web')
-    #
-    # set_service_info is deprecated, no service information needs to be tracked
-    def set_service_info(service, app, app_type)
-      SET_SERVICE_INFO_DEPRECATION_WARN_ONLY_ONCE.run do
-        Datadog.logger.warn(%(
-          set_service_info: Usage of set_service_info has been deprecated,
-          service information no longer needs to be reported to the trace agent.
-        ))
       end
     end
 
