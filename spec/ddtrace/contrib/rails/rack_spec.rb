@@ -24,10 +24,6 @@ RSpec.describe 'Rails Rack' do
     }
   end
 
-  let(:rails_older_than_3_2) do # rubocop:disable Naming/VariableNumber
-    Gem::Version.new(Rails::VERSION::STRING) < Gem::Version.new('3.2')
-  end
-
   let(:observed) { {} }
   let(:layout) { 'application' }
   let(:controllers) { [controller, errors_controller] }
@@ -131,19 +127,6 @@ RSpec.describe 'Rails Rack' do
     end)
   end
 
-  let(:spans) do
-    if rails_older_than_3_2
-      # Rails < 3.2 creates synthetic intermediate templates internally.
-      # We remove these during testing, as we are more interested in asserting
-      # controller and template spans.
-      super().reject { |s| SYNTHETIC_3_2_SPANS.include?(s.resource) }
-    else
-      super()
-    end
-  end
-
-  SYNTHETIC_3_2_SPANS = %w[_request_and_response.erb missing_template.erb].freeze
-
   context 'with a full request' do
     subject(:response) { get '/full' }
 
@@ -183,8 +166,7 @@ RSpec.describe 'Rails Rack' do
       expect(render_span.service).to eq(Datadog.configuration[:rails][:service_name])
       expect(render_span.resource).to eq('full.html.erb')
       expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
-      expect(render_span.get_tag('rails.layout')).to eq('layouts/application') unless rails_older_than_3_2
-      expect(render_span.get_tag('rails.layout')).to include('layouts/application')
+      expect(render_span.get_tag('rails.layout')).to eq('layouts/application')
       expect(render_span).to be_measured
     end
 
@@ -203,10 +185,8 @@ RSpec.describe 'Rails Rack' do
         # Spans are sorted alphabetically
         _request_span, _controller_span, _cache_span, render_span = spans
 
-        expect(render_span.resource).to eq('full.html.erb') unless rails_older_than_3_2
-        expect(render_span.resource).to include('full.html')
-        expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb') unless rails_older_than_3_2
-        expect(render_span.get_tag('rails.template_name')).to include('full.html')
+        expect(render_span.resource).to eq('full.html.erb')
+        expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
         expect(render_span.get_tag('rails.layout')).to be_nil
       end
     end
@@ -224,16 +204,14 @@ RSpec.describe 'Rails Rack' do
       expect(inner_partial_span.name).to eq('rails.render_partial')
       expect(inner_partial_span.span_type).to eq('template')
       expect(inner_partial_span.resource).to eq('_inner_partial.html.erb')
-      expect(inner_partial_span.get_tag('rails.template_name')).to eq('_inner_partial.html.erb') unless rails_older_than_3_2
-      expect(inner_partial_span.get_tag('rails.template_name')).to include('_inner_partial.html')
+      expect(inner_partial_span.get_tag('rails.template_name')).to eq('_inner_partial.html.erb')
       expect(inner_partial_span).to be_measured
       expect(inner_partial_span.parent).to eq(outer_partial_span)
 
       expect(outer_partial_span.name).to eq('rails.render_partial')
       expect(outer_partial_span.span_type).to eq('template')
       expect(outer_partial_span.resource).to eq('_outer_partial.html.erb')
-      expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb') unless rails_older_than_3_2
-      expect(outer_partial_span.get_tag('rails.template_name')).to include('_outer_partial.html')
+      expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb')
       expect(outer_partial_span).to be_measured
       expect(outer_partial_span.parent).to eq(template_span)
     end
@@ -490,23 +468,11 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('404')
     end
 
-    context 'on Rails < 3.2', if: Rails.version < '3.2' do
-      # Old Rails does not have ActionDispatch::ExceptionWrapper, thus lets the error bubble up.
-      it 'makes rack span as error' do
-        is_expected.to be_not_found
+    it 'does not mark rack span as error' do
+      is_expected.to be_not_found
 
-        request_span = spans[0]
-        expect(request_span).to have_error
-      end
-    end
-
-    context 'on Rails >= 3.2', if: Rails.version >= '3.2' do
-      it 'does not mark rack span as error' do
-        is_expected.to be_not_found
-
-        request_span = spans[0]
-        expect(request_span).to_not have_error
-      end
+      request_span = spans[0]
+      expect(request_span).to_not have_error
     end
   end
 
@@ -532,13 +498,8 @@ RSpec.describe 'Rails Rack' do
 
       expect(render_span.name).to eq('rails.render_template')
       expect(render_span.span_type).to eq('template')
-      if rails_older_than_3_2
-        expect(render_span.resource).to include('error_template.html')
-        expect(render_span.get_tag('rails.template_name')).to include('error_template.html')
-      else
-        expect(render_span.resource).to eq('error_template.html.erb')
-        expect(render_span.get_tag('rails.template_name')).to eq('error_template.html.erb')
-      end
+      expect(render_span.resource).to eq('error_template.html.erb')
+      expect(render_span.get_tag('rails.template_name')).to eq('error_template.html.erb')
       expect(render_span.get_tag('rails.layout')).to eq('layouts/application')
       expect(render_span).to have_error
       expect(render_span).to have_error_type('ActionView::Template::Error')
@@ -568,11 +529,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(partial_span.name).to eq('rails.render_partial')
       expect(partial_span.span_type).to eq('template')
-      if rails_older_than_3_2
-        expect(partial_span.resource).to include('_inner_error.html')
-      else
-        expect(partial_span.resource).to eq('_inner_error.html.erb')
-      end
+      expect(partial_span.resource).to eq('_inner_error.html.erb')
       expect(partial_span.get_tag('rails.template_name')).to include('_inner_error.html')
       expect(partial_span.get_tag('rails.layout')).to be_nil
       expect(partial_span).to have_error

@@ -267,8 +267,6 @@ task :ci do
     declare 'bundle exec appraisal contrib-old rake spec:sucker_punch'
     declare 'bundle exec appraisal contrib-old rake spec:suite'
     # Rails specs
-    declare 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
-    declare 'bundle exec appraisal rails30-postgres rake spec:railsautoinstrument'
     declare 'bundle exec appraisal rails32-postgres-redis rake spec:railsredis_activesupport'
     declare 'bundle exec appraisal rails32-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails32-postgres rake spec:railsautoinstrument'
@@ -276,7 +274,6 @@ task :ci do
     declare 'bundle exec appraisal rails4-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails4-postgres rake spec:railsautoinstrument'
     declare 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
-    declare 'bundle exec appraisal rails30-postgres rake spec:rails'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails32-postgres rake spec:rails'
     declare 'bundle exec appraisal rails4-mysql2 rake spec:rails'
@@ -339,8 +336,6 @@ task :ci do
     declare 'bundle exec appraisal contrib rake spec:sucker_punch'
     declare 'bundle exec appraisal contrib rake spec:suite'
     # Rails specs
-    declare 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
-    declare 'bundle exec appraisal rails30-postgres rake spec:railsautoinstrument'
     declare 'bundle exec appraisal rails32-postgres-redis rake spec:railsredis_activesupport'
     declare 'bundle exec appraisal rails32-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails32-postgres rake spec:railsautoinstrument'
@@ -355,7 +350,6 @@ task :ci do
     declare 'bundle exec appraisal rails5-postgres rake spec:railsautoinstrument'
     declare 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
     declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
-    declare 'bundle exec appraisal rails30-postgres rake spec:rails'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails32-postgres rake spec:rails'
     declare 'bundle exec appraisal rails4-mysql2 rake spec:rails'
@@ -416,8 +410,6 @@ task :ci do
     # Contrib specs with old gem versions
     declare 'bundle exec appraisal contrib-old rake spec:faraday'
     # Rails specs
-    declare 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
-    declare 'bundle exec appraisal rails30-postgres rake spec:railsautoinstrument'
     declare 'bundle exec appraisal rails32-postgres-redis rake spec:railsredis_activesupport'
     declare 'bundle exec appraisal rails32-postgres rake spec:railsdisableenv'
     declare 'bundle exec appraisal rails32-postgres rake spec:railsautoinstrument'
@@ -432,7 +424,6 @@ task :ci do
     declare 'bundle exec appraisal rails5-postgres rake spec:railsautoinstrument'
     declare 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
     declare 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
-    declare 'bundle exec appraisal rails30-postgres rake spec:rails'
     declare 'bundle exec appraisal rails32-mysql2 rake spec:rails'
     declare 'bundle exec appraisal rails32-postgres rake spec:rails'
     declare 'bundle exec appraisal rails4-mysql2 rake spec:rails'

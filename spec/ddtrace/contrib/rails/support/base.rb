@@ -20,7 +20,7 @@ RSpec.shared_context 'Rails base application' do
   elsif Rails.version >= '4.0'
     require 'ddtrace/contrib/rails/support/rails4'
     include_context 'Rails 4 base application'
-  elsif Rails.version >= '3.0'
+  elsif Rails.version >= '3.2'
     require 'ddtrace/contrib/rails/support/rails3'
     include_context 'Rails 3 base application'
   else
@@ -38,16 +38,12 @@ RSpec.shared_context 'Rails base application' do
     logger = self.logger
 
     proc do
-      # ActiveSupport::TaggedLogging was introduced in 3.2
-      # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
-      if Rails.version >= '3.2' && (ENV['USE_TAGGED_LOGGING'] == true)
+      if ENV['USE_TAGGED_LOGGING'] == true
         config.log_tags = ENV['LOG_TAGS'] || []
         config.logger = ActiveSupport::TaggedLogging.new(logger)
       end
 
-      # ActiveSupport::TaggedLogging was introduced in 3.2
-      # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
-      if Rails.version >= '3.2' && (ENV['USE_SEMANTIC_LOGGER'] == true)
+      if ENV['USE_SEMANTIC_LOGGER'] == true
         config.log_tags = ENV['LOG_TAGS'] || {}
         config.rails_semantic_logger.add_file_appender = false
         config.semantic_logger.add_appender(logger: logger)
@@ -99,15 +95,13 @@ RSpec.shared_context 'Rails base application' do
       # We could completely disable the {DebugExceptions} middleware,
       # but that affects Rails' internal error propagation logic.
       # render_for_browser_request(request, wrapper)
-      if Rails.version >= '3.2'
-        allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
-          wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
+      allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
+        wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
 
-          if Rails.version < '4.0'
-            this.send(:render, wrapper.status_code, 'Test error response body')
-          else
-            this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
-          end
+        if Rails.version < '4.0'
+          this.send(:render, wrapper.status_code, 'Test error response body')
+        else
+          this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
         end
       end
     end
