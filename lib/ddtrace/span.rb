@@ -83,7 +83,7 @@ module Datadog
       @span_type = span_type
 
       @span_id = Datadog::Utils.next_id
-      @parent_id = parent_id
+      @parent_id = parent_id || 0
       @trace_id = trace_id || Datadog::Utils.next_id
 
       @meta = {}
