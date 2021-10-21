@@ -11,10 +11,8 @@ module Datadog
       # Automatically configures jobs with {ResqueJob} plugin.
       module Job
         def perform
-          if Datadog.configuration[:resque][:workers].nil?
-            job = payload_class
-            job.extend(Datadog::Contrib::Resque::ResqueJob) unless job.is_a? Datadog::Contrib::Resque::ResqueJob
-          end
+          job = payload_class
+          job.extend(Datadog::Contrib::Resque::ResqueJob) unless job.is_a?(Datadog::Contrib::Resque::ResqueJob)
         ensure
           super
         end

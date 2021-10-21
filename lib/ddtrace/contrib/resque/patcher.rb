@@ -20,9 +20,6 @@ module Datadog
           require_relative 'resque_job'
 
           ::Resque::Job.prepend(Resque::Job)
-
-          workers = Datadog.configuration[:resque][:workers] || []
-          workers.each { |worker| worker.extend(ResqueJob) }
         end
       end
     end
