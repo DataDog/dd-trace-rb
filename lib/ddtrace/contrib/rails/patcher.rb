@@ -58,13 +58,7 @@ module Datadog
           # Note: because the middleware stack is push/pop, "before" and "after" are reversed
           # for our use case: we insert ourselves with "after" a middleware to ensure we are
           # able to pop the request "before" it.
-          if defined?(::ActionDispatch::DebugExceptions)
-            # Rails >= 3.2
-            app.middleware.insert_after(::ActionDispatch::DebugExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
-          else
-            # Rails < 3.2
-            app.middleware.insert_after(::ActionDispatch::ShowExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
-          end
+          app.middleware.insert_after(::ActionDispatch::DebugExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
         end
 
         def add_logger(app)
