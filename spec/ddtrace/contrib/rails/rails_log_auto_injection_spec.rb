@@ -190,7 +190,7 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
 
       context 'with Tagged logging setup and no tags' do
-        it 'does not injects trace_id' do
+        it 'does not inject trace_id' do
           is_expected.to be_ok
 
           expect(logs).to_not include(spans[0].trace_id.to_s)
