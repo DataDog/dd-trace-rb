@@ -13,7 +13,6 @@ RSpec.describe Datadog::Transport::HTTP::API do
       is_expected.to include(
         described_class::V4 => kind_of(Datadog::Transport::HTTP::API::Spec),
         described_class::V3 => kind_of(Datadog::Transport::HTTP::API::Spec),
-        described_class::V2 => kind_of(Datadog::Transport::HTTP::API::Spec)
       )
 
       defaults[described_class::V4].tap do |v4|
@@ -29,23 +28,13 @@ RSpec.describe Datadog::Transport::HTTP::API do
         expect(v3.traces.service_rates?).to be false
         expect(v3.traces.encoder).to be Datadog::Encoding::MsgpackEncoder
       end
-
-      defaults[described_class::V2].tap do |v2|
-        expect(v2).to be_a_kind_of(Datadog::Transport::HTTP::Traces::API::Spec)
-        expect(v2.traces).to be_a_kind_of(Datadog::Transport::HTTP::Traces::API::Endpoint)
-        expect(v2.traces.service_rates?).to be false
-        expect(v2.traces.encoder).to be Datadog::Encoding::JSONEncoder
-      end
     end
 
     describe '#fallbacks' do
       subject(:fallbacks) { defaults.fallbacks }
 
       it do
-        is_expected.to include(
-          described_class::V4 => described_class::V3,
-          described_class::V3 => described_class::V2
-        )
+        is_expected.to include(described_class::V4 => described_class::V3)
       end
     end
   end
