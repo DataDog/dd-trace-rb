@@ -1,5 +1,4 @@
 # typed: true
-require 'ddtrace/patcher'
 require 'ddtrace/utils/only_once'
 
 # \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
