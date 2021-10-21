@@ -123,4 +123,15 @@ RSpec.describe Datadog::Utils do
       end
     end
   end
+
+  describe '.without_warnings' do
+    it 'yields to provided block' do
+      expect { |b| described_class.without_warnings(&b) }.to yield_control
+    end
+
+    it 'suppresses Kernel.warning' do
+      expect { described_class.without_warnings { warn 'warning!' } }.to_not output.to_stdout
+      expect { described_class.without_warnings { warn 'warning!' } }.to_not output.to_stderr
+    end
+  end
 end

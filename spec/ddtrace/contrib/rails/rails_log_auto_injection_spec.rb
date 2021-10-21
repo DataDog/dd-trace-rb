@@ -60,36 +60,34 @@ RSpec.describe 'Rails Log Auto Injection' do
       Datadog.configuration[:lograge].enabled = true
     end
 
-    if Rails.version >= '3.2'
-      context 'with Tagged Logging' do
-        subject(:response) { get '/tagged_logging' }
+    context 'with Tagged Logging' do
+      subject(:response) { get '/tagged_logging' }
 
+      before do
+        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      end
+
+      context 'with Tagged logging setup and no tags' do
+        it 'injects trace_id into logs' do
+          is_expected.to be_ok
+
+          expect(logs).to include(spans[0].trace_id.to_s)
+          expect(logs).to include('MINASWAN')
+        end
+      end
+
+      context 'with tagged logging setup and existing log_tags' do
         before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
         end
 
-        context 'with Tagged logging setup and no tags' do
-          it 'injects trace_id into logs' do
-            is_expected.to be_ok
+        it 'injects trace_id into logs and preserve existing log tags' do
+          is_expected.to be_ok
 
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-          end
-        end
-
-        context 'with tagged logging setup and existing log_tags' do
-          before do
-            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-          end
-
-          it 'injects trace_id into logs and preserve existing log tags' do
-            is_expected.to be_ok
-
-            expect(logs).to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-            expect(logs).to include('some_info')
-            expect(logs).to include('some_other_info')
-          end
+          expect(logs).to include(spans[0].trace_id.to_s)
+          expect(logs).to include('MINASWAN')
+          expect(logs).to include('some_info')
+          expect(logs).to include('some_other_info')
         end
       end
     end
@@ -184,36 +182,34 @@ RSpec.describe 'Rails Log Auto Injection' do
       Datadog.configuration[:lograge].enabled = false
     end
 
-    if Rails.version >= '3.2'
-      context 'with Tagged Logging' do
-        subject(:response) { get '/tagged_logging' }
+    context 'with Tagged Logging' do
+      subject(:response) { get '/tagged_logging' }
 
+      before do
+        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      end
+
+      context 'with Tagged logging setup and no tags' do
+        it 'does not injects trace_id' do
+          is_expected.to be_ok
+
+          expect(logs).to_not include(spans[0].trace_id.to_s)
+          expect(logs).to include('MINASWAN')
+        end
+      end
+
+      context 'with tagged logging setup and existing log_tags' do
         before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
         end
 
-        context 'with Tagged logging setup and no tags' do
-          it 'does not injects trace_id' do
-            is_expected.to be_ok
+        it 'does not inject trace_id' do
+          is_expected.to be_ok
 
-            expect(logs).to_not include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-          end
-        end
-
-        context 'with tagged logging setup and existing log_tags' do
-          before do
-            allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-          end
-
-          it 'does not inject trace_id' do
-            is_expected.to be_ok
-
-            expect(logs).to_not include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
-            expect(logs).to include('some_info')
-            expect(logs).to include('some_other_info')
-          end
+          expect(logs).to_not include(spans[0].trace_id.to_s)
+          expect(logs).to include('MINASWAN')
+          expect(logs).to include('some_info')
+          expect(logs).to include('some_other_info')
         end
       end
     end

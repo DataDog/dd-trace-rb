@@ -12,7 +12,7 @@ module Datadog
       class Integration
         include Contrib::Integration
 
-        MINIMUM_VERSION = Gem::Version.new('3.0')
+        MINIMUM_VERSION = Gem::Version.new('3.2')
 
         register_as :rails, auto_patch: false
 

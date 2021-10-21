@@ -2,7 +2,6 @@
 require 'spec_helper'
 
 require 'datadog/statsd'
-require 'ddtrace/patcher'
 require 'ddtrace/configuration'
 
 RSpec.describe Datadog::Configuration do
