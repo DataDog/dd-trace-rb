@@ -87,14 +87,8 @@ RSpec.shared_context 'Rails 4 base application' do
     delegate = method(:draw_test_routes!)
 
     # Then set the routes
-    if Rails.version >= '3.2.22.5'
-      rails_test_application.instance.routes.append do
-        delegate.call(self)
-      end
-    else
-      rails_test_application.instance.routes.draw do
-        delegate.call(self)
-      end
+    rails_test_application.instance.routes.append do
+      delegate.call(self)
     end
   end
 

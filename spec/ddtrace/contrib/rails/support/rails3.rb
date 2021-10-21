@@ -82,14 +82,8 @@ RSpec.shared_context 'Rails 3 base application' do
     delegate = method(:draw_test_routes!)
 
     # Then set the routes
-    if Rails.version >= '3.2.22.5'
-      rails_test_application.instance.routes.append do
-        delegate.call(self)
-      end
-    else
-      rails_test_application.instance.routes.draw do
-        delegate.call(self)
-      end
+    rails_test_application.instance.routes.append do
+      delegate.call(self)
     end
   end
 
@@ -103,14 +97,8 @@ RSpec.shared_context 'Rails 3 base application' do
 
     test_routes = routes
     mapper.instance_exec do
-      if Rails.version >= '3.2.22.5'
-        test_routes.each do |k, v|
-          get k => v
-        end
-      else
-        test_routes.each do |k, v|
-          get k, to: v
-        end
+      test_routes.each do |k, v|
+        get k => v
       end
     end
     @drawn = true
