@@ -42,36 +42,7 @@ RSpec.describe Datadog::Pin do
   describe '#tracer' do
     subject(:tracer) { pin.tracer }
 
-    context 'when a tracer has been provided' do
-      let(:options) { super().merge(tracer: tracer_option) }
-      let(:tracer_option) { get_test_tracer }
-
-      before do
-        allow_any_instance_of(described_class).to receive(:deprecation_warning).and_call_original
-      end
-
-      it 'expect a deprecation warning' do
-        expect(Datadog.logger).to receive(:warn).with(include('DEPRECATED'))
-        subject
-      end
-    end
-
-    context 'when no tracer has been provided' do
-      it { is_expected.to be Datadog.tracer }
-
-      context 'and the default tracer mutates' do
-        let(:new_tracer) { get_test_tracer }
-
-        it 'gets the current tracer' do
-          old_tracer = Datadog.tracer
-
-          expect { allow(Datadog).to receive(:tracer).and_return(new_tracer) }
-            .to change { pin.tracer }
-            .from(old_tracer)
-            .to(new_tracer)
-        end
-      end
-    end
+    it { is_expected.to be Datadog.tracer }
   end
 
   describe '#onto' do
