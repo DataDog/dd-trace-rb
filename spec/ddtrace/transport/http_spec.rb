@@ -46,7 +46,6 @@ RSpec.describe Datadog::Transport::HTTP do
         [
           Datadog::Transport::HTTP::API::V4,
           Datadog::Transport::HTTP::API::V3,
-          Datadog::Transport::HTTP::API::V2
         ]
       )
 
@@ -117,7 +116,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:deprecated_for_removal_transport_configuration_options) { { api_version: api_version } }
 
         context 'that is defined' do
-          let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+          let(:api_version) { Datadog::Transport::HTTP::API::V4 }
 
           it { expect(default.current_api_id).to eq(api_version) }
         end
@@ -129,7 +128,7 @@ RSpec.describe Datadog::Transport::HTTP do
         end
 
         context 'when the options also try to set the api_version' do
-          let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+          let(:api_version) { Datadog::Transport::HTTP::API::V3 }
           let(:options) { { api_version: Datadog::Transport::HTTP::API::V4 } }
 
           it 'prioritizes the version in the agent_settings' do
@@ -181,7 +180,7 @@ RSpec.describe Datadog::Transport::HTTP do
         let(:options) { { api_version: api_version } }
 
         context 'that is defined' do
-          let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+          let(:api_version) { Datadog::Transport::HTTP::API::V4 }
 
           it { expect(default.current_api_id).to eq(api_version) }
         end

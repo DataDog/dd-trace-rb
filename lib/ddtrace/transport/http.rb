@@ -42,8 +42,7 @@ module Datadog
           apis = API.defaults
 
           transport.api API::V4, apis[API::V4], fallback: API::V3, default: true
-          transport.api API::V3, apis[API::V3], fallback: API::V2
-          transport.api API::V2, apis[API::V2]
+          transport.api API::V3, apis[API::V3]
 
           # Apply any settings given by options
           unless options.empty?
