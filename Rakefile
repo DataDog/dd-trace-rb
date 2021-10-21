@@ -283,9 +283,6 @@ task :ci do
 
   # Rails specs
   # On Ruby 2.4 and 2.5, we only test Rails 5+ because older versions require Bundler < 2.0
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ jruby' => 'bundle exec appraisal rails30-postgres rake spec:rails'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ jruby' => 'bundle exec appraisal rails30-postgres rake spec:railsautoinstrument'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ jruby' => 'bundle exec appraisal rails30-postgres rake spec:railsdisableenv'
   declare '✅ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ jruby' => 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ jruby' => 'bundle exec appraisal rails32-mysql2 rake spec:rails'
   declare '✅ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:action_pack'

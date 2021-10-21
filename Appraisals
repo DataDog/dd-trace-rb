@@ -16,21 +16,6 @@ def self.gem_cucumber(version)
 end
 
 if ruby_version?('2.1')
-  appraise 'rails30-postgres' do
-    gem 'test-unit'
-    gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1'
-    gem 'rack-cache', '1.7.1'
-  end
-
-  appraise 'rails30-postgres-sidekiq' do
-    gem 'test-unit'
-    gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1'
-    gem 'sidekiq', '4.0.0'
-    gem 'rack-cache', '1.7.1'
-  end
-
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
@@ -140,21 +125,6 @@ if ruby_version?('2.1')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.2')
-  appraise 'rails30-postgres' do
-    gem 'test-unit'
-    gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1'
-    gem 'rack-cache', '1.7.1'
-  end
-
-  appraise 'rails30-postgres-sidekiq' do
-    gem 'test-unit'
-    gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1'
-    gem 'sidekiq', '4.0.0'
-    gem 'rack-cache', '1.7.1'
-  end
-
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
@@ -333,21 +303,6 @@ elsif ruby_version?('2.2')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.3')
-  appraise 'rails30-postgres' do
-    gem 'test-unit'
-    gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1'
-    gem 'rack-cache', '1.7.1'
-  end
-
-  appraise 'rails30-postgres-sidekiq' do
-    gem 'test-unit'
-    gem 'rails', '3.0.20'
-    gem 'pg', '0.15.1'
-    gem 'sidekiq', '4.0.0'
-    gem 'rack-cache', '1.7.1'
-  end
-
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
@@ -1165,7 +1120,7 @@ elsif ruby_version?('2.7')
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
-    end    
+    end
 
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'

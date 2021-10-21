@@ -64,7 +64,7 @@ RSpec.shared_context 'Rails test application' do
     let(:rails_test_application) do
       stub_const('Rails4::Application', Class.new(rails_base_application))
     end
-  elsif Rails.version >= '3.0'
+  elsif Rails.version >= '3.2'
     let(:rails_test_application) do
       stub_const('Rails3::Application', rails_base_application)
     end
