@@ -190,41 +190,9 @@ RSpec.describe 'Resque instrumentation' do
     end
   end
 
-  describe 'patching for workers' do
-    before do
-      # Remove the patch so it applies new patch
-      remove_patch!(:resque)
-
-      # Re-apply patch, to workers
-      Datadog.configure do |c|
-        c.use(:resque, workers: [job_class])
-      end
-    end
+  describe 'with default instrumentation of all workers' do
+    let(:configuration_options) { {} }
 
     it_behaves_like 'job execution tracing'
-  end
-
-  describe 'with auto instrumentation' do
-    let(:configuration_options) { {} } # The default is enabled
-
-    it_behaves_like 'job execution tracing'
-  end
-
-  describe 'with auto instrumentation disabled' do
-    let(:configuration_options) { { workers: [] } }
-
-    before { perform_job(job_class, job_args) }
-
-    it 'no tracing happens' do
-      expect(spans).to be_empty
-    end
-
-    it 'emits deprecation warning for explicit workers setting' do
-      expect(Datadog.logger).to receive(:warn).with(/DEPRECATED: Resque integration now instruments all workers/)
-
-      Datadog.configure do |c|
-        c.use(:resque, workers: [job_class])
-      end
-    end
   end
 end
