@@ -576,7 +576,7 @@ RSpec.describe 'Tracer integration tests' do
           }
         end
 
-        let(:api_version) { Datadog::Transport::HTTP::API::V2 }
+        let(:api_version) { Datadog::Transport::HTTP::API::V4 }
         let(:headers) { { 'Test-Header' => 'test' } }
 
         it do
