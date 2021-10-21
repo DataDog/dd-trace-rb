@@ -30,51 +30,6 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
         .and_return(response)
     end
 
-    describe 'deprecation warnings' do
-      before { allow(Datadog.logger).to receive(:warn) }
-
-      # Expect this for backwards compatibility
-      context 'backwards compatibility' do
-        before { middleware_call }
-
-        it do
-          expect(env).to include(
-            datadog_rack_request_span: kind_of(Datadog::Span),
-            'datadog.rack_request_span' => kind_of(Datadog::Span)
-          )
-        end
-      end
-
-      context 'when :datadog_rack_request_span is accessed on the span' do
-        before do
-          allow(app).to receive(:call).with(env) do |env|
-            # Trigger deprecation warning
-            env[:datadog_rack_request_span]
-            response
-          end
-
-          middleware_call
-        end
-
-        it do
-          expect(Datadog.logger).to_not have_received(:warn)
-            .with(/:datadog_rack_request_span/)
-        end
-      end
-
-      context 'when the same Rack env object is run twice' do
-        before do
-          middleware.call(env)
-          middleware.call(env)
-        end
-
-        it do
-          expect(Datadog.logger).to_not have_received(:warn)
-            .with(/:datadog_rack_request_span/)
-        end
-      end
-    end
-
     context 'with fatal exception' do
       let(:fatal_error) { stub_const('FatalError', Class.new(RuntimeError)) }
 

@@ -115,7 +115,7 @@ module Datadog
               span.set_tag(Ext::TAG_ROUTE_PATH, @datadog_route)
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
-              rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
               rack_request_span.resource = span.resource if rack_request_span
 
               sinatra_request_span =

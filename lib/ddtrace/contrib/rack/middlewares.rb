@@ -18,12 +18,7 @@ module Datadog
       # in the Rack environment so that it can be retrieved by the underlying
       # application. If request tags are not set by the app, they will be set using
       # information available at the Rack level.
-      # rubocop:disable Metrics/ClassLength
       class TraceMiddleware
-        # DEPRECATED: Remove in 1.0 in favor of Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN
-        # This constant will remain here until then, for backwards compatibility.
-        RACK_REQUEST_SPAN = 'datadog.rack_request_span'.freeze
-
         def initialize(app)
           @app = app
         end
@@ -67,18 +62,7 @@ module Datadog
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
           request_span = tracer.trace(Ext::SPAN_REQUEST, trace_options)
-          env[RACK_REQUEST_SPAN] = request_span
-
-          # TODO: Add deprecation warnings back in
-          # DEV: Some third party Gems will loop over the rack env causing our deprecation
-          #      warnings to be shown even when the user is not accessing them directly
-          #
-          # add_deprecation_warnings(env)
-          # env.without_datadog_warnings do
-          #   # TODO: For backwards compatibility; this attribute is deprecated.
-          #   env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
-          # end
-          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+          env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.
           # Values may change; we want values before that happens.
@@ -206,51 +190,8 @@ module Datadog
 
         private
 
-        REQUEST_SPAN_DEPRECATION_WARNING = %(
-          :datadog_rack_request_span is considered an internal symbol in the Rack env,
-          and has been been DEPRECATED. Public support for its usage is discontinued.
-          If you need the Rack request span, try using `Datadog.tracer.active_span`.
-          This key will be removed in version 1.0).freeze
-
         def configuration
           Datadog.configuration[:rack]
-        end
-
-        def add_deprecation_warnings(env)
-          env.instance_eval do
-            unless instance_variable_defined?(:@patched_with_datadog_warnings)
-              @patched_with_datadog_warnings = true
-              @datadog_deprecation_warnings = true
-              @datadog_span_warning = true
-
-              def [](key)
-                if key == :datadog_rack_request_span \
-                  && @datadog_span_warning \
-                  && @datadog_deprecation_warnings
-                  Datadog.logger.warn(REQUEST_SPAN_DEPRECATION_WARNING)
-                  @datadog_span_warning = true
-                end
-                super
-              end
-
-              def []=(key, value)
-                if key == :datadog_rack_request_span \
-                  && @datadog_span_warning \
-                  && @datadog_deprecation_warnings
-                  Datadog.logger.warn(REQUEST_SPAN_DEPRECATION_WARNING)
-                  @datadog_span_warning = true
-                end
-                super
-              end
-
-              def without_datadog_warnings
-                @datadog_deprecation_warnings = false
-                yield
-              ensure
-                @datadog_deprecation_warnings = true
-              end
-            end
-          end
         end
 
         def parse_request_headers(env)
