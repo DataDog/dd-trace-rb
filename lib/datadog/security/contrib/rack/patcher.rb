@@ -149,7 +149,7 @@ module Datadog
             events = []
 
             data[:waf_result].data.each do |waf|
-              name = rules['events'].select { |e| e["id"] == waf['rule'] }.map { |e| e['name'] }.first
+              rule = rules['events'].select { |e| e["id"] == waf['rule'] }.first
               waf['filter'].each do |filter|
                 event = {
                   event_id: SecureRandom.uuid,
@@ -160,8 +160,8 @@ module Datadog
                   blocked: blocked,
                   rule: {
                     id: waf['rule'],
-                    name: name,
-                    # set: waf['flow'], TODO: what is this?
+                    name: rule['name'],
+                    set: rule['tags']['type'],
                   },
                   rule_match: {
                     operator: filter['operator'],
