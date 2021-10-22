@@ -74,5 +74,4 @@ gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'] if RUBY_PLATFORM != 'j
 # previously-passing codebase start failing. Thus, we need to lock to a specific
 # version and bump it from time to time.
 # Also, there's no support for windows
-gem 'sorbet', '= 0.5.9120' if RUBY_VERSION >= '2.3.0' && !Gem.win_platform?
 gem 'spoom', '~> 1.1' if RUBY_VERSION >= '2.4.0'
