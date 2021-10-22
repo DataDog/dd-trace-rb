@@ -12,7 +12,7 @@ jobs:
       SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@77ca66ce2792fb05b8b204a203328e12593a64f3 # v1.72.1
+      - uses: ruby/setup-ruby@b00551441a6fa3d528f3443dbff264a934b6e316 # v1.84.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
