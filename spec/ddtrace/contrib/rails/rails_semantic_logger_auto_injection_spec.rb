@@ -48,10 +48,6 @@ RSpec.describe 'Rails Log Auto Injection' do
     let(:test_version) { 'test-version' }
     let(:test_service) { 'test-service' }
 
-    before do
-      Datadog.configuration[:semantic_logger].enabled = true
-    end
-
     context 'with Semantic Logger' do
       # for logsog_injection testing
       require 'rails_semantic_logger'

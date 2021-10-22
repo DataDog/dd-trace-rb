@@ -56,10 +56,6 @@ RSpec.describe 'Rails Log Auto Injection' do
     # defined in rails support apps
     let(:logs) { log_output.string }
 
-    before do
-      Datadog.configuration[:lograge].enabled = true
-    end
-
     context 'with Tagged Logging' do
       subject(:response) { get '/tagged_logging' }
 
