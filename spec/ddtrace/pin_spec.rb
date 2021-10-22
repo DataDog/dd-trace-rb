@@ -52,7 +52,7 @@ RSpec.describe Datadog::Pin do
     before { pin.onto(target) }
 
     it 'attaches the pin to the target' do
-      expect(returned_pin.service_name).to eq(service_name)
+      expect(returned_pin.service).to eq(service_name)
       expect(returned_pin.app).to eq(options[:app])
     end
   end
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Pin do
 
     before { pin.onto(target) }
 
-    it { expect(returned_pin.service_name).to eq(service_name) }
+    it { expect(returned_pin.service).to eq(service_name) }
   end
 
   describe '#enabled?' do

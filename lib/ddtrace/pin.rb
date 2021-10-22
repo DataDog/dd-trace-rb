@@ -16,6 +16,9 @@ module Datadog
 
     attr_accessor :app, :app_type, :config, :name, :service_name, :tags, :writer
 
+    alias service= service_name=
+    alias service service_name
+
     def initialize(service_name, app: nil, app_type: nil, config: nil, tags: nil, **_kwargs)
       @service_name = service_name
       @app = app
@@ -57,7 +60,7 @@ module Datadog
     end
 
     def to_s
-      "Pin(service:#{service_name},app:#{app},app_type:#{app_type},name:#{name})"
+      "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
     end
   end
 end
