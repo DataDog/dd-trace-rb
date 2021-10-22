@@ -180,6 +180,10 @@ Style/HashSyntax:
   Enabled: false
 
 # Requires Ruby 2.3
+Layout/HeredocIndentation:
+  Enabled: false
+
+# Requires Ruby 2.3
 Style/SafeNavigation:
   Enabled: false
 

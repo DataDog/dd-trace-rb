@@ -53,10 +53,10 @@ create_header
 header_contents =
   File.read($extconf_h)
       .sub('#endif',
-           <<~EXTCONF_H.strip
-             #define RUBY_MJIT_HEADER "rb_mjit_min_header-#{RUBY_VERSION}.h"
+           <<-EXTCONF_H.strip
+#define RUBY_MJIT_HEADER "rb_mjit_min_header-#{RUBY_VERSION}.h"
 
-             #endif
+#endif
            EXTCONF_H
           )
 File.open($extconf_h, 'w') { |file| file.puts(header_contents) }
