@@ -2291,52 +2291,6 @@ For Rails applications using the default logger (`ActiveSupport::TaggedLogging`)
 
 It can be disabled by setting the environment variable `DD_LOGS_INJECTION=false`.
 
-##### Manual (Lograge)
-
-After [setting up Lograge in a Rails application](https://docs.datadoghq.com/logs/log_collection/ruby/), manually modify the `custom_options` block in your environment configuration file (e.g. `config/environments/production.rb`) to add the trace IDs.
-
-```ruby
-config.lograge.custom_options = lambda do |event|
-  # Retrieves trace information for current thread
-  correlation = Datadog.tracer.active_correlation
-
-  {
-    # Adds IDs as tags to log output
-    :dd => {
-      # To preserve precision during JSON serialization, use strings for large numbers
-      :trace_id => correlation.trace_id.to_s,
-      :span_id => correlation.span_id.to_s,
-      :env => correlation.env.to_s,
-      :service => correlation.service.to_s,
-      :version => correlation.version.to_s
-    },
-    :ddsource => ["ruby"],
-    :params => event.payload[:params].reject { |k| %w(controller action).include? k }
-  }
-end
-```
-
-##### Manual (ActiveSupport::TaggedLogging)
-
-Rails applications which are configured with the default `ActiveSupport::TaggedLogging` logger can append correlation IDs as tags to log output. To enable Trace Correlation with `ActiveSupport::TaggedLogging`, in your Rails environment configuration file, add the following:
-
-```ruby
-Rails.application.configure do
-  config.log_tags = [proc { Datadog.tracer.active_correlation.to_s }]
-end
-
-# Given:
-# DD_ENV = 'production' (The name of the environment your application is running in.)
-# DD_SERVICE = 'billing-api' (Default service name of your application.)
-# DD_VERSION = '2.5.17' (The version of your application.)
-
-# Web requests will produce:
-# [dd.env=production dd.service=billing-api dd.version=2.5.17 dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Started GET "/articles" for 172.22.0.1 at 2019-01-16 18:50:57 +0000
-# [dd.env=production dd.service=billing-api dd.version=2.5.17 dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Processing by ArticlesController#index as */*
-# [dd.env=production dd.service=billing-api dd.version=2.5.17 dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206]   Article Load (0.5ms)  SELECT "articles".* FROM "articles"
-# [dd.env=production dd.service=billing-api dd.version=2.5.17 dd.trace_id=7110975754844687674 dd.span_id=7518426836986654206] Completed 200 OK in 7ms (Views: 5.5ms | ActiveRecord: 0.5ms)
-```
-
 #### For logging in Ruby applications
 
 To add correlation IDs to your logger, add a log formatter which retrieves the correlation IDs with `Datadog.tracer.active_correlation`, then add them to the message.
