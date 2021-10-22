@@ -36,9 +36,6 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
-# If we're misusing a pointer, we want that to be flagged as an error
-add_compiler_flag '-Werror=incompatible-pointer-types'
-
 # Older Rubies don't have the MJIT header (used by the JIT compiler, and we piggy back on it)
 $defs << '-DUSE_MJIT_HEADER' unless RUBY_VERSION < '2.6'
 
