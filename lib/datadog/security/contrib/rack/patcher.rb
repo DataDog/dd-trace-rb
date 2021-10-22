@@ -102,7 +102,7 @@ module Datadog
                 end
 
                 block = catch(:block) do
-                  op.publish('request.query', request.query_string)
+                  op.publish('request.query', request.query_string.split('&').map { |e| e.split('=').map { |s| CGI.unescape(s) } })
                   op.publish('request.headers', (request.each_header.each_with_object({}) { |(k, v), h| h[k.gsub(/^HTTP_/, '').downcase.gsub('_', '-')] = v if k =~ /^HTTP_/ }))
                   op.publish('request.uri.raw', request.url)
                   op.publish('request.cookies', request.cookies)
