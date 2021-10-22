@@ -198,7 +198,7 @@ if Datadog::Profiling::Ext::CPU.supported?
             if can_use_native_extension?
               expect(Datadog::Profiling::NativeExtension).to receive(:clock_id_for).and_return(clock_id)
             else
-              expect(thread).to receive(:clock_id).and_return(clock_id)
+              expect(thread).to receive(:clock_id).and_return(clock_id).at_least(:once)
             end
           end
 
@@ -254,7 +254,7 @@ if Datadog::Profiling::Ext::CPU.supported?
 
       context 'when our custom initialize block did not run' do
         before do
-          skip 'Does not apply then using the NativeExtension code path' if can_use_native_extension?
+          skip 'Does not apply when using the NativeExtension code path' if can_use_native_extension?
         end
 
         let(:thread_class) { thread_class_missing_instrumentation }
