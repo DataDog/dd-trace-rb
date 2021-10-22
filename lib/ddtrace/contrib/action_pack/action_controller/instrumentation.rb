@@ -96,7 +96,7 @@ module Datadog
           def try_setting_rack_request_resource(payload, resource)
             # Set the resource name of the Rack request span unless this is an exception controller.
             unless payload.fetch(:exception_controller?)
-              rack_request_span = payload.fetch(:env)[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              rack_request_span = payload.fetch(:env)[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
               rack_request_span.resource = resource if rack_request_span
             end
           end
