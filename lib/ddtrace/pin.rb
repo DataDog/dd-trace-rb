@@ -20,12 +20,12 @@ module Datadog
     alias service service_name
 
     def initialize(service_name, app: nil, app_type: nil, config: nil, tags: nil, **_kwargs)
+      @service_name = service_name
       @app = app
       @app_type = app_type
       @config = config
-      @name = nil # this would rarely be overridden as it's really span-specific
-      @service_name = service_name
       @tags = tags
+      @name = nil # this would rarely be overridden as it's really span-specific
     end
 
     def tracer
