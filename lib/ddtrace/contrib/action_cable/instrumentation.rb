@@ -16,7 +16,7 @@ module Datadog
                 span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
 
                 # Set the resource name of the Rack request span
-                rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+                rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
                 rack_request_span.resource = span.resource if rack_request_span
               rescue StandardError => e
                 Datadog.logger.error("Error preparing span for ActionCable::Connection: #{e}")
