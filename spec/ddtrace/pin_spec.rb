@@ -4,9 +4,9 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Pin do
-  subject(:pin) { described_class.new(service_name, options) }
+  subject(:pin) { described_class.new(service, options) }
 
-  let(:service_name) { 'test-service' }
+  let(:service) { 'test-service' }
   let(:options) { {} }
   let(:target) { Object.new }
 
@@ -31,7 +31,7 @@ RSpec.describe Datadog::Pin do
           app_type: options[:app_type],
           config: options[:config],
           name: nil,
-          service_name: service_name,
+          service: service,
           tags: options[:tags],
           writer: nil
         )
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Pin do
     before { pin.onto(target) }
 
     it 'attaches the pin to the target' do
-      expect(returned_pin.service_name).to eq(service_name)
+      expect(returned_pin.service).to eq(service)
       expect(returned_pin.app).to eq(options[:app])
     end
   end
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Pin do
   describe '#to_s' do
     subject(:string) { pin.to_s }
 
-    let(:service_name) { 'abc' }
+    let(:service) { 'abc' }
     let(:options) { { app: 'anapp', app_type: 'db' } }
 
     it { is_expected.to eq('Pin(service:abc,app:anapp,app_type:db,name:)') }
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Pin do
 
     before { pin.onto(target) }
 
-    it { expect(returned_pin.service_name).to eq(service_name) }
+    it { expect(returned_pin.service).to eq(service) }
   end
 
   describe '#enabled?' do

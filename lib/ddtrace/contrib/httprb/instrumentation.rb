@@ -29,7 +29,7 @@ module Datadog
 
             pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
-                request_options[:service_name] = pin.service_name
+                request_options[:service_name] = pin.service
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
@@ -106,7 +106,7 @@ module Datadog
               tracer: -> { config[:tracer] }
             )
 
-            if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
+            if @datadog_pin.service == default_datadog_pin.service && @datadog_pin.service != service
               @datadog_pin.service = service
             end
             if @datadog_pin.tracer == default_datadog_pin.tracer && @datadog_pin.tracer != tracer
