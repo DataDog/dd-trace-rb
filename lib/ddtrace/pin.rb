@@ -16,6 +16,8 @@ module Datadog
 
     attr_accessor :app, :app_type, :config, :name, :service_name, :tags, :writer
 
+    # TODO: remove aliases and leave `service` when we rename Datadog::Contrib::Configuration::Settings#service_name
+    # to Datadog::Contrib::Configuration::Settings#service
     alias service= service_name=
     alias service service_name
 
