@@ -58,7 +58,7 @@ module Datadog
               # TODO: the response with that resource.
               # TODO: We should replace this backfill code with a clear `resource` that signals
               # TODO: that this Sinatra span was *not* responsible for processing the current request.
-              rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
               span.resource = rack_request_span.resource if rack_request_span && rack_request_span.resource
 
               if response
