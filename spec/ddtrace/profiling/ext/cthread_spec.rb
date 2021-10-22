@@ -175,6 +175,10 @@ if Datadog::Profiling::Ext::CPU.supported?
 
       context 'when clock ID' do
         context 'is not available' do
+          before do
+            skip 'Does not apply then using the NativeExtension code path' if can_use_native_extension?
+          end
+
           let(:thread_class) { thread_class_missing_instrumentation }
 
           it { is_expected.to be nil }
@@ -190,7 +194,13 @@ if Datadog::Profiling::Ext::CPU.supported?
           let(:clock_id) { double('clock ID') }
           let(:cpu_time_measurement) { double('cpu time measurement') }
 
-          before { allow(thread).to receive(:clock_id).and_return(clock_id) }
+          before do
+            if can_use_native_extension?
+              expect(Datadog::Profiling::NativeExtension).to receive(:clock_id_for).and_return(clock_id)
+            else
+              expect(thread).to receive(:clock_id).and_return(clock_id)
+            end
+          end
 
           context 'when not given a unit' do
             it 'gets time in CPU seconds' do
@@ -243,6 +253,10 @@ if Datadog::Profiling::Ext::CPU.supported?
       end
 
       context 'when our custom initialize block did not run' do
+        before do
+          skip 'Does not apply then using the NativeExtension code path' if can_use_native_extension?
+        end
+
         let(:thread_class) { thread_class_missing_instrumentation }
 
         it do
@@ -372,5 +386,9 @@ if Datadog::Profiling::Ext::CPU.supported?
         expect(thread_class.method(:start)).to eq thread_class.method(:fork)
       end
     end
+  end
+
+  def can_use_native_extension?
+    Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
   end
 end
