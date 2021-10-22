@@ -22,9 +22,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
   describe '.clock_id_for' do
     subject(:clock_id_for) { described_class.clock_id_for(thread) }
 
-    context 'on Linux' do
+    context 'on Linux and on Ruby 2.6+' do
       before do
-        skip 'Test only runs on Linux' unless RUBY_PLATFORM.include?('linux')
+        unless RUBY_PLATFORM.include?('linux') && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+          skip 'Test only runs on Linux and on Ruby 2.6+'
+        end
       end
 
       context 'when called with a live thread' do
@@ -71,9 +73,11 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
 
-    context 'when not on Linux' do
+    context 'when not on Linux or on older Rubies' do
       before do
-        skip 'Test only applies when not on Linux' if RUBY_PLATFORM.include?('linux')
+        if RUBY_PLATFORM.include?('linux') && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+          skip 'The fallback behavior only applies when not on Linux or for older rubies'
+        end
       end
 
       let(:thread) { Thread.current }
