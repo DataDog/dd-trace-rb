@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'ddtrace'
 
 RSpec.describe Datadog::Pin do
-  subject(:pin) { described_class.new(service_name, options) }
+  subject(:pin) { described_class.new(service_name, **options) }
 
   let(:service_name) { 'test-service' }
   let(:options) { {} }
