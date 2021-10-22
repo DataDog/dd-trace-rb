@@ -16,7 +16,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
     context 'given options' do
       let(:options) do
         {
-          service: 'my-service',
+          service_name: 'my-service',
           app: 'my-app',
           app_type: :cache,
           tags: { env: :prod },
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
   end
 
   describe 'Datadog#configure' do
-    before { Datadog.configure(target, service: :foo, extra: :bar) }
+    before { Datadog.configure(target, service_name: :foo, extra: :bar) }
 
     it do
       expect(target.datadog_pin.service).to eq(:foo)

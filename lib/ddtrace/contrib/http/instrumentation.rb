@@ -47,7 +47,7 @@ module Datadog
                 # even though service_name might already be in request_options,
                 # we need to capture the name from the pin since it could be
                 # overridden
-                request_options[:service_name] = pin.service
+                request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
@@ -131,7 +131,7 @@ module Datadog
             # The solution is to detect if we are using the default config and
             # apply the new config if necessary, while still allowing custom
             # values to be supplied
-            if @datadog_pin.service == default_datadog_pin.service && @datadog_pin.service != service
+            if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
               @datadog_pin.service = service
             end
             if @datadog_pin.tracer == default_datadog_pin.tracer && @datadog_pin.tracer != tracer

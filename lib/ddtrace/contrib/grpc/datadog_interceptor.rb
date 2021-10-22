@@ -55,7 +55,7 @@ module Datadog
           end
 
           def service_name
-            (datadog_pin && datadog_pin.service) || datadog_configuration[:service_name]
+            (datadog_pin && datadog_pin.service_name) || datadog_configuration[:service_name]
           end
 
           def analytics_enabled?
