@@ -42,8 +42,16 @@ add_compiler_flag '-Werror=incompatible-pointer-types'
 # Older Rubies don't have the MJIT header (used by the JIT compiler, and we piggy back on it)
 $defs << '-DUSE_MJIT_HEADER' unless RUBY_VERSION < '2.6'
 
-have_library 'pthread'
-have_func 'pthread_getcpuclockid'
+if RUBY_PLATFORM.include?('linux')
+  # Supposedly, the correct way to do this is
+  # ```
+  # have_library 'pthread'
+  # have_func 'pthread_getcpuclockid'
+  # ```
+  # but it broke the build on Windows and on older Ruby versions (2.1 and 2.2)
+  # so instead we just assume that we have the function we need on Linux, and nowhere else
+  $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
+end
 
 create_header
 
