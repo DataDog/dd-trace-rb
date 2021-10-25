@@ -176,7 +176,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       context 'when clock ID' do
         context 'is not available' do
           before do
-            skip 'Does not apply then using the NativeExtension code path' if can_use_native_extension?
+            skip 'Does not apply when using the NativeExtension code path' if can_use_native_extension?
           end
 
           let(:thread_class) { thread_class_missing_instrumentation }

@@ -10,7 +10,7 @@ static const rb_data_type_t *thread_data_type = NULL;
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
-// Instead, we have own version of that function, and we lazily initialize the thread_data_type pointer
+// Instead, we have our own version of that function, and we lazily initialize the thread_data_type pointer
 // from a known-correct object: the current thread.
 //
 // Note that beyond returning the rb_thread_struct*, rb_check_typeddata() raises an exception
