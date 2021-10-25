@@ -141,7 +141,7 @@ The following steps will help you quickly start tracing your Ruby application.
 
 ### Configure the Datadog Agent for APM
 
-Before downloading tracing on your application, install the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
+Before downloading tracing on your application, [install the Datadog Agent on the host](https://docs.datadoghq.com/agent/). The Ruby APM tracer sends trace data through the Datadog Agent.
 
 Install and configure the Datadog Agent to receive traces from your now instrumented application. By default the Datadog Agent is enabled in your `datadog.yaml` file under `apm_enabled: true` and listens for trace traffic at `localhost:8126`. For containerized environments, follow the steps below to enable trace collection within the Datadog Agent.
 
