@@ -28,7 +28,7 @@ VALUE clock_id_for(VALUE self, VALUE thread) {
   clockid_t clock_id;
   int error = pthread_getcpuclockid(thread_id, &clock_id);
 
-  if (!error) {
+  if (error == 0) {
     return CLOCKID2NUM(clock_id);
   } else {
     rb_exc_raise(rb_syserr_new(error, "Failed to get clock_id for given thread"));
