@@ -8,6 +8,7 @@ module Datadog
 
     STRING = [MAJOR, MINOR, PATCH, PRE].compact.join('.')
 
+    # Support for Ruby < 2.2 is being phased out and will be dropped in the near future.
     MINIMUM_RUBY_VERSION = '2.1.0'.freeze
 
     # Ruby 3.2 is not supported: Ruby 3.x support as implemented using *args
