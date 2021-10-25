@@ -22,6 +22,7 @@ if skip_building_extension?
   return
 end
 
+# rubocop:disable Style/StderrPuts
 $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | **Preparing to build the ddtrace native extension...**                       |
@@ -38,6 +39,7 @@ $stderr.puts(%(
 | Thanks for using ddtrace! You rock!                                          |
 +------------------------------------------------------------------------------+
 ))
+# rubocop:enable Style/StderrPuts
 
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
@@ -55,9 +57,7 @@ add_compiler_flag '-Werror-implicit-function-declaration'
 
 # Older Rubies don't have the MJIT header (used by the JIT compiler, and we piggy back on it)
 # TODO: Development builds of Ruby 3.1 seem to be failing on Windows; to be revisited once 3.1.0 stable is out
-unless RUBY_VERSION < '2.6' || (RUBY_VERSION >= '3.1' && Gem.win_platform?)
-  $defs << '-DUSE_MJIT_HEADER'
-end
+$defs << '-DUSE_MJIT_HEADER' unless RUBY_VERSION < '2.6' || (RUBY_VERSION >= '3.1' && Gem.win_platform?)
 
 if RUBY_PLATFORM.include?('linux')
   # Supposedly, the correct way to do this is
