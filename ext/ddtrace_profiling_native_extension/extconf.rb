@@ -22,6 +22,23 @@ if skip_building_extension?
   return
 end
 
+$stderr.puts(%(
++------------------------------------------------------------------------------+
+| **Preparing to build the ddtrace native extension...**                       |
+|                                                                              |
+| If you run into any failures during this step, you can set the               |
+| `DD_PROFILING_NO_EXTENSION` environment variable to `true` e.g.              |
+| `$ DD_PROFILING_NO_EXTENSION=true bundle install` to skip this step.         |
+|                                                                              |
+| Disabling the extension will lead to the ddtrace profiling features not      |
+| working in future releases.                                                  |
+| If you needed to use this, please tell us why on                             |
+| <https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :\)      |
+|                                                                              |
+| Thanks for using ddtrace! You rock!                                          |
++------------------------------------------------------------------------------+
+))
+
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
