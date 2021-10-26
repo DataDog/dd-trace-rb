@@ -21,8 +21,8 @@ in future releases -- e.g. disabling the extension will disable profiling entire
 The profiling native extension is (and must always be) designed to **not cause failures** during gem installation, even
 if some features, Ruby versions, or operating systems are not supported.
 
-E.g. the extension must cleanly build on Ruby 2.1 on Windows, even if at run time it will effectively do nothing for
-such a setup.
+E.g. the extension must cleanly build on Ruby 2.1 (or the oldest Ruby version we support at the time) on Windows,
+even if at run time it will effectively do nothing for such a setup.
 
 We have a CI setup to help validate this, but this is really important to keep in mind when adding to or changing the
 existing codebase.
@@ -32,16 +32,34 @@ existing codebase.
 To implement some of the features below, we sometimes require access to private Ruby header files (that describe VM
 internal types, structures and functions).
 
-Because these private header files are not included in regular Ruby installations, our current workaround is to piggy
-back on a special header that Ruby includes that is only intended for use by the Ruby MJIT compiler. This header is
-placed inside the `include/` directory in a Ruby installation, and is named for that specific Ruby version. e.g.
-`rb_mjit_min_header-2.7.4.h`.
+Because these private header files are not included in regular Ruby installations, we have two different workarounds:
 
-This header was introduced by the first Ruby version that added MJIT, which is 2.6+.
-
-For older Ruby versions (see safety section above), this header is not available, and this must be handled gracefully.
+1. for Ruby versions >= 2.6 we make use use the Ruby private MJIT header
+2. for Ruby versions < 2.6 (legacy Rubies) we make use of the `debase-ruby_core_source` gem
 
 Functions which make use of these headers are defined in the <private_vm_api_acccess.c> file.
+
+**Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
+contribute upstream changes so that they become official public VM APIs.
+
+### Approach 1: Using the Ruby private MJIT header
+
+Ruby versions >= 2.6 introduced a JIT compiler called MJIT. This compiler does not directly generate machine code;
+instead it generates C code and uses the system C compiler to turn it into machine code.
+
+The generated C code `#include`s a private header -- which we reference as "the MJIT header" everywhere.
+The MJIT header gets shipped with all MJIT-enabled Rubies and includes the layout of many internal VM structures;
+and of course the intention is that it is only used by the Ruby MJIT compiler.
+
+This header is placed inside the `include/` directory in a Ruby installation, and is named for that specific Ruby
+version. e.g. `rb_mjit_min_header-2.7.4.h`.
+
+### Approach 2: Using the `debase-ruby_core_source` gem
+
+The [`debase-ruby_core_source`](https://github.com/ruby-debug/debase-ruby_core_source) contains almost no code;
+instead, it just contains per-Ruby-version folders with the private VM headers (`.h`) files for that version.
+
+Thus, even though a regular Ruby installation does not include these files, we can access the copy inside this gem.
 
 ## Feature: Getting thread CPU-time clock_ids
 

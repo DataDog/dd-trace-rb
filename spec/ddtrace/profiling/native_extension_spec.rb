@@ -22,11 +22,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
   describe '.clock_id_for' do
     subject(:clock_id_for) { described_class.clock_id_for(thread) }
 
-    context 'on Linux and on Ruby 2.6+' do
+    context 'on Linux' do
       before do
-        unless RUBY_PLATFORM.include?('linux') && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
-          skip 'Test only runs on Linux and on Ruby 2.6+'
-        end
+        skip 'Test only runs on Linux' unless RUBY_PLATFORM.include?('linux')
       end
 
       context 'when called with a live thread' do
@@ -38,8 +36,23 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       context 'when called with a dead thread' do
         let(:thread) { Thread.new {}.tap(&:join) }
 
-        # This one is kinda weird, but I don't make the rules here ;)
-        it { is_expected.to be_a_kind_of(Integer) }
+        it 'raises an Errno::ESRCH error' do
+          # Interestingly enough, it seems like it takes a bit of time to clean up the resources from the dead thread
+          # so this is why we use the try_wait_until and try to poke at Ruby to make it decide to go ahead with the
+          # cleanup. (I'm actually not sure if the delay is from the Ruby VM even...)
+
+          try_wait_until(attempts: 500, backoff: 0.01) do
+            Thread.pass
+            GC.start
+
+            begin
+              described_class.clock_id_for(thread)
+              false
+            rescue Errno::ESRCH
+              true
+            end
+          end
+        end
       end
 
       context 'when called with a thread subclass' do
@@ -73,11 +86,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
 
-    context 'when not on Linux or on older Rubies' do
+    context 'when not on Linux' do
       before do
-        if RUBY_PLATFORM.include?('linux') && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
-          skip 'The fallback behavior only applies when not on Linux or for older rubies'
-        end
+        skip 'The fallback behavior only applies when not on Linux' if RUBY_PLATFORM.include?('linux')
       end
 
       let(:thread) { Thread.current }

@@ -2,7 +2,7 @@
 
 // This file is only compiled on systems where pthread_getcpuclockid() is available;
 // Otherwise we compile clock_id_noop.c
-#if defined(HAVE_PTHREAD_GETCPUCLOCKID) && defined(USE_MJIT_HEADER)
+#ifdef HAVE_PTHREAD_GETCPUCLOCKID
 
 #include <pthread.h>
 #include <time.h>
