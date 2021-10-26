@@ -47,7 +47,6 @@ module Datadog
       :span_id=,
       :span_type,
       :span_type=,
-      :start,
       :start_time,
       :start_time=,
       :started?,
@@ -63,10 +62,10 @@ module Datadog
       :trace_id=
     ].to_set.freeze
 
-    attr_reader :parent
+    attr_reader :events, :parent
     attr_accessor :span, :context
 
-    # Forward instance methods except ones that would cause identity issues
+    # Forward instance methods to Span except ones that would cause identity issues
     def_delegators :span, *FORWARDED_METHODS
 
     def initialize(span_name, options = {})
@@ -85,6 +84,7 @@ module Datadog
 
       @span = Span.new(span_name, **span_options)
       @context = options[:context]
+      @events = options[:events] || Events.new
 
       # Add span to the context, if provided.
       @context.add_span(self) if @context
@@ -101,6 +101,56 @@ module Datadog
       end
     end
 
+    def measure(start_time: nil)
+      raise ArgumentError, 'Must provide block to measure!' unless block_given?
+      # TODO: Should we just invoke the block and skip tracing instead?
+      raise AlreadyStartedError if started?
+
+      return_value = nil
+
+      begin
+        # If span fails to start, don't prevent the operation from
+        # running, to minimize impact on normal application function.
+        begin
+          start(start_time)
+        rescue StandardError => e
+          Datadog.logger.debug("Failed to start span: #{e}")
+        ensure
+          # We should yield to the provided block when possible, as this
+          # block is application code that we don't want to hinder.
+          # * We don't yield during a fatal error, as the application is likely trying to
+          #   end its execution (either due to a system error or graceful shutdown).
+          return_value = yield(self) unless e && !e.is_a?(StandardError)
+        end
+      # rubocop:disable Lint/RescueException
+      # Here we really want to catch *any* exception, not only StandardError,
+      # as we really have no clue of what is in the block,
+      # and it is user code which should be executed no matter what.
+      # It's not a problem since we re-raise it afterwards so for example a
+      # SignalException::Interrupt would still bubble up.
+      rescue Exception => e
+        # We must finish the span to trigger callbacks.
+        # If the span failed to start, timing may be inaccurate,
+        # but this is not really a serious concern.
+        finish
+
+        # Trigger the on_error event
+        events.on_error.publish(self, e)
+
+        raise e
+      # Use an ensure block here to make sure the span closes.
+      # NOTE: It's not sufficient to use "else": when a function
+      #       uses "return", it will skip "else".
+      ensure
+        # Finish the span
+        # NOTE: If an error was raised, this "finish" might be redundant.
+        finish unless finished?
+      end
+      # rubocop:enable Lint/RescueException
+
+      return_value
+    end
+
     # Set span parent
     def parent=(parent)
       @parent = parent
@@ -109,6 +159,21 @@ module Datadog
 
     def detach_from_context!
       @context = nil
+    end
+
+    def start(start_time = nil)
+      # A span should not be started twice. However, this is existing
+      # behavior and so we maintain it for backward compatibility for those
+      # who are using async manual instrumentation that may rely on this
+      #
+      # Don't overwrite the start time of a completed span.
+      return self if stopped?
+
+      # Trigger before_start event
+      events.before_start.publish(self)
+
+      # Start the span
+      span.start(start_time)
     end
 
     def finish(end_time = nil)
@@ -125,8 +190,8 @@ module Datadog
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
 
-      # Trigger finished event
-      on_finished.publish(self)
+      # Trigger after_finish event
+      events.after_finish.publish(self)
 
       span
     end
@@ -135,14 +200,43 @@ module Datadog
       span.stopped?
     end
 
-    def on_finished
-      @on_finished ||= OperationFinished.new
-    end
+    # Callback behavior
+    class Events
+      DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
-    # Triggered when the span is finished, regardless of error.
-    class OperationFinished < Datadog::Event
+      attr_reader \
+        :after_finish,
+        :before_start,
+        :on_error
+
       def initialize
-        super(:operation_finished)
+        @after_finish = AfterFinish.new
+        @before_start = BeforeStart.new
+        @on_error = OnError.new
+
+        # Set default error behavior
+        on_error.subscribe(:default, &DEFAULT_ON_ERROR)
+      end
+
+      # Triggered when the span is finished, regardless of error.
+      class AfterFinish < Datadog::Event
+        def initialize
+          super(:after_finish)
+        end
+      end
+
+      # Triggered just before the span is started.
+      class BeforeStart < Datadog::Event
+        def initialize
+          super(:before_start)
+        end
+      end
+
+      # Triggered when the span raises an error during measurement.
+      class OnError < Datadog::Event
+        def initialize
+          super(:on_error)
+        end
       end
     end
 
@@ -182,5 +276,12 @@ module Datadog
     # Additional extensions
     prepend Analytics
     prepend ForcedTracing
+
+    # Error when the span attempts to start again after being started
+    class AlreadyStartedError < StandardError
+      def message
+        'Cannot measure an already started span!'.freeze
+      end
+    end
   end
 end
