@@ -11,7 +11,7 @@ module Datadog
           def fetch
             configuration = Datadog.configuration[:sidekiq]
 
-            configuration[:tracer].trace(Ext::SPAN_JOB_FETCH) do |span|
+            Datadog.tracer.trace(Ext::SPAN_JOB_FETCH) do |span|
               span.service = configuration[:service_name]
               span.span_type = Datadog::Ext::AppTypes::WORKER
 

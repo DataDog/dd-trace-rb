@@ -76,7 +76,7 @@ module Datadog
 
           def datadog_before_request(parent_span: nil)
             load_datadog_configuration_for(url)
-            @datadog_span = datadog_configuration[:tracer].trace(
+            @datadog_span = Datadog.tracer.trace(
               Ext::SPAN_REQUEST,
               service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
@@ -135,7 +135,7 @@ module Datadog
           end
 
           def tracer_enabled?
-            datadog_configuration[:tracer].enabled
+            Datadog.tracer.enabled
           end
 
           def analytics_enabled?

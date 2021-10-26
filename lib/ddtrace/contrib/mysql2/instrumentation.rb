@@ -41,7 +41,6 @@ module Datadog
               Datadog.configuration[:mysql2][:service_name],
               app: Ext::APP,
               app_type: Datadog::Ext::AppTypes::DB,
-              tracer: -> { Datadog.configuration[:mysql2][:tracer] }
             )
           end
 

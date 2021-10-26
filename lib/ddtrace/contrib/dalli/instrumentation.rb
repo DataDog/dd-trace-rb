@@ -42,7 +42,7 @@ module Datadog
           private
 
           def tracer
-            datadog_configuration[:tracer]
+            Datadog.tracer
           end
 
           def datadog_configuration

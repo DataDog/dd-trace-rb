@@ -36,7 +36,7 @@ module Datadog
             remove_method :call
             def call(*args, &block)
               pin = Datadog::Pin.get_from(self)
-              return call_without_datadog(*args, &block) unless pin && pin.tracer
+              return call_without_datadog(*args, &block) unless pin
 
               response = nil
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
@@ -55,7 +55,7 @@ module Datadog
             remove_method :call_pipeline
             def call_pipeline(*args, &block)
               pin = Datadog::Pin.get_from(self)
-              return call_pipeline_without_datadog(*args, &block) unless pin && pin.tracer
+              return call_pipeline_without_datadog(*args, &block) unless pin
 
               response = nil
               pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
@@ -78,7 +78,6 @@ module Datadog
                   datadog_configuration[:service_name],
                   app: Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: -> { datadog_configuration[:tracer] }
                 )
                 pin.onto(self)
               end

@@ -61,7 +61,7 @@ module Datadog
             attr_accessor :active_datadog_span
 
             def datadog_tracer
-              Datadog.configuration[:action_view][:tracer]
+              Datadog.tracer
             end
 
             def with_datadog_span(span)

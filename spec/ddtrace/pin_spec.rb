@@ -19,9 +19,7 @@ RSpec.describe Datadog::Pin do
           app: double('app'),
           app_type: double('app_type'),
           config: double('config'),
-          name: double('name'),
           tags: double('tags'),
-          writer: double('writer')
         }
       end
 
@@ -30,10 +28,8 @@ RSpec.describe Datadog::Pin do
           app: options[:app],
           app_type: options[:app_type],
           config: options[:config],
-          name: nil,
           service_name: service_name,
           tags: options[:tags],
-          writer: nil
         )
       end
     end

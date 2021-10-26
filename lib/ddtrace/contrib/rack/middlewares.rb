@@ -40,7 +40,7 @@ module Datadog
 
         def call(env)
           # retrieve integration settings
-          tracer = configuration[:tracer]
+          tracer = Datadog.tracer
 
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.

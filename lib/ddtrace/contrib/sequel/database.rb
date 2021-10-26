@@ -37,7 +37,6 @@ module Datadog
               Datadog.configuration[:sequel][:service_name] || adapter_name,
               app: Ext::APP,
               app_type: Datadog::Ext::AppTypes::DB,
-              tracer: -> { Datadog.configuration[:sequel][:tracer] }
             )
           end
 

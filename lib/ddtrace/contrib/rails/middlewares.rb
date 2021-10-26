@@ -23,8 +23,7 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          tracer = Datadog.configuration[:rails][:tracer]
-          span = tracer.active_span
+          span = Datadog.tracer.active_span
           if !span.nil? && ActionPack::Utils.exception_is_error?(e)
             # Only set error if it's supposed to be flagged as such
             # e.g. we don't want to flag 404s.

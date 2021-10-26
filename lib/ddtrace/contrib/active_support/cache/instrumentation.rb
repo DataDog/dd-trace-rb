@@ -11,7 +11,7 @@ module Datadog
           module_function
 
           def start_trace_cache(payload)
-            tracer = Datadog.configuration[:active_support][:tracer]
+            tracer = Datadog.tracer
 
             # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
             # This check ensures that two reads are not nested since they don't provide
