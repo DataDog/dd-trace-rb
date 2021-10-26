@@ -8,10 +8,6 @@ module Datadog
         ENV_ENABLED = 'DD_TRACE_ACTION_MAILER_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE'.freeze
-
-        ENV_ANALYTICS_ENABLED_OLD = 'DD_ACTION_MAILER_ANALYTICS_ENABLED'.freeze
-
-        ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_ACTION_MAILER_ANALYTICS_SAMPLE_RATE'.freeze
         SERVICE_NAME = 'action_mailer'.freeze
         SPAN_PROCESS = 'action_mailer.process'.freeze
         SPAN_DELIVER = 'action_mailer.deliver'.freeze
