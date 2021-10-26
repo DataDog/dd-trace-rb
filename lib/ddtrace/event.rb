@@ -22,6 +22,18 @@ module Datadog
       end
     end
 
+    def wrap(key)
+      raise ArgumentError, 'Must give a block to subscribe!' unless block_given?
+
+      @mutex.synchronize do
+        original = subscriptions[key]
+
+        subscriptions[key] = proc do |*args|
+          yield(original, *args)
+        end
+      end
+    end
+
     def unsubscribe(key)
       @mutex.synchronize do
         subscriptions.delete(key)
