@@ -7,9 +7,7 @@ module Datadog
         APP = 'sinatra'.freeze
         ENV_ENABLED = 'DD_TRACE_SINATRA_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_SINATRA_ANALYTICS_ENABLED'.freeze
-        ENV_ANALYTICS_ENABLED_OLD = 'DD_SINATRA_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SINATRA_ANALYTICS_SAMPLE_RATE'.freeze
-        ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_SINATRA_ANALYTICS_SAMPLE_RATE'.freeze
         RACK_ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'.freeze
         RACK_ENV_MIDDLEWARE_START_TIME = 'datadog.sinatra_middleware_start_time'.freeze
         RACK_ENV_MIDDLEWARE_TRACED = 'datadog.sinatra_middleware_traced'.freeze
