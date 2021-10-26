@@ -8,9 +8,7 @@ require 'ddtrace/ext/environment'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
-require 'ddtrace/ext/priority'
-require 'ddtrace/analytics'
-require 'ddtrace/forced_tracing'
+
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/utils/time'
 
@@ -23,9 +21,6 @@ module Datadog
   #
   # rubocop:disable Metrics/ClassLength
   class Span
-    prepend Analytics::Span
-    prepend ForcedTracing::Span
-
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
@@ -55,15 +50,17 @@ module Datadog
 
     attr_accessor :name, :service, :resource, :span_type,
                   :span_id, :trace_id, :parent_id,
-                  :status, :sampled,
-                  :tracer, :context
+                  :status, :sampled
 
-    attr_reader :parent, :start_time, :end_time, :resource_container
+    attr_reader \
+      :parent, # DEPRECATED: Remove when #parent= is migrated to SpanOperation
+      :start_time,
+      :end_time
 
     attr_writer :duration
 
-    # Create a new span linked to the given tracer. Call the \Tracer method <tt>start_span()</tt>
-    # and then <tt>finish()</tt> once the tracer operation is over.
+    # Create a new span manually. Call the <tt>start()</tt> method to start the time
+    # measurement and then <tt>stop()</tt> once the timing operation is over.
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or +name+ if it's missing.
@@ -71,20 +68,23 @@ module Datadog
     # * +span_type+: the type of the span (such as +http+, +db+ and so on)
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
-    # * +context+: the context of the span
-    def initialize(tracer, name, options = {})
-      @tracer = tracer
-
+    def initialize(
+      name,
+      parent_id: 0,
+      resource: name,
+      service: nil,
+      span_type: nil,
+      tags: nil,
+      trace_id: nil
+    )
       @name = name
-      @service = options.fetch(:service, nil)
-      @resource = options.fetch(:resource, name)
-      @span_type = options.fetch(:span_type, nil)
+      @service = service
+      @resource = resource
+      @span_type = span_type
 
       @span_id = Datadog::Utils.next_id
-      @parent_id = options.fetch(:parent_id, 0)
-      @trace_id = options.fetch(:trace_id, Datadog::Utils.next_id)
-
-      @context = options.fetch(:context, nil)
+      @parent_id = parent_id || 0
+      @trace_id = trace_id || Datadog::Utils.next_id
 
       @meta = {}
       @metrics = {}
@@ -94,7 +94,7 @@ module Datadog
       @sampled = true
 
       @allocation_count_start = now_allocations
-      @allocation_count_finish = @allocation_count_start
+      @allocation_count_stop = @allocation_count_start
 
       # start_time and end_time track wall clock. In Ruby, wall clock
       # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -107,6 +107,9 @@ module Datadog
       # is known that we have to use wall clock to measure duration.
       @duration_start = nil
       @duration_end = nil
+
+      # Set tags if provided.
+      set_tags(tags) if tags
     end
 
     # Set the given key / value tag pair on the span. Keys and values
@@ -189,10 +192,6 @@ module Datadog
 
     # Mark the span started at the current time.
     def start(start_time = nil)
-      # A span should not be started twice. However, this is existing
-      # behavior and so we maintain it for backward compatibility for those
-      # who are using async manual instrumentation that may rely on this
-
       @start_time = start_time || Utils::Time.now.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 
@@ -206,44 +205,29 @@ module Datadog
 
     # for backwards compatibility
     def end_time=(time)
-      time.tap { finish(time) }
+      time.tap { stop(time) }
     end
 
-    # Mark the span finished at the current time and submit it.
-    def finish(finish_time = nil)
-      # A span should not be finished twice. Note that this is not thread-safe,
-      # finish is called from multiple threads, a given span might be finished
+    # Mark the span stopped at the current time
+    def stop(stop_time = nil)
+      # A span should not be stopped twice. Note that this is not thread-safe,
+      # stop is called from multiple threads, a given span might be stopped
       # several times. Again, one should not do this, so this test is more a
       # fallback to avoid very bad things and protect you in most common cases.
-      return if finished?
+      return if stopped?
 
-      @allocation_count_finish = now_allocations
+      @allocation_count_stop = now_allocations
 
       now = Utils::Time.now.utc
 
       # Provide a default start_time if unset.
       # Using `now` here causes duration to be 0; this is expected
       # behavior when start_time is unknown.
-      start(finish_time || now) unless started?
+      start(stop_time || now) unless started?
 
-      @end_time = finish_time || now
-      @duration_end = finish_time.nil? ? duration_marker : nil
+      @end_time = stop_time || now
+      @duration_end = stop_time.nil? ? duration_marker : nil
 
-      # Finish does not really do anything if the span is not bound to a tracer and a context.
-      return self if @tracer.nil? || @context.nil?
-
-      # spans without a service would be dropped, so here we provide a default.
-      # This should really never happen with integrations in contrib, as a default
-      # service is always set. It's only for custom instrumentation.
-      @service ||= (@tracer && @tracer.default_service)
-
-      begin
-        @context.close_span(self)
-        @tracer.record(self)
-      rescue StandardError => e
-        Datadog.logger.debug("error recording finished trace: #{e}")
-        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
-      end
       self
     end
 
@@ -252,13 +236,10 @@ module Datadog
       "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
     end
 
-    # DEPRECATED: remove this function in the next release, replaced by ``parent=``
-    def set_parent(parent)
-      self.parent = parent
-    end
-
     # Set this span's parent, inheriting any properties not explicitly set.
     # If the parent is nil, set the span zero values.
+    #
+    # # DEPRECATED: To be removed and migrated to SpanOperation#parent=
     def parent=(parent)
       @parent = parent
 
@@ -272,9 +253,11 @@ module Datadog
         @sampled = parent.sampled
       end
     end
+    # DEPRECATED: remove this function in the next release, replaced by ``parent=``
+    alias set_parent parent=
 
     def allocations
-      @allocation_count_finish - @allocation_count_start
+      @allocation_count_stop - @allocation_count_start
     end
 
     # Return the hash representation of the current span.
@@ -293,7 +276,7 @@ module Datadog
         error: @status
       }
 
-      if finished?
+      if stopped?
         h[:start] = start_time_nano
         h[:duration] = duration_nano
       end
@@ -313,7 +296,7 @@ module Datadog
       # As of 1.3.3, JRuby implementation doesn't pass an existing packer
       packer ||= MessagePack::Packer.new
 
-      if finished?
+      if stopped?
         packer.write_map_header(13) # Set header with how many elements in the map
 
         packer.write('start')
@@ -375,7 +358,7 @@ module Datadog
         q.text "Error: #{@status}\n"
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
-        q.text "Duration: #{duration.to_f if finished?}\n"
+        q.text "Duration: #{duration.to_f if stopped?}\n"
         q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
@@ -397,16 +380,17 @@ module Datadog
       !@start_time.nil?
     end
 
-    # Return whether the duration is finished or not.
-    def finished?
+    # Return whether the duration is stopped or not.
+    def stopped?
       !@end_time.nil?
     end
+    alias finished? stopped?
 
     def duration
-      if @duration_end.nil? || @duration_start.nil?
-        @end_time - @start_time
-      else
+      if @duration_start && @duration_end
         @duration_end - @duration_start
+      elsif @start_time && @end_time
+        @end_time - @start_time
       end
     end
 

@@ -76,37 +76,37 @@ module Datadog
     # item in the trace list. This cannot be considered as the current active
     # span in asynchronous environments, because some spans can be closed
     # earlier while child spans still need to finish their traced execution.
-    def current_span
+    def current_span_op
       @mutex.synchronize do
-        @current_span
+        @current_span_op
       end
     end
+    alias current_span current_span_op
 
-    def current_root_span
+    def current_root_span_op
       @mutex.synchronize do
-        @current_root_span
+        @current_root_span_op
       end
     end
+    alias current_root_span current_root_span_op
 
     # Same as calling #current_span and #current_root_span, but works atomically thus preventing races when we need to
     # retrieve both
-    def current_span_and_root_span
+    def current_span_and_root_span_ops
       @mutex.synchronize do
-        [@current_span, @current_root_span]
+        [@current_span_op, @current_root_span_op]
       end
     end
+    alias current_span_and_root_span current_span_and_root_span_ops
 
-    # Add a span to the context trace list, keeping it as the last active span.
-    def add_span(span)
+    def add_span(span_op)
       @mutex.synchronize do
         # If hitting the hard limit, just drop spans. This is really a rare case
         # as it means despite the soft limit, the hard limit is reached, so the trace
         # by default has 10000 spans, all of which belong to unfinished parts of a
         # larger trace. This is a catch-all to reduce global memory usage.
-        if @max_length > 0 && @trace.length >= @max_length
-          # Detach the span from any context, it's being dropped and ignored.
-          span.context = nil
-          Datadog.logger.debug("context full, ignoring span #{span.name}")
+        if full?
+          Datadog.logger.debug("context full, ignoring span #{span_op.name}")
 
           # If overflow has already occurred, don't send this metric.
           # Prevents metrics spam if buffer repeatedly overflows for the same trace.
@@ -115,34 +115,47 @@ module Datadog
             @overflow = true
           end
 
-          return
+          return false
         end
-        set_current_span(span)
-        @current_root_span = span if @trace.empty?
-        @trace << span
-        span.context = self
+
+        # Add the span to the context
+        self.current_span_op = span_op
+        @current_root_span_op = span_op if @trace.empty?
+        @trace << span_op
+
+        true
       end
     end
 
     # Mark a span as a finished, increasing the internal counter to prevent
     # cycles inside _trace list.
-    def close_span(span)
+    def close_span(span_op)
       @mutex.synchronize do
         @finished_spans += 1
-        # Current span is only meaningful for linear tree-like traces,
-        # in other cases, this is just broken and one should rely
-        # on per-instrumentation code to retrieve handle parent/child relations.
-        set_current_span(span.parent)
-        return if span.tracer.nil?
 
-        if span.parent.nil? && !all_spans_finished?
+        # Find the new current span: it should be an ancestor that is not finished.
+        # This is because it's possible that a parent span will finish before a child.
+        # If this happens, we don't want to set the current span to a completed span.
+        parent = span_op.parent
+        parent = parent.parent while !parent.nil? && parent.finished?
+
+        # Current span is only meaningful for linear tree-like traces.
+        # In other cases, this is just broken and one should rely
+        # on per-instrumentation code to handle parent/child relations.
+        self.current_span_op = parent
+
+        # If root span has been closed and spans are still unfinished...
+        # ...emit some warnings/metrics to bring attention to this.
+        # All spans should be closed when the root span closes.
+        # Otherwise traces can leak, or be associated incorrectly.
+        if parent.nil? && !all_spans_finished?
           if Datadog.configuration.diagnostics.debug
             opened_spans = @trace.length - @finished_spans
-            Datadog.logger.debug("root span #{span.name} closed but has #{opened_spans} unfinished spans:")
+            Datadog.logger.debug("Root span #{span_op.name} closed but has #{opened_spans} unfinished spans:")
           end
 
           @trace.reject(&:finished?).group_by(&:name).each do |unfinished_span_name, unfinished_spans|
-            Datadog.logger.debug("unfinished span: #{unfinished_spans.first}") if Datadog.configuration.diagnostics.debug
+            Datadog.logger.debug("Unfinished span: #{unfinished_spans.first}") if Datadog.configuration.diagnostics.debug
             Datadog.health_metrics.error_unfinished_spans(
               unfinished_spans.length,
               tags: ["name:#{unfinished_span_name}"]
@@ -196,13 +209,16 @@ module Datadog
         return nil, sampled unless all_spans_finished?
 
         # Root span is finished at this point, we can configure it
-        annotate_for_flush!(@current_root_span)
+        annotate_for_flush!(@current_root_span_op)
 
         # Allow caller to modify trace before context is reset
         yield(trace) if block_given?
 
+        # Reset the context for re-use.
         reset
-        [trace, sampled]
+
+        # Return Span measurements and whether it was sampled.
+        [trace.collect(&:span), sampled]
       end
     end
 
@@ -211,43 +227,43 @@ module Datadog
     # @return [Array<Span>] deleted spans
     def delete_span_if
       @mutex.synchronize do
-        [].tap do |deleted_spans|
-          @trace.delete_if do |span|
-            finished = span.finished?
+        deleted_spans = []
+        return deleted_spans unless block_given?
 
-            next unless yield span
+        @trace.delete_if do |span_op|
+          finished = span_op.finished?
 
-            deleted_spans << span
+          # Check condition
+          next unless yield(span_op)
 
-            # We need to detach the span from the context, else, some code
-            # finishing it afterwards would mess up with the number of
-            # finished_spans and possibly cause other side effects.
-            span.context = nil
-            # Acknowledge there's one span less to finish, if needed.
-            # It's very important to keep this balanced.
-            @finished_spans -= 1 if finished
+          deleted_spans << span_op.span
 
-            true
-          end
+          # Acknowledge there's one span less to finish, if needed.
+          # It's very important to keep this balanced.
+          @finished_spans -= 1 if finished
+
+          true
         end
+
+        deleted_spans
       end
     end
 
     # Set tags to root span required for flush
-    def annotate_for_flush!(span)
-      attach_sampling_priority(span) if @sampled && @sampling_priority
-      attach_origin(span) if @origin
+    def annotate_for_flush!(span_op)
+      attach_sampling_priority(span_op) if @sampled && @sampling_priority
+      attach_origin(span_op) if @origin
     end
 
-    def attach_sampling_priority(span)
-      span.set_metric(
+    def attach_sampling_priority(span_op)
+      span_op.set_metric(
         Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
         @sampling_priority
       )
     end
 
-    def attach_origin(span)
-      span.set_tag(
+    def attach_origin(span_op)
+      span_op.set_tag(
         Ext::DistributedTracing::ORIGIN_KEY,
         @origin
       )
@@ -257,7 +273,7 @@ module Datadog
     def to_s
       @mutex.synchronize do
         # rubocop:disable Layout/LineLength
-        "Context(trace.length:#{@trace.length},sampled:#{@sampled},finished_spans:#{@finished_spans},current_span:#{@current_span})"
+        "Context(trace.length:#{@trace.length},sampled:#{@sampled},finished_spans:#{@finished_spans},current_span:#{@current_span_op})"
       end
     end
 
@@ -286,49 +302,32 @@ module Datadog
       @sampling_priority = options.fetch(:sampling_priority, nil)
       @origin = options.fetch(:origin, nil)
       @finished_spans = 0
-      @current_span = nil
-      @current_root_span = nil
+      @current_span_op = nil
+      @current_root_span_op = nil
       @overflow = false
     end
 
-    def set_current_span(span)
-      @current_span = span
-      if span
-        @parent_trace_id = span.trace_id
-        @parent_span_id = span.span_id
-        @sampled = span.sampled
+    def current_span_op=(span_op)
+      @current_span_op = span_op
+      if span_op
+        @parent_trace_id = span_op.trace_id
+        @parent_span_id = span_op.span_id
+        @sampled = span_op.sampled
       else
         @parent_span_id = nil
       end
+    end
+
+    # Returns true if the context is full
+    # and cannot accept any more spans.
+    def full?
+      @max_length > 0 && @trace.length >= @max_length
     end
 
     # Returns if the trace for the current Context is finished or not.
     # Low-level internal function, not thread-safe.
     def all_spans_finished?
       @finished_spans > 0 && @trace.length == @finished_spans
-    end
-
-    # Return the start time of the root span, or nil if there are no spans or this is undefined.
-    def start_time
-      @mutex.synchronize do
-        return nil if @trace.empty?
-
-        @trace[0].start_time
-      end
-    end
-
-    # Return the length of the current trace held by this context.
-    def length
-      @mutex.synchronize do
-        @trace.length
-      end
-    end
-
-    # Iterate on each span within the trace. This is thread safe.
-    def each_span(&block)
-      @mutex.synchronize do
-        @trace.each(&block)
-      end
     end
   end
 end
