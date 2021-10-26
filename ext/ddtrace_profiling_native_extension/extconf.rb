@@ -13,6 +13,8 @@ def skip_building_extension?
   on_jruby || disabled_via_env
 end
 
+# IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
+# doublecheck that what you're adding can be reasonably expected to exist on their systems.
 def add_compiler_flag(flag)
   $CFLAGS << ' ' << flag
 end
