@@ -40,7 +40,8 @@ RSpec.describe 'Rails Log Auto Injection' do
   before do
     Datadog.configuration[:rails].reset_options!
     Datadog.configure do |c|
-      c.use :rails, log_injection: log_injection
+      c.use :rails
+      c.log_injection = log_injection
     end
 
     allow(ENV).to receive(:[]).and_call_original
@@ -272,19 +273,6 @@ RSpec.describe 'Rails Log Auto Injection' do
               expect(logs).to include('test_lambda_value')
               expect(logs).to include('other_test_lambda_value')
             end
-          end
-        end
-
-        context 'with lograge disabled' do
-          before do
-            allow(ENV).to receive(:[]).with('LOGRAGE_DISABLED').and_return(true)
-          end
-
-          it 'does not inject trace_id into logs' do
-            is_expected.to be_ok
-
-            expect(logs).not_to include(spans[0].trace_id.to_s)
-            expect(logs).to include('MINASWAN')
           end
         end
       end

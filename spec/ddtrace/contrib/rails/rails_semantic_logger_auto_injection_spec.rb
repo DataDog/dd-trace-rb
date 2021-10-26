@@ -29,7 +29,8 @@ RSpec.describe 'Rails Log Auto Injection' do
   before do
     Datadog.configuration[:rails].reset_options!
     Datadog.configure do |c|
-      c.use :rails, log_injection: log_injection
+      c.use :rails
+      c.log_injection = log_injection
     end
 
     allow(ENV).to receive(:[]).and_call_original
@@ -55,7 +56,9 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       before do
         Datadog.configure do |c|
-          c.use :rails, log_injection: log_injection
+          c.use :rails
+          c.log_injection = log_injection
+
           c.env = test_env
           c.version = test_version
           c.service = test_service
@@ -127,7 +130,9 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       before do
         Datadog.configure do |c|
-          c.use :rails, log_injection: log_injection
+          c.use :rails
+          c.log_injection = log_injection
+
           c.env = test_env
           c.version = test_version
           c.service = test_service
