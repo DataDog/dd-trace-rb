@@ -18,4 +18,73 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     it { is_expected.to be true }
   end
+
+  describe '.clock_id_for' do
+    subject(:clock_id_for) { described_class.clock_id_for(thread) }
+
+    context 'on Linux and on Ruby 2.6+' do
+      before do
+        unless RUBY_PLATFORM.include?('linux') && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+          skip 'Test only runs on Linux and on Ruby 2.6+'
+        end
+      end
+
+      context 'when called with a live thread' do
+        let(:thread) { Thread.current }
+
+        it { is_expected.to be_a_kind_of(Integer) }
+      end
+
+      context 'when called with a dead thread' do
+        let(:thread) { Thread.new {}.tap(&:join) }
+
+        # This one is kinda weird, but I don't make the rules here ;)
+        it { is_expected.to be_a_kind_of(Integer) }
+      end
+
+      context 'when called with a thread subclass' do
+        let(:thread) { Class.new(Thread).new { sleep } }
+
+        after do
+          thread.kill
+          thread.join
+        end
+
+        it { is_expected.to be_a_kind_of(Integer) }
+      end
+
+      context 'when called with a Process::Waiter instance' do
+        # In Ruby 2.3 to 2.6, `Process.detach` creates a special `Thread` subclass named `Process::Waiter`
+        # that is improperly initialized and some operations on it can trigger segfaults, see
+        # https://bugs.ruby-lang.org/issues/17807.
+        #
+        # Thus, let's exercise our code with one of these objects to ensure future changes don't introduce regressions.
+        let(:thread) { Process.detach(fork { sleep }) }
+
+        it 'is expected to be a kind of Integer' do
+          expect_in_fork { is_expected.to be_a_kind_of(Integer) }
+        end
+      end
+
+      context 'when called with a non-thread object' do
+        let(:thread) { :potato }
+
+        it { expect { clock_id_for }.to raise_error(TypeError) }
+      end
+    end
+
+    context 'when not on Linux or on older Rubies' do
+      before do
+        if RUBY_PLATFORM.include?('linux') && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+          skip 'The fallback behavior only applies when not on Linux or for older rubies'
+        end
+      end
+
+      let(:thread) { Thread.current }
+
+      it 'always returns nil' do
+        is_expected.to be nil
+      end
+    end
+  end
 end

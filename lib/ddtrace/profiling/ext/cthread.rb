@@ -91,18 +91,34 @@ module Datadog
         end
         ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 
-        def cpu_time(unit = :float_second)
-          ::Process.clock_gettime(clock_id, unit) if clock_id
-        end
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.6') ||
+           NativeExtension.clock_id_for(::Thread.current).nil? # Happens if the native extension is explicitly disabled
 
-        def cpu_time_instrumentation_installed?
-          # If this thread was started before this module was added to Thread OR if something caused the initialize
-          # method above not to be properly called on new threads, this instance variable is never defined (never set to
-          # any value at all, including nil).
-          #
-          # Thus, we can use @clock_id as a canary to detect a thread that has missing instrumentation, because we
-          # know that in initialize above we always set this variable to nil.
-          defined?(@clock_id) != nil
+          def cpu_time(unit = :float_second)
+            ::Process.clock_gettime(clock_id, unit) if clock_id
+          end
+
+          def cpu_time_instrumentation_installed?
+            # If this thread was started before this module was added to Thread OR if something caused the initialize
+            # method above not to be properly called on new threads, this instance variable is never defined (never set to
+            # any value at all, including nil).
+            #
+            # Thus, we can use @clock_id as a canary to detect a thread that has missing instrumentation, because we
+            # know that in initialize above we always set this variable to nil.
+            defined?(@clock_id) != nil
+          end
+        else
+          # TODO: This is a temporary workaround while clock_id_for is not extended to support Ruby 2.1 to 2.5
+          # When that happens, cthread.rb can just be deleted, but for now, we leave it in, as otherwise we'd need a bigger
+          # refactoring that's not worth it because the plan is to delete this file soon.
+
+          def cpu_time(unit = :float_second)
+            ::Process.clock_gettime(NativeExtension.clock_id_for(self), unit)
+          end
+
+          def cpu_time_instrumentation_installed?
+            true
+          end
         end
 
         private

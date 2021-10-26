@@ -13,6 +13,12 @@ module Datadog
           false
         end
       end
+
+      unless singleton_class.method_defined?(:clock_id_for)
+        def self.clock_id_for(_)
+          nil
+        end
+      end
     end
   end
 end
