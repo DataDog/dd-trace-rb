@@ -1,4 +1,4 @@
-if ['1', 'true'].include?(ENV['DD_APPSEC_ENABLED'].downcase)
+if ['1', 'true'].include?((ENV['DD_APPSEC_ENABLED'] || '').downcase)
   begin
     require 'datadog/security'
   rescue Exception => e
