@@ -52,5 +52,11 @@ Gem::Specification.new do |spec|
   # we're pinning it at the latest available version and will manually bump the dependency as needed.
   spec.add_dependency 'debase-ruby_core_source', '<= 0.10.14'
 
+  # Used by the profiler and appsec
+  spec.add_dependency 'ffi', '~> 1.0'
+
+  # Used by appsec
+  spec.add_dependency 'libddwaf', '~> 1.0'
+
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
 end
