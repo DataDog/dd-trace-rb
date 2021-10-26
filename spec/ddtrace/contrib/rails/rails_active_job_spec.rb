@@ -45,7 +45,7 @@ RSpec.describe 'ActiveJob' do
 
     before do
       Datadog.configure do |c|
-        c.use :active_job, log_injection: true
+        c.use :active_job
       end
 
       allow(ENV).to receive(:[]).and_call_original
