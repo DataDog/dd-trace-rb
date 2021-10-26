@@ -11,6 +11,8 @@ module Datadog
         # Instance methods for configuration
         module InstanceMethods
           def custom_options(event)
+            return super unless Datadog.configuration[:lograge].enabled
+
             original_custom_options = super(event)
 
             # Retrieves trace information for current thread
