@@ -122,6 +122,11 @@ module Datadog
         o.lazy
       end
 
+      option :log_injection do |o|
+        o.default { env_to_bool(Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
+        o.lazy
+      end
+
       settings :logger do
         option :instance do |o|
           o.on_set { |value| set_option(:level, value.level) unless value.nil? }

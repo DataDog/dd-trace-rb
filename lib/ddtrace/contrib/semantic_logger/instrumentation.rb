@@ -11,6 +11,8 @@ module Datadog
         # Instance methods for configuration
         module InstanceMethods
           def log(log, message = nil, progname = nil, &block)
+            return super unless Datadog.configuration[:semantic_logger].enabled
+
             original_named_tags = log.named_tags || {}
 
             # Retrieves trace information for current thread
