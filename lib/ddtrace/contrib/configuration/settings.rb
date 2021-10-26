@@ -14,7 +14,7 @@ module Datadog
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0
         option :enabled, default: true
-        option :service_name
+        option :service_name # TODO: remove suffix "_name"
         option :tracer do |o|
           o.delegate_to { Datadog.tracer }
           o.on_set do |_value|
