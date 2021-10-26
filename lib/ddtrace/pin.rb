@@ -8,8 +8,6 @@ module Datadog
   # This is useful if you wanted to, say, trace two different
   # database clusters.
   class Pin
-    DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-
     def self.get_from(obj)
       return nil unless obj.respond_to? :datadog_pin
 
@@ -18,23 +16,22 @@ module Datadog
 
     attr_accessor :app, :app_type, :config, :name, :service_name, :tags, :writer
 
+    # TODO: remove aliases and leave `service` when we rename Datadog::Contrib::Configuration::Settings#service_name
+    # to Datadog::Contrib::Configuration::Settings#service
     alias service= service_name=
     alias service service_name
 
-    def initialize(service_name, options = {})
-      deprecation_warning unless options[:tracer].is_a?(Proc) || options[:tracer].nil?
-
-      @app = options[:app]
-      @app_type = options[:app_type]
-      @config = options[:config]
-      @name = nil # this would rarely be overriden as it's really span-specific
+    def initialize(service_name, app: nil, app_type: nil, config: nil, tags: nil, **_kwargs)
       @service_name = service_name
-      @tags = options[:tags]
-      @tracer = options[:tracer]
+      @app = app
+      @app_type = app_type
+      @config = config
+      @tags = tags
+      @name = nil # this would rarely be overridden as it's really span-specific
     end
 
     def tracer
-      @tracer.is_a?(Proc) ? @tracer.call : (@tracer || Datadog.tracer)
+      Datadog.tracer
     end
 
     def enabled?
@@ -66,20 +63,6 @@ module Datadog
 
     def to_s
       "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
-    end
-
-    private
-
-    DEPRECATION_WARNING = %(
-      Explicitly providing a tracer instance is DEPRECATED.
-      It's recommended to not provide an explicit tracer instance
-      and let Datadog::Pin resolve the correct tracer internally.
-      ).freeze
-
-    def deprecation_warning
-      DEPRECATION_WARN_ONLY_ONCE.run do
-        Datadog.logger.warn("Datadog::Pin.new:#{DEPRECATION_WARNING}")
-      end
     end
   end
 end
