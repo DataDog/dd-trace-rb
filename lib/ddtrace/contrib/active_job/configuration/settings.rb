@@ -24,7 +24,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
-          option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
+          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
 
           DEPRECATION_WARN_ONLY_ONCE_TRUE = Datadog::Utils::OnlyOnce.new
           DEPRECATION_WARN_ONLY_ONCE_FALSE = Datadog::Utils::OnlyOnce.new

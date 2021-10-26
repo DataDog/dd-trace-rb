@@ -52,6 +52,71 @@ RSpec.describe Datadog::Event do
     end
   end
 
+  describe '#wrap' do
+    subject(:wrap) { event.wrap(key, &block) }
+
+    let(:key) { :test_subscription }
+
+    context 'when given a key and block' do
+      let(:block) { proc { |*args| block_spy.call(*args) } }
+      # rubocop:disable RSpec/VerifiedDoubles
+      let(:block_spy) { spy('block spy') }
+      # rubocop:enable RSpec/VerifiedDoubles
+
+      context 'and a subscription does not exist' do
+        it 'adds a new subscription' do
+          expect { wrap }.to change { event.subscriptions[key] }
+            .from(nil)
+            .to(block)
+        end
+
+        context 'the new subscription when invoked' do
+          let(:args) { [instance_double(String), instance_double(Integer)] }
+
+          before { wrap }
+
+          it 'passes nil as the original subscription' do
+            expect(block_spy).to receive(:call)
+              .with(nil, *args)
+
+            event.publish(*args)
+          end
+        end
+      end
+
+      context 'whose key already exists' do
+        let(:old_block) { proc {} }
+
+        before { event.subscribe(key, &old_block) }
+
+        it 'replaces the original subscription' do
+          expect { wrap }.to change { event.subscriptions[key] }
+            .from(old_block)
+            .to(block)
+        end
+
+        context 'the new subscription when invoked' do
+          let(:args) { [instance_double(String), instance_double(Integer)] }
+
+          before { wrap }
+
+          it 'passes the original subscription' do
+            expect(block_spy).to receive(:call)
+              .with(old_block, *args)
+
+            event.publish(*args)
+          end
+        end
+      end
+    end
+
+    context 'when not given a block' do
+      let(:block) { nil }
+
+      it { expect { wrap }.to raise_error(ArgumentError) }
+    end
+  end
+
   describe '#unsubscribe' do
     subject(:unsubscribe) { event.unsubscribe(key) }
 
