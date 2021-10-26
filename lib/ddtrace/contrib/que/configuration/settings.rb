@@ -36,7 +36,7 @@ module Datadog
             o.default { env_to_bool(Ext::ENV_TAG_DATA_ENABLED, false) }
             o.lazy
           end
-          option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
+          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end
     end

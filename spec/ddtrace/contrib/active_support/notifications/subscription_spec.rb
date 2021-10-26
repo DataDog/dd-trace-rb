@@ -29,7 +29,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:id) { double('id') }
         let(:payload) { {} }
 
-        let(:span) { instance_double(Datadog::Span) }
+        let(:span) { instance_double(Datadog::SpanOperation) }
 
         it do
           expect(tracer).to receive(:trace).with(span_name, options).and_return(span).ordered
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:name) { double('name') }
         let(:id) { double('id') }
 
-        let(:span) { instance_double(Datadog::Span) }
+        let(:span) { instance_double(Datadog::SpanOperation) }
         let(:payload) { { datadog_span: span } }
 
         it do
@@ -147,7 +147,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
 
           shared_examples_for 'an after_trace callback' do
             context 'on #finish' do
-              let(:span) { instance_double(Datadog::Span) }
+              let(:span) { instance_double(Datadog::SpanOperation) }
               let(:payload) { { datadog_span: span } }
 
               it do

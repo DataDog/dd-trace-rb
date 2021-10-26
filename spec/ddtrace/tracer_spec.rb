@@ -480,9 +480,9 @@ RSpec.describe Datadog::Tracer do
         end
       end
 
-      context 'when starting a span fails' do
+      context 'when building a span fails' do
         before do
-          allow(tracer).to receive(:start_span).and_raise(error)
+          allow(tracer).to receive(:build_span).and_raise(error)
         end
 
         let(:error) { error_class.new }
@@ -501,7 +501,7 @@ RSpec.describe Datadog::Tracer do
 
           before do
             # Raise error at first line of begin block
-            allow(tracer).to receive(:start_span).and_raise(fatal_error)
+            allow(tracer).to receive(:build_span).and_raise(fatal_error)
           end
 
           it 'does not yield to block and reraises exception' do
