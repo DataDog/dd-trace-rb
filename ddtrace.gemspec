@@ -39,11 +39,11 @@ Gem::Specification.new do |spec|
   spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
-  if RUBY_VERSION >= '2.2.0'
+  if RUBY_VERSION >= '2.4.0'
     spec.add_dependency 'msgpack'
   else
     # msgpack 1.4 fails for Ruby 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
-    spec.add_dependency 'msgpack', '< 1.4'
+    spec.add_dependency 'msgpack', '< 1.4.1'
   end
 
   # Used by the profiler
