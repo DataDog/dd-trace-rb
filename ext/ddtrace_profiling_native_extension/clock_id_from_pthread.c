@@ -6,6 +6,7 @@
 
 #include <pthread.h>
 #include <time.h>
+#include <errno.h>
 
 #include <ruby.h>
 #include <ruby/thread_native.h>
@@ -31,7 +32,15 @@ VALUE clock_id_for(VALUE self, VALUE thread) {
   if (error == 0) {
     return CLOCKID2NUM(clock_id);
   } else {
-    rb_exc_raise(rb_syserr_new(error, "Failed to get clock_id for given thread"));
+    switch(error) {
+      // The more specific error messages are based on the pthread_getcpuclockid(3) man page
+      case ENOENT:
+        rb_exc_raise(rb_syserr_new(error, "Failed to get clock_id for given thread: Per-thread CPU time clocks are not supported by the system."));
+      case ESRCH:
+        rb_exc_raise(rb_syserr_new(error, "Failed to get clock_id for given thread: No thread could be found."));
+      default:
+        rb_exc_raise(rb_syserr_new(error, "Failed to get clock_id for given thread"));
+    }
   }
 }
 
