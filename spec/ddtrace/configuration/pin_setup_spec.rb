@@ -20,7 +20,6 @@ RSpec.describe Datadog::Configuration::PinSetup do
           app: 'my-app',
           app_type: :cache,
           tags: { env: :prod },
-          tracer: 'deprecated option',
           distributed_tracing: true
         }
       end
