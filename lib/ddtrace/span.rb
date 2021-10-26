@@ -189,10 +189,6 @@ module Datadog
 
     # Mark the span started at the current time.
     def start(start_time = nil)
-      # A span should not be started twice. However, this is existing
-      # behavior and so we maintain it for backward compatibility for those
-      # who are using async manual instrumentation that may rely on this
-
       @start_time = start_time || Utils::Time.now.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 

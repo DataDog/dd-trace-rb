@@ -2,9 +2,11 @@
 require 'spec_helper'
 require 'ddtrace/span_operation'
 
+# rubocop:disable RSpec/EmptyExampleGroup
 RSpec.describe Datadog::SpanOperation do
   # TODO
 end
+# rubocop:enable RSpec/EmptyExampleGroup
 
 RSpec.describe Datadog::SpanOperation::Analytics do
   subject(:test_object) { test_class.new }
