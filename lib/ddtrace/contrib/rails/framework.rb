@@ -22,6 +22,7 @@ module Datadog
       # Rails framework code, used to essentially:
       # - handle configuration entries which are specific to Datadog tracing
       # - instrument parts of the framework when needed
+      # rubocop:disable Metrics/ModuleLength:
       module Framework
         # After the Rails application finishes initializing, we configure the Rails
         # integration and all its sub-components with the application information
@@ -130,10 +131,16 @@ module Datadog
         def self.activate_active_job!(datadog_config, rails_config)
           return unless defined?(::ActiveJob)
 
+          # Check before passing :log_injection to the Rails configuration
+          # to avoid triggering a deprecated setting warning when the user
+          # didn't actually provide an explicit `c.use rails, :log_injection`.
+          deprecated_options = {}
+          deprecated_options[:log_injection] = rails_config[:log_injection] unless rails_config[:log_injection].nil?
+
           datadog_config.use(
             :active_job,
             service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}",
-            log_injection: rails_config[:log_injection]
+            **deprecated_options
           )
         end
 
@@ -166,6 +173,7 @@ module Datadog
           end
         end
       end
+      # rubocop:enable Metrics/ModuleLength:
     end
   end
 end
