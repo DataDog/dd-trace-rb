@@ -28,7 +28,6 @@ module Datadog
     attr_writer :default_service
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
-    DEFAULT_ON_ERROR = proc { |span, error| span.set_error(error) unless span.nil? }
 
     # Shorthand that calls the `shutdown!` method of a registered worker.
     # It's useful to ensure that the Trace Buffer is properly flushed before
@@ -183,8 +182,23 @@ module Datadog
       span = Datadog::SpanOperation.new(name, options)
 
       # Subscribe to events
-      span.on_finished.subscribe(:tracer_span_finished) do |operation|
-        record_span(operation)
+      span.events.after_finish.subscribe(:tracer_span_finished) do |span_op|
+        record_span(span_op)
+      end
+
+      # Wrap default error behavior with custom handler if provided
+      if options[:on_error].respond_to?(:call)
+        span.events.on_error.wrap(:default) do |original, span_op, error|
+          begin
+            options[:on_error].call(span_op, error)
+          rescue StandardError => e
+            Datadog.logger.debug(
+              "Custom on_error handler failed, using fallback behavior. \
+               Error: #{e.message} Location: #{e.backtrace.first}"
+            )
+            original.call(span_op, error) if original
+          end
+        end
       end
 
       # If it's a root span...
@@ -221,7 +235,7 @@ module Datadog
         record_context(operation.context) if operation.context
         operation.span
       rescue StandardError => e
-        Datadog.logger.debug("error recording finished trace: #{e} Backtrace: #{e.backtrace.first(3)}")
+        Datadog.logger.debug("Error recording finished trace: #{e} Backtrace: #{e.backtrace.first}")
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
       end
     end
@@ -262,55 +276,28 @@ module Datadog
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     #   If not set, defaults to Tracer.call_context
     # * +tags+: extra tags which should be added to the span.
-    def trace(name, options = {})
+    def trace(name, options = {}, &block)
       options[:child_of] ||= call_context
 
-      # call the finish only if a block is given; this ensures
-      # that a call to tracer.trace() without a block, returns
-      # a span that should be manually finished.
-      if block_given?
-        span = nil
-        return_value = nil
-
+      if block
+        # If building a span somehow fails, try to run the original code anyways.
+        # This may help if it were manual instrumentation. However, if the code
+        # block in question attempts to access the non-existent span, then it will
+        # throw an error and fail anyways.
+        #
+        # TODO: Should migrate any span mutation instructions into its own block,
+        #       separate from the actual instrumented code.
         begin
-          begin
-            span = start_span(name, options)
-          rescue StandardError => e
-            Datadog.logger.debug("Failed to start span: #{e}")
-          ensure
-            # We should yield to the provided block when possible, as this
-            # block is application code that we don't want to hinder. We call:
-            # * `yield(span)` during normal execution.
-            # * `yield(nil)` if `start_span` fails with a runtime error.
-            # * We don't yield during a fatal error, as the application is likely trying to
-            #   end its execution (either due to a system error or graceful shutdown).
-            return_value = yield(span) if span || e.is_a?(StandardError)
-          end
-        # rubocop:disable Lint/RescueException
-        # Here we really want to catch *any* exception, not only StandardError,
-        # as we really have no clue of what is in the block,
-        # and it is user code which should be executed no matter what.
-        # It's not a problem since we re-raise it afterwards so for example a
-        # SignalException::Interrupt would still bubble up.
-        # rubocop:disable Metrics/BlockNesting
-        rescue Exception => e
-          if (on_error_handler = options[:on_error]) && on_error_handler.respond_to?(:call)
-            begin
-              on_error_handler.call(span, e)
-            rescue
-              Datadog.logger.debug('Custom on_error handler failed, falling back to default')
-              DEFAULT_ON_ERROR.call(span, e)
-            end
-          else
-            Datadog.logger.debug('Custom on_error handler must be a callable, falling back to default') if on_error_handler
-            DEFAULT_ON_ERROR.call(span, e)
-          end
-          raise e
-        ensure
-          span.finish unless span.nil?
+          span = build_span(name, options)
+        rescue StandardError => e
+          Datadog.logger.debug("Failed to build span: #{e}")
+          yield(nil)
+        else
+          span.measure(
+            start_time: options[:start_time],
+            &block
+          )
         end
-
-        return_value
       else
         start_span(name, options)
       end
