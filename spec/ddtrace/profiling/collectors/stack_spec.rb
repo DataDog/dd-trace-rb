@@ -68,7 +68,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     describe 'leftover tracking state handling' do
       let(:options) { { **super(), thread_api: thread_api } }
 
-      let(:thread_api) { class_double(Thread) }
+      let(:thread_api) { class_double(Thread, current: Thread.current) }
       let(:thread) { instance_double(Thread, 'Dummy thread') }
 
       it 'cleans up any leftover tracking state in existing threads' do
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
 
         it 'can clean up leftover tracking state on an instance of Process::Waiter without crashing' do
-          with_profiling_extensions_in_fork do
+          expect_in_fork do
             expect(thread_api).to receive(:list).and_return([Process.detach(fork { sleep })])
 
             start
@@ -304,6 +304,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   describe '#collect_thread_event' do
     subject(:collect_events) { collector.collect_thread_event(thread, current_wall_time) }
 
+    let(:options) do
+      { **super(), cpu_time_provider: class_double(Datadog::Profiling::NativeExtension, cpu_time_ns_for: nil) }
+    end
     let(:thread) { double('Thread', backtrace_locations: backtrace) }
     let(:last_wall_time) { 42 }
     let(:current_wall_time) { 123 }
@@ -388,6 +391,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'and CPU timing is unavailable' do
+        let(:options) do
+          { **super(), cpu_time_provider: class_double(Datadog::Profiling::NativeExtension, cpu_time_ns_for: nil) }
+        end
+
         it 'builds an event without CPU time' do
           is_expected.to be_a_kind_of(Datadog::Profiling::Events::StackSample)
 
@@ -403,24 +410,17 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       context 'and CPU timing is available' do
+        let(:options) do
+          { **super(),
+            cpu_time_provider: class_double(Datadog::Profiling::NativeExtension, cpu_time_ns_for: current_cpu_time) }
+        end
+
         let(:current_cpu_time) { last_cpu_time + cpu_interval }
         let(:last_cpu_time) { rand(1e4) }
         let(:cpu_interval) { 1000 }
 
-        include_context 'with profiling extensions'
-
         before do
-          safely_mock_thread_current_with(double('Mock current thread', cpu_time: true))
-
-          allow(thread)
-            .to receive(:cpu_time_instrumentation_installed?)
-            .and_return(true)
-          allow(thread)
-            .to receive(:cpu_time)
-            .with(:nanosecond)
-            .and_return(current_cpu_time)
-
-          allow(thread)
+          expect(thread)
             .to receive(:thread_variable_get)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY)
             .and_return(last_cpu_time)
@@ -497,7 +497,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
 
       it 'can sample an instance of Process::Waiter without crashing' do
-        with_profiling_extensions_in_fork do
+        expect_in_fork do
           process_waiter_thread = Process.detach(fork { sleep })
 
           expect(collector.collect_thread_event(process_waiter_thread, 0)).to be_truthy
@@ -511,112 +511,56 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     let(:thread) { double('Thread') }
 
-    context 'when CPU timing is not supported' do
-      it { is_expected.to be nil }
-
-      it 'does not log any warnings' do
-        expect(Datadog).to_not receive(:logger)
-
-        get_cpu_time_interval!
+    context 'when CPU timing is not supported or available' do
+      let(:options) do
+        { **super(), cpu_time_provider: class_double(Datadog::Profiling::NativeExtension, cpu_time_ns_for: nil) }
       end
+
+      it { is_expected.to be nil }
     end
 
-    context 'when CPU timing is supported' do
+    context 'when CPU timing is available' do
+      let(:options) do
+        { **super(),
+          cpu_time_provider: class_double(Datadog::Profiling::NativeExtension, cpu_time_ns_for: current_cpu_time) }
+      end
+
+      let(:current_cpu_time) { last_cpu_time + cpu_interval }
+      let(:last_cpu_time) { rand(1e4) }
+      let(:cpu_interval) { 1000 }
+
       before do
-        safely_mock_thread_current_with(double('Mock current thread', cpu_time: true))
+        expect(thread)
+          .to receive(:thread_variable_set)
+          .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
       end
 
-      include_context 'with profiling extensions'
-
-      context 'but thread is not properly instrumented' do
+      context 'and the thread CPU time has not been retrieved before' do
         before do
-          allow(thread)
-            .to receive(:cpu_time_instrumentation_installed?)
-            .and_return(false)
-          allow(Datadog.logger).to receive(:warn)
-        end
-
-        it { is_expected.to be nil }
-
-        it 'logs a warning' do
-          expect(Datadog.logger).to receive(:debug).with(/missing profiling instrumentation/)
-
-          get_cpu_time_interval!
-        end
-
-        it 'logs a warning only once' do
-          expect(Datadog.logger).to receive(:debug).once
-
-          get_cpu_time_interval!
-          get_cpu_time_interval!
-        end
-      end
-
-      context 'but yields nil' do
-        before do
-          allow(thread)
-            .to receive(:cpu_time_instrumentation_installed?)
-            .and_return(true)
-          allow(thread)
-            .to receive(:cpu_time)
+          expect(thread)
+            .to receive(:thread_variable_get)
+            .with(described_class::THREAD_LAST_CPU_TIME_KEY)
             .and_return(nil)
         end
 
-        it { is_expected.to be nil }
+        let(:current_cpu_time) { rand(1e4) }
 
-        it 'does not log any warnings' do
-          expect(Datadog).to_not receive(:logger)
-
-          get_cpu_time_interval!
-        end
+        it { is_expected.to be 0 }
       end
 
-      context 'and returns time' do
+      context 'and the thread CPU time has been retrieved before' do
         let(:current_cpu_time) { last_cpu_time + cpu_interval }
         let(:last_cpu_time) { rand(1e4) }
         let(:cpu_interval) { 1000 }
 
         before do
-          allow(thread)
-            .to receive(:cpu_time_instrumentation_installed?)
-            .and_return(true)
-          allow(thread)
-            .to receive(:cpu_time)
-            .with(:nanosecond)
-            .and_return(current_cpu_time)
-
           expect(thread)
-            .to receive(:thread_variable_set)
-            .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
+            .to receive(:thread_variable_get)
+            .with(described_class::THREAD_LAST_CPU_TIME_KEY)
+            .and_return(last_cpu_time)
         end
 
-        context 'and the thread CPU time has not been retrieved before' do
-          before do
-            allow(thread)
-              .to receive(:thread_variable_get)
-              .with(described_class::THREAD_LAST_CPU_TIME_KEY)
-              .and_return(nil)
-          end
-
-          let(:current_cpu_time) { rand(1e4) }
-
-          it { is_expected.to eq 0 }
-        end
-
-        context 'and the thread CPU time has been retrieved before' do
-          let(:current_cpu_time) { last_cpu_time + cpu_interval }
-          let(:last_cpu_time) { rand(1e4) }
-          let(:cpu_interval) { 1000 }
-
-          before do
-            allow(thread)
-              .to receive(:thread_variable_get)
-              .with(described_class::THREAD_LAST_CPU_TIME_KEY)
-              .and_return(last_cpu_time)
-          end
-
-          it { is_expected.to eq(cpu_interval) }
-        end
+        it { is_expected.to eq(cpu_interval) }
       end
     end
   end
@@ -792,15 +736,5 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     # Must always be an Integer, as pprof does not allow for non-integer floating point values
     it { is_expected.to be_a_kind_of(Integer) }
-  end
-
-  # Why? When mocking Thread.current, we break fiber-local variables (sometimes mistakenly referred to as
-  # thread-local variables), which are needed when RSpec is trying to print test results for a failing test
-  # We can avoid breaking RSpec by adding back fiber-local variables to our mock.
-  def safely_mock_thread_current_with(mock_thread)
-    real_current_thread = Thread.current
-    allow(mock_thread).to receive(:[]) { |name| real_current_thread[name] }
-    allow(mock_thread).to receive(:[]=) { |name, value| real_current_thread[name] = value }
-    allow(Thread).to receive(:current).and_return(mock_thread)
   end
 end

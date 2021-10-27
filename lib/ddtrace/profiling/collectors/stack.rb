@@ -1,4 +1,6 @@
 # typed: true
+
+require 'ddtrace/profiling/native_extension'
 require 'ddtrace/profiling/backtrace_location'
 require 'ddtrace/profiling/events/stack'
 require 'ddtrace/utils/only_once'
@@ -32,7 +34,8 @@ module Datadog
           :trace_identifiers_helper,
           :ignore_thread,
           :max_time_usage_pct,
-          :thread_api
+          :thread_api,
+          :cpu_time_provider
 
         def initialize(
           recorder,
@@ -42,6 +45,7 @@ module Datadog
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
           max_threads_sampled: DEFAULT_MAX_THREADS_SAMPLED,
           thread_api: Thread,
+          cpu_time_provider: Datadog::Profiling::NativeExtension,
           fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
           interval: MIN_INTERVAL,
           enabled: true
@@ -53,6 +57,8 @@ module Datadog
           @max_time_usage_pct = max_time_usage_pct
           @max_threads_sampled = max_threads_sampled
           @thread_api = thread_api
+          # Only set the provider if it's able to work in the current Ruby/OS combo
+          @cpu_time_provider = cpu_time_provider unless cpu_time_provider.cpu_time_ns_for(thread_api.current).nil?
 
           # Workers::Async::Thread settings
           self.fork_policy = fork_policy
@@ -62,8 +68,6 @@ module Datadog
 
           # Workers::Polling settings
           self.enabled = enabled
-
-          @warn_about_missing_cpu_time_instrumentation_only_once = Datadog::Utils::OnlyOnce.new
 
           # Cache this proc, since it's pretty expensive to keep recreating it
           @build_backtrace_location = method(:build_backtrace_location).to_proc
@@ -167,17 +171,10 @@ module Datadog
         end
 
         def get_cpu_time_interval!(thread)
-          # Return if we can't get the current CPU time
-          unless thread.respond_to?(:cpu_time_instrumentation_installed?) && thread.cpu_time_instrumentation_installed?
-            warn_about_missing_cpu_time_instrumentation(thread)
-            return
-          end
+          return unless cpu_time_provider
 
-          current_cpu_time_ns = thread.cpu_time(:nanosecond)
+          current_cpu_time_ns = cpu_time_provider.cpu_time_ns_for(thread)
 
-          # NOTE: This can still be nil even when all of the checks above passed because of a race: there's a bit of
-          # initialization that needs to be done by the thread itself, and it's possible for us to try to sample
-          # *before* the thread had time to finish the initialization
           return unless current_cpu_time_ns
 
           get_elapsed_since_last_sample_and_set_value(thread, THREAD_LAST_CPU_TIME_KEY, current_cpu_time_ns)
@@ -225,33 +222,6 @@ module Datadog
         end
 
         private
-
-        def warn_about_missing_cpu_time_instrumentation(thread)
-          @warn_about_missing_cpu_time_instrumentation_only_once.run do
-            # Is the profiler thread instrumented? If it is, then we know instrumentation is available, but seems to be
-            # missing on this thread we just found.
-            #
-            # As far as we know, it can be missing due to one the following:
-            #
-            # a) The thread was started before we installed our instrumentation.
-            #    In this case, the fix is to make sure ddtrace gets loaded before any other parts of the application.
-            #
-            # b) The thread was started using the Ruby native APIs (e.g. from a C extension such as ffi).
-            #    Known cases right now that trigger this are the ethon/typhoeus gems.
-            #    We currently have no solution for this case; these threads will always be missing our CPU instrumentation.
-            #
-            # c) The thread was started with `Thread.start`/`Thread.fork` and hasn't yet enabled the instrumentation.
-            #    When threads are started using these APIs, there's a small time window during which the thread has started
-            #    but our code to apply the instrumentation hasn't run yet; in these cases it's just a matter of allowing
-            #    it to run and our instrumentation to be applied.
-            #
-            if thread_api.current.respond_to?(:cpu_time) && thread_api.current.cpu_time
-              Datadog.logger.debug(
-                "Thread ('#{thread}') is missing profiling instrumentation; other threads should be unaffected"
-              )
-            end
-          end
-        end
 
         # If the profiler is started for a while, stopped and then restarted OR whenever the process forks, we need to
         # clean up any leftover per-thread counters, so that the first sample after starting doesn't end up with:
