@@ -98,4 +98,91 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       end
     end
   end
+
+  describe '.cpu_time_ns_for' do
+    subject(:cpu_time_ns_for) { described_class.cpu_time_ns_for(thread) }
+
+    context 'on Linux' do
+      before do
+        skip 'Test only runs on Linux' unless RUBY_PLATFORM.include?('linux')
+      end
+
+      def wait_for_thread_to_die
+        # Wait for thread to actually die, as seen by clock_id_for
+        try_wait_until(attempts: 500, backoff: 0.01) do
+          Thread.pass
+          GC.start
+
+          begin
+            described_class.clock_id_for(thread)
+            false
+          rescue Errno::ESRCH
+            true
+          end
+        end
+      end
+
+      context 'when called with a live thread' do
+        let(:thread) { Thread.current }
+
+        it { is_expected.to be_a_kind_of(Integer) }
+
+        it 'increases between calls for a busy thread' do
+          before_time = described_class.cpu_time_ns_for(thread)
+
+          # do some stuff
+          GC.start
+          Thread.pass
+
+          after_time = described_class.cpu_time_ns_for(thread)
+
+          expect(after_time).to be > before_time
+        end
+      end
+
+      context 'when called with a dead thread' do
+        let(:thread) { Thread.new {}.tap(&:join) }
+
+        before { wait_for_thread_to_die }
+
+        it 'returns nil' do
+          cpu_time_ns_for
+        end
+      end
+
+      context 'when called with a thread that dies between getting the clock_id and getting the cpu time' do
+        # This is a bit coupled with the implementation, but we want to check that we correctly handle
+        # ::Process.clock_gettime being called with a dead thread, even if the thread was alive when we got the clock_id
+
+        let(:thread) { Thread.new { sleep } }
+
+        before do
+          expect(::Process).to receive(:clock_gettime).and_wrap_original do |original, *args|
+            thread.kill
+            thread.join
+
+            wait_for_thread_to_die
+
+            original.call(*args)
+          end
+        end
+
+        it 'returns nil' do
+          cpu_time_ns_for
+        end
+      end
+    end
+
+    context 'when not on Linux' do
+      before do
+        skip 'The fallback behavior only applies when not on Linux' if RUBY_PLATFORM.include?('linux')
+      end
+
+      let(:thread) { Thread.current }
+
+      it 'always returns nil' do
+        is_expected.to be nil
+      end
+    end
+  end
 end
