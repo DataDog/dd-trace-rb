@@ -244,9 +244,18 @@ module Datadog
         end
 
         def get_elapsed_since_last_sample_and_set_value(thread, key, current_value)
-          # See cthread.rb for more details, but this is a workaround for https://bugs.ruby-lang.org/issues/17807 ;
-          # using all thread_variable related methods on these instances also triggers a crash and for now we just
-          # skip it for the affected Rubies
+          # Process::Waiter crash workaround:
+          #
+          # This is a workaround for a Ruby VM segfault (usually something like
+          # "[BUG] Segmentation fault at 0x0000000000000008") in the affected Ruby versions.
+          # See https://bugs.ruby-lang.org/issues/17807 for details.
+          #
+          # In those Ruby versions, there's a very special subclass of `Thread` called `Process::Waiter` that causes VM
+          # crashes whenever something tries to read its instance or thread variables. This subclass of thread only
+          # shows up when the `Process.detach` API gets used.
+          # In the specs you'll find crash regression tests that include a way of reproducing it.
+          #
+          # As workaround for now we just skip it for the affected Rubies
           return 0 if @needs_process_waiter_workaround && thread.is_a?(::Process::Waiter)
 
           last_value = thread.thread_variable_get(key) || current_value

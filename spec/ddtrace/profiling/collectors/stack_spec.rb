@@ -487,8 +487,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     context 'Process::Waiter crash regression tests' do
-      # See cthread.rb for more details
-
       before do
         if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
           skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
@@ -736,5 +734,48 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     # Must always be an Integer, as pprof does not allow for non-integer floating point values
     it { is_expected.to be_a_kind_of(Integer) }
+  end
+
+  describe 'Process::Waiter crash regression tests' do
+    # Related to https://bugs.ruby-lang.org/issues/17807 ; see comments on main class for details
+
+    before do
+      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+        skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+      end
+    end
+
+    let(:process_waiter_thread) { Process.detach(fork { sleep }) }
+
+    describe 'the crash' do
+      # Let's not get surprised if this shows up in other Ruby versions
+
+      it 'does not affect Ruby < 2.3 nor Ruby >= 2.7' do
+        unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') ||
+               Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
+          skip 'Test case only applies to Ruby < 2.3 or Ruby >= 2.7'
+        end
+
+        expect_in_fork do
+          expect(process_waiter_thread.instance_variable_get(:@hello)).to be nil
+        end
+      end
+
+      it 'affects Ruby >= 2.3 and < 2.7' do
+        unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
+               Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+          skip 'Test case only applies to Ruby >= 2.3 and < 2.7'
+        end
+
+        expect_in_fork(
+          fork_expectations: proc do |status:, stdout:, stderr:|
+            expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
+            expect(stderr).to include('[BUG] Segmentation fault')
+          end
+        ) do
+          process_waiter_thread.instance_variable_get(:@hello)
+        end
+      end
+    end
   end
 end
