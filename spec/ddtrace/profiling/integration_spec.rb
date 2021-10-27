@@ -87,7 +87,7 @@ RSpec.describe 'profiling integration test' do
     end
   end
 
-  shared_context 'end-to-end profiler' do
+  describe 'profiling' do
     let(:recorder) do
       Datadog::Profiling::Recorder.new(
         [Datadog::Profiling::Events::StackSample],
@@ -118,45 +118,12 @@ RSpec.describe 'profiling integration test' do
         enabled: true
       )
     end
-  end
-
-  shared_examples_for 'end-to-end profiling' do
-    include_context 'end-to-end profiler'
 
     it 'produces a profile' do
       expect(out).to receive(:puts)
+
       collector.collect_events
       scheduler.send(:flush_events)
-    end
-  end
-
-  describe 'profiling' do
-    context 'without CPU profiling' do
-      it_behaves_like 'end-to-end profiling' do
-        before { expect(Thread.instance_methods).to_not include(:cpu_time) }
-      end
-    end
-
-    require 'ddtrace/profiling/ext/cpu'
-
-    if Datadog::Profiling::Ext::CPU.supported?
-      context 'with CPU profiling' do
-        include_context 'end-to-end profiler'
-
-        before do
-          skip 'This test cannot run on TruffleRuby because it relies on fork()' if PlatformHelpers.truffleruby?
-        end
-
-        it 'produces a profile' do
-          with_profiling_extensions_in_fork do
-            expect(Thread.instance_methods).to include(:cpu_time)
-
-            expect(out).to receive(:puts)
-            collector.collect_events
-            scheduler.send(:flush_events)
-          end
-        end
-      end
     end
 
     context 'with tracing' do
@@ -192,7 +159,12 @@ RSpec.describe 'profiling integration test' do
           end
       end
 
-      it_behaves_like 'end-to-end profiling'
+      it 'produces a profile including tracing data' do
+        expect(out).to receive(:puts)
+
+        collector.collect_events
+        scheduler.send(:flush_events)
+      end
     end
   end
 

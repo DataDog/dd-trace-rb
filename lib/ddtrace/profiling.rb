@@ -128,9 +128,7 @@ module Datadog
     private_class_method def self.load_profiling
       return false unless supported?
 
-      require 'ddtrace/profiling/ext/cpu'
       require 'ddtrace/profiling/ext/forking'
-
       require 'ddtrace/profiling/collectors/stack'
       require 'ddtrace/profiling/exporter'
       require 'ddtrace/profiling/recorder'
