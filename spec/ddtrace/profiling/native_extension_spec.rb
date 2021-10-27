@@ -145,9 +145,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
         before { wait_for_thread_to_die }
 
-        it 'returns nil' do
-          cpu_time_ns_for
-        end
+        it { is_expected.to be nil }
       end
 
       context 'when called with a thread that dies between getting the clock_id and getting the cpu time' do
@@ -167,9 +165,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
           end
         end
 
-        it 'returns nil' do
-          cpu_time_ns_for
-        end
+        it { is_expected.to be nil }
       end
     end
 
