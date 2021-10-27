@@ -20,11 +20,19 @@ def add_compiler_flag(flag)
 end
 
 if skip_building_extension?
+  # rubocop:disable Style/StderrPuts
+  $stderr.puts(%(
++------------------------------------------------------------------------------+
+| Skipping build of profiling native extension and replacing it with a no-op   |
+| Makefile                                                                     |
++------------------------------------------------------------------------------+
+
+))
+
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   return
 end
 
-# rubocop:disable Style/StderrPuts
 $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | **Preparing to build the ddtrace native extension...**                       |
@@ -40,6 +48,7 @@ $stderr.puts(%(
 |                                                                              |
 | Thanks for using ddtrace! You rock!                                          |
 +------------------------------------------------------------------------------+
+
 ))
 # rubocop:enable Style/StderrPuts
 
