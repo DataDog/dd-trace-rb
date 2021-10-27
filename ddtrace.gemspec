@@ -47,7 +47,6 @@ Gem::Specification.new do |spec|
   end
 
   # Used by the profiler
-  spec.add_dependency 'ffi', '~> 1.0'
   spec.add_dependency 'debase-ruby_core_source', '>= 0.10.12'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
