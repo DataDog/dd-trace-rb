@@ -5,12 +5,16 @@ def skip_building_extension?
   # thing so that JRuby users of dd-trace-rb aren't impacted.
   on_jruby = RUBY_ENGINE == 'jruby'
 
+  # We don't officially support TruffleRuby for dd-trace-rb at all BUT let's not break adventurous customers that
+  # want to give it a try.
+  on_truffleruby = RUBY_ENGINE == 'truffleruby'
+
   # Experimental toggle to disable building the extension.
   # Disabling the extension will lead to the profiler not working in future releases.
   # If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.
   disabled_via_env = ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
 
-  on_jruby || disabled_via_env
+  on_jruby || on_truffleruby || disabled_via_env
 end
 
 # IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
