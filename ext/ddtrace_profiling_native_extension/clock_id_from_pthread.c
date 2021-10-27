@@ -9,7 +9,12 @@
 #include <errno.h>
 
 #include <ruby.h>
+
+#ifdef RUBY_2_1_WORKAROUND
+#include <thread_native.h>
+#else
 #include <ruby/thread_native.h>
+#endif
 
 #include "private_vm_api_access.h"
 

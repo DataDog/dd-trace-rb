@@ -116,10 +116,18 @@ else
   # This gem ships source code copies of these VM headers for the different Ruby VM versions;
   # see https://github.com/ruby-debug/debase-ruby_core_source for details
 
+  thread_native_for_ruby_2_1 = proc { true }
+  if RUBY_VERSION < '2.2'
+    # This header became public in Ruby 2.2, but we need to pull it from the private headers folder for 2.1
+    thread_native_for_ruby_2_1 = proc { have_header('thread_native.h') }
+    $defs << '-DRUBY_2_1_WORKAROUND'
+  end
+
   create_header
 
   require 'debase/ruby_core_source'
   dir_config('ruby') # allow user to pass in non-standard core include directory
 
-  Debase::RubyCoreSource.create_makefile_with_core(proc { have_header('vm_core.h') }, EXTENSION_NAME)
+  Debase::RubyCoreSource
+    .create_makefile_with_core(proc { have_header('vm_core.h') && thread_native_for_ruby_2_1.call }, EXTENSION_NAME)
 end
