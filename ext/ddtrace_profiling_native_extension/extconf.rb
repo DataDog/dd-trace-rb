@@ -91,8 +91,7 @@ CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
 EXTENSION_NAME = "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
 if CAN_USE_MJIT_HEADER
-  # TODO: Development builds of Ruby 3.1 seem to be failing on Windows; to be revisited once 3.1.0 stable is out
-  $defs << '-DUSE_MJIT_HEADER' unless RUBY_VERSION >= '3.1' && Gem.win_platform?
+  $defs << '-DUSE_MJIT_HEADER'
 
   # NOTE: This needs to come after all changes to $defs
   create_header
