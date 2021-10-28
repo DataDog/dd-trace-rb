@@ -28,6 +28,7 @@ RSpec.describe Datadog::Pin do
           app: options[:app],
           app_type: options[:app_type],
           config: options[:config],
+          name: nil,
           service_name: service_name,
           tags: options[:tags],
         )
