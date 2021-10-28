@@ -56,7 +56,7 @@ module Datadog
         end
 
         def self.tracer
-          configuration[:tracer]
+          Datadog.tracer
         end
 
         def self.job_name(job)

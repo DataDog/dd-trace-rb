@@ -49,7 +49,7 @@ module Datadog
           end
 
           def datadog_multi_span
-            @datadog_multi_span ||= datadog_configuration[:tracer].trace(
+            @datadog_multi_span ||= Datadog.tracer.trace(
               Ext::SPAN_MULTI_REQUEST,
               service: datadog_configuration[:service_name]
             )
@@ -68,7 +68,7 @@ module Datadog
           end
 
           def tracer_enabled?
-            datadog_configuration[:tracer].enabled
+            Datadog.tracer.enabled
           end
 
           def analytics_enabled?

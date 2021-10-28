@@ -35,7 +35,7 @@ RSpec.describe 'gRPC integration test' do
       clear_spans!
 
       run_request_reply(endpoint, alternate_client)
-      span = fetch_spans(configured_interceptor.datadog_pin.tracer).first
+      span = fetch_spans(tracer).first
       expect(span.service).to eq 'awesome sauce'
     end
   end

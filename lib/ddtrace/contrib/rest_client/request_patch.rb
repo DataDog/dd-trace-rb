@@ -19,7 +19,7 @@ module Datadog
           def execute(&block)
             uri = URI.parse(url)
 
-            return super(&block) unless datadog_configuration[:tracer].enabled
+            return super(&block) unless Datadog.tracer.enabled
 
             datadog_trace_request(uri) do |span|
               if datadog_configuration[:distributed_tracing]
@@ -46,9 +46,9 @@ module Datadog
           end
 
           def datadog_trace_request(uri)
-            span = datadog_configuration[:tracer].trace(Ext::SPAN_REQUEST,
-                                                        service: datadog_configuration[:service_name],
-                                                        span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND)
+            span = Datadog.tracer.trace(Ext::SPAN_REQUEST,
+                                        service: datadog_configuration[:service_name],
+                                        span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND)
 
             datadog_tag_request(uri, span)
 

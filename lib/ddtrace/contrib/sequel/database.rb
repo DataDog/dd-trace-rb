@@ -21,7 +21,7 @@ module Datadog
 
             response = nil
 
-            datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
+            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
               span.service = datadog_pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
@@ -37,7 +37,6 @@ module Datadog
               Datadog.configuration[:sequel][:service_name] || adapter_name,
               app: Ext::APP,
               app_type: Datadog::Ext::AppTypes::DB,
-              tracer: -> { Datadog.configuration[:sequel][:tracer] }
             )
           end
 

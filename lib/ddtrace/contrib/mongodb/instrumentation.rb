@@ -58,7 +58,6 @@ module Datadog
                   service,
                   app: Datadog::Contrib::MongoDB::Ext::APP,
                   app_type: Datadog::Ext::AppTypes::DB,
-                  tracer: -> { Datadog.configuration[:mongo][:tracer] }
                 )
               end
             end

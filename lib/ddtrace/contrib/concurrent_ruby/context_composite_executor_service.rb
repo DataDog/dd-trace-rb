@@ -17,16 +17,17 @@ module Datadog
 
         # post method runs the task within composited executor - in a different thread
         def post(*args, &task)
-          parent_context = datadog_configuration.tracer.provider.context
+          tracer = Datadog.tracer
+          parent_context = tracer.provider.context
 
           @composited_executor.post(*args) do
             begin
-              original_context = datadog_configuration.tracer.provider.context
-              datadog_configuration.tracer.provider.context = parent_context
+              original_context = tracer.provider.context
+              tracer.provider.context = parent_context
               yield
             ensure
               # Restore context in case the current thread gets reused
-              datadog_configuration.tracer.provider.context = original_context
+              tracer.provider.context = original_context
             end
           end
         end

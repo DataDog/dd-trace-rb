@@ -27,7 +27,6 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
                 :subscription,
                 double('span name'),
                 double('options'),
-                double('tracer'),
                 &proc {}
               )
 
@@ -89,17 +88,16 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
           end
 
           describe '#subscribe' do
-            subject(:subscription) { test_class.send(:subscribe, pattern, span_name, options, tracer, &block) }
+            subject(:subscription) { test_class.send(:subscribe, pattern, span_name, options, &block) }
 
             let(:pattern) { double('pattern') }
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
-            let(:tracer) { double('tracer') }
             let(:block) { proc {} }
 
             before do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(tracer, span_name, options)
+                .with(span_name, options)
                 .and_call_original
 
               expect_any_instance_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:subscribe)
@@ -111,16 +109,15 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
           end
 
           describe '#subscription' do
-            subject(:subscription) { test_class.send(:subscription, span_name, options, tracer, &block) }
+            subject(:subscription) { test_class.send(:subscription, span_name, options, &block) }
 
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
-            let(:tracer) { double('tracer') }
             let(:block) { proc {} }
 
             before do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(tracer, span_name, options)
+                .with(span_name, options)
                 .and_call_original
             end
 

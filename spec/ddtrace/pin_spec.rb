@@ -19,9 +19,7 @@ RSpec.describe Datadog::Pin do
           app: double('app'),
           app_type: double('app_type'),
           config: double('config'),
-          name: double('name'),
           tags: double('tags'),
-          writer: double('writer')
         }
       end
 
@@ -33,16 +31,9 @@ RSpec.describe Datadog::Pin do
           name: nil,
           service_name: service_name,
           tags: options[:tags],
-          writer: nil
         )
       end
     end
-  end
-
-  describe '#tracer' do
-    subject(:tracer) { pin.tracer }
-
-    it { is_expected.to be Datadog.tracer }
   end
 
   describe '#onto' do
@@ -126,7 +117,7 @@ RSpec.describe Datadog::Pin do
     it { is_expected.to be true }
 
     context 'when the tracer is disabled' do
-      before { pin.tracer.enabled = false }
+      before { Datadog.tracer.enabled = false }
 
       it { is_expected.to be false }
     end

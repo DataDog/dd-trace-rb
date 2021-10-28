@@ -52,7 +52,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
         describe '#subscribe' do
           before do
             expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-              .with(test_class.tracer, test_class.span_name, test_class.span_options)
+              .with(test_class.span_name, test_class.span_options)
               .and_call_original
           end
 
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
 
             before do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(test_class.tracer, test_class.span_name, test_class.span_options)
+                .with(test_class.span_name, test_class.span_options)
                 .and_call_original
             end
 
@@ -98,15 +98,14 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
           end
 
           context 'when given options' do
-            subject(:subscription) { test_class.subscription(span_name, options, tracer) }
+            subject(:subscription) { test_class.subscription(span_name, options) }
 
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
-            let(:tracer) { double('tracer') }
 
             before do
               expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(tracer, span_name, options)
+                .with(span_name, options)
                 .and_call_original
             end
 

@@ -46,7 +46,6 @@ module Datadog
                 service,
                 app: Datadog::Contrib::Elasticsearch::Ext::APP,
                 app_type: Datadog::Ext::AppTypes::DB,
-                tracer: -> { Datadog.configuration[:elasticsearch][:tracer] }
               )
               pin.onto(self)
               initialize_without_datadog(*args, &block)
@@ -57,7 +56,7 @@ module Datadog
 
             def perform_request(*args)
               pin = Datadog::Pin.get_from(self)
-              return perform_request_without_datadog(*args) unless pin && pin.tracer
+              return perform_request_without_datadog(*args) unless pin
 
               method = args[0]
               path = args[1]
@@ -67,7 +66,7 @@ module Datadog
 
               url = full_url.path
               response = nil
-              pin.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
+              Datadog.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection

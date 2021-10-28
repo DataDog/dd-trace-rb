@@ -20,7 +20,7 @@ module Datadog
           end
 
           def tracer
-            -> { configuration[:tracer] }
+            Datadog.tracer
           end
 
           def configuration
@@ -56,9 +56,9 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless configuration[:tracer].active_span
+            return unless tracer.active_span
 
-            configuration[:tracer].provider.context = Context.new
+            tracer.provider.context = Context.new
           end
         end
       end

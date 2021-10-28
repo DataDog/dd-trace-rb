@@ -40,8 +40,7 @@ module Datadog
           app.use TracerMiddleware, app_instance: app
 
           app.after do
-            configuration = Datadog.configuration[:sinatra]
-            next unless configuration[:tracer].enabled
+            next unless Datadog.tracer.enabled
 
             span = Sinatra::Env.datadog_span(env, app)
 
@@ -81,7 +80,7 @@ module Datadog
           private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
 
           def render(engine, data, *)
-            tracer = Datadog.configuration[:sinatra][:tracer]
+            tracer = Datadog.tracer
             return super unless tracer.enabled
 
             tracer.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
@@ -102,7 +101,7 @@ module Datadog
           # This method yields directly to user code.
           def route_eval
             configuration = Datadog.configuration[:sinatra]
-            tracer = configuration[:tracer]
+            tracer = Datadog.tracer
             return super unless tracer.enabled
 
             tracer.trace(

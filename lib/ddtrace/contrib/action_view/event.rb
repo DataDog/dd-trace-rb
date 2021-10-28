@@ -14,7 +14,7 @@ module Datadog
         # Class methods for ActionView events.
         module ClassMethods
           def tracer
-            -> { configuration[:tracer] }
+            Datadog.tracer
           end
 
           def configuration

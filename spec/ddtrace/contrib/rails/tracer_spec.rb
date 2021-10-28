@@ -14,7 +14,6 @@ RSpec.describe 'Rails tracer' do
     expect("#{app_name}-cache").to eq(config[:cache_service])
     expect(Datadog.configuration[:rails][:database_service]).to be_present
     expect(config[:template_base_path]).to eq('views/')
-    expect(Datadog.configuration[:rails][:tracer]).to be_present
   end
 
   it 'sets default database' do

@@ -9,10 +9,9 @@ module Datadog
             :span_name,
             :options
 
-          def initialize(tracer, span_name, options, &block)
+          def initialize(span_name, options, &block)
             raise ArgumentError, 'Must be given a block!' unless block
 
-            @tracer = tracer
             @span_name = span_name
             @options = options
             @handler = Handler.new(&block)
@@ -20,7 +19,7 @@ module Datadog
           end
 
           def tracer
-            @tracer.is_a?(Proc) ? @tracer.call : @tracer
+            Datadog.tracer
           end
 
           # ActiveSupport 3.x calls this
