@@ -21,7 +21,7 @@ module Datadog
 
             response = nil
 
-            datadog_pin.tracer.trace(Ext::SPAN_QUERY) do |span|
+            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
               span.service = datadog_pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE

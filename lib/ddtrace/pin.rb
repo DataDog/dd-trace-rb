@@ -30,10 +30,6 @@ module Datadog
       @name = nil # this would rarely be overridden as it's really span-specific
     end
 
-    def tracer
-      Datadog.tracer
-    end
-
     def enabled?
       return tracer.enabled if tracer
 
@@ -63,6 +59,12 @@ module Datadog
 
     def to_s
       "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
+    end
+
+    private
+
+    def tracer
+      Datadog.tracer
     end
   end
 end

@@ -40,9 +40,9 @@ module Datadog
             pin = datadog_pin(request_options)
             return super(req, body, &block) unless pin
 
-            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req, pin.tracer)
+            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req, Datadog.tracer)
 
-            pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
+            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
                 # even though service_name might already be in request_options,
                 # we need to capture the name from the pin since it could be
@@ -52,7 +52,7 @@ module Datadog
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if pin.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
+                if Datadog.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
 

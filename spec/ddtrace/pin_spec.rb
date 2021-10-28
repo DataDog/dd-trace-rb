@@ -36,12 +36,6 @@ RSpec.describe Datadog::Pin do
     end
   end
 
-  describe '#tracer' do
-    subject(:tracer) { pin.tracer }
-
-    it { is_expected.to be Datadog.tracer }
-  end
-
   describe '#onto' do
     let(:options) { { app: 'anapp' } }
     let(:returned_pin) { described_class.get_from(target) }
@@ -123,7 +117,7 @@ RSpec.describe Datadog::Pin do
     it { is_expected.to be true }
 
     context 'when the tracer is disabled' do
-      before { pin.tracer.enabled = false }
+      before { Datadog.tracer.enabled = false }
 
       it { is_expected.to be false }
     end

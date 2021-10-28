@@ -39,7 +39,7 @@ module Datadog
               return call_without_datadog(*args, &block) unless pin
 
               response = nil
-              pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+              Datadog.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 span.resource = get_command(args)
@@ -58,7 +58,7 @@ module Datadog
               return call_pipeline_without_datadog(*args, &block) unless pin
 
               response = nil
-              pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+              Datadog.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
                 span.service = pin.service
                 span.span_type = Datadog::Contrib::Redis::Ext::TYPE
                 commands = get_pipeline_commands(args)

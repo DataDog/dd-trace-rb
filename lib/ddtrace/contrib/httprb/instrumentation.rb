@@ -27,13 +27,13 @@ module Datadog
 
             return super(req, options) unless pin
 
-            pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
+            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
                 request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                if pin.tracer.enabled && !should_skip_distributed_tracing?(pin)
+                if Datadog.tracer.enabled && !should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
 
