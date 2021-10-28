@@ -39,7 +39,6 @@ module Datadog
               service_name,
               app: Ext::APP,
               app_type: Datadog::Ext::AppTypes::WEB,
-              tracer: -> { datadog_configuration[:tracer] }
             ).tap do |pin|
               yield(pin) if block_given?
               pin.onto(self)
@@ -51,7 +50,7 @@ module Datadog
           end
 
           def tracer
-            (datadog_pin && datadog_pin.tracer) || datadog_configuration[:tracer]
+            Datadog.tracer
           end
 
           def service_name

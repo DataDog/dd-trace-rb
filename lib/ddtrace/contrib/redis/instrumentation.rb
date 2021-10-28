@@ -16,10 +16,10 @@ module Datadog
         module InstanceMethods
           def call(*args, &block)
             pin = Datadog::Pin.get_from(self)
-            return super unless pin && pin.tracer
+            return super unless pin
 
             response = nil
-            pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+            Datadog.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
               span.service = pin.service
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               span.resource = get_command(args)
@@ -33,10 +33,10 @@ module Datadog
 
           def call_pipeline(*args, &block)
             pin = Datadog::Pin.get_from(self)
-            return super unless pin && pin.tracer
+            return super unless pin
 
             response = nil
-            pin.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+            Datadog.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
               span.service = pin.service
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               commands = get_pipeline_commands(args)
@@ -56,7 +56,6 @@ module Datadog
                 datadog_configuration[:service_name],
                 app: Ext::APP,
                 app_type: Datadog::Ext::AppTypes::DB,
-                tracer: -> { datadog_configuration[:tracer] }
               )
               pin.onto(self)
             end

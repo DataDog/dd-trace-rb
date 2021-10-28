@@ -25,15 +25,15 @@ module Datadog
             request_options = datadog_configuration(host)
             pin = datadog_pin(request_options)
 
-            return super(req, options) unless pin && pin.tracer
+            return super(req, options) unless pin
 
-            pin.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
+            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
               begin
                 request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                if pin.tracer.enabled && !should_skip_distributed_tracing?(pin)
+                if Datadog.tracer.enabled && !should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(span.context, req)
                 end
 
@@ -97,20 +97,15 @@ module Datadog
 
           def datadog_pin(config = Datadog.configuration[:httprb])
             service = config[:service_name]
-            tracer = config[:tracer]
 
             @datadog_pin ||= Datadog::Pin.new(
               service,
               app: Ext::APP,
               app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-              tracer: -> { config[:tracer] }
             )
 
             if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
               @datadog_pin.service = service
-            end
-            if @datadog_pin.tracer == default_datadog_pin.tracer && @datadog_pin.tracer != tracer
-              @datadog_pin.tracer = tracer
             end
 
             @datadog_pin
@@ -124,7 +119,6 @@ module Datadog
               service,
               app: Ext::APP,
               app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-              tracer: -> { config[:tracer] }
             )
           end
 

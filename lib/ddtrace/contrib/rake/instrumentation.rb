@@ -74,7 +74,7 @@ module Datadog
           end
 
           def tracer
-            configuration[:tracer]
+            Datadog.tracer
           end
 
           def span_options

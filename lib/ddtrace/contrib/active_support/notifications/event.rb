@@ -19,29 +19,25 @@ module Datadog
           # Redefines some class behaviors for a Subscriber to make
           # it a bit simpler for an Event.
           module ClassMethods
-            DEFAULT_TRACER = -> { Datadog.tracer }
-
             # Publicly exposes protected method `subscribe!`
             def subscribe! # rubocop:disable Lint/UselessMethodDefinition
               super
             end
 
-            def subscription(span_name = nil, options = nil, tracer = nil)
+            def subscription(span_name = nil, options = nil)
               super(
                 span_name || self.span_name,
                 options || span_options,
-                tracer || self.tracer,
                 &method(:process)
               )
             end
 
-            def subscribe(pattern = nil, span_name = nil, options = nil, tracer = nil)
+            def subscribe(pattern = nil, span_name = nil, options = nil)
               if supported?
                 super(
                   pattern || event_name,
                   span_name || self.span_name,
                   options || span_options,
-                  tracer || self.tracer,
                   &method(:process)
                 )
               end
@@ -56,7 +52,7 @@ module Datadog
             end
 
             def tracer
-              DEFAULT_TRACER
+              Datadog.tracer
             end
 
             def report_if_exception(span, payload)

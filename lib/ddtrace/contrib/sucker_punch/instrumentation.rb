@@ -17,8 +17,7 @@ module Datadog
           ::SuckerPunch::Job::ClassMethods.class_eval do
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
-              pin = Datadog::Pin.get_from(::SuckerPunch)
-              pin.tracer.provider.context = Datadog::Context.new
+              Datadog.tracer.provider.context = Datadog::Context.new
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
@@ -74,7 +73,7 @@ module Datadog
             def __with_instrumentation(name)
               pin = Datadog::Pin.get_from(::SuckerPunch)
 
-              pin.tracer.trace(name) do |span|
+              Datadog.tracer.trace(name) do |span|
                 span.service = pin.service
                 span.span_type = pin.app_type
                 span.set_tag(Ext::TAG_QUEUE, to_s)

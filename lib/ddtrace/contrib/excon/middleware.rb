@@ -92,7 +92,7 @@ module Datadog
         private
 
         def tracer
-          @options[:tracer]
+          Datadog.tracer
         end
 
         def analytics_enabled?

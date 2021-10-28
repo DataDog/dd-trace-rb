@@ -10,7 +10,7 @@ module Datadog
           def enqueue
             configuration = Datadog.configuration[:sidekiq]
 
-            configuration[:tracer].trace(Ext::SPAN_SCHEDULED_PUSH) do |span|
+            Datadog.tracer.trace(Ext::SPAN_SCHEDULED_PUSH) do |span|
               span.service = configuration[:service_name]
               span.span_type = Datadog::Ext::AppTypes::WORKER
 

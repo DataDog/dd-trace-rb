@@ -73,7 +73,7 @@ module Datadog
         end
 
         def tracer
-          datadog_configuration.tracer
+          Datadog.tracer
         end
 
         def datadog_configuration
@@ -96,7 +96,8 @@ Resque.after_fork do
   ).onto(::Resque)
 
   # Clean the state so no CoW happens
-  next if configuration[:tracer].nil?
+  tracer = Datadog.tracer
+  next if tracer.nil?
 
-  configuration[:tracer].provider.context = nil
+  tracer.provider.context = nil
 end
