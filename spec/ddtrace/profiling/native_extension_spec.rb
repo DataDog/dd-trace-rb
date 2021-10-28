@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context 'on Linux' do
       before do
-        skip 'Test only runs on Linux' unless RUBY_PLATFORM.include?('linux')
+        skip 'Test only runs on Linux' unless PlatformHelpers.linux?
       end
 
       context 'when called with a live thread' do
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context 'when not on Linux' do
       before do
-        skip 'The fallback behavior only applies when not on Linux' if RUBY_PLATFORM.include?('linux')
+        skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
       end
 
       let(:thread) { Thread.current }
@@ -104,7 +104,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context 'on Linux' do
       before do
-        skip 'Test only runs on Linux' unless RUBY_PLATFORM.include?('linux')
+        skip 'Test only runs on Linux' unless PlatformHelpers.linux?
       end
 
       def wait_for_thread_to_die
@@ -171,7 +171,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
     context 'when not on Linux' do
       before do
-        skip 'The fallback behavior only applies when not on Linux' if RUBY_PLATFORM.include?('linux')
+        skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
       end
 
       let(:thread) { Thread.current }
