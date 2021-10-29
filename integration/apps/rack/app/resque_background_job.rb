@@ -29,7 +29,7 @@ class ResqueBackgroundJob
       value: value,
       resque_process: $PROGRAM_NAME,
       profiler_available: !!Datadog.profiler,
-      profiler_threads: Thread.list.map(&:name).filter { |it| it && it.include?('Profiling') }
+      profiler_threads: Thread.list.map(&:name).select { |it| it && it.include?('Profiling') }
     ))
   end
 end
