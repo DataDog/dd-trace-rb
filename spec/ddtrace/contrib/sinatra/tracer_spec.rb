@@ -19,9 +19,7 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:url) { '/' }
   let(:http_method) { 'GET' }
   let(:resource) { "#{http_method} #{url}" }
-  let(:observed) { {} }
   let(:sinatra_routes) do
-    observed = self.observed
     lambda do
       get '/' do
         headers['X-Request-ID'] = 'test id'
@@ -67,11 +65,6 @@ RSpec.describe 'Sinatra instrumentation' do
       end
 
       get '/span_resource' do
-        active_span = Datadog.tracer.active_span
-        observed[:active_span] = { name: active_span.name, resource: active_span.resource }
-        root_span = Datadog.tracer.active_root_span
-        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
-
         'ok'
       end
     end
@@ -368,11 +361,15 @@ RSpec.describe 'Sinatra instrumentation' do
           end
 
           it 'sets the route span resource before calling the route' do
-            expect(observed[:active_span]).to eq(name: 'sinatra.route', resource: 'GET /span_resource')
+            route_span = spans.find { |s| s.name == 'sinatra.route' }
+            expect(route_span.name).to eq('sinatra.route')
+            expect(route_span.resource).to eq('GET /span_resource')
           end
 
           it 'sets the request span resource before calling the route' do
-            expect(observed[:root_span]).to eq(name: 'sinatra.request', resource: 'GET /span_resource')
+            request_span = spans.find { |s| s.name == 'sinatra.request' }
+            expect(request_span.name).to eq('sinatra.request')
+            expect(request_span.resource).to eq('GET /span_resource')
           end
         end
       end
@@ -457,8 +454,8 @@ RSpec.describe 'Sinatra instrumentation' do
             is_expected.to be_ok
             expect(span.trace_id).to eq(1)
             expect(span.parent_id).to eq(2)
-            expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(2.0)
-            expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq('synthetics')
+            expect(trace.sampling_priority).to eq(2)
+            expect(trace.origin).to eq('synthetics')
           end
         end
       end
@@ -478,7 +475,8 @@ RSpec.describe 'Sinatra instrumentation' do
             {
               'HTTP_X_DATADOG_TRACE_ID' => '1',
               'HTTP_X_DATADOG_PARENT_ID' => '2',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s
+              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s,
+              'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
             }
           end
 
@@ -486,7 +484,8 @@ RSpec.describe 'Sinatra instrumentation' do
             is_expected.to be_ok
             expect(span.trace_id).to_not eq(1)
             expect(span.parent_id).to_not eq(2)
-            expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not eq(2.0)
+            expect(trace.sampling_priority).to_not eq(2)
+            expect(trace.origin).to_not eq('synthetics')
           end
         end
       end

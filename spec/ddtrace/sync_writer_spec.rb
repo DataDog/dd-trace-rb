@@ -40,53 +40,9 @@ RSpec.describe Datadog::SyncWriter do
       it { expect(buffer).to have(1).item }
     end
 
-    context 'with report hostname' do
-      let(:hostname) { 'my-host' }
-
-      before do
-        allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
-      end
-
-      context 'enabled' do
-        before { Datadog.configuration.report_hostname = true }
-
-        after { without_warnings { Datadog.configuration.reset! } }
-
-        it 'reports the hostname as part of the root span' do
-          expect(sync_writer.transport).to receive(:send_traces) do |traces|
-            root_span = traces.first.first
-            expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-
-            # Stub successful request
-            200
-          end
-
-          write
-        end
-      end
-
-      context 'disabled' do
-        before { Datadog.configuration.report_hostname = false }
-
-        after { without_warnings { Datadog.configuration.reset! } }
-
-        it 'does not report the hostname' do
-          expect(sync_writer.transport).to receive(:send_traces) do |traces|
-            root_span = traces.first.first
-            expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-
-            # Stub successful request
-            200
-          end
-
-          write
-        end
-      end
-    end
-
     context 'with filtering' do
-      let(:filtered_trace) { [Datadog::Span.new('span_1')] }
-      let(:unfiltered_trace) { [Datadog::Span.new('span_2')] }
+      let(:filtered_trace) { Datadog::TraceSegment.new([Datadog::Span.new('span_1')]) }
+      let(:unfiltered_trace) { Datadog::TraceSegment.new([Datadog::Span.new('span_2')]) }
 
       before do
         allow(transport).to receive(:send_traces).and_call_original

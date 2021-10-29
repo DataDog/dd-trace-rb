@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 require 'socket'
 
 module Datadog
@@ -6,10 +6,15 @@ module Datadog
     module Environment
       # For runtime identity
       module Socket
+        extend Datadog::Utils::Forking
+
         module_function
 
         def hostname
-          ::Socket.gethostname
+          # Check if runtime has changed, e.g. forked.
+          after_fork! { @hostname = ::Socket.gethostname }
+
+          @hostname ||= ::Socket.gethostname
         end
       end
     end

@@ -11,10 +11,10 @@ module Datadog
           # we want to check if the current logger is a tagger logger instance
           # log_tags defaults to nil so we have to set as an array if nothing exists yet
           if (log_tags = app.config.log_tags).nil?
-            app.config.log_tags = [proc { Datadog.tracer.active_correlation.to_s }]
+            app.config.log_tags = [proc { Datadog.tracer.active_correlation.to_log_format }]
           # if existing log_tags configuration exists, append to the end of the array
           elsif log_tags.is_a?(Array)
-            app.config.log_tags << proc { Datadog.tracer.active_correlation.to_s }
+            app.config.log_tags << proc { Datadog.tracer.active_correlation.to_log_format }
           end
         rescue StandardError => e
           # TODO: can we use Datadog.logger at this point?

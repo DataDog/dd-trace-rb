@@ -1,11 +1,11 @@
 # typed: false
 require 'ddtrace/configuration'
-require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/priority'
 require 'ddtrace/distributed_tracing/headers/b3'
 require 'ddtrace/distributed_tracing/headers/b3_single'
 require 'ddtrace/distributed_tracing/headers/datadog'
+require 'ddtrace/trace_digest'
 
 module Datadog
   # HTTPPropagator helps extracting and injecting HTTP headers.
@@ -17,75 +17,78 @@ module Datadog
                            PROPAGATION_STYLE_DATADOG => DistributedTracing::Headers::Datadog }.freeze
 
     # inject! popolates the env with span ID, trace ID and sampling priority
-    def self.inject!(context, env)
-      # Prevent propagation from being attempted if context provided is nil.
-      if context.nil?
-        ::Datadog.logger.debug('Cannot inject context into env to propagate over HTTP: context is nil.'.freeze)
+    def self.inject!(digest, env)
+      # Prevent propagation from being attempted if trace headers provided are nil.
+      if digest.nil?
+        ::Datadog.logger.debug('Cannot inject trace headers into env to propagate over HTTP: trace headers are nil.'.freeze)
         return
       end
+
+      digest = digest.to_digest if digest.is_a?(TraceOperation)
 
       # Inject all configured propagation styles
       ::Datadog.configuration.distributed_tracing.propagation_inject_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
         begin
-          propagator.inject!(context, env) unless propagator.nil?
+          propagator.inject!(digest, env) unless propagator.nil?
         rescue => e
           Datadog.logger.error(
-            'Error injecting propagated context into the environment. ' \
+            'Error injecting propagated trace headers into the environment. ' \
             "Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
       end
     end
 
-    # extract returns a context containing the span ID, trace ID and
+    # extract returns trace headers containing the span ID, trace ID and
     # sampling priority defined in env.
     def self.extract(env)
-      context = nil
-      dd_context = nil
+      trace_digest = nil
+      dd_trace_digest = nil
 
       ::Datadog.configuration.distributed_tracing.propagation_extract_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
         next if propagator.nil?
 
-        # Extract context
+        # Extract trace headers
         # DEV: `propagator.extract` will return `nil`, where `HTTPPropagator#extract` will not
         begin
-          extracted_context = propagator.extract(env)
+          extracted_trace_digest = propagator.extract(env)
         rescue => e
           Datadog.logger.error(
-            'Error extracting propagated context from the environment. ' \
+            'Error extracting propagated trace headers from the environment. ' \
             "Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
 
         # Skip this style if no valid headers were found
-        next if extracted_context.nil?
+        next if extracted_trace_digest.nil?
 
-        # Keep track of the Datadog extract context, we want to return
+        # Keep track of the Datadog extract trace headers, we want to return
         #   this one if we have one
-        dd_context = extracted_context if extracted_context && style == PROPAGATION_STYLE_DATADOG
+        dd_trace_digest = extracted_trace_digest if extracted_trace_digest && style == PROPAGATION_STYLE_DATADOG
 
-        # No previously extracted context, use the one we just extracted
-        if context.nil?
-          context = extracted_context
+        # No previously extracted trace headers, use the one we just extracted
+        if trace_digest.nil?
+          trace_digest = extracted_trace_digest
         else
-          unless context.trace_id == extracted_context.trace_id && context.span_id == extracted_context.span_id
-            # Return an empty/new context if we have a mismatch in values extracted
-            msg = "#{context.trace_id} != #{extracted_context.trace_id} && " \
-                  "#{context.span_id} != #{extracted_context.span_id}"
-            ::Datadog.logger.debug("Cannot extract context from HTTP: extracted contexts differ, #{msg}".freeze)
+          unless trace_digest.trace_id == extracted_trace_digest.trace_id \
+                   && trace_digest.span_id == extracted_trace_digest.span_id
+            # Return an empty/new trace headers if we have a mismatch in values extracted
+            msg = "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
+                  "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
+            ::Datadog.logger.debug("Cannot extract trace headers from HTTP: extracted trace headers differ, #{msg}".freeze)
             # DEV: This will return from `self.extract` not this `each` block
-            return ::Datadog::Context.new
+            return ::Datadog::TraceDigest.new
           end
         end
       end
 
-      # Return the extracted context if we found one or else a new empty context
-      # Always return the Datadog context if one exists since it has more
+      # Return the extracted trace headers if we found one or else a new empty trace headers
+      # Always return the Datadog trace headers if one exists since it has more
       #   information than the B3 headers e.g. origin, expanded priority
       #   sampling values, etc
-      dd_context || context || ::Datadog::Context.new
+      dd_trace_digest || trace_digest || nil
     end
   end
 end

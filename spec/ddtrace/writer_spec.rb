@@ -147,56 +147,12 @@ RSpec.describe Datadog::Writer do
 
           it_behaves_like 'after_send events'
         end
-
-        context 'with report hostname' do
-          let(:hostname) { 'my-host' }
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
-
-          before do
-            allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
-            allow(response).to receive(:ok?).and_return(true)
-            allow(response).to receive(:server_error?).and_return(false)
-            allow(response).to receive(:internal_error?).and_return(false)
-          end
-
-          context 'enabled' do
-            before { Datadog.configuration.report_hostname = true }
-
-            after { without_warnings { Datadog.configuration.reset! } }
-
-            it do
-              expect(transport).to receive(:send_traces) do |traces|
-                root_span = traces.first.first
-                expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-                [response]
-              end
-
-              send_spans
-            end
-          end
-
-          context 'disabled' do
-            before { Datadog.configuration.report_hostname = false }
-
-            after { without_warnings { Datadog.configuration.reset! } }
-
-            it do
-              expect(writer.transport).to receive(:send_traces) do |traces|
-                root_span = traces.first.first
-                expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-                [response]
-              end
-
-              send_spans
-            end
-          end
-        end
       end
 
       describe '#write' do
         subject(:write) { writer.write(trace) }
 
-        let(:trace) { instance_double(Array) }
+        let(:trace) { instance_double(Datadog::TraceSegment) }
 
         before do
           allow(Datadog.configuration.runtime_metrics)
@@ -222,16 +178,15 @@ RSpec.describe Datadog::Writer do
 
             before do
               allow(trace).to receive(:empty?).and_return(false)
-              allow(trace).to receive(:first).and_return(root_span)
-              allow(Datadog.runtime_metrics).to receive(:associate_with_span)
+              allow(Datadog.runtime_metrics).to receive(:associate_with_trace)
             end
 
             it 'associates the root span with runtime_metrics' do
               write
 
               expect(Datadog.runtime_metrics)
-                .to have_received(:associate_with_span)
-                .with(root_span)
+                .to have_received(:associate_with_trace)
+                .with(trace)
             end
           end
         end

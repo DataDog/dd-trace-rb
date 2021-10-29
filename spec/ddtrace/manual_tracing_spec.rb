@@ -9,7 +9,8 @@ RSpec.describe Datadog::ManualTracing do
     subject(:keep) { described_class.keep(span_op) }
 
     let(:span_op) { instance_double(Datadog::SpanOperation, context: context) }
-    let(:context) { instance_double(Datadog::Context) }
+    let(:context) { instance_double(Datadog::Context, active_trace: trace) }
+    let(:trace) { instance_double(Datadog::TraceOperation) }
 
     context 'given nil' do
       let(:span_op) { nil }
@@ -24,12 +25,12 @@ RSpec.describe Datadog::ManualTracing do
 
       context 'with a context' do
         before do
-          allow(context).to receive(:sampling_priority=)
+          allow(trace).to receive(:sampling_priority=)
           keep
         end
 
         it do
-          expect(context).to have_received(:sampling_priority=)
+          expect(trace).to have_received(:sampling_priority=)
             .with(Datadog::Ext::Priority::USER_KEEP)
         end
       end
@@ -40,7 +41,8 @@ RSpec.describe Datadog::ManualTracing do
     subject(:drop) { described_class.drop(span_op) }
 
     let(:span_op) { instance_double(Datadog::SpanOperation, context: context) }
-    let(:context) { instance_double(Datadog::Context) }
+    let(:context) { instance_double(Datadog::Context, active_trace: trace) }
+    let(:trace) { instance_double(Datadog::TraceOperation) }
 
     context 'given nil' do
       let(:span_op) { nil }
@@ -56,12 +58,12 @@ RSpec.describe Datadog::ManualTracing do
 
       context 'with a context' do
         before do
-          allow(context).to receive(:sampling_priority=)
+          allow(trace).to receive(:sampling_priority=)
           drop
         end
 
         it do
-          expect(context).to have_received(:sampling_priority=)
+          expect(trace).to have_received(:sampling_priority=)
             .with(Datadog::Ext::Priority::USER_REJECT)
         end
       end

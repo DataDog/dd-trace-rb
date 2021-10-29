@@ -16,17 +16,15 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
 
     context 'when there is an active datadog trace for the thread' do
       let(:span_id) { rand(1e12) }
-      let(:span) { instance_double(Datadog::Span, span_id: span_id) }
+      let(:span) { instance_double(Datadog::Span, id: span_id) }
       let(:root_span_id) { rand(1e12) }
       let(:root_span_type) { nil }
-      let(:root_span) { instance_double(Datadog::Span, span_id: root_span_id, span_type: root_span_type) }
+      let(:root_span) { instance_double(Datadog::Span, id: root_span_id, span_type: root_span_type) }
 
-      let(:context) do
-        instance_double(Datadog::Context, current_span_and_root_span: [span, root_span])
-      end
+      let(:tracer) { instance_double(Datadog::Tracer, active_trace: trace) }
 
-      before do
-        expect(tracer).to receive(:call_context).with(thread).and_return(context)
+      let(:trace) do
+        instance_double(Datadog::TraceOperation, active_span: span, root_span: root_span)
       end
 
       context "when root span type is 'web'" do
@@ -74,19 +72,9 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
     end
 
     context 'when no datadog trace is active for the thread' do
-      context 'and an empty context is returned' do
+      context 'and nil is returned' do
         before do
-          expect(tracer).to receive(:call_context).and_return(Datadog::Context.new)
-        end
-
-        it do
-          expect(trace_identifiers_for).to be nil
-        end
-      end
-
-      context 'and no context is returned' do
-        before do
-          expect(tracer).to receive(:call_context).and_return(nil)
+          expect(tracer).to receive(:active_trace).and_return(nil)
         end
 
         it do

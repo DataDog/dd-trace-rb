@@ -129,9 +129,9 @@ RSpec.describe 'profiling integration test' do
 
     context 'with tracing' do
       around do |example|
-        Datadog.tracer.trace('profiler.test') do |span|
+        Datadog.tracer.trace('profiler.test') do |span, trace|
           @current_span = span
-          @current_root_span = Datadog.tracer.active_root_span
+          @current_root_span = trace.send(:root_span)
           example.run
         end
         Datadog.tracer.shutdown!

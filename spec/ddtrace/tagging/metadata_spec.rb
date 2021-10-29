@@ -69,8 +69,8 @@ RSpec.describe Datadog::Tagging::Metadata do
       end
     end
 
-    context "given #{Datadog::Ext::DistributedTracing::ORIGIN_KEY}" do
-      let(:key) { Datadog::Ext::DistributedTracing::ORIGIN_KEY }
+    context "given #{Datadog::Ext::DistributedTracing::TAG_ORIGIN}" do
+      let(:key) { Datadog::Ext::DistributedTracing::TAG_ORIGIN }
 
       context 'as a numeric value' do
         let(:value) { 2 }

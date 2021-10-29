@@ -43,9 +43,16 @@ module Datadog
         # object will cause forking to not be detected in the fork when it should have.
         #
         # This wrapper prevents this by initializing the fork PID when the object is created.
-        def initialize(*args, &block)
-          super
-          update_fork_pid!
+        if RUBY_VERSION >= '3'
+          def initialize(*args, **kwargs, &block)
+            super(*args, **kwargs, &block)
+            update_fork_pid!
+          end
+        else
+          def initialize(*args, &block)
+            super(*args, &block)
+            update_fork_pid!
+          end
         end
       end
     end

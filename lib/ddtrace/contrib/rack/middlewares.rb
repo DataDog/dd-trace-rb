@@ -45,8 +45,8 @@ module Datadog
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
           if configuration[:distributed_tracing]
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
+            trace_digest = HTTPPropagator.extract(env)
+            tracer.continue_trace!(trace_digest)
           end
 
           # Create a root Span to keep track of frontend web servers
@@ -55,13 +55,13 @@ module Datadog
 
           trace_options = {
             service: configuration[:service_name],
-            resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           }
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = tracer.trace(Ext::SPAN_REQUEST, trace_options)
+          request_span = tracer.trace(Ext::SPAN_REQUEST, **trace_options)
+          request_span.resource = nil
           env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.
@@ -100,11 +100,6 @@ module Datadog
           end
 
           frontend_span.finish unless frontend_span.nil?
-
-          # TODO: Remove this once we change how context propagation works. This
-          # ensures we clean thread-local variables on each HTTP request avoiding
-          # memory leaks.
-          tracer.provider.context = Datadog::Context.new if tracer
         end
 
         def resource_name_for(env, status)
@@ -136,8 +131,8 @@ module Datadog
 
           request_span.resource ||= resource_name_for(env, status)
 
-          # Associate with runtime metrics
-          Datadog.runtime_metrics.associate_with_span(request_span)
+          # Set trace name if it hasn't been set yet (name == resource)
+          trace.resource = request_span.resource if trace.resource == trace.name
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

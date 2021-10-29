@@ -2,6 +2,7 @@
 require 'ddtrace/ext/distributed'
 require 'ddtrace/distributed_tracing/headers/headers'
 require 'ddtrace/distributed_tracing/headers/helpers'
+require 'ddtrace/trace_digest'
 
 module Datadog
   module DistributedTracing
@@ -10,17 +11,21 @@ module Datadog
       module B3
         include Ext::DistributedTracing
 
-        def self.inject!(context, env)
-          return if context.nil?
+        def self.inject!(digest, env)
+          return if digest.nil?
 
           # DEV: We need these to be hex encoded
-          env[B3_HEADER_TRACE_ID] = context.trace_id.to_s(16)
-          env[B3_HEADER_SPAN_ID] = context.span_id.to_s(16)
+          env[B3_HEADER_TRACE_ID] = digest.trace_id.to_s(16)
+          env[B3_HEADER_SPAN_ID] = digest.span_id.to_s(16)
 
-          unless context.sampling_priority.nil?
-            sampling_priority = DistributedTracing::Headers::Helpers.clamp_sampling_priority(context.sampling_priority)
+          if digest.trace_sampling_priority
+            sampling_priority = DistributedTracing::Headers::Helpers.clamp_sampling_priority(
+              digest.trace_sampling_priority
+            )
             env[B3_HEADER_SAMPLED] = sampling_priority.to_s
           end
+
+          env
         end
 
         def self.extract(env)
@@ -35,9 +40,11 @@ module Datadog
           # Return early if this propagation is not valid
           return unless trace_id && span_id
 
-          ::Datadog::Context.new(trace_id: trace_id,
-                                 span_id: span_id,
-                                 sampling_priority: sampling_priority)
+          ::Datadog::TraceDigest.new(
+            trace_id: trace_id,
+            span_id: span_id,
+            trace_sampling_priority: sampling_priority
+          )
         end
       end
     end

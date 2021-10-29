@@ -17,18 +17,20 @@ module Datadog
         # @param span_context [SpanContext]
         # @param carrier [Carrier] A carrier object of Rack type
         def inject(span_context, carrier)
-          # Inject Datadog trace properties
-          span_context.datadog_context.tap do |datadog_context|
-            carrier[HTTP_HEADER_TRACE_ID] = datadog_context.trace_id
-            carrier[HTTP_HEADER_PARENT_ID] = datadog_context.span_id
-            carrier[HTTP_HEADER_SAMPLING_PRIORITY] = datadog_context.sampling_priority
-            carrier[HTTP_HEADER_ORIGIN] = datadog_context.origin
-          end
-
           # Inject baggage
           span_context.baggage.each do |key, value|
             carrier[BAGGAGE_PREFIX + key] = value
           end
+
+          # Inject Datadog trace properties
+          active_trace = span_context.datadog_context.active_trace
+          digest = active_trace.to_digest if active_trace
+          return unless digest
+
+          carrier[HTTP_HEADER_ORIGIN] = digest.trace_origin
+          carrier[HTTP_HEADER_PARENT_ID] = digest.span_id
+          carrier[HTTP_HEADER_SAMPLING_PRIORITY] = digest.trace_sampling_priority
+          carrier[HTTP_HEADER_TRACE_ID] = digest.trace_id
 
           nil
         end
@@ -43,10 +45,7 @@ module Datadog
 
           datadog_context = if headers.valid?
                               Datadog::Context.new(
-                                trace_id: headers.trace_id,
-                                span_id: headers.parent_id,
-                                sampling_priority: headers.sampling_priority,
-                                origin: headers.origin
+                                trace: headers_to_trace(headers)
                               )
                             else
                               Datadog::Context.new
@@ -62,6 +61,15 @@ module Datadog
         end
 
         private
+
+        def headers_to_trace(headers)
+          Datadog::TraceOperation.new(
+            id: headers.trace_id,
+            parent_span_id: headers.parent_id,
+            sampling_priority: headers.sampling_priority,
+            origin: headers.origin
+          )
+        end
 
         def baggage_item?(item)
           item.to_s.start_with?(BAGGAGE_PREFIX)

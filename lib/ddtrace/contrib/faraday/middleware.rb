@@ -27,9 +27,9 @@ module Datadog
           request_options = build_request_options!(env)
 
           tracer = Datadog.tracer
-          tracer.trace(Ext::SPAN_REQUEST) do |span|
+          tracer.trace(Ext::SPAN_REQUEST) do |span, trace|
             annotate!(span, env, request_options)
-            propagate!(span, env) if request_options[:distributed_tracing] && tracer.enabled
+            propagate!(trace, span, env) if request_options[:distributed_tracing] && tracer.enabled
             app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
           end
         end
@@ -64,8 +64,8 @@ module Datadog
           span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, env[:status])
         end
 
-        def propagate!(span, env)
-          Datadog::HTTPPropagator.inject!(span.context, env[:request_headers])
+        def propagate!(trace, span, env)
+          Datadog::HTTPPropagator.inject!(trace, env[:request_headers])
         end
 
         def resource_name(env)

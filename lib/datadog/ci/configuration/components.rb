@@ -1,5 +1,5 @@
 # typed: true
-require 'datadog/ci/context_flush'
+require 'datadog/ci/trace_flush'
 
 module Datadog
   module CI
@@ -18,9 +18,9 @@ module Datadog
           # Activate underlying tracing test mode
           settings.test_mode.enabled = true
 
-          # Choose user defined ContextFlush or default to CI ContextFlush
-          settings.test_mode.context_flush = settings.ci_mode.context_flush \
-                                             || Datadog::CI::ContextFlush::Finished.new
+          # Choose user defined TraceFlush or default to CI TraceFlush
+          settings.test_mode.trace_flush = settings.ci_mode.trace_flush \
+                                             || Datadog::CI::TraceFlush::Finished.new
 
           # Pass through any other options
           settings.test_mode.writer_options = settings.ci_mode.writer_options

@@ -39,9 +39,9 @@ module Datadog
         true
       end
 
-      def associate_with_span(*args)
+      def associate_with_trace(*args)
         # Start the worker
-        metrics.associate_with_span(*args).tap { perform }
+        metrics.associate_with_trace(*args).tap { perform }
       end
 
       # TODO: `close_metrics` is only needed because

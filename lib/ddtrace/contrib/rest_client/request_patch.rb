@@ -21,10 +21,8 @@ module Datadog
 
             return super(&block) unless Datadog.tracer.enabled
 
-            datadog_trace_request(uri) do |span|
-              if datadog_configuration[:distributed_tracing]
-                Datadog::HTTPPropagator.inject!(span.context, processed_headers)
-              end
+            datadog_trace_request(uri) do |_span, trace|
+              Datadog::HTTPPropagator.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
 
               super(&block)
             end
@@ -50,9 +48,11 @@ module Datadog
                                         service: datadog_configuration[:service_name],
                                         span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND)
 
+            trace = Datadog.tracer.active_trace
+
             datadog_tag_request(uri, span)
 
-            yield(span).tap do |response|
+            yield(span, trace).tap do |response|
               # Verify return value is a response
               # If so, add additional tags.
               span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code) if response.is_a?(::RestClient::Response)

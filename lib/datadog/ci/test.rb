@@ -19,23 +19,24 @@ module Datadog
         }.merge(options[:span_options] || {})
 
         if block_given?
-          tracer.trace(span_name, span_options) do |span|
-            set_tags!(span, options)
-            yield(span)
+          tracer.trace(span_name, **span_options) do |span, trace|
+            set_tags!(trace, span, options)
+            yield(span, trace)
           end
         else
-          span = tracer.trace(span_name, span_options)
-          set_tags!(span, options)
+          span = tracer.trace(span_name, **span_options)
+          trace = tracer.active_trace
+          set_tags!(trace, span, options)
           span
         end
       end
 
       # Adds tags to a CI test span.
-      def self.set_tags!(span, tags = {})
+      def self.set_tags!(trace, span, tags = {})
         tags ||= {}
 
         # Set default tags
-        span.context.origin = Ext::Test::CONTEXT_ORIGIN if span.context
+        trace.origin = Ext::Test::CONTEXT_ORIGIN if trace
         Datadog::Contrib::Analytics.set_measured(span)
         span.set_tag(Ext::Test::TAG_SPAN_KIND, Ext::AppTypes::TEST)
 

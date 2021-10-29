@@ -1,6 +1,7 @@
 # typed: true
 require 'ddtrace/ext/distributed'
 require 'ddtrace/distributed_tracing/headers/headers'
+require 'ddtrace/trace_digest'
 
 module Datadog
   module DistributedTracing
@@ -9,13 +10,15 @@ module Datadog
       module Datadog
         include Ext::DistributedTracing
 
-        def self.inject!(context, env)
-          return if context.nil?
+        def self.inject!(digest, env)
+          return if digest.nil?
 
-          env[HTTP_HEADER_TRACE_ID] = context.trace_id.to_s
-          env[HTTP_HEADER_PARENT_ID] = context.span_id.to_s
-          env[HTTP_HEADER_SAMPLING_PRIORITY] = context.sampling_priority.to_s unless context.sampling_priority.nil?
-          env[HTTP_HEADER_ORIGIN] = context.origin.to_s unless context.origin.nil?
+          env[HTTP_HEADER_TRACE_ID] = digest.trace_id.to_s
+          env[HTTP_HEADER_PARENT_ID] = digest.span_id.to_s
+          env[HTTP_HEADER_SAMPLING_PRIORITY] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
+          env[HTTP_HEADER_ORIGIN] = digest.trace_origin.to_s unless digest.trace_origin.nil?
+
+          env
         end
 
         def self.extract(env)
@@ -31,11 +34,13 @@ module Datadog
           # DEV: `DistributedHeaders#id` will not return 0
           return unless (trace_id && parent_id) || (origin && trace_id)
 
-          # Return new context
-          ::Datadog::Context.new(trace_id: trace_id,
-                                 span_id: parent_id,
-                                 origin: origin,
-                                 sampling_priority: sampling_priority)
+          # Return new trace headers
+          ::Datadog::TraceDigest.new(
+            span_id: parent_id,
+            trace_id: trace_id,
+            trace_origin: origin,
+            trace_sampling_priority: sampling_priority
+          )
         end
       end
     end

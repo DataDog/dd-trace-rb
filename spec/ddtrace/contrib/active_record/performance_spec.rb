@@ -47,7 +47,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
         measure(10)
 
         # Discard warm-up spans
-        clear_spans!
+        clear_traces!
       end
 
       it 'produces a measurement' do

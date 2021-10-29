@@ -332,12 +332,12 @@ RSpec.describe Datadog::Configuration::Components do
       shared_examples_for 'new tracer' do
         let(:tracer) { instance_double(Datadog::Tracer) }
         let(:writer) { Datadog::Writer.new }
-        let(:context_flush) { be_a(Datadog::ContextFlush::Finished) }
+        let(:trace_flush) { be_a(Datadog::TraceFlush::Finished) }
         let(:default_options) do
           {
             default_service: settings.service,
             enabled: settings.tracer.enabled,
-            context_flush: context_flush,
+            trace_flush: trace_flush,
             tags: settings.tags,
             sampler: lambda do |sampler|
               expect(sampler).to be_a(Datadog::PrioritySampler)
@@ -448,7 +448,7 @@ RSpec.describe Datadog::Configuration::Components do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { context_flush: be_a(Datadog::ContextFlush::Partial) } }
+          let(:options) { { trace_flush: be_a(Datadog::TraceFlush::Partial) } }
           it_behaves_like 'event publishing writer and priority sampler'
         end
 
@@ -463,7 +463,7 @@ RSpec.describe Datadog::Configuration::Components do
 
           it_behaves_like 'new tracer' do
             let(:options) do
-              { context_flush: be_a(Datadog::ContextFlush::Partial) &
+              { trace_flush: be_a(Datadog::TraceFlush::Partial) &
                 have_attributes(min_spans_for_partial: min_spans_threshold) }
             end
 
@@ -627,15 +627,15 @@ RSpec.describe Datadog::Configuration::Components do
                 .and_return(writer)
             end
 
-            context 'and :context_flush' do
+            context 'and :trace_flush' do
               before do
                 allow(settings.test_mode)
-                  .to receive(:context_flush)
-                  .and_return(context_flush)
+                  .to receive(:trace_flush)
+                  .and_return(trace_flush)
               end
 
               context 'is not set' do
-                let(:context_flush) { nil }
+                let(:trace_flush) { nil }
 
                 it_behaves_like 'new tracer' do
                   let(:options) do
@@ -651,12 +651,12 @@ RSpec.describe Datadog::Configuration::Components do
               end
 
               context 'is set' do
-                let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+                let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
 
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
-                      context_flush: context_flush,
+                      trace_flush: trace_flush,
                       sampler: kind_of(Datadog::AllSampler),
                       writer: kind_of(Datadog::SyncWriter)
                     }

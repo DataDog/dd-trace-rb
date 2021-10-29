@@ -12,9 +12,11 @@ module Datadog
       end
 
       def call(trace)
-        trace.each do |span|
+        trace.spans.each do |span|
           @operation.call(span) rescue next
         end
+
+        trace
       end
     end
   end

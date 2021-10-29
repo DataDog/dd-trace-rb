@@ -24,12 +24,10 @@ RSpec.describe 'Rails Rack' do
     }
   end
 
-  let(:observed) { {} }
   let(:layout) { 'application' }
   let(:controllers) { [controller, errors_controller] }
   let(:controller) do
     layout_ = layout
-    observed = self.observed
     stub_const('TestController', Class.new(ActionController::Base) do
       include ::Rails.application.routes.url_helpers
 
@@ -99,11 +97,6 @@ RSpec.describe 'Rails Rack' do
       end
 
       define_method(:span_resource) do
-        active_span = Datadog.tracer.active_span
-        observed[:active_span] = { name: active_span.name, resource: active_span.resource }
-        root_span = Datadog.tracer.active_root_span
-        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
-
         head :ok
       end
 
@@ -549,11 +542,15 @@ RSpec.describe 'Rails Rack' do
     end
 
     it 'sets the controller span resource before calling the controller' do
-      expect(observed[:active_span]).to eq(name: 'rails.action_controller', resource: 'TestController#span_resource')
+      controller_span = spans.find { |s| s.name == 'rails.action_controller' }
+      expect(controller_span.name).to eq('rails.action_controller')
+      expect(controller_span.resource).to eq('TestController#span_resource')
     end
 
     it 'sets the request span resource before calling the controller' do
-      expect(observed[:root_span]).to eq(name: 'rack.request', resource: 'TestController#span_resource')
+      rack_span = spans.find { |s| s.name == 'rack.request' }
+      expect(rack_span.name).to eq('rack.request')
+      expect(rack_span.resource).to eq('TestController#span_resource')
     end
 
     context 'a custom controller span resource is applied' do

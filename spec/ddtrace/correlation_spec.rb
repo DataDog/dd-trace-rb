@@ -15,40 +15,109 @@ RSpec.describe Datadog::Correlation do
     allow(Datadog.configuration).to receive(:version).and_return(default_version)
   end
 
-  describe '::identifier_from_context' do
-    subject(:identifier_from_context) { described_class.identifier_from_context(context) }
+  RSpec::Matchers.define :be_a_frozen_copy_of do |expected|
+    match do |actual|
+      expect(actual).to eq expected
+      expect(actual).to_not be expected
+      expect(actual.frozen?).to be true
+    end
+  end
+
+  shared_context 'correlation data' do
+    let(:env) { 'dev' }
+    let(:service) { 'acme-api' }
+    let(:span_id) { Datadog::Utils.next_id }
+    let(:span_name) { 'active_record.sql' }
+    let(:span_resource) { 'SELECT * FROM users;' }
+    let(:span_service) { 'acme-mysql' }
+    let(:span_type) { 'db' }
+    let(:trace_id) { Datadog::Utils.next_id }
+    let(:trace_name) { 'rack.request' }
+    let(:trace_resource) { 'GET /users' }
+    let(:trace_service) { 'acme-api' }
+    let(:version) { '0.1' }
+  end
+
+  describe '::identifier_from_digest' do
+    subject(:identifier_from_digest) { described_class.identifier_from_digest(digest) }
+    let(:identifier) { identifier_from_digest }
 
     context 'given nil' do
-      let(:context) { nil }
+      let(:digest) { nil }
 
       it { is_expected.to be_a_kind_of(described_class::Identifier) }
-      it { expect(identifier_from_context.frozen?).to be true }
-      it { expect(identifier_from_context.trace_id).to eq 0 }
-      it { expect(identifier_from_context.span_id).to eq 0 }
-      it { expect(identifier_from_context.env).to be default_env }
-      it { expect(identifier_from_context.service).to be default_service }
-      it { expect(identifier_from_context.version).to be default_version }
-    end
 
-    context 'given a Context object' do
-      let(:context) do
-        instance_double(
-          Datadog::Context,
-          trace_id: trace_id,
-          span_id: span_id
+      it do
+        expect(identifier).to have_attributes(
+          env: default_env,
+          service: default_service,
+          span_id: 0,
+          span_name: nil,
+          span_resource: nil,
+          span_service: nil,
+          span_type: nil,
+          trace_id: 0,
+          trace_name: nil,
+          trace_resource: nil,
+          trace_service: nil,
+          version: default_version
         )
       end
 
-      let(:trace_id) { double('trace ID') }
-      let(:span_id) { double('span ID') }
+      it 'has frozen copies of strings' do
+        expect(identifier.env).to be_a_frozen_copy_of(default_env)
+        expect(identifier.service).to be_a_frozen_copy_of(default_service)
+        expect(identifier.version).to be_a_frozen_copy_of(default_version)
+      end
+    end
 
-      it { is_expected.to be_a_kind_of(described_class::Identifier) }
-      it { expect(identifier_from_context.frozen?).to be true }
-      it { expect(identifier_from_context.trace_id).to be trace_id }
-      it { expect(identifier_from_context.span_id).to be span_id }
-      it { expect(identifier_from_context.env).to be default_env }
-      it { expect(identifier_from_context.service).to be default_service }
-      it { expect(identifier_from_context.version).to be default_version }
+    context 'given a TraceDigest object' do
+      include_context 'correlation data'
+
+      let(:digest) do
+        instance_double(
+          Datadog::TraceDigest,
+          span_id: span_id,
+          span_name: span_name,
+          span_resource: span_resource,
+          span_service: span_service,
+          span_type: span_type,
+          trace_id: trace_id,
+          trace_name: trace_name,
+          trace_resource: trace_resource,
+          trace_service: trace_service
+        )
+      end
+
+      it do
+        expect(identifier).to have_attributes(
+          env: default_env,
+          service: default_service,
+          span_id: span_id,
+          span_name: span_name,
+          span_resource: span_resource,
+          span_service: span_service,
+          span_type: span_type,
+          trace_id: trace_id,
+          trace_name: trace_name,
+          trace_resource: trace_resource,
+          trace_service: trace_service,
+          version: default_version
+        )
+      end
+
+      it 'has frozen copies of strings' do
+        expect(identifier.env).to be_a_frozen_copy_of(default_env)
+        expect(identifier.service).to be_a_frozen_copy_of(default_service)
+        expect(identifier.span_name).to be_a_frozen_copy_of(span_name)
+        expect(identifier.span_resource).to be_a_frozen_copy_of(span_resource)
+        expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
+        expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
+        expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
+        expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
+        expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
+        expect(identifier.version).to be_a_frozen_copy_of(default_version)
+      end
     end
   end
 
@@ -58,64 +127,100 @@ RSpec.describe Datadog::Correlation do
         subject(:identifier) { described_class.new }
 
         it do
-          is_expected.to have_attributes(
-            trace_id: 0,
-            span_id: 0,
+          expect(identifier).to have_attributes(
             env: default_env,
             service: default_service,
+            span_id: 0,
+            span_name: nil,
+            span_resource: nil,
+            span_service: nil,
+            span_type: nil,
+            trace_id: 0,
+            trace_name: nil,
+            trace_resource: nil,
+            trace_service: nil,
             version: default_version
           )
+        end
+
+        it 'has frozen copies of strings' do
+          expect(identifier.env).to be_a_frozen_copy_of(default_env)
+          expect(identifier.service).to be_a_frozen_copy_of(default_service)
+          expect(identifier.version).to be_a_frozen_copy_of(default_version)
         end
       end
 
       context 'given full arguments' do
+        include_context 'correlation data'
+
         subject(:identifier) do
           described_class.new(
-            trace_id,
-            span_id,
-            env,
-            service,
-            version
+            env: env,
+            service: service,
+            span_id: span_id,
+            span_name: span_name,
+            span_resource: span_resource,
+            span_service: span_service,
+            span_type: span_type,
+            trace_id: trace_id,
+            trace_name: trace_name,
+            trace_resource: trace_resource,
+            trace_service: trace_service,
+            version: version
           )
         end
 
-        let(:trace_id) { double('trace_id') }
-        let(:span_id) { double('span_id') }
-        let(:env) { double('env') }
-        let(:service) { double('service') }
-        let(:version) { double('version') }
-
         it do
-          is_expected.to have_attributes(
-            trace_id: trace_id,
-            span_id: span_id,
+          expect(identifier).to have_attributes(
             env: env,
             service: service,
+            span_id: span_id,
+            span_name: span_name,
+            span_resource: span_resource,
+            span_service: span_service,
+            span_type: span_type,
+            trace_id: trace_id,
+            trace_name: trace_name,
+            trace_resource: trace_resource,
+            trace_service: trace_service,
             version: version
           )
+        end
+
+        it 'has frozen copies of strings' do
+          expect(identifier.env).to be_a_frozen_copy_of(env)
+          expect(identifier.service).to be_a_frozen_copy_of(service)
+          expect(identifier.span_name).to be_a_frozen_copy_of(span_name)
+          expect(identifier.span_resource).to be_a_frozen_copy_of(span_resource)
+          expect(identifier.span_service).to be_a_frozen_copy_of(span_service)
+          expect(identifier.span_type).to be_a_frozen_copy_of(span_type)
+          expect(identifier.trace_name).to be_a_frozen_copy_of(trace_name)
+          expect(identifier.trace_resource).to be_a_frozen_copy_of(trace_resource)
+          expect(identifier.trace_service).to be_a_frozen_copy_of(trace_service)
+          expect(identifier.version).to be_a_frozen_copy_of(version)
         end
       end
     end
 
-    describe '#to_s' do
-      shared_examples_for 'an identifier string' do
-        subject(:string) { identifier.to_s }
+    describe '#to_log_format' do
+      shared_examples_for 'a log format string' do
+        subject(:string) { identifier.to_log_format }
 
         let(:identifier) do
           described_class.new(
-            trace_id,
-            span_id,
-            env,
-            service,
-            version
+            env: env,
+            service: service,
+            span_id: span_id,
+            trace_id: trace_id,
+            version: version
           )
         end
 
-        let(:trace_id) { double('trace_id') }
-        let(:span_id) { double('span_id') }
-        let(:env) { double('env') }
-        let(:service) { double('service') }
-        let(:version) { double('version') }
+        let(:trace_id) { Datadog::Utils.next_id }
+        let(:span_id) { Datadog::Utils.next_id }
+        let(:env) { 'dev' }
+        let(:service) { 'acme-api' }
+        let(:version) { '1.0' }
 
         it 'doesn\'t have attributes without values' do
           is_expected.to_not match(/.*=(?=\z|\s)/)
@@ -130,14 +235,14 @@ RSpec.describe Datadog::Correlation do
 
       context 'when #trace_id' do
         context 'is defined' do
-          it_behaves_like 'an identifier string' do
-            let(:trace_id) { double('trace_id') }
+          it_behaves_like 'a log format string' do
+            let(:trace_id) { Datadog::Utils.next_id }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_TRACE_ID}=#{trace_id}") }
           end
         end
 
         context 'is not defined' do
-          it_behaves_like 'an identifier string' do
+          it_behaves_like 'a log format string' do
             let(:trace_id) { nil }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_TRACE_ID}=0") }
           end
@@ -146,14 +251,14 @@ RSpec.describe Datadog::Correlation do
 
       context 'when #span_id' do
         context 'is defined' do
-          it_behaves_like 'an identifier string' do
-            let(:span_id) { double('span_id') }
+          it_behaves_like 'a log format string' do
+            let(:span_id) { Datadog::Utils.next_id }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_SPAN_ID}=#{span_id}") }
           end
         end
 
         context 'is not defined' do
-          it_behaves_like 'an identifier string' do
+          it_behaves_like 'a log format string' do
             let(:span_id) { nil }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_SPAN_ID}=0") }
           end
@@ -162,8 +267,8 @@ RSpec.describe Datadog::Correlation do
 
       context 'when #env' do
         context 'is defined' do
-          it_behaves_like 'an identifier string' do
-            let(:env) { double('env') }
+          it_behaves_like 'a log format string' do
+            let(:env) { 'dev' }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_ENV}=#{env}") }
 
             it 'puts the env attribute before trace ID and span ID' do
@@ -173,7 +278,7 @@ RSpec.describe Datadog::Correlation do
         end
 
         context 'is not defined' do
-          it_behaves_like 'an identifier string' do
+          it_behaves_like 'a log format string' do
             let(:env) { nil }
             it { is_expected.to_not have_attribute("#{Datadog::Ext::Correlation::ATTR_ENV}=#{env}") }
           end
@@ -182,8 +287,8 @@ RSpec.describe Datadog::Correlation do
 
       context 'when #service' do
         context 'is defined' do
-          it_behaves_like 'an identifier string' do
-            let(:service) { double('service') }
+          it_behaves_like 'a log format string' do
+            let(:service) { 'acme-api' }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_SERVICE}=#{service}") }
 
             it 'puts the service attribute before trace ID and span ID' do
@@ -193,7 +298,7 @@ RSpec.describe Datadog::Correlation do
         end
 
         context 'is not defined' do
-          it_behaves_like 'an identifier string' do
+          it_behaves_like 'a log format string' do
             let(:service) { nil }
             it { is_expected.to_not have_attribute("#{Datadog::Ext::Correlation::ATTR_SERVICE}=#{service}") }
           end
@@ -202,8 +307,8 @@ RSpec.describe Datadog::Correlation do
 
       context 'when #version' do
         context 'is defined' do
-          it_behaves_like 'an identifier string' do
-            let(:version) { double('version') }
+          it_behaves_like 'a log format string' do
+            let(:version) { '0.1' }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_VERSION}=#{version}") }
 
             it 'puts the version attribute before trace ID and span ID' do
@@ -213,7 +318,7 @@ RSpec.describe Datadog::Correlation do
         end
 
         context 'is not defined' do
-          it_behaves_like 'an identifier string' do
+          it_behaves_like 'a log format string' do
             let(:version) { nil }
             it { is_expected.to_not have_attribute("#{Datadog::Ext::Correlation::ATTR_VERSION}=#{version}") }
           end

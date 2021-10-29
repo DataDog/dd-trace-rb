@@ -14,12 +14,16 @@ module Datadog
 
         # Retrieves number of classes from runtime
         def id
-          @id ||= SecureRandom.uuid
+          @id ||= ::SecureRandom.uuid
 
           # Check if runtime has changed, e.g. forked.
-          after_fork! { @id = SecureRandom.uuid }
+          after_fork! { @id = ::SecureRandom.uuid }
 
           @id
+        end
+
+        def pid
+          ::Process.pid
         end
 
         def lang

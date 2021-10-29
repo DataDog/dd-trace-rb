@@ -27,16 +27,17 @@ RSpec.describe 'gRPC integration test' do
       )
     end
 
+    let(:alternate_client_span) { fetch_spans(tracer).first }
+
     it 'uses the correct configuration information' do
       run_request_reply
       span = spans.first
       expect(span.service).to eq 'rspec'
 
-      clear_spans!
+      clear_traces!
 
       run_request_reply(endpoint, alternate_client)
-      span = fetch_spans(tracer).first
-      expect(span.service).to eq 'awesome sauce'
+      expect(alternate_client_span.service).to eq 'awesome sauce'
     end
   end
 

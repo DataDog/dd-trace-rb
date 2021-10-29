@@ -145,10 +145,14 @@ RSpec.shared_examples_for 'instrumented request' do
 
       context 'with sampling priority' do
         let(:return_headers) { true }
-        let(:sampling_priority) { 0.2 }
+        let(:sampling_priority) { 2 }
 
         before do
-          tracer.provider.context.sampling_priority = sampling_priority
+          tracer.continue_trace!(
+            Datadog::TraceDigest.new(
+              trace_sampling_priority: sampling_priority
+            )
+          )
         end
 
         it_behaves_like 'propagating distributed headers'

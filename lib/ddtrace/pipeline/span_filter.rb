@@ -17,11 +17,13 @@ module Datadog
       def call(trace)
         deleted = Set.new
 
-        trace.delete_if do |span|
+        trace.spans.delete_if do |span|
           should_delete = deleted.include?(span.parent_id) || drop_it?(span)
-          deleted << span.span_id if should_delete
+          deleted << span.id if should_delete
           should_delete
         end
+
+        trace
       end
 
       private

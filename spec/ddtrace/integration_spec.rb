@@ -166,11 +166,13 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     let!(:trace) do
-      tracer.trace('my.op') do |span|
-        @sampling_priority = span.context.sampling_priority
-        @rule_sample_rate = span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)
-        @rate_limiter_rate = span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)
+      tracer.trace_completed.subscribe(:test) do |trace|
+        @sampling_priority = trace.sampling_priority
+        @rule_sample_rate = trace.rule_sample_rate
+        @rate_limiter_rate = trace.rate_limiter_rate
       end
+
+      tracer.trace('my.op').finish
 
       tracer.shutdown!
     end
@@ -212,11 +214,6 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::USER_KEEP
       it_behaves_like 'rule sampling rate metric', 1.0
       it_behaves_like 'rate limit metric', 1.0
-
-      it 'test' do
-        puts "Datadog.configuration.sampling.default_rate: #{Datadog.configuration.sampling.default_rate}:" \
-          "#{Datadog.configuration.sampling.default_rate.class}"
-      end
     end
 
     context 'with low default sample rate' do
@@ -341,25 +338,16 @@ RSpec.describe 'Tracer integration tests' do
     let(:tracer) { get_test_tracer }
 
     context 'when #sampling_priority is set on a child span' do
-      let(:parent_span) { tracer.start_span('parent span') }
-      let(:child_span) { tracer.start_span('child span', child_of: parent_span.context) }
-
       before do
-        parent_span.tap do
-          child_span.tap do
-            child_span.context.sampling_priority = 10
-          end.finish
-        end.finish
-
-        try_wait_until { tracer.writer.spans.any? }
+        tracer.trace('parent span') do |_parent_span, _parent_trace|
+          tracer.trace('child span') do |_child_span, child_trace|
+            child_trace.sampling_priority = 10
+          end
+        end
       end
 
       it do
-        metric_value = parent_span.send(:span).get_metric(
-          Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY
-        )
-
-        expect(metric_value).to eq(10)
+        expect(trace.sampling_priority).to eq(10)
       end
     end
   end
@@ -369,19 +357,13 @@ RSpec.describe 'Tracer integration tests' do
     let(:tracer) { get_test_tracer }
 
     context 'when #sampling_priority is set on a parent span' do
-      subject(:tag_value) { parent_span.send(:span).get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
-
-      let(:parent_span) { tracer.start_span('parent span') }
-
       before do
-        parent_span.tap do
-          parent_span.context.origin = 'synthetics'
-        end.finish
-
-        try_wait_until { tracer.writer.spans.any? }
+        tracer.trace('parent span') do |_span, trace|
+          trace.origin = 'synthetics'
+        end
       end
 
-      it { is_expected.to eq('synthetics') }
+      it { expect(trace.origin).to eq('synthetics') }
     end
   end
 
@@ -394,14 +376,12 @@ RSpec.describe 'Tracer integration tests' do
 
     it do
       3.times do |i|
-        parent_span = tracer.start_span('parent_span')
-        child_span = tracer.start_span('child_span', child_of: parent_span.context)
-
-        # I want to keep the trace to which `child_span` belongs
-        child_span.context.sampling_priority = i
-
-        child_span.finish
-        parent_span.finish
+        tracer.trace('parent_span') do
+          tracer.trace('child_span') do |_span, trace|
+            # I want to keep the trace to which `child_span` belongs
+            trace.sampling_priority = i
+          end
+        end
 
         try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
         stats = tracer.writer.stats
@@ -449,14 +429,12 @@ RSpec.describe 'Tracer integration tests' do
 
     it do
       3.times do |i|
-        parent_span = tracer.start_span('parent_span')
-        child_span = tracer.start_span('child_span', child_of: parent_span.context)
-
-        # I want to keep the trace to which `child_span` belongs
-        child_span.context.sampling_priority = i
-
-        child_span.finish
-        parent_span.finish
+        tracer.trace('parent_span') do
+          tracer.trace('child_span') do |_span, trace|
+            # I want to keep the trace to which `child_span` belongs
+            trace.sampling_priority = i
+          end
+        end
 
         try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
         stats = tracer.writer.stats
@@ -498,14 +476,12 @@ RSpec.describe 'Tracer integration tests' do
 
     it do
       3.times do |i|
-        parent_span = tracer.start_span('parent_span')
-        child_span = tracer.start_span('child_span', child_of: parent_span.context)
-
-        # I want to keep the trace to which `child_span` belongs
-        child_span.context.sampling_priority = i
-
-        child_span.finish
-        parent_span.finish
+        tracer.trace('parent_span') do
+          tracer.trace('child_span') do |_span, trace|
+            # I want to keep the trace to which `child_span` belongs
+            trace.sampling_priority = i
+          end
+        end
 
         try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
         stats = tracer.writer.stats
@@ -589,32 +565,32 @@ RSpec.describe 'Tracer integration tests' do
     subject(:tracer) { new_tracer }
 
     it 'clears context after tracer finishes' do
-      before = tracer.call_context
+      before = tracer.send(:call_context)
 
       expect(before).to be_a(Datadog::Context)
 
       span = tracer.trace('test')
-      during = tracer.call_context
+      during = tracer.send(:call_context)
 
       expect(during).to be(before)
-      expect(during.trace_id).to_not be nil
+      expect(during.active_trace.id).to_not be nil
 
       span.finish
-      after = tracer.call_context
+      after = tracer.send(:call_context)
 
       expect(after).to be(during)
-      expect(after.trace_id).to be nil
+      expect(after.active_trace).to be nil
     end
 
     it 'reuses context for successive traces' do
       span = tracer.trace('test1')
-      context1 = tracer.call_context
+      context1 = tracer.send(:call_context)
       span.finish
 
       expect(context1).to be_a(Datadog::Context)
 
       span = tracer.trace('test2')
-      context2 = tracer.call_context
+      context2 = tracer.send(:call_context)
       span.finish
 
       expect(context2).to be(context1)
@@ -627,10 +603,10 @@ RSpec.describe 'Tracer integration tests' do
 
       it 'create one thread-local context per tracer' do
         span = tracer.trace('test')
-        context = tracer.call_context
+        context = tracer.send(:call_context)
 
         span2 = tracer2.trace('test2')
-        context2 = tracer2.call_context
+        context2 = tracer2.send(:call_context)
 
         span2.finish
         span.finish
@@ -644,17 +620,17 @@ RSpec.describe 'Tracer integration tests' do
       context 'with another thread' do
         it 'create one thread-local context per tracer per thread' do
           span = tracer.trace('test')
-          context = tracer.call_context
+          context = tracer.send(:call_context)
 
           span2 = tracer2.trace('test2')
-          context2 = tracer2.call_context
+          context2 = tracer2.send(:call_context)
 
           Thread.new do
             thread_span = tracer.trace('thread_test')
-            @thread_context = tracer.call_context
+            @thread_context = tracer.send(:call_context)
 
             thread_span2 = tracer2.trace('thread_test2')
-            @thread_context2 = tracer2.call_context
+            @thread_context2 = tracer2.send(:call_context)
 
             thread_span.finish
             thread_span2.finish

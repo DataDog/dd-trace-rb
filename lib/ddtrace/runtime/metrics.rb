@@ -1,11 +1,9 @@
 # typed: true
-require 'ddtrace/ext/integration'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/metrics'
 require 'datadog/core/environment/class_count'
 require 'datadog/core/environment/gc'
-require 'datadog/core/environment/identity'
 require 'datadog/core/environment/thread_count'
 require 'datadog/core/environment/vm_cache'
 
@@ -22,17 +20,11 @@ module Datadog
         compile_service_tags!
       end
 
-      def associate_with_span(span)
-        return if !enabled? || span.nil?
+      def associate_with_trace(trace)
+        return if !enabled? || trace.nil?
 
         # Register service as associated with metrics
-        register_service(span.service) unless span.service.nil?
-
-        # Tag span with language and runtime ID for association with metrics.
-        # We only tag spans that performed internal application work.
-        unless span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)
-          span.set_tag(Ext::Runtime::TAG_LANG, Core::Environment::Identity.lang)
-        end
+        register_service(trace.service) unless trace.service.nil?
       end
 
       # Associate service with runtime metrics

@@ -260,7 +260,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before do
         # Insert a document
         client[collection].insert_one(name: 'Steve', hobbies: ['hiking', 'tennis', 'fly fishing'])
-        clear_spans!
+        clear_traces!
 
         # Do #find_all operation
         client[collection].find.each do |document|
@@ -286,7 +286,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before do
         # Insert a document
         client[collection].insert_one(name: 'Steve', hobbies: ['hiking'])
-        clear_spans!
+        clear_traces!
 
         # Do #find operation
         result = client[collection].find(name: 'Steve').first[:hobbies]
@@ -311,7 +311,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before do
         # Insert a document
         client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
-        clear_spans!
+        clear_traces!
 
         # Do #update_one operation
         client[collection].update_one({ name: 'Sally' }, '$set' => { 'phone_number' => '555-555-5555' })
@@ -346,7 +346,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before do
         # Insert documents
         client[collection].insert_many(documents)
-        clear_spans!
+        clear_traces!
 
         # Do #update_many operation
         client[collection].update_many({}, '$set' => { 'phone_number' => '555-555-5555' })
@@ -377,7 +377,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before do
         # Insert a document
         client[collection].insert_one(name: 'Sally', hobbies: ['skiing', 'stamp collecting'])
-        clear_spans!
+        clear_traces!
 
         # Do #delete_one operation
         client[collection].delete_one(name: 'Sally')
@@ -412,7 +412,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       before do
         # Insert documents
         client[collection].insert_many(documents)
-        clear_spans!
+        clear_traces!
 
         # Do #delete_many operation
         client[collection].delete_many(name: /$S*/)

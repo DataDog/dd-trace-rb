@@ -114,33 +114,12 @@ RSpec.describe Datadog::Workers::TraceWriter do
     let(:traces) { double('traces') }
     let(:processed_traces) { double('processed traces') }
 
-    before do
+    it do
       expect(Datadog::Pipeline).to receive(:process!)
         .with(traces)
         .and_return(processed_traces)
-    end
 
-    context 'when \'report_hostname\'' do
-      context 'is enabled' do
-        before do
-          allow(Datadog.configuration).to receive(:report_hostname)
-            .and_return(true)
-
-          expect(writer).to receive(:inject_hostname!)
-            .with(processed_traces)
-        end
-
-        it { is_expected.to be(processed_traces) }
-      end
-
-      context 'is not enabled' do
-        before do
-          allow(Datadog.configuration).to receive(:report_hostname)
-            .and_return(false)
-        end
-
-        it { is_expected.to be(processed_traces) }
-      end
+      is_expected.to be processed_traces
     end
   end
 
@@ -160,43 +139,6 @@ RSpec.describe Datadog::Workers::TraceWriter do
     end
 
     it { is_expected.to be(response) }
-  end
-
-  describe '#inject_hostname!' do
-    subject(:inject_hostname!) { writer.inject_hostname!(traces) }
-
-    let(:traces) { get_test_traces(2) }
-
-    context 'when hostname' do
-      before do
-        allow(Datadog::Core::Environment::Socket).to receive(:hostname)
-          .and_return(hostname)
-      end
-
-      context 'is available' do
-        let(:hostname) { 'localhost' }
-
-        it 'sets the hostname on the first span of each trace' do
-          inject_hostname!
-
-          traces.each do |trace|
-            expect(trace.first.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-          end
-        end
-      end
-
-      context 'is not available' do
-        let(:hostname) { nil }
-
-        it 'hoes not set the hostname on any of the traces' do
-          inject_hostname!
-
-          traces.each do |trace|
-            expect(trace.first.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-          end
-        end
-      end
-    end
   end
 
   describe '#flush_completed' do
@@ -220,6 +162,8 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
   subject(:writer) { described_class.new(options) }
 
   let(:options) { {} }
+
+  after { writer.stop(true, 0) }
 
   it { expect(writer).to be_a_kind_of(Datadog::Workers::Queue) }
   it { expect(writer).to be_a_kind_of(Datadog::Workers::Polling) }
@@ -402,9 +346,15 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
     shared_context 'shuts down the worker' do
       before do
-        expect(writer.buffer).to receive(:close)
+        expect(writer.buffer).to receive(:close).at_least(:once)
+
         allow(writer).to receive(:join)
           .with(described_class::SHUTDOWN_TIMEOUT)
+          .and_return(true)
+
+        # Do this to prevent cleanup from breaking the test
+        allow(writer).to receive(:join)
+          .with(0)
           .and_return(true)
       end
     end

@@ -32,7 +32,7 @@ module Datadog
         def around_perform0_ddtrace(*args)
           return yield unless datadog_configuration && tracer
 
-          tracer.trace(Ext::SPAN_JOB, span_options) do |span|
+          tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
             span.span_type = Datadog::Ext::AppTypes::WORKER
             # Set analytics sample rate

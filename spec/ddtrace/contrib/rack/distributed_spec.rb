@@ -61,8 +61,8 @@ RSpec.describe 'Rack integration distributed tracing' do
       expect(span.name).to eq('rack.request')
       expect(span.trace_id).to eq(trace_id)
       expect(span.parent_id).to eq(parent_id)
-      expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
-      expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq(origin)
+      expect(trace.sampling_priority).to eq(sampling_priority)
+      expect(trace.origin).to eq(origin)
     end
   end
 
@@ -73,8 +73,8 @@ RSpec.describe 'Rack integration distributed tracing' do
       expect(span.name).to eq('rack.request')
       expect(span.trace_id).to_not eq(trace_id)
       expect(span.parent_id).to eq(0)
-      expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not be nil
-      expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to be nil
+      expect(trace.sampling_priority).to_not be nil
+      expect(trace.origin).to be nil
     end
   end
 
@@ -104,7 +104,7 @@ RSpec.describe 'Rack integration distributed tracing' do
             expect(server_span.name).to eq('http_server.queue')
             expect(server_span.trace_id).to eq(trace_id)
             expect(server_span.parent_id).to eq(parent_id)
-            expect(server_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+            expect(trace.sampling_priority).to eq(sampling_priority)
 
             expect(rack_span.name).to eq('rack.request')
             expect(rack_span.trace_id).to eq(trace_id)

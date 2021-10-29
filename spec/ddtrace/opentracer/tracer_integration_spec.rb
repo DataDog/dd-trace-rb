@@ -12,14 +12,36 @@ RSpec.describe Datadog::OpenTracer::Tracer do
 
   after { writer.stop }
 
+  def current_context_for(object)
+    case object
+    when Datadog::OpenTracer::Span
+      object.context.datadog_context
+    when Datadog::OpenTracer::SpanContext
+      object.datadog_context
+    when Datadog::OpenTracer::Scope
+      object.span.context.datadog_context
+    end
+  end
+
   def current_trace_for(object)
     case object
     when Datadog::OpenTracer::Span
-      object.context.datadog_context.instance_variable_get(:@trace)
+      object.context.datadog_context.active_trace
     when Datadog::OpenTracer::SpanContext
-      object.datadog_context.instance_variable_get(:@trace)
+      object.datadog_context.active_trace
     when Datadog::OpenTracer::Scope
-      object.span.context.datadog_context.instance_variable_get(:@trace)
+      object.span.context.datadog_context.active_trace
+    end
+  end
+
+  def current_span_for(object)
+    case object
+    when Datadog::OpenTracer::Span
+      object.datadog_span
+    when Datadog::OpenTracer::SpanContext
+      object.datadog_context.active_span
+    when Datadog::OpenTracer::Scope
+      object.span.datadog_span
     end
   end
 
@@ -56,12 +78,12 @@ RSpec.describe Datadog::OpenTracer::Tracer do
     context 'for a nested span' do
       context 'when there is no active scope' do
         before do
-          tracer.start_span('operation.outer').tap do |_outer_span|
+          tracer.start_span('operation.outer').tap do |outer_span|
             tracer.start_span('operation.inner').tap do |inner_span|
               # Assert Datadog context integrity
-              # 1 item because they each should get their own context.
-              expect(current_trace_for(inner_span)).to have(1).items
-              expect(current_trace_for(inner_span)).to include(inner_span.datadog_span)
+              # They should be in their own traces.
+              expect(current_context_for(inner_span)).to_not be(current_context_for(outer_span))
+              expect(current_trace_for(inner_span)).to_not be(current_trace_for(outer_span))
             end.finish
           end.finish
         end
@@ -84,8 +106,8 @@ RSpec.describe Datadog::OpenTracer::Tracer do
             tracer.start_active_span('operation.parent') do |parent_scope|
               tracer.start_span('operation.child').tap do |span|
                 # Assert Datadog context integrity
-                expect(current_trace_for(span)).to have(2).items
-                expect(current_trace_for(span)).to include(parent_scope.span.datadog_span, span.datadog_span)
+                expect(current_context_for(parent_scope)).to be(current_context_for(span))
+                expect(current_trace_for(parent_scope)).to be(current_trace_for(span))
               end.finish
             end
           end
@@ -104,11 +126,11 @@ RSpec.describe Datadog::OpenTracer::Tracer do
 
         context 'which is ignored' do
           before do
-            tracer.start_active_span('operation.parent') do |_scope|
+            tracer.start_active_span('operation.parent') do |scope|
               tracer.start_span('operation.child', ignore_active_scope: true).tap do |span|
                 # Assert Datadog context integrity
-                expect(current_trace_for(span)).to have(1).items
-                expect(current_trace_for(span)).to include(span.datadog_span)
+                expect(current_context_for(scope)).to_not be(current_context_for(span))
+                expect(current_trace_for(scope)).to_not be(current_trace_for(span))
               end.finish
             end
           end
@@ -132,8 +154,8 @@ RSpec.describe Datadog::OpenTracer::Tracer do
             tracer.start_active_span('operation.fake_parent') do
               tracer.start_span('operation.child', child_of: parent_span).tap do |span|
                 # Assert Datadog context integrity
-                expect(current_trace_for(span)).to have(2).items
-                expect(current_trace_for(span)).to include(parent_span.datadog_span, span.datadog_span)
+                expect(current_context_for(parent_span)).to be(current_context_for(span))
+                expect(current_trace_for(parent_span)).to be(current_trace_for(span))
               end.finish
             end
           end.finish
@@ -158,8 +180,8 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         tracer.start_span('operation.older_sibling').finish
         tracer.start_span('operation.younger_sibling').tap do |span|
           # Assert Datadog context integrity
-          expect(current_trace_for(span)).to have(1).items
-          expect(current_trace_for(span)).to include(span.datadog_span)
+          # There shouldn't be an active trace
+          expect(current_trace_for(span)).to_not be nil
         end.finish
       end
 
@@ -294,8 +316,8 @@ RSpec.describe Datadog::OpenTracer::Tracer do
             tracer.start_active_span('operation.parent') do |parent_scope|
               tracer.start_active_span('operation.child') do |scope|
                 # Assert Datadog context integrity
-                expect(current_trace_for(scope)).to have(2).items
-                expect(current_trace_for(scope)).to include(parent_scope.span.datadog_span, scope.span.datadog_span)
+                expect(current_context_for(parent_scope)).to be(current_context_for(scope))
+                expect(current_trace_for(parent_scope)).to be(current_trace_for(scope))
               end
             end
           end
@@ -314,11 +336,11 @@ RSpec.describe Datadog::OpenTracer::Tracer do
 
         context 'which is ignored' do
           before do
-            tracer.start_active_span('operation.parent') do |_parent_scope|
+            tracer.start_active_span('operation.parent') do |parent_scope|
               tracer.start_active_span('operation.child', ignore_active_scope: true) do |scope|
                 # Assert Datadog context integrity
-                expect(current_trace_for(scope)).to have(1).items
-                expect(current_trace_for(scope)).to include(scope.span.datadog_span)
+                expect(current_context_for(parent_scope)).to_not be(current_context_for(scope))
+                expect(current_trace_for(parent_scope)).to_not be(current_trace_for(scope))
               end
             end
           end
@@ -342,8 +364,8 @@ RSpec.describe Datadog::OpenTracer::Tracer do
             tracer.start_active_span('operation.fake_parent') do |_fake_parent_span|
               tracer.start_active_span('operation.child', child_of: parent_span) do |scope|
                 # Assert Datadog context integrity
-                expect(current_trace_for(scope)).to have(2).items
-                expect(current_trace_for(scope)).to include(parent_span.datadog_span, scope.span.datadog_span)
+                expect(current_context_for(parent_span)).to be(current_context_for(scope))
+                expect(current_trace_for(parent_span)).to be(current_trace_for(scope))
               end
             end
           end.finish
@@ -371,8 +393,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
         tracer.start_active_span('operation.older_sibling') { |scope| }
         tracer.start_active_span('operation.younger_sibling') do |scope|
           # Assert Datadog context integrity
-          expect(current_trace_for(scope)).to have(1).items
-          expect(current_trace_for(scope)).to include(scope.span.datadog_span)
+          expect(current_trace_for(scope)).to_not be nil
         end
       end
 

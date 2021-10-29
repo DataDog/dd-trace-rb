@@ -11,7 +11,7 @@ module Datadog
         def around_perform(job)
           return super unless datadog_configuration && tracer
 
-          tracer.trace(Ext::SPAN_JOB, span_options) do |span|
+          tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = job.klass_name
             span.span_type = Datadog::Ext::AppTypes::WORKER
             span.set_tag(Ext::TAG_JOB_ID, job.jid)

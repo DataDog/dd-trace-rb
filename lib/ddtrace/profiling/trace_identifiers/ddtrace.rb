@@ -10,20 +10,21 @@ module Datadog
       # for a given thread, if there is an active trace for that thread in the supplied tracer object.
       class Ddtrace
         def initialize(tracer:)
-          @tracer = (tracer if tracer.respond_to?(:call_context))
+          @tracer = (tracer if tracer.respond_to?(:active_trace))
         end
 
         def trace_identifiers_for(thread)
           return unless @tracer
 
-          context = @tracer.call_context(thread)
-          return unless context
+          trace = @tracer.active_trace(thread)
+          return unless trace
 
-          span, root_span = context.current_span_and_root_span
+          root_span = trace.send(:root_span)
+          span = trace.active_span
           return unless span && root_span
 
-          root_span_id = root_span.span_id || 0
-          span_id = span.span_id || 0
+          root_span_id = root_span.id || 0
+          span_id = span.id || 0
 
           [root_span_id, span_id, maybe_extract_resource(root_span)] if root_span_id != 0 && span_id != 0
         end

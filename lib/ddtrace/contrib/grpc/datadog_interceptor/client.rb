@@ -22,8 +22,8 @@ module Datadog
               resource: format_resource(keywords[:method])
             }
 
-            tracer.trace(Ext::SPAN_CLIENT, options) do |span|
-              annotate!(span, keywords[:metadata])
+            tracer.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
+              annotate!(trace, span, keywords[:metadata])
 
               yield
             end
@@ -31,7 +31,7 @@ module Datadog
 
           private
 
-          def annotate!(span, metadata)
+          def annotate!(trace, span, metadata)
             span.set_tags(metadata)
 
             # Tag as an external peer service
@@ -40,8 +40,7 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-            Datadog::GRPCPropagator
-              .inject!(span.context, metadata)
+            Datadog::GRPCPropagator.inject!(trace, metadata)
           rescue StandardError => e
             Datadog.logger.debug("GRPC client trace failed: #{e}")
           end

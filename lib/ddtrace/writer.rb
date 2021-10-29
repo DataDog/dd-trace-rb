@@ -1,9 +1,6 @@
 # typed: true
 require 'json'
 
-require 'ddtrace/ext/net'
-require 'datadog/core/environment/socket'
-
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
@@ -106,9 +103,6 @@ module Datadog
     def send_spans(traces, transport)
       return true if traces.empty?
 
-      # Inject hostname if configured to do so
-      inject_hostname!(traces) if Datadog.configuration.report_hostname
-
       # Send traces and get responses
       responses = transport.send_traces(traces)
 
@@ -137,10 +131,8 @@ module Datadog
 
       # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
       #       instead of working through the trace writer.
-      # Associate root span with runtime metrics
-      if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
-        Datadog.runtime_metrics.associate_with_span(trace.first)
-      end
+      # Associate trace with runtime metrics
+      Datadog.runtime_metrics.associate_with_trace(trace) if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
 
       worker_local = @worker
 
@@ -157,17 +149,6 @@ module Datadog
         traces_flushed: @traces_flushed,
         transport: @transport.stats
       }
-    end
-
-    private
-
-    def inject_hostname!(traces)
-      traces.each do |trace|
-        next if trace.first.nil?
-
-        hostname = Datadog::Core::Environment::Socket.hostname
-        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
-      end
     end
 
     # Callback behavior

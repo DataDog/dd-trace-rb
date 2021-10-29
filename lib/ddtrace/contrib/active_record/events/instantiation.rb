@@ -32,8 +32,8 @@ module Datadog
             # Inherit service name from parent, if available.
             span.service = if configuration[:orm_service_name]
                              configuration[:orm_service_name]
-                           elsif span.parent
-                             span.parent.service
+                           elsif span.send(:parent)
+                             span.send(:parent).service
                            else
                              Ext::SERVICE_NAME
                            end

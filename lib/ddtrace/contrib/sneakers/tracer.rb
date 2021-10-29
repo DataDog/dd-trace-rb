@@ -20,7 +20,7 @@ module Datadog
             on_error: configuration[:error_handler]
           }
 
-          tracer.trace(Ext::SPAN_JOB, trace_options) do |request_span|
+          tracer.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
             # Set analytics sample rate
             if Datadog::Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Datadog::Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])

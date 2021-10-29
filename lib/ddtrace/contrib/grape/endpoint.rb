@@ -50,7 +50,7 @@ module Datadog
               Ext::SPAN_ENDPOINT_RUN,
               service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-              resource: resource,
+              resource: resource
             )
 
             try_setting_rack_request_resource(payload, span.resource)

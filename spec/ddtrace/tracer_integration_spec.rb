@@ -12,115 +12,201 @@ RSpec.describe Datadog::Tracer do
     tracer.shutdown! # Ensure no state gets left behind
   end
 
-  def sampling_priority_metric(span)
-    span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)
-  end
-
-  def origin_tag(span)
-    span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)
-  end
-
   def lang_tag(span)
     span.get_tag(Datadog::Ext::Runtime::TAG_LANG)
   end
 
-  describe '#active_root_span' do
-    subject(:active_root_span) { tracer.active_root_span }
+  describe 'manual tracing' do
+    context 'for simple nested spans' do
+      subject(:traces) do
+        grandparent = tracer.trace('grandparent')
+        parent = tracer.trace('parent')
+        child = tracer.trace('child')
+        child.finish
+        parent.finish
+        grandparent.finish
 
-    context 'when a distributed trace is propagated' do
-      let(:parent_span_name) { 'operation.parent' }
-      let(:child_span_name) { 'operation.child' }
+        writer.traces
+      end
 
-      let(:trace) do
-        # Create parent span
-        tracer.trace(parent_span_name) do |parent_span_op|
-          parent_span_op.context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP
-          parent_span_op.context.origin = 'synthetics'
+      it 'is a well-formed trace' do
+        expect(traces).to have(1).item
+        trace = traces.first
+        all_spans = trace.spans
 
-          # Propagate it via headers
-          headers = {}
-          Datadog::HTTPPropagator.inject!(parent_span_op.context, headers)
-          headers = Hash[headers.map { |k, v| ["http-#{k}".upcase!.tr('-', '_'), v] }]
+        grandparent_span = all_spans.find { |s| s.name == 'grandparent' }
+        parent_span = all_spans.find { |s| s.name == 'parent' }
+        child_span = all_spans.find { |s| s.name == 'child' }
 
-          # Then extract it from the same headers
-          propagated_context = Datadog::HTTPPropagator.extract(headers)
-          raise StandardError, 'Failed to propagate trace properly.' unless propagated_context.trace_id
+        trace_id = grandparent_span.trace_id
 
-          tracer.provider.context = propagated_context
+        expect(grandparent_span).to have_attributes(
+          trace_id: (a_value > 0),
+          id: (a_value > 0),
+          parent_id: 0,
+          name: 'grandparent'
+        )
 
-          # And create child span from propagated context
-          tracer.trace(child_span_name) do |_child_span_op|
-            @child_root_span_id = tracer.active_root_span.id
+        expect(parent_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: grandparent_span.id,
+          name: 'parent'
+        )
+
+        expect(child_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: parent_span.id,
+          name: 'child'
+        )
+      end
+    end
+
+    context 'for a mock job with fan-out/fan-in behavior' do
+      subject(:job) do
+        tracer.trace('job', resource: 'import_job', service: 'job-worker') do |_span, trace|
+          tracer.trace('load_data', resource: 'imports.csv') do
+            tracer.trace('read_file', resource: 'imports.csv') do
+              sleep(0.01)
+            end
+
+            tracer.trace('deserialize', resource: 'inventory') do
+              sleep(0.01)
+            end
+          end
+
+          workers = nil
+          tracer.trace('start_inserts', resource: 'inventory') do
+            trace_digest = trace.to_digest
+
+            workers = Array.new(5) do |index|
+              Thread.new do
+                # Delay start-up slightly
+                sleep(0.01)
+
+                tracer.trace(
+                  'db.query',
+                  service: 'database',
+                  resource: "worker #{index}",
+                  continue_from: trace_digest
+                ) do
+                  sleep(0.01)
+                end
+              end
+            end
+          end
+
+          tracer.trace('wait_inserts', resource: 'inventory') do |wait_span|
+            wait_span.set_tag('worker.count', workers.length)
+            workers && workers.each(&:join)
+          end
+
+          tracer.trace('update_log', resource: 'inventory') do
+            sleep(0.01)
           end
         end
       end
 
-      let(:parent_span) { spans.last }
-      let(:child_span) { spans.first }
+      it 'is a well-formed trace' do
+        expect { job }.to_not raise_error
 
-      context 'by default' do
-        before { trace }
+        # Collect spans from original trace + threads
+        expect(spans).to have(12).items
 
-        it { expect(spans).to have(2).items }
-        it { expect(parent_span.name).to eq(parent_span_name) }
-        it { expect(parent_span.finished?).to be(true) }
-        it { expect(parent_span.parent_id).to eq(0) }
-        it { expect(sampling_priority_metric(parent_span)).to eq(1) }
-        it { expect(origin_tag(parent_span)).to eq('synthetics') }
-        it { expect(child_span.name).to eq(child_span_name) }
-        it { expect(child_span.finished?).to be(true) }
-        it { expect(child_span.trace_id).to eq(parent_span.trace_id) }
-        it { expect(child_span.parent_id).to eq(parent_span.span_id) }
-        it { expect(sampling_priority_metric(child_span)).to eq(1) }
-        it { expect(origin_tag(child_span)).to eq('synthetics') }
-        # This is expected to be child_span because when propagated, we don't
-        # propagate the root span, only its ID. Therefore the span reference
-        # should be the first span on the other end of the distributed trace.
-        it { expect(@child_root_span_id).to eq child_span.id }
+        job_span = spans.find { |s| s.name == 'job' }
+        load_data_span = spans.find { |s| s.name == 'load_data' }
+        read_file_span = spans.find { |s| s.name == 'read_file' }
+        deserialize_span = spans.find { |s| s.name == 'deserialize' }
+        start_inserts_span = spans.find { |s| s.name == 'start_inserts' }
+        db_query_spans = spans.select { |s| s.name == 'db.query' }
+        wait_insert_span = spans.find { |s| s.name == 'wait_inserts' }
+        update_log_span = spans.find { |s| s.name == 'update_log' }
 
-        it 'does not set runtime metrics language tag' do
-          expect(lang_tag(parent_span)).to be nil
-          expect(lang_tag(child_span)).to be nil
-        end
-      end
+        trace_id = job_span.trace_id
 
-      context 'when runtime metrics' do
-        before do
-          allow(Datadog.configuration.runtime_metrics).to receive(:enabled)
-            .and_return(enabled)
+        expect(job_span).to have_attributes(
+          trace_id: (a_value > 0),
+          id: (a_value > 0),
+          parent_id: 0,
+          name: 'job',
+          resource: 'import_job',
+          service: 'job-worker'
+        )
 
-          allow(Datadog.runtime_metrics).to receive(:associate_with_span)
+        expect(load_data_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: job_span.id,
+          name: 'load_data',
+          resource: 'imports.csv',
+          service: 'job-worker'
+        )
 
-          trace
-        end
+        expect(read_file_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: load_data_span.id,
+          name: 'read_file',
+          resource: 'imports.csv',
+          service: 'job-worker'
+        )
 
-        context 'are enabled' do
-          let(:enabled) { true }
+        expect(deserialize_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: load_data_span.id,
+          name: 'deserialize',
+          resource: 'inventory',
+          service: 'job-worker'
+        )
 
-          it 'associates the span with the runtime' do
-            expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
-              .with(parent_span)
+        expect(start_inserts_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: job_span.id,
+          name: 'start_inserts',
+          resource: 'inventory',
+          service: 'job-worker'
+        )
 
-            expect(Datadog.runtime_metrics).to have_received(:associate_with_span)
-              .with(child_span)
-          end
-        end
+        expect(db_query_spans).to all(
+          have_attributes(
+            trace_id: trace_id,
+            id: (a_value > 0),
+            parent_id: start_inserts_span.id,
+            name: 'db.query',
+            resource: /worker \d+/,
+            service: 'database'
+          )
+        )
 
-        context 'disabled' do
-          let(:enabled) { false }
+        expect(wait_insert_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: job_span.id,
+          name: 'wait_inserts',
+          resource: 'inventory',
+          service: 'job-worker'
+        )
+        expect(wait_insert_span.get_tag('worker.count')).to eq(5.0)
 
-          it 'does not associate the span with the runtime' do
-            expect(Datadog.runtime_metrics).to_not have_received(:associate_with_span)
-          end
-        end
+        expect(update_log_span).to have_attributes(
+          trace_id: trace_id,
+          id: (a_value > 0),
+          parent_id: job_span.id,
+          name: 'update_log',
+          resource: 'inventory',
+          service: 'job-worker'
+        )
       end
     end
   end
 
-  context 'with synthetics' do
+  describe 'synthetics' do
     context 'which applies the context from distributed tracing headers' do
       let(:trace_id) { 3238677264721744442 }
-      let(:synthetics_context) { Datadog::HTTPPropagator.extract(distributed_tracing_headers) }
+      let(:synthetics_trace) { Datadog::HTTPPropagator.extract(distributed_tracing_headers) }
       let(:parent_id) { 0 }
       let(:sampling_priority) { 1 }
       let(:origin) { 'synthetics' }
@@ -139,27 +225,27 @@ RSpec.describe Datadog::Tracer do
       end
 
       before do
-        tracer.provider.context = synthetics_context
+        tracer.continue_trace!(synthetics_trace)
       end
 
       shared_examples_for 'a synthetics-sourced trace' do
         before do
           tracer.trace('local.operation') do |local_span_op|
             @local_span = local_span_op
-            @local_context = tracer.call_context
           end
         end
 
-        it 'that is well-formed' do
-          expect(spans).to have(1).item
-          expect(spans.first.id).to eq(@local_span.id)
+        let(:local_trace) { traces.first }
+        let(:local_span) { local_trace.spans.first }
 
-          spans.first.tap do |local_span|
-            expect(local_span.trace_id).to eq(trace_id)
-            expect(local_span.parent_id).to eq(parent_id)
-            expect(origin_tag(local_span)).to eq(origin)
-            expect(sampling_priority_metric(local_span)).to eq(sampling_priority)
-          end
+        it 'that is well-formed' do
+          expect(local_trace).to_not be nil
+          expect(local_trace.origin).to eq(origin)
+          expect(local_trace.sampling_priority).to eq(sampling_priority)
+
+          expect(local_span.id).to eq(@local_span.id)
+          expect(local_span.trace_id).to eq(trace_id)
+          expect(local_span.parent_id).to eq(parent_id)
         end
       end
 

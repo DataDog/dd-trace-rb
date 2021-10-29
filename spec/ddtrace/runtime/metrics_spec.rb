@@ -22,34 +22,21 @@ RSpec.describe Datadog::Runtime::Metrics do
     end
   end
 
-  describe '#associate_with_span' do
-    subject(:associate_with_span) { runtime_metrics.associate_with_span(span_op) }
+  describe '#associate_with_trace' do
+    subject(:associate_with_trace) { runtime_metrics.associate_with_trace(trace) }
 
-    let(:span_op) { Datadog::SpanOperation.new('dummy', service: service) }
+    let(:trace) { Datadog::TraceSegment.new('dummy', service: service) }
     let(:service) { 'parser' }
 
     context 'when enabled' do
       before do
         runtime_metrics.enabled = true
-        associate_with_span
+        associate_with_trace
       end
 
       context 'and given' do
-        context 'an internal span' do
-          it 'registers the span\'s service' do
-            expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
-            expect(span_op.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Core::Environment::Identity.lang)
-          end
-        end
-
-        context 'an external resource span' do
-          let(:span_op) do
-            super().tap { |s| s.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, 'peer-service-name') }
-          end
-
-          it "doesn't tag as an internal language span" do
-            expect(span_op.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to be nil
-          end
+        it 'registers the trace\'s service' do
+          expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
         end
       end
     end
@@ -57,11 +44,10 @@ RSpec.describe Datadog::Runtime::Metrics do
     context 'when disabled' do
       before do
         runtime_metrics.enabled = false
-        expect(span_op).to_not receive(:set_tag)
-        associate_with_span
+        associate_with_trace
       end
 
-      it 'registers the span operation\'s service' do
+      it 'does not register the trace\'s service' do
         expect(runtime_metrics.default_metric_options[:tags]).to_not include("service:#{service}")
       end
     end

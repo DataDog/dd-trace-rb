@@ -7,9 +7,9 @@ module Datadog
       HTTP_HEADER_TRACE_ID = 'x-datadog-trace-id'.freeze
       HTTP_HEADER_PARENT_ID = 'x-datadog-parent-id'.freeze
       HTTP_HEADER_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
-      SAMPLING_PRIORITY_KEY = '_sampling_priority_v1'.freeze
+      TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'.freeze
       HTTP_HEADER_ORIGIN = 'x-datadog-origin'.freeze
-      ORIGIN_KEY = '_dd.origin'.freeze
+      TAG_ORIGIN = '_dd.origin'.freeze
 
       # B3 headers used for distributed tracing
       B3_HEADER_TRACE_ID = 'x-b3-traceid'.freeze

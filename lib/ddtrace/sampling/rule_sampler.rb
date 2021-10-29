@@ -13,21 +13,19 @@ module Datadog
     # Span {Sampler} that applies a set of {Rule}s to decide
     # on sampling outcome. Then, a rate limiter is applied.
     #
-    # If a span does not conform to any rules, a default
+    # If a trace does not conform to any rules, a default
     # sampling strategy is applied.
     class RuleSampler
       extend Forwardable
 
-      AGENT_RATE_METRIC_KEY = '_dd.agent_psr'.freeze
-
       attr_reader :rules, :rate_limiter, :default_sampler
 
-      # @param rules [Array<Rule>] ordered list of rules to be applied to a span
+      # @param rules [Array<Rule>] ordered list of rules to be applied to a trace
       # @param rate_limit [Float] number of traces per second, defaults to +100+
       # @param rate_limiter [RateLimiter] limiter applied after rule matching
-      # @param default_sample_rate [Float] fallback sample rate when no rules apply to a span,
+      # @param default_sample_rate [Float] fallback sample rate when no rules apply to a trace,
       #   between +[0,1]+, defaults to +1+
-      # @param default_sampler [Sample] fallback strategy when no rules apply to a span
+      # @param default_sampler [Sample] fallback strategy when no rules apply to a trace
       def initialize(rules = [],
                      rate_limit: Datadog.configuration.sampling.rate_limit,
                      rate_limiter: nil,
@@ -47,8 +45,9 @@ module Datadog
         @default_sampler = if default_sampler
                              default_sampler
                            elsif default_sample_rate
-                             # Add to the end of the rule list a rule always matches any span
+                             # Add to the end of the rule list a rule always matches any trace
                              @rules << SimpleRule.new(sample_rate: default_sample_rate)
+                             nil
                            else
                              RateByServiceSampler.new(1.0, env: -> { Datadog.tracer.tags[:env] })
                            end
@@ -57,28 +56,24 @@ module Datadog
       # /RuleSampler's components (it's rate limiter, for example) are
       # not be guaranteed to be size-effect free.
       # It is not possible to guarantee that a call to {#sample?} will
-      # return the same result as a successive call to {#sample!} with the same span.
+      # return the same result as a successive call to {#sample!} with the same trace.
       #
       # Use {#sample!} instead
-      def sample?(_span)
+      def sample?(_trace)
         raise 'RuleSampler cannot be evaluated without side-effects'
       end
 
-      def sample!(span)
-        sampled = sample_span(span) do |s|
-          @default_sampler.sample!(s).tap do
-            # We want to make sure the span is tagged with the agent-derived
+      def sample!(trace)
+        sampled = sample_trace(trace) do |t|
+          @default_sampler.sample!(t).tap do
+            # We want to make sure the trace is tagged with the agent-derived
             # service rate. Retrieve this from the rate by service sampler.
             # Only do this if it was set by a RateByServiceSampler.
-            if @default_sampler.is_a?(RateByServiceSampler)
-              s.set_metric(AGENT_RATE_METRIC_KEY, @default_sampler.sample_rate(span))
-            end
+            trace.agent_sample_rate = @default_sampler.sample_rate(trace) if @default_sampler.is_a?(RateByServiceSampler)
           end
         end
 
-        sampled.tap do
-          span.sampled = sampled
-        end
+        trace.sampled = sampled
       end
 
       def update(*args)
@@ -89,44 +84,44 @@ module Datadog
 
       private
 
-      def sample_span(span)
-        rule = @rules.find { |r| r.match?(span) }
+      def sample_trace(trace)
+        rule = @rules.find { |r| r.match?(trace) }
 
-        return yield(span) if rule.nil?
+        return yield(trace) if rule.nil?
 
-        sampled = rule.sample?(span)
-        sample_rate = rule.sample_rate(span)
+        sampled = rule.sample?(trace)
+        sample_rate = rule.sample_rate(trace)
 
-        set_priority(span, sampled)
-        set_rule_metrics(span, sample_rate)
+        set_priority(trace, sampled)
+        set_rule_metrics(trace, sample_rate)
 
         return false unless sampled
 
         rate_limiter.allow?(1).tap do |allowed|
-          set_priority(span, allowed)
-          set_limiter_metrics(span, rate_limiter.effective_rate)
+          set_priority(trace, allowed)
+          set_limiter_metrics(trace, rate_limiter.effective_rate)
         end
       rescue StandardError => e
         Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
-        yield(span)
+        yield(trace)
       end
 
       # Span priority should only be set when the {RuleSampler}
       # was responsible for the sampling decision.
-      def set_priority(span, sampled)
-        if sampled
-          ManualTracing.keep(span)
-        else
-          ManualTracing.drop(span)
-        end
+      def set_priority(trace, sampled)
+        trace.sampling_priority = if sampled
+                                    Datadog::Ext::Priority::USER_KEEP
+                                  else
+                                    Datadog::Ext::Priority::USER_REJECT
+                                  end
       end
 
-      def set_rule_metrics(span, sample_rate)
-        span.set_metric(Ext::Sampling::RULE_SAMPLE_RATE, sample_rate)
+      def set_rule_metrics(trace, sample_rate)
+        trace.rule_sample_rate = sample_rate
       end
 
-      def set_limiter_metrics(span, limiter_rate)
-        span.set_metric(Ext::Sampling::RATE_LIMITER_RATE, limiter_rate)
+      def set_limiter_metrics(trace, limiter_rate)
+        trace.rate_limiter_rate = limiter_rate
       end
     end
   end

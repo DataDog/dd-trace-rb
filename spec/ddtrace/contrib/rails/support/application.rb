@@ -41,7 +41,7 @@ RSpec.shared_context 'Rails test application' do
     end
 
     # Clear out any spans generated during initialization
-    clear_spans!
+    clear_traces!
   end
 
   if Rails.version < '4.0'

@@ -50,6 +50,9 @@ Performance/Casecmp:
 Naming/AccessorMethodName:
   Enabled: false
 
+Naming/MemoizedInstanceVariableName:
+  Enabled: false
+
 Style/RescueModifier:
   Enabled: false
 

@@ -16,24 +16,23 @@ module Datadog
 
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/CyclomaticComplexity
-        # rubocop:disable Metrics/PerceivedComplexity
         def call(env)
           # Set the trace context (e.g. distributed tracing)
-          if configuration[:distributed_tracing] && tracer.provider.context.trace_id.nil?
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
+          if configuration[:distributed_tracing] && tracer.active_trace.nil?
+            original_trace = HTTPPropagator.extract(env)
+            tracer.continue_trace!(original_trace)
           end
 
           tracer.trace(
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-            # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
-            # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
-            resource: nil,
+            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           ) do |span|
             begin
+              # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
+              # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
+              span.resource = nil
+
               Sinatra::Env.set_datadog_span(env, @app_instance, span)
 
               response = @app.call(env)

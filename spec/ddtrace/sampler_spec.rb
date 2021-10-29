@@ -5,9 +5,9 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/sampler'
 
 RSpec.shared_examples 'sampler with sample rate' do |sample_rate|
-  subject(:sampler_sample_rate) { sampler.sample_rate(span_op) }
+  subject(:sampler_sample_rate) { sampler.sample_rate(trace_op) }
 
-  let(:span_op) { Datadog::SpanOperation.new('dummy') }
+  let(:trace_op) { Datadog::TraceOperation.new }
 
   it { is_expected.to eq(sample_rate) }
 end
@@ -20,18 +20,12 @@ RSpec.describe Datadog::AllSampler do
   after { Datadog.logger.level = Logger::WARN }
 
   describe '#sample!' do
-    let(:span_ops) do
-      [
-        Datadog::SpanOperation.new('', trace_id: 1),
-        Datadog::SpanOperation.new('', trace_id: 2),
-        Datadog::SpanOperation.new('', trace_id: 3)
-      ]
-    end
+    let(:traces) { Array.new(3) { |i| Datadog::TraceOperation.new(id: i) } }
 
     it 'samples all span operations' do
-      span_ops.each do |span_op|
-        expect(sampler.sample!(span_op)).to be true
-        expect(span_op.sampled).to be true
+      traces.each do |trace|
+        expect(sampler.sample!(trace)).to be true
+        expect(trace.sampled?).to be true
       end
     end
   end
@@ -52,7 +46,7 @@ RSpec.describe Datadog::RateSampler do
         let(:sample_rate) { -1.0 }
 
         it_behaves_like 'sampler with sample rate', 1.0 do
-          let(:span_op) { nil }
+          let(:trace) { nil }
         end
       end
 
@@ -77,33 +71,23 @@ RSpec.describe Datadog::RateSampler do
   end
 
   describe '#sample!' do
-    let(:span_ops) do
-      [
-        Datadog::SpanOperation.new('', trace_id: 1),
-        Datadog::SpanOperation.new('', trace_id: 2),
-        Datadog::SpanOperation.new('', trace_id: 3)
-      ]
-    end
+    let(:traces) { Array.new(3) { |i| Datadog::TraceOperation.new(id: i) } }
 
     shared_examples_for 'rate sampling' do
-      let(:span_count) { 1000 }
+      let(:trace_count) { 1000 }
       let(:rng) { Random.new(123) }
 
-      let(:span_ops) do
-        Array.new(span_count) do
-          Datadog::SpanOperation.new('', trace_id: rng.rand(Datadog::Span::EXTERNAL_MAX_ID))
-        end
-      end
-      let(:expected_num_of_sampled_spans) { span_count * sample_rate }
+      let(:traces) { Array.new(trace_count) { |i| Datadog::TraceOperation.new(id: i) } }
+      let(:expected_num_of_sampled_traces) { trace_count * sample_rate }
 
       it 'samples an appropriate proportion of span operations' do
-        span_ops.each do |span_op|
-          sampled = sampler.sample!(span_op)
-          expect(span_op.get_metric(Datadog::RateSampler::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate) if sampled
+        traces.each do |trace|
+          sampled = sampler.sample!(trace)
+          expect(trace.sample_rate).to eq(sample_rate) if sampled
         end
 
-        expect(span_ops.count(&:sampled)).to be_within(expected_num_of_sampled_spans * 0.1)
-          .of(expected_num_of_sampled_spans)
+        expect(traces.count(&:sampled?)).to be_within(expected_num_of_sampled_traces * 0.1)
+          .of(expected_num_of_sampled_traces)
       end
     end
 
@@ -116,10 +100,10 @@ RSpec.describe Datadog::RateSampler do
       let(:sample_rate) { 1.0 }
 
       it 'samples all span operations' do
-        span_ops.each do |span_op|
-          expect(sampler.sample!(span_op)).to be true
-          expect(span_op.sampled).to be true
-          expect(span_op.get_metric(Datadog::RateSampler::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate)
+        traces.each do |trace|
+          expect(sampler.sample!(trace)).to be true
+          expect(trace.sampled?).to be true
+          expect(trace.sample_rate).to eq(sample_rate)
         end
       end
     end
@@ -131,24 +115,24 @@ RSpec.describe Datadog::RateByKeySampler do
 
   let(:default_key) { 'default-key' }
 
-  let(:span_op) { Datadog::SpanOperation.new('test-span') }
-  let(:resolver) { ->(span_op) { span_op.name } } # Resolve +span_op.name+ to the lookup key.
+  let(:trace) { Datadog::TraceOperation.new(name: 'test-trace') }
+  let(:resolver) { ->(trace) { trace.name } } # Resolve +trace.name+ to the lookup key.
 
   describe '#sample!' do
-    subject(:sample!) { sampler.sample!(span_op) }
+    subject(:sample!) { sampler.sample!(trace) }
 
     # For testing purposes, never keep a span operation by default.
     # DEV: Setting this to 0 would trigger a safe guard in `RateSampler` and set it to 100% instead.
     let(:default_rate) { Float::MIN }
     it { is_expected.to be(false) }
 
-    context 'with a default rate set to keep all span operations' do
+    context 'with a default rate set to keep all traces' do
       let(:default_rate) { 1.0 }
       it { is_expected.to be(true) }
     end
 
-    context 'with a sample rate associated with a key set to keep all span operations' do
-      before { sampler.update('test-span', 1.0) }
+    context 'with a sample rate associated with a key set to keep all traces' do
+      before { sampler.update('test-trace', 1.0) }
       it { is_expected.to be(true) }
     end
   end
@@ -174,9 +158,9 @@ RSpec.describe Datadog::RateByServiceSampler do
   end
 
   describe '#resolve' do
-    subject(:resolve) { sampler.resolve(span_op) }
+    subject(:resolve) { sampler.resolve(trace) }
 
-    let(:span_op) { instance_double(Datadog::SpanOperation, service: service_name) }
+    let(:trace) { instance_double(Datadog::TraceOperation, service: service_name) }
     let(:service_name) { 'my-service' }
 
     context 'when the sampler is not configured with an :env option' do
@@ -295,76 +279,71 @@ RSpec.describe Datadog::PrioritySampler do
   after { Datadog.logger.level = Logger::WARN }
 
   describe '#sample!' do
-    subject(:sample) { sampler.sample!(span_op) }
+    subject(:sample) { sampler.sample!(trace) }
     let(:keep_priority) { Datadog::Ext::Priority::AUTO_KEEP }
     let(:drop_priority) { Datadog::Ext::Priority::AUTO_REJECT }
     let(:sampling_priority) { keep_priority }
 
     shared_examples_for 'priority sampling' do
-      context 'given a span operation without a context' do
-        let(:span_op) { Datadog::SpanOperation.new('', trace_id: 1) }
+      let(:trace) { Datadog::TraceOperation.new(id: 1) }
 
+      context 'by default' do
         it do
           expect(sample).to be true
-          expect(span_op.sampled).to be(true)
+          expect(trace.sampled?).to be(true)
         end
       end
 
-      context 'given a span operation with a context' do
-        let(:span_op) { Datadog::SpanOperation.new('', trace_id: 1, context: context) }
-        let(:context) { Datadog::Context.new }
-
-        context 'but no sampling priority' do
-          it do
-            expect(sample).to be true
-            expect(context.sampling_priority).to be(sampling_priority)
-            expect(span_op.sampled).to be(true)
-            expect(span_op.get_metric(described_class::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate_tag_value)
-          end
+      context 'but no sampling priority' do
+        it do
+          expect(sample).to be true
+          expect(trace.sampling_priority).to be(sampling_priority)
+          expect(trace.sampled?).to be(true)
+          expect(trace.sample_rate).to eq(sample_rate_tag_value)
         end
+      end
 
-        context 'and USER_KEEP sampling priority' do
-          before { context.sampling_priority = Datadog::Ext::Priority::USER_KEEP }
+      context 'and USER_KEEP sampling priority' do
+        before { trace.sampling_priority = Datadog::Ext::Priority::USER_KEEP }
 
-          it do
-            expect(sample).to be true
-            expect(context.sampling_priority).to be(Datadog::Ext::Priority::USER_KEEP)
-            expect(span_op.sampled).to be(true)
-            expect(span_op.get_metric(described_class::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate_tag_value)
-          end
+        it do
+          expect(sample).to be true
+          expect(trace.sampling_priority).to be(Datadog::Ext::Priority::USER_KEEP)
+          expect(trace.sampled?).to be(true)
+          expect(trace.sample_rate).to eq(sample_rate_tag_value)
         end
+      end
 
-        context 'and AUTO_KEEP sampling priority' do
-          before { context.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP }
+      context 'and AUTO_KEEP sampling priority' do
+        before { trace.sampling_priority = Datadog::Ext::Priority::AUTO_KEEP }
 
-          it do
-            expect(sample).to be true
-            expect(context.sampling_priority).to be(Datadog::Ext::Priority::AUTO_KEEP)
-            expect(span_op.sampled).to be(true)
-            expect(span_op.get_metric(described_class::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate_tag_value)
-          end
+        it do
+          expect(sample).to be true
+          expect(trace.sampling_priority).to be(Datadog::Ext::Priority::AUTO_KEEP)
+          expect(trace.sampled?).to be(true)
+          expect(trace.sample_rate).to eq(sample_rate_tag_value)
         end
+      end
 
-        context 'and AUTO_REJECT sampling priority' do
-          before { context.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT }
+      context 'and AUTO_REJECT sampling priority' do
+        before { trace.sampling_priority = Datadog::Ext::Priority::AUTO_REJECT }
 
-          it do
-            expect(sample).to be true
-            expect(context.sampling_priority).to be(Datadog::Ext::Priority::AUTO_REJECT)
-            expect(span_op.sampled).to be(true) # Priority sampling always samples
-            expect(span_op.get_metric(described_class::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate_tag_value)
-          end
+        it do
+          expect(sample).to be true
+          expect(trace.sampling_priority).to be(Datadog::Ext::Priority::AUTO_REJECT)
+          expect(trace.sampled?).to be(true) # Priority sampling always samples
+          expect(trace.sample_rate).to eq(sample_rate_tag_value)
         end
+      end
 
-        context 'and USER_REJECT sampling priority' do
-          before { context.sampling_priority = Datadog::Ext::Priority::USER_REJECT }
+      context 'and USER_REJECT sampling priority' do
+        before { trace.sampling_priority = Datadog::Ext::Priority::USER_REJECT }
 
-          it do
-            expect(sample).to be true
-            expect(context.sampling_priority).to be(Datadog::Ext::Priority::USER_REJECT)
-            expect(span_op.sampled).to be(true) # Priority sampling always samples
-            expect(span_op.get_metric(described_class::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate_tag_value)
-          end
+        it do
+          expect(sample).to be true
+          expect(trace.sampling_priority).to be(Datadog::Ext::Priority::USER_REJECT)
+          expect(trace.sampled?).to be(true) # Priority sampling always samples
+          expect(trace.sample_rate).to eq(sample_rate_tag_value)
         end
       end
     end
@@ -425,7 +404,7 @@ RSpec.describe Datadog::PrioritySampler do
       let(:keep_priority) { Datadog::Ext::Priority::USER_KEEP }
       let(:drop_priority) { Datadog::Ext::Priority::USER_REJECT }
 
-      context 'that keeps the span' do
+      context 'that keeps the trace' do
         let(:post_sampler) { Datadog::Sampling::RuleSampler.new(rate_limit: 100, default_sample_rate: 1.0) }
         let(:sample_rate) { 1.0 }
         let(:sampling_priority) { keep_priority }
@@ -433,7 +412,7 @@ RSpec.describe Datadog::PrioritySampler do
         it_behaves_like 'priority sampling without scaling'
       end
 
-      context 'that drops the span' do
+      context 'that drops the trace' do
         let(:post_sampler) { Datadog::Sampling::RuleSampler.new(rate_limit: 100, default_sample_rate: 0.0) }
         let(:sample_rate) { 0.0 }
         let(:sampling_priority) { drop_priority }

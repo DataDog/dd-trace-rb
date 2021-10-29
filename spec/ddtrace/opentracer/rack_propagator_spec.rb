@@ -18,8 +18,14 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     let(:datadog_context) do
       instance_double(
         Datadog::Context,
-        trace_id: trace_id,
-        span_id: span_id,
+        active_trace: datadog_trace
+      )
+    end
+
+    let(:datadog_trace) do
+      Datadog::TraceOperation.new(
+        id: trace_id,
+        parent_span_id: span_id,
         sampling_priority: sampling_priority,
         origin: origin
       )
@@ -62,12 +68,20 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
 
     let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
     let(:items) { {} }
-    let(:datadog_context) { instance_double(Datadog::Context) }
+    let(:datadog_trace_digest) do
+      instance_double(
+        Datadog::TraceDigest,
+        span_id: double('span ID'),
+        trace_id: double('trace ID'),
+        trace_origin: double('origin'),
+        trace_sampling_priority: double('sampling priority')
+      )
+    end
 
     before do
       expect(Datadog::HTTPPropagator).to receive(:extract)
         .with(carrier)
-        .and_return(datadog_context)
+        .and_return(datadog_trace_digest)
 
       allow(carrier).to receive(:each) { |&block| items.each(&block) }
     end

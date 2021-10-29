@@ -186,20 +186,20 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
   end
 
-  describe '#associate_with_span' do
-    subject(:associate_with_span) { worker.associate_with_span(span) }
+  describe '#associate_with_trace' do
+    subject(:associate_with_trace) { worker.associate_with_trace(span) }
 
-    let(:span) { instance_double(Datadog::Span) }
+    let(:span) { instance_double(Datadog::TraceSegment) }
 
     before do
-      allow(worker.metrics).to receive(:associate_with_span)
+      allow(worker.metrics).to receive(:associate_with_trace)
       allow(worker).to receive(:perform)
     end
 
     it 'forwards to #metrics' do
-      associate_with_span
+      associate_with_trace
 
-      expect(worker.metrics).to have_received(:associate_with_span)
+      expect(worker.metrics).to have_received(:associate_with_trace)
         .with(span)
       expect(worker).to have_received(:perform)
     end

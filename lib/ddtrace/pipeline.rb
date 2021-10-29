@@ -20,7 +20,7 @@ module Datadog
       @mutex.synchronize do
         traces
           .map(&method(:apply_processors!))
-          .select(&:any?)
+          .compact
       end
     end
 
@@ -29,19 +29,18 @@ module Datadog
     end
 
     def self.apply_processors!(trace)
-      result = @processors.inject(trace) do |current_trace, processor|
-        next nil if current_trace.nil?
+      @processors.inject(trace) do |current_trace, processor|
+        next nil if current_trace.nil? || current_trace.empty?
 
-        processor.call(current_trace)
+        process_result = processor.call(current_trace)
+        process_result && process_result.empty? ? nil : process_result
       end
-
-      result || []
     rescue => e
       Datadog.logger.debug(
         "trace dropped entirely due to `Pipeline.before_flush` error: #{e}"
       )
 
-      []
+      nil
     end
 
     private_class_method :apply_processors!
