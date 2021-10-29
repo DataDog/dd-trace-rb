@@ -135,6 +135,11 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 *EOL* indicates support is no longer provided.
 
+### Microsoft Windows support
+
+Using `ddtrace ` on Microsoft Windows is currently unsupported. We'll still accept community contributions and issues,
+but will consider them as having low priority.
+
 ## Installation
 
 The following steps will help you quickly start tracing your Ruby application.
