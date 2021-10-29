@@ -51,7 +51,7 @@ do
   export DD_DEMO_ENV_PROCESS
 
   APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES run integration-tester || \
-    APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES logs # Print container logs on `run` failure
+    (APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES logs && exit -1) # Print container logs on `run` failure
 
   # Cleanup
   APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES down -t 0 --remove-orphans
