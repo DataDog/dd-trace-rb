@@ -4,7 +4,11 @@ source 'https://rubygems.org' do
   gem 'puma'
   gem 'unicorn'
   gem 'rack'
-  gem 'redis'
+  if RUBY_VERSION < '2.3'
+    gem 'redis', '< 4.1.1' # 4.1.1 "claims" to support 2.2 but is actually broken
+  else
+    gem 'redis'
+  end
   gem 'sidekiq'
   gem 'resque'
   gem 'rake'
