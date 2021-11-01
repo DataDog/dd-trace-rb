@@ -9,7 +9,7 @@ module Datadog
       # DelayedJob plugin that instruments invoke_job hook
       class Plugin < Delayed::Plugin
         def self.instrument_invoke(job, &block)
-          return block.call(job) unless tracer && tracer.enabled
+          return yield(job) unless tracer && tracer.enabled
 
           tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
                                       on_error: configuration[:error_handler]) do |span|
@@ -29,7 +29,7 @@ module Datadog
         end
 
         def self.instrument_enqueue(job, &block)
-          return block.call(job) unless tracer && tracer.enabled
+          return yield(job) unless tracer && tracer.enabled
 
           tracer.trace(Ext::SPAN_ENQUEUE, service: configuration[:client_service_name], resource: job_name(job)) do |span|
             set_sample_rate(span)
