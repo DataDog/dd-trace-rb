@@ -14,6 +14,7 @@ module Datadog
 
         def patch
           # Patch middleware
+          require 'rack'
           require_relative 'middlewares'
         end
       end

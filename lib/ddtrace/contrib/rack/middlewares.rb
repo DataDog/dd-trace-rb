@@ -86,7 +86,21 @@ module Datadog
 
           # call the rest of the stack
           status, headers, response = @app.call(env)
-          [status, headers, response]
+
+          # some middleware like Rack::CommonLogger wraps body via Rack::BodyProxy
+          # Rack::BodyProxy is a correct mechanism to finish span after all middleware call
+          # so Rack::CommonLogger will have trace_id & span_id tags
+
+          body = if defined?(::Rack::BodyProxy)
+                   ::Rack::BodyProxy.new(response) do
+                     close_trace(request_span, frontend_span, env, status, headers, response, original_env, tracer)
+                   end
+                 else
+                   close_trace(request_span, frontend_span, env, status, headers, response, original_env, tracer)
+                   response
+                 end
+
+          [status, headers, body]
 
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
@@ -98,9 +112,13 @@ module Datadog
           # catch exceptions that may be raised in the middleware chain
           # Note: if a middleware catches an Exception without re raising,
           # the Exception cannot be recorded here.
-          request_span.set_error(e) unless request_span.nil?
+          request_span.set_error(e) if request_span
+
+          close_trace(request_span, frontend_span, env, status, headers, response, original_env, tracer)
           raise e
-        ensure
+        end
+
+        def close_trace(request_span, frontend_span, env, status, headers, response, original_env, tracer)
           if request_span
             # Rack is a really low level interface and it doesn't provide any
             # advanced functionality like routers. Because of that, we assume that

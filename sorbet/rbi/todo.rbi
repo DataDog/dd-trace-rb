@@ -101,6 +101,7 @@ module Datadog::Vendor::ActiveRecord::ConnectionHandling::DEFAULT_ENV; end
 module Datadog::Vendor::ActiveRecord::ConnectionHandling::Rails; end
 module EthonSupport::Ethon::Easy; end
 module Rack::Request; end
+module Rack::BodyProxy; end
 module T::CompatibilityPatches::RSpecCompatibility::MethodDoubleExtensions; end
 module T::CompatibilityPatches::RSpecCompatibility::RecorderExtensions; end
 module T::InterfaceWrapper::Helpers; end
