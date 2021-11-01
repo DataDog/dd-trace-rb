@@ -9,7 +9,7 @@ require 'json'
 class SidekiqBackgroundJob
   include Sidekiq::Worker
 
-  REDIS = Redis.new(url: ENV.fetch('REDIS_URL'))
+  REDIS = Redis.new(url: ENV.fetch('REDIS_URL'), thread_safe: true)
 
   def self.read(key)
     REDIS.get("sidekiq-background-job-key-#{key}")
