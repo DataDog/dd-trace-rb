@@ -9,7 +9,11 @@ source 'https://rubygems.org' do
   else
     gem 'redis'
   end
-  gem 'sidekiq'
+  if RUBY_VERSION < '2.2'
+    gem 'sidekiq', '< 5' # 5.0.3 checks for older Rubies and breaks, but does not declare it on the gemspec :(
+  else
+    gem 'sidekiq'
+  end
   gem 'resque'
   gem 'rake'
 
