@@ -25,6 +25,10 @@ RSpec.describe Datadog::CI::Ext::Environment do
       before { allow(Open3).to receive(:capture2e).and_raise(Errno::ENOENT, 'No such file or directory - git') }
     end
 
+    before do
+      described_class.flush_cache
+    end
+
     Dir.glob("#{FIXTURE_DIR}/ci/*.json").sort.each do |filename|
       # Parse each CI provider file
       File.open(filename) do |f|

@@ -58,8 +58,10 @@ module Datadog
             tags = {}
           end
 
+          @local_git_tags ||= extract_local_git
+
           # Fill out tags from local git as fallback
-          extract_local_git.each do |key, value|
+          @local_git_tags.each do |key, value|
             tags[key] ||= value
           end
 
@@ -472,6 +474,10 @@ module Datadog
           end
 
           [nil, name_and_email]
+        end
+
+        def flush_cache
+          @local_git_tags = nil
         end
       end
       # rubocop:enable Metrics/ModuleLength:
