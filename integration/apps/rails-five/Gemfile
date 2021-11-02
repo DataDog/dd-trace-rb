@@ -1,7 +1,6 @@
 require 'datadog/demo_env'
 
 source 'https://rubygems.org' do
-  # Framework dependent gems
   # gem 'rails', '5.2.2'
 
   google_protobuf_versions = [
@@ -33,9 +32,7 @@ source 'https://rubygems.org' do
 
   gem 'dogstatsd-ruby'
   gem 'ffi'
-  gem 'google-protobuf', *google_protobuf_versions # Ruby 2.2 compatibility
-  # gem 'rbtrace'
-  # gem 'ruby-prof'
+  gem 'google-protobuf', *google_protobuf_versions
 
   # Fixes conflict with profiling (patch overwrite in Thread)
   # Upgrade this to latest when this patch is merged & released.
@@ -58,8 +55,6 @@ source 'https://rubygems.org' do
   gem 'hawk-auth'
   gem 'httparty'
   gem 'ipaddress'
-  # gem 'i18n', '1.5.1' # Ruby 2.2 compatibility
-  # gem 'newrelic_rpm', platform: :ruby
   gem 'rabl', platform: :ruby
   gem 'rack-cors'
   gem 'rake'
@@ -92,10 +87,6 @@ source 'https://rubygems.org' do
   end
 
   group :test, :development do
-    # gem 'pry-rails', platform: :ruby
-    # gem 'pry-rescue', platform: :ruby
-    # gem 'pry-stack_explorer', platform: :ruby
-    # gem 'pry-byebug', platform: :ruby
     gem 'byebug', platform: :ruby
     gem 'mock_redis', '0.19.0'
     gem 'parallel_tests'
