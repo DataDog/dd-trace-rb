@@ -43,20 +43,6 @@ RSpec.describe 'Datadog::Transport::HTTP integration tests' do
       let(:traces) { get_test_traces(1) }
 
       it { is_expected.to be true }
-
-      context 'with priority sampling' do
-        let(:writer_options) { super().merge!(priority_sampler: sampler) }
-        let(:sampler) { Datadog::PrioritySampler.new }
-
-        # Verify the priority sampler gets updated
-        before do
-          expect(sampler).to receive(:update)
-            .with(kind_of(Hash))
-            .and_call_original
-        end
-
-        it { is_expected.to be true }
-      end
     end
   end
 end

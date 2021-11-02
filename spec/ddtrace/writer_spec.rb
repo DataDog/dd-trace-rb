@@ -15,33 +15,28 @@ RSpec.describe Datadog::Writer do
 
     describe 'behavior' do
       describe '#initialize' do
-        context 'with priority sampling' do
-          let(:options) { { priority_sampler: sampler } }
-          let(:sampler) { instance_double(Datadog::PrioritySampler) }
+        let(:options) { {} }
 
-          context 'and default transport options' do
-            it do
-              expect(Datadog::Transport::HTTP).to receive(:default) do |options|
-                expect(options).to be_a_kind_of(Hash)
-                expect(options[:api_version]).to eq(Datadog::Transport::HTTP::API::V4)
-              end
-
-              expect(writer.priority_sampler).to be(sampler)
+        context 'and default transport options' do
+          it do
+            expect(Datadog::Transport::HTTP).to receive(:default) do |**options|
+              expect(options).to be_empty
             end
+
+            writer
           end
+        end
 
-          context 'and custom transport options' do
-            let(:options) { super().merge(transport_options: { api_version: api_version }) }
-            let(:api_version) { double('API version') }
+        context 'and custom transport options' do
+          let(:options) { super().merge(transport_options: { api_version: api_version }) }
+          let(:api_version) { double('API version') }
 
-            it do
-              expect(Datadog::Transport::HTTP).to receive(:default) do |options|
-                expect(options).to include(
-                  api_version: api_version
-                )
-              end
-              expect(writer.priority_sampler).to be(sampler)
+          it do
+            expect(Datadog::Transport::HTTP).to receive(:default) do |**options|
+              expect(options).to include(api_version: api_version)
             end
+
+            writer
           end
         end
 
@@ -64,6 +59,7 @@ RSpec.describe Datadog::Writer do
         let(:traces) { get_test_traces(1) }
         let(:transport_stats) { instance_double(Datadog::Transport::Statistics) }
         let(:responses) { [response] }
+        let(:response) { double('response') }
 
         before do
           allow(transport).to receive(:send_traces)
@@ -75,47 +71,14 @@ RSpec.describe Datadog::Writer do
           allow(Datadog::Diagnostics::EnvironmentLogger).to receive(:log!)
         end
 
-        shared_examples_for 'priority sampling update' do
-          context 'when a priority sampler' do
-            let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
-
-            context 'is configured' do
-              let(:options) { super().merge(priority_sampler: priority_sampler) }
-
-              context 'but service rates are not available' do
-                before do
-                  allow(response).to receive(:service_rates).and_return(nil)
-                  expect(priority_sampler).to_not receive(:update)
-                end
-
-                it { expectations.call }
-              end
-
-              context 'and service rates are available' do
-                let(:service_rates) { instance_double(Hash) }
-
-                before do
-                  allow(response).to receive(:service_rates).and_return(service_rates)
-                  expect(priority_sampler).to receive(:update)
-                    .with(service_rates)
-                end
-
-                it { expectations.call }
-              end
+        shared_examples 'after_send events' do
+          it 'publishes after_send event' do
+            writer.events.after_send.subscribe(:test) do |writer, responses|
+              expect(writer).to be(self.writer)
+              expect(responses).to be(self.responses)
             end
 
-            context 'is not configured' do
-              let(:options) { super().merge(priority_sampler: nil) }
-
-              it { expectations.call }
-            end
-          end
-        end
-
-        shared_examples 'records environment information' do
-          it 'calls environment logger' do
-            subject
-            expect(Datadog::Diagnostics::EnvironmentLogger).to have_received(:log!).with(responses)
+            send_spans
           end
         end
 
@@ -129,16 +92,7 @@ RSpec.describe Datadog::Writer do
               allow(response).to receive(:internal_error?).and_return(false)
             end
 
-            it_behaves_like 'priority sampling update' do
-              let(:expectations) do
-                proc do
-                  is_expected.to be true
-                  expect(writer.stats[:traces_flushed]).to eq(1)
-                end
-              end
-            end
-
-            it_behaves_like 'records environment information'
+            it_behaves_like 'after_send events'
           end
 
           context 'a server error' do
@@ -148,46 +102,14 @@ RSpec.describe Datadog::Writer do
               allow(response).to receive(:internal_error?).and_return(false)
             end
 
-            it_behaves_like 'priority sampling update' do
-              let(:expectations) do
-                proc do
-                  is_expected.to be false
-                  expect(writer.stats[:traces_flushed]).to eq(0)
-                end
-              end
-            end
-
-            it_behaves_like 'records environment information'
+            it_behaves_like 'after_send events'
           end
 
           context 'an internal error' do
             let(:response) { Datadog::Transport::InternalErrorResponse.new(double('error')) }
             let(:error) { double('error') }
 
-            context 'when a priority sampler' do
-              context 'is configured' do
-                let(:options) { super().merge(priority_sampler: priority_sampler) }
-                let(:priority_sampler) { instance_double(Datadog::PrioritySampler) }
-
-                before { expect(priority_sampler).to_not receive(:update) }
-
-                it do
-                  is_expected.to be true
-                  expect(writer.stats[:traces_flushed]).to eq(0)
-                end
-              end
-
-              context 'is not configured' do
-                let(:options) { super().merge(priority_sampler: nil) }
-
-                it do
-                  is_expected.to be true
-                  expect(writer.stats[:traces_flushed]).to eq(0)
-                end
-              end
-            end
-
-            it_behaves_like 'records environment information'
+            it_behaves_like 'after_send events'
           end
         end
 
@@ -223,7 +145,7 @@ RSpec.describe Datadog::Writer do
             end
           end
 
-          it_behaves_like 'records environment information'
+          it_behaves_like 'after_send events'
         end
 
         context 'with report hostname' do

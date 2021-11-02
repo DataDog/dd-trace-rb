@@ -10,9 +10,12 @@ RSpec.describe 'Disabled tracer' do
   let(:job_class) { EmptyWorker }
 
   before do
+    Datadog.configure do |c|
+      c.tracer.enabled = false
+    end
+
     Sidekiq::Testing.server_middleware.clear
     Sidekiq::Testing.server_middleware do |chain|
-      Datadog.tracer.configure(enabled: false)
       chain.add(Datadog::Contrib::Sidekiq::ServerTracer)
     end
   end

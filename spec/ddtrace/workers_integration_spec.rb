@@ -40,10 +40,11 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:flush_interval) { 0.1 }
   let(:buffer_size) { 10 }
 
-  let(:tracer) do
-    Datadog::Tracer.new.tap do |t|
-      t.configure(enabled: true, hostname: hostname, port: port)
-      t.writer = writer
+  let(:tracer) { Datadog.tracer }
+
+  before do
+    Datadog.configure do |c|
+      c.tracer.writer = writer
     end
   end
 

@@ -35,19 +35,6 @@ RSpec.describe Datadog::OpenTracer::Tracer do
     it { is_expected.to be_a_kind_of(Datadog::Tracer) }
   end
 
-  describe '#configure' do
-    subject(:configure) { tracer.configure(options) }
-
-    let(:options) { double('options') }
-
-    before do
-      expect(tracer.datadog_tracer).to receive(:configure)
-        .with(options)
-    end
-
-    it { expect { configure }.to_not raise_error }
-  end
-
   ### Implemented OpenTracing::Tracer behavior ###
 
   describe '#scope_manager' do

@@ -3,6 +3,7 @@ require 'ddtrace/ext/net'
 require 'datadog/core/environment/socket'
 require 'ddtrace/runtime/metrics'
 require 'ddtrace/utils/only_once'
+require 'ddtrace/writer'
 
 module Datadog
   # SyncWriter flushes both services and traces synchronously
@@ -15,7 +16,7 @@ module Datadog
     DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
 
     attr_reader \
-      :priority_sampler,
+      :events,
       :transport
 
     def initialize(options = {})
@@ -25,7 +26,7 @@ module Datadog
         Transport::HTTP.default(**transport_options)
       end
 
-      @priority_sampler = options.fetch(:priority_sampler, nil)
+      @events = Writer::Events.new
     end
 
     def write(trace, services = nil)
@@ -56,7 +57,11 @@ module Datadog
       return if processed_traces.empty?
 
       inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
-      transport.send_traces(processed_traces)
+      responses = transport.send_traces(processed_traces)
+
+      events.after_send.publish(self, responses)
+
+      responses
     end
 
     def inject_hostname!(trace)

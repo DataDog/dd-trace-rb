@@ -18,9 +18,9 @@ module Datadog
     DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
 
     attr_reader \
-      :priority_sampler,
       :transport,
-      :worker
+      :worker,
+      :events
 
     def initialize(options = {})
       # writer and transport parameters
@@ -29,12 +29,6 @@ module Datadog
       transport_options = options.fetch(:transport_options, {})
 
       transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
-
-      # priority sampling
-      if options[:priority_sampler]
-        @priority_sampler = options[:priority_sampler]
-        transport_options[:api_version] ||= Transport::HTTP::API::V4
-      end
 
       # transport and buffers
       @transport = options.fetch(:transport) do
@@ -55,6 +49,9 @@ module Datadog
       # the host application from inadvertently start new
       # threads during shutdown.
       @stopped = false
+
+      # Callback handler
+      @events = Events.new
     end
 
     def start
@@ -122,10 +119,7 @@ module Datadog
         @traces_flushed += response.trace_count
       end
 
-      # Update priority sampler
-      update_priority_sampler(responses.last)
-
-      record_environment_information!(responses)
+      events.after_send.publish(self, responses)
 
       # Return if server error occurred.
       !responses.find(&:server_error?)
@@ -187,14 +181,22 @@ module Datadog
       end
     end
 
-    def update_priority_sampler(response)
-      return unless response && !response.internal_error? && priority_sampler && response.service_rates
+    # Callback behavior
+    class Events
+      attr_reader \
+        :after_send
 
-      priority_sampler.update(response.service_rates)
-    end
+      def initialize
+        @after_send = AfterSend.new
+      end
 
-    def record_environment_information!(responses)
-      Diagnostics::EnvironmentLogger.log!(responses)
+      # Triggered after the writer sends traces through the transport.
+      # Provides the Writer instance and transport response list to the callback.
+      class AfterSend < Datadog::Event
+        def initialize
+          super(:after_send)
+        end
+      end
     end
   end
 end
