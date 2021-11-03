@@ -354,11 +354,7 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/not_a_route')
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
-            if rack_span
-              expect(span.parent_id).to be(rack_span.span_id)
-            else
-              expect(span.parent_id).to eq(0)
-            end
+            expect(span.parent_id).to be(rack_span.span_id)
 
             expect(rack_span.resource).to eq('GET 404')
           end
