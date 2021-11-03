@@ -188,7 +188,7 @@ module Datadog
       @parent = parent
 
       if parent.nil?
-        span.trace_id = @span_id
+        span.trace_id = span.span_id
         span.parent_id = 0
       else
         span.trace_id = parent.trace_id
