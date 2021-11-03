@@ -28,7 +28,7 @@ RSpec.describe 'ClientTracerTest' do
     expect(span.resource).to eq('EmptyWorker')
     expect(span.get_tag('sidekiq.job.queue')).to eq('default')
     expect(span.status).to eq(0)
-    expect(span.parent).to be_nil
+    expect(span.parent_id).to eq(0)
     expect(span.get_metric('_dd.measured')).to be_nil
   end
 
@@ -44,13 +44,13 @@ RSpec.describe 'ClientTracerTest' do
 
       expect(parent_span.name).to eq('parent.span')
       expect(parent_span.status).to eq(0)
-      expect(parent_span.parent).to be_nil
+      expect(parent_span.parent_id).to eq(0)
 
       expect(child_span.service).to eq('sidekiq-client')
       expect(child_span.resource).to eq('EmptyWorker')
       expect(child_span.get_tag('sidekiq.job.queue')).to eq('default')
       expect(child_span.status).to eq(0)
-      expect(child_span.parent).to eq(parent_span)
+      expect(child_span.parent_id).to eq(parent_span.span_id)
       expect(child_span.get_metric('_dd.measured')).to be_nil
     end
   end

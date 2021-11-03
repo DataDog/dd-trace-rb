@@ -56,7 +56,7 @@ RSpec.describe 'Rack integration tests' do
           expect(span.get_tag('http.url')).to eq('/not/exists/')
           expect(span.get_tag('http.base_url')).to eq('http://example.org')
           expect(span.status).to eq(0)
-          expect(span.parent).to be nil
+          expect(span.parent_id).to eq(0)
         end
       end
     end
@@ -91,7 +91,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/success/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
 
@@ -110,7 +110,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/success')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
 
@@ -133,7 +133,7 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.url')).to eq('/success?foo')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
             end
           end
 
@@ -153,7 +153,7 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.url')).to eq('/success?foo=bar')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
             end
           end
         end
@@ -171,7 +171,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/success/100')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
 
@@ -196,7 +196,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/success/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
       end
@@ -217,7 +217,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.url')).to eq('/success/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
       end
@@ -250,7 +250,7 @@ RSpec.describe 'Rack integration tests' do
           expect(span.get_tag('http.url')).to eq('/failure/')
           expect(span.get_tag('http.base_url')).to eq('http://example.org')
           expect(span.status).to eq(0)
-          expect(span.parent).to be nil
+          expect(span.parent_id).to eq(0)
         end
       end
     end
@@ -283,7 +283,7 @@ RSpec.describe 'Rack integration tests' do
           expect(span.get_tag('http.base_url')).to eq('http://example.org')
           expect(span.get_tag('error.stack')).to be nil
           expect(span.status).to eq(1)
-          expect(span.parent).to be nil
+          expect(span.parent_id).to eq(0)
         end
       end
     end
@@ -319,7 +319,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('error.msg')).to eq('Unable to process the request')
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
       end
@@ -354,7 +354,7 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('error.msg')).to eq('Non-standard error')
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
-            expect(span.parent).to be nil
+            expect(span.parent_id).to eq(0)
           end
         end
       end
@@ -401,7 +401,7 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.url')).to eq('/app/static/')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
             end
           end
         end
@@ -444,7 +444,7 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.get_tag('error.stack')).to eq('Handled exception')
               expect(span.status).to eq(1)
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
             end
           end
         end
@@ -479,7 +479,7 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.get_tag('error.stack')).to eq('Handled exception')
               expect(span.status).to eq(1)
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
             end
           end
         end
@@ -601,7 +601,7 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.url')).to eq('/headers/')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
 
               # Request headers
               expect(span.get_tag('http.request.headers.cache_control')).to eq('no-cache')

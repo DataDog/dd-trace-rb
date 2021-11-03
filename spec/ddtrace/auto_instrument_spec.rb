@@ -97,7 +97,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
       expect(sqlite_span.get_tag('out.port')).to eq(adapter_port.to_s) unless adapter_port.nil?
       expect(sqlite_span.span_type).to eq(Datadog::Ext::SQL::TYPE)
       expect(sqlite_span).to_not have_error
-      expect(sqlite_span.parent).to eq(route_span)
+      expect(sqlite_span.parent_id).to eq(route_span.span_id)
 
       expect(route_span).to_not have_error
     end

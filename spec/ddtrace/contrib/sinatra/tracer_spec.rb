@@ -100,7 +100,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
   shared_context 'with rack instrumentation' do
     let(:with_rack) { true }
-    let(:rack_span) { spans.find { |x| !x.parent && x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
+    let(:rack_span) { spans.find { |x| x.parent_id == 0 && x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
     let(:rack_middlewares) { [Datadog::Contrib::Rack::TraceMiddleware] }
 
     let(:app) do
@@ -210,10 +210,10 @@ RSpec.describe 'Sinatra instrumentation' do
         context 'and a request to a template route is made' do
           subject(:response) { get '/erb' }
 
-          let(:root_span) { request_span.parent }
-          let(:request_span) { route_span.parent }
-          let(:route_span) { template_parent_span.parent }
-          let(:template_parent_span) { template_child_span.parent }
+          let(:root_span) { spans.find { |s| request_span.parent_id == s.span_id } }
+          let(:request_span) { spans.find { |s| route_span.parent_id == s.span_id } }
+          let(:route_span) { spans.find { |s| template_parent_span.parent_id == s.span_id } }
+          let(:template_parent_span) { spans.find { |s| template_child_span.parent_id == s.span_id } }
           let(:template_child_span) { spans.find { |s| s.get_tag('sinatra.template_name') == 'layout' } }
 
           before do
@@ -271,7 +271,7 @@ RSpec.describe 'Sinatra instrumentation' do
             it do
               expect(span.resource).to eq('GET /erb_literal')
               expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/erb_literal')
-              expect(span.parent).to be nil
+              expect(span.parent_id).to eq(0)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -284,7 +284,7 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to be nil
-              expect(span.parent).to eq(route_span)
+              expect(span.parent_id).to eq(route_span.span_id)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -297,7 +297,7 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('layout')
-              expect(span.parent).to eq(template_parent_span)
+              expect(span.parent_id).to eq(template_parent_span.span_id)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -354,7 +354,11 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/not_a_route')
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
-            expect(span.parent).to be(rack_span)
+            if rack_span
+              expect(span.parent_id).to be(rack_span.span_id)
+            else
+              expect(span.parent_id).to eq(0)
+            end
 
             expect(rack_span.resource).to eq('GET 404')
           end
@@ -653,7 +657,11 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
       expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
-      expect(span.parent).to be(opts[:parent])
+      if opts[:parent]
+        expect(span.parent_id).to be(opts[:parent].span_id)
+      else
+        expect(span.parent_id).to eq(0)
+      end
     end
   end
 
@@ -665,7 +673,7 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
       expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
-      expect(span.parent).to be(opts[:parent]) if opts[:parent]
+      expect(span.parent_id).to be(opts[:parent].span_id) if opts[:parent]
     end
   end
 end

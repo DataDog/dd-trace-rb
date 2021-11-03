@@ -131,7 +131,7 @@ RSpec.describe Datadog::Tracer do
 
     it 'belongs to current the context by default' do
       tracer.trace('parent') do |active_span|
-        expect(start_span.parent).to eq(active_span)
+        expect(start_span.parent_id).to eq(active_span.span_id)
         expect(start_span.context).to eq(active_span.context)
       end
     end
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Tracer do
 
     it 'belongs to current the context by default' do
       tracer.trace('parent') do |active_span|
-        expect(build_span.parent).to eq(active_span)
+        expect(build_span.parent_id).to eq(active_span.span_id)
         expect(build_span.context).to eq(active_span.context)
       end
     end
@@ -813,7 +813,7 @@ RSpec.describe Datadog::Tracer do
 
           it 'creates span with specified context' do
             tracer.trace 'another' do
-              expect(trace.parent).to be_nil
+              expect(trace.parent_id).to eq(0)
               expect(trace.context).to eq context
             end
           end
@@ -841,7 +841,7 @@ RSpec.describe Datadog::Tracer do
           sleep(0.001)
           child.finish
 
-          expect(parent.parent).to be_nil
+          expect(parent.parent_id).to eq(0)
           expect(child.parent).to be(parent)
           expect(child.end_time).to be > parent.end_time
         end
