@@ -18,12 +18,12 @@ module Datadog
         deleted = Set.new
 
         trace.delete_if do |span|
-          if deleted.include?(span.parent)
-            deleted << span
+          if deleted.include?(span.parent_id)
+            deleted << span.span_id
             true
           else
             drop = drop_it?(span)
-            deleted << span if drop
+            deleted << span.span_id if drop
             drop
           end
         end

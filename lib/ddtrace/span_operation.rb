@@ -40,7 +40,6 @@ module Datadog
       :service=,
       :set_error,
       :set_metric,
-      :set_parent,
       :set_tag,
       :set_tags,
       :span_id,
@@ -156,12 +155,6 @@ module Datadog
       return_value
     end
 
-    # Set span parent
-    def parent=(parent)
-      @parent = parent
-      span.parent = parent && parent.span
-    end
-
     def start(start_time = nil)
       # Don't overwrite the start time of a started span.
       return self if started?
@@ -187,6 +180,22 @@ module Datadog
 
     def finished?
       span.stopped?
+    end
+
+    # Set this span's parent, inheriting any properties not explicitly set.
+    # If the parent is nil, set the span as the root span.
+    def parent=(parent)
+      @parent = parent
+
+      if parent.nil?
+        span.trace_id = @span_id
+        span.parent_id = 0
+      else
+        span.trace_id = parent.trace_id
+        span.parent_id = parent.span_id
+        span.service ||= parent.service
+        span.sampled = parent.sampled
+      end
     end
 
     # Callback behavior

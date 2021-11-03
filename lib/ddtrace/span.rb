@@ -53,7 +53,6 @@ module Datadog
                   :status, :sampled
 
     attr_reader \
-      :parent, # DEPRECATED: Remove when #parent= is migrated to SpanOperation
       :start_time,
       :end_time
 
@@ -90,7 +89,6 @@ module Datadog
       @metrics = {}
       @status = 0
 
-      @parent = nil
       @sampled = true
 
       @allocation_count_start = now_allocations
@@ -235,26 +233,6 @@ module Datadog
     def to_s
       "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
     end
-
-    # Set this span's parent, inheriting any properties not explicitly set.
-    # If the parent is nil, set the span zero values.
-    #
-    # # DEPRECATED: To be removed and migrated to SpanOperation#parent=
-    def parent=(parent)
-      @parent = parent
-
-      if parent.nil?
-        @trace_id = @span_id
-        @parent_id = 0
-      else
-        @trace_id = parent.trace_id
-        @parent_id = parent.span_id
-        @service ||= parent.service
-        @sampled = parent.sampled
-      end
-    end
-    # DEPRECATED: remove this function in the next release, replaced by ``parent=``
-    alias set_parent parent=
 
     def allocations
       @allocation_count_stop - @allocation_count_start

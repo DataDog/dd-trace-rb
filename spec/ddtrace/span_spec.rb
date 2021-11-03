@@ -67,54 +67,6 @@ RSpec.describe Datadog::Span do
 
       it { expect(span.trace_id).to eq(3) }
     end
-
-    context 'set parent span' do
-      subject(:parent=) { span.parent = parent }
-
-      context 'to a span' do
-        let(:parent) { described_class.new('parent', **parent_span_options) }
-        let(:parent_span_options) { {} }
-
-        before do
-          parent.sampled = false
-          subject
-        end
-
-        it do
-          expect(span.parent).to eq(parent)
-          expect(span.parent_id).to eq(parent.span_id)
-          expect(span.trace_id).to eq(parent.trace_id)
-          expect(span.sampled).to eq(false)
-        end
-
-        context 'with service' do
-          let(:parent_span_options) { { service: 'parent' } }
-
-          it 'copies parent service to child' do
-            expect(span.service).to eq('parent')
-          end
-
-          context 'with existing child service' do
-            let(:span_options) { { service: 'child' } }
-
-            it 'does not override child service' do
-              expect(span.service).to eq('child')
-            end
-          end
-        end
-      end
-
-      context 'to nil' do
-        let(:parent) { nil }
-
-        it 'removes the parent' do
-          subject
-          expect(span.parent).to be_nil
-          expect(span.parent_id).to be_zero
-          expect(span.trace_id).to eq(span.span_id)
-        end
-      end
-    end
   end
 
   describe '#stop' do

@@ -514,16 +514,16 @@ RSpec.describe Datadog::Tracer do
 
           child1, child2, parent = spans # Spans are sorted alphabetically by operation name
 
-          expect(parent.parent).to be_nil
+          expect(parent.parent_id).to eq(0)
           expect(parent.name).to eq('parent')
           expect(parent.service).to eq('service-parent')
 
-          expect(child1.parent).to be(parent)
+          expect(child1.parent_id).to be(parent.span_id)
           expect(child1.name).to eq('child1')
           expect(child1.service).to eq('service-parent')
           expect(child1.get_tag('tag')).to eq('tag_1')
 
-          expect(child2.parent).to be(parent)
+          expect(child2.parent_id).to be(parent.span_id)
           expect(child2.name).to eq('child2')
           expect(child2.service).to eq('service-child2')
           expect(child2.get_tag('tag')).to eq('tag_2')
@@ -571,12 +571,12 @@ RSpec.describe Datadog::Tracer do
 
               expect(spans.all? { |s| s.trace_id == grandparent.trace_id }).to be true
 
-              expect(grandparent.parent).to be nil
-              expect(parent.parent).to be grandparent
-              expect(child.parent).to be parent
-              expect(grandchild.parent).to be child
-              expect(uncle.parent).to be grandparent
-              expect(nephew.parent).to be uncle
+              expect(grandparent.parent_id).to eq(0)
+              expect(parent.parent_id).to be grandparent.span_id
+              expect(child.parent_id).to be parent.span_id
+              expect(grandchild.parent_id).to be child.span_id
+              expect(uncle.parent_id).to be grandparent.span_id
+              expect(nephew.parent_id).to be uncle.span_id
             end
           end
 

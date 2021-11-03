@@ -16,7 +16,7 @@ RSpec.describe Datadog::SpanOperation do
 
       # Because we maintain parallel "parent" state between
       # Span and Span Operation, ensure this matches.
-      expect(span_op.span.parent).to be(nil)
+      expect(span_op.span.parent_id).to eq(0)
     end
 
     it 'has default tags' do
@@ -35,7 +35,7 @@ RSpec.describe Datadog::SpanOperation do
 
       # Because we maintain parallel "parent" state between
       # Span and Span Operation, ensure this matches.
-      expect(span_op.span.parent).to be(parent.span)
+      expect(span_op.span.parent_id).to be(parent.span.span_id)
     end
   end
 
@@ -94,7 +94,6 @@ RSpec.describe Datadog::SpanOperation do
       :service=,
       :set_error,
       :set_metric,
-      :set_parent,
       :set_tag,
       :set_tags,
       :span_id,
@@ -602,15 +601,6 @@ RSpec.describe Datadog::SpanOperation do
         end
       end
     end
-  end
-
-  describe '#parent=' do
-    subject(:set_parent) { span_op.parent = parent }
-    include_context 'parent span operation'
-
-    before { set_parent }
-
-    it_behaves_like 'a child span operation'
   end
 
   describe '#start' do
