@@ -18,7 +18,7 @@ RSpec.shared_context 'integration context' do
     )
 
     server.mount_proc '/' do |req, res|
-      sleep(1) if req.query['simulate_timeout']
+      sleep(0.001) if req.query['simulate_timeout']
       res.status = (req.query['status'] || req.body['status']).to_i
       if req.query['return_headers']
         headers = {}

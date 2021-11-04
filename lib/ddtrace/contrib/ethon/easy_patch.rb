@@ -16,6 +16,7 @@ module Datadog
         end
 
         # InstanceMethods - implementing instrumentation
+        # rubocop:disable Metrics/ModuleLength
         module InstanceMethods
           include Datadog::Contrib::HttpAnnotationHelper
 
@@ -74,14 +75,27 @@ module Datadog
             @datadog_configuration = nil
           end
 
+          # Starts or retrieves the already started Easy request span.
+          #
+          # When tracing in Multi request context, child spans for each Easy
+          # request are created early, and then finished as their HTTP response
+          # becomes available. Because many Easy requests are open at the same time,
+          # many Datadog::Spans are also open at the same time. To avoid each separate
+          # Easy request becoming the parented to the previous open request we set
+          # the +parent_span+ parameter with the parent Multi span. This correctly
+          # assigns all open Easy spans to the currently executing Multi context.
+          #
+          # @param parent_span [Datadog::Span] the Multi span, if executing in a Multi context.
           def datadog_before_request(parent_span: nil)
             load_datadog_configuration_for(url)
+
+            trace_options = parent_span ? { child_of: parent_span } : {}
             @datadog_span = Datadog.tracer.trace(
               Ext::SPAN_REQUEST,
               service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
-              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
+              **trace_options,
             )
-            @datadog_span.parent = parent_span unless parent_span.nil?
 
             datadog_tag_request
 
@@ -146,6 +160,7 @@ module Datadog
             datadog_configuration[:analytics_sample_rate]
           end
         end
+        # rubocop:enable Metrics/ModuleLength
       end
     end
   end
