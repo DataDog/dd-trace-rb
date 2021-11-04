@@ -104,6 +104,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
       context 'request timed out' do
         let(:simulate_timeout) { true }
+        let(:timeout) { 0.001 }
 
         before { request }
 
@@ -112,7 +113,11 @@ RSpec.shared_examples_for 'instrumented request' do
         end
 
         it 'has error set' do
-          expect(span).to have_error_message('Request has failed: Timeout was reached')
+          expect(span).to have_error_message(
+            eq("Request has failed: Couldn't connect to server").or( # Connection timeout
+              eq('Request has failed: Timeout was reached') # Response timeout
+            )
+          )
         end
       end
     end
