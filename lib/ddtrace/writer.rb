@@ -15,8 +15,6 @@ require 'ddtrace/utils/only_once'
 module Datadog
   # Processor that sends traces and metadata to the agent
   class Writer
-    DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-
     attr_reader \
       :priority_sampler,
       :transport,
@@ -132,16 +130,7 @@ module Datadog
     end
 
     # enqueue the trace for submission to the API
-    def write(trace, services = nil)
-      unless services.nil?
-        DEPRECATION_WARN_ONLY_ONCE.run do
-          Datadog.logger.warn(%(
-            write: Writing services has been deprecated and no longer need to be provided.
-            write(traces, services) can be updated to write(traces)
-          ))
-        end
-      end
-
+    def write(trace)
       # In multiprocess environments, the main process initializes the +Writer+ instance and if
       # the process forks (i.e. a web server like Unicorn or Puma with multiple workers) the new
       # processes will share the same +Writer+ until the first write (COW). Because of that,
