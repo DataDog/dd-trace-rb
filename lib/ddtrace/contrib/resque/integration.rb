@@ -11,8 +11,6 @@ module Datadog
         include Contrib::Integration
 
         MINIMUM_VERSION = Gem::Version.new('1.0')
-        # Maximum is first version it's NOT compatible with (not inclusive)
-        MAXIMUM_VERSION = Gem::Version.new('3.0')
 
         register_as :resque, auto_patch: true
 
@@ -25,9 +23,7 @@ module Datadog
         end
 
         def self.compatible?
-          super \
-            && version >= MINIMUM_VERSION \
-            && version < MAXIMUM_VERSION
+          super && version >= MINIMUM_VERSION
         end
 
         def default_configuration
