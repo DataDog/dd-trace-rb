@@ -97,7 +97,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
       context 'secondary client' do
         around do |example|
-          suppress_warnings do
+          without_warnings do
             # Reset before and after each example; don't allow global state to linger.
             Datadog.registry[:mongo].reset_configuration!
             example.run
