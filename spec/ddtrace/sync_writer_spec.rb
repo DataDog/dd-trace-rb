@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -8,6 +9,25 @@ RSpec.describe Datadog::SyncWriter do
 
   let(:transport) { Datadog::Transport::HTTP.default { |t| t.adapter :test, buffer } }
   let(:buffer) { [] }
+
+  describe '::new' do
+    subject(:sync_writer) { described_class.new(options) }
+
+    context 'given :agent_settings' do
+      let(:options) { { agent_settings: agent_settings } }
+      let(:agent_settings) { instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings) }
+      let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
+
+      before do
+        expect(Datadog::Transport::HTTP)
+          .to receive(:default)
+          .with(options)
+          .and_return(transport)
+      end
+
+      it { is_expected.to have_attributes(transport: transport) }
+    end
+  end
 
   describe '#write' do
     subject(:write) { sync_writer.write(trace, services) }
@@ -25,13 +45,13 @@ RSpec.describe Datadog::SyncWriter do
       let(:hostname) { 'my-host' }
 
       before do
-        allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+        allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
       end
 
       context 'enabled' do
         before { Datadog.configuration.report_hostname = true }
 
-        after { Datadog.configuration.reset! }
+        after { without_warnings { Datadog.configuration.reset! } }
 
         it 'reports the hostname as part of the root span' do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|
@@ -49,7 +69,7 @@ RSpec.describe Datadog::SyncWriter do
       context 'disabled' do
         before { Datadog.configuration.report_hostname = false }
 
-        after { Datadog.configuration.reset! }
+        after { without_warnings { Datadog.configuration.reset! } }
 
         it 'does not report the hostname' do
           expect(sync_writer.transport).to receive(:send_traces) do |traces|

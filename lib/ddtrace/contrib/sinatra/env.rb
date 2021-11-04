@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/http'
 require 'ddtrace/contrib/sinatra/ext'
 
@@ -9,7 +10,8 @@ module Datadog
         module_function
 
         def datadog_span(env, app)
-          env[Ext::RACK_ENV_REQUEST_SPAN][app]
+          request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
+          request_span && request_span[app]
         end
 
         def set_datadog_span(env, app, span)

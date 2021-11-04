@@ -1,5 +1,7 @@
+# typed: false
 require 'ddtrace/contrib/configuration/resolver'
 require 'ddtrace/vendor/active_record/connection_specification'
+require_relative 'makara_resolver'
 
 module Datadog
   module Contrib
@@ -28,6 +30,8 @@ module Datadog
         # When more than one configuration could be matched, the last one to match is selected,
         # based on addition order (`#add`).
         class Resolver < Contrib::Configuration::Resolver
+          prepend MakaraResolver
+
           def initialize(active_record_configuration = nil)
             super()
 
@@ -50,7 +54,7 @@ module Datadog
           def resolve(db_config)
             active_record_config = resolve_connection_key(db_config).symbolize_keys
 
-            hash = normalize(active_record_config)
+            hash = normalize_for_resolve(active_record_config)
 
             # Hashes in Ruby maintain insertion order
             _, config = @configurations.reverse_each.find do |matcher, _|
@@ -63,7 +67,7 @@ module Datadog
           rescue => e
             Datadog.logger.error(
               "Failed to resolve ActiveRecord configuration key #{db_config.inspect}. " \
-              "Cause: #{e.message} Source: #{e.backtrace.first}"
+              "Cause: #{e.message} Source: #{Array(e.backtrace).first}"
             )
 
             nil
@@ -73,7 +77,7 @@ module Datadog
 
           def parse_matcher(matcher)
             resolved_pattern = resolve_connection_key(matcher).symbolize_keys
-            normalized = normalize(resolved_pattern)
+            normalized = normalize_for_config(resolved_pattern)
 
             # Remove empty fields to allow for partial matching
             normalized.reject! { |_, v| v.nil? }
@@ -82,7 +86,7 @@ module Datadog
           rescue => e
             Datadog.logger.error(
               "Failed to resolve ActiveRecord configuration key #{matcher.inspect}. " \
-              "Cause: #{e.message} Source: #{e.backtrace.first}"
+              "Cause: #{e.message} Source: #{Array(e.backtrace).first}"
             )
           end
 
@@ -112,7 +116,7 @@ module Datadog
 
           # Extract only fields we'd like to match
           # from the ActiveRecord configuration.
-          def normalize(active_record_config)
+          def normalize_for_config(active_record_config)
             {
               adapter: active_record_config[:adapter],
               host: active_record_config[:host],
@@ -121,6 +125,9 @@ module Datadog
               username: active_record_config[:username]
             }
           end
+
+          # Both resolvers perform the same operations for this implementation, but can be specialized
+          alias_method :normalize_for_resolve, :normalize_for_config
         end
       end
     end

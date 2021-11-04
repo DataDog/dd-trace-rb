@@ -12,9 +12,7 @@ gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
 gem 'memory_profiler', '~> 0.9'
-gem 'minitest', '= 5.10.1'
-gem 'minitest-around', '0.5.0'
-gem 'minitest-stub_any_instance', '1.0.2'
+gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
 gem 'pry'
 if RUBY_PLATFORM != 'java'
@@ -26,11 +24,12 @@ else
   gem 'pry-debugger-jruby'
 end
 gem 'rake', '>= 10.5'
+gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec_junit_formatter', '>= 0.4.1'
-gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.3.0'
+gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
   # Merging branch coverage results does not work for old, unsupported rubies.
@@ -58,7 +57,9 @@ end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-gem 'dogstatsd-ruby', '>= 3.3.0'
+# dogstatsd v5, but lower than 5.2, has possible memory leak with ddtrace.
+# @see https://github.com/DataDog/dogstatsd-ruby/issues/182
+gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 gem 'opentracing', '>= 0.4.1'
 
 # Profiler optional dependencies
@@ -67,3 +68,13 @@ gem 'opentracing', '>= 0.4.1'
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
 gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'] if RUBY_PLATFORM != 'java'
+
+# For type checking
+# Sorbet releases almost daily, with new checks introduced that can make a
+# previously-passing codebase start failing. Thus, we need to lock to a specific
+# version and bump it from time to time.
+# Also, there's no support for windows
+if RUBY_VERSION >= '2.4.0' && !Gem.win_platform?
+  gem 'sorbet', '= 0.5.9120'
+  gem 'spoom', '~> 1.1'
+end

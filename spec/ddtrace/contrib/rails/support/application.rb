@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/rails/support/base'
 require 'spec/ddtrace/contrib/rails/support/deprecation'
 
@@ -21,7 +22,7 @@ RSpec.shared_context 'Rails test application' do
       Rails.cache = nil
     end
 
-    Datadog.configuration.reset!
+    without_warnings { Datadog.configuration.reset! }
     Datadog.configuration[:rails].reset_options!
     Datadog.configuration[:rack].reset_options!
     Datadog.configuration[:redis].reset_options!

@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/profiling'
@@ -5,7 +6,7 @@ require 'ddtrace/profiling/pprof/template'
 
 RSpec.describe Datadog::Profiling::Pprof::Template do
   before do
-    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
   end
 
   subject(:template) { described_class.new(mappings) }
@@ -125,14 +126,17 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
   end
 
   describe '#to_pprof' do
-    subject(:to_pprof) { template.to_pprof }
+    subject(:to_pprof) { template.to_pprof(start: start, finish: finish) }
 
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:data) { instance_double(String) }
+    let(:start) { instance_double(::Time, 'Start time') }
+    let(:finish) { instance_double(::Time, 'Finish time') }
 
     before do
       expect(template.builder)
         .to receive(:build_profile)
+        .with(start: start, finish: finish)
         .and_return(profile)
 
       expect(template.builder)
@@ -147,6 +151,29 @@ RSpec.describe Datadog::Profiling::Pprof::Template do
         data: data,
         types: template.sample_type_mappings.keys
       )
+    end
+  end
+
+  describe '#debug_statistics' do
+    subject(:debug_statistics) { template.debug_statistics }
+
+    let(:mappings) do
+      {
+        dummy_mapping_one: class_double(
+          Datadog::Profiling::Pprof::Converter,
+          sample_value_types: { dummy_mapping_one: ['dummy_mapping_one'] },
+          new: instance_double(Datadog::Profiling::Pprof::Converter, debug_statistics: 'dummy_mapping_one_stats')
+        ),
+        dummy_mapping_two: class_double(
+          Datadog::Profiling::Pprof::Converter,
+          sample_value_types: { dummy_mapping_two: ['dummy_mapping_two'] },
+          new: instance_double(Datadog::Profiling::Pprof::Converter, debug_statistics: 'dummy_mapping_two_stats')
+        )
+      }
+    end
+
+    it 'returns a string containing the available debug statistics from each converter' do
+      is_expected.to eq 'dummy_mapping_one_stats, dummy_mapping_two_stats'
     end
   end
 end

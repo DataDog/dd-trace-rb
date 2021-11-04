@@ -1,3 +1,4 @@
+# typed: true
 require 'forwardable'
 
 require 'ddtrace/sampling/matcher'
@@ -28,7 +29,7 @@ module Datadog
       def match?(span)
         @matcher.match?(span)
       rescue => e
-        Datadog.logger.error("Matcher failed. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Matcher failed. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
         nil
       end
 

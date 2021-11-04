@@ -1,10 +1,16 @@
+# typed: ignore
 require 'spec_helper'
 require 'ddtrace/profiling'
+require 'ddtrace/profiling/spec_helper'
 
 if Datadog::Profiling::Ext::CPU.supported?
   require 'ddtrace/profiling/ext/cthread'
 
   RSpec.describe Datadog::Profiling::Ext::CThread do
+    before do
+      skip 'CThread specs cannot run on TruffleRuby because they rely on fork()' if PlatformHelpers.truffleruby?
+    end
+
     subject(:thread) do
       thread_class.new(&block).tap do
         # Give thread a chance to start,
@@ -20,7 +26,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       expect(::Thread.ancestors).to_not include(described_class)
 
       klass = ::Thread.dup
-      klass.send(:prepend, described_class)
+      klass.prepend(described_class)
       klass
     end
 
@@ -34,7 +40,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       klass.send(:alias_method, :original_initialize, :initialize)
 
       # Add the module under test (Ext::CThread)
-      klass.send(:prepend, described_class)
+      klass.prepend(described_class)
 
       # Add a module that skips over the module under test's initialize changes
       skip_instrumentation = Module.new do
@@ -42,7 +48,7 @@ if Datadog::Profiling::Ext::CPU.supported?
           original_initialize(*args, &block) # directly call original initialize, skipping the one in Ext::CThread
         end
       end
-      klass.send(:prepend, skip_instrumentation)
+      klass.prepend(skip_instrumentation)
 
       klass
     end
@@ -63,7 +69,7 @@ if Datadog::Profiling::Ext::CPU.supported?
       def on_main_thread
         # Patch thread in a fork so we don't modify the original Thread class
         expect_in_fork do
-          thread_class.send(:prepend, described_class)
+          thread_class.prepend(described_class)
           yield
         end
 
@@ -81,49 +87,60 @@ if Datadog::Profiling::Ext::CPU.supported?
         # Skip verification because the thread will not have been patched with the method yet
         without_partial_double_verification do
           expect(thread).to receive(:update_native_ids)
-          thread_class.send(:prepend, described_class)
+          thread_class.prepend(described_class)
         end
       end
     end
 
-    describe '::new' do
-      it 'has native thread IDs available' do
-        is_expected.to have_attributes(
-          clock_id: kind_of(Integer),
-          native_thread_id: kind_of(Integer),
-          cpu_time: kind_of(Float)
-        )
+    context 'with a started thread' do
+      before do
+        # There is a brief period where a thread has been started but the pthread_thread_id and clock_id have not
+        # yet been set. This try_wait_until is here to ensure that we wait for them to be set before running any
+        # expectations, as otherwise this would generate test suite flakiness.
+        # The easiest way to simulate this is to add a  `sleep(1)` to the start of `#update_native_ids`,
+        # triggering the issue every time.
+        try_wait_until { !thread.send(:clock_id).nil? }
       end
 
-      it 'correctly forwards all received arguments to the passed proc' do
-        received_args = nil
-        received_kwargs = nil
+      describe '::new' do
+        it 'has native thread IDs available' do
+          is_expected.to have_attributes(
+            pthread_thread_id: kind_of(Integer),
+            cpu_time: kind_of(Float)
+          )
+          expect(thread.send(:clock_id)).to be_kind_of(Integer)
+        end
 
-        thread_class.new(1, 2, 3, four: 4, five: 5) do |*args, **kwargs|
-          received_args = args
-          received_kwargs = kwargs
-        end.join
+        it 'correctly forwards all received arguments to the passed proc' do
+          received_args = nil
+          received_kwargs = nil
 
-        expect(received_args).to eq [1, 2, 3]
-        expect(received_kwargs).to eq(four: 4, five: 5)
+          thread_class.new(1, 2, 3, four: 4, five: 5) do |*args, **kwargs|
+            received_args = args
+            received_kwargs = kwargs
+          end.join
+
+          expect(received_args).to eq [1, 2, 3]
+          expect(received_kwargs).to eq(four: 4, five: 5)
+        end
       end
-    end
 
-    describe '#native_thread_id' do
-      subject(:native_thread_id) { thread.native_thread_id }
+      describe '#pthread_thread_id' do
+        subject(:pthread_thread_id) { thread.pthread_thread_id }
 
-      it { is_expected.to be_a_kind_of(Integer) }
+        it { is_expected.to be_a_kind_of(Integer) }
 
-      context 'main thread' do
-        context 'when forked' do
-          it 'returns a new native thread ID' do
-            # Get main thread native ID
-            original_native_thread_id = thread.native_thread_id
+        context 'main thread' do
+          context 'when forked' do
+            it 'returns a new native thread ID' do
+              # Get main thread native ID
+              original_pthread_thread_id = thread.pthread_thread_id
 
-            expect_in_fork do
-              # Expect main thread native ID to not change
-              expect(thread.native_thread_id).to be_a_kind_of(Integer)
-              expect(thread.native_thread_id).to eq(original_native_thread_id)
+              expect_in_fork do
+                # Expect main thread native ID to not change
+                expect(thread.pthread_thread_id).to be_a_kind_of(Integer)
+                expect(thread.pthread_thread_id).to eq(original_pthread_thread_id)
+              end
             end
           end
         end
@@ -131,9 +148,7 @@ if Datadog::Profiling::Ext::CPU.supported?
     end
 
     describe '#clock_id' do
-      subject(:clock_id) { thread.clock_id }
-
-      it { is_expected.to be_a_kind_of(Integer) }
+      subject(:clock_id) { thread.send(:clock_id) }
 
       context 'main thread' do
         include_context 'with main thread'
@@ -142,12 +157,12 @@ if Datadog::Profiling::Ext::CPU.supported?
           it 'returns a new clock ID' do
             on_main_thread do
               # Get main thread clock ID
-              original_clock_id = thread_class.current.clock_id
+              original_clock_id = thread_class.current.send(:clock_id)
 
               expect_in_fork do
                 # Expect main thread clock ID to change (to match fork's main thread)
-                expect(thread_class.current.clock_id).to be_a_kind_of(Integer)
-                expect(thread_class.current.clock_id).to_not eq(original_clock_id)
+                expect(thread_class.current.send(:clock_id)).to be_a_kind_of(Integer)
+                expect(thread_class.current.send(:clock_id)).to_not eq(original_clock_id)
               end
             end
           end
@@ -160,6 +175,10 @@ if Datadog::Profiling::Ext::CPU.supported?
 
       context 'when clock ID' do
         context 'is not available' do
+          before do
+            skip 'Does not apply when using the NativeExtension code path' if can_use_native_extension?
+          end
+
           let(:thread_class) { thread_class_missing_instrumentation }
 
           it { is_expected.to be nil }
@@ -173,21 +192,24 @@ if Datadog::Profiling::Ext::CPU.supported?
 
         context 'is available' do
           let(:clock_id) { double('clock ID') }
+          let(:cpu_time_measurement) { double('cpu time measurement') }
 
-          before { allow(thread).to receive(:clock_id).and_return(clock_id) }
+          before do
+            if can_use_native_extension?
+              expect(Datadog::Profiling::NativeExtension).to receive(:clock_id_for).and_return(clock_id)
+            else
+              expect(thread).to receive(:clock_id).and_return(clock_id).at_least(:once)
+            end
+          end
 
-          if Process.respond_to?(:clock_gettime)
-            let(:cpu_time_measurement) { double('cpu time measurement') }
+          context 'when not given a unit' do
+            it 'gets time in CPU seconds' do
+              expect(Process)
+                .to receive(:clock_gettime)
+                .with(clock_id, :float_second)
+                .and_return(cpu_time_measurement)
 
-            context 'when not given a unit' do
-              it 'gets time in CPU seconds' do
-                expect(Process)
-                  .to receive(:clock_gettime)
-                  .with(clock_id, :float_second)
-                  .and_return(cpu_time_measurement)
-
-                is_expected.to be cpu_time_measurement
-              end
+              is_expected.to be cpu_time_measurement
             end
 
             context 'given a unit' do
@@ -203,10 +225,6 @@ if Datadog::Profiling::Ext::CPU.supported?
 
                 is_expected.to be cpu_time_measurement
               end
-            end
-          else
-            context 'but #clock_gettime is not' do
-              it { is_expected.to be nil }
             end
           end
         end
@@ -235,10 +253,63 @@ if Datadog::Profiling::Ext::CPU.supported?
       end
 
       context 'when our custom initialize block did not run' do
+        before do
+          skip 'Does not apply when using the NativeExtension code path' if can_use_native_extension?
+        end
+
         let(:thread_class) { thread_class_missing_instrumentation }
 
         it do
           expect(thread.cpu_time_instrumentation_installed?).to be false
+        end
+      end
+    end
+
+    context 'Process::Waiter crash regression tests' do
+      before do
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+          skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+        end
+      end
+
+      let(:process_waiter_thread) { Process.detach(fork { sleep }) }
+
+      describe 'the crash' do
+        # Let's not get surprised if this shows up in other Ruby versions
+
+        it 'does not affect Ruby < 2.3 nor Ruby >= 2.7' do
+          unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') &&
+                 Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
+            skip 'Test case only applies to Ruby < 2.3 or Ruby >= 2.7'
+          end
+
+          with_profiling_extensions_in_fork do
+            expect(process_waiter_thread.instance_variable_get(:@hello)).to be nil
+          end
+        end
+
+        it 'affects Ruby >= 2.3 and < 2.7' do
+          unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
+                 Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+            skip 'Test case only applies to Ruby >= 2.3 and < 2.7'
+          end
+
+          with_profiling_extensions_in_fork(
+            fork_expectations: proc do |status:, stdout:, stderr:|
+              expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
+              expect(stderr).to include('[BUG] Segmentation fault')
+            end
+          ) do
+            process_waiter_thread.instance_variable_get(:@hello)
+          end
+        end
+      end
+
+      describe '#pthread_thread_id' do
+        it 'can be read without crashing the Ruby VM' do
+          with_profiling_extensions_in_fork do
+            expect(process_waiter_thread.pthread_thread_id).to be nil
+          end
         end
       end
     end
@@ -249,8 +320,8 @@ if Datadog::Profiling::Ext::CPU.supported?
       expect(Thread.singleton_class.ancestors).to_not include(described_class)
 
       klass = ::Thread.dup
-      klass.send(:prepend, Datadog::Profiling::Ext::CThread)
-      klass.singleton_class.send(:prepend, described_class)
+      klass.prepend(Datadog::Profiling::Ext::CThread)
+      klass.singleton_class.prepend(described_class)
       klass
     end
 
@@ -315,5 +386,9 @@ if Datadog::Profiling::Ext::CPU.supported?
         expect(thread_class.method(:start)).to eq thread_class.method(:fork)
       end
     end
+  end
+
+  def can_use_native_extension?
+    Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
   end
 end

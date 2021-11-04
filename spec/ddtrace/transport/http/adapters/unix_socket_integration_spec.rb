@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'stringio'
@@ -9,15 +10,15 @@ require 'ddtrace/transport/http/adapters/unix_socket'
 RSpec.describe 'Adapters::UnixSocket integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
-  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(filepath, options) }
+  subject(:adapter) { Datadog::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
-  let(:filepath) { '/tmp/ddtrace_unix_test.sock' }
-  let(:options) { { timeout: timeout } }
+  let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
+  let(:options) { { uds_path: uds_path, timeout: timeout } }
   let(:timeout) { 2 }
 
   shared_context 'Unix socket server' do
     # Server
-    let(:server) { UNIXServer.new(filepath) }
+    let(:server) { UNIXServer.new(uds_path) }
     let(:messages) { [] }
 
     # HTTP
@@ -40,7 +41,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     let(:http_init_signal) { Queue.new }
 
     def cleanup_socket
-      File.delete(filepath) if File.exist?(filepath)
+      File.delete(uds_path) if File.exist?(uds_path)
     end
 
     before do
@@ -65,11 +66,13 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     end
 
     after do
-      http.shutdown
-      cleanup_socket
+      unless RSpec.current_example.skipped?
+        http.shutdown
+        cleanup_socket
 
-      @http_server_thread.join
-      @unix_server_thread.join
+        @http_server_thread.join
+        @unix_server_thread.join
+      end
     end
   end
 
@@ -90,17 +93,17 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       expect(messages).to have(1).items
       messages.first.tap do |http_request|
         expect(http_request.header).to include(
-          'datadog-meta-lang' => [Datadog::Ext::Runtime::LANG],
-          'datadog-meta-lang-version' => [Datadog::Ext::Runtime::LANG_VERSION],
-          'datadog-meta-lang-interpreter' => [Datadog::Ext::Runtime::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Ext::Runtime::TRACER_VERSION],
+          'datadog-meta-lang' => [Datadog::Core::Environment::Ext::LANG],
+          'datadog-meta-lang-version' => [Datadog::Core::Environment::Ext::LANG_VERSION],
+          'datadog-meta-lang-interpreter' => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
+          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::TRACER_VERSION],
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )
 
-        unless Datadog::Runtime::Container.container_id.nil?
+        unless Datadog::Core::Environment::Container.container_id.nil?
           expect(http_request.header).to include(
-            'datadog-container-id' => [Datadog::Runtime::Container.container_id]
+            'datadog-container-id' => [Datadog::Core::Environment::Container.container_id]
           )
         end
 

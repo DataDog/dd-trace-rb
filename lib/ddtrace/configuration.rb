@@ -1,12 +1,13 @@
+# typed: true
 require 'forwardable'
 require 'ddtrace/configuration/pin_setup'
 require 'ddtrace/configuration/settings'
 require 'ddtrace/configuration/components'
-require 'ddtrace/utils/only_once'
 
 module Datadog
   # Configuration provides a unique access point for configurations
   module Configuration # rubocop:disable Metrics/ModuleLength
+    include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
     extend Forwardable
 
     # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
@@ -43,8 +44,6 @@ module Datadog
     end
 
     def configure(target = configuration, opts = {})
-      ruby_version_deprecation_warning
-
       if target.is_a?(Settings)
         yield(target) if block_given?
 
@@ -140,7 +139,7 @@ module Datadog
           logger_without_components.error(
             'Detected deadlock during ddtrace initialization. ' \
             'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
-            "\n\tSource:\n\t#{e.backtrace.join("\n\t")}"
+            "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
           )
           nil
         end
@@ -176,23 +175,21 @@ module Datadog
       end
     end
 
-    # Perform version check only once
-    DEPRECATED_RUBY_VERSION = Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1')
-    private_constant :DEPRECATED_RUBY_VERSION
+    # Called from our at_exit hook whenever there was a pending Interrupt exception (e.g. typically due to ctrl+c)
+    # to print a nice message whenever we're taking a bit longer than usual to finish the process.
+    def handle_interrupt_shutdown!
+      logger = Datadog.logger
+      shutdown_thread = Thread.new { shutdown! }
+      print_message_treshold_seconds = 0.2
 
-    RUBY_VERSION_DEPRECATION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-    private_constant :RUBY_VERSION_DEPRECATION_ONLY_ONCE
+      slow_shutdown = shutdown_thread.join(print_message_treshold_seconds).nil?
 
-    def ruby_version_deprecation_warning
-      return unless DEPRECATED_RUBY_VERSION
-
-      RUBY_VERSION_DEPRECATION_ONLY_ONCE.run do
-        Datadog.logger.warn(
-          "Support for Ruby versions < 2.1 in dd-trace-rb is DEPRECATED.\n" \
-          "Last version to support Ruby < 2.1 will be 0.49.x, which will only receive critical bugfixes.\n" \
-          'Support for Ruby versions < 2.1 will be REMOVED in version 0.50.0.'
-        )
+      if slow_shutdown
+        logger.info 'Reporting remaining data... Press ctrl+c to exit immediately.'
+        shutdown_thread.join
       end
+
+      nil
     end
   end
 end

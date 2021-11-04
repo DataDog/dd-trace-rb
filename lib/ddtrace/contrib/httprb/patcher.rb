@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/httprb/instrumentation'
 require 'ddtrace/utils/only_once'
@@ -26,9 +27,9 @@ module Datadog
         def patch
           PATCH_ONLY_ONCE.run do
             begin
-              ::HTTP::Client.send(:include, Instrumentation)
+              ::HTTP::Client.include(Instrumentation)
             rescue StandardError => e
-              Datadog::Logger.error("Unable to apply httprb integration: #{e}")
+              Datadog.logger.error("Unable to apply httprb integration: #{e}")
             end
           end
         end

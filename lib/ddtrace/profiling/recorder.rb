@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/profiling/buffer'
 require 'ddtrace/profiling/flush'
 
@@ -7,15 +8,18 @@ module Datadog
     class Recorder
       attr_reader :max_size
 
-      def initialize(event_classes, max_size)
+      def initialize(event_classes, max_size, last_flush_time: Time.now.utc)
         @buffers = {}
-        @last_flush_time = Time.now.utc
+        @last_flush_time = last_flush_time
         @max_size = max_size
 
         # Add a buffer for each class
         event_classes.each do |event_class|
           @buffers[event_class] = Profiling::Buffer.new(max_size)
         end
+
+        # Event classes can only be added ahead of time
+        @buffers.freeze
       end
 
       def [](event_class)
@@ -57,6 +61,11 @@ module Datadog
           event_groups,
           event_count
         )
+      end
+
+      # NOTE: Remember that if the recorder is being accessed by multiple threads, this is an inherently racy operation.
+      def empty?
+        @buffers.values.all?(&:empty?)
       end
 
       # Error when event of an unknown type is used with the Recorder

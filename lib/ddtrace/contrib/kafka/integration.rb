@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/kafka/configuration/settings'
 require 'ddtrace/contrib/kafka/patcher'

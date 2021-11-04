@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -9,9 +10,10 @@ RSpec.describe Datadog::Workers::TraceWriter do
   let(:options) { {} }
 
   describe '#initialize' do
+    let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+
     context 'given :transport' do
       let(:options) { { transport: transport } }
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
 
       it { expect(writer.transport).to be transport }
     end
@@ -19,59 +21,40 @@ RSpec.describe Datadog::Workers::TraceWriter do
     context 'given :transport_options' do
       let(:options) { { transport_options: transport_options } }
 
-      context 'that is a Hash' do
-        let(:transport_options) { {} }
-        let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
-
-        before do
-          expect(Datadog::Transport::HTTP).to receive(:default)
-            .with(transport_options)
-            .and_return(transport)
-        end
-
-        it { expect(writer.transport).to be transport }
-      end
-
-      context 'that is a Proc' do
-        let(:transport_options) { proc {} }
-        let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
-
-        before do
-          expect(Datadog::Transport::HTTP).to receive(:default)
-            .with(on_build: kind_of(Proc))
-            .and_return(transport)
-        end
-
-        it { expect(writer.transport).to be transport }
-      end
-    end
-
-    context 'given :hostname' do
-      let(:options) { { hostname: hostname } }
-      let(:hostname) { double('hostname') }
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+      let(:transport_options) { { example_transport_option: true } }
 
       before do
         expect(Datadog::Transport::HTTP).to receive(:default)
-          .with(hostname: hostname)
+          .with(transport_options)
           .and_return(transport)
       end
 
       it { expect(writer.transport).to be transport }
     end
 
-    context 'given :port' do
-      let(:options) { { port: port } }
-      let(:port) { double('port') }
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+    context 'given :agent_settings' do
+      let(:options) { { agent_settings: agent_settings } }
+      let(:agent_settings) { double('AgentSettings') }
 
-      before do
-        expect(Datadog::Transport::HTTP).to receive(:default)
-          .with(port: port)
-          .and_return(transport)
+      it 'configures a transport with the agent_settings' do
+        expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings).and_return(transport)
+
+        expect(writer.transport).to be transport
       end
 
-      it { expect(writer.transport).to be transport }
+      context 'and also :transport_options' do
+        let(:options) { { **super(), transport_options: transport_options } }
+
+        let(:transport_options) { { example_transport_option: true } }
+
+        before do
+          expect(Datadog::Transport::HTTP).to receive(:default)
+            .with(agent_settings: agent_settings, example_transport_option: true)
+            .and_return(transport)
+        end
+
+        it { expect(writer.transport).to be transport }
+      end
     end
   end
 
@@ -186,7 +169,7 @@ RSpec.describe Datadog::Workers::TraceWriter do
 
     context 'when hostname' do
       before do
-        allow(Datadog::Runtime::Socket).to receive(:hostname)
+        allow(Datadog::Core::Environment::Socket).to receive(:hostname)
           .and_return(hostname)
       end
 

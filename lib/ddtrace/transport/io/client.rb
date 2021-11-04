@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/statistics'
 require 'ddtrace/transport/io/response'
 
@@ -38,7 +39,7 @@ module Datadog
           # Return response
           response
         rescue StandardError => e
-          message = "Internal error during IO transport request. Cause: #{e.message} Location: #{e.backtrace.first}"
+          message = "Internal error during IO transport request. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
 
           # Log error
           if stats.consecutive_errors > 0

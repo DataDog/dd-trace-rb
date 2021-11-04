@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'time'

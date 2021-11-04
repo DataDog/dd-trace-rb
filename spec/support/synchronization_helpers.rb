@@ -1,30 +1,42 @@
+# typed: false
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork
-    read_io, write_io = IO.pipe
+  def expect_in_fork(fork_expectations: nil)
+    fork_expectations ||= proc { |status:, stdout:, stderr:|
+      expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
+    }
 
-    # Start in fork
-    pid = fork do
-      read_io.close
+    fork_stdout = Tempfile.new('ddtrace-rspec-expect-in-fork-stdout')
+    fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork-stderr')
+    begin
+      # Start in fork
+      pid = fork do
+        # Capture forked output
+        $stdout.reopen(fork_stdout)
+        $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
 
-      # Capture test failures
-      $stderr.reopen(write_io)
+        yield
+      end
 
-      yield
+      fork_stderr.close
+      fork_stdout.close
+
+      # Wait for fork to finish, retrieve its status.
+      Process.wait(pid)
+      status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
+
+      # Capture forked execution information
+      result = { status: status, stdout: File.read(fork_stdout.path), stderr: File.read(fork_stderr.path) }
+
+      # Expect fork and assertions to have completed successfully.
+      fork_expectations.call(**result)
+
+      result
+    ensure
+      fork_stdout.unlink
+      fork_stderr.unlink
     end
-
-    write_io.close
-
-    # Wait for fork to finish, retrieve its status.
-    Process.wait(pid)
-    status = $CHILD_STATUS if $CHILD_STATUS && $CHILD_STATUS.pid == pid
-
-    # Read test failures
-    fork_stderr = read_io.read
-
-    # Expect fork and assertions to have completed successfully.
-    expect(status && status.success?).to be(true), fork_stderr
   end
 
   def expect_in_thread(&block)
@@ -59,7 +71,5 @@ module SynchronizationHelpers
     30
   end
 
-  class << self
-    include SynchronizationHelpers
-  end
+  singleton_class.include SynchronizationHelpers
 end

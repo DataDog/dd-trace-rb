@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/logger'
 
 module Datadog
@@ -12,7 +13,7 @@ module Datadog
         SHUTDOWN_TIMEOUT = 1
 
         def self.included(base)
-          base.send(:prepend, PrependedMethods)
+          base.prepend(PrependedMethods)
         end
 
         # Methods that must be prepended
@@ -39,6 +40,7 @@ module Datadog
           return false unless running?
 
           @run_async = false
+          Datadog.logger.debug { "Forcibly terminating worker thread for: #{self}" }
           worker.terminate
           true
         end
@@ -126,7 +128,7 @@ module Datadog
           @run_async = true
           @pid = Process.pid
           @error = nil
-          Datadog.logger.debug("Starting thread in the process: #{Process.pid} for: #{self}")
+          Datadog.logger.debug { "Starting thread for: #{self}" }
 
           @worker = ::Thread.new do
             begin
@@ -134,7 +136,7 @@ module Datadog
             # rubocop:disable Lint/RescueException
             rescue Exception => e
               @error = e
-              Datadog.logger.debug("Worker thread error. Cause #{e.message} Location: #{e.backtrace.first}")
+              Datadog.logger.debug("Worker thread error. Cause #{e.message} Location: #{Array(e.backtrace).first}")
               raise
             end
           end

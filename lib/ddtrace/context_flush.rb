@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module ContextFlush
     # Consumes only completed traces (where all spans have finished)
@@ -9,8 +10,14 @@ module Datadog
       #
       # @return [Array<Span>] trace to be flushed, or +nil+ if the trace is not finished
       def consume!(context)
-        trace, sampled = context.get
+        trace, sampled = get_trace(context)
         trace if sampled
+      end
+
+      protected
+
+      def get_trace(context)
+        context.get
       end
     end
 
@@ -34,12 +41,18 @@ module Datadog
       #
       # @return [Array<Span>] partial or complete trace to be flushed, or +nil+ if no spans are finished
       def consume!(context)
-        trace, sampled = context.get
+        trace, sampled = get_trace(context)
 
         return nil unless sampled
         return trace if trace && !trace.empty?
 
         partial_trace(context)
+      end
+
+      protected
+
+      def get_trace(context)
+        context.get
       end
 
       private

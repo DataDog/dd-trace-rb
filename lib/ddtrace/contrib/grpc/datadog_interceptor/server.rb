@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/integration'
 require 'ddtrace/contrib/analytics'
@@ -17,7 +18,8 @@ module Datadog
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               service: service_name,
-              resource: format_resource(keywords[:method])
+              resource: format_resource(keywords[:method]),
+              on_error: error_handler
             }
             metadata = keywords[:call].metadata
 
@@ -47,9 +49,6 @@ module Datadog
 
               span.set_tag(header, value)
             end
-
-            # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

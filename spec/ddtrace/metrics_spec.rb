@@ -1,6 +1,6 @@
+# typed: false
 require 'spec_helper'
 
-require 'ddtrace'
 require 'ddtrace/metrics'
 
 require 'benchmark'
@@ -9,7 +9,8 @@ require 'datadog/statsd'
 RSpec.describe Datadog::Metrics do
   include_context 'metrics'
 
-  subject(:metrics) { described_class.new(options) }
+  subject(:metrics) { described_class.new(**options) }
+  after { metrics.close }
 
   let(:options) { { statsd: statsd } }
 
@@ -22,6 +23,70 @@ RSpec.describe Datadog::Metrics do
     end
   end
 
+  describe '#initialize' do
+    before do
+      # NOTE: allow_any_instace_of is needed as when we run this no metrics instance has been created yet (and we
+      # don't want it to be created as the nested contexts still need to change the arguments to the call to new)
+      allow_any_instance_of(described_class).to receive(:supported?).and_return(statsd_supported)
+    end
+
+    context 'when a supported version of statsd is installed' do
+      let(:statsd_supported) { true }
+
+      context 'when no statsd instance is provided' do
+        let(:options) { {} }
+
+        after do
+          metrics.close
+        end
+
+        it 'creates a new instance' do
+          expect(metrics.statsd).to_not be nil
+        end
+      end
+
+      context 'when a statsd instance is provided' do
+        let(:statsd) { double('Statsd') }
+        let(:options) { { statsd: statsd } }
+
+        it 'uses the provided instance' do
+          expect(metrics.statsd).to be statsd
+        end
+      end
+    end
+
+    context 'when statsd is either not installed, or an unsupported version is installed' do
+      let(:statsd_supported) { false }
+
+      context 'when no statsd instance is provided' do
+        let(:options) { {} }
+
+        it 'does not create a new instance' do
+          expect(metrics.statsd).to be nil
+        end
+      end
+
+      context 'when a statsd instance is provided' do
+        let(:options) { { statsd: statsd } }
+
+        before do
+          described_class.const_get('IGNORED_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
+          allow(Datadog.logger).to receive(:warn)
+        end
+
+        it 'does not use the provided instance' do
+          expect(metrics.statsd).to be nil
+        end
+
+        it 'logs a warning' do
+          expect(Datadog.logger).to receive(:warn).with(/Ignoring .* statsd instance/)
+
+          metrics
+        end
+      end
+    end
+  end
+
   describe '#supported?' do
     subject(:supported?) { metrics.supported? }
 
@@ -30,6 +95,8 @@ RSpec.describe Datadog::Metrics do
         allow(Gem.loaded_specs).to receive(:[])
           .with('dogstatsd-ruby')
           .and_return(spec)
+
+        stub_const 'Datadog::Statsd::VERSION', nil
       end
 
       context 'is not loaded' do
@@ -49,6 +116,50 @@ RSpec.describe Datadog::Metrics do
 
         context 'with version 3.3.0' do
           let(:version) { Gem::Version.new('3.3.0') }
+
+          it { is_expected.to be true }
+        end
+
+        context 'with incompatible 5.x version' do
+          let(:version) { Gem::Version.new('5.2.0') }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with compatible 5.x version' do
+          let(:version) { Gem::Version.new('5.3.0') }
+
+          it { is_expected.to be true }
+        end
+      end
+
+      context 'is loaded but ruby is not using rubygems' do
+        before do
+          stub_const 'Datadog::Statsd::VERSION', gem_version_number
+        end
+
+        let(:spec) { nil }
+
+        context 'with version < 3.3.0' do
+          let(:gem_version_number) { '3.2.9' }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with version 3.3.0' do
+          let(:gem_version_number) { '3.3.0' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'with incompatible 5.x version' do
+          let(:gem_version_number) { '5.2.0' }
+
+          it { is_expected.to be false }
+        end
+
+        context 'with compatible 5.x version' do
+          let(:gem_version_number) { '5.3.0' }
 
           it { is_expected.to be true }
         end
@@ -160,10 +271,18 @@ RSpec.describe Datadog::Metrics do
     subject(:default_statsd_client) { metrics.default_statsd_client }
 
     let(:statsd_client) { instance_double(Datadog::Statsd) }
+    let(:options) do
+      # This test is run with both ~> 4.0 and latest dogstatsd-ruby.
+      if Gem::Version.new(Datadog::Statsd::VERSION) >= Gem::Version.new('5.3.0')
+        { single_thread: true }
+      else
+        {}
+      end
+    end
 
     before do
       expect(Datadog::Statsd).to receive(:new)
-        .with(metrics.default_hostname, metrics.default_port)
+        .with(metrics.default_hostname, metrics.default_port, **options)
         .and_return(statsd_client)
     end
 
@@ -722,10 +841,10 @@ RSpec.describe Datadog::Metrics::Options do
 
         it 'includes default tags' do
           is_expected.to include(
-            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Runtime::Identity.lang}",
-            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Runtime::Identity.lang_interpreter}",
-            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Runtime::Identity.lang_version}",
-            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Runtime::Identity.tracer_version}"
+            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Core::Environment::Identity.lang}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Core::Environment::Identity.lang_interpreter}",
+            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Core::Environment::Identity.lang_version}",
+            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Core::Environment::Identity.tracer_version}"
           )
         end
 

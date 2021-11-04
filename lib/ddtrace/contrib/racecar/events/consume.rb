@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/racecar/ext'
 require 'ddtrace/contrib/racecar/event'
 

@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     # MongoDB module includes classes and functions to instrument MongoDB clients

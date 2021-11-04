@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/profiling/event'
 
 module Datadog
@@ -6,37 +7,40 @@ module Datadog
       # Describes a stack profiling event
       class Stack < Event
         attr_reader \
-          :frames,
           :hash,
-          :span_id,
-          :thread_id,
+          :frames,
           :total_frame_count,
-          :trace_id
+          :thread_id,
+          :root_span_id,
+          :span_id,
+          :trace_resource
 
         def initialize(
           timestamp,
           frames,
           total_frame_count,
           thread_id,
-          trace_id,
-          span_id
+          root_span_id,
+          span_id,
+          trace_resource
         )
           super(timestamp)
 
           @frames = frames
           @total_frame_count = total_frame_count
           @thread_id = thread_id
-          @trace_id = trace_id
+          @root_span_id = root_span_id
           @span_id = span_id
+          @trace_resource = trace_resource
 
           @hash = [
             thread_id,
-            trace_id,
+            root_span_id,
             span_id,
-            [
-              frames.collect(&:hash),
-              total_frame_count
-            ]
+            # trace_resource is deliberately not included -- events that share the same (root_span_id, span_id) refer
+            # to the same trace
+            frames.collect(&:hash),
+            total_frame_count
           ].hash
         end
       end
@@ -52,8 +56,9 @@ module Datadog
           frames,
           total_frame_count,
           thread_id,
-          trace_id,
+          root_span_id,
           span_id,
+          trace_resource,
           cpu_time_interval_ns,
           wall_time_interval_ns
         )
@@ -62,39 +67,13 @@ module Datadog
             frames,
             total_frame_count,
             thread_id,
-            trace_id,
-            span_id
+            root_span_id,
+            span_id,
+            trace_resource
           )
 
           @cpu_time_interval_ns = cpu_time_interval_ns
           @wall_time_interval_ns = wall_time_interval_ns
-        end
-      end
-
-      # Describes a stack sample with exception
-      class StackExceptionSample < Stack
-        attr_reader \
-          :exception
-
-        def initialize(
-          timestamp,
-          frames,
-          total_frame_count,
-          thread_id,
-          trace_id,
-          span_id,
-          exception
-        )
-          super(
-            timestamp,
-            frames,
-            total_frame_count,
-            thread_id,
-            trace_id,
-            span_id
-          )
-
-          @exception = exception
         end
       end
     end

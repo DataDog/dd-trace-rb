@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Contrib
     module Sidekiq
@@ -14,6 +15,9 @@ module Datadog
         SERVICE_NAME = 'sidekiq'.freeze
         SPAN_PUSH = 'sidekiq.push'.freeze
         SPAN_JOB = 'sidekiq.job'.freeze
+        SPAN_JOB_FETCH = 'sidekiq.job_fetch'.freeze
+        SPAN_HEARTBEAT = 'sidekiq.heartbeat'.freeze
+        SPAN_SCHEDULED_PUSH = 'sidekiq.scheduled_push'.freeze
         TAG_JOB_DELAY = 'sidekiq.job.delay'.freeze
         TAG_JOB_ID = 'sidekiq.job.id'.freeze
         TAG_JOB_QUEUE = 'sidekiq.job.queue'.freeze

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics'
 
 module Datadog
@@ -11,7 +12,7 @@ module Datadog
             # You can add custom errors via `config.action_dispatch.rescue_responses`
             status = ::ActionDispatch::ExceptionWrapper.status_code_for_exception(exception.class.name)
             # Only 5XX exceptions are actually errors (e.g. don't flag 404s)
-            status.to_s.starts_with?('5')
+            status.to_s.start_with?('5')
           else
             true
           end

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/logger'
 require 'ddtrace/transport/http'
 
@@ -16,13 +17,10 @@ module Datadog
       def initialize(options = {})
         transport_options = options.fetch(:transport_options, {})
 
-        transport_options = { on_build: transport_options } if transport_options.is_a?(Proc)
-
-        transport_options[:hostname] = options[:hostname] if options.key?(:hostname)
-        transport_options[:port] = options[:port] if options.key?(:port)
+        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
 
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(transport_options)
+          Transport::HTTP.default(**transport_options)
         end
       end
 
@@ -39,7 +37,7 @@ module Datadog
         flush_traces(traces)
       rescue StandardError => e
         Datadog.logger.error(
-          "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{e.backtrace.first}"
+          "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
         )
       end
 
@@ -63,7 +61,7 @@ module Datadog
         traces.each do |trace|
           next if trace.first.nil?
 
-          hostname = Datadog::Runtime::Socket.hostname
+          hostname = Datadog::Core::Environment::Socket.hostname
           trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
         end
       end

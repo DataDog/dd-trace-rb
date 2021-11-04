@@ -1,10 +1,11 @@
+# typed: false
 require 'sinatra/base'
 
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
-
+require 'ddtrace/utils/only_once'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/tracer_middleware'
 require 'ddtrace/contrib/sinatra/env'
@@ -76,6 +77,9 @@ module Datadog
 
         # Method overrides for Sinatra::Base
         module Base
+          MISSING_REQUEST_SPAN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+          private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
+
           def render(engine, data, *)
             tracer = Datadog.configuration[:sinatra][:tracer]
             return super unless tracer.enabled
@@ -104,16 +108,35 @@ module Datadog
             tracer.trace(
               Ext::SPAN_ROUTE,
               service: configuration[:service_name],
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND
+              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              resource: "#{request.request_method} #{@datadog_route}",
             ) do |span|
-              span.resource = "#{request.request_method} #{@datadog_route}"
-
               span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
               span.set_tag(Ext::TAG_ROUTE_PATH, @datadog_route)
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
               rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
               rack_request_span.resource = span.resource if rack_request_span
+
+              sinatra_request_span =
+                if self.class <= ::Sinatra::Application # Classic style (top-level) application
+                  Sinatra::Env.datadog_span(env, ::Sinatra::Application)
+                else
+                  Sinatra::Env.datadog_span(env, self.class)
+                end
+              if sinatra_request_span
+                sinatra_request_span.resource = span.resource
+              else
+                MISSING_REQUEST_SPAN_ONLY_ONCE.run do
+                  Datadog.logger.warn do
+                    'Sinatra integration is misconfigured, reported traces will be missing request metadata ' \
+                    'such as path and HTTP status code. ' \
+                    'Did you forget to add `register Datadog::Contrib::Sinatra::Tracer` to your ' \
+                    '`Sinatra::Base` subclass? ' \
+                    'See <https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#sinatra> for more details.'
+                  end
+                end
+              end
 
               Contrib::Analytics.set_measured(span)
 

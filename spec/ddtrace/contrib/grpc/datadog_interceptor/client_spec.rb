@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -42,14 +43,14 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     it 'replaces default service name' do
-      default_client_interceptor.request_response(keywords) {}
+      default_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'rspec'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
 
       clear_spans!
 
-      configured_client_interceptor.request_response(keywords) {}
+      configured_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'cepsr'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('cepsr')
@@ -83,7 +84,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     before do
-      subject.request_response(keywords) {}
+      subject.request_response(**keywords) {}
     end
 
     it_behaves_like 'span data contents'
@@ -97,7 +98,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     before do
-      subject.client_streamer(keywords) {}
+      subject.client_streamer(**keywords) {}
     end
 
     it_behaves_like 'span data contents'
@@ -112,7 +113,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     before do
-      subject.server_streamer(keywords) {}
+      subject.server_streamer(**keywords) {}
     end
 
     it_behaves_like 'span data contents'
@@ -127,7 +128,7 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     before do
-      subject.bidi_streamer(keywords) {}
+      subject.bidi_streamer(**keywords) {}
     end
 
     it_behaves_like 'span data contents'

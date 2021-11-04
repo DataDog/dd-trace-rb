@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
@@ -11,7 +12,7 @@ module Datadog
         # Instrumentation for Presto::Client::Client
         module Client
           def self.included(base)
-            base.send(:prepend, InstanceMethods)
+            base.prepend(InstanceMethods)
           end
 
           # Instance methods for Presto::Client

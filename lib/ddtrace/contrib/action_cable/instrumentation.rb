@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Contrib
     module ActionCable
@@ -22,6 +23,52 @@ module Datadog
               end
 
               super
+            end
+          end
+        end
+
+        # Instrumentation for when a Channel is subscribed to/unsubscribed from.
+        module ActionCableChannel
+          def self.included(base)
+            base.class_eval do
+              set_callback(
+                :subscribe,
+                :around,
+                ->(channel, block) { Tracer.trace(channel, :subscribe, &block) },
+                prepend: true
+              )
+
+              set_callback(
+                :unsubscribe,
+                :around,
+                ->(channel, block) { Tracer.trace(channel, :unsubscribe, &block) },
+                prepend: true
+              )
+            end
+          end
+
+          # Instrumentation for Channel hooks.
+          class Tracer
+            def self.trace(channel, hook)
+              configuration = Datadog.configuration[:action_cable]
+
+              Datadog.tracer.trace("action_cable.#{hook}") do |span|
+                span.service = configuration[:service_name]
+                span.resource = "#{channel.class}##{hook}"
+                span.span_type = Datadog::Ext::AppTypes::WEB
+
+                # Set analytics sample rate
+                if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+                  Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+                end
+
+                # Measure service stats
+                Contrib::Analytics.set_measured(span)
+
+                span.set_tag(Ext::TAG_CHANNEL_CLASS, channel.class.to_s)
+
+                yield
+              end
             end
           end
         end

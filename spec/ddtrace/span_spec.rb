@@ -1,3 +1,4 @@
+# typed: ignore
 require 'spec_helper'
 require 'ddtrace/ext/forced_tracing'
 require 'ddtrace/span'
@@ -19,7 +20,33 @@ RSpec.describe Datadog::Span do
   end
 
   after do
-    Datadog.configuration.reset!
+    without_warnings { Datadog.configuration.reset! }
+  end
+
+  describe '#initialize' do
+    context 'resource' do
+      context 'with no value provided' do
+        it 'defaults to name' do
+          expect(span.resource).to eq(name)
+        end
+      end
+
+      context 'with nil' do
+        let(:span_options) { { resource: nil } }
+
+        it 'respects the explicitly provided nil' do
+          expect(span.resource).to be_nil
+        end
+      end
+
+      context 'with a value' do
+        let(:span_options) { { resource: 'my resource' } }
+
+        it 'honors provided value' do
+          expect(span.resource).to eq('my resource')
+        end
+      end
+    end
   end
 
   context 'ids' do
@@ -199,7 +226,7 @@ RSpec.describe Datadog::Span do
     let(:duration_wall_time) { 0.0001 }
 
     context 'without start or end time provided' do
-      let(:static_time) { Time.new('2010-09-16 00:03:15 +0200') }
+      let(:static_time) { Time.utc(2010, 9, 15, 22, 3, 15) }
 
       before do
         # We set the same time no matter what.
@@ -210,18 +237,14 @@ RSpec.describe Datadog::Span do
       end
 
       it 'uses monotonic time' do
-        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1.0')
-          skip('monotonic time not supported')
-        else
-          span.start
-          sleep(0.0002)
-          span.finish
-          expect((subject.to_f * 1e9).to_i).to be > 0
+        span.start
+        sleep(0.0002)
+        span.finish
+        expect((subject.to_f * 1e9).to_i).to be > 0
 
-          expect(span.end_time).to eq static_time
-          expect(span.start_time).to eq static_time
-          expect(span.end_time - span.start_time).to eq 0
-        end
+        expect(span.end_time).to eq static_time
+        expect(span.start_time).to eq static_time
+        expect(span.end_time - span.start_time).to eq 0
       end
     end
 
@@ -275,9 +298,9 @@ RSpec.describe Datadog::Span do
         end
       end
 
-      after { Datadog.configuration.reset! }
+      after { without_warnings { Datadog.configuration.reset! } }
 
-      let(:time_now) { ::Time.new(2020, 1, 1) }
+      let(:time_now) { ::Time.utc(2020, 1, 1) }
 
       it 'sets the start time to the provider time' do
         span.start
@@ -429,9 +452,30 @@ RSpec.describe Datadog::Span do
       end
     end
 
+    context 'given _dd.hostname' do
+      let(:key) { '_dd.hostname' }
+      let(:value) { 1 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given _dd.origin' do
+      let(:key) { '_dd.origin' }
+      let(:value) { 2 }
+
+      it_behaves_like 'meta tag'
+    end
+
     context 'given http.status_code' do
       let(:key) { 'http.status_code' }
       let(:value) { 200 }
+
+      it_behaves_like 'meta tag'
+    end
+
+    context 'given version' do
+      let(:key) { 'version' }
+      let(:value) { 3 }
 
       it_behaves_like 'meta tag'
     end
@@ -663,7 +707,9 @@ RSpec.describe Datadog::Span do
       expect(span).to have_error
       expect(span).to have_error_message('oops')
       expect(span).to have_error_type('RuntimeError')
-      expect(span).to have_error_stack(backtrace.join($RS))
+      backtrace.each do |method|
+        expect(span).to have_error_stack(include(method))
+      end
     end
   end
 

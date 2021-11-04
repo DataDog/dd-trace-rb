@@ -25,7 +25,7 @@ echo "== Building Rack images... =="
 if [ -v APP_RUBY_VERSION ]; then
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-rack .
 else
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.0 -t datadog/dd-apm-demo:rb-2.0-rack .
+  # UPDATE-ME-WITH-NEW-RUBIES
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.1 -t datadog/dd-apm-demo:rb-2.1-rack .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.2 -t datadog/dd-apm-demo:rb-2.2-rack .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.3 -t datadog/dd-apm-demo:rb-2.3-rack .

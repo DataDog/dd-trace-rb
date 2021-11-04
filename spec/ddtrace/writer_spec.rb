@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -41,6 +42,18 @@ RSpec.describe Datadog::Writer do
               end
               expect(writer.priority_sampler).to be(sampler)
             end
+          end
+        end
+
+        context 'with agent_settings' do
+          let(:agent_settings) { double('AgentSettings') }
+
+          let(:options) { { agent_settings: agent_settings } }
+
+          it 'configures the transport using the agent_settings' do
+            expect(Datadog::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
+
+            writer
           end
         end
       end
@@ -218,7 +231,7 @@ RSpec.describe Datadog::Writer do
           let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
 
           before do
-            allow(Datadog::Runtime::Socket).to receive(:hostname).and_return(hostname)
+            allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
             allow(response).to receive(:ok?).and_return(true)
             allow(response).to receive(:server_error?).and_return(false)
             allow(response).to receive(:internal_error?).and_return(false)
@@ -227,7 +240,7 @@ RSpec.describe Datadog::Writer do
           context 'enabled' do
             before { Datadog.configuration.report_hostname = true }
 
-            after { Datadog.configuration.reset! }
+            after { without_warnings { Datadog.configuration.reset! } }
 
             it do
               expect(transport).to receive(:send_traces) do |traces|
@@ -243,7 +256,7 @@ RSpec.describe Datadog::Writer do
           context 'disabled' do
             before { Datadog.configuration.report_hostname = false }
 
-            after { Datadog.configuration.reset! }
+            after { without_warnings { Datadog.configuration.reset! } }
 
             it do
               expect(writer.transport).to receive(:send_traces) do |traces|

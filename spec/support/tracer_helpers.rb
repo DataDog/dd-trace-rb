@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 require 'support/faux_writer'
@@ -161,6 +162,6 @@ module TracerHelpers
       @tracer = nil
     end
 
-    Datadog.send(:reset!)
+    without_warnings { Datadog.send(:reset!) }
   end
 end

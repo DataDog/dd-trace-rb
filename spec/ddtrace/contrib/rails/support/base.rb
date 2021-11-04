@@ -1,3 +1,4 @@
+# typed: ignore
 require 'rails/all'
 require 'ddtrace'
 
@@ -7,6 +8,7 @@ if ENV['USE_SIDEKIQ']
 end
 
 require 'lograge' if ENV['USE_LOGRAGE'] == true
+require 'rails_semantic_logger' if ENV['USE_SEMANTIC_LOGGER'] == true
 
 RSpec.shared_context 'Rails base application' do
   if Rails.version >= '6.0'
@@ -33,7 +35,6 @@ RSpec.shared_context 'Rails base application' do
 
   let(:initialize_block) do
     middleware = rails_middleware
-    debug_mw = debug_middleware
     logger = self.logger
 
     proc do
@@ -42,6 +43,14 @@ RSpec.shared_context 'Rails base application' do
       if Rails.version >= '3.2' && (ENV['USE_TAGGED_LOGGING'] == true)
         config.log_tags = ENV['LOG_TAGS'] || []
         config.logger = ActiveSupport::TaggedLogging.new(logger)
+      end
+
+      # ActiveSupport::TaggedLogging was introduced in 3.2
+      # https://github.com/rails/rails/blob/3-2-stable/activesupport/CHANGELOG.md#rails-320-january-20-2012
+      if Rails.version >= '3.2' && (ENV['USE_SEMANTIC_LOGGER'] == true)
+        config.log_tags = ENV['LOG_TAGS'] || {}
+        config.rails_semantic_logger.add_file_appender = false
+        config.semantic_logger.add_appender(logger: logger)
       end
 
       if ENV['USE_LOGRAGE'] == true
@@ -62,7 +71,6 @@ RSpec.shared_context 'Rails base application' do
         config.lograge.keep_original_rails_log = true
       end
 
-      config.middleware.insert_after ActionDispatch::ShowExceptions, debug_mw
       middleware.each { |m| config.middleware.use m }
     end
   end
@@ -82,6 +90,26 @@ RSpec.shared_context 'Rails base application' do
 
       # Force connection to initialize, and dump some spans
       application_record.connection
+
+      # Skip default Rails exception page rendering.
+      # This avoid polluting the trace under test
+      # with render and partial_render templates for the
+      # error page.
+      #
+      # We could completely disable the {DebugExceptions} middleware,
+      # but that affects Rails' internal error propagation logic.
+      # render_for_browser_request(request, wrapper)
+      if Rails.version >= '3.2'
+        allow_any_instance_of(::ActionDispatch::DebugExceptions).to receive(:render_exception) do |this, env, exception|
+          wrapper = ::ActionDispatch::ExceptionWrapper.new(env, exception)
+
+          if Rails.version < '4.0'
+            this.send(:render, wrapper.status_code, 'Test error response body')
+          else
+            this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
+          end
+        end
+      end
     end
   end
 end

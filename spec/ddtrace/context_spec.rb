@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -293,6 +294,10 @@ RSpec.describe Datadog::Context do
           subject
           expect(context).to have_received(:annotate_for_flush!)
         end
+
+        context 'and a block' do
+          it { expect { |b| context.get(&b) }.to yield_with_args(trace) }
+        end
       end
     end
   end
@@ -335,6 +340,25 @@ RSpec.describe Datadog::Context do
 
         it { is_expected.to be span }
       end
+    end
+  end
+
+  describe '#current_span_and_root_span' do
+    subject(:current_span_and_root_span) { context.current_span_and_root_span }
+
+    let(:span) { Datadog::Span.new(tracer, 'span', context: context) }
+    let(:root_span) { Datadog::Span.new(tracer, 'root span', context: context) }
+
+    it 'returns the current span as well as the current root span' do
+      context.add_span(root_span)
+      context.add_span(span)
+
+      current_span, current_root_span = current_span_and_root_span
+
+      expect(current_span).to be span
+      expect(current_span).to be context.current_span
+      expect(current_root_span).to be root_span
+      expect(current_root_span).to be context.current_root_span
     end
   end
 
@@ -417,6 +441,56 @@ RSpec.describe Datadog::Context do
 
       it do
         expect(root_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority)
+      end
+    end
+  end
+
+  describe '#attach_sampling_priority' do
+    subject(:attach_sampling_priority) { context.attach_sampling_priority(span) }
+    let(:span) { instance_double(Datadog::Span) }
+
+    before { allow(span).to receive(:set_metric) }
+
+    context 'when origin is set' do
+      let(:sampling_priority) { 99 }
+
+      before do
+        context.sampling_priority = sampling_priority
+        attach_sampling_priority
+      end
+
+      it do
+        expect(span)
+          .to have_received(:set_metric)
+          .with(
+            Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+            sampling_priority
+          )
+      end
+    end
+  end
+
+  describe '#attach_origin' do
+    subject(:attach_origin) { context.attach_origin(span) }
+    let(:span) { instance_double(Datadog::Span) }
+
+    before { allow(span).to receive(:set_tag) }
+
+    context 'when origin is set' do
+      let(:origin) { 'my-origin' }
+
+      before do
+        context.origin = origin
+        attach_origin
+      end
+
+      it do
+        expect(span)
+          .to have_received(:set_tag)
+          .with(
+            Datadog::Ext::DistributedTracing::ORIGIN_KEY,
+            origin
+          )
       end
     end
   end

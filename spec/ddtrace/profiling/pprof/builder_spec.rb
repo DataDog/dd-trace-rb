@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/profiling'
@@ -6,7 +7,7 @@ require 'ddtrace/profiling/pprof/builder'
 
 RSpec.describe Datadog::Profiling::Pprof::Builder do
   before do
-    skip 'Profiling is not supported.' unless Datadog::Profiling.supported?
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
   end
 
   subject(:builder) { described_class.new }
@@ -19,19 +20,6 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   def string_id_for(string)
     builder.string_table.fetch(string)
-  end
-
-  describe '#initialize' do
-    it do
-      is_expected.to have_attributes(
-        functions: kind_of(Datadog::Profiling::Pprof::MessageSet),
-        locations: kind_of(Datadog::Profiling::Pprof::MessageSet),
-        mappings: kind_of(Datadog::Profiling::Pprof::MessageSet),
-        sample_types: kind_of(Datadog::Profiling::Pprof::MessageSet),
-        samples: [],
-        string_table: kind_of(Datadog::Profiling::Pprof::StringTable)
-      )
-    end
   end
 
   describe '#encode_profile' do
@@ -57,7 +45,10 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
   end
 
   describe '#build_profile' do
-    subject(:build_profile) { builder.build_profile }
+    let(:start) { Time.utc(2022) }
+    let(:finish) { Time.utc(2023) }
+
+    subject(:build_profile) { builder.build_profile(start: start, finish: finish) }
 
     before do
       expect(Perftools::Profiles::Profile)
@@ -66,9 +57,11 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
           sample_type: builder.sample_types.messages,
           sample: builder.samples,
           mapping: builder.mappings.messages,
-          location: builder.locations.messages,
+          location: builder.locations.values,
           function: builder.functions.messages,
-          string_table: builder.string_table.strings
+          string_table: builder.string_table.strings,
+          time_nanos: start.to_i * 1_000_000_000,
+          duration_nanos: (finish - start).to_i * 1_000_000_000,
         )
         .and_call_original
     end
@@ -98,27 +91,13 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
     let(:backtrace_locations) { Thread.current.backtrace_locations.first(3) }
     let(:length) { backtrace_locations.length }
 
-    let(:expected_locations) do
-      backtrace_locations.each_with_object({}) do |loc, map|
-        key = [loc.path, loc.lineno, loc.base_label]
-        # Use double instead of instance_double because protobuf doesn't define verifiable methods
-        map[key] = double('Perftools::Profiles::Location')
-      end
-    end
-
-    before do
-      expect(builder.locations).to receive(:fetch).at_least(backtrace_locations.length).times do |*args, &block|
-        expect(expected_locations).to include(args)
-        expect(block.source_location).to eq(builder.method(:build_location).source_location)
-        expected_locations[args]
-      end
-    end
-
     context 'given backtrace locations matching length' do
-      it do
-        is_expected.to be_a_kind_of(Array)
-        is_expected.to have(backtrace_locations.length).items
-        is_expected.to include(*expected_locations.values)
+      it { is_expected.to be_a_kind_of(Array) }
+      it { is_expected.to have(backtrace_locations.length).items }
+
+      it 'converts the BacktraceLocations to matching Perftools::Profiles::Location objects' do
+        # Lines are the simplest to compare, since they aren't converted to ids
+        expect(build_locations.map { |location| location.to_h[:line].first[:line] }).to eq backtrace_locations.map(&:lineno)
       end
     end
 
@@ -128,56 +107,47 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
       let(:omitted_location) { double('Perftools::Profiles::Location') }
 
       before do
-        expected_locations[['', 0, "#{omitted} #{described_class::DESC_FRAMES_OMITTED}"]] = omitted_location
+        omitted_backtrace_location =
+          Datadog::Profiling::BacktraceLocation.new('', 0, "#{omitted} #{described_class::DESC_FRAMES_OMITTED}")
+
+        builder.locations[omitted_backtrace_location] = omitted_location
       end
 
-      it do
-        is_expected.to be_a_kind_of(Array)
-        is_expected.to have(backtrace_locations.length + 1).items
-        is_expected.to include(*expected_locations.values)
-        expect(build_locations.last).to be(omitted_location)
+      it { is_expected.to have(backtrace_locations.length + 1).items }
+
+      it 'converts the BacktraceLocations to matching Perftools::Profiles::Location objects' do
+        expect(build_locations[0..-2].map { |location| location.to_h[:line].first[:line] })
+          .to eq backtrace_locations.map(&:lineno)
+      end
+
+      it 'adds a placeholder frame as the last element to indicate the omitted frames' do
+        expect(build_locations.last).to be omitted_location
       end
     end
   end
 
   describe '#build_location' do
-    subject(:build_location) { builder.build_location(id, filename, line_number) }
-
-    let(:id) { id_sequence.next }
-    let(:filename) { double('filename') }
-    let(:line_number) { rand_int }
-
-    # Use double instead of instance_double because protobuf doesn't define verifiable methods
-    let(:function) { double('Perftools::Profiles::Function', id: id_sequence.next) }
-
-    before do
-      expect(builder.functions).to receive(:fetch) do |*args, &block|
-        expect(args).to eq([filename, nil])
-        expect(block.source_location).to eq(builder.method(:build_function).source_location)
-        function
-      end
+    subject(:build_location) do
+      builder.build_location(location_id, Datadog::Profiling::BacktraceLocation.new(function_name, line_number, filename))
     end
 
-    context 'given no function name' do
-      it do
-        is_expected.to be_a_kind_of(Perftools::Profiles::Location)
-        is_expected.to have_attributes(
-          id: id,
-          line: array_including(kind_of(Perftools::Profiles::Line))
-        )
-        expect(build_location.line).to have(1).items
-      end
+    let(:location_id) { rand_int }
+    let(:line_number) { rand_int }
+    let(:function_name) { 'the_function_name' }
+    let(:filename) { 'the_file_name.rb' }
 
-      describe 'returns a Location with Line that' do
-        subject(:line) { build_location.line.first }
+    it 'creates a new Perftools::Profiles::Location object with the contents of the BacktraceLocation' do
+      function = double('Function', id: rand_int)
 
-        it do
-          is_expected.to have_attributes(
-            function_id: function.id,
-            line: line_number
-          )
-        end
-      end
+      expect(Perftools::Profiles::Function)
+        .to receive(:new).with(hash_including(filename: string_id_for(filename), name: string_id_for(function_name)))
+                         .and_return(function)
+
+      expect(build_location).to be_a_kind_of(Perftools::Profiles::Location)
+      expect(build_location.to_h).to match(hash_including(id: location_id,
+                                                          line: [{
+                                                            function_id: function.id, line: line_number
+                                                          }]))
     end
   end
 

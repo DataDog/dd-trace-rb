@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/transport/http/builder'
@@ -12,11 +13,50 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
   end
 
   describe '#adapter' do
+    context 'given AgentSettings' do
+      subject(:adapter) { builder.adapter(config) }
+
+      let(:config) do
+        Datadog::Configuration::AgentSettingsResolver::AgentSettings.new(
+          adapter: config_adapter,
+          ssl: nil,
+          hostname: nil,
+          port: nil,
+          uds_path: nil,
+          timeout_seconds: nil,
+          deprecated_for_removal_transport_configuration_proc: nil,
+          deprecated_for_removal_transport_configuration_options: nil,
+        )
+      end
+      let(:config_adapter) { :adapter_foo }
+
+      context 'that matches an adapter in the registry' do
+        let(:adapter_class) { double('adapter class') }
+        let(:adapter_object) { double('adapter object') }
+
+        before do
+          allow(described_class::REGISTRY).to receive(:get).with(config_adapter).and_return(adapter_class)
+
+          expect(adapter_class).to receive(:build).with(config).and_return(adapter_object)
+        end
+
+        it 'changes the default adapter' do
+          is_expected.to be adapter_object
+          expect(builder.default_adapter).to be adapter_object
+        end
+      end
+
+      context 'that does not match an adapter in the registry' do
+        it { expect { adapter }.to raise_error(described_class::UnknownAdapterError) }
+      end
+    end
+
     context 'given a symbol' do
       subject(:adapter) { builder.adapter(type, *args) }
 
       let(:type) { :foo }
       let(:args) { [double('arg1'), double('arg2')] }
+      let(:kwargs) { {} }
 
       context 'that matches an adapter in the registry' do
         let(:adapter_class) { double('adapter class') }
@@ -28,7 +68,7 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
             .and_return(adapter_class)
 
           expect(adapter_class).to receive(:new)
-            .with(*args)
+            .with(*args, **kwargs)
             .and_return(adapter_object)
         end
 

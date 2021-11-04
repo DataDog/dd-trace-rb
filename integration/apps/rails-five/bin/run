@@ -1,23 +1,24 @@
 #!/usr/bin/env ruby
 
-# Start demo process
-puts "\n== Starting demo process =="
+require '/vendor/dd-demo/build_ddtrace_profiling_native_extension' if ENV['DD_DEMO_ENV_BUILD_PROFILING_EXTENSION'] == 'true'
 
-profiling = Datadog::DemoEnv.feature?('profiling') ? 'DD_PROFILING_ENABLED=true ddtracerb exec ' : ''
+# Start application process
+puts "\n== Starting application process =="
+
 process = (ARGV[0] || Datadog::DemoEnv.process)
 command = case process
           when 'puma'
-            "bundle exec #{profiling}puma -C /app/config/puma.rb"
+            "bundle exec ddtracerb exec puma -C /app/config/puma.rb"
           when 'unicorn'
-            "bundle exec #{profiling}unicorn -c /app/config/unicorn.rb"
+            "bundle exec ddtracerb exec unicorn -c /app/config/unicorn.rb"
           when 'console'
-            "bundle exec #{profiling}rails c"
+            "bundle exec ddtracerb exec rails c"
           when 'irb'
-            "bundle exec #{profiling}irb"
+            "bundle exec ddtracerb exec irb"
           when nil, ''
-            abort("\n== ERROR: Must specify a demo process! ==")
+            abort("\n== ERROR: Must specify a application process! ==")
           else
-            abort("\n== ERROR: Unknown demo process '#{process}' ==")
+            abort("\n== ERROR: Unknown application process '#{process}' ==")
           end
 
 puts "Run: #{command}"

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/active_support/notifications/event'
 
 module Datadog
@@ -6,8 +7,8 @@ module Datadog
       # Defines basic behavior for an ActionView event.
       module Event
         def self.included(base)
-          base.send(:include, ActiveSupport::Notifications::Event)
-          base.send(:extend, ClassMethods)
+          base.include(ActiveSupport::Notifications::Event)
+          base.extend(ClassMethods)
         end
 
         # Class methods for ActionView events.

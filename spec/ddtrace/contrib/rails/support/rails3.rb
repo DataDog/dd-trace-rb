@@ -1,3 +1,4 @@
+# typed: ignore
 require 'rails/all'
 
 require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
@@ -13,15 +14,13 @@ require 'ddtrace/contrib/rails/support/models'
 
 # Patch Rails::Application so it doesn't raise an exception
 # when we reinitialize applications.
-Rails::Application.class_eval do
-  class << self
-    def inherited(base)
-      # raise "You cannot have more than one Rails::Application" if Rails.application
-      super
-      Rails.application = base.instance
-      Rails.application.add_lib_to_load_path!
-      ActiveSupport.run_load_hooks(:before_configuration, base.instance)
-    end
+Rails::Application.singleton_class.class_eval do
+  def inherited(base)
+    # raise "You cannot have more than one Rails::Application" if Rails.application
+    super
+    Rails.application = base.instance
+    Rails.application.add_lib_to_load_path!
+    ActiveSupport.run_load_hooks(:before_configuration, base.instance)
   end
 end
 
@@ -44,7 +43,6 @@ RSpec.shared_context 'Rails 3 base application' do
       config.action_view.javascript_expansions = {}
       config.action_view.stylesheet_expansions = {}
 
-      config.middleware.delete ActionDispatch::DebugExceptions if Rails.version >= '3.2.22.5'
       instance_eval(&during_init)
     end
 
@@ -60,14 +58,14 @@ RSpec.shared_context 'Rails 3 base application' do
     klass.send(:define_method, :test_initialize!) do
       # we want to disable explicit instrumentation
       # when testing auto patching
-      if ENV['TEST_AUTO_INSTRUMENT'] != true
+      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
+        require 'ddtrace/auto_instrument'
+      else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
           c.use :rails
           c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
         end
-      else
-        require 'ddtrace/auto_instrument'
       end
 
       before_test_init.call

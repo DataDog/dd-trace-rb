@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Tasks
     # Prints help message for usage of `ddtrace`

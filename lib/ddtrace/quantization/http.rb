@@ -1,3 +1,4 @@
+# typed: true
 require 'uri'
 require 'set'
 
@@ -5,6 +6,8 @@ module Datadog
   module Quantization
     # Quantization for HTTP resources
     module HTTP
+      include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
       PLACEHOLDER = '?'.freeze
 
       module_function

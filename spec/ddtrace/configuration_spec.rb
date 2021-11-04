@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'datadog/statsd'
@@ -325,7 +326,7 @@ RSpec.describe Datadog::Configuration do
 
       context 'when the profiler' do
         context 'is not changed' do
-          before { skip 'Profiling is not supported.' unless Datadog::Profiling.supported? }
+          before { skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby? }
 
           context 'and profiling is enabled' do
             before do
@@ -369,34 +370,6 @@ RSpec.describe Datadog::Configuration do
 
             expect(test_class.runtime_metrics.enabled?).to be true
             expect(test_class.runtime_metrics.running?).to be false
-          end
-        end
-      end
-
-      context 'deprecation warning' do
-        before { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
-
-        after { described_class.const_get('RUBY_VERSION_DEPRECATION_ONLY_ONCE').send(:reset_ran_once_state_for_tests) }
-
-        context 'with a deprecated Ruby version' do
-          before { skip unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1') }
-
-          it 'emits deprecation warning once' do
-            expect(Datadog.logger).to receive(:warn)
-              .with(/Support for Ruby versions < 2\.1 in dd-trace-rb is DEPRECATED/).once
-
-            test_class.configure
-            test_class.configure
-          end
-        end
-
-        context 'with a supported Ruby version' do
-          before { skip if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.1') }
-
-          it 'emits no warnings' do
-            expect(Datadog.logger).to_not receive(:warn)
-
-            configure
           end
         end
       end
@@ -583,6 +556,62 @@ RSpec.describe Datadog::Configuration do
 
         it 'returns nil' do
           expect(safely_synchronize).to be nil
+        end
+      end
+    end
+
+    # NOTE: This spec is a bit too coupled with the implementation, but I couldn't think of a better way (@ivoanjo)
+    describe '#handle_interrupt_shutdown!' do
+      subject(:handle_interrupt_shutdown!) { test_class.send(:handle_interrupt_shutdown!) }
+
+      let(:fake_thread) { instance_double(Thread, 'fake thread') }
+
+      it 'calls #shutdown! in a background thread' do
+        allow(fake_thread).to receive(:join).and_return(fake_thread)
+
+        expect(Thread).to receive(:new) do |&block|
+          expect(test_class).to receive(:shutdown!)
+
+          block.call
+        end.and_return(fake_thread)
+
+        handle_interrupt_shutdown!
+      end
+
+      context 'when #shutdown! is taking longer than the set threshold' do
+        let(:threshold_seconds) { 0.2 }
+
+        before do
+          expect(Thread).to receive(:new).and_return(fake_thread)
+          expect(fake_thread).to receive(:join).with(threshold_seconds).and_return(nil)
+
+          allow(fake_thread).to receive(:join).with(no_args)
+          allow(Datadog.logger).to receive(:info)
+        end
+
+        it 'logs a message' do
+          expect(Datadog.logger).to receive(:info).with(/ctrl\+c/)
+
+          handle_interrupt_shutdown!
+        end
+
+        it 'waits for the background thread to finish its work' do
+          expect(fake_thread).to receive(:join).with(no_args)
+
+          handle_interrupt_shutdown!
+        end
+      end
+
+      context 'when #shutdown! finishes faster than the set threshold' do
+        before do
+          expect(Thread).to receive(:new).and_return(fake_thread)
+          expect(fake_thread).to receive(:join).and_return(fake_thread)
+        end
+
+        it 'does not log a message' do
+          expect(Datadog.logger).to_not receive(:info)
+
+          handle_interrupt_shutdown!
         end
       end
     end

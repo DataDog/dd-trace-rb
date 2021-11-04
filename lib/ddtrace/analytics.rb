@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/analytics'
 
 module Datadog

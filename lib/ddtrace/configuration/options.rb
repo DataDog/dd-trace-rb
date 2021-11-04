@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/configuration/option_set'
 require 'ddtrace/configuration/option_definition'
 require 'ddtrace/configuration/option_definition_set'
@@ -7,8 +8,8 @@ module Datadog
     # Behavior for a configuration object that has options
     module Options
       def self.included(base)
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class behavior for a configuration object with options

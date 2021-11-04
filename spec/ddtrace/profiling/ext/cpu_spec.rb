@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/cpu'
@@ -54,35 +55,69 @@ RSpec.describe Datadog::Profiling::Ext::CPU do
       context 'when running on Linux' do
         before { stub_const('RUBY_PLATFORM', 'x86_64-linux-gnu') }
 
-        context 'when running on MRI < 2.1' do
-          before { stub_const('RUBY_VERSION', '2.0.0') }
+        let(:last_version_of_rollbar_affected) { '3.1.1' }
 
-          it { is_expected.to include 'Ruby >= 2.1' }
-        end
-
-        context 'when running on MRI >= 2.1' do
-          before { stub_const('RUBY_VERSION', '2.1.0') }
-
-          let(:last_version_of_rollbar_affected) { '3.1.1' }
-
-          context 'when incompatible rollbar gem is installed' do
-            before do
-              expect(Gem::Specification)
-                .to receive(:find_all_by_name)
-                .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
-                .and_return([instance_double(Gem::Specification), instance_double(Gem::Specification)])
-            end
-
-            it { is_expected.to include 'rollbar >= 3.1.2' }
+        context 'when incompatible rollbar gem is installed' do
+          before do
+            expect(Gem::Specification)
+              .to receive(:find_all_by_name)
+              .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+              .and_return([instance_double(Gem::Specification), instance_double(Gem::Specification)])
           end
 
-          context 'when compatible rollbar gem is installed or no version at all is installed' do
+          it { is_expected.to include 'rollbar >= 3.1.2' }
+        end
+
+        context 'when compatible rollbar gem is installed or no version at all is installed' do
+          before do
+            # Because we search with a <= requirement, both not installed as well as only compatible versions
+            # installed show up in the API in the same way -- an empty return
+            expect(Gem::Specification)
+              .to receive(:find_all_by_name)
+              .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+              .and_return([])
+          end
+
+          context 'when logging gem is installed' do
             before do
-              # Because we search with a <= requirement, both not installed as well as only compatible versions
-              # installed show up in the API in the same way -- an empty return
               expect(Gem::Specification)
                 .to receive(:find_all_by_name)
-                .with('rollbar', Gem::Requirement.new("<= #{last_version_of_rollbar_affected}"))
+                .with('logging')
+                .and_return([instance_double(Gem::Specification)])
+            end
+
+            around do |example|
+              ClimateControl.modify('LOGGING_INHERIT_CONTEXT' => logging_inherit_context) do
+                example.run
+              end
+            end
+
+            context 'when no LOGGING_INHERIT_CONTEXT is defined' do
+              let(:logging_inherit_context) { nil }
+
+              it { is_expected.to include '`logging` gem' }
+            end
+
+            context 'when LOGGING_INHERIT_CONTEXT is set to any value other than false/no/0 (case-insensitive)' do
+              let(:logging_inherit_context) { 'YesPlease' }
+
+              it { is_expected.to include '`logging` gem' }
+            end
+
+            context 'when LOGGING_INHERIT_CONTEXT is set to false/no/0 (case-insensitive)' do
+              %w[false no FaLsE nO 0].each do |disabled_setting|
+                let(:logging_inherit_context) { disabled_setting }
+
+                it { is_expected.to be nil }
+              end
+            end
+          end
+
+          context 'when logging gem is not installed' do
+            before do
+              expect(Gem::Specification)
+                .to receive(:find_all_by_name)
+                .with('logging')
                 .and_return([])
             end
 

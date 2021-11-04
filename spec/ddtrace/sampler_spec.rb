@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/ext/distributed'
@@ -125,6 +126,34 @@ RSpec.describe Datadog::RateSampler do
   end
 end
 
+RSpec.describe Datadog::RateByKeySampler do
+  subject(:sampler) { described_class.new(default_key, default_rate, &resolver) }
+
+  let(:default_key) { 'default-key' }
+
+  let(:span) { Datadog::Span.new(tracer, 'test-span') }
+  let(:resolver) { ->(span) { span.name } } # Resolve +span.name+ to the lookup key.
+
+  describe '#sample!' do
+    subject(:sample!) { sampler.sample!(span) }
+
+    # For testing purposes, never keep a span by default.
+    # DEV: Setting this to 0 would trigger a safe guard in `RateSampler` and set it to 100% instead.
+    let(:default_rate) { Float::MIN }
+    it { is_expected.to be(false) }
+
+    context 'with a default rate set to keep all spans' do
+      let(:default_rate) { 1.0 }
+      it { is_expected.to be(true) }
+    end
+
+    context 'with a sample rate associated with a key set to keep all spans' do
+      before { sampler.update('test-span', 1.0) }
+      it { is_expected.to be(true) }
+    end
+  end
+end
+
 RSpec.describe Datadog::RateByServiceSampler do
   subject(:sampler) { described_class.new }
 
@@ -234,6 +263,18 @@ RSpec.describe Datadog::RateByServiceSampler do
           )
 
           expect(samplers.keys).to_not include(old_key)
+          expect(health_metrics).to have_received(:sampling_service_cache_length).with(1)
+        end
+      end
+
+      context 'with a default key update' do
+        let(:rate_by_service) { { default_key => 0.123 } }
+        let(:default_key) { 'service:,env:' }
+
+        it 'updates the existing sampler' do
+          update
+
+          expect(samplers).to match('service:,env:' => have_attributes(sample_rate: 0.123))
           expect(health_metrics).to have_received(:sampling_service_cache_length).with(1)
         end
       end

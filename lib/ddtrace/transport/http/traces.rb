@@ -1,3 +1,4 @@
+# typed: false
 require 'json'
 
 require 'ddtrace/transport/traces'
@@ -133,9 +134,9 @@ module Datadog
         end
 
         # Add traces behavior to transport components
-        HTTP::Client.send(:include, Traces::Client)
-        HTTP::API::Spec.send(:include, Traces::API::Spec)
-        HTTP::API::Instance.send(:include, Traces::API::Instance)
+        HTTP::Client.include(Traces::Client)
+        HTTP::API::Spec.include(Traces::API::Spec)
+        HTTP::API::Instance.include(Traces::API::Instance)
       end
     end
   end

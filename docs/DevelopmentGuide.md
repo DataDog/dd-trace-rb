@@ -9,6 +9,8 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Writing tests](#writing-tests)
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
+     - [Running benchmarks](#running-benchmarks)
+     - [Type checking](#type-checking)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
      - [Custom transport adapters](#custom-transport-adapters)
@@ -40,9 +42,7 @@ Then within this container you can [run tests](#running-tests), or [run code qua
 
 ## Testing
 
-The test suite uses both [Minitest](https://github.com/seattlerb/minitest) and [RSpec](https://rspec.info/) tests to verify the correctness of both the core trace library and its integrations.
-
-Minitest is deprecated in favor of RSpec; all new tests should be written in RSpec, and only existing minitests should be updated.
+The test suite uses [RSpec](https://rspec.info/) tests to verify the correctness of both the core trace library and its integrations.
 
 ### Writing tests
 
@@ -66,9 +66,6 @@ Simplest way to run tests is to run `bundle exec rake ci`, which will run the en
 Run the tests for the core library with:
 
 ```
-# Run Minitest
-$ bundle exec rake test:main
-# Run RSpec
 $ bundle exec rake spec:main
 ```
 
@@ -161,6 +158,19 @@ $ bundle exec rake spec:benchmark
 ```
 
 Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
+
+## Type checking
+
+This library uses the [Sorbet](https://sorbet.org/) type checker. Sorbet can be run with `bundle exec srb tc` (or `bundle exec rake
+typecheck`). There's also Language Server Protocol support, if your editor supports it.
+
+Type checking can be controlled on a file-by-file manner, using a `# typed: ...` comment. The default (when none is provided) is assuming `# typed: false`.
+
+Things to note:
+
+* For compatibility with older Rubies, we use Sorbet but do not yet allow type annotations in the codebase. If Sorbet is blocking you, feel free to use `# typed: false` or `# typed: ignore` with a quick note on why this was needed. In many cases, Sorbet can typecheck a file correctly with no extra type annotations.
+
+* Most integration-specific code will reference optional external dependencies which Sorbet cannot see into. You'll probably need to use `# typed: false` or `# typed: ignore`  for those files as well.
 
 ## Appendix
 

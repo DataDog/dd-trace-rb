@@ -1,5 +1,6 @@
+# typed: true
 require 'ddtrace/ext/net'
-require 'ddtrace/runtime/socket'
+require 'datadog/core/environment/socket'
 require 'ddtrace/runtime/metrics'
 require 'ddtrace/utils/only_once'
 
@@ -20,7 +21,8 @@ module Datadog
     def initialize(options = {})
       @transport = options.fetch(:transport) do
         transport_options = options.fetch(:transport_options, {})
-        Transport::HTTP.default(transport_options)
+        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+        Transport::HTTP.default(**transport_options)
       end
 
       @priority_sampler = options.fetch(:priority_sampler, nil)
@@ -59,7 +61,7 @@ module Datadog
 
     def inject_hostname!(trace)
       unless trace.first.nil?
-        hostname = Datadog::Runtime::Socket.hostname
+        hostname = Datadog::Core::Environment::Socket.hostname
         trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
       end
     end

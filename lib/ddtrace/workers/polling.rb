@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/workers/async'
 require 'ddtrace/workers/loop'
 
@@ -8,9 +9,9 @@ module Datadog
       SHUTDOWN_TIMEOUT = 1
 
       def self.included(base)
-        base.send(:include, Workers::IntervalLoop)
-        base.send(:include, Workers::Async::Thread)
-        base.send(:prepend, PrependedMethods)
+        base.include(Workers::IntervalLoop)
+        base.include(Workers::Async::Thread)
+        base.prepend(PrependedMethods)
       end
 
       # Methods that must be prepended
@@ -26,8 +27,14 @@ module Datadog
           stop_loop
           graceful = join(timeout)
 
-          # If timeout and force stop...
-          !graceful && force_stop ? terminate : graceful
+          if !graceful && force_stop
+            Datadog.logger.debug do
+              "Timeout while waiting for worker to finish gracefully, forcing termination for: #{self}"
+            end
+            terminate
+          else
+            graceful
+          end
         else
           false
         end

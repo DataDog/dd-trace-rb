@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/pin'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/app_types'
@@ -13,7 +14,7 @@ module Datadog
         # Instrumentation for Mongo::Client
         module Client
           def self.included(base)
-            base.send(:include, InstanceMethods)
+            base.include(InstanceMethods)
           end
 
           # Instance methods for Mongo::Client
@@ -44,7 +45,7 @@ module Datadog
         # Instrumentation for Mongo::Address
         module Address
           def self.included(base)
-            base.send(:include, InstanceMethods)
+            base.include(InstanceMethods)
           end
 
           # Instance methods for Mongo::Address

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 
@@ -11,7 +12,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
       test_span_name = span_name
 
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
         klass.send(:define_singleton_method, :event_name) { test_event_name }
         klass.send(:define_singleton_method, :span_name) { test_span_name }
         klass.send(:define_singleton_method, :process, &process_block)

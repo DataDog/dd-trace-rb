@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/grpc/ext'
 
@@ -23,6 +24,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::SERVICE_NAME
+          option :error_handler, default: Datadog::Tracer::DEFAULT_ON_ERROR
         end
       end
     end

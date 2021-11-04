@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/presto/configuration/settings'
 require 'ddtrace/contrib/presto/patcher'

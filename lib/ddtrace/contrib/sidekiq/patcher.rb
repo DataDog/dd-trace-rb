@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/patcher'
 
 module Datadog
@@ -33,7 +34,33 @@ module Datadog
             config.server_middleware do |chain|
               chain.add(Sidekiq::ServerTracer)
             end
+
+            patch_server_internals if Integration.compatible_with_server_internal_tracing?
           end
+        end
+
+        def patch_server_internals
+          patch_server_heartbeat
+          patch_server_job_fetch
+          patch_server_scheduled_push
+        end
+
+        def patch_server_heartbeat
+          require 'ddtrace/contrib/sidekiq/server_internal_tracer/heartbeat'
+
+          ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
+        end
+
+        def patch_server_job_fetch
+          require 'ddtrace/contrib/sidekiq/server_internal_tracer/job_fetch'
+
+          ::Sidekiq::Processor.prepend(ServerInternalTracer::JobFetch)
+        end
+
+        def patch_server_scheduled_push
+          require 'ddtrace/contrib/sidekiq/server_internal_tracer/scheduled_push'
+
+          ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPush)
         end
       end
     end

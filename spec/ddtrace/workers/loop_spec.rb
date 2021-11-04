@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/worker'
@@ -59,6 +60,36 @@ RSpec.describe Datadog::Workers::IntervalLoop do
         it 'performs the loop' do
           perform
           expect(@perform_invocations).to eq(perform_limit)
+        end
+      end
+
+      it 'executes the task BEFORE the first sleep' do
+        perform_executed = false
+        allow(worker_spy).to receive(:perform) { perform_executed = true }
+
+        expect(worker.send(:shutdown)).to receive(:wait) {
+          expect(perform_executed).to be true
+          allow(worker_spy).to receive(:perform) { worker.stop_loop }
+        }
+
+        perform
+      end
+
+      context 'when #loop_wait_before_first_iteration? is true' do
+        before do
+          allow(worker).to receive(:loop_wait_before_first_iteration?).and_return(true)
+        end
+
+        it 'executes the task AFTER the first sleep' do
+          perform_executed = false
+          allow(worker_spy).to receive(:perform) { perform_executed = true }
+
+          expect(worker.send(:shutdown)).to receive(:wait) {
+            expect(perform_executed).to be false
+            allow(worker_spy).to receive(:perform) { worker.stop_loop }
+          }
+
+          perform
         end
       end
     end

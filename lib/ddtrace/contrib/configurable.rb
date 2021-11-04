@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/configuration/resolver'
 require 'ddtrace/contrib/configuration/settings'
 
@@ -10,7 +11,7 @@ module Datadog
     # fallback.
     module Configurable
       def self.included(base)
-        base.send(:include, InstanceMethods)
+        base.include(InstanceMethods)
       end
 
       # Configurable instance behavior for integrations

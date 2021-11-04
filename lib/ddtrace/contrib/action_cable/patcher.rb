@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/action_cable/ext'
@@ -20,6 +21,7 @@ module Datadog
         def patch
           Events.subscribe!
           ::ActionCable::Connection::Base.prepend(Instrumentation::ActionCableConnection)
+          ::ActionCable::Channel::Base.include(Instrumentation::ActionCableChannel)
         end
       end
     end

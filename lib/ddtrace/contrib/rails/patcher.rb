@@ -1,8 +1,10 @@
+# typed: ignore
 require 'ddtrace/contrib/rails/utils'
 require 'ddtrace/contrib/rails/framework'
 require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/semantic_logger/patcher'
 require 'ddtrace/utils/only_once'
 
 module Datadog
@@ -43,32 +45,42 @@ module Datadog
         end
 
         def add_middleware(app)
-          # Add trace middleware
+          # Add trace middleware at the top of the middleware stack,
+          # to ensure we capture the complete execution time.
           app.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
 
-          # Insert right after Rails exception handling middleware, because if it's before,
-          # it catches and swallows the error. If it's too far after, custom middleware can find itself
-          # between, and raise exceptions that don't end up getting tagged on the request properly.
-          # e.g lost stack trace.
-          app.middleware.insert_after(
-            ActionDispatch::ShowExceptions,
-            Datadog::Contrib::Rails::ExceptionMiddleware
-          )
+          # Some Rails middleware can swallow an application error, preventing
+          # the error propagation to the encompassing Rack span.
+          #
+          # We insert our own middleware right before these Rails middleware
+          # have a chance to swallow the error.
+          #
+          # Note: because the middleware stack is push/pop, "before" and "after" are reversed
+          # for our use case: we insert ourselves with "after" a middleware to ensure we are
+          # able to pop the request "before" it.
+          if defined?(::ActionDispatch::DebugExceptions)
+            # Rails >= 3.2
+            app.middleware.insert_after(::ActionDispatch::DebugExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
+          else
+            # Rails < 3.2
+            app.middleware.insert_after(::ActionDispatch::ShowExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
+          end
         end
 
         def add_logger(app)
           should_warn = true
           # check if lograge key exists
           # Note: Rails executes initializers sequentially based on alphabetical order,
-          # and lograge config could occur after dd config.
-          # Checking for `app.config.lograge.enabled` may yield a false negative.
-          # Instead we should naively add custom options if `config.lograge` exists from the lograge Railtie,
-          # since the custom options get ignored without lograge explicitly being enabled.
-          # See: https://github.com/roidrage/lograge/blob/1729eab7956bb95c5992e4adab251e4f93ff9280/lib/lograge/railtie.rb#L7-L12
-          if app.config.respond_to?(:lograge)
-            Datadog::Contrib::Rails::LogInjection.add_lograge_logger(app)
-            should_warn = false
-          end
+          # and lograge config could occur after datadog config.
+          # So checking for `app.config.lograge.enabled` may yield a false negative,
+          # and adding custom options naively if `config.lograge` exists from the lograge Railtie,
+          # is inconsistent since a lograge initializer would override it.
+          # Instead, we patch Lograge `custom_options` internals directly
+          # as part of Rails framework patching
+          # and just flag off the warning log here.
+          # SemanticLogger we similarly patch in the after_initiaize block, and should flag
+          # off the warning log here if we know we'll patch this gem later.
+          should_warn = false if app.config.respond_to?(:lograge) || defined?(::SemanticLogger)
 
           # if lograge isn't set, check if tagged logged is enabled.
           # if so, add proc that injects trace identifiers for tagged logging.

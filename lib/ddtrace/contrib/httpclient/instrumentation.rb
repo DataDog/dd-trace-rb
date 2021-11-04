@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/net'
@@ -12,7 +13,7 @@ module Datadog
       # Instrumentation for Httpclient
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for configuration

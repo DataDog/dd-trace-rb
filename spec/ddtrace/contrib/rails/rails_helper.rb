@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 
 require 'logger'
@@ -133,8 +134,8 @@ logger.info "Testing against Rails #{Rails.version} with adapter '#{adapter}'"
 # ### Rails application lifecycle ###
 #
 # This implementation of Rails testing works differently than other testing suites.
-# Unlike the Minitest suite in `ddtrace`, it does not create only one Rails application at
-# load time. Instead it dynamically recreates Rails applications per example. This is how
+# It does not create only one Rails application at load time.
+# Instead it dynamically recreates Rails applications per example. This is how
 # it is able to allow specs to define custom middleware and Rails configuration settings.
 #
 # To accomplish this, it uses RSpec's `let` blocks. `let` blocks are lazy variables that are

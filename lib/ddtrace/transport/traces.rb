@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/transport/parcel'
 require 'ddtrace/transport/request'
 require 'ddtrace/chunker'
@@ -7,7 +8,7 @@ module Datadog
     module Traces
       # Data transfer object for encoded traces
       class EncodedParcel
-        include Transport::Parcel
+        include Datadog::Transport::Parcel
 
         attr_reader :trace_count
 
@@ -22,7 +23,7 @@ module Datadog
       end
 
       # Traces request
-      class Request < Transport::Request
+      class Request < Datadog::Transport::Request
       end
 
       # Traces response

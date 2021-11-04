@@ -1,9 +1,10 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
-  subject(:adapter) { described_class.new(hostname, port, options) }
+  subject(:adapter) { described_class.new(hostname, port, **options) }
 
   let(:hostname) { double('hostname') }
   let(:port) { double('port') }

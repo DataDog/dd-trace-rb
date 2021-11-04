@@ -1,3 +1,4 @@
+# typed: false
 require 'uri'
 
 # NOTE: This code is copied directly from Redis.

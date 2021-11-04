@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/kafka/ext'
@@ -8,8 +9,8 @@ module Datadog
       # Defines basic behaviors for an ActiveSupport event.
       module Event
         def self.included(base)
-          base.send(:include, ActiveSupport::Notifications::Event)
-          base.send(:extend, ClassMethods)
+          base.include(ActiveSupport::Notifications::Event)
+          base.extend(ClassMethods)
         end
 
         # Class methods for Kafka events.

@@ -1,3 +1,4 @@
+# typed: false
 module SpanHelpers
   RSpec::Matchers.define :have_error do
     match do |span|
@@ -62,6 +63,18 @@ module SpanHelpers
 
     failure_message do
       @matcher.failure_message
+    end
+  end
+
+  # Span with the metric '_dd.measured' set to 1.0.
+  RSpec::Matchers.define :be_measured do
+    match do |span|
+      value = span.get_metric('_dd.measured')
+      values_match? 1.0, value
+    end
+
+    def description_of(actual)
+      "#{actual} with metrics #{actual.instance_variable_get(:@metrics)}"
     end
   end
 end

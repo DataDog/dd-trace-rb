@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -61,16 +62,8 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
   end
 
-  def suppress_warnings
-    original_verbosity = $VERBOSE
-    $VERBOSE = nil
-    yield
-  ensure
-    $VERBOSE = original_verbosity
-  end
-
   around do |example|
-    suppress_warnings do
+    without_warnings do
       Datadog.registry[:presto].reset_configuration!
       example.run
       Datadog.registry[:presto].reset_configuration!

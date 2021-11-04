@@ -1,10 +1,11 @@
+# typed: false
 module Datadog
   module Contrib
     # Base provides features that are shared across all integrations
     module Patchable
       def self.included(base)
-        base.send(:extend, ClassMethods)
-        base.send(:include, InstanceMethods)
+        base.extend(ClassMethods)
+        base.include(InstanceMethods)
       end
 
       # Class methods for integrations

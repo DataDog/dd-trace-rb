@@ -1,9 +1,10 @@
+# typed: false
 require 'spec_helper'
 require 'ddtrace'
 require 'ddtrace/runtime/metrics'
 
 RSpec.describe Datadog::Runtime::Metrics do
-  subject(:runtime_metrics) { described_class.new(options) }
+  subject(:runtime_metrics) { described_class.new(**options) }
 
   let(:options) { {} }
 
@@ -37,7 +38,7 @@ RSpec.describe Datadog::Runtime::Metrics do
       context 'with internal span' do
         it 'registers the span\'s service' do
           expect(runtime_metrics.default_metric_options[:tags]).to include("service:#{service}")
-          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Runtime::Identity.lang)
+          expect(span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to eq(Datadog::Core::Environment::Identity.lang)
         end
       end
 
@@ -147,13 +148,13 @@ RSpec.describe Datadog::Runtime::Metrics do
     shared_examples_for 'a flush of all runtime metrics' do
       context 'including ClassCount' do
         it_behaves_like 'runtime metric flush',
-                        Datadog::Runtime::ClassCount,
+                        Datadog::Core::Environment::ClassCount,
                         Datadog::Ext::Runtime::Metrics::METRIC_CLASS_COUNT
       end
 
       context 'including ThreadCount' do
         it_behaves_like 'runtime metric flush',
-                        Datadog::Runtime::ThreadCount,
+                        Datadog::Core::Environment::ThreadCount,
                         Datadog::Ext::Runtime::Metrics::METRIC_THREAD_COUNT
       end
 
@@ -166,6 +167,38 @@ RSpec.describe Datadog::Runtime::Metrics do
           runtime_metrics.gc_metrics.each_key do |metric_name|
             expect(runtime_metrics).to have_received(:gauge)
               .with(metric_name, kind_of(Numeric))
+              .once
+          end
+        end
+      end
+
+      context 'including VMCache stats' do
+        before do
+          skip('This feature is only supported in CRuby') unless PlatformHelpers.mri?
+
+          allow(runtime_metrics).to receive(:gauge)
+        end
+
+        context 'with Ruby < 3', if: RUBY_VERSION < '3.0.0' do
+          it 'records global cache counters' do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Ext::Runtime::Metrics::METRIC_GLOBAL_CONSTANT_STATE, kind_of(Numeric))
+              .once
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Ext::Runtime::Metrics::METRIC_GLOBAL_METHOD_STATE, kind_of(Numeric))
+              .once
+          end
+        end
+
+        context 'with Ruby >= 3', if: RUBY_VERSION >= '3.0.0' do
+          it 'records constant cache counter' do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Ext::Runtime::Metrics::METRIC_GLOBAL_CONSTANT_STATE, kind_of(Numeric))
               .once
           end
         end

@@ -1,3 +1,4 @@
+# typed: ignore
 require 'rails/all'
 
 require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
@@ -37,9 +38,9 @@ RSpec.shared_context 'Rails 4 base application' do
       config.consider_all_requests_local = true
       config.active_support.test_order = :random
 
-      config.middleware.delete ActionDispatch::DebugExceptions
       instance_eval(&during_init)
 
+      config.active_job.queue_adapter = :inline
       if ENV['USE_SIDEKIQ']
         config.active_job.queue_adapter = :sidekiq
         # add Sidekiq middleware
@@ -57,17 +58,21 @@ RSpec.shared_context 'Rails 4 base application' do
     klass.send(:define_method, :test_initialize!) do
       # we want to disable explicit instrumentation
       # when testing auto patching
-      if ENV['TEST_AUTO_INSTRUMENT'] != true
+      if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
+        require 'ddtrace/auto_instrument'
+      else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
           c.use :rails
           c.use :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
         end
-      else
-        require 'ddtrace/auto_instrument'
       end
 
-      Rails.application.config.active_job.queue_adapter = :sidekiq
+      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                            :sidekiq
+                                                          else
+                                                            :inline
+                                                          end
 
       before_test_init.call
       initialize!

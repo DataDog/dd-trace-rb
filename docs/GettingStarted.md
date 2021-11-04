@@ -28,8 +28,10 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Integration instrumentation](#integration-instrumentation)
      - [Action Cable](#action-cable)
      - [Action View](#action-view)
+     - [Action Mailer](#action-mailer)
      - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
+     - [Active Job](#active-job)
      - [Active Record](#active-record)
      - [Active Support](#active-support)
      - [AWS](#aws)
@@ -44,12 +46,12 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Grape](#grape)
      - [GraphQL](#graphql)
      - [gRPC](#grpc)
-     - [http.rb](#http-rb)
+     - [http.rb](#httprb)
      - [httpclient](#httpclient)
      - [httpx](#httpx)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
-     - [Net/HTTP](#net-http)
+     - [Net/HTTP](#nethttp)
      - [Presto](#presto)
      - [Qless](#qless)
      - [Que](#que)
@@ -71,7 +73,9 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Tracer settings](#tracer-settings)
      - [Custom logging](#custom-logging)
      - [Environment and tags](#environment-and-tags)
+     - [Environment variables](#environment-variables)
      - [Sampling](#sampling)
+         - [Application-side sampling](#application-side-sampling)
          - [Priority sampling](#priority-sampling)
      - [Distributed tracing](#distributed-tracing)
      - [HTTP request queuing](#http-request-queuing)
@@ -83,6 +87,12 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Metrics](#metrics)
          - [For application runtime](#for-application-runtime)
      - [OpenTracing](#opentracing)
+     - [Profiling](#profiling)
+         - [Troubleshooting](#troubleshooting)
+         - [Profiling Resque jobs](#profiling-resque-jobs)
+ - [Known issues and suggested configurations](#known-issues-and-suggested-configurations)
+    - [Payload too large](#payload-too-large)
+    - [Stack level too deep](#stack-level-too-deep)
 
 ## Compatibility
 
@@ -98,7 +108,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.3     | Full                                 | Latest              |
 |       |                            | 2.2     | Full                                 | Latest              |
 |       |                            | 2.1     | Full                                 | Latest              |
-|       |                            | 2.0     | Deprecated                           | < 0.50.0            |
+|       |                            | 2.0     | EOL since June 7th, 2021             | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
 | JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
@@ -125,13 +135,18 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 *EOL* indicates support is no longer provided.
 
+### Microsoft Windows support
+
+Using `ddtrace ` on Microsoft Windows is currently unsupported. We'll still accept community contributions and issues,
+but will consider them as having low priority.
+
 ## Installation
 
 The following steps will help you quickly start tracing your Ruby application.
 
 ### Configure the Datadog Agent for APM
 
-Before downloading tracing on your application, install the Datadog Agent. The Ruby APM tracer sends trace data through the Datadog Agent.
+Before downloading tracing on your application, [install the Datadog Agent on the host](https://docs.datadoghq.com/agent/). The Ruby APM tracer sends trace data through the Datadog Agent.
 
 Install and configure the Datadog Agent to receive traces from your now instrumented application. By default the Datadog Agent is enabled in your `datadog.yaml` file under `apm_enabled: true` and listens for trace traffic at `localhost:8126`. For containerized environments, follow the steps below to enable trace collection within the Datadog Agent.
 
@@ -157,7 +172,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 2. Install the gem with `bundle install`
 
-3. You can configure, override, or disable any specific integration settings by also adding a [Rails Manual Configuration](#rails-manual-configuration) file.
+3. You can configure, override, or disable any specific integration settings by also adding a Rails manual instrumentation configuration file (next).
 
 #### Manual instrumentation
 
@@ -197,7 +212,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     require 'ddtrace/auto_instrument'
     ```
 
-    You can configure, override, or disable any specific integration settings by also adding a [Ruby Manual Configuration Block](#ruby-manual-configuration).
+    You can configure, override, or disable any specific integration settings by also adding a Ruby manual configuration block (next).
 
 #### Manual instrumentation
 
@@ -380,14 +395,16 @@ For a list of available integrations, and their configuration options, please re
 | Name                     | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
 | ------------------------ | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action Cable             | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
+| Action Mailer            | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
 | Action View              | `action_view`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Action Pack              | `action_pack`              | `>= 3.0`                 | `>= 3.0`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Active Job               | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | *[Link](#active-job)*               | *[Link](https://github.com/rails/rails/tree/master/activejob)*             |
 | Active Record            | `active_record`            | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | Active Support           | `active_support`           | `>= 3.0`                 | `>= 3.0`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
 | Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
-| Cucumber                 | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
+| Cucumber                 | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                 | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
 | Dalli                    | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
 | DelayedJob               | `delayed_job`              | `>= 4.1`                 | `>= 4.1`                  | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
 | Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | `>= 1.0`                  | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
@@ -397,10 +414,11 @@ For a list of available integrations, and their configuration options, please re
 | Grape                    | `grape`                    | `>= 1.0`                 | `>= 1.0`                  | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
 | GraphQL                  | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
 | gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
-| http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#http-rb)*                  | *[Link](https://github.com/httprb/http)*                                       |
+| http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#httprb)*                  | *[Link](https://github.com/httprb/http)*                                       |
 | httpclient                | `httpclient`              | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
 | httpx                     | `httpx`                   | `>= 0.11`                | `>= 0.11`                 | *[Link](#httpx)*                    | *[Link](https://gitlab.com/honeyryderchuck/httpx)*                             |
 | Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
+| Makara (through Active Record) | `makara`             | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#active-record)*            | *[Link](https://github.com/instacart/makara)*                                  |
 | MongoDB                  | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
@@ -440,7 +458,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `action_cable` instrumentation | `'action_cable'` |
 
 ### Action View
@@ -460,9 +477,29 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | ---| --- | --- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for rendering instrumentation. | `action_view` |
 | `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
+
+### Action Mailer
+
+The Action Mailer integration provides tracing for Rails 5 ActionMailer actions.
+
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'ddtrace'
+ Datadog.configure do |c|
+  c.use :action_mailer, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
+| `service_name` | Service name used for `action_mailer` instrumentation | `'action_mailer'` |
+| `email_data` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
 
 ### Active Model Serializers
 
@@ -482,7 +519,6 @@ ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `active_model_serializers` instrumentation. | `'active_model_serializers'` |
 
 ### Action Pack
@@ -502,8 +538,29 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | ---| --- | --- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for rendering instrumentation. | `action_pack` |
+
+### Active Job
+
+Most of the time, Active Job is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'active_job'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :active_job, options
+end
+
+ExampleJob.perform_later
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
+| `log_injection` | Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Active Job logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section. | `false` |
 
 ### Active Record
 
@@ -530,7 +587,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | ---| --- | --- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `orm_service_name` | Service name used for the mapping portion of query results to ActiveRecord objects. Inherits service name from parent by default. | _parent.service_name_ (e.g. `'mysql2'`) |
 | `service_name` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `'mysql2'`) |
 
@@ -570,6 +626,10 @@ Datadog.configure do |c|
       username: 'root'
     },
     service_name: 'secondary-db'
+
+  # If using the `makara` gem, it's possible to match on connection `role`:
+  c.use :active_record, describes: { makara_role: 'primary' }, service_name: 'primary-db'
+  c.use :active_record, describes: { makara_role: 'replica' }, service_name: 'secondary-db'
 end
 ```
 
@@ -616,7 +676,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | ---| --- | --- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `cache_service` | Service name used for caching with `active_support` instrumentation. | `active_support-cache` |
 
 ### AWS
@@ -639,7 +698,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `aws` instrumentation | `'aws'` |
 
 ### Concurrent Ruby
@@ -725,7 +783,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `dalli` instrumentation | `'memcached'` |
 
 ### DelayedJob
@@ -746,7 +803,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
 | `client_service_name` | Service name used for client-side `DelayedJob` instrumentation | `'delayed_job-client'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
@@ -772,7 +828,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{}` |
 | `service_name` | Service name used for `elasticsearch` instrumentation | `'elasticsearch'` |
 
@@ -798,7 +853,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `ethon` instrumentation. | `'ethon'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
@@ -830,7 +884,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
 | `service_name` | Service name for Excon instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'excon'` |
@@ -893,7 +946,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `error_handler` | A `Proc` that accepts a `response` parameter. If it evaluates to a *truthy* value, the trace span is marked as an error. By default only sets 5XX responses as errors. | `nil` |
 | `service_name` | Service name for Faraday instrumentation. When provided to middleware for a specific connection, it applies only to that connection object. | `'faraday'` |
@@ -927,7 +979,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `enabled` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `grape` instrumentation | `'grape'` |
 | `error_statuses`| Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil` |
@@ -952,7 +1003,6 @@ The `use :graphql` method accepts the following parameters. Additional options c
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `service_name` | Service name used for `graphql` instrumentation | `'ruby-graphql'` |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
 
@@ -1031,8 +1081,8 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `grpc` instrumentation | `'grpc'` |
+| `error_handler` | Custom error handler invoked when a request is an error. A `Proc` that accepts `span` and `error` parameters. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 **Configuring clients to use different settings**
 
@@ -1073,7 +1123,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httprb` instrumentation. | `'httprb'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
@@ -1099,7 +1148,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `httpclient` instrumentation. | `'httpclient'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
@@ -1143,7 +1191,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `kafka` instrumentation | `'kafka'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
@@ -1172,7 +1219,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
 | `service_name` | Service name used for `mongo` instrumentation | `'mongodb'` |
 
@@ -1227,7 +1273,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `mysql2` instrumentation | `'mysql2'` |
 
 ### Net/HTTP
@@ -1260,7 +1305,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name used for `http` instrumentation | `'net/http'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
@@ -1301,7 +1345,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `presto` instrumentation | `'presto'` |
 
 ### Qless
@@ -1322,7 +1365,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `qless` instrumentation | `'qless'` |
 | `tag_job_data` | Enable tagging with job arguments. true for on, false for off. | `false` |
 | `tag_job_tags` | Enable tagging with job tags. true for on, false for off. | `false` |
@@ -1345,7 +1387,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `enabled` | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `que` instrumentation | `'que'` |
 | `tag_args` | Enable tagging of a job's args field. `true` for on, `false` for off. | `false` |
@@ -1370,7 +1411,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `racecar` instrumentation | `'racecar'` |
 
 ### Rack
@@ -1400,7 +1440,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `application` | Your Rack application. Required for `middleware_names`. | `nil` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
@@ -1463,7 +1502,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `nil` |
 | `cache_service` | Cache service name used when tracing cache activity | `'<app_name>-cache'` |
 | `controller_service` | Service name used when tracing a Rails action controller | `'<app_name>'` |
 | `database_service` | Database service name used when tracing database activity | `'<app_name>-<adapter_name>'` |
@@ -1479,7 +1517,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | MRI Versions  | JRuby Versions | Rails Versions |
 | ------------- | -------------- | -------------- |
-|  2.0          |                |  3.0 - 3.2     |
 |  2.1          |                |  3.0 - 4.2     |
 |  2.2 - 2.3    |                |  3.0 - 5.2     |
 |  2.4          |                |  4.2.8 - 5.2   |
@@ -1513,7 +1550,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
 | `service_name` | Service name used for `rake` instrumentation | `'rake'` |
@@ -1573,7 +1609,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `redis` instrumentation | `'redis'` |
 | `command_args` | Show the command arguments (e.g. `key` in `GET key`) as resource name and tag | true |
 
@@ -1652,7 +1687,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to the global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 | `workers` | **[DEPRECATED]** Limits instrumented worker classes to only the ones specified in an array (e.g. `[MyJob]`). If not provided, instruments all workers. | `nil` |
@@ -1674,7 +1708,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
 
@@ -1732,10 +1765,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name for `sequel` instrumentation | Name of database adapter (e.g. `'mysql2'`) |
-
-Only Ruby 2.0+ is supported.
 
 **Configuring databases to use different settings**
 
@@ -1768,7 +1798,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `shoryuken` instrumentation | `'shoryuken'` |
 | `tag_body` | Tag spans with the SQS message body `true` or `false` | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
@@ -1791,7 +1820,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
 | `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
 | `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
@@ -1855,7 +1883,6 @@ Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before y
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `nil` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `resource_script_names` | Prepend resource names with script name | `false` |
@@ -1879,7 +1906,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `service_name` | Service name used for `sneakers` instrumentation | `'sneakers'` |
 | `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
@@ -1904,7 +1930,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `service_name` | Service name used for `sucker_punch` instrumentation | `'sucker_punch'` |
 
 ## Advanced configuration
@@ -1920,13 +1945,20 @@ Datadog.configure do |c|
   c.tracer.enabled = true
   c.tracer.hostname = 'my-agent'
   c.tracer.port = 8126
-  c.tracer.partial_flush.enabled = false
+
+  # Ensure all traces are ingested by Datadog
+  c.sampling.default_rate = 1.0 # Recommended
+  c.sampling.rate_limit = 200
+  # or provide a custom implementation (overrides c.sampling settings)
   c.tracer.sampler = Datadog::AllSampler.new
 
-  # OR for advanced use cases, you can specify your own tracer:
+  # Breaks down very large traces into smaller batches
+  c.tracer.partial_flush.enabled = false
+
+  # You can specify your own tracer
   c.tracer.instance = Datadog::Tracer.new
 
-  # To enable debug mode:
+  # To enable debug mode
   c.diagnostics.debug = true
 end
 ```
@@ -1938,6 +1970,8 @@ Available options are:
  - `instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
  - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
  - `port`: set the port the trace agent is listening on.
+ - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
+ - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
  - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
  - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
@@ -1995,13 +2029,22 @@ Other Environment Variables:
 
 - `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Has priority over `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`.
 - `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog.configure{ |c| c.use :integration }`).on code. This environment variable can only be used to disable an integration.
-- `DD_TRACE_<INTEGRATION>_ANALYTICS_ENABLED`: Enables or disable App Analytics for a specific integration. Valid values are: true or false (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED=true`.
-- `DD_TRACE_<INTEGRATION>_ANALYTICS_SAMPLE_RATE`: Sets the App Analytics sampling rate for a specific integration. A floating number between 0.0 and 1.0 (default). e.g. `DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE=0.5`.
+- `DD_TRACE_SAMPLE_RATE`: Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
 - `DD_LOGS_INJECTION`: Automatically enables injection [Trace Correlation](#trace-correlation) information, such as `dd.trace_id`, into Rails logs. Supports the default logger (`ActiveSupport::TaggedLogging`) and `Lograge`. Details on the format of Trace Correlation information can be found in the [Trace Correlation](#trace-correlation) section. Valid values are: `true` or `false`(default). e.g. `DD_LOGS_INJECTION=true`.
 
 ### Sampling
 
-`ddtrace` can perform trace sampling. While the trace agent already samples traces to reduce bandwidth usage, client sampling reduces the performance overhead.
+Datadog's Tracing without Limits™ allows you to send all of your traffic and [configure retention within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/).
+
+We recommend setting the environment variable `DD_TRACE_SAMPLE_RATE=1.0` in all new applications using `ddtrace`.
+
+App Analytics, previously configured with the `analytics_enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
+
+#### Application-side sampling
+
+While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
+
+This will **reduce visibility and is not recommended**. See [DD_TRACE_SAMPLE_RATE](#environment-variables) for the recommended sampling approach.
 
 `Datadog::RateSampler` samples a ratio of the traces. For example:
 
@@ -2159,12 +2202,12 @@ For more details on how to activate distributed tracing for integrations, see th
 
 - [Excon](#excon)
 - [Faraday](#faraday)
-- [Rest Client](#restclient)
+- [Rest Client](#rest-client)
 - [Net/HTTP](#nethttp)
 - [Rack](#rack)
 - [Rails](#rails)
 - [Sinatra](#sinatra)
-- [http.rb](#http-rb)
+- [http.rb](#httprb)
 - [httpclient](#httpclient)
 - [httpx](#httpx)
 
@@ -2282,7 +2325,7 @@ In many cases, such as logging, it may be useful to correlate trace IDs to other
 
 ##### Automatic
 
-For Rails applications using the default logger (`ActiveSupport::TaggedLogging`) or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true` or by setting environment variable `DD_LOGS_INJECTION=true`:
+For Rails applications using the default logger (`ActiveSupport::TaggedLogging`), `semantic_logger`, or `lograge`, you can automatically enable trace correlation injection by setting the `rails` instrumentation configuration option `log_injection` to `true` or by setting environment variable `DD_LOGS_INJECTION=true`:
 
 ```ruby
 # config/initializers/datadog.rb
@@ -2292,8 +2335,6 @@ Datadog.configure do |c|
   c.use :rails, log_injection: true
 end
 ```
-
-_Note:_ For `lograge` users who have also defined `lograge.custom_options` in an `initializers/lograge.rb` configuration file, due to the order that Rails loads initializers (alphabetical), automatic trace correlation may not take effect, since `initializers/datadog.rb` would be overwritten by the `initializers/lograge.rb` initializer. To support automatic trace correlation with _existing_ `lograge.custom_options`, use the [Manual (Lograge)](#manual-lograge) configuration below.
 
 ##### Manual (Lograge)
 
@@ -2384,7 +2425,9 @@ Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.'
 
 ### Configuring the transport layer
 
-By default, the tracer submits trace data using `Net::HTTP` to `127.0.0.1:8126`, the default location for the Datadog trace agent process. However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
+By default, the tracer submits trace data using the Unix socket `/var/run/datadog/apm.socket`, if one is created by the Agent. Otherwise, it connects via HTTP to `127.0.0.1:8126`, the default TCP location the Agent listens on.
+
+However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
 
 Some basic settings, such as hostname and port, can be configured using [tracer settings](#tracer-settings).
 
@@ -2410,7 +2453,7 @@ To use, first configure your trace agent to listen by Unix socket, then configur
 ```ruby
 Datadog.configure do |c|
   c.tracer.transport_options = proc { |t|
-    # Provide filepath to trace agent Unix socket
+    # Provide local path to trace agent Unix socket
     t.adapter :unix, '/tmp/ddagent/trace.sock'
   }
 end
@@ -2454,7 +2497,7 @@ The tracer and its integrations can produce some additional metrics that can pro
 To configure your application for metrics collection:
 
 1. [Configure your Datadog agent for StatsD](https://docs.datadoghq.com/developers/dogstatsd/#setup)
-2. Add `gem 'dogstatsd-ruby'` to your Gemfile
+2. Add `gem 'dogstatsd-ruby', '~> 5.3'` to your Gemfile
 
 #### For application runtime
 
@@ -2483,11 +2526,13 @@ See the [Dogstatsd documentation](https://www.rubydoc.info/github/DataDog/dogsta
 
 The stats are VM specific and will include:
 
-| Name                        | Type    | Description                                              |
-| --------------------------  | ------- | -------------------------------------------------------- |
-| `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                       |
-| `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       |
-| `runtime.ruby.gc.*`.        | `gauge` | Garbage collection statistics: collected from `GC.stat`. |
+| Name                        | Type    | Description                                              | Available on |
+| --------------------------  | ------- | -------------------------------------------------------- | ------------ |
+| `runtime.ruby.class_count`  | `gauge` | Number of classes in memory space.                       | CRuby        |
+| `runtime.ruby.gc.*`         | `gauge` | Garbage collection statistics: collected from `GC.stat`. | All runtimes |
+| `runtime.ruby.thread_count` | `gauge` | Number of threads.                                       | All runtimes |
+| `runtime.ruby.global_constant_state` | `gauge` | Global constant cache generation.               | CRuby        |
+| `runtime.ruby.global_method_state`   | `gauge` | [Global method cache generation.](https://tenderlovemaking.com/2015/12/23/inline-caching-in-mri.html) | [CRuby < 3.0.0](https://docs.ruby-lang.org/en/3.0.0/NEWS_md.html#label-Implementation+improvements) |
 
 In addition, all metrics include the following tags:
 
@@ -2524,3 +2569,53 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_TEXT_MAP` | Yes        |                        |
 | `OpenTracing::FORMAT_RACK`     | Yes        | Because of the loss of resolution in the Rack format, please note that baggage items with names containing either upper case characters or `-` will be converted to lower case and `_` in a round-trip respectively. We recommend avoiding these characters or accommodating accordingly on the receiving end. |
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
+
+### Profiling
+
+*Currently available as BETA feature.*
+
+`ddtrace` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
+
+**Setup**
+
+To get started with profiling, follow the [Enabling the Ruby Profiler](https://docs.datadoghq.com/tracing/profiler/enabling/ruby/) guide.
+
+#### Troubleshooting
+
+If you run into issues with profiling, please check the [Profiler Troubleshooting Guide](https://docs.datadoghq.com/tracing/profiler/profiler_troubleshooting/?code-lang=ruby).
+
+#### Profiling Resque jobs
+
+When profiling [Resque](https://github.com/resque/resque) jobs, you should set the `RUN_AT_EXIT_HOOKS=1` option described in the [Resque](https://github.com/resque/resque/blob/v2.0.0/docs/HOOKS.md#worker-hooks) documentation.
+
+Without this flag, profiles for short-lived Resque jobs will not be available as Resque kills worker processes before they have a chance to submit this information.
+
+## Known issues and suggested configurations
+
+### Payload too large
+
+By default, Datadog limits the size of trace payloads to prevent memory overhead within instrumented applications. As a result, traces containing thousands of operations may not be sent to Datadog.
+
+If traces are missing, enable [debug mode](#tracer-settings) to check if messages containing `"Dropping trace. Payload too large"` are logged.
+
+Since debug mode is verbose, Datadog does not recommend leaving this enabled or enabling this in production. Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+
+If you have confirmed that traces are dropped due to large payloads, then enable the [partial_flush](#tracer-settings) setting to break down large traces into smaller chunks.
+
+### Stack level too deep
+
+Datadog tracing collects trace data by adding instrumentation into other common libraries (e.g. Rails, Rack, etc.) Some libraries provide APIs to add this instrumentation, but some do not. In order to add instrumentation into libraries lacking an instrumentation API, Datadog uses a technique called "monkey-patching" to modify the code of that library.
+
+In Ruby version 1.9.3 and earlier, "monkey-patching" often involved the use of [`alias_method`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-alias_method), also known as *method rewriting*, to destructively replace existing Ruby methods. However, this practice would often create conflicts & errors if two libraries attempted to "rewrite" the same method. (e.g. two different APM packages trying to instrument the same method.)
+
+In Ruby 2.0, the [`Module#prepend`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) feature was introduced. This feature avoids destructive method rewriting and allows multiple "monkey patches" on the same method. Consequently, it has become the safest, preferred means to "monkey patch" code.
+
+Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some libraries (typically those supporting Ruby < 2.0) still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
+
+As the implementation of `alias_method` exists within those libraries, Datadog generally cannot fix them. However, some libraries have known workarounds:
+
+* `rack-mini-profiler`: [Net::HTTP stack level too deep errors](https://github.com/MiniProfiler/rack-mini-profiler#nethttp-stack-level-too-deep-errors).
+
+For libraries without a known workaround, consider removing the library using `alias` or `Module#alias_method` or separating libraries into different environments for testing.
+
+For any further questions or to report an occurence of this issue, please [reach out to Datadog support](https://docs.datadoghq.com/help)

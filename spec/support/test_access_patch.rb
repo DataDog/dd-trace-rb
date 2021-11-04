@@ -1,3 +1,4 @@
+# typed: true
 # Give access to otherwise private members
 module Datadog
   class Writer

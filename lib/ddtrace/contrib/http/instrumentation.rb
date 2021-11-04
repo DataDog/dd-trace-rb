@@ -1,3 +1,4 @@
+# typed: false
 require 'uri'
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
@@ -14,7 +15,7 @@ module Datadog
       # Instrumentation for Net::HTTP
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Span hook invoked after request is completed.

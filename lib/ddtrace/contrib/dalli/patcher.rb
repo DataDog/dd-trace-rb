@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/dalli/ext'
@@ -17,7 +18,7 @@ module Datadog
         end
 
         def patch
-          ::Dalli::Server.send(:include, Instrumentation)
+          ::Dalli::Server.include(Instrumentation)
         end
       end
     end

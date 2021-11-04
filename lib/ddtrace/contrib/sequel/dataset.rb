@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/sql'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/analytics'
@@ -10,7 +11,7 @@ module Datadog
       # Adds instrumentation to Sequel::Dataset
       module Dataset
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # Instance methods for instrumenting Sequel::Dataset

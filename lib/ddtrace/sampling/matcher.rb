@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Sampling
     # Checks if a span conforms to a matching criteria.

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/diagnostics/health'
 
 require 'ddtrace/context_flush'
@@ -77,13 +78,21 @@ module Datadog
     # earlier while child spans still need to finish their traced execution.
     def current_span
       @mutex.synchronize do
-        return @current_span
+        @current_span
       end
     end
 
     def current_root_span
       @mutex.synchronize do
-        return @current_root_span
+        @current_root_span
+      end
+    end
+
+    # Same as calling #current_span and #current_root_span, but works atomically thus preventing races when we need to
+    # retrieve both
+    def current_span_and_root_span
+      @mutex.synchronize do
+        [@current_span, @current_root_span]
       end
     end
 
@@ -189,6 +198,9 @@ module Datadog
         # Root span is finished at this point, we can configure it
         annotate_for_flush!(@current_root_span)
 
+        # Allow caller to modify trace before context is reset
+        yield(trace) if block_given?
+
         reset
         [trace, sampled]
       end
@@ -225,6 +237,20 @@ module Datadog
     def annotate_for_flush!(span)
       attach_sampling_priority(span) if @sampled && @sampling_priority
       attach_origin(span) if @origin
+    end
+
+    def attach_sampling_priority(span)
+      span.set_metric(
+        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+        @sampling_priority
+      )
+    end
+
+    def attach_origin(span)
+      span.set_tag(
+        Ext::DistributedTracing::ORIGIN_KEY,
+        @origin
+      )
     end
 
     # Return a string representation of the context.
@@ -280,20 +306,6 @@ module Datadog
     # Low-level internal function, not thread-safe.
     def all_spans_finished?
       @finished_spans > 0 && @trace.length == @finished_spans
-    end
-
-    def attach_sampling_priority(span)
-      span.set_metric(
-        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
-        @sampling_priority
-      )
-    end
-
-    def attach_origin(span)
-      span.set_tag(
-        Ext::DistributedTracing::ORIGIN_KEY,
-        @origin
-      )
     end
 
     # Return the start time of the root span, or nil if there are no spans or this is undefined.

@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/racecar/events/batch'
 require 'ddtrace/contrib/racecar/events/message'
 require 'ddtrace/contrib/racecar/events/consume'

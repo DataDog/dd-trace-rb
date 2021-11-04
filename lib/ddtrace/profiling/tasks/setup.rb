@@ -1,4 +1,4 @@
-require 'ddtrace'
+# typed: false
 require 'ddtrace/utils/only_once'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/cpu'
@@ -18,7 +18,9 @@ module Datadog
               activate_cpu_extensions
               setup_at_fork_hooks
             rescue StandardError, ScriptError => e
-              log "[DDTRACE] Main extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+              Datadog.logger.warn do
+                "Profiler extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+              end
             end
           end
         end
@@ -29,22 +31,27 @@ module Datadog
           if Ext::Forking.supported?
             Ext::Forking.apply!
           elsif Datadog.configuration.profiling.enabled
-            # Log warning if profiling was supposed to be activated.
-            log '[DDTRACE] Forking extensions skipped; forking not supported.'
+            Datadog.logger.debug('Profiler forking extensions skipped; forking not supported.')
           end
         rescue StandardError, ScriptError => e
-          log "[DDTRACE] Forking extensions unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+          Datadog.logger.warn do
+            "Profiler forking extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+          end
         end
 
         def activate_cpu_extensions
           if Ext::CPU.supported?
             Ext::CPU.apply!
           elsif Datadog.configuration.profiling.enabled
-            # Log warning if profiling was supposed to be activated.
-            log "[DDTRACE] CPU profiling skipped because native CPU time is not supported: #{Ext::CPU.unsupported_reason}."
+            Datadog.logger.info do
+              'CPU time profiling skipped because native CPU time is not supported: ' \
+              "#{Ext::CPU.unsupported_reason}. Profiles containing Wall time will still be reported."
+            end
           end
         rescue StandardError, ScriptError => e
-          log "[DDTRACE] CPU profiling unavailable. Cause: #{e.message} Location: #{e.backtrace.first}"
+          Datadog.logger.warn do
+            "Profiler CPU profiling extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+          end
         end
 
         def setup_at_fork_hooks
@@ -61,15 +68,12 @@ module Datadog
                 # Restart profiler, if enabled
                 Datadog.profiler.start if Datadog.profiler
               rescue StandardError => e
-                log "[DDTRACE] Error during post-fork hooks. Cause: #{e.message} Location: #{e.backtrace.first}"
+                Datadog.logger.warn do
+                  "Error during post-fork hooks. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+                end
               end
             end
           end
-        end
-
-        def log(message)
-          # Print to STDOUT for now because logging may not be setup yet...
-          puts message
         end
       end
     end

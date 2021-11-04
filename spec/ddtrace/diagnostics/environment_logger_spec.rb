@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/diagnostics/environment_logger'
@@ -37,7 +38,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       expect(logger).to have_received(:info).with start_with('DATADOG TRACER CONFIGURATION') do |msg|
         json = JSON.parse(msg.partition('-')[2].strip)
         expect(json).to match(
-          'agent_url' => "http://#{agent_hostname}:8126?timeout=1",
+          'agent_url' => start_with("http://#{agent_hostname}:8126?timeout="),
           'analytics_enabled' => false,
           'date' => '2020-01-01T00:00:00+00:00',
           'debug' => false,
@@ -50,7 +51,8 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           'priority_sampling_enabled' => false,
           'runtime_metrics_enabled' => false,
           'version' => Datadog::VERSION::STRING,
-          'vm' => be_a(String)
+          'vm' => be_a(String),
+          'service' => be_a(String)
         )
       end
     end
@@ -127,7 +129,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       it 'with a default tracer' do
         is_expected.to match(
           agent_error: nil,
-          agent_url: "http://#{agent_hostname}:8126?timeout=1",
+          agent_url: start_with("http://#{agent_hostname}:8126?timeout="),
           analytics_enabled: false,
           date: '2020-01-01T00:00:00+00:00',
           dd_version: nil,
@@ -144,7 +146,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
           runtime_metrics_enabled: false,
           sample_rate: nil,
           sampling_rules: nil,
-          service: nil,
+          service: be_a(String),
           tags: nil,
           version: Datadog::VERSION::STRING,
           vm: be_a(String)

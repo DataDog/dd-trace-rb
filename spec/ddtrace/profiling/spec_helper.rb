@@ -1,6 +1,9 @@
+# typed: false
 require 'ddtrace/profiling'
 
 module ProfilingFeatureHelpers
+  include Kernel
+
   # Stubs Ruby classes before applying profiling patches.
   # This allows original, pristine classes to be restored after the test.
   RSpec.shared_context 'with profiling extensions' do
@@ -23,9 +26,9 @@ module ProfilingFeatureHelpers
   # lingering side effects (since patching occurs within a fork.)
   # Useful for profiling tests involving the main Thread, which cannot
   # be unpatched after applying profiling extensions.
-  def with_profiling_extensions_in_fork
+  def with_profiling_extensions_in_fork(fork_expectations: nil)
     # Apply extensions in a fork so we don't modify the original Thread class
-    expect_in_fork do
+    expect_in_fork(fork_expectations: fork_expectations) do
       require 'ddtrace/profiling/tasks/setup'
       Datadog::Profiling::Tasks::Setup::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
       Datadog::Profiling::Tasks::Setup.new.run
@@ -35,16 +38,28 @@ module ProfilingFeatureHelpers
 end
 
 module ProfileHelpers
+  include Kernel
+
   def get_test_profiling_flush
-    stack_one = Thread.current.backtrace_locations.first(3)
-    stack_two = Thread.current.backtrace_locations.first(3)
+    stack_one = Array(Thread.current.backtrace_locations).first(3)
+    stack_two = Array(Thread.current.backtrace_locations).first(3)
 
     stack_samples = [
-      build_stack_sample(stack_one, 100, 0, 0, 100, 100),
-      build_stack_sample(stack_two, 100, 0, 0, 200, 200),
-      build_stack_sample(stack_one, 101, 0, 0, 400, 400),
-      build_stack_sample(stack_two, 101, 0, 0, 800, 800),
-      build_stack_sample(stack_two, 101, 0, 0, 1600, 1600)
+      build_stack_sample(
+        locations: stack_one, thread_id: 100, root_span_id: 0, span_id: 0, cpu_time_ns: 100, wall_time_ns: 100
+      ),
+      build_stack_sample(
+        locations: stack_two, thread_id: 100, root_span_id: 0, span_id: 0, cpu_time_ns: 200, wall_time_ns: 200
+      ),
+      build_stack_sample(
+        locations: stack_one, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 400, wall_time_ns: 400
+      ),
+      build_stack_sample(
+        locations: stack_two, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 800, wall_time_ns: 800
+      ),
+      build_stack_sample(
+        locations: stack_two, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 1600, wall_time_ns: 1600
+      )
     ]
 
     start = Time.now.utc
@@ -64,22 +79,26 @@ module ProfileHelpers
   end
 
   def build_stack_sample(
-    locations = nil,
-    thread_id = nil,
-    trace_id = nil,
-    span_id = nil,
-    cpu_time_ns = nil,
-    wall_time_ns = nil
+    locations: nil,
+    thread_id: nil,
+    root_span_id: nil,
+    span_id: nil,
+    trace_resource: nil,
+    cpu_time_ns: nil,
+    wall_time_ns: nil
   )
     locations ||= Thread.current.backtrace_locations
 
     Datadog::Profiling::Events::StackSample.new(
       nil,
-      locations,
+      locations.map do |location|
+        Datadog::Profiling::BacktraceLocation.new(location.base_label, location.lineno, location.path)
+      end,
       locations.length,
       thread_id || rand(1e9),
-      trace_id || rand(1e9),
+      root_span_id || rand(1e9),
       span_id || rand(1e9),
+      trace_resource || "resource#{rand(1e9)}",
       cpu_time_ns || rand(1e9),
       wall_time_ns || rand(1e9)
     )

@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/http/ext'
 require 'ddtrace/contrib/http/instrumentation'
@@ -18,7 +19,7 @@ module Datadog
 
         # patch applies our patch if needed
         def patch
-          ::Net::HTTP.send(:include, Instrumentation)
+          ::Net::HTTP.include(Instrumentation)
         end
       end
     end

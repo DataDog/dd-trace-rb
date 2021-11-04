@@ -1,14 +1,18 @@
+# typed: true
 module Datadog
   module Ext
     module Profiling
       ENV_ENABLED = 'DD_PROFILING_ENABLED'.freeze
       ENV_UPLOAD_TIMEOUT = 'DD_PROFILING_UPLOAD_TIMEOUT'.freeze
       ENV_MAX_FRAMES = 'DD_PROFILING_MAX_FRAMES'.freeze
+      ENV_AGENTLESS = 'DD_PROFILING_AGENTLESS'.freeze
+      ENV_ENDPOINT_COLLECTION_ENABLED = 'DD_PROFILING_ENDPOINT_COLLECTION_ENABLED'.freeze
 
       module Pprof
+        LABEL_KEY_LOCAL_ROOT_SPAN_ID = 'local root span id'.freeze
         LABEL_KEY_SPAN_ID = 'span id'.freeze
         LABEL_KEY_THREAD_ID = 'thread id'.freeze
-        LABEL_KEY_TRACE_ID = 'trace id'.freeze
+        LABEL_KEY_TRACE_ENDPOINT = 'trace endpoint'.freeze
         SAMPLE_VALUE_NO_VALUE = 0
         VALUE_TYPE_CPU = 'cpu-time'.freeze
         VALUE_TYPE_WALL = 'wall-time'.freeze
@@ -29,6 +33,7 @@ module Datadog
           FORM_FIELD_TAG_ENV = 'env'.freeze
           FORM_FIELD_TAG_HOST = 'host'.freeze
           FORM_FIELD_TAG_LANGUAGE = 'language'.freeze
+          FORM_FIELD_TAG_PID = 'pid'.freeze
           FORM_FIELD_TAG_PROFILER_VERSION = 'profiler_version'.freeze
           FORM_FIELD_TAG_RUNTIME = 'runtime'.freeze
           FORM_FIELD_TAG_RUNTIME_ENGINE = 'runtime_engine'.freeze

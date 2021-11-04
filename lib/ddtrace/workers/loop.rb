@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module Workers
     # Adds looping behavior to workers, with a sleep
@@ -8,7 +9,7 @@ module Datadog
       BASE_INTERVAL = 1
 
       def self.included(base)
-        base.send(:prepend, PrependedMethods)
+        base.prepend(PrependedMethods)
       end
 
       # Methods that must be prepended
@@ -72,6 +73,14 @@ module Datadog
         self.loop_wait_time = [loop_wait_time * BACK_OFF_RATIO, BACK_OFF_MAX].min
       end
 
+      # Should perform_loop just straight into work, or start by waiting?
+      #
+      # The use case is if we want to report some information (like profiles) from time to time, we may not want to
+      # report empty/zero/some residual value immediately when the worker starts.
+      def loop_wait_before_first_iteration?
+        false
+      end
+
       protected
 
       attr_writer \
@@ -86,7 +95,11 @@ module Datadog
       private
 
       def perform_loop
-        @run_loop = true
+        mutex.synchronize do
+          @run_loop = true
+
+          shutdown.wait(mutex, loop_wait_time) if loop_wait_before_first_iteration?
+        end
 
         loop do
           if work_pending?

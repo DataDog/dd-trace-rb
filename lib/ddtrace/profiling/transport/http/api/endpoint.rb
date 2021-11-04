@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/ext/profiling'
 require 'ddtrace/utils/compression'
 require 'ddtrace/vendor/multipart-post/multipart/post/composite_read_io'
@@ -14,10 +15,15 @@ module Datadog
           class Endpoint < Datadog::Transport::HTTP::API::Endpoint
             include Datadog::Ext::Profiling::Transport::HTTP
 
+            # These tags are read from the flush object (see below) directly and so we ignore any extra copies that
+            # may come in the tags hash to avoid duplicates.
+            TAGS_TO_IGNORE_IN_TAGS_HASH = %w[service env version].freeze
+            private_constant :TAGS_TO_IGNORE_IN_TAGS_HASH
+
             attr_reader \
               :encoder
 
-            def initialize(path, encoder, options = {})
+            def initialize(path, encoder)
               super(:post, path)
               @encoder = encoder
             end
@@ -48,10 +54,15 @@ module Datadog
                   "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
                   "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
                   "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
+                  "#{FORM_FIELD_TAG_PID}:#{Process.pid}",
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
                   # NOTE: Redundant w/ 'runtime'; may want to remove this later.
                   "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
-                  "#{FORM_FIELD_TAG_HOST}:#{flush.host}"
+                  "#{FORM_FIELD_TAG_HOST}:#{flush.host}",
+                  *flush
+                    .tags
+                    .reject { |tag_key| TAGS_TO_IGNORE_IN_TAGS_HASH.include?(tag_key) }
+                    .map { |tag_key, tag_value| "#{tag_key}:#{tag_value}" }
                 ],
                 FORM_FIELD_DATA => pprof_file,
                 FORM_FIELD_RUNTIME => flush.language,

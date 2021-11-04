@@ -1,11 +1,10 @@
+# typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
 require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 require 'ddtrace'
+require 'ddtrace/contrib/rails/rails_helper'
 require 'ddtrace/contrib/analytics_examples'
-
-require 'rails'
-require 'active_support/core_ext/hash/indifferent_access'
 
 begin
   require 'action_cable'
@@ -19,7 +18,7 @@ RSpec.describe 'ActionCable patcher' do
   let(:configuration_options) { {} }
   let(:span) do
     expect(spans).to have(1).item
-    spans.find { |s| s.service == 'action_cable' }
+    spans.first
   end
 
   before do
@@ -79,12 +78,54 @@ RSpec.describe 'ActionCable patcher' do
   context 'with channel' do
     let(:channel_class) do
       stub_const('ChatChannel', Class.new(ActionCable::Channel::Base) do
+        def subscribed; end
+
+        def unsubscribed; end
+
         def foo(_data); end
       end)
     end
 
     let(:channel_instance) { channel_class.new(connection, '{id: 1}', id: 1) }
     let(:connection) { double('connection', logger: Logger.new($stdout), transmit: nil, identifiers: []) }
+
+    context 'on subscribe' do
+      include_context 'Rails test application'
+
+      subject(:subscribe) { channel_instance.subscribe_to_channel }
+
+      before { app }
+
+      it 'traces the subscribe hook' do
+        subscribe
+
+        expect(span.service).to end_with('-action_cable')
+        expect(span.name).to eq('action_cable.subscribe')
+        expect(span.span_type).to eq('web')
+        expect(span.resource).to eq('ChatChannel#subscribe')
+        expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
+        expect(span).to_not have_error
+      end
+    end
+
+    context 'on unsubscribe' do
+      include_context 'Rails test application'
+
+      subject(:unsubscribe) { channel_instance.unsubscribe_from_channel }
+
+      before { app }
+
+      it 'traces the unsubscribe hook' do
+        unsubscribe
+
+        expect(span.service).to end_with('-action_cable')
+        expect(span.name).to eq('action_cable.unsubscribe')
+        expect(span.span_type).to eq('web')
+        expect(span.resource).to eq('ChatChannel#unsubscribe')
+        expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
+        expect(span).to_not have_error
+      end
+    end
 
     context 'on perform action' do
       subject(:perform) { channel_instance.perform_action(data) }

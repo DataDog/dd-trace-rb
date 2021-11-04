@@ -1,12 +1,16 @@
+# typed: false
 require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/active_record/integration'
 require 'ddtrace/contrib/active_support/integration'
 require 'ddtrace/contrib/action_cable/integration'
+require 'ddtrace/contrib/action_mailer/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/grape/endpoint'
+require 'ddtrace/contrib/lograge/integration'
+require 'ddtrace/contrib/semantic_logger/integration'
 
 require 'ddtrace/contrib/rails/ext'
 require 'ddtrace/contrib/rails/utils'
@@ -42,10 +46,14 @@ module Datadog
 
             activate_rack!(datadog_config, rails_config)
             activate_action_cable!(datadog_config, rails_config)
+            activate_action_mailer!(datadog_config, rails_config)
             activate_active_support!(datadog_config, rails_config)
             activate_action_pack!(datadog_config, rails_config)
             activate_action_view!(datadog_config, rails_config)
+            activate_active_job!(datadog_config, rails_config)
             activate_active_record!(datadog_config, rails_config)
+            activate_lograge!(datadog_config, rails_config)
+            activate_semantic_logger!(datadog_config, rails_config)
           end
         end
 
@@ -53,7 +61,7 @@ module Datadog
           # We set defaults here instead of in the patcher because we need to wait
           # for the Rails application to be fully initialized.
           datadog_config[:rails].tap do |config|
-            config[:service_name] ||= (Datadog.configuration.service || Utils.app_name)
+            config[:service_name] ||= (Datadog.configure.service_without_fallback || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
@@ -88,6 +96,15 @@ module Datadog
           )
         end
 
+        def self.activate_action_mailer!(datadog_config, rails_config)
+          return unless defined?(::ActionMailer)
+
+          datadog_config.use(
+            :action_mailer,
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionMailer::Ext::SERVICE_NAME}"
+          )
+        end
+
         def self.activate_action_pack!(datadog_config, rails_config)
           return unless defined?(::ActionPack)
 
@@ -110,6 +127,16 @@ module Datadog
           )
         end
 
+        def self.activate_active_job!(datadog_config, rails_config)
+          return unless defined?(::ActiveJob)
+
+          datadog_config.use(
+            :active_job,
+            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}",
+            log_injection: rails_config[:log_injection]
+          )
+        end
+
         def self.activate_active_record!(datadog_config, rails_config)
           return unless defined?(::ActiveRecord)
 
@@ -117,6 +144,26 @@ module Datadog
             :active_record,
             service_name: rails_config[:database_service]
           )
+        end
+
+        def self.activate_lograge!(datadog_config, rails_config)
+          return unless defined?(::Lograge)
+
+          if rails_config[:log_injection]
+            datadog_config.use(
+              :lograge
+            )
+          end
+        end
+
+        def self.activate_semantic_logger!(datadog_config, rails_config)
+          return unless defined?(::SemanticLogger)
+
+          if rails_config[:log_injection]
+            datadog_config.use(
+              :semantic_logger
+            )
+          end
         end
       end
     end

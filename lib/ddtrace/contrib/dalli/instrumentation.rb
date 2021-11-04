@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/integration'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
@@ -10,7 +11,7 @@ module Datadog
       # Instruments every interaction with the memcached server
       module Instrumentation
         def self.included(base)
-          base.send(:prepend, InstanceMethods)
+          base.prepend(InstanceMethods)
         end
 
         # InstanceMethods - implementing instrumentation

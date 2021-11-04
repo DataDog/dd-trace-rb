@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/worker'
@@ -64,6 +65,10 @@ RSpec.describe Datadog::Workers::Async::Thread do
         let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
         let(:perform_task) do
           proc do |*_actual_args|
+            # Silence "Thread terminated with exception" Ruby logs for this worker thread, since we're deliberately
+            # letting the thread fail with an exception
+            Thread.current.report_on_exception = false if Thread.current.respond_to?(:report_on_exception=)
+
             raise error
           end
         end

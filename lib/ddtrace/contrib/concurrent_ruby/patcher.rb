@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 
 module Datadog
@@ -5,6 +6,7 @@ module Datadog
     module ConcurrentRuby
       # Patcher enables patching of 'Future' class.
       module Patcher
+        include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
         include Contrib::Patcher
 
         module_function
@@ -20,7 +22,7 @@ module Datadog
 
         # Propagate tracing context in Concurrent::Future
         def patch_future
-          ::Concurrent::Future.send(:include, FuturePatch)
+          ::Concurrent::Future.include(FuturePatch)
         end
       end
     end

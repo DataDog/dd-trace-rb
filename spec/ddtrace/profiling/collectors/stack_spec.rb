@@ -1,21 +1,29 @@
+# typed: false
 require 'spec_helper'
 require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace/profiling/collectors/stack'
+require 'ddtrace/profiling/trace_identifiers/helper'
 require 'ddtrace/profiling/recorder'
+require 'set'
+require 'timeout'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collector) { described_class.new(recorder, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
-  let(:options) { { max_frames: 50 } }
+  let(:options) { { max_frames: 50, trace_identifiers_helper: trace_identifiers_helper } }
 
   let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
   let(:string_table) { Datadog::Utils::StringTable.new }
   let(:backtrace_location_cache) { Datadog::Utils::ObjectSet.new }
-  let(:correlation) { instance_double(Datadog::Correlation::Identifier, trace_id: 0, span_id: 0) }
+  let(:trace_identifiers_helper) do
+    instance_double(Datadog::Profiling::TraceIdentifiers::Helper, trace_identifiers_for: nil)
+  end
 
   before do
+    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
+
     allow(recorder)
       .to receive(:[])
       .with(Datadog::Profiling::Events::StackSample)
@@ -29,12 +37,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       .to receive(:cache)
       .with(:backtrace_locations)
       .and_return(backtrace_location_cache)
-
-    if Datadog.respond_to?(:tracer)
-      allow(Datadog.tracer)
-        .to receive(:active_correlation)
-        .and_return(correlation)
-    end
   end
 
   describe '::new' do
@@ -63,37 +65,37 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       start
     end
 
-    describe 'cpu time tracking state handling' do
+    describe 'leftover tracking state handling' do
       let(:options) { { **super(), thread_api: thread_api } }
 
       let(:thread_api) { class_double(Thread) }
-      let(:thread) { instance_double(Thread) }
+      let(:thread) { instance_double(Thread, 'Dummy thread') }
 
-      before do
+      it 'cleans up any leftover tracking state in existing threads' do
         expect(thread_api).to receive(:list).and_return([thread])
+
+        expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
+        expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, nil)
+
+        start
       end
 
-      context 'when there is existing cpu time tracking state in threads' do
+      context 'Process::Waiter crash regression tests' do
+        # See cthread.rb for more details
+
         before do
-          expect(thread).to receive(:[]).with(described_class::THREAD_LAST_CPU_TIME_KEY).and_return(12345)
+          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+            skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+          end
+          skip 'Test case only applies to MRI Ruby' if RUBY_ENGINE != 'ruby'
         end
 
-        it 'resets the existing state back to nil' do
-          expect(thread).to receive(:[]=).with(described_class::THREAD_LAST_CPU_TIME_KEY, nil)
+        it 'can clean up leftover tracking state on an instance of Process::Waiter without crashing' do
+          with_profiling_extensions_in_fork do
+            expect(thread_api).to receive(:list).and_return([Process.detach(fork { sleep })])
 
-          start
-        end
-      end
-
-      context 'when there is no cpu time tracking state in threads' do
-        before do
-          allow(thread).to receive(:[]).and_return(nil)
-        end
-
-        it 'does nothing' do
-          expect(thread).to_not receive(:[]=)
-
-          start
+            start
+          end
         end
       end
     end
@@ -184,16 +186,67 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe '#collect_events' do
+    let(:options) { { **super(), thread_api: thread_api, max_threads_sampled: max_threads_sampled } }
+    let(:thread_api) { class_double(Thread, current: Thread.current) }
+    let(:threads) { [Thread.current] }
+    let(:max_threads_sampled) { 3 }
+
     subject(:collect_events) { collector.collect_events }
 
     before do
+      allow(thread_api).to receive(:list).and_return(threads)
       allow(recorder).to receive(:push)
     end
 
-    context 'by default' do
-      it 'produces stack events' do
-        is_expected.to be_a_kind_of(Array)
-        is_expected.to include(kind_of(Datadog::Profiling::Events::StackSample))
+    it 'produces stack events' do
+      is_expected.to be_a_kind_of(Array)
+      is_expected.to include(kind_of(Datadog::Profiling::Events::StackSample))
+    end
+
+    describe 'max_threads_sampled behavior' do
+      context 'when number of threads to be sample is <= max_threads_sampled' do
+        let(:threads) { Array.new(max_threads_sampled) { |n| instance_double(Thread, "Thread #{n}", alive?: true) } }
+
+        it 'samples all threads' do
+          sampled_threads = []
+          expect(collector).to receive(:collect_thread_event).exactly(max_threads_sampled).times do |thread, *_|
+            sampled_threads << thread
+          end
+
+          result = collect_events
+
+          expect(result.size).to be max_threads_sampled
+          expect(sampled_threads).to eq threads
+        end
+      end
+
+      context 'when number of threads to be sample is > max_threads_sampled' do
+        let(:threads) { Array.new(max_threads_sampled + 1) { |n| instance_double(Thread, "Thread #{n}", alive?: true) } }
+
+        it 'samples exactly max_threads_sampled threads' do
+          sampled_threads = []
+          expect(collector).to receive(:collect_thread_event).exactly(max_threads_sampled).times do |thread, *_|
+            sampled_threads << thread
+          end
+
+          result = collect_events
+
+          expect(result.size).to be max_threads_sampled
+          expect(threads).to include(*sampled_threads)
+        end
+
+        it 'eventually samples all threads' do
+          sampled_threads = Set.new
+          allow(collector).to receive(:collect_thread_event) { |thread, *_| sampled_threads << thread }
+
+          begin
+            Timeout.timeout(1) { collector.collect_events while sampled_threads.size != threads.size }
+          rescue Timeout::Error
+            raise 'Failed to eventually sample all threads in time given'
+          end
+
+          expect(threads).to contain_exactly(*sampled_threads.to_a)
+        end
       end
     end
 
@@ -201,10 +254,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:thread) { instance_double(Thread, alive?: alive?) }
       let(:threads) { [thread] }
       let(:alive?) { true }
-
-      before do
-        allow(Thread).to receive(:list).and_return(threads)
-      end
 
       context 'is dead' do
         let(:alive?) { false }
@@ -226,12 +275,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
 
-      context 'doesn\'t have an associated event' do
+      context "doesn't have an associated event" do
         before do
-          expect(collector)
-            .to receive(:collect_thread_event)
-            .with(thread, kind_of(Integer))
-            .and_return(nil)
+          expect(collector).to receive(:collect_thread_event).and_return(nil)
         end
 
         it 'no event is produced' do
@@ -244,10 +290,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:event) { instance_double(Datadog::Profiling::Events::StackSample) }
 
         before do
-          expect(collector)
-            .to receive(:collect_thread_event)
-            .with(thread, kind_of(Integer))
-            .and_return(event)
+          expect(collector).to receive(:collect_thread_event).and_return(event)
         end
 
         it 'records the event' do
@@ -259,18 +302,19 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   describe '#collect_thread_event' do
-    subject(:collect_events) { collector.collect_thread_event(thread, wall_time_interval_ns) }
+    subject(:collect_events) { collector.collect_thread_event(thread, current_wall_time) }
 
     let(:thread) { double('Thread', backtrace_locations: backtrace) }
-    let(:wall_time_interval_ns) { double('wall time interval in nanoseconds') }
+    let(:last_wall_time) { 42 }
+    let(:current_wall_time) { 123 }
 
-    context 'when the backtrace is empty' do
+    context 'when the backtrace is nil' do
       let(:backtrace) { nil }
 
       it { is_expected.to be nil }
     end
 
-    context 'when the backtrace is not empty' do
+    context 'when the backtrace is not nil' do
       let(:backtrace) do
         Array.new(backtrace_size) do
           instance_double(
@@ -285,8 +329,63 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:base_label) { double('base_label') }
       let(:lineno) { double('lineno') }
       let(:path) { double('path') }
+      let(:trace_identifiers) { nil }
 
       let(:backtrace_size) { collector.max_frames }
+
+      before do
+        expect(trace_identifiers_helper).to receive(:trace_identifiers_for).with(thread).and_return(trace_identifiers)
+
+        allow(thread)
+          .to receive(:thread_variable_get).with(described_class::THREAD_LAST_WALL_CLOCK_KEY).and_return(last_wall_time)
+        allow(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, anything)
+      end
+
+      it 'updates the last wall clock value for the thread with the current_wall_time' do
+        expect(thread).to receive(:thread_variable_set).with(described_class::THREAD_LAST_WALL_CLOCK_KEY, current_wall_time)
+
+        collect_events
+      end
+
+      context 'and there is an active trace for the thread' do
+        let(:trace_identifiers) { [root_span_id, span_id] }
+
+        let(:root_span_id) { rand(1e12) }
+        let(:span_id) { rand(1e12) }
+
+        it 'builds an event including the root span id and span id' do
+          is_expected.to have_attributes(
+            root_span_id: root_span_id,
+            span_id: span_id,
+            trace_resource: nil
+          )
+        end
+
+        context 'and a trace_resource is provided' do
+          let(:trace_identifiers) { [root_span_id, span_id, trace_resource] }
+
+          let(:trace_resource) { double('trace resource') }
+
+          it 'builds an event including the root span id, span id, and trace_resource' do
+            is_expected.to have_attributes(
+              root_span_id: root_span_id,
+              span_id: span_id,
+              trace_resource: trace_resource
+            )
+          end
+        end
+      end
+
+      context 'and there is no active trace for the thread' do
+        let(:trace_identifiers) { nil }
+
+        it 'builds an event with nil root span id and span id' do
+          is_expected.to have_attributes(
+            root_span_id: nil,
+            span_id: nil
+          )
+        end
+      end
 
       context 'and CPU timing is unavailable' do
         it 'builds an event without CPU time' do
@@ -298,7 +397,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             total_frame_count: backtrace.length,
             thread_id: thread.object_id,
             cpu_time_interval_ns: nil,
-            wall_time_interval_ns: wall_time_interval_ns
+            wall_time_interval_ns: current_wall_time - last_wall_time
           )
         end
       end
@@ -322,12 +421,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             .and_return(current_cpu_time)
 
           allow(thread)
-            .to receive(:[])
+            .to receive(:thread_variable_get)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY)
             .and_return(last_cpu_time)
 
           expect(thread)
-            .to receive(:[]=)
+            .to receive(:thread_variable_set)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
         end
 
@@ -340,7 +439,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             total_frame_count: backtrace.length,
             thread_id: thread.object_id,
             cpu_time_interval_ns: cpu_interval,
-            wall_time_interval_ns: wall_time_interval_ns
+            wall_time_interval_ns: current_wall_time - last_wall_time
           )
         end
       end
@@ -369,6 +468,39 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             expect(frames).to be_a_kind_of(Array)
             expect(frames.length).to eq(backtrace.length)
           end
+        end
+      end
+
+      context 'when the backtrace is empty' do
+        let(:backtrace) { [] }
+
+        it 'builds an event that includes a includes a synthetic placeholder frame to mark execution in native code' do
+          is_expected.to have_attributes(
+            total_frame_count: 1,
+            frames: [Datadog::Profiling::BacktraceLocation.new('', 0, 'In native code')],
+            timestamp: kind_of(Float),
+            thread_id: thread.object_id,
+            wall_time_interval_ns: current_wall_time - last_wall_time,
+          )
+        end
+      end
+    end
+
+    context 'Process::Waiter crash regression tests' do
+      # See cthread.rb for more details
+
+      before do
+        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
+          skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
+        end
+        skip 'Test case only applies to MRI Ruby' if RUBY_ENGINE != 'ruby'
+      end
+
+      it 'can sample an instance of Process::Waiter without crashing' do
+        with_profiling_extensions_in_fork do
+          process_waiter_thread = Process.detach(fork { sleep })
+
+          expect(collector.collect_thread_event(process_waiter_thread, 0)).to be_truthy
         end
       end
     end
@@ -407,7 +539,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it { is_expected.to be nil }
 
         it 'logs a warning' do
-          expect(Datadog.logger).to receive(:debug).with(/missing CPU profiling instrumentation/)
+          expect(Datadog.logger).to receive(:debug).with(/missing profiling instrumentation/)
 
           get_cpu_time_interval!
         end
@@ -454,14 +586,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             .and_return(current_cpu_time)
 
           expect(thread)
-            .to receive(:[]=)
+            .to receive(:thread_variable_set)
             .with(described_class::THREAD_LAST_CPU_TIME_KEY, current_cpu_time)
         end
 
         context 'and the thread CPU time has not been retrieved before' do
           before do
             allow(thread)
-              .to receive(:[])
+              .to receive(:thread_variable_get)
               .with(described_class::THREAD_LAST_CPU_TIME_KEY)
               .and_return(nil)
           end
@@ -478,86 +610,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
           before do
             allow(thread)
-              .to receive(:[])
+              .to receive(:thread_variable_get)
               .with(described_class::THREAD_LAST_CPU_TIME_KEY)
               .and_return(last_cpu_time)
           end
 
           it { is_expected.to eq(cpu_interval) }
-        end
-      end
-    end
-  end
-
-  describe '#get_trace_identifiers' do
-    subject(:get_trace_identifiers) { collector.get_trace_identifiers(thread) }
-
-    let(:thread) { Thread.new {} }
-
-    after do
-      thread && thread.join
-    end
-
-    context 'given a non-thread' do
-      let(:thread) { nil }
-
-      it { is_expected.to be nil }
-    end
-
-    context 'when linking is unavailable' do
-      context 'because the tracer is unavailable' do
-        let(:datadog) { Module.new { const_set('Utils', Datadog::Utils) } }
-
-        before { stub_const('Datadog', datadog, transfer_nested_constant: true) }
-
-        it { is_expected.to be nil }
-      end
-
-      context 'because correlations are unavailable' do
-        let(:tracer) { instance_double(Datadog::Tracer) }
-
-        before { allow(Datadog).to receive(:tracer).and_return(tracer) }
-
-        it { is_expected.to be nil }
-      end
-    end
-
-    context 'when linking is available' do
-      context 'and the trace & span IDs are' do
-        context 'set' do
-          let(:correlation) do
-            instance_double(
-              Datadog::Correlation::Identifier,
-              trace_id: rand(1e12),
-              span_id: rand(1e12)
-            )
-          end
-
-          it { is_expected.to eq([correlation.trace_id, correlation.span_id]) }
-        end
-
-        context '0' do
-          let(:correlation) do
-            instance_double(
-              Datadog::Correlation::Identifier,
-              trace_id: 0,
-              span_id: 0
-            )
-          end
-
-          it { is_expected.to eq([0, 0]) }
-        end
-
-        context 'are nil' do
-          let(:correlation) do
-            instance_double(
-              Datadog::Correlation::Identifier,
-              trace_id: nil,
-              span_id: nil
-            )
-          end
-
-          it { is_expected.to eq([nil, nil]) }
         end
       end
     end
@@ -727,6 +785,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
     end
+  end
+
+  describe '#get_current_wall_time_timestamp_ns' do
+    subject(:get_current_wall_time_timestamp_ns) { collector.send(:get_current_wall_time_timestamp_ns) }
+
+    # Must always be an Integer, as pprof does not allow for non-integer floating point values
+    it { is_expected.to be_a_kind_of(Integer) }
   end
 
   # Why? When mocking Thread.current, we break fiber-local variables (sometimes mistakenly referred to as

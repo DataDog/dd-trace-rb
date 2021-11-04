@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/support/spec_helper'
 require_relative 'support/helper'
 
@@ -11,6 +12,12 @@ RSpec.describe Datadog::Contrib::Sidekiq::Patcher do
     Sidekiq.server_middleware.clear
 
     allow(Sidekiq).to receive(:server?).and_return(server)
+
+    # these are only loaded when `Sidekiq::CLI` is actually loaded,
+    # which we don't want to do here because it mutates global state
+    stub_const('Sidekiq::Launcher', Class.new)
+    stub_const('Sidekiq::Processor', Class.new)
+    stub_const('Sidekiq::Scheduled::Poller', Class.new)
 
     # NB: This is needed because we want to patch multiple times.
     if described_class.instance_variable_get(:@patch_only_once)

@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -308,8 +309,6 @@ RSpec.shared_examples 'thread-safe buffer' do
   subject(:buffer) { described_class.new(max_size) }
 
   let(:max_size) { 0 }
-  let(:max_size_leniency) { defined?(super) ? super() : 1 } # Multiplier to allowed max_size
-
   let(:items) { defined?(super) ? super() : Array.new(items_count) { double('item') } }
   let(:items_count) { 10 }
 
@@ -360,7 +359,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
       it 'does not exceed expected maximum size' do
         push
-        expect(output).to have_at_most(max_size * max_size_leniency).items
+        expect(output).to have_at_most(max_size).items
       end
 
       context 'with #pop operations' do
@@ -436,7 +435,7 @@ RSpec.shared_examples 'thread-safe buffer' do
 
       it 'does not exceed expected maximum size' do
         concat
-        expect(output).to have_at_most(max_size * max_size_leniency).items
+        expect(output).to have_at_most(max_size).items
       end
 
       context 'with #pop operations' do
@@ -484,14 +483,14 @@ RSpec.shared_examples 'trace buffer' do
   let(:max_size) { 0 }
 
   def measure_traces_size(traces)
-    traces.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(traces)) do |sum, trace|
+    traces.inject(ObjectSpaceHelper.estimate_bytesize(traces)) do |sum, trace|
       sum + measure_trace_size(trace)
     end
   end
 
   def measure_trace_size(trace)
-    trace.inject(Datadog::Runtime::ObjectSpace.estimate_bytesize(trace)) do |sum, span|
-      sum + Datadog::Runtime::ObjectSpace.estimate_bytesize(span)
+    trace.inject(ObjectSpaceHelper.estimate_bytesize(trace)) do |sum, span|
+      sum + ObjectSpaceHelper.estimate_bytesize(span)
     end
   end
 
@@ -732,9 +731,7 @@ end
 RSpec.describe Datadog::CRubyBuffer do
   before { skip unless PlatformHelpers.mri? }
 
-  it_behaves_like 'thread-safe buffer' do
-    let(:max_size_leniency) { 1.04 } # 4%
-  end
+  it_behaves_like 'thread-safe buffer'
   it_behaves_like 'performance'
 end
 
@@ -752,8 +749,6 @@ RSpec.describe Datadog::CRubyTraceBuffer do
   let(:items) { get_test_traces(items_count) }
 
   it_behaves_like 'trace buffer'
-  it_behaves_like 'thread-safe buffer' do
-    let(:max_size_leniency) { 1.04 } # 4%
-  end
+  it_behaves_like 'thread-safe buffer'
   it_behaves_like 'performance'
 end

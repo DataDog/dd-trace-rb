@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/shoryuken/ext'
 require 'ddtrace/contrib/shoryuken/configuration/settings'

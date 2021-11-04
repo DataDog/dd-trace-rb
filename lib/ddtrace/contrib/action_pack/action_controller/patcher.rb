@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/action_pack/action_controller/instrumentation'
 
@@ -16,7 +17,7 @@ module Datadog
           end
 
           def patch
-            ::ActionController::Metal.send(:prepend, ActionController::Instrumentation::Metal)
+            ::ActionController::Metal.prepend(ActionController::Instrumentation::Metal)
           end
         end
       end

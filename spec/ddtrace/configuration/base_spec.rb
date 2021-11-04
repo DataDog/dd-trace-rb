@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace'
@@ -6,7 +7,7 @@ RSpec.describe Datadog::Configuration::Base do
   describe 'implemented' do
     subject(:base_class) do
       Class.new.tap do |klass|
-        klass.send(:include, described_class)
+        klass.include(described_class)
       end
     end
 
@@ -39,7 +40,7 @@ RSpec.describe Datadog::Configuration::Base do
     describe 'instance behavior' do
       subject(:base_object) { base_class.new }
 
-      it { is_expected.to be_a_kind_of(Datadog::Environment::Helpers) }
+      it { is_expected.to be_a_kind_of(Datadog::Core::Environment::VariableHelpers) }
 
       describe '#initialize' do
         subject(:base_object) { base_class.new(options) }

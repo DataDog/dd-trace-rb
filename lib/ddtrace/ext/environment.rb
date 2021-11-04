@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module Ext
     module Environment
@@ -7,6 +8,13 @@ module Datadog
       ENV_SITE = 'DD_SITE'.freeze
       ENV_TAGS = 'DD_TAGS'.freeze
       ENV_VERSION = 'DD_VERSION'.freeze
+
+      FALLBACK_SERVICE_NAME =
+        begin
+          File.basename($PROGRAM_NAME, '.*')
+        rescue StandardError
+          'ruby'
+        end.freeze
 
       TAG_ENV = 'env'.freeze
       TAG_SERVICE = 'service'.freeze

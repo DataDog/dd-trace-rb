@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
@@ -63,6 +64,10 @@ module Datadog
 
           def analytics_sample_rate
             datadog_configuration[:analytics_sample_rate]
+          end
+
+          def error_handler
+            datadog_configuration[:error_handler]
           end
         end
 

@@ -1,4 +1,4 @@
-require 'ddtrace'
+# typed: false
 
 module Datadog
   module Contrib
@@ -6,7 +6,7 @@ module Datadog
     # AutoInstrumentation enables all integration
     module AutoInstrument
       def self.extended(base)
-        base.send(:extend, Patch)
+        base.extend(Patch)
       end
 
       # Patch adds method for invoking auto_instrumentation
@@ -19,14 +19,13 @@ module Datadog
           else
             AutoInstrument.patch_all
           end
-          AutoInstrument.patch_all
         end
       end
 
       def self.patch_all
         integrations = []
 
-        Datadog.registry.each do |integration|
+        Contrib::REGISTRY.each do |integration|
           # some instrumentations are automatically enabled when the `rails` instrumentation is enabled,
           # patching them on their own automatically outside of the rails integration context would
           # cause undesirable service naming, so we exclude them based their auto_instrument? setting.

@@ -1,3 +1,4 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/profiling/recorder'
@@ -162,6 +163,23 @@ RSpec.describe Datadog::Profiling::Recorder do
           expect(flush[2].start).to be < flush[2].finish
         end
       end
+    end
+  end
+
+  describe '#empty?' do
+    let(:event_classes) { [event_class] }
+    let(:event_class) { Class.new(Datadog::Profiling::Event) }
+
+    context 'when there are no events recorded' do
+      it { is_expected.to be_empty }
+    end
+
+    context 'when there are recorded events' do
+      before do
+        recorder.push(event_class.new)
+      end
+
+      it { is_expected.to_not be_empty }
     end
   end
 end

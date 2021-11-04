@@ -1,10 +1,12 @@
+# typed: false
 require 'ddtrace/ext/metrics'
 
 require 'set'
 require 'logger'
-require 'ddtrace/environment'
+require 'datadog/core/environment/identity'
+require 'ddtrace/ext/environment'
+require 'ddtrace/utils/only_once'
 require 'ddtrace/utils/time'
-require 'ddtrace/runtime/identity'
 
 module Datadog
   # Acts as client for sending metrics (via Statsd)
@@ -12,16 +14,24 @@ module Datadog
   class Metrics
     attr_reader :statsd
 
-    def initialize(options = {})
-      @statsd = options.fetch(:statsd) { default_statsd_client if supported? }
-      @enabled = options.fetch(:enabled, true)
+    def initialize(statsd: nil, enabled: true, **_)
+      @statsd =
+        if supported?
+          statsd || default_statsd_client
+        else
+          ignored_statsd_warning if statsd
+          nil
+        end
+      @enabled = enabled
     end
 
     def supported?
-      version = Gem.loaded_specs['dogstatsd-ruby'] \
-                  && Gem.loaded_specs['dogstatsd-ruby'].version
+      version = dogstatsd_version
 
-      !version.nil? && (version >= Gem::Version.new('3.3.0'))
+      !version.nil? && version >= Gem::Version.new('3.3.0') &&
+        # dogstatsd-ruby >= 5.0 & < 5.2.0 has known issues with process forks
+        # and do not support the single thread mode we use to avoid this problem.
+        !(version >= Gem::Version.new('5.0') && version < Gem::Version.new('5.3'))
     end
 
     def enabled?
@@ -44,7 +54,22 @@ module Datadog
       require 'datadog/statsd'
 
       # Create a StatsD client that points to the agent.
-      Datadog::Statsd.new(default_hostname, default_port)
+      #
+      # We use `single_thread: true`, as dogstatsd-ruby >= 5.0 creates a background thread
+      # by default, but does not handle forks correctly, causing resource leaks.
+      #
+      # Using dogstatsd-ruby >= 5.0 is still valuable, as it supports
+      # transparent batch metric submission, which reduces submission
+      # overhead.
+      #
+      # Versions < 5.0 are always single-threaded, but do not have the kwarg option.
+      options = if dogstatsd_version >= Gem::Version.new('5.2')
+                  { single_thread: true }
+                else
+                  {}
+                end
+
+      Datadog::Statsd.new(default_hostname, default_port, **options)
     end
 
     def configure(options = {})
@@ -64,7 +89,7 @@ module Datadog
 
       statsd.count(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog.logger.error("Failed to send count stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send count stat. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
 
     def distribution(stat, value = nil, options = nil, &block)
@@ -75,7 +100,7 @@ module Datadog
 
       statsd.distribution(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog.logger.error("Failed to send distribution stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send distribution stat. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
 
     def increment(stat, options = nil)
@@ -85,7 +110,7 @@ module Datadog
 
       statsd.increment(stat, metric_options(options))
     rescue StandardError => e
-      Datadog.logger.error("Failed to send increment stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send increment stat. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
 
     def gauge(stat, value = nil, options = nil, &block)
@@ -96,7 +121,7 @@ module Datadog
 
       statsd.gauge(stat, value, metric_options(options))
     rescue StandardError => e
-      Datadog.logger.error("Failed to send gauge stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+      Datadog.logger.error("Failed to send gauge stat. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
     end
 
     def time(stat, options = nil)
@@ -112,7 +137,7 @@ module Datadog
           distribution(stat, ((finished - start) * 1000), options)
         end
       rescue StandardError => e
-        Datadog.logger.error("Failed to send time stat. Cause: #{e.message} Source: #{e.backtrace.first}")
+        Datadog.logger.error("Failed to send time stat. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
       end
     end
 
@@ -135,10 +160,10 @@ module Datadog
     module Options
       DEFAULT = {
         tags: DEFAULT_TAGS = [
-          "#{Ext::Metrics::TAG_LANG}:#{Runtime::Identity.lang}".freeze,
-          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Runtime::Identity.lang_interpreter}".freeze,
-          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Runtime::Identity.lang_version}".freeze,
-          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Runtime::Identity.tracer_version}".freeze
+          "#{Ext::Metrics::TAG_LANG}:#{Core::Environment::Identity.lang}".freeze,
+          "#{Ext::Metrics::TAG_LANG_INTERPRETER}:#{Core::Environment::Identity.lang_interpreter}".freeze,
+          "#{Ext::Metrics::TAG_LANG_VERSION}:#{Core::Environment::Identity.lang_version}".freeze,
+          "#{Ext::Metrics::TAG_TRACER_VERSION}:#{Core::Environment::Identity.tracer_version}".freeze
         ].freeze
       }.freeze
 
@@ -226,5 +251,32 @@ module Datadog
     include Options
     extend Options
     extend Helpers
+
+    private
+
+    def dogstatsd_version
+      return @dogstatsd_version if instance_variable_defined?(:@dogstatsd_version)
+
+      @dogstatsd_version = (
+        defined?(Datadog::Statsd::VERSION) &&
+          Datadog::Statsd::VERSION &&
+          Gem::Version.new(Datadog::Statsd::VERSION)
+      ) || (
+        Gem.loaded_specs['dogstatsd-ruby'] &&
+          Gem.loaded_specs['dogstatsd-ruby'].version
+      )
+    end
+
+    IGNORED_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    private_constant :IGNORED_STATSD_ONLY_ONCE
+
+    def ignored_statsd_warning
+      IGNORED_STATSD_ONLY_ONCE.run do
+        Datadog.logger.warn(
+          'Ignoring user-supplied statsd instance as currently-installed version of dogstastd-ruby is incompatible. ' \
+          "To fix this, ensure that you have `gem 'dogstatsd-ruby', '~> 5.3'` on your Gemfile or gems.rb file."
+        )
+      end
+    end
   end
 end

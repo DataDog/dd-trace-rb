@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
 
@@ -20,7 +21,7 @@ module Datadog
 
         def patch
           # Patch endpoints
-          ::Grape::Endpoint.send(:include, Instrumentation)
+          ::Grape::Endpoint.include(Instrumentation)
 
           # Subscribe to ActiveSupport events
           Datadog::Contrib::Grape::Endpoint.subscribe

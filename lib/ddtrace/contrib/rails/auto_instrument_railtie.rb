@@ -1,4 +1,4 @@
-require 'ddtrace'
+# typed: ignore
 
 # Railtie to include AutoInstrumentation in rails loading
 class DatadogAutoInstrumentRailtie < Rails::Railtie

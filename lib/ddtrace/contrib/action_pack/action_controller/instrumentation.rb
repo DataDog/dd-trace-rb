@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/ext/http'
 
 require 'ddtrace/contrib/action_pack/ext'
@@ -18,11 +19,18 @@ module Datadog
             tracer = Datadog.configuration[:action_pack][:tracer]
             service = Datadog.configuration[:action_pack][:controller_service]
             type = Datadog::Ext::HTTP::TYPE_INBOUND
-            span = tracer.trace(Ext::SPAN_ACTION_CONTROLLER, service: service, span_type: type)
+            span = tracer.trace(
+              Ext::SPAN_ACTION_CONTROLLER,
+              service: service,
+              span_type: type,
+              resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
+            )
 
             # attach the current span to the tracing context
             tracing_context = payload.fetch(:tracing_context)
             tracing_context[:dd_request_span] = span
+
+            try_setting_rack_request_resource(payload, span.resource)
           rescue StandardError => e
             Datadog.logger.error(e.message)
           end
@@ -30,19 +38,12 @@ module Datadog
           def finish_processing(payload)
             # retrieve the tracing context and the latest active span
             tracing_context = payload.fetch(:tracing_context)
-            env = payload.fetch(:env)
             span = tracing_context[:dd_request_span]
             return unless span && !span.finished?
 
             begin
-              # Set the resource name, if it's still the default name
-              span.resource = "#{payload.fetch(:controller)}##{payload.fetch(:action)}" if span.resource == span.name
-
-              # Set the resource name of the Rack request span unless this is an exception controller.
-              unless exception_controller?(payload)
-                rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
-                rack_request_span.resource = span.resource if rack_request_span
-              end
+              # We repeat this in both start and at finish because the resource may have changed during the request
+              try_setting_rack_request_resource(payload, span.resource)
 
               # Set analytics sample rate
               Utils.set_analytics_sample_rate(span)
@@ -61,7 +62,7 @@ module Datadog
                 # [christian] in some cases :status is not defined,
                 # rather than firing an error, simply acknowledge we don't know it.
                 status = payload.fetch(:status, '?').to_s
-                span.status = 1 if status.starts_with?('5')
+                span.status = 1 if status.start_with?('5')
               elsif Utils.exception_is_error?(exception)
                 span.set_error(exception)
               end
@@ -92,6 +93,14 @@ module Datadog
             end
           end
 
+          def try_setting_rack_request_resource(payload, resource)
+            # Set the resource name of the Rack request span unless this is an exception controller.
+            unless payload.fetch(:exception_controller?)
+              rack_request_span = payload.fetch(:env)[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
+              rack_request_span.resource = resource if rack_request_span
+            end
+          end
+
           # Instrumentation for ActionController::Metal
           module Metal
             def process_action(*args)
@@ -111,6 +120,8 @@ module Datadog
               }
 
               begin
+                payload[:exception_controller?] = Instrumentation.exception_controller?(payload)
+
                 # process and catch request exceptions
                 Instrumentation.start_processing(payload)
                 result = super(*args)

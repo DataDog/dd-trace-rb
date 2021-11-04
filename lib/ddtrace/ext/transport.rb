@@ -1,9 +1,12 @@
+# typed: true
 module Datadog
   module Ext
     module Transport
       module HTTP
+        ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
         DEFAULT_HOST = '127.0.0.1'.freeze
         DEFAULT_PORT = 8126
+        DEFAULT_TIMEOUT_SECONDS = 1
         ENV_DEFAULT_HOST = 'DD_AGENT_HOST'.freeze
         ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'.freeze
         ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'.freeze
@@ -13,6 +16,16 @@ module Datadog
         HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'.freeze
         HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze
         HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
+      end
+
+      module Test
+        ADAPTER = :test
+      end
+
+      module UnixSocket
+        ADAPTER = :unix
+        DEFAULT_PATH = '/var/run/datadog/apm.socket'.freeze
+        DEFAULT_TIMEOUT_SECONDS = 1
       end
     end
   end

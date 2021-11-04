@@ -1,3 +1,4 @@
+# typed: false
 require 'ddtrace/utils/only_once'
 
 module Datadog
@@ -5,8 +6,8 @@ module Datadog
     # Common behavior for patcher modules
     module Patcher
       def self.included(base)
-        base.singleton_class.send(:prepend, CommonMethods)
-        base.send(:prepend, CommonMethods) if base.instance_of?(Class)
+        base.singleton_class.prepend(CommonMethods)
+        base.prepend(CommonMethods) if base.instance_of?(Class)
       end
 
       # Prepended instance methods for all patchers
@@ -38,7 +39,7 @@ module Datadog
         # @param e [Exception]
         def on_patch_error(e)
           # Log the error
-          Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{e.backtrace.first}")
+          Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{Array(e.backtrace).first}")
 
           # Emit a metric
           tags = default_tags

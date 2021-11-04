@@ -1,21 +1,35 @@
+# typed: false
 require 'set'
-require 'ddtrace/contrib/registry'
+require 'datadog/contrib'
+require 'ddtrace/configuration/settings'
 
 module Datadog
   module Contrib
     # Extensions that can be added to the base library
     # Adds registry, configuration access for integrations.
+    #
+    # DEV: The Registry should probably be part of the core tracer
+    # as it represents a global tracer repository that is strongly intertwined
+    # with the tracer lifecycle and deeply modifies the tracer initialization
+    # process.
+    # Most of this file should probably live inside the tracer core.
     module Extensions
       def self.extended(base)
-        Datadog.send(:extend, Helpers)
-        Datadog.send(:extend, Configuration)
-        Datadog::Configuration::Settings.send(:include, Configuration::Settings)
+        base.extend(Helpers)
+        base.extend(Configuration)
       end
 
       # Helper methods for Datadog module.
       module Helpers
+        # Returns the global integration registry.
+        #
+        # This method is not safe to use while the tracer is initializing,
+        # thus access to the registry should go through
+        # ::Datadog::Contrib::REGISTRY for internal tracer work.
+        #
+        # External use of this method is always safe.
         def registry
-          configuration.registry
+          Contrib::REGISTRY
         end
       end
 
@@ -60,11 +74,23 @@ module Datadog
         module Settings
           InvalidIntegrationError = Class.new(StandardError)
 
-          def self.included(base)
-            # Add the additional options to the global configuration settings
-            base.instance_eval do
-              option :registry, default: Registry.new
-            end
+          # The registry only holds declarative constant values and cannot be modified.
+          # This option is a no-op and will be removed in the future.
+          #
+          # @deprecated Use `Datadog.registry` instead
+          def registry
+            Datadog.logger.warn('Deprecated access to `Datadog.configuration.registry`, use `Datadog.registry` instead.' \
+                                '`Datadog.configuration.registry` will be removed in a future version.')
+            Contrib::REGISTRY
+          end
+
+          # The registry only holds declarative constant values and cannot be modified.
+          # This option is a no-op and will be removed in the future.
+          #
+          # @deprecated The registry is now a global constant, and can't be overwritten.
+          def registry=(_arg)
+            Datadog.logger.warn('Setting a custom registry is no longer supported and was ignored. ' \
+                                'Remove this assignment from your configuration to stop seeing this warning.')
           end
 
           # For the provided `integration_name`, resolves a matching configuration
@@ -125,7 +151,7 @@ module Datadog
           end
 
           def fetch_integration(name)
-            registry[name] ||
+            Contrib::REGISTRY[name] ||
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
           end
 

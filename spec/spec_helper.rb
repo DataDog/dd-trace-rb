@@ -1,3 +1,4 @@
+# typed: ignore
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 require 'pry'
@@ -26,6 +27,7 @@ require 'support/http_helpers'
 require 'support/log_helpers'
 require 'support/metric_helpers'
 require 'support/network_helpers'
+require 'support/object_space_helper'
 require 'support/platform_helpers'
 require 'support/span_helpers'
 require 'support/spy_transport'
@@ -97,7 +99,7 @@ RSpec.configure do |config|
       # successive failures. The output is very verbose and, at that point,
       # it's better to work on fixing the very first occurrences.
       $background_thread_leak_reports ||= 0
-      if $background_thread_leak_reports >= 10
+      if $background_thread_leak_reports >= 3
         unless $background_thread_leak_warned ||= false
           warn RSpec::Core::Formatters::ConsoleCodes.wrap(
             "Too many leaky thread reports! Suppressing further reports.\n" \
@@ -144,13 +146,27 @@ RSpec.configure do |config|
         # They currently flood the output, making our test
         # suite output unreadable.
         if example.file_path.start_with?('./spec/ddtrace/workers/')
+          puts # Add newline so we get better output when the progress formatter is being used
           RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
           next
         end
 
         info = background_threads.each_with_index.flat_map do |t, idx|
+          backtrace = t.backtrace
+          if backtrace.nil? && t.alive? # Maybe the thread hasn't run yet? Let's give it a second chance
+            Thread.pass
+            backtrace = t.backtrace
+          end
+          if backtrace.nil? || backtrace.empty?
+            backtrace =
+              if t.alive?
+                ['(Not available. Possibly a native thread.)']
+              else
+                ['(Thread finished before we could collect a backtrace)']
+              end
+          end
+
           caller = t.instance_variable_get(:@caller) || ['(Not available. Possibly a native thread.)']
-          backtrace = t.backtrace || ['(Not available. Possibly a native thread.)']
           [
             "#{idx + 1}: #{t} (#{t.class.name})",
             'Thread Creation Site:',
@@ -163,7 +179,7 @@ RSpec.configure do |config|
 
         # Warn about leakly thread
         warn RSpec::Core::Formatters::ConsoleCodes.wrap(
-          "Spec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
+          "\nSpec leaked #{background_threads.size} threads in \"#{example.full_description}\".\n" \
           "Ensure all threads are terminated when test finishes.\n" \
           "For help fixing this issue, see \"Ensuring tests don't leak resources\" in docs/DevelopmentGuide.md.\n" \
           "\n" \
@@ -200,12 +216,11 @@ module DatadogThreadDebugger
   # instead of the implicit `yield` call, as calling
   # `yield` here crashes the Ruby VM in Ruby < 2.2.
   def initialize(*args, &block)
-    caller_ = caller
+    @caller = caller
     wrapped = lambda do |*thread_args|
-      Thread.current.instance_variable_set(:@caller, caller_)
       block.call(*thread_args) # rubocop:disable Performance/RedundantBlockCall
     end
-    wrapped.ruby2_keywords if wrapped.respond_to?(:ruby2_keywords, true)
+    wrapped.send(:ruby2_keywords) if wrapped.respond_to?(:ruby2_keywords, true)
 
     super(*args, &wrapped)
   end
@@ -213,7 +228,7 @@ module DatadogThreadDebugger
   ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
 end
 
-Thread.send(:prepend, DatadogThreadDebugger)
+Thread.prepend(DatadogThreadDebugger)
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be

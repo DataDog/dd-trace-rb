@@ -11,7 +11,7 @@ Install [direnv](https://github.com/direnv/direnv) for applying local settings.
 1. `cp .envrc.sample .envrc` and add your Datadog API key.
 2. `direnv allow` to load the env var.
 3. `cp docker-compose.yml.sample docker-compose.yml` and configure if necessary.
-4. `docker-compose run --rm api bin/setup`
+4. `docker-compose run --rm app bin/setup`
 
 ## Running the application
 
@@ -28,7 +28,7 @@ Run `docker-compose up` to auto-start the webserver. It should bind to `localhos
 Alternatively, you can run it manually with:
 
 ```sh
-docker-compose run --rm -p 80:80 api bin/dd-demo <process>
+docker-compose run --rm -p 80:80 app "bin/run <process>"
 ```
 
 The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` if not provided. See [Processes](#processes) for more details.
@@ -45,7 +45,7 @@ Within the container, run `bin/dd-demo <process>` where `<process>` is one of th
 
 ##### Features
 
-Set `DD_DEMO_ENV_PROCESS` to a comma-delimited list of any of the following values to activate the feature:
+Set `DD_DEMO_ENV_FEATURES` to a comma-delimited list of any of the following values to activate the feature:
 
  - `tracing`: Tracing instrumentation
  - `profiling`: Profiling (NOTE: Must also set `DD_PROFILING_ENABLED` to match.)
@@ -54,7 +54,7 @@ Set `DD_DEMO_ENV_PROCESS` to a comma-delimited list of any of the following valu
  - `runtime_metrics`: Enable runtime metrics
  - `pprof_to_file`: Dump profiling pprof to file instead of agent.
 
-e.g. `DD_DEMO_ENV_PROCESS=tracing,profiling`
+e.g. `DD_DEMO_ENV_FEATURES=tracing,profiling`
 
 ##### Routes
 

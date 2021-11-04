@@ -1,3 +1,4 @@
+# typed: ignore
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
@@ -28,16 +29,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
     end
   end
 
-  def suppress_warnings
-    original_verbosity = $VERBOSE
-    $VERBOSE = nil
-    yield
-  ensure
-    $VERBOSE = original_verbosity
-  end
-
   around do |example|
-    suppress_warnings do
+    without_warnings do
       # Reset before and after each example; don't allow global state to linger.
       Datadog.registry[:mongo].reset_configuration!
       example.run

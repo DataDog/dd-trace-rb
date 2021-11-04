@@ -22,12 +22,14 @@ services:
       - DD_TRACE_AGENT_PORT=8126
       - DD_HEALTH_METRICS_ENABLED=true
       - DD_SERVICE=acme-rails-five
+      - DD_PROFILING_ENABLED=true
       - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
-      - DD_DEMO_ENV_FEATURES=tracing
+      - DD_DEMO_ENV_FEATURES=tracing,profiling
     expose:
       - "80"
     stdin_open: true
@@ -38,7 +40,7 @@ services:
       - DD_APM_ENABLED=true
       - DD_PROCESS_AGENT_ENABLED=false
       - DD_BIND_HOST=0.0.0.0
-      - DD_API_KEY=invalid_api_key
+      - DD_API_KEY=00000000000000000000000000000000
       - LOG_LEVEL=DEBUG
       - DD_LOGS_STDOUT=yes
       - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true

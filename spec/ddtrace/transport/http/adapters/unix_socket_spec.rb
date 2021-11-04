@@ -1,11 +1,12 @@
+# typed: false
 require 'spec_helper'
 
 require 'ddtrace/transport/http/adapters/unix_socket'
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
-  subject(:adapter) { described_class.new(filepath, options) }
+  subject(:adapter) { described_class.new(uds_path, **options) }
 
-  let(:filepath) { double('filepath') }
+  let(:uds_path) { double('uds_path') }
   let(:timeout) { double('timeout') }
   let(:options) { { timeout: timeout } }
 
@@ -15,7 +16,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
     before do
       allow(described_class::HTTP).to receive(:new)
         .with(
-          adapter.filepath,
+          adapter.uds_path,
           read_timeout: timeout,
           continue_timeout: timeout
         )
@@ -31,8 +32,8 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
 
       it do
         is_expected.to have_attributes(
-          filepath: filepath,
-          timeout: described_class::DEFAULT_TIMEOUT
+          uds_path: uds_path,
+          timeout: 1
         )
       end
     end
@@ -56,7 +57,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
   describe '#url' do
     subject(:url) { adapter.url }
 
-    let(:filepath) { '/tmp/trace.sock' }
+    let(:uds_path) { '/tmp/trace.sock' }
     let(:timeout) { 7 }
 
     it { is_expected.to eq('http+unix:///tmp/trace.sock?timeout=7') }
@@ -64,9 +65,9 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket do
 end
 
 RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket::HTTP do
-  subject(:unix_http) { described_class.new(filepath, options) }
+  subject(:unix_http) { described_class.new(uds_path, options) }
 
-  let(:filepath) { double('filepath') }
+  let(:uds_path) { double('uds_path') }
   let(:options) { {} }
 
   describe '#initialize' do
@@ -75,7 +76,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket::HTTP do
 
       it do
         is_expected.to have_attributes(
-          filepath: filepath,
+          uds_path: uds_path,
           read_timeout: described_class::DEFAULT_TIMEOUT,
           continue_timeout: described_class::DEFAULT_TIMEOUT
         )
@@ -105,7 +106,7 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::UnixSocket::HTTP do
 
     before do
       allow(::UNIXSocket).to receive(:open)
-        .with(filepath)
+        .with(uds_path)
         .and_return(unix_socket)
 
       allow(::Net::BufferedIO).to receive(:new)

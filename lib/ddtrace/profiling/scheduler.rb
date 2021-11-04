@@ -1,3 +1,4 @@
+# typed: true
 require 'ddtrace/utils/time'
 
 require 'ddtrace/worker'
@@ -5,31 +6,41 @@ require 'ddtrace/workers/polling'
 
 module Datadog
   module Profiling
-    # Periodically (every DEFAULT_INTERVAL seconds) takes data from the `Recorder` and pushes them to all configured
+    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes data from the `Recorder` and pushes them to all configured
     # `Exporter`s. Runs on its own background thread.
     class Scheduler < Worker
       include Workers::Polling
 
-      DEFAULT_INTERVAL = 60
-      MIN_INTERVAL = 0
+      DEFAULT_INTERVAL_SECONDS = 60
+      MINIMUM_INTERVAL_SECONDS = 0
+
+      # Profiles with duration less than this will not be reported
+      PROFILE_DURATION_THRESHOLD_SECONDS = 1
+
+      private_constant :DEFAULT_INTERVAL_SECONDS, :MINIMUM_INTERVAL_SECONDS, :PROFILE_DURATION_THRESHOLD_SECONDS
 
       attr_reader \
         :exporters,
         :recorder
 
-      def initialize(recorder, exporters, options = {})
+      def initialize(
+        recorder,
+        exporters,
+        fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
+        interval: DEFAULT_INTERVAL_SECONDS,
+        enabled: true
+      )
         @recorder = recorder
         @exporters = [exporters].flatten
 
         # Workers::Async::Thread settings
-        # Restart in forks by default
-        self.fork_policy = options[:fork_policy] || Workers::Async::Thread::FORK_POLICY_RESTART
+        self.fork_policy = fork_policy
 
         # Workers::IntervalLoop settings
-        self.loop_base_interval = options[:interval] || DEFAULT_INTERVAL
+        self.loop_base_interval = interval
 
         # Workers::Polling settings
-        self.enabled = options.key?(:enabled) ? options[:enabled] == true : true
+        self.enabled = enabled
       end
 
       def start
@@ -37,7 +48,18 @@ module Datadog
       end
 
       def perform
-        flush_and_wait
+        # A profiling flush may be called while the VM is shutting down, to report the last profile. When we do so,
+        # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
+        # successfully finish in the strict timeout.
+        # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
+        interrupted = true
+
+        begin
+          flush_and_wait
+          interrupted = false
+        ensure
+          Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
+        end
       end
 
       def loop_back_off?
@@ -51,6 +73,21 @@ module Datadog
         recorder.flush
       end
 
+      # Configure Workers::IntervalLoop to not report immediately when scheduler starts
+      #
+      # When a scheduler gets created (or reset), we don't want it to immediately try to flush; we want it to wait for
+      # the loop wait time first. This avoids an issue where the scheduler reported a mostly-empty profile if the
+      # application just started but this thread took a bit longer so there's already samples in the recorder.
+      def loop_wait_before_first_iteration?
+        true
+      end
+
+      def work_pending?
+        !recorder.empty?
+      end
+
+      private
+
       def flush_and_wait
         run_time = Datadog::Utils::Time.measure do
           flush_events
@@ -58,12 +95,20 @@ module Datadog
 
         # Update wait time to try to wake consistently on time.
         # Don't drop below the minimum interval.
-        self.loop_wait_time = [loop_base_interval - run_time, MIN_INTERVAL].max
+        self.loop_wait_time = [loop_base_interval - run_time, MINIMUM_INTERVAL_SECONDS].max
       end
 
       def flush_events
         # Get events from recorder
         flush = recorder.flush
+
+        if duration_below_threshold?(flush)
+          Datadog.logger.debug do
+            "Skipped exporting profiling events as profile duration is below minimum (#{flush.event_count} events skipped)"
+          end
+
+          return flush
+        end
 
         # Send events to each exporter
         if flush.event_count > 0
@@ -71,13 +116,18 @@ module Datadog
             begin
               exporter.export(flush)
             rescue StandardError => e
-              error_details = "Cause: #{e} Location: #{e.backtrace.first}"
-              Datadog.logger.error("Unable to export #{flush.event_count} profiling events. #{error_details}")
+              Datadog.logger.error(
+                "Unable to export #{flush.event_count} profiling events. Cause: #{e} Location: #{Array(e.backtrace).first}"
+              )
             end
           end
         end
 
         flush
+      end
+
+      def duration_below_threshold?(flush)
+        (flush.finish - flush.start) < PROFILE_DURATION_THRESHOLD_SECONDS
       end
     end
   end
