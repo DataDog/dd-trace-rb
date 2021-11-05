@@ -514,7 +514,7 @@ RSpec.describe Datadog::Tracer do
 
           child1, child2, parent = spans # Spans are sorted alphabetically by operation name
 
-          expect(parent.parent_id).to eq(0)
+          expect(parent).to be_root_span
           expect(parent.name).to eq('parent')
           expect(parent.service).to eq('service-parent')
 
@@ -571,7 +571,7 @@ RSpec.describe Datadog::Tracer do
 
               expect(spans.all? { |s| s.trace_id == grandparent.trace_id }).to be true
 
-              expect(grandparent.parent_id).to eq(0)
+              expect(grandparent).to be_root_span
               expect(parent.parent_id).to be grandparent.span_id
               expect(child.parent_id).to be parent.span_id
               expect(grandchild.parent_id).to be child.span_id
@@ -813,7 +813,7 @@ RSpec.describe Datadog::Tracer do
 
           it 'creates span with specified context' do
             tracer.trace 'another' do
-              expect(trace.parent_id).to eq(0)
+              expect(trace).to be_root_span
               expect(trace.context).to eq context
             end
           end
@@ -841,7 +841,7 @@ RSpec.describe Datadog::Tracer do
           sleep(0.001)
           child.finish
 
-          expect(parent.parent_id).to eq(0)
+          expect(parent).to be_root_span
           expect(child.parent).to be(parent)
           expect(child.end_time).to be > parent.end_time
         end

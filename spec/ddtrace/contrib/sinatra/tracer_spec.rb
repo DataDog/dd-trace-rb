@@ -271,7 +271,7 @@ RSpec.describe 'Sinatra instrumentation' do
             it do
               expect(span.resource).to eq('GET /erb_literal')
               expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/erb_literal')
-              expect(span.parent_id).to eq(0)
+              expect(span).to be_root_span
             end
 
             it_behaves_like 'measured span for integration', true
@@ -656,7 +656,7 @@ RSpec.describe 'Sinatra instrumentation' do
       if opts[:parent]
         expect(span.parent_id).to be(opts[:parent].span_id)
       else
-        expect(span.parent_id).to eq(0)
+        expect(span).to be_root_span
       end
     end
   end

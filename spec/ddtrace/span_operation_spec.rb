@@ -16,7 +16,7 @@ RSpec.describe Datadog::SpanOperation do
 
       # Because we maintain parallel "parent" state between
       # Span and Span Operation, ensure this matches.
-      expect(span_op.span.parent_id).to eq(0)
+      expect(span_op.span).to be_root_span
     end
 
     it 'has default tags' do

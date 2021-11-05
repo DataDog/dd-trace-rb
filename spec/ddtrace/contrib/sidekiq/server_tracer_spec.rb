@@ -29,7 +29,7 @@ RSpec.describe 'Server tracer' do
     expect(span.get_tag('sidekiq.job.queue')).to eq('default')
     expect(span.get_tag('sidekiq.job.delay')).to_not be_nil
     expect(span.status).to eq(0)
-    expect(span.parent_id).to eq(0)
+    expect(span).to be_root_span
     expect(span.get_tag('sidekiq.job.args')).to be_nil
     expect(span.get_metric('_dd.measured')).to eq(1.0)
   end
@@ -59,7 +59,7 @@ RSpec.describe 'Server tracer' do
       expect(span.status).to eq(1)
       expect(span.get_tag(Datadog::Ext::Errors::MSG)).to eq('job error')
       expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq('ZeroDivisionError')
-      expect(span.parent_id).to eq(0)
+      expect(span).to be_root_span
       expect(span.get_tag('sidekiq.job.args')).to be_nil
       expect(span.get_metric('_dd.measured')).to eq(1.0)
     end
@@ -91,14 +91,14 @@ RSpec.describe 'Server tracer' do
       expect(empty.get_tag('sidekiq.job.queue')).to eq('default')
       expect(empty.get_tag('sidekiq.job.delay')).to_not be_nil
       expect(empty.status).to eq(0)
-      expect(empty.parent_id).to eq(0)
+      expect(empty).to be_root_span
       expect(empty.get_metric('_dd.measured')).to eq(1.0)
 
       expect(custom.service).to eq('sidekiq-slow')
       expect(custom.resource).to eq('CustomWorker')
       expect(custom.get_tag('sidekiq.job.queue')).to eq('default')
       expect(custom.status).to eq(0)
-      expect(custom.parent_id).to eq(0)
+      expect(custom).to be_root_span
       expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
       expect(custom.get_metric('_dd.measured')).to eq(1.0)
     end
