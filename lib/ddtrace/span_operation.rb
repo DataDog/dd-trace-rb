@@ -184,6 +184,13 @@ module Datadog
 
     # Set this span's parent, inheriting any properties not explicitly set.
     # If the parent is nil, set the span as the root span.
+    #
+    # DEV: This method creates a false expectation that
+    # `self.parent.span_id == self.parent_id`, which is not the case
+    # for distributed traces, as the parent Span object does not exist
+    # in this application. `#parent_id` is the only reliable parent
+    # identifier. We should remove the ability to set a parent Span
+    # object in the future.
     def parent=(parent)
       @parent = parent
 
