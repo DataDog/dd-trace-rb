@@ -95,7 +95,7 @@ module Datadog
             if settings.tracer.priority_sampling == false
               sampler
             else
-              ensure_priority_sampling(sampler)
+              ensure_priority_sampling(sampler, settings)
             end
           elsif settings.tracer.priority_sampling == false
             Sampling::RuleSampler.new(
@@ -113,13 +113,16 @@ module Datadog
           end
         end
 
-        def ensure_priority_sampling(sampler = nil)
+        def ensure_priority_sampling(sampler, settings)
           if sampler.is_a?(PrioritySampler)
             sampler
           else
             PrioritySampler.new(
               base_sampler: sampler,
-              post_sampler: Sampling::RuleSampler.new
+              post_sampler: Sampling::RuleSampler.new(
+                rate_limit: settings.sampling.rate_limit,
+                default_sample_rate: settings.sampling.default_rate
+              )
             )
           end
         end
