@@ -51,11 +51,6 @@ RSpec.describe Datadog::Contrib::Resque::Integration do
         include_context 'loaded gems', resque: described_class::MINIMUM_VERSION
         it { is_expected.to be true }
       end
-
-      context 'that exceeds the maximum version' do
-        include_context 'loaded gems', resque: described_class::MAXIMUM_VERSION
-        it { is_expected.to be false }
-      end
     end
 
     context 'when gem is not loaded' do
