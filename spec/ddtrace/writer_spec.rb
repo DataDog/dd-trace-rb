@@ -272,10 +272,9 @@ RSpec.describe Datadog::Writer do
       end
 
       describe '#write' do
-        subject(:write) { writer.write(trace, services) }
+        subject(:write) { writer.write(trace) }
 
         let(:trace) { instance_double(Array) }
-        let(:services) { nil }
 
         before do
           allow(Datadog.configuration.runtime_metrics)
