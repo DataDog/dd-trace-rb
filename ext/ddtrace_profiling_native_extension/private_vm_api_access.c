@@ -2,9 +2,19 @@
 
 // This file exports functions used to access private Ruby VM APIs and internals.
 // To do this, it imports a few VM internal (private) headers.
-// Be very careful when changing things here :)
+//
+// **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
+// contribute upstream changes so that they become official public VM APIs.
+//
+// In the meanwhile, be very careful when changing things here :)
+
 #ifdef USE_MJIT_HEADER
+// Pick up internal structures from the private Ruby MJIT header file
 #include RUBY_MJIT_HEADER
+#else
+// On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
+#include <vm_core.h>
+#endif
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
@@ -23,4 +33,3 @@ static inline struct rb_thread_struct *thread_struct_from_object(VALUE thread) {
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
   return thread_struct_from_object(thread)->thread_id;
 }
-#endif

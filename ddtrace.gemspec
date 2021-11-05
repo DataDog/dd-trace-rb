@@ -46,8 +46,11 @@ Gem::Specification.new do |spec|
     spec.add_dependency 'msgpack', '< 1.4'
   end
 
-  # Used by the profiler
-  spec.add_dependency 'ffi', '~> 1.0'
+  # Used by the profiler native extension to support older Rubies (see NativeExtensionDesign.md for notes)
+  #
+  # Because we only use this for older Rubies, and we consider it "feature-complete" for those older Rubies,
+  # we're pinning it at the latest available version and will manually bump the dependency as needed.
+  spec.add_dependency 'debase-ruby_core_source', '= 0.10.12'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
 end

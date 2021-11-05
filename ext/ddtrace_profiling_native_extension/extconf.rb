@@ -1,16 +1,20 @@
-# typed: false
+# typed: ignore
 
 def skip_building_extension?
   # We don't support JRuby for profiling, and JRuby doesn't support native extensions, so let's just skip this entire
   # thing so that JRuby users of dd-trace-rb aren't impacted.
   on_jruby = RUBY_ENGINE == 'jruby'
 
+  # We don't officially support TruffleRuby for dd-trace-rb at all BUT let's not break adventurous customers that
+  # want to give it a try.
+  on_truffleruby = RUBY_ENGINE == 'truffleruby'
+
   # Experimental toggle to disable building the extension.
   # Disabling the extension will lead to the profiler not working in future releases.
   # If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.
   disabled_via_env = ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
 
-  on_jruby || disabled_via_env
+  on_jruby || on_truffleruby || disabled_via_env
 end
 
 # IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
@@ -20,11 +24,19 @@ def add_compiler_flag(flag)
 end
 
 if skip_building_extension?
+  # rubocop:disable Style/StderrPuts
+  $stderr.puts(%(
++------------------------------------------------------------------------------+
+| Skipping build of profiling native extension and replacing it with a no-op   |
+| Makefile                                                                     |
++------------------------------------------------------------------------------+
+
+))
+
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   return
 end
 
-# rubocop:disable Style/StderrPuts
 $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | **Preparing to build the ddtrace native extension...**                       |
@@ -40,6 +52,7 @@ $stderr.puts(%(
 |                                                                              |
 | Thanks for using ddtrace! You rock!                                          |
 +------------------------------------------------------------------------------+
+
 ))
 # rubocop:enable Style/StderrPuts
 
@@ -57,10 +70,6 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
-# Older Rubies don't have the MJIT header (used by the JIT compiler, and we piggy back on it)
-# TODO: Development builds of Ruby 3.1 seem to be failing on Windows; to be revisited once 3.1.0 stable is out
-$defs << '-DUSE_MJIT_HEADER' unless RUBY_VERSION < '2.6' || (RUBY_VERSION >= '3.1' && Gem.win_platform?)
-
 if RUBY_PLATFORM.include?('linux')
   # Supposedly, the correct way to do this is
   # ```
@@ -72,24 +81,53 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
-create_header
-
-# The MJIT header is always (afaik?) suffixed with the exact Ruby VM version,
-# including patch (e.g. 2.7.2). Thus, we add to the header file a definition
-# containing the exact file, so that it can be used in a #include in the C code.
-header_contents =
-  File.read($extconf_h)
-      .sub('#endif',
-           <<-EXTCONF_H.strip
-#define RUBY_MJIT_HEADER "rb_mjit_min_header-#{RUBY_VERSION}.h"
-
-#endif
-           EXTCONF_H
-          )
-File.open($extconf_h, 'w') { |file| file.puts(header_contents) }
+# Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
+CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
 # When requiring, we need to use the exact same string, including the version and the platform.
-create_makefile "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+EXTENSION_NAME = "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
+
+if CAN_USE_MJIT_HEADER
+  $defs << '-DUSE_MJIT_HEADER'
+
+  # NOTE: This needs to come after all changes to $defs
+  create_header
+
+  # The MJIT header is always (afaik?) suffixed with the exact Ruby VM version,
+  # including patch (e.g. 2.7.2). Thus, we add to the header file a definition
+  # containing the exact file, so that it can be used in a #include in the C code.
+  header_contents =
+    File.read($extconf_h)
+        .sub('#endif',
+             <<-EXTCONF_H.strip
+#define RUBY_MJIT_HEADER "rb_mjit_min_header-#{RUBY_VERSION}.h"
+
+#endif
+             EXTCONF_H
+            )
+  File.open($extconf_h, 'w') { |file| file.puts(header_contents) }
+
+  create_makefile EXTENSION_NAME
+else
+  # On older Rubies, we use the debase-ruby_core_source gem to get access to private VM headers.
+  # This gem ships source code copies of these VM headers for the different Ruby VM versions;
+  # see https://github.com/ruby-debug/debase-ruby_core_source for details
+
+  thread_native_for_ruby_2_1 = proc { true }
+  if RUBY_VERSION < '2.2'
+    # This header became public in Ruby 2.2, but we need to pull it from the private headers folder for 2.1
+    thread_native_for_ruby_2_1 = proc { have_header('thread_native.h') }
+    $defs << '-DRUBY_2_1_WORKAROUND'
+  end
+
+  create_header
+
+  require 'debase/ruby_core_source'
+  dir_config('ruby') # allow user to pass in non-standard core include directory
+
+  Debase::RubyCoreSource
+    .create_makefile_with_core(proc { have_header('vm_core.h') && thread_native_for_ruby_2_1.call }, EXTENSION_NAME)
+end

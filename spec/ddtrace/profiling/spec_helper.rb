@@ -1,42 +1,6 @@
 # typed: false
 require 'ddtrace/profiling'
 
-module ProfilingFeatureHelpers
-  include Kernel
-
-  # Stubs Ruby classes before applying profiling patches.
-  # This allows original, pristine classes to be restored after the test.
-  RSpec.shared_context 'with profiling extensions' do
-    before do
-      stub_const('Thread', ::Thread.dup)
-      stub_const('Process', ::Process.dup)
-      stub_const('Kernel', ::Kernel.dup)
-
-      require 'ddtrace/profiling/tasks/setup'
-      Datadog::Profiling::Tasks::Setup::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
-      Datadog::Profiling::Tasks::Setup.new.run
-    end
-  end
-
-  # Helper for running profiling test in fork, e.g.:
-  #
-  #     it { profiling_in_fork { # Test assertions... } }
-  #
-  # This allows "real" profiling to be applied to Ruby classes without
-  # lingering side effects (since patching occurs within a fork.)
-  # Useful for profiling tests involving the main Thread, which cannot
-  # be unpatched after applying profiling extensions.
-  def with_profiling_extensions_in_fork(fork_expectations: nil)
-    # Apply extensions in a fork so we don't modify the original Thread class
-    expect_in_fork(fork_expectations: fork_expectations) do
-      require 'ddtrace/profiling/tasks/setup'
-      Datadog::Profiling::Tasks::Setup::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
-      Datadog::Profiling::Tasks::Setup.new.run
-      yield
-    end
-  end
-end
-
 module ProfileHelpers
   include Kernel
 
@@ -74,10 +38,6 @@ module ProfileHelpers
     )
   end
 
-  def get_test_payload
-    Datadog::Profiling::Encoding::Profile::Protobuf.encode(get_test_profiling_flush)
-  end
-
   def build_stack_sample(
     locations: nil,
     thread_id: nil,
@@ -107,5 +67,4 @@ end
 
 RSpec.configure do |config|
   config.include ProfileHelpers
-  config.include ProfilingFeatureHelpers
 end

@@ -2,7 +2,7 @@
 
 // This file is the dual of clock_id_from_pthread.c for systems where that info
 // is not available.
-#if !(defined(HAVE_PTHREAD_GETCPUCLOCKID) && defined(USE_MJIT_HEADER))
+#ifndef HAVE_PTHREAD_GETCPUCLOCKID
 
 #include <ruby.h>
 

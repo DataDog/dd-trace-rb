@@ -24,7 +24,7 @@ RSpec.describe 'Rails Rack' do
     }
   end
 
-  let(:rails_older_than_3_2) do # rubocop:disable Naming/VariableNumber
+  let(:rails_older_than_3_2) do
     Gem::Version.new(Rails::VERSION::STRING) < Gem::Version.new('3.2')
   end
 

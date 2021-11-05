@@ -2,14 +2,19 @@
 
 // This file is only compiled on systems where pthread_getcpuclockid() is available;
 // Otherwise we compile clock_id_noop.c
-#if defined(HAVE_PTHREAD_GETCPUCLOCKID) && defined(USE_MJIT_HEADER)
+#ifdef HAVE_PTHREAD_GETCPUCLOCKID
 
 #include <pthread.h>
 #include <time.h>
 #include <errno.h>
 
 #include <ruby.h>
+
+#ifdef RUBY_2_1_WORKAROUND
+#include <thread_native.h>
+#else
 #include <ruby/thread_native.h>
+#endif
 
 #include "private_vm_api_access.h"
 

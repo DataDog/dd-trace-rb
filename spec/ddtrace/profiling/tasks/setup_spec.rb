@@ -16,17 +16,21 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       described_class::ACTIVATE_EXTENSIONS_ONLY_ONCE.send(:reset_ran_once_state_for_tests)
     end
 
-    it 'actives the forking and the CPU extensions before setting up the at_fork hooks' do
+    it 'actives the forking extension before setting up the at_fork hooks' do
       expect(task).to receive(:activate_forking_extensions).ordered
-      expect(task).to receive(:activate_cpu_extensions).ordered
       expect(task).to receive(:setup_at_fork_hooks).ordered
+
+      run
+    end
+
+    it 'checks if CPU time profiling is available' do
+      expect(task).to receive(:check_if_cpu_time_profiling_is_supported)
 
       run
     end
 
     it 'only sets up the extensions and hooks once, even across different instances' do
       expect_any_instance_of(described_class).to receive(:activate_forking_extensions).once
-      expect_any_instance_of(described_class).to receive(:activate_cpu_extensions).once
       expect_any_instance_of(described_class).to receive(:setup_at_fork_hooks).once
 
       task.run
@@ -111,77 +115,32 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     end
   end
 
-  describe '#activate_cpu_extensions' do
-    subject(:activate_cpu_extensions) { task.send(:activate_cpu_extensions) }
+  describe '#check_if_cpu_time_profiling_is_supported' do
+    subject(:check_if_cpu_time_profiling_is_supported) { task.send(:check_if_cpu_time_profiling_is_supported) }
 
-    context 'when CPU extensions are supported' do
-      before do
-        allow(Datadog::Profiling::Ext::CPU)
-          .to receive(:supported?)
-          .and_return(true)
-      end
+    before do
+      expect(task).to receive(:cpu_time_profiling_unsupported_reason).and_return(unsupported_reason)
+    end
 
-      context 'and succeeds' do
-        it 'applies CPU extensions' do
-          expect(Datadog::Profiling::Ext::CPU).to receive(:apply!)
-          expect(Datadog.logger).to_not receive(:warn)
-          activate_cpu_extensions
-        end
-      end
+    context 'when CPU time profiling is supported' do
+      let(:unsupported_reason) { nil }
 
-      context 'but fails' do
-        before do
-          expect(Datadog::Profiling::Ext::CPU)
-            .to receive(:apply!)
-            .and_raise(StandardError)
-        end
+      it 'does not log a message' do
+        expect(Datadog.logger).to_not receive(:info)
 
-        it 'logs a warning' do
-          expect(Datadog.logger).to receive(:warn) do |&message|
-            expect(message.call).to include('CPU profiling extensions unavailable')
-          end
-
-          activate_cpu_extensions
-        end
+        check_if_cpu_time_profiling_is_supported
       end
     end
 
-    context 'when CPU extensions are not supported' do
-      before do
-        allow(Datadog::Profiling::Ext::CPU)
-          .to receive(:supported?)
-          .and_return(false)
-      end
+    context 'when CPU time profiling is not supported' do
+      let(:unsupported_reason) { 'Simulated failure' }
 
-      context 'and profiling is enabled' do
-        before do
-          allow(Datadog.configuration.profiling)
-            .to receive(:enabled)
-            .and_return(true)
+      it 'logs info message' do
+        expect(Datadog.logger).to receive(:info) do |&message|
+          expect(message.call).to include('CPU time profiling skipped')
         end
 
-        it 'skips CPU extensions with an info message' do
-          expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
-          expect(Datadog.logger).to receive(:info) do |&message|
-            expect(message.call).to include('CPU time profiling skipped')
-          end
-
-          activate_cpu_extensions
-        end
-      end
-
-      context 'and profiling is disabled' do
-        before do
-          allow(Datadog.configuration.profiling)
-            .to receive(:enabled)
-            .and_return(false)
-        end
-
-        it 'skips CPU extensions without warning' do
-          expect(Datadog::Profiling::Ext::CPU).to_not receive(:apply!)
-          expect(Datadog.logger).to_not receive(:warn)
-          activate_cpu_extensions
-        end
+        check_if_cpu_time_profiling_is_supported
       end
     end
   end
@@ -282,6 +241,44 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
           setup_at_fork_hooks
         end
+      end
+    end
+  end
+
+  describe '#cpu_time_profiling_unsupported_reason' do
+    subject(:cpu_time_profiling_unsupported_reason) { task.send(:cpu_time_profiling_unsupported_reason) }
+
+    context 'when JRuby is used' do
+      before { stub_const('RUBY_ENGINE', 'jruby') }
+
+      it { is_expected.to include 'JRuby' }
+    end
+
+    context 'when using MRI Ruby' do
+      before { stub_const('RUBY_ENGINE', 'ruby') }
+
+      context 'when running on macOS' do
+        before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+
+        it { is_expected.to include 'macOS' }
+      end
+
+      context 'when running on Windows' do
+        before { stub_const('RUBY_PLATFORM', 'mswin') }
+
+        it { is_expected.to include 'Windows' }
+      end
+
+      context 'when running on a non-Linux platform' do
+        before { stub_const('RUBY_PLATFORM', 'my-homegrown-os') }
+
+        it { is_expected.to include 'my-homegrown-os' }
+      end
+
+      context 'when running on Linux' do
+        before { stub_const('RUBY_PLATFORM', 'x86_64-linux-gnu') }
+
+        it { is_expected.to be nil }
       end
     end
   end

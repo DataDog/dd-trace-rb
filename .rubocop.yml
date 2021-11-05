@@ -375,3 +375,6 @@ Style/TrailingCommaInHashLiteral:
 Style/GlobalVars:
   Exclude:
     - 'ext/ddtrace_profiling_native_extension/extconf.rb'
+
+Naming/VariableNumber:
+  Enabled: false
