@@ -73,25 +73,6 @@ RSpec.describe Datadog::Contrib::Extensions do
 
       before { stub_const('Datadog::Contrib::REGISTRY', registry) }
 
-      describe '.registry' do
-        it 'return global REGISTRY on deprecated access' do
-          expect(Datadog.logger).to receive(:warn).with(/Deprecated access to `Datadog.configuration.registry`/)
-
-          expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
-        end
-      end
-
-      describe '.registry=' do
-        it 'to not change registry on deprecated assignment attempt' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer supported and was ignored/)
-
-          settings.registry = double('Overriding registry')
-
-          allow(Datadog.logger).to receive(:warn)
-          expect(settings.registry).to be(Datadog::Contrib::REGISTRY)
-        end
-      end
-
       describe '#[]' do
         context 'when the integration doesn\'t exist' do
           it do
