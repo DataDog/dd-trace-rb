@@ -24,8 +24,7 @@ module Datadog
   # rubocop:disable Metrics/ClassLength
   class Tracer
     attr_reader :sampler, :tags, :provider, :context_flush
-    attr_accessor :enabled, :writer
-    attr_writer :default_service
+    attr_accessor :default_service, :enabled, :writer
 
     ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
 
@@ -58,28 +57,31 @@ module Datadog
     end
 
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
-    # time of sections of code. Available +options+ are:
+    # time of sections of code.
     #
-    # * +enabled+: set if the tracer submits or not spans to the local agent. It's enabled
-    #   by default.
-    def initialize(options = {})
-      @context_flush = options[:context_flush] || Datadog::ContextFlush::Finished.new
-      @default_service = options[:default_service]
-      @enabled = options.fetch(:enabled, true)
-      @provider = options[:context_provider] || Datadog::DefaultContextProvider.new
-      @sampler = options[:sampler] || PrioritySampler.new(
-        base_sampler: Datadog::AllSampler.new,
-        post_sampler: Sampling::RuleSampler.new,
-      )
-      @tags = options[:tags] || {}
-      @writer = options[:writer] || Datadog::Writer.new
-    end
-
-    # A default value for service. One should really override this one
-    # for non-root spans which have a parent. However, root spans without
-    # a service would be invalid and rejected.
-    def default_service
-      @default_service ||= Datadog::Ext::Environment::FALLBACK_SERVICE_NAME
+    # @param context_flush [Datadog::ContextFlush] responsible for flushing spans from the execution context
+    # @param context_provider [Datadog::DefaultContextProvider] ensures different execution contexts have distinct traces
+    # @param default_service [String] A fallback value for {Datadog::Span#service}, as spans without service are rejected
+    # @param enabled [Boolean] set if the tracer submits or not spans to the local agent
+    # @param sampler [Datadog::Sampler] a tracer sampler, responsible for filtering out spans when needed
+    # @param tags [Hash] default tags added to all spans
+    # @param writer [Datadog::Writer] consumes traces returned by the provided +context_flush+
+    def initialize(
+      context_flush: Datadog::ContextFlush::Finished.new,
+      context_provider: Datadog::DefaultContextProvider.new,
+      default_service: Datadog::Ext::Environment::FALLBACK_SERVICE_NAME,
+      enabled: true,
+      sampler: PrioritySampler.new(base_sampler: Datadog::AllSampler.new, post_sampler: Sampling::RuleSampler.new),
+      tags: {},
+      writer: Datadog::Writer.new
+    )
+      @context_flush = context_flush
+      @default_service = default_service
+      @enabled = enabled
+      @provider = context_provider
+      @sampler = sampler
+      @tags = tags
+      @writer = writer
     end
 
     # Set the given key / value tag pair at the tracer level. These tags will be
