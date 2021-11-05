@@ -374,20 +374,5 @@ module Datadog
       @writer.write(trace)
       trace_completed.publish(trace)
     end
-
-    def activate_priority_sampling!(base_sampler = nil)
-      @sampler = if base_sampler.is_a?(PrioritySampler)
-                   base_sampler
-                 else
-                   PrioritySampler.new(
-                     base_sampler: base_sampler,
-                     post_sampler: Sampling::RuleSampler.new
-                   )
-                 end
-    end
-
-    def deactivate_priority_sampling!(base_sampler = nil)
-      @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
-    end
   end
 end
