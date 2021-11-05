@@ -77,4 +77,12 @@ module SpanHelpers
       "#{actual} with metrics #{actual.instance_variable_get(:@metrics)}"
     end
   end
+
+  # Does this span have no parent span?
+  RSpec::Matchers.define :be_root_span do
+    match do |span|
+      value = span.parent_id
+      values_match? 0, value
+    end
+  end
 end

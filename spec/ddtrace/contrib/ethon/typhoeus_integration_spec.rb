@@ -82,8 +82,8 @@ RSpec.describe Datadog::Contrib::Ethon do
       end
 
       it 'has span hierarchy properly set up' do
-        expect(span_get.parent).to eq(span_parent)
-        expect(span_post.parent).to eq(span_parent)
+        expect(span_get.parent_id).to eq(span_parent.span_id)
+        expect(span_post.parent_id).to eq(span_parent.span_id)
       end
     end
   end

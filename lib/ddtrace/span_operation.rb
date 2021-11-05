@@ -40,7 +40,6 @@ module Datadog
       :service=,
       :set_error,
       :set_metric,
-      :set_parent,
       :set_tag,
       :set_tags,
       :span_id,
@@ -156,12 +155,6 @@ module Datadog
       return_value
     end
 
-    # Set span parent
-    def parent=(parent)
-      @parent = parent
-      span.parent = parent && parent.span
-    end
-
     def start(start_time = nil)
       # Don't overwrite the start time of a started span.
       return self if started?
@@ -187,6 +180,29 @@ module Datadog
 
     def finished?
       span.stopped?
+    end
+
+    # Set this span's parent, inheriting any properties not explicitly set.
+    # If the parent is nil, set the span as the root span.
+    #
+    # DEV: This method creates a false expectation that
+    # `self.parent.span_id == self.parent_id`, which is not the case
+    # for distributed traces, as the parent Span object does not exist
+    # in this application. `#parent_id` is the only reliable parent
+    # identifier. We should remove the ability to set a parent Span
+    # object in the future.
+    def parent=(parent)
+      @parent = parent
+
+      if parent.nil?
+        span.trace_id = span.span_id
+        span.parent_id = 0
+      else
+        span.trace_id = parent.trace_id
+        span.parent_id = parent.span_id
+        span.service ||= parent.service
+        span.sampled = parent.sampled
+      end
     end
 
     # Callback behavior

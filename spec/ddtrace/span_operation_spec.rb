@@ -16,7 +16,7 @@ RSpec.describe Datadog::SpanOperation do
 
       # Because we maintain parallel "parent" state between
       # Span and Span Operation, ensure this matches.
-      expect(span_op.span.parent).to be(nil)
+      expect(span_op.span).to be_root_span
     end
 
     it 'has default tags' do
@@ -35,7 +35,7 @@ RSpec.describe Datadog::SpanOperation do
 
       # Because we maintain parallel "parent" state between
       # Span and Span Operation, ensure this matches.
-      expect(span_op.span.parent).to be(parent.span)
+      expect(span_op.span.parent_id).to be(parent.span.span_id)
     end
   end
 
@@ -94,7 +94,6 @@ RSpec.describe Datadog::SpanOperation do
       :service=,
       :set_error,
       :set_metric,
-      :set_parent,
       :set_tag,
       :set_tags,
       :span_id,
@@ -604,15 +603,6 @@ RSpec.describe Datadog::SpanOperation do
     end
   end
 
-  describe '#parent=' do
-    subject(:set_parent) { span_op.parent = parent }
-    include_context 'parent span operation'
-
-    before { set_parent }
-
-    it_behaves_like 'a child span operation'
-  end
-
   describe '#start' do
     shared_examples 'started span' do
       let(:start_time) { kind_of(Time) }
@@ -757,6 +747,54 @@ RSpec.describe Datadog::SpanOperation do
     context 'when operation is finished' do
       before { span_op.finish }
       it { is_expected.to be true }
+    end
+  end
+
+  context 'parent=' do
+    subject(:set_parent) { span_op.parent = parent }
+
+    context 'to a span' do
+      let(:parent) { described_class.new('parent', **parent_span_options) }
+      let(:parent_span_options) { {} }
+
+      before do
+        parent.sampled = false
+        set_parent
+      end
+
+      it do
+        expect(span_op.parent).to eq(parent)
+        expect(span_op.parent_id).to eq(parent.span_id)
+        expect(span_op.trace_id).to eq(parent.trace_id)
+        expect(span_op.sampled).to eq(false)
+      end
+
+      context 'with service' do
+        let(:parent_span_options) { { service: 'parent' } }
+
+        it 'copies parent service to child' do
+          expect(span_op.service).to eq('parent')
+        end
+
+        context 'with existing child service' do
+          let(:options) { { service: 'child' } }
+
+          it 'does not override child service' do
+            expect(span_op.service).to eq('child')
+          end
+        end
+      end
+    end
+
+    context 'to nil' do
+      let(:parent) { nil }
+
+      it 'removes the parent' do
+        set_parent
+        expect(span_op.parent).to be_nil
+        expect(span_op.parent_id).to be_zero
+        expect(span_op.trace_id).to eq(span_op.span_id)
+      end
     end
   end
 end

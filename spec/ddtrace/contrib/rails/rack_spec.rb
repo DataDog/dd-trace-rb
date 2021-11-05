@@ -206,14 +206,14 @@ RSpec.describe 'Rails Rack' do
       expect(inner_partial_span.resource).to eq('_inner_partial.html.erb')
       expect(inner_partial_span.get_tag('rails.template_name')).to eq('_inner_partial.html.erb')
       expect(inner_partial_span).to be_measured
-      expect(inner_partial_span.parent).to eq(outer_partial_span)
+      expect(inner_partial_span.parent_id).to eq(outer_partial_span.span_id)
 
       expect(outer_partial_span.name).to eq('rails.render_partial')
       expect(outer_partial_span.span_type).to eq('template')
       expect(outer_partial_span.resource).to eq('_outer_partial.html.erb')
       expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb')
       expect(outer_partial_span).to be_measured
-      expect(outer_partial_span.parent).to eq(template_span)
+      expect(outer_partial_span.parent_id).to eq(template_span.span_id)
     end
 
     it 'tracing does not affect response body' do

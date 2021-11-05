@@ -14,7 +14,7 @@ RSpec.describe 'GraphQL patcher' do
     end
   end
 
-  let(:root_span) { spans.find { |s| s.parent.nil? } }
+  let(:root_span) { spans.find { |s| s.parent_id == 0 } }
 
   RSpec.shared_examples 'Schema patcher' do
     before do
