@@ -74,25 +74,6 @@ module Datadog
         module Settings
           InvalidIntegrationError = Class.new(StandardError)
 
-          # The registry only holds declarative constant values and cannot be modified.
-          # This option is a no-op and will be removed in the future.
-          #
-          # @deprecated Use `Datadog.registry` instead
-          def registry
-            Datadog.logger.warn('Deprecated access to `Datadog.configuration.registry`, use `Datadog.registry` instead.' \
-                                '`Datadog.configuration.registry` will be removed in a future version.')
-            Contrib::REGISTRY
-          end
-
-          # The registry only holds declarative constant values and cannot be modified.
-          # This option is a no-op and will be removed in the future.
-          #
-          # @deprecated The registry is now a global constant, and can't be overwritten.
-          def registry=(_arg)
-            Datadog.logger.warn('Setting a custom registry is no longer supported and was ignored. ' \
-                                'Remove this assignment from your configuration to stop seeing this warning.')
-          end
-
           # For the provided `integration_name`, resolves a matching configuration
           # for the provided integration from an integration-specific `key`.
           #
