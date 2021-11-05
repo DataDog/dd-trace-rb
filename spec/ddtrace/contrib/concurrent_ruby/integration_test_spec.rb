@@ -46,8 +46,8 @@ RSpec.describe 'ConcurrentRuby integration tests' do
       deferred_execution
     end
 
-    it 'creates outer span with nil parent' do
-      expect(outer_span.parent).to be_nil
+    it 'creates outer span without a parent' do
+      expect(outer_span).to be_root_span
     end
 
     it 'writes inner span to tracer' do
@@ -77,7 +77,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
     it 'inner span should not have parent' do
       deferred_execution
-      expect(inner_span.parent).to be_nil
+      expect(inner_span).to be_root_span
     end
   end
 
@@ -92,7 +92,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
     it 'inner span parent should be included in outer span' do
       deferred_execution
-      expect(inner_span.parent).to eq(outer_span)
+      expect(inner_span.parent_id).to eq(outer_span.span_id)
     end
   end
 end
