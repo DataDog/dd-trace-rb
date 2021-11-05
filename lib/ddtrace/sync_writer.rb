@@ -12,8 +12,6 @@ module Datadog
   # the separate `datadog-lambda` uses it as of February 2021:
   # <https://github.com/DataDog/datadog-lambda-rb/blob/c15f0f0916c90123416dc44e7d6800ef4a7cfdbf/lib/datadog/lambda.rb#L38>
   class SyncWriter
-    DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
-
     attr_reader \
       :priority_sampler,
       :transport
@@ -28,16 +26,7 @@ module Datadog
       @priority_sampler = options.fetch(:priority_sampler, nil)
     end
 
-    def write(trace, services = nil)
-      unless services.nil?
-        DEPRECATION_WARN_ONLY_ONCE.run do
-          Datadog.logger.warn(%(
-            write: Writing services has been deprecated and no longer need to be provided.
-            write(traces, services) can be updated to write(traces)
-          ))
-        end
-      end
-
+    def write(trace)
       flush_trace(trace)
     rescue => e
       Datadog.logger.debug(e)

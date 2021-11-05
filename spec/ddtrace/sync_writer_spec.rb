@@ -30,10 +30,9 @@ RSpec.describe Datadog::SyncWriter do
   end
 
   describe '#write' do
-    subject(:write) { sync_writer.write(trace, services) }
+    subject(:write) { sync_writer.write(trace) }
 
     let(:trace) { get_test_traces(1).first }
-    let(:services) { nil }
 
     context 'with trace' do
       before { write }
