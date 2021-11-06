@@ -2465,7 +2465,7 @@ The underlying Datadog tracer can be configured by passing options (which match 
 
 ```ruby
 # Where `options` is a Hash of options provided to Datadog::Tracer
-OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new(options)
+OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new(**options)
 ```
 
 It can also be configured by using `Datadog.configure` described in the [Tracer settings](#tracer-settings) section.

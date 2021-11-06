@@ -16,7 +16,7 @@ module Datadog
 
       def initialize(options = {})
         super()
-        @datadog_tracer = Datadog::Tracer.new(options)
+        @datadog_tracer = Datadog::Tracer.new(**options)
       end
 
       # @return [ScopeManager] the current ScopeManager.

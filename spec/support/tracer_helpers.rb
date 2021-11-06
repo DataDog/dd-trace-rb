@@ -18,7 +18,7 @@ module TracerHelpers
     )
 
     options = { writer: writer }.merge(options)
-    Datadog::Tracer.new(options).tap do |tracer|
+    Datadog::Tracer.new(**options).tap do |tracer|
       # TODO: Let's try to get rid of this override, which has too much
       #       knowledge about the internal workings of the tracer.
       #       It is done to prevent the activation of priority sampling
@@ -58,7 +58,7 @@ module TracerHelpers
   # Return a test tracer instance with a faux writer.
   def get_test_tracer_with_old_transport(options = {})
     options = { writer: FauxWriter.new }.merge(options)
-    Datadog::Tracer.new(options).tap do |tracer|
+    Datadog::Tracer.new(**options).tap do |tracer|
       # TODO: Let's try to get rid of this override, which has too much
       #       knowledge about the internal workings of the tracer.
       #       It is done to prevent the activation of priority sampling
