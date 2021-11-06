@@ -14,14 +14,14 @@ RSpec.describe Datadog::OpenTracer::Tracer do
 
   describe '#initialize' do
     context 'when given options' do
-      subject(:tracer) { described_class.new(options) }
+      subject(:tracer) { described_class.new(**options) }
 
-      let(:options) { double('options') }
+      let(:options) { { enabled: double } }
       let(:datadog_tracer) { double('datadog_tracer') }
 
       before do
         expect(Datadog::Tracer).to receive(:new)
-          .with(options)
+          .with(**options)
           .and_return(datadog_tracer)
       end
 
