@@ -3,7 +3,7 @@ require 'ddtrace/ext/priority'
 
 module Datadog
   # Defines analytics behavior
-  module ForcedTracing
+  module ManualTracing
     class << self
       def keep(span_op)
         return if span_op.nil? || span_op.context.nil?
