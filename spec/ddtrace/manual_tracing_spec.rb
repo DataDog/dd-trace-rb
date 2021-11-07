@@ -1,10 +1,10 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/forced_tracing'
+require 'ddtrace/manual_tracing'
 require 'ddtrace/span_operation'
 
-RSpec.describe Datadog::ForcedTracing do
+RSpec.describe Datadog::ManualTracing do
   describe '.keep' do
     subject(:keep) { described_class.keep(span_op) }
 
