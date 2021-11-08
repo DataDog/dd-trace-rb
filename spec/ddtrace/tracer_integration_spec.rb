@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracer do
 
           # And create child span from propagated context
           tracer.trace(child_span_name) do |_child_span_op|
-            @child_root_span = tracer.active_root_span.span
+            @child_root_span_id = tracer.active_root_span.id
           end
         end
       end
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Tracer do
         # This is expected to be child_span because when propagated, we don't
         # propagate the root span, only its ID. Therefore the span reference
         # should be the first span on the other end of the distributed trace.
-        it { expect(@child_root_span).to be child_span }
+        it { expect(@child_root_span_id).to eq child_span.id }
 
         it 'does not set runtime metrics language tag' do
           expect(lang_tag(parent_span)).to be nil
@@ -145,14 +145,14 @@ RSpec.describe Datadog::Tracer do
       shared_examples_for 'a synthetics-sourced trace' do
         before do
           tracer.trace('local.operation') do |local_span_op|
-            @local_span = local_span_op.span
+            @local_span = local_span_op
             @local_context = tracer.call_context
           end
         end
 
         it 'that is well-formed' do
           expect(spans).to have(1).item
-          expect(spans.first).to be(@local_span)
+          expect(spans.first.id).to eq(@local_span.id)
 
           spans.first.tap do |local_span|
             expect(local_span.trace_id).to eq(trace_id)

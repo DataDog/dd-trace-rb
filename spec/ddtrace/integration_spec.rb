@@ -355,7 +355,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       it do
-        metric_value = parent_span.get_metric(
+        metric_value = parent_span.send(:span).get_metric(
           Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY
         )
 
@@ -369,7 +369,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:tracer) { get_test_tracer }
 
     context 'when #sampling_priority is set on a parent span' do
-      subject(:tag_value) { parent_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
+      subject(:tag_value) { parent_span.send(:span).get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY) }
 
       let(:parent_span) { tracer.start_span('parent span') }
 

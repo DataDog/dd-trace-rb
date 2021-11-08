@@ -1,16 +1,9 @@
 # typed: true
 # frozen_string_literal: true
 
-require 'time'
-require 'ddtrace/utils'
-require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/environment'
 require 'ddtrace/ext/errors'
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/net'
-
-require 'ddtrace/diagnostics/health'
-require 'ddtrace/utils/time'
+require 'ddtrace/utils'
+require 'ddtrace/tagging'
 
 module Datadog
   # Represents a logical unit of work in the system. Each trace consists of one or more spans.
@@ -21,6 +14,8 @@ module Datadog
   #
   # rubocop:disable Metrics/ClassLength
   class Span
+    include Tagging
+
     # The max value for a \Span identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
@@ -34,29 +29,29 @@ module Datadog
     # parsing 64-bit integers for distributed tracing since an upstream system may generate one
     EXTERNAL_MAX_ID = 1 << 64
 
-    # This limit is for numeric tags because uint64 could end up rounded.
-    NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
-
-    # Some associated values should always be sent as Tags, never as Metrics, regardless
-    # if their value is numeric or not.
-    # The Datadog agent will look for these values only as Tags, not Metrics.
-    # @see https://github.com/DataDog/datadog-agent/blob/2ae2cdd315bcda53166dd8fa0dedcfc448087b9d/pkg/trace/stats/aggregation.go#L13-L17
-    ENSURE_AGENT_TAGS = {
-      Ext::DistributedTracing::ORIGIN_KEY => true,
-      Ext::Environment::TAG_VERSION => true,
-      Ext::HTTP::STATUS_CODE => true,
-      Ext::NET::TAG_HOSTNAME => true
-    }.freeze
-
-    attr_accessor :name, :service, :resource, :span_type,
-                  :span_id, :trace_id, :parent_id,
-                  :status, :sampled
-
-    attr_reader \
+    attr_accessor \
+      :allocations,
+      :end_time,
+      :id,
+      :meta,
+      :metrics,
+      :name,
+      :parent_id,
+      :resource,
+      :sampled,
+      :service,
+      :type,
       :start_time,
-      :end_time
+      :status,
+      :trace_id
 
-    attr_writer :duration
+    attr_writer \
+      :duration
+
+    # For backwards compatiblity
+    # TODO: Deprecate and remove these.
+    alias :span_id :id
+    alias :span_type :type
 
     # Create a new span manually. Call the <tt>start()</tt> method to start the time
     # measurement and then <tt>stop()</tt> once the timing operation is over.
@@ -64,194 +59,105 @@ module Datadog
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or +name+ if it's missing.
     #     +nil+ can be used as a placeholder, when the resource value is not yet known at +#initialize+ time.
-    # * +span_type+: the type of the span (such as +http+, +db+ and so on)
+    # * +type+: the type of the span (such as +http+, +db+ and so on)
     # * +parent_id+: the identifier of the parent span
     # * +trace_id+: the identifier of the root span for this trace
+    # TODO: Remove span_type
     def initialize(
       name,
+      allocations: 0,
+      duration: nil,
+      end_time: nil,
+      id: nil,
+      meta: nil,
+      metrics: nil,
       parent_id: 0,
       resource: name,
+      sampled: true,
       service: nil,
       span_type: nil,
-      tags: nil,
+      start_time: nil,
+      status: 0,
+      type: span_type,
       trace_id: nil
     )
       @name = name
       @service = service
       @resource = resource
-      @span_type = span_type
+      @type = type
 
-      @span_id = Datadog::Utils.next_id
+      @id = id || Datadog::Utils.next_id
       @parent_id = parent_id || 0
       @trace_id = trace_id || Datadog::Utils.next_id
 
-      @meta = {}
-      @metrics = {}
-      @status = 0
+      @meta = meta || {}
+      @metrics = metrics || {}
+      @status = status || 0
 
-      @sampled = true
+      @sampled = sampled.nil? ? true : sampled
 
-      @allocation_count_start = now_allocations
-      @allocation_count_stop = @allocation_count_start
+      @allocations = allocations || 0
 
       # start_time and end_time track wall clock. In Ruby, wall clock
       # has less accuracy than monotonic clock, so if possible we look to only use wall clock
       # to measure duration when a time is supplied by the user, or if monotonic clock
       # is unsupported.
-      @start_time = nil
-      @end_time = nil
+      @start_time = start_time
+      @end_time = end_time
 
       # duration_start and duration_end track monotonic clock, and may remain nil in cases where it
       # is known that we have to use wall clock to measure duration.
-      @duration_start = nil
-      @duration_end = nil
-
-      # Set tags if provided.
-      set_tags(tags) if tags
+      @duration = duration
     end
 
-    # Set the given key / value tag pair on the span. Keys and values
-    # must be strings. A valid example is:
-    #
-    #   span.set_tag('http.method', request.method)
-    def set_tag(key, value = nil)
-      # Keys must be unique between tags and metrics
-      @metrics.delete(key)
-
-      # DEV: This is necessary because the agent looks at `meta[key]`, not `metrics[key]`.
-      value = value.to_s if ENSURE_AGENT_TAGS[key]
-
-      # NOTE: Adding numeric tags as metrics is stop-gap support
-      #       for numeric typed tags. Eventually they will become
-      #       tags again.
-      # Any numeric that is not an integer greater than max size is logged as a metric.
-      # Everything else gets logged as a tag.
-      if value.is_a?(Numeric) && !(value.is_a?(Integer) && !NUMERIC_TAG_SIZE_RANGE.cover?(value))
-        set_metric(key, value)
-      else
-        @meta[key] = value.to_s
-      end
-    rescue StandardError => e
-      Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
+    # Return whether the duration is started or not
+    def started?
+      !@start_time.nil?
     end
 
-    # Sets tags from given hash, for each key in hash it sets the tag with that key
-    # and associated value from the hash. It is shortcut for `set_tag`. Keys and values
-    # of the hash must be strings. Note that nested hashes are not supported.
-    # A valid example is:
-    #
-    #   span.set_tags({ "http.method" => "GET", "user.id" => "234" })
-    def set_tags(tags)
-      tags.each { |k, v| set_tag(k, v) }
+    # Return whether the duration is stopped or not.
+    def stopped?
+      !@end_time.nil?
+    end
+    alias :finished? :stopped?
+
+    def duration
+      return @duration if @duration
+      return @end_time - @start_time if @start_time && @end_time
     end
 
-    # This method removes a tag for the given key.
-    def clear_tag(key)
-      @meta.delete(key)
-    end
-
-    # Return the tag with the given key, nil if it doesn't exist.
-    def get_tag(key)
-      @meta[key] || @metrics[key]
-    end
-
-    # This method sets a tag with a floating point value for the given key. It acts
-    # like `set_tag()` and it simply add a tag without further processing.
-    def set_metric(key, value)
-      # Keys must be unique between tags and metrics
-      @meta.delete(key)
-
-      # enforce that the value is a floating point number
-      value = Float(value)
-      @metrics[key] = value
-    rescue StandardError => e
-      Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
-    end
-
-    # This method removes a metric for the given key. It acts like {#remove_tag}.
-    def clear_metric(key)
-      @metrics.delete(key)
-    end
-
-    # Return the metric with the given key, nil if it doesn't exist.
-    def get_metric(key)
-      @metrics[key] || @meta[key]
-    end
-
-    # Mark the span with the given error.
     def set_error(e)
-      e = Error.build_from(e)
-
-      @status = Ext::Errors::STATUS
-      set_tag(Ext::Errors::TYPE, e.type) unless e.type.empty?
-      set_tag(Ext::Errors::MSG, e.message) unless e.message.empty?
-      set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?
+      @status = Datadog::Ext::Errors::STATUS
+      super
     end
 
-    # Mark the span started at the current time.
-    def start(start_time = nil)
-      @start_time = start_time || Utils::Time.now.utc
-      @duration_start = start_time.nil? ? duration_marker : nil
-
-      self
-    end
-
-    # for backwards compatibility
-    def start_time=(time)
-      time.tap { start(time) }
-    end
-
-    # for backwards compatibility
-    def end_time=(time)
-      time.tap { stop(time) }
-    end
-
-    # Mark the span stopped at the current time
-    def stop(stop_time = nil)
-      # A span should not be stopped twice. Note that this is not thread-safe,
-      # stop is called from multiple threads, a given span might be stopped
-      # several times. Again, one should not do this, so this test is more a
-      # fallback to avoid very bad things and protect you in most common cases.
-      return if stopped?
-
-      @allocation_count_stop = now_allocations
-
-      now = Utils::Time.now.utc
-
-      # Provide a default start_time if unset.
-      # Using `now` here causes duration to be 0; this is expected
-      # behavior when start_time is unknown.
-      start(stop_time || now) unless started?
-
-      @end_time = stop_time || now
-      @duration_end = stop_time.nil? ? duration_marker : nil
-
-      self
+    # Spans with the same ID are considered the same span
+    def ==(other)
+      other.instance_of?(Span) &&
+        @id == other.id
     end
 
     # Return a string representation of the span.
     def to_s
-      "Span(name:#{@name},sid:#{@span_id},tid:#{@trace_id},pid:#{@parent_id})"
-    end
-
-    def allocations
-      @allocation_count_stop - @allocation_count_start
+      "Span(name:#{@name},sid:#{@id},tid:#{@trace_id},pid:#{@parent_id})"
     end
 
     # Return the hash representation of the current span.
+    # TODO: Change this to reflect attributes when serialization
+    # isn't handled by this method.
     def to_hash
       h = {
-        span_id: @span_id,
-        parent_id: @parent_id,
-        trace_id: @trace_id,
-        name: @name,
-        service: @service,
-        resource: @resource,
-        type: @span_type,
+        allocations: @allocations,
+        error: @status,
         meta: @meta,
         metrics: @metrics,
-        allocations: allocations,
-        error: @status
+        name: @name,
+        parent_id: @parent_id,
+        resource: @resource,
+        service: @service,
+        span_id: @id,
+        trace_id: @trace_id,
+        type: @type
       }
 
       if stopped?
@@ -290,7 +196,7 @@ module Datadog
       # DEV: MessagePack will ultimately convert them to strings.
       # DEV: By providing strings directly, we skip this indirection operation.
       packer.write('span_id')
-      packer.write(@span_id)
+      packer.write(@id)
       packer.write('parent_id')
       packer.write(@parent_id)
       packer.write('trace_id')
@@ -302,7 +208,7 @@ module Datadog
       packer.write('resource')
       packer.write(@resource)
       packer.write('type')
-      packer.write(@span_type)
+      packer.write(@type)
       packer.write('meta')
       packer.write(@meta)
       packer.write('metrics')
@@ -327,16 +233,16 @@ module Datadog
       q.group 0 do
         q.breakable
         q.text "Name: #{@name}\n"
-        q.text "Span ID: #{@span_id}\n"
+        q.text "Span ID: #{@id}\n"
         q.text "Parent ID: #{@parent_id}\n"
         q.text "Trace ID: #{@trace_id}\n"
-        q.text "Type: #{@span_type}\n"
+        q.text "Type: #{@type}\n"
         q.text "Service: #{@service}\n"
         q.text "Resource: #{@resource}\n"
         q.text "Error: #{@status}\n"
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
-        q.text "Duration: #{duration.to_f if stopped?}\n"
+        q.text "Duration: #{duration.to_f}\n"
         q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
@@ -353,44 +259,7 @@ module Datadog
       end
     end
 
-    # Return whether the duration is started or not
-    def started?
-      !@start_time.nil?
-    end
-
-    # Return whether the duration is stopped or not.
-    def stopped?
-      !@end_time.nil?
-    end
-    alias finished? stopped?
-
-    def duration
-      if @duration_start && @duration_end
-        @duration_end - @duration_start
-      elsif @start_time && @end_time
-        @end_time - @start_time
-      end
-    end
-
     private
-
-    def duration_marker
-      Utils::Time.get_time
-    end
-
-    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
-      def now_allocations
-        0
-      end
-    elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
-      def now_allocations
-        GC.stat.fetch(:total_allocated_object)
-      end
-    else
-      def now_allocations
-        GC.stat(:total_allocated_objects)
-      end
-    end
 
     # Used for serialization
     # @return [Integer] in nanoseconds since Epoch

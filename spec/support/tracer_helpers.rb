@@ -108,12 +108,18 @@ module TracerHelpers
     defaults = {
       service: 'test-app',
       resource: '/traces',
-      span_type: 'web'
+      type: 'web'
     }
 
     n.times do
-      span1 = Datadog::Span.new('client.testing', **defaults).start.stop
-      span2 = Datadog::Span.new('client.testing', **defaults, parent_id: span1.span_id).start.stop
+      span_op1 = Datadog::SpanOperation.new('client.testing', **defaults)
+      span_op2 = Datadog::SpanOperation.new('client.testing', **defaults, child_of: span_op2)
+
+      span_op1.start
+      span_op2.start
+      span2 = span_op2.finish
+      span1 = span_op1.finish
+
       traces << [span1, span2]
     end
 

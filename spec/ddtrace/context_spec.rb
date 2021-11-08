@@ -266,10 +266,11 @@ RSpec.describe Datadog::Context do
 
       context 'finished' do
         before do
+          span_op.finish
           context.close_span(span_op)
         end
 
-        it { is_expected.to eq([trace.collect(&:span), sampled]) }
+        it { is_expected.to eq([trace.collect { |s| s.send(:span) }, sampled]) }
 
         it 'configures root span' do
           subject
@@ -277,7 +278,7 @@ RSpec.describe Datadog::Context do
         end
 
         context 'and a block' do
-          it { expect { |b| context.get(&b) }.to yield_with_args(trace) }
+          it { expect { |b| context.get(&b) }.to yield_with_args(trace.collect { |s| s.send(:span) }) }
         end
       end
     end
@@ -299,9 +300,7 @@ RSpec.describe Datadog::Context do
         let(:parent_span_op) { Datadog::SpanOperation.new('span.parent', context: context) }
 
         let(:span_op) do
-          Datadog::SpanOperation.new('span.child', context: context).tap do |op|
-            op.parent = parent_span_op
-          end
+          Datadog::SpanOperation.new('span.child', context: context, child_of: parent_span_op)
         end
 
         # Do not set the root span to the parent(?)
@@ -387,13 +386,13 @@ RSpec.describe Datadog::Context do
       end
 
       it 'returns deleted spans' do
-        is_expected.to contain_exactly(deleted_span_op.span)
+        is_expected.to contain_exactly(deleted_span_op.send(:span))
       end
 
       it 'keeps spans not deleted' do
         expect { subject }.to change { context.finished_span_count }.from(2).to(1)
 
-        expect(context.get[0]).to contain_exactly(remaining_span_op.span)
+        expect(context.get[0]).to contain_exactly(remaining_span_op.send(:span))
       end
 
       it 'decrements the finished span count' do

@@ -208,7 +208,7 @@ RSpec.describe Datadog::Tracer do
       let(:handler_spy) { spy('handler') }
 
       context 'and Events#on_error is published' do
-        subject(:publish_error) { span.events.on_error.publish(span, error) }
+        subject(:publish_error) { span.send(:events).on_error.publish(span, error) }
         let(:error) { error_class.new }
         let(:error_class) { Class.new(StandardError) }
 
@@ -299,7 +299,7 @@ RSpec.describe Datadog::Tracer do
             end
 
             it 'subscribes to the :after_finish event' do
-              expect(span.events.after_finish.subscriptions).to include(:tracer_span_finished)
+              expect(span.send(:events).after_finish.subscriptions).to include(:tracer_span_finished)
             end
           end
 
@@ -313,7 +313,7 @@ RSpec.describe Datadog::Tracer do
             end
 
             it 'does not subscribe to the :after_finish event' do
-              expect(span.events.after_finish.subscriptions).to_not include(:tracer_span_finished)
+              expect(span.send(:events).after_finish.subscriptions).to_not include(:tracer_span_finished)
             end
           end
 

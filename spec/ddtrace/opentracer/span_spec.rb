@@ -6,7 +6,7 @@ require 'ddtrace/opentracer'
 RSpec.describe Datadog::OpenTracer::Span do
   subject(:span) { described_class.new(datadog_span: datadog_span, span_context: span_context) }
 
-  let(:datadog_span) { instance_double(Datadog::Span) }
+  let(:datadog_span) { instance_double(Datadog::SpanOperation) }
   let(:span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
   describe '#operation_name=' do
