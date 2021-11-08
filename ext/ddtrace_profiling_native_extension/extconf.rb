@@ -9,12 +9,15 @@ def skip_building_extension?
   # want to give it a try.
   on_truffleruby = RUBY_ENGINE == 'truffleruby'
 
+  # Microsoft Windows is unsupported, so let's not build the extension there.
+  on_windows = Gem.win_platform?
+
   # Experimental toggle to disable building the extension.
   # Disabling the extension will lead to the profiler not working in future releases.
   # If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.
   disabled_via_env = ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
 
-  on_jruby || on_truffleruby || disabled_via_env
+  on_jruby || on_truffleruby || on_windows || disabled_via_env
 end
 
 # IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
