@@ -935,15 +935,15 @@ RSpec.describe Datadog::SpanOperation::Analytics do
   end
 end
 
-RSpec.describe Datadog::SpanOperation::ForcedTracing do
+RSpec.describe Datadog::SpanOperation::ManualTracing do
   subject(:test_object) { test_class.new }
 
   describe '#set_tag' do
     subject(:set_tag) { test_object.set_tag(key, value) }
 
     before do
-      allow(Datadog::ForcedTracing).to receive(:keep)
-      allow(Datadog::ForcedTracing).to receive(:drop)
+      allow(Datadog::ManualTracing).to receive(:keep)
+      allow(Datadog::ManualTracing).to receive(:drop)
       set_tag
     end
 
@@ -958,7 +958,7 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
         s = span
 
         klass = Class.new do
-          prepend Datadog::SpanOperation::ForcedTracing
+          prepend Datadog::SpanOperation::ManualTracing
         end
 
         klass.tap do
@@ -976,8 +976,8 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
           let(:value) { 'my.value' }
 
           it 'calls the super #set_tag' do
-            expect(Datadog::ForcedTracing).to_not have_received(:keep)
-            expect(Datadog::ForcedTracing).to_not have_received(:drop)
+            expect(Datadog::ManualTracing).to_not have_received(:keep)
+            expect(Datadog::ManualTracing).to_not have_received(:drop)
             expect(span).to have_received(:set_tag)
               .with(key, value)
           end
@@ -990,9 +990,9 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
             let(:value) { true }
 
             it do
-              expect(Datadog::ForcedTracing).to have_received(:keep)
+              expect(Datadog::ManualTracing).to have_received(:keep)
                 .with(test_object)
-              expect(Datadog::ForcedTracing).to_not have_received(:drop)
+              expect(Datadog::ManualTracing).to_not have_received(:drop)
               expect(span).to_not have_received(:set_tag)
             end
           end
@@ -1001,8 +1001,8 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
             let(:value) { false }
 
             it do
-              expect(Datadog::ForcedTracing).to_not have_received(:keep)
-              expect(Datadog::ForcedTracing).to_not have_received(:drop)
+              expect(Datadog::ManualTracing).to_not have_received(:keep)
+              expect(Datadog::ManualTracing).to_not have_received(:drop)
               expect(span).to_not have_received(:set_tag)
             end
           end
@@ -1011,9 +1011,9 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
             let(:value) { nil }
 
             it do
-              expect(Datadog::ForcedTracing).to have_received(:keep)
+              expect(Datadog::ManualTracing).to have_received(:keep)
                 .with(test_object)
-              expect(Datadog::ForcedTracing).to_not have_received(:drop)
+              expect(Datadog::ManualTracing).to_not have_received(:drop)
               expect(span).to_not have_received(:set_tag)
             end
           end
@@ -1026,8 +1026,8 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
             let(:value) { true }
 
             it do
-              expect(Datadog::ForcedTracing).to_not have_received(:keep)
-              expect(Datadog::ForcedTracing).to have_received(:drop)
+              expect(Datadog::ManualTracing).to_not have_received(:keep)
+              expect(Datadog::ManualTracing).to have_received(:drop)
                 .with(test_object)
               expect(span).to_not have_received(:set_tag)
             end
@@ -1037,8 +1037,8 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
             let(:value) { false }
 
             it do
-              expect(Datadog::ForcedTracing).to_not have_received(:keep)
-              expect(Datadog::ForcedTracing).to_not have_received(:drop)
+              expect(Datadog::ManualTracing).to_not have_received(:keep)
+              expect(Datadog::ManualTracing).to_not have_received(:drop)
               expect(span).to_not have_received(:set_tag)
             end
           end
@@ -1047,8 +1047,8 @@ RSpec.describe Datadog::SpanOperation::ForcedTracing do
             let(:value) { nil }
 
             it do
-              expect(Datadog::ForcedTracing).to_not have_received(:keep)
-              expect(Datadog::ForcedTracing).to have_received(:drop)
+              expect(Datadog::ManualTracing).to_not have_received(:keep)
+              expect(Datadog::ManualTracing).to have_received(:drop)
                 .with(test_object)
               expect(span).to_not have_received(:set_tag)
             end

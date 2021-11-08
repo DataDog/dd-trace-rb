@@ -7,7 +7,7 @@ require 'ddtrace/ext/runtime'
 
 require 'ddtrace/span'
 require 'ddtrace/analytics'
-require 'ddtrace/forced_tracing'
+require 'ddtrace/manual_tracing'
 
 module Datadog
   # Represents the act of taking a span measurement.
@@ -262,15 +262,15 @@ module Datadog
     end
 
     # Defines forced tracing behavior
-    module ForcedTracing
+    module ManualTracing
       def set_tag(key, value)
         # Configure sampling priority if they give us a forced tracing tag
         # DEV: Do not set if the value they give us is explicitly "false"
         case key
         when Ext::ManualTracing::TAG_KEEP
-          Datadog::ForcedTracing.keep(self) unless value == false
+          Datadog::ManualTracing.keep(self) unless value == false
         when Ext::ManualTracing::TAG_DROP
-          Datadog::ForcedTracing.drop(self) unless value == false
+          Datadog::ManualTracing.drop(self) unless value == false
         else
           # Otherwise, set the tag normally.
           super if defined?(super)
@@ -280,7 +280,7 @@ module Datadog
 
     # Additional extensions
     prepend Analytics
-    prepend ForcedTracing
+    prepend ManualTracing
 
     # Error when the span attempts to start again after being started
     class AlreadyStartedError < StandardError
