@@ -1,66 +1,47 @@
 require 'forwardable'
+require 'time'
 
 require 'datadog/core/environment/identity'
-require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/manual_tracing'
+require 'ddtrace/ext/errors'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/span'
-require 'ddtrace/analytics'
-require 'ddtrace/manual_tracing'
+require 'ddtrace/tagging'
+require 'ddtrace/utils'
 
 module Datadog
   # Represents the act of taking a span measurement.
   # It gives a Span a context which can be used to
-  # manage and decorate the Span.
-  # When completed, it yields the Span.
+  # build a Span. When completed, it yields the Span.
+  #
+  # rubocop:disable Metrics/ClassLength
   class SpanOperation
-    extend Forwardable
+    include Tagging
 
-    FORWARDED_METHODS = [
-      :allocations,
-      :clear_metric,
-      :clear_tag,
-      :duration,
-      :duration=,
+    # Span attributes
+    attr_reader \
       :end_time,
-      :end_time=,
-      :get_metric,
-      :get_tag,
-      :name,
-      :name=,
+      :id,
       :parent_id,
-      :parent_id=,
-      :pretty_print,
-      :resource,
-      :resource=,
-      :sampled,
-      :sampled=,
-      :service,
-      :service=,
-      :set_error,
-      :set_metric,
-      :set_tag,
-      :set_tags,
-      :span_id,
-      :span_id=,
-      :span_type,
-      :span_type=,
+      :span,
       :start_time,
-      :start_time=,
-      :started?,
-      :status,
-      :status=,
-      :stop,
-      :stopped?,
-      :to_hash,
-      :to_json,
-      :to_msgpack,
-      :to_s,
-      :trace_id,
-      :trace_id=
-    ].to_set.freeze
+      :trace_id
 
+    attr_accessor \
+      :name,
+      :resource,
+      :sampled,
+      :service,
+      :type,
+      :status
+
+    # For backwards compatiblity
+    alias :span_id :id
+    alias :span_type :type
+    alias :span_type= :type=
+
+    # SpanOperation attributes
     attr_reader \
       :events,
       :parent
@@ -69,29 +50,57 @@ module Datadog
     #       Context should be accessed from the tracer.
     #       This attribute is provided for backwards compatibility only.
     attr_accessor \
-      :context,
-      :span
+      :context
 
-    # Forward instance methods to Span except ones that would cause identity issues
-    def_delegators :span, *FORWARDED_METHODS
-
-    def initialize(span_name, options = {})
+    # TODO: Remove span_type
+    def initialize(
+      name,
+      child_of: nil,
+      context: nil,
+      events: nil,
+      parent_id: 0,
+      resource: name,
+      service: nil,
+      span_type: nil,
+      start_time: nil,
+      tags: nil,
+      trace_id: nil,
+      type: span_type
+    )
       # Resolve service name
-      parent = options[:child_of]
-      options[:service] ||= parent.service unless parent.nil?
+      parent = child_of
+      service ||= parent.service unless parent.nil?
 
-      # Build span options
-      span_options = {}
-      span_options[:parent_id] = options[:parent_id] if options.key?(:parent_id)
-      span_options[:resource] = options[:resource] if options.key?(:resource)
-      span_options[:service] = options[:service] if options.key?(:service)
-      span_options[:span_type] = options[:span_type] if options.key?(:span_type)
-      span_options[:tags] = options[:tags] if options.key?(:tags)
-      span_options[:trace_id] = options[:trace_id] if options.key?(:trace_id)
+      # Set span attributes
+      @name = name
+      @service = service
+      @resource = resource
+      @type = type
 
-      @span = Span.new(span_name, **span_options)
-      @context = options[:context]
-      @events = options[:events] || Events.new
+      @id = Utils.next_id
+      @parent_id = parent_id || 0
+      @trace_id = trace_id || Utils.next_id
+
+      @status = 0
+      @sampled = true
+
+      @allocation_count_start = now_allocations
+      @allocation_count_stop = @allocation_count_start
+
+      # start_time and end_time track wall clock. In Ruby, wall clock
+      # has less accuracy than monotonic clock, so if possible we look to only use wall clock
+      # to measure duration when a time is supplied by the user, or if monotonic clock
+      # is unsupported.
+      @start_time = start_time
+      @end_time = nil
+
+      # duration_start and duration_end track monotonic clock, and may remain nil in cases where it
+      # is known that we have to use wall clock to measure duration.
+      @duration_start = nil
+      @duration_end = nil
+
+      # Set tags if provided.
+      set_tags(tags) if tags
 
       if parent.nil?
         # Root span: set default tags.
@@ -103,6 +112,12 @@ module Datadog
         # IDs if it's a distributed trace w/o a parent span.
         self.parent = parent
       end
+
+      # Some other SpanOperation-specific behavior
+      @context = context
+      @events = events || Events.new
+      @finished = false
+      @span = nil
     end
 
     def measure
@@ -133,13 +148,17 @@ module Datadog
       # It's not a problem since we re-raise it afterwards so for example a
       # SignalException::Interrupt would still bubble up.
       rescue Exception => e
-        # We must finish the span to trigger callbacks.
+        # Stop the span first, so timing is a more accurate.
         # If the span failed to start, timing may be inaccurate,
         # but this is not really a serious concern.
-        finish
+        stop
 
         # Trigger the on_error event
         events.on_error.publish(self, e)
+
+        # We must finish the span to trigger callbacks,
+        # and build the final span.
+        finish
 
         raise e
       # Use an ensure block here to make sure the span closes.
@@ -159,18 +178,74 @@ module Datadog
       # Don't overwrite the start time of a started span.
       return self if started?
 
+      # If time provided, set it but don't trigger
+      # "before_start" as the span has already started.
+      if start_time
+        @start_time = start_time
+        return self
+      end
+
       # Trigger before_start event
       events.before_start.publish(self)
 
       # Start the span
-      span.start(start_time)
+      @start_time = Utils::Time.now.utc
+      @duration_start = duration_marker
+
+      self
+    end
+
+    # Mark the span stopped at the current time
+    def stop(stop_time = nil)
+      # A span should not be stopped twice. Note that this is not thread-safe,
+      # stop is called from multiple threads, a given span might be stopped
+      # several times. Again, one should not do this, so this test is more a
+      # fallback to avoid very bad things and protect you in most common cases.
+      return if stopped?
+
+      @allocation_count_stop = now_allocations
+
+      now = Utils::Time.now.utc
+
+      # Provide a default start_time if unset.
+      # Using `now` here causes duration to be 0; this is expected
+      # behavior when start_time is unknown.
+      start(stop_time || now) unless started?
+
+      @end_time = stop_time || now
+      @duration_end = stop_time.nil? ? duration_marker : nil
+
+      self
+    end
+
+    # Return whether the duration is started or not
+    def started?
+      !@start_time.nil?
+    end
+
+    # Return whether the duration is stopped or not.
+    def stopped?
+      !@end_time.nil?
+    end
+
+    # for backwards compatibility
+    def start_time=(time)
+      time.tap { start(time) }
+    end
+
+    # for backwards compatibility
+    def end_time=(time)
+      time.tap { stop(time) }
     end
 
     def finish(end_time = nil)
       return span if finished?
 
-      # Stop the span
-      span.stop(end_time)
+      # Stop timing
+      stop(end_time)
+
+      # Build span
+      @span = build_span
 
       # Trigger after_finish event
       events.after_finish.publish(self)
@@ -179,29 +254,82 @@ module Datadog
     end
 
     def finished?
-      span.stopped?
+      !span.nil?
     end
 
-    # Set this span's parent, inheriting any properties not explicitly set.
-    # If the parent is nil, set the span as the root span.
-    #
-    # DEV: This method creates a false expectation that
-    # `self.parent.span_id == self.parent_id`, which is not the case
-    # for distributed traces, as the parent Span object does not exist
-    # in this application. `#parent_id` is the only reliable parent
-    # identifier. We should remove the ability to set a parent Span
-    # object in the future.
-    def parent=(parent)
-      @parent = parent
+    def duration
+      return @duration_end - @duration_start if @duration_start && @duration_end
+      return @end_time - @start_time if @start_time && @end_time
+    end
 
-      if parent.nil?
-        span.trace_id = span.span_id
-        span.parent_id = 0
-      else
-        span.trace_id = parent.trace_id
-        span.parent_id = parent.span_id
-        span.service ||= parent.service
-        span.sampled = parent.sampled
+    def allocations
+      @allocation_count_stop - @allocation_count_start
+    end
+
+    def set_error(e)
+      @status = Datadog::Ext::Errors::STATUS
+      super
+    end
+
+    # Return a string representation of the span.
+    def to_s
+      "SpanOperation(name:#{@name},sid:#{@id},tid:#{@trace_id},pid:#{@parent_id})"
+    end
+
+    # Return the hash representation of the current span.
+    def to_hash
+      h = {
+        allocations: allocations,
+        error: @status,
+        id: @id,
+        meta: meta,
+        metrics: metrics,
+        name: @name,
+        parent_id: @parent_id,
+        resource: @resource,
+        service: @service,
+        trace_id: @trace_id,
+        type: @type
+      }
+
+      if stopped?
+        h[:start] = start_time_nano
+        h[:duration] = duration_nano
+      end
+
+      h
+    end
+
+    # Return a human readable version of the span
+    def pretty_print(q)
+      start_time = (self.start_time.to_f * 1e9).to_i
+      end_time = (self.end_time.to_f * 1e9).to_i
+      q.group 0 do
+        q.breakable
+        q.text "Name: #{@name}\n"
+        q.text "Span ID: #{@id}\n"
+        q.text "Parent ID: #{@parent_id}\n"
+        q.text "Trace ID: #{@trace_id}\n"
+        q.text "Type: #{@type}\n"
+        q.text "Service: #{@service}\n"
+        q.text "Resource: #{@resource}\n"
+        q.text "Error: #{@status}\n"
+        q.text "Start: #{start_time}\n"
+        q.text "End: #{end_time}\n"
+        q.text "Duration: #{duration.to_f if stopped?}\n"
+        q.text "Allocations: #{allocations}\n"
+        q.group(2, 'Tags: [', "]\n") do
+          q.breakable
+          q.seplist meta.each do |key, value|
+            q.text "#{key} => #{value}"
+          end
+        end
+        q.group(2, 'Metrics: [', ']') do
+          q.breakable
+          q.seplist metrics.each do |key, value|
+            q.text "#{key} => #{value}"
+          end
+        end
       end
     end
 
@@ -245,48 +373,88 @@ module Datadog
       end
     end
 
-    # Defines analytics behavior
-    module Analytics
-      def set_tag(key, value)
-        case key
-        when Ext::Analytics::TAG_ENABLED
-          # If true, set rate to 1.0, otherwise set 0.0.
-          value = value == true ? Ext::Analytics::DEFAULT_SAMPLE_RATE : 0.0
-          Datadog::Analytics.set_sample_rate(self, value)
-        when Ext::Analytics::TAG_SAMPLE_RATE
-          Datadog::Analytics.set_sample_rate(self, value)
-        else
-          super if defined?(super)
-        end
-      end
-    end
-
-    # Defines forced tracing behavior
-    module ManualTracing
-      def set_tag(key, value)
-        # Configure sampling priority if they give us a forced tracing tag
-        # DEV: Do not set if the value they give us is explicitly "false"
-        case key
-        when Ext::ManualTracing::TAG_KEEP
-          Datadog::ManualTracing.keep(self) unless value == false
-        when Ext::ManualTracing::TAG_DROP
-          Datadog::ManualTracing.drop(self) unless value == false
-        else
-          # Otherwise, set the tag normally.
-          super if defined?(super)
-        end
-      end
-    end
-
-    # Additional extensions
-    prepend Analytics
-    prepend ManualTracing
-
     # Error when the span attempts to start again after being started
     class AlreadyStartedError < StandardError
       def message
         'Cannot measure an already started span!'.freeze
       end
     end
+
+    private
+
+    def build_span
+      Span.new(
+        @name.dup,
+        allocations: allocations,
+        duration: duration,
+        end_time: @end_time,
+        id: @id,
+        meta: meta.dup,
+        metrics: metrics.dup,
+        parent_id: @parent_id,
+        resource: @resource.dup,
+        sampled: @sampled,
+        service: @service.dup,
+        start_time: @start_time,
+        status: @status,
+        type: @type.dup,
+        trace_id: @trace_id
+      )
+    end
+
+    # Set this span's parent, inheriting any properties not explicitly set.
+    # If the parent is nil, set the span as the root span.
+    #
+    # DEV: This method creates a false expectation that
+    # `self.parent.id == self.parent_id`, which is not the case
+    # for distributed traces, as the parent Span object does not exist
+    # in this application. `#parent_id` is the only reliable parent
+    # identifier. We should remove the ability to set a parent Span
+    # object in the future.
+    def parent=(parent)
+      @parent = parent
+
+      if parent.nil?
+        @trace_id = @id
+        @parent_id = 0
+      else
+        @trace_id = parent.trace_id
+        @parent_id = parent.id
+        @service ||= parent.service
+        @sampled = parent.sampled
+      end
+    end
+
+
+    def duration_marker
+      Utils::Time.get_time
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def start_time_nano
+      @start_time.to_i * 1000000000 + @start_time.nsec
+    end
+
+    # Used for serialization
+    # @return [Integer] in nanoseconds since Epoch
+    def duration_nano
+      (duration * 1e9).to_i
+    end
+
+    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
+      def now_allocations
+        0
+      end
+    elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+      def now_allocations
+        GC.stat.fetch(:total_allocated_object)
+      end
+    else
+      def now_allocations
+        GC.stat(:total_allocated_objects)
+      end
+    end
   end
+  # rubocop:enable Metrics/ClassLength
 end

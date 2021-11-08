@@ -27,8 +27,6 @@ module Datadog
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
-    ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
-
     # Shorthand that calls the `shutdown!` method of a registered worker.
     # It's useful to ensure that the Trace Buffer is properly flushed before
     # shutting down the application.
@@ -143,7 +141,7 @@ module Datadog
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +type+: the type of the span (such as \http, \db and so on)
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +tags+: extra tags which should be added to the span.
     def build_span(name, options = {})
@@ -152,6 +150,7 @@ module Datadog
       options = build_span_options(options)
       context = options[:context]
       parent = options[:parent]
+      on_error = options.delete(:on_error)
 
       # Build a new span operation
       span_op = Datadog::SpanOperation.new(name, options)
@@ -167,7 +166,7 @@ module Datadog
       end
 
       # Subscribe to the error event to run any custom error behavior.
-      subscribe_on_error(span_op, options[:on_error])
+      subscribe_on_error(span_op, on_error)
 
       # If it's a root span, sample it.
       @sampler.sample!(span_op) if parent.nil?
@@ -181,7 +180,7 @@ module Datadog
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +type+: the type of the span (such as \http, \db and so on)
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
@@ -223,7 +222,7 @@ module Datadog
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +type+: the type of the span (such as \http, \db and so on)
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     #   If not set, defaults to Tracer.call_context. If +nil+, a fresh \Context is created.
     # * +tags+: extra tags which should be added to the span.
