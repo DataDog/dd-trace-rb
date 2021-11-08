@@ -1,0 +1,19 @@
+name: macOS testing
+on: [push]
+jobs:
+  test-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+        ruby: [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, '3.0', head]
+    runs-on: ${{ matrix.os }}
+    env:
+      SKIP_SIMPLECOV: 1
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@b00551441a6fa3d528f3443dbff264a934b6e316 # v1.84.0
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - run: bundle exec rake spec:main
