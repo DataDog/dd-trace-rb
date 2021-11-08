@@ -225,50 +225,6 @@ RSpec.describe Datadog::Writer do
 
           it_behaves_like 'records environment information'
         end
-
-        context 'with report hostname' do
-          let(:hostname) { 'my-host' }
-          let(:response) { instance_double(Datadog::Transport::HTTP::Traces::Response, trace_count: 1) }
-
-          before do
-            allow(Datadog::Core::Environment::Socket).to receive(:hostname).and_return(hostname)
-            allow(response).to receive(:ok?).and_return(true)
-            allow(response).to receive(:server_error?).and_return(false)
-            allow(response).to receive(:internal_error?).and_return(false)
-          end
-
-          context 'enabled' do
-            before { Datadog.configuration.report_hostname = true }
-
-            after { without_warnings { Datadog.configuration.reset! } }
-
-            it do
-              expect(transport).to receive(:send_traces) do |traces|
-                root_span = traces.first.first
-                expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to eq(hostname)
-                [response]
-              end
-
-              send_spans
-            end
-          end
-
-          context 'disabled' do
-            before { Datadog.configuration.report_hostname = false }
-
-            after { without_warnings { Datadog.configuration.reset! } }
-
-            it do
-              expect(writer.transport).to receive(:send_traces) do |traces|
-                root_span = traces.first.first
-                expect(root_span.get_tag(Datadog::Ext::NET::TAG_HOSTNAME)).to be nil
-                [response]
-              end
-
-              send_spans
-            end
-          end
-        end
       end
 
       describe '#write' do

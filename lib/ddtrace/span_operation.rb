@@ -3,7 +3,10 @@ require 'time'
 
 require 'datadog/core/environment/identity'
 require 'ddtrace/ext/manual_tracing'
+require 'datadog/core/environment/socket'
+require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/errors'
+require 'ddtrace/ext/net'
 require 'ddtrace/ext/runtime'
 
 require 'ddtrace/span'
@@ -244,6 +247,10 @@ module Datadog
       # Stop timing
       stop(end_time)
 
+      # TODO: Migrate this to trace/writer
+      #       It's a facet of trace serialization, not the span.
+      annotate!
+
       # Build span
       @span = build_span
 
@@ -425,6 +432,46 @@ module Datadog
       end
     end
 
+    # Set tags to root span required for flush
+    def annotate!
+      return unless context
+
+      attach_sampling_priority!
+      attach_origin!
+    end
+
+    def attach_sampling_priority!
+      sampling_priority = context.sampling_priority
+      return unless context.sampled? && sampling_priority
+
+      set_metric(
+        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
+        sampling_priority
+      )
+    end
+
+    def attach_origin!
+      origin = context.origin
+      return unless origin
+
+      set_tag(
+        Ext::DistributedTracing::ORIGIN_KEY,
+        origin
+      )
+    end
+
+    def attach_hostname!(traces)
+      return unless parent.nil? && Datadog.configuration.report_hostname
+
+      hostname = Datadog::Core::Environment::Socket.hostname
+
+      unless hostname.nil? || hostname.empty?
+        set_tag(
+          Ext::NET::TAG_HOSTNAME,
+          hostname
+        )
+      end
+    end
 
     def duration_marker
       Utils::Time.get_time

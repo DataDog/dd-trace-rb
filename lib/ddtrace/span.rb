@@ -29,7 +29,7 @@ module Datadog
     # parsing 64-bit integers for distributed tracing since an upstream system may generate one
     EXTERNAL_MAX_ID = 1 << 64
 
-    attr_accessor \
+    attr_reader \
       :allocations,
       :end_time,
       :id,

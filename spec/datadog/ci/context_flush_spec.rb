@@ -8,6 +8,12 @@ require 'datadog/ci/context_flush'
 RSpec.shared_context 'trace context' do
   let(:context) { instance_double(Datadog::Context) }
 
+  def new_test_span
+    test_span = instance_double(Datadog::Span)
+    allow(test_span).to receive(:set_tag)
+    test_span
+  end
+
   before do
     # Spy to see if Context#attach_origin is called
     allow(context).to receive(:get) do |&block|
@@ -15,12 +21,13 @@ RSpec.shared_context 'trace context' do
       get
     end
 
-    allow(context).to receive(:attach_origin)
+    allow(context).to receive(:origin).and_return(origin)
   end
 
   let(:get) { [trace, sampled] }
   let(:sampled) { true }
-  let(:trace) { [instance_double(Datadog::Span), instance_double(Datadog::Span)] }
+  let(:trace) { [new_test_span, new_test_span] }
+  let(:origin) { 'test_origin' }
 end
 
 RSpec.shared_examples_for 'a context flusher' do
@@ -38,12 +45,12 @@ RSpec.shared_examples_for 'a context flusher' do
     it 'returns the original trace with origin tags' do
       is_expected.to eq(trace)
 
-      # Expect each span to have an attached origin
-      trace.each do |span|
-        expect(context)
-          .to have_received(:attach_origin)
-          .with(span)
-      end
+      expect(trace).to all(
+        have_received(:set_tag).with(
+          Datadog::Ext::DistributedTracing::ORIGIN_KEY,
+          origin
+        )
+      )
     end
   end
 end

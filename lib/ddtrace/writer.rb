@@ -109,9 +109,6 @@ module Datadog
     def send_spans(traces, transport)
       return true if traces.empty?
 
-      # Inject hostname if configured to do so
-      inject_hostname!(traces) if Datadog.configuration.report_hostname
-
       # Send traces and get responses
       responses = transport.send_traces(traces)
 
@@ -166,15 +163,6 @@ module Datadog
     end
 
     private
-
-    def inject_hostname!(traces)
-      traces.each do |trace|
-        next if trace.first.nil?
-
-        hostname = Datadog::Core::Environment::Socket.hostname
-        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
-      end
-    end
 
     def update_priority_sampler(response)
       return unless response && !response.internal_error? && priority_sampler && response.service_rates

@@ -1,4 +1,5 @@
 # typed: true
+require 'ddtrace/ext/distributed'
 require 'ddtrace/context_flush'
 
 module Datadog
@@ -9,8 +10,17 @@ module Datadog
         # Decorate a trace with CI tags
         def get_trace(context)
           context.get do |trace|
-            # Origin tag is required on every span
-            trace.each { |span| context.attach_origin(span) } if trace
+            if trace
+              # Origin tag is required on every span
+              origin = context.origin
+
+              trace.each do |span|
+                span.set_tag(
+                  Datadog::Ext::DistributedTracing::ORIGIN_KEY,
+                  origin
+                )
+              end
+            end
           end
         end
       end

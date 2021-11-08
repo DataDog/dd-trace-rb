@@ -65,16 +65,6 @@ module Datadog
 
       def finished_spans(context)
         trace = context.delete_span_if(&:finished?)
-
-        # Ensure that the first span in a partial trace has
-        # sampling and origin information.
-        if trace[0]
-          context.annotate_for_flush!(trace[0])
-        else
-          Datadog.logger.debug('Tried to retrieve trace from context, but got nothing. ' \
-            "Is there another consumer for this context? #{context.trace_id}")
-        end
-
         trace unless trace.empty?
       end
     end

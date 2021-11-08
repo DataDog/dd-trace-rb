@@ -208,9 +208,6 @@ module Datadog
         # still return sampled attribute, even if context is not finished
         return nil, sampled unless all_spans_finished?
 
-        # Root span is finished at this point, we can configure it
-        annotate_for_flush!(@current_root_span_op)
-
         # Allow caller to modify trace before context is reset
         yield(trace) if block_given?
 
@@ -247,26 +244,6 @@ module Datadog
 
         deleted_spans
       end
-    end
-
-    # Set tags to root span required for flush
-    def annotate_for_flush!(span_op)
-      attach_sampling_priority(span_op) if @sampled && @sampling_priority
-      attach_origin(span_op) if @origin
-    end
-
-    def attach_sampling_priority(span_op)
-      span_op.set_metric(
-        Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
-        @sampling_priority
-      )
-    end
-
-    def attach_origin(span_op)
-      span_op.set_tag(
-        Ext::DistributedTracing::ORIGIN_KEY,
-        @origin
-      )
     end
 
     # Return a string representation of the context.

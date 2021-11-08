@@ -1,8 +1,5 @@
 # typed: true
 require 'ddtrace/pipeline'
-require 'ddtrace/ext/net'
-require 'datadog/core/environment/socket'
-require 'ddtrace/runtime/metrics'
 require 'ddtrace/utils/only_once'
 
 module Datadog
@@ -45,15 +42,7 @@ module Datadog
       processed_traces = Pipeline.process!([trace])
       return if processed_traces.empty?
 
-      inject_hostname!(processed_traces.first) if Datadog.configuration.report_hostname
       transport.send_traces(processed_traces)
-    end
-
-    def inject_hostname!(trace)
-      unless trace.first.nil?
-        hostname = Datadog::Core::Environment::Socket.hostname
-        trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
-      end
     end
   end
 end
