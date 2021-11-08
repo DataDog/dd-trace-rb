@@ -30,6 +30,8 @@ module Datadog
 
     def self.apply_processors!(trace)
       result = @processors.inject(trace) do |current_trace, processor|
+        next nil if current_trace.nil?
+
         processor.call(current_trace)
       end
 
