@@ -12,8 +12,6 @@ RSpec.describe Datadog::Pipeline do
   let(:span_d) { generate_span('d') }
   let(:span_list) { [span_a, span_b, span_c, span_d] }
   let(:callable) { ->(trace) { trace } }
-  let(:custom_callable_conditional) { ->(trace) { trace if trace.size == 3 } }
-  let(:custom_callable_reverse) { ->(trace) { trace.reverse } }
 
   after do
     described_class.processors = []
@@ -79,9 +77,23 @@ RSpec.describe Datadog::Pipeline do
     end
 
     context 'with a custom callable' do
+      let(:custom_callable_conditional) { ->(trace) { trace if trace.size == 3 } }
+      let(:custom_callable_reverse) { ->(trace) { trace.reverse } }
+
+      let(:traces) do
+        [
+          [span_a],
+          [
+            span_b,
+            span_c,
+            span_d
+          ]
+        ]
+      end
+
       it 'applies custom callable to each trace' do
         subject.before_flush(custom_callable_conditional, custom_callable_reverse)
-        expect(subject.process!([[1], [1, 2], [1, 2, 3]])).to eq([[3, 2, 1]])
+        expect(subject.process!(traces)).to eq([traces[1].reverse])
       end
     end
   end
