@@ -202,14 +202,15 @@ module Datadog
     # @return [Array<Array<Span>, Boolean>] finished trace and sampled flag
     def get
       @mutex.synchronize do
-        trace = @trace
+        # Return sampled attribute, even if context is not finished
         sampled = @sampled
-
-        # still return sampled attribute, even if context is not finished
         return nil, sampled unless all_spans_finished?
 
+        # Collect finished spans
+        trace = @trace.collect { |op| op.send(:span) }
+
         # Root span is finished at this point, we can configure it
-        annotate_for_flush!(@current_root_span_op)
+        annotate_for_flush!(trace.first)
 
         # Allow caller to modify trace before context is reset
         yield(trace) if block_given?
@@ -218,7 +219,7 @@ module Datadog
         reset
 
         # Return Span measurements and whether it was sampled.
-        [trace.collect(&:span), sampled]
+        [trace, sampled]
       end
     end
 
@@ -236,7 +237,7 @@ module Datadog
           # Check condition
           next unless yield(span_op)
 
-          deleted_spans << span_op.span
+          deleted_spans << span_op.send(:span)
 
           # Acknowledge there's one span less to finish, if needed.
           # It's very important to keep this balanced.
@@ -250,20 +251,20 @@ module Datadog
     end
 
     # Set tags to root span required for flush
-    def annotate_for_flush!(span_op)
-      attach_sampling_priority(span_op) if @sampled && @sampling_priority
-      attach_origin(span_op) if @origin
+    def annotate_for_flush!(span)
+      attach_sampling_priority(span) if @sampled && @sampling_priority
+      attach_origin(span) if @origin
     end
 
-    def attach_sampling_priority(span_op)
-      span_op.set_metric(
+    def attach_sampling_priority(span)
+      span.set_metric(
         Ext::DistributedTracing::SAMPLING_PRIORITY_KEY,
         @sampling_priority
       )
     end
 
-    def attach_origin(span_op)
-      span_op.set_tag(
+    def attach_origin(span)
+      span.set_tag(
         Ext::DistributedTracing::ORIGIN_KEY,
         @origin
       )

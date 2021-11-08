@@ -27,8 +27,6 @@ module Datadog
     attr_accessor :enabled, :writer
     attr_writer :default_service
 
-    ALLOWED_SPAN_OPTIONS = [:service, :resource, :span_type].freeze
-
     # Shorthand that calls the `shutdown!` method of a registered worker.
     # It's useful to ensure that the Trace Buffer is properly flushed before
     # shutting down the application.
@@ -143,7 +141,7 @@ module Datadog
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +type+: the type of the span (such as \http, \db and so on)
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +tags+: extra tags which should be added to the span.
     def build_span(name, options = {})
@@ -152,9 +150,10 @@ module Datadog
       options = build_span_options(options)
       context = options[:context]
       parent = options[:parent]
+      on_error = options.delete(:on_error)
 
       # Build a new span operation
-      span_op = Datadog::SpanOperation.new(name, options)
+      span_op = Datadog::SpanOperation.new(name, **options)
 
       # Add span operation to context
       if context && context.add_span(span_op)
@@ -163,11 +162,11 @@ module Datadog
       else
         # Could not add the span (context is probably full)
         # Disassociate the span from the context
-        span_op.context = nil
+        span_op.send(:context=, nil)
       end
 
       # Subscribe to the error event to run any custom error behavior.
-      subscribe_on_error(span_op, options[:on_error])
+      subscribe_on_error(span_op, on_error)
 
       # If it's a root span, sample it.
       @sampler.sample!(span_op) if parent.nil?
@@ -181,7 +180,7 @@ module Datadog
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +type+: the type of the span (such as \http, \db and so on)
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     # * +start_time+: when the span actually starts (defaults to \now)
     # * +tags+: extra tags which should be added to the span.
@@ -223,7 +222,7 @@ module Datadog
     #
     # * +service+: the service name for this span
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +span_type+: the type of the span (such as \http, \db and so on)
+    # * +type+: the type of the span (such as \http, \db and so on)
     # * +child_of+: a \Span or a \Context instance representing the parent for this span.
     #   If not set, defaults to Tracer.call_context. If +nil+, a fresh \Context is created.
     # * +tags+: extra tags which should be added to the span.
@@ -352,7 +351,8 @@ module Datadog
 
     # Close the span on the context and record the finished span.
     def subscribe_span_finish(span_op, context)
-      span_op.events.after_finish.subscribe(:tracer_span_finished) do |op|
+      after_finish = span_op.send(:events).after_finish
+      after_finish.subscribe(:tracer_span_finished) do |_span, op|
         begin
           context.close_span(op) if context
           record_span(op)
@@ -367,7 +367,8 @@ module Datadog
     def subscribe_on_error(span_op, error_handler)
       return unless error_handler.respond_to?(:call)
 
-      span_op.events.on_error.wrap(:default) do |original, op, error|
+      on_error = span_op.send(:events).on_error
+      on_error.wrap(:default) do |original, op, error|
         begin
           error_handler.call(op, error)
         rescue StandardError => e
@@ -383,9 +384,7 @@ module Datadog
     # Records the span (& its context)
     def record_span(span_op)
       begin
-        span_op.service ||= default_service
         record_context(span_op.context) if span_op.context
-        span_op.span
       rescue StandardError => e
         Datadog.logger.debug("Error recording finished trace: #{e} Backtrace: #{e.backtrace.first}")
         Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])

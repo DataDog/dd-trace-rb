@@ -89,7 +89,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it_behaves_like 'span' do
-      let(:span) { span_op.span }
+      let(:span) { span_op }
       before { subject }
 
       let(:method) { 'N/A' }
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it_behaves_like 'analytics for integration' do
-      let(:span) { span_op.span }
+      let(:span) { span_op }
       before { subject }
 
       let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it_behaves_like 'measured span for integration', false do
-      let(:span) { span_op.span }
+      let(:span) { span_op }
       before { subject }
     end
   end

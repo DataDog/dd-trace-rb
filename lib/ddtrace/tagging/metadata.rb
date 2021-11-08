@@ -92,7 +92,6 @@ module Datadog
       def set_error(e)
         e = Error.build_from(e)
 
-        @status = Ext::Errors::STATUS # TODO: Move this to Span/SpanOperation?
         set_tag(Ext::Errors::TYPE, e.type) unless e.type.empty?
         set_tag(Ext::Errors::MSG, e.message) unless e.message.empty?
         set_tag(Ext::Errors::STACK, e.backtrace) unless e.backtrace.empty?

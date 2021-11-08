@@ -8,7 +8,7 @@ RSpec.shared_context 'trace context' do
 
   let(:get) { [trace, sampled] }
   let(:sampled) { true }
-  let(:trace) { [double] }
+  let(:trace) { [instance_double(Array)] }
 end
 
 RSpec.shared_examples_for 'a context flusher' do
@@ -59,14 +59,14 @@ RSpec.describe Datadog::ContextFlush::Partial do
       before { allow(context).to receive(:finished_span_count).and_return(finished_span_count) }
 
       context 'with fewer than the minimum required spans' do
-        let(:finished_spans) { [double] }
+        let(:finished_spans) { [instance_double(Datadog::Span)] }
 
         it { is_expected.to be_nil }
       end
 
       context 'with at least the minimum required spans' do
         context 'with spans available' do
-          let(:finished_spans) { [double, double] }
+          let(:finished_spans) { [instance_double(Datadog::Span), instance_double(Datadog::Span)] }
 
           before do
             allow(context).to receive(:delete_span_if) do |&block|
