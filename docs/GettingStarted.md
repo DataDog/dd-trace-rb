@@ -327,9 +327,8 @@ To trace these operations, you can trace code asynchronously by calling `Datadog
 ```ruby
 # Some instrumentation framework calls this after an event finishes...
 def db_query(start, finish, query)
-  span = Datadog.tracer.trace('database.query')
+  span = Datadog.tracer.trace('database.query', start_time: start)
   span.resource = query
-  span.start_time = start
   span.finish(finish)
 end
 ```
