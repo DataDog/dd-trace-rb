@@ -40,31 +40,33 @@ module Datadog
         module_function
 
         def tags(env)
+          # Extract metadata from CI provider environment variables
           _, extractor = PROVIDERS.find { |provider_env_var, _| env.key?(provider_env_var) }
-          if extractor
-            tags = public_send(extractor, env)
+          tags = extractor ? public_send(extractor, env).reject { |_, v| v.nil? || v.strip.empty? } : {}
+          tags.delete(Datadog::Ext::Git::TAG_BRANCH) unless tags[Datadog::Ext::Git::TAG_TAG].nil?
 
-            tags[Datadog::Ext::Git::TAG_TAG] = normalize_ref(tags[Datadog::Ext::Git::TAG_TAG])
-            tags.delete(Datadog::Ext::Git::TAG_BRANCH) unless tags[Datadog::Ext::Git::TAG_TAG].nil?
-            tags[Datadog::Ext::Git::TAG_BRANCH] = normalize_ref(tags[Datadog::Ext::Git::TAG_BRANCH])
-            tags[Datadog::Ext::Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Datadog::Ext::Git::TAG_REPOSITORY_URL])
+          # If user defined metadata is defined, overwrite
+          tags.merge!(extract_user_defined_git(env))
+          if !tags[Datadog::Ext::Git::TAG_BRANCH].nil? && tags[Datadog::Ext::Git::TAG_BRANCH].include?('tags/')
+            tags[Datadog::Ext::Git::TAG_TAG] = tags[Datadog::Ext::Git::TAG_BRANCH]
+            tags.delete(Datadog::Ext::Git::TAG_BRANCH)
+          end
 
-            # Expand ~
-            workspace_path = tags[TAG_WORKSPACE_PATH]
-            if !workspace_path.nil? && (workspace_path == '~' || workspace_path.start_with?('~/'))
-              tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
-            end
-          else
-            tags = {}
+          # Normalize Git references
+          tags[Datadog::Ext::Git::TAG_TAG] = normalize_ref(tags[Datadog::Ext::Git::TAG_TAG])
+          tags[Datadog::Ext::Git::TAG_BRANCH] = normalize_ref(tags[Datadog::Ext::Git::TAG_BRANCH])
+          tags[Datadog::Ext::Git::TAG_REPOSITORY_URL] = filter_sensitive_info(tags[Datadog::Ext::Git::TAG_REPOSITORY_URL])
+
+          # Expand ~
+          workspace_path = tags[TAG_WORKSPACE_PATH]
+          if !workspace_path.nil? && (workspace_path == '~' || workspace_path.start_with?('~/'))
+            tags[TAG_WORKSPACE_PATH] = File.expand_path(workspace_path)
           end
 
           # Fill out tags from local git as fallback
           extract_local_git.each do |key, value|
             tags[key] ||= value
           end
-
-          # If user defined metadata is defined, overwrite
-          tags.merge!(extract_user_defined_git(env))
 
           tags.reject { |_, v| v.nil? }
         end
