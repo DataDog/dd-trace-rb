@@ -5,7 +5,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: [head, jruby-head, truffleruby-head]
+        ruby: [head, jruby-head]
     runs-on: ubuntu-latest
     env:
       SKIP_SIMPLECOV: 1
