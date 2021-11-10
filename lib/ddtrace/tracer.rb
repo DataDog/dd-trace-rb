@@ -23,6 +23,19 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
+    ALLOWED_SPAN_OPTIONS = [
+      :child_of,
+      :on_error,
+      :parent_id,
+      :resource,
+      :service,
+      :span_type,
+      :start_time,
+      :tags,
+      :trace_id,
+      :type
+    ].freeze
+
     attr_reader :sampler, :tags, :provider, :context_flush
     attr_accessor :enabled, :writer
     attr_writer :default_service
@@ -149,7 +162,6 @@ module Datadog
       # Context, parent, service name, etc.
       options = build_span_options(options)
       context = options[:context]
-      parent = options[:parent]
       on_error = options.delete(:on_error)
 
       # Build a new span operation
@@ -169,7 +181,7 @@ module Datadog
       subscribe_on_error(span_op, on_error)
 
       # If it's a root span, sample it.
-      @sampler.sample!(span_op) if parent.nil?
+      @sampler.sample!(span_op) unless options[:child_of]
 
       span_op
     end
@@ -298,6 +310,12 @@ module Datadog
     private
 
     def build_span_options(options = {})
+      # Filter out disallowed options
+      options = ALLOWED_SPAN_OPTIONS.each_with_object({}) do |option, opts|
+        opts[option] = options[option] if options.key?(option)
+        opts
+      end
+
       # Resolve context and parent, unless parenting is explicitly nullified.
       if options.key?(:child_of) && options[:child_of].nil?
         context = Context.new
