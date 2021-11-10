@@ -26,49 +26,6 @@ RSpec.describe Datadog::Tracer do
     end
   end
 
-  describe '#configure' do
-    context 'by default' do
-      subject!(:configure) { tracer.configure(options) }
-
-      let(:options) { {} }
-
-      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Finished) }
-    end
-
-    context 'with context flush' do
-      subject!(:configure) { tracer.configure(options) }
-
-      let(:options) { { context_flush: context_flush } }
-      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
-
-      it { expect(tracer.context_flush).to be(context_flush) }
-    end
-
-    context 'with partial flushing' do
-      subject!(:configure) { tracer.configure(options) }
-
-      let(:options) { { partial_flush: true } }
-
-      it { expect(tracer.context_flush).to be_a(Datadog::ContextFlush::Partial) }
-    end
-
-    context 'with agent_settings' do
-      subject(:configure) { tracer.configure(options) }
-
-      let(:agent_settings) { double('agent_settings') }
-      let(:options) { { agent_settings: agent_settings } }
-
-      it 'creates a new writer using the given agent_settings' do
-        # create writer first, to avoid colliding with the below expectation
-        writer
-
-        expect(Datadog::Writer).to receive(:new).with(hash_including(agent_settings: agent_settings))
-
-        configure
-      end
-    end
-  end
-
   describe '#tags' do
     subject(:tags) { tracer.tags }
 

@@ -422,20 +422,16 @@ RSpec.describe 'Tracer integration tests' do
     let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
 
     before do
-      tracer.configure(
-        enabled: true,
-        priority_sampling: true,
-        writer: writer
-      )
+      Datadog.configure do |c|
+        c.tracer.writer = writer
+      end
 
       # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
       expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder)
 
       # Verify sampling is configured properly
-      expect(tracer.writer.priority_sampler).to_not be nil
       expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
-      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
 
       # Verify IO is written to
       allow(out).to receive(:puts)
@@ -445,7 +441,11 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     # Reset the writer
-    after { tracer.configure(writer: Datadog::Writer.new) }
+    after do
+      Datadog.configure do |c|
+        c.tracer.reset!
+      end
+    end
 
     it do
       3.times do |i|
@@ -474,23 +474,20 @@ RSpec.describe 'Tracer integration tests' do
   describe 'Transport::HTTP' do
     include_context 'agent-based test'
 
-    let(:writer) { Datadog::Writer.new(transport: transport, priority_sampler: Datadog::PrioritySampler.new) }
+    let(:writer) { Datadog::Writer.new(transport: transport) }
     let(:transport) { Datadog::Transport::HTTP.default }
 
     before do
-      tracer.configure(
-        enabled: true,
-        priority_sampling: true,
-        writer: writer
-      )
+      Datadog.configure do |c|
+        c.tracer.priority_sampling = true
+        c.tracer.writer = writer
+      end
 
       # Verify Transport::HTTP is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
 
       # Verify sampling is configured properly
-      expect(tracer.writer.priority_sampler).to_not be nil
       expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
-      expect(tracer.sampler).to be(tracer.writer.priority_sampler)
 
       # Verify priority sampler is configured and rates are updated
       expect(tracer.sampler).to receive(:update)
@@ -523,43 +520,36 @@ RSpec.describe 'Tracer integration tests' do
 
   describe 'tracer transport' do
     subject(:configure) do
-      tracer.configure(
-        priority_sampling: true,
-        agent_settings: agent_settings
-      )
+      Datadog.configure do |c|
+        c.tracer.hostname = hostname
+        c.tracer.port = port
+        c.tracer.priority_sampling = true
+      end
     end
 
-    let(:tracer) { Datadog::Tracer.new }
+    let(:tracer) { Datadog.tracer }
     let(:hostname) { double('hostname') }
     let(:port) { 34567 }
-    let(:settings) { Datadog::Configuration::Settings.new }
-    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
-
-    before do
-      settings.tracer.hostname = hostname
-      settings.tracer.port = port
-    end
 
     context 'when :transport_options' do
       before do
-        settings.tracer.transport_options = transport_options
+        Datadog.configure do |c|
+          c.tracer.transport_options = transport_options
+        end
       end
 
       context 'is a Proc' do
         let(:transport_options) { proc { |t| on_build.call(t) } }
-        let(:on_build) { double('on_build') }
-
-        before do
-          expect(on_build).to receive(:call)
-            .with(kind_of(Datadog::Transport::HTTP::Builder))
+        let(:on_build) do
+          double('on_build').tap do |double|
+            expect(double).to receive(:call)
+              .with(kind_of(Datadog::Transport::HTTP::Builder))
+              .at_least(1)
+          end
         end
 
         it do
           configure
-
-          tracer.writer.tap do |writer|
-            expect(writer.priority_sampler).to be_a_kind_of(Datadog::PrioritySampler)
-          end
 
           tracer.writer.transport.tap do |transport|
             expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
@@ -582,10 +572,6 @@ RSpec.describe 'Tracer integration tests' do
 
         it do
           configure
-
-          tracer.writer.tap do |writer|
-            expect(writer.priority_sampler).to be_a_kind_of(Datadog::PrioritySampler)
-          end
 
           tracer.writer.transport.tap do |transport|
             expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)

@@ -37,8 +37,7 @@ module Datadog
     ].freeze
 
     attr_reader :sampler, :tags, :provider, :context_flush
-    attr_accessor :enabled, :writer
-    attr_writer :default_service
+    attr_accessor :default_service, :enabled, :writer
 
     # Shorthand that calls the `shutdown!` method of a registered worker.
     # It's useful to ensure that the Trace Buffer is properly flushed before
@@ -69,73 +68,31 @@ module Datadog
     end
 
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
-    # time of sections of code. Available +options+ are:
+    # time of sections of code.
     #
-    # * +enabled+: set if the tracer submits or not spans to the local agent. It's enabled
-    #   by default.
-    def initialize(options = {})
-      # Configurable options
-      @context_flush = if options[:context_flush]
-                         options[:context_flush]
-                       elsif options[:partial_flush]
-                         Datadog::ContextFlush::Partial.new(options)
-                       else
-                         Datadog::ContextFlush::Finished.new
-                       end
-
-      @default_service = options[:default_service]
-      @enabled = options.fetch(:enabled, true)
-      @provider = options[:context_provider] || Datadog::DefaultContextProvider.new
-      @sampler = options.fetch(:sampler, Datadog::AllSampler.new)
-      @tags = options.fetch(:tags, {})
-      @writer = options.fetch(:writer) { Datadog::Writer.new }
-
-      # Instance variables
-      @mutex = Mutex.new
-
-      # Enable priority sampling by default
-      activate_priority_sampling!(@sampler)
-    end
-
-    # Updates the current \Tracer instance, so that the tracer can be configured after the
-    # initialization. Available +options+ are:
-    #
-    # * +enabled+: set if the tracer submits or not spans to the trace agent
-    # * +hostname+: change the location of the trace agent
-    # * +port+: change the port of the trace agent
-    # * +partial_flush+: enable partial trace flushing
-    #
-    # For instance, if the trace agent runs in a different location, just:
-    #
-    #   tracer.configure(hostname: 'agent.service.consul', port: '8777')
-    #
-    def configure(options = {})
-      enabled = options.fetch(:enabled, nil)
-
-      # Those are rare "power-user" options.
-      sampler = options.fetch(:sampler, nil)
-
-      @enabled = enabled unless enabled.nil?
-      @sampler = sampler unless sampler.nil?
-
-      configure_writer(options)
-
-      if options.key?(:context_flush) || options.key?(:partial_flush)
-        @context_flush = if options[:context_flush]
-                           options[:context_flush]
-                         elsif options[:partial_flush]
-                           Datadog::ContextFlush::Partial.new(options)
-                         else
-                           Datadog::ContextFlush::Finished.new
-                         end
-      end
-    end
-
-    # A default value for service. One should really override this one
-    # for non-root spans which have a parent. However, root spans without
-    # a service would be invalid and rejected.
-    def default_service
-      @default_service ||= Datadog::Ext::Environment::FALLBACK_SERVICE_NAME
+    # @param context_flush [Datadog::ContextFlush] responsible for flushing spans from the execution context
+    # @param context_provider [Datadog::DefaultContextProvider] ensures different execution contexts have distinct traces
+    # @param default_service [String] A fallback value for {Datadog::Span#service}, as spans without service are rejected
+    # @param enabled [Boolean] set if the tracer submits or not spans to the local agent
+    # @param sampler [Datadog::Sampler] a tracer sampler, responsible for filtering out spans when needed
+    # @param tags [Hash] default tags added to all spans
+    # @param writer [Datadog::Writer] consumes traces returned by the provided +context_flush+
+    def initialize(
+      context_flush: Datadog::ContextFlush::Finished.new,
+      context_provider: Datadog::DefaultContextProvider.new,
+      default_service: Datadog::Ext::Environment::FALLBACK_SERVICE_NAME,
+      enabled: true,
+      sampler: PrioritySampler.new(base_sampler: Datadog::AllSampler.new, post_sampler: Sampling::RuleSampler.new),
+      tags: {},
+      writer: Datadog::Writer.new
+    )
+      @context_flush = context_flush
+      @default_service = default_service
+      @enabled = enabled
+      @provider = context_provider
+      @sampler = sampler
+      @tags = tags
+      @writer = writer
     end
 
     # Set the given key / value tag pair at the tracer level. These tags will be
@@ -435,59 +392,6 @@ module Datadog
 
       @writer.write(trace)
       trace_completed.publish(trace)
-    end
-
-    # TODO: Move this kind of configuration building out of the tracer.
-    #       Tracer should not have this kind of knowledge of writer.
-    def configure_writer(options = {})
-      sampler = options.fetch(:sampler, nil)
-      priority_sampling = options.fetch(:priority_sampling, nil)
-      writer = options.fetch(:writer, nil)
-      agent_settings = options.fetch(:agent_settings, nil)
-
-      # Compile writer options
-      writer_options = options.fetch(:writer_options, {}).dup
-
-      # Re-build the sampler and writer if priority sampling is enabled,
-      # but neither are configured. Verify the sampler isn't already a
-      # priority sampler too, so we don't wrap one with another.
-      if options.key?(:writer)
-        if writer.priority_sampler.nil?
-          deactivate_priority_sampling!(sampler)
-        else
-          activate_priority_sampling!(writer.priority_sampler)
-        end
-      elsif priority_sampling != false && !@sampler.is_a?(PrioritySampler)
-        writer_options[:priority_sampler] = activate_priority_sampling!(@sampler)
-      elsif priority_sampling == false
-        deactivate_priority_sampling!(sampler)
-      elsif @sampler.is_a?(PrioritySampler)
-        # Make sure to add sampler to options if transport is rebuilt.
-        writer_options[:priority_sampler] = @sampler
-      end
-
-      writer_options[:agent_settings] = agent_settings if agent_settings
-
-      # Make sure old writer is shut down before throwing away.
-      # Don't want additional threads running...
-      @writer.stop unless writer.nil?
-
-      @writer = writer || Writer.new(writer_options)
-    end
-
-    def activate_priority_sampling!(base_sampler = nil)
-      @sampler = if base_sampler.is_a?(PrioritySampler)
-                   base_sampler
-                 else
-                   PrioritySampler.new(
-                     base_sampler: base_sampler,
-                     post_sampler: Sampling::RuleSampler.new
-                   )
-                 end
-    end
-
-    def deactivate_priority_sampling!(base_sampler = nil)
-      @sampler = base_sampler || Datadog::AllSampler.new if @sampler.is_a?(PrioritySampler)
     end
   end
 end

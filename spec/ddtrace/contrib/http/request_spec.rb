@@ -277,7 +277,6 @@ RSpec.describe 'net/http requests' do
     context 'by default' do
       context 'and the tracer is enabled' do
         before do
-          tracer.configure(enabled: true)
           tracer.trace('foo.bar') do |span|
             span.context.sampling_priority = sampling_priority
             client.get(path)
@@ -314,7 +313,6 @@ RSpec.describe 'net/http requests' do
       # The goal here is to ensure we do not add multiple values for a given header
       context 'with existing distributed tracing headers' do
         before do
-          tracer.configure(enabled: true)
           tracer.trace('foo.bar') do |span|
             span.context.sampling_priority = sampling_priority
 
@@ -357,7 +355,10 @@ RSpec.describe 'net/http requests' do
 
       context 'but the tracer is disabled' do
         before do
-          tracer.configure(enabled: false)
+          Datadog.configure do |c|
+            c.tracer.enabled = false
+          end
+
           client.get(path)
         end
 

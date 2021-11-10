@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 require 'ddtrace/tracer'
 
 module Datadog
@@ -14,9 +14,9 @@ module Datadog
         :datadog_tracer,
         :configure
 
-      def initialize(options = {})
+      def initialize(**options)
         super()
-        @datadog_tracer = Datadog::Tracer.new(options)
+        @datadog_tracer = Datadog::Tracer.new(**options)
       end
 
       # @return [ScopeManager] the current ScopeManager.

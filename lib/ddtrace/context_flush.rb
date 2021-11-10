@@ -26,6 +26,8 @@ module Datadog
       # Start flushing partial trace after this many active spans in one trace
       DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH = 500
 
+      attr_reader :min_spans_for_partial
+
       def initialize(options = {})
         @min_spans_for_partial = options.fetch(:min_spans_before_partial_flush, DEFAULT_MIN_SPANS_FOR_PARTIAL_FLUSH)
       end
