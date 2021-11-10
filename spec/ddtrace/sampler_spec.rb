@@ -296,6 +296,9 @@ RSpec.describe Datadog::PrioritySampler do
 
   describe '#sample!' do
     subject(:sample) { sampler.sample!(span) }
+    let(:keep_priority) { Datadog::Ext::Priority::AUTO_KEEP }
+    let(:drop_priority) { Datadog::Ext::Priority::AUTO_REJECT }
+    let(:sampling_priority) { keep_priority }
 
     shared_examples_for 'priority sampling' do
       context 'given a span without a context' do
@@ -314,7 +317,7 @@ RSpec.describe Datadog::PrioritySampler do
         context 'but no sampling priority' do
           it do
             expect(sample).to be true
-            expect(context.sampling_priority).to be(Datadog::Ext::Priority::AUTO_KEEP)
+            expect(context.sampling_priority).to be(sampling_priority)
             expect(span.sampled).to be(true)
             expect(span.get_metric(described_class::SAMPLE_RATE_METRIC_KEY)).to eq(sample_rate_tag_value)
           end
@@ -416,6 +419,27 @@ RSpec.describe Datadog::PrioritySampler do
       let(:sample_rate) { 0.5 }
 
       it_behaves_like 'priority sampling without scaling'
+    end
+
+    context 'when configured with a priority-sampler RuleSampler' do
+      let(:keep_priority) { Datadog::Ext::Priority::USER_KEEP }
+      let(:drop_priority) { Datadog::Ext::Priority::USER_REJECT }
+
+      context 'that keeps the span' do
+        let(:post_sampler) { Datadog::Sampling::RuleSampler.new(rate_limit: 100, default_sample_rate: 1.0) }
+        let(:sample_rate) { 1.0 }
+        let(:sampling_priority) { keep_priority }
+
+        it_behaves_like 'priority sampling without scaling'
+      end
+
+      context 'that drops the span' do
+        let(:post_sampler) { Datadog::Sampling::RuleSampler.new(rate_limit: 100, default_sample_rate: 0.0) }
+        let(:sample_rate) { 0.0 }
+        let(:sampling_priority) { drop_priority }
+
+        it_behaves_like 'priority sampling without scaling'
+      end
     end
   end
 end

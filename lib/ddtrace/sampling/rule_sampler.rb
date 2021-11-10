@@ -97,16 +97,28 @@ module Datadog
         sampled = rule.sample?(span)
         sample_rate = rule.sample_rate(span)
 
+        set_priority(span, sampled)
         set_rule_metrics(span, sample_rate)
 
         return false unless sampled
 
-        rate_limiter.allow?(1).tap do
+        rate_limiter.allow?(1).tap do |allowed|
+          set_priority(span, allowed)
           set_limiter_metrics(span, rate_limiter.effective_rate)
         end
       rescue StandardError => e
         Datadog.logger.error("Rule sampling failed. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
         yield(span)
+      end
+
+      # Span priority should only be set when the {RuleSampler}
+      # was responsible for the sampling decision.
+      def set_priority(span, sampled)
+        if sampled
+          ForcedTracing.keep(span)
+        else
+          ForcedTracing.drop(span)
+        end
       end
 
       def set_rule_metrics(span, sample_rate)

@@ -13,7 +13,8 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
 
-  let(:span) { Datadog::Span.new(nil, 'dummy') }
+  let(:span) { Datadog::Span.new(nil, 'dummy', context: context) }
+  let(:context) { Datadog::Context.new }
 
   before do
     allow(default_sampler).to receive(:sample?).with(span).and_return(nil)
@@ -107,6 +108,10 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       it 'sets limiter metrics' do
         expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to eq(effective_rate)
       end
+
+      it 'sets the sampling priority' do
+        expect(span.context.sampling_priority).to eq(sampling_priority)
+      end
     end
 
     context 'with matching rule' do
@@ -120,6 +125,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
           it_behaves_like 'a sampled! span' do
             let(:expected_sampled) { true }
+            let(:sampling_priority) { 2 }
           end
         end
 
@@ -128,6 +134,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
           it_behaves_like 'a sampled! span' do
             let(:expected_sampled) { false }
+            let(:sampling_priority) { -1 }
           end
         end
       end
@@ -137,6 +144,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
         it_behaves_like 'a sampled! span' do
           let(:expected_sampled) { false }
+          let(:sampling_priority) { -1 }
           let(:effective_rate) { nil } # Rate limiter was not evaluated
         end
       end
@@ -152,8 +160,14 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       it { is_expected.to eq(delegated) }
 
       it 'skips metrics' do
+        sample
         expect(span.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to be_nil
         expect(span.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
+      end
+
+      it 'does not set sampling priority' do
+        sample
+        expect(span.context.sampling_priority).to be_nil
       end
 
       context 'when the default sampler is a RateByServiceSampler' do
