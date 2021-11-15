@@ -214,9 +214,7 @@ module Datadog
           branch, tag = branch_or_tag(ref)
 
           pipeline_url = "#{env['GITHUB_SERVER_URL']}/#{env['GITHUB_REPOSITORY']}/actions/runs/#{env['GITHUB_RUN_ID']}"
-          if env['GITHUB_RUN_ATTEMPT']
-            pipeline_url = "#{pipeline_url}/attempts/#{env['GITHUB_RUN_ATTEMPT']}"
-          end
+          pipeline_url = "#{pipeline_url}/attempts/#{env['GITHUB_RUN_ATTEMPT']}" if env['GITHUB_RUN_ATTEMPT']
 
           {
             Datadog::Ext::Git::TAG_BRANCH => branch,
