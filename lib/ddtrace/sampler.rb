@@ -194,6 +194,12 @@ module Datadog
   class PrioritySampler
     extend Forwardable
 
+    # NOTE: We do not advise using a pre-sampler. It can save resources,
+    # but pre-sampling at rates < 100% may result in partial traces, unless
+    # the pre-sampler knows exactly how to drop a span without dropping its ancestors.
+    #
+    # Additionally, as service metrics are calculated in the Datadog Agent,
+    # the service's throughput will be underestimated.
     attr_reader :pre_sampler, :priority_sampler
 
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
@@ -209,7 +215,6 @@ module Datadog
 
     def sample!(span)
       # If pre-sampling is configured, do it first. (By default, this will sample at 100%.)
-      # NOTE: Pre-sampling at rates < 100% may result in partial traces; not recommended.
       span.sampled = pre_sample?(span) ? @pre_sampler.sample!(span) : true
 
       if span.sampled
