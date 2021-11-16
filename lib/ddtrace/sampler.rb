@@ -214,13 +214,13 @@ module Datadog
 
       if span.sampled
         # If priority sampling has already been applied upstream, use that value.
-        return span.sampled if priority_assigned?(span)
+        return true if priority_assigned?(span)
 
         # Check with post sampler how we set the priority.
         sample = priority_sample!(span)
 
         # Check if post sampler has already assigned a priority.
-        return span.sampled if priority_assigned?(span)
+        return true if priority_assigned?(span)
 
         # If not, use agent priority values.
         priority = sample ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
