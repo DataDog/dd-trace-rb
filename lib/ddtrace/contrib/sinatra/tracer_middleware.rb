@@ -53,13 +53,22 @@ module Datadog
               # resource; if no resource was set, let's use a fallback
               span.resource = env['REQUEST_METHOD'] if span.resource.nil?
 
-              # TODO: This backfills the non-matching Sinatra app with a "#{method} #{path}"
-              # TODO: resource name. This shouldn't be the case, as that app has never handled
-              # TODO: the response with that resource.
-              # TODO: We should replace this backfill code with a clear `resource` that signals
-              # TODO: that this Sinatra span was *not* responsible for processing the current request.
               rack_request_span = env[Datadog::Contrib::Rack::TraceMiddleware::RACK_REQUEST_SPAN]
-              span.resource = rack_request_span.resource if rack_request_span && rack_request_span.resource
+              if rack_request_span
+                if rack_request_span.resource
+                  # TODO: This backfills the non-matching Sinatra app with a "#{method} #{path}"
+                  # TODO: resource name. This shouldn't be the case, as that app has never handled
+                  # TODO: the response with that resource.
+                  # TODO: We should replace this backfill code with a clear `resource` that signals
+                  # TODO: that this Sinatra span was *not* responsible for processing the current request.
+                  span.resource = rack_request_span.resource
+                else
+                  # This propagates the Sinatra resource to the Rack span,
+                  # since the latter is unaware of what the resource might be
+                  # and would fallback to a generic resource name when unset
+                  rack_request_span.resource = span.resource
+                end
+              end
 
               if response
                 if (status = response[0])
