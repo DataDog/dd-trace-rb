@@ -8,21 +8,29 @@ module Datadog
     module Sinatra
       # Set tracer configuration at a late enough time
       module TracerSetupPatch
+        ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
+
         def setup_middleware(*args, &block)
           super.tap do
-            Datadog::Contrib::Sinatra::Framework.setup
+            ONLY_ONCE_PER_APP[self].run do
+              Datadog::Contrib::Sinatra::Framework.setup
+            end
           end
         end
       end
 
       # Hook into builder before the middleware list gets frozen
       module DefaultMiddlewarePatch
+        ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
+
         def setup_middleware(*args, &block)
           builder = args.first
 
           super.tap do
-            Datadog::Contrib::Sinatra::Framework.add_middleware(Datadog::Contrib::Rack::TraceMiddleware, builder)
-            Datadog::Contrib::Sinatra::Framework.inspect_middlewares(builder)
+            ONLY_ONCE_PER_APP[self].run do
+              Datadog::Contrib::Sinatra::Framework.add_middleware(Datadog::Contrib::Rack::TraceMiddleware, builder)
+              Datadog::Contrib::Sinatra::Framework.inspect_middlewares(builder)
+            end
           end
         end
       end
