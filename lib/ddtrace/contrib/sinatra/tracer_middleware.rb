@@ -55,6 +55,16 @@ module Datadog
               # resource; if no resource was set, let's use a fallback
               span.resource = env['REQUEST_METHOD'] if span.resource.nil?
 
+              rack_request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+              if rack_request_span
+                unless rack_request_span.resource
+                  # This propagates the Sinatra resource to the Rack span,
+                  # since the latter is unaware of what the resource might be
+                  # and would fallback to a generic resource name when unset
+                  rack_request_span.resource = span.resource
+                end
+              end
+
               if response
                 if (status = response[0])
                   sinatra_response = ::Sinatra::Response.new([], status) # Build object to use status code helpers
