@@ -95,7 +95,7 @@ if ruby_version?('2.1')
     gem 'lograge', '~> 0.11'
   end
 
-  appraise 'contrib-old' do
+  appraise 'contrib' do
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'activerecord', '3.2.22.5'
     gem 'activerecord-mysql-adapter'
