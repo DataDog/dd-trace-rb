@@ -69,24 +69,42 @@ RSpec.describe 'Sinatra instrumentation' do
       get '/span_resource' do
         active_span = Datadog.tracer.active_span
         observed[:active_span] = { name: active_span.name, resource: active_span.resource }
-        root_span = Datadog.tracer.active_root_span
-        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
+
+        chain = lambda { |start| loop.with_object([start]) { |_, o| break o if o.last.parent.nil?; o << o.last.parent } }
+        spans = chain.call(active_span)
+        observed[:spans] = spans
+
+        # Sinatra doesn't know which route will match /span_resource , thus
+        # having to scan linearly all the registered routes.  When it scans in
+        # this example, it passes over all routes for NestedApp, as they were
+        # registered first, but does not hit a route in the nested app.  It
+        # then finds /span_resource at the root app App, which were registered
+        # later than the nested app routes.
+        #
+        # Thus active_span.parent can refer to a Sinatra span from NestedApp,
+        # nested behind a Rack span and then only Sinatra+Rack spans from App,
+        # so we find the first Sinatra elder span that has a resource.
+        sinatra_request_span = spans.find { |x| !x.resource.nil? && x.name == Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST }
+        observed[:sinatra_request_span] = { name: sinatra_request_span.name, resource: sinatra_request_span.resource }
 
         'ok'
       end
     end
   end
 
-  let(:span) { spans.reverse.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST } }
-  let(:route_span) { spans.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE } }
+  let(:sorted_spans) do
+    chain = lambda { |start| loop.with_object([start]) { |_, o| break o if o.last.parent.nil?; o << o.last.parent } }
+    sort = lambda { |list| list.sort_by { |e| chain.call(e).count } }
+    sort.call(spans)
+  end
+  let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
+  let(:span) { sorted_spans.reverse.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST } }
+  let(:route_span) { sorted_spans.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE } }
 
   let(:app) { sinatra_app }
 
-  let(:with_rack) { false }
-
   before do
     Datadog.configure do |c|
-      c.use :rack if with_rack
       c.use :sinatra, configuration_options
     end
   end
@@ -98,28 +116,12 @@ RSpec.describe 'Sinatra instrumentation' do
     Datadog.registry[:sinatra].reset_configuration!
   end
 
-  shared_context 'with rack instrumentation' do
-    let(:with_rack) { true }
-    let(:rack_span) { spans.find { |x| !x.parent && x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
-    let(:rack_middlewares) { [Datadog::Contrib::Rack::TraceMiddleware] }
-
-    let(:app) do
-      example = self
-      Rack::Builder.new do
-        example.rack_middlewares.each { |m| use m }
-        run example.sinatra_app
-      end.to_app
-    end
-  end
-
   shared_examples 'sinatra examples' do |opts = {}|
-    let(:nested_span_count) { defined?(mount_nested_app) && mount_nested_app ? 1 : 0 }
+    let(:nested_span_count) { defined?(mount_nested_app) && mount_nested_app ? 2 : 0 }
 
     context 'when configured' do
       context 'with default settings' do
         context 'and a simple request is made' do
-          include_context 'with rack instrumentation'
-
           subject(:response) { get url }
 
           # let(:top_span) { defined?(super) ? super() : rack_span }
@@ -134,7 +136,8 @@ RSpec.describe 'Sinatra instrumentation' do
 
               expect(span).to be_request_span parent: rack_span, http_tags: true
               expect(route_span).to be_request_span parent: route_parent
-              expect(rack_span.resource).to eq('GET /')
+              expect(span.resource).to eq('GET /')
+              expect(rack_span.resource).to eq('GET /') # either / or 200
             end
           end
 
@@ -214,7 +217,7 @@ RSpec.describe 'Sinatra instrumentation' do
           let(:request_span) { route_span.parent }
           let(:route_span) { template_parent_span.parent }
           let(:template_parent_span) { template_child_span.parent }
-          let(:template_child_span) { spans.find { |s| s.get_tag('sinatra.template_name') == 'layout' } }
+          let(:template_child_span) { sorted_spans.find { |s| s.get_tag('sinatra.template_name') == 'layout' } }
 
           before do
             expect(response).to be_ok
@@ -259,19 +262,19 @@ RSpec.describe 'Sinatra instrumentation' do
         context 'and a request to a literal template route is made' do
           subject(:response) { get '/erb_literal' }
 
-          let(:template_parent_span) { spans[0] }
-          let(:template_child_span) { spans[1] }
+          let(:template_parent_span) { sorted_spans[-2] }
+          let(:template_child_span) { sorted_spans[-1] }
 
           before do
             expect(response).to be_ok
-            expect(spans).to have(4 + nested_span_count).items
+            expect(spans).to have(5 + nested_span_count).items
           end
 
           describe 'the sinatra.request span' do
             it do
               expect(span.resource).to eq('GET /erb_literal')
               expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/erb_literal')
-              expect(span.parent).to be nil
+              expect(span.parent).to be rack_span
             end
 
             it_behaves_like 'measured span for integration', true
@@ -318,7 +321,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
           it do
             is_expected.to be_server_error
-            expect(spans).to have(2 + nested_span_count).items
+            expect(spans).to have(3 + nested_span_count).items
             expect(span).to_not have_error_type
             expect(span).to_not have_error_message
             expect(span.status).to eq(1)
@@ -330,7 +333,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
           it do
             is_expected.to be_server_error
-            expect(spans).to have(2 + nested_span_count).items
+            expect(spans).to have(3 + nested_span_count).items
             expect(span).to have_error_type('RuntimeError')
             expect(span).to have_error_message('test error')
             expect(span.status).to eq(1)
@@ -338,8 +341,6 @@ RSpec.describe 'Sinatra instrumentation' do
         end
 
         context 'and a request to a nonexistent route' do
-          include_context 'with rack instrumentation'
-
           subject(:response) { get '/not_a_route' }
 
           it do
@@ -347,21 +348,30 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(spans).to have(2 + nested_span_count).items
 
             expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
-            expect(span.resource).to eq('GET /not_a_route')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/not_a_route')
             expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
             expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/not_a_route')
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
-            expect(span.parent).to be(rack_span)
 
-            expect(rack_span.resource).to eq('GET 404')
+            if nested_span_count > 0
+              expect(span.resource).to eq('GET /not_a_route')
+              expect(nested_span.resource).to eq('GET /not_a_route')
+            else
+              expect(span.resource).to eq('GET /not_a_route')
+            end
+
+            expect(span.parent).to be(rack_span)
+            binding.pry if rack_span.resource == 'GET 404'
+            expect(rack_span.resource).to eq('GET /not_a_route')
           end
         end
 
         describe 'span resource' do
           subject(:response) { get '/span_resource' }
+
+          let(:spans) { observed[:spans] }
 
           before do
             is_expected.to be_ok
@@ -371,8 +381,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(observed[:active_span]).to eq(name: 'sinatra.route', resource: 'GET /span_resource')
           end
 
-          it 'sets the request span resource before calling the route' do
-            expect(observed[:root_span]).to eq(name: 'sinatra.request', resource: 'GET /span_resource')
+          it 'sets the sinatra request span resource before calling the route' do
+            expect(observed[:sinatra_request_span]).to eq(name: 'sinatra.request', resource: 'GET /span_resource')
           end
         end
       end
@@ -386,7 +396,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
           it do
             is_expected.to be_ok
-            expect(spans).to have(2 + nested_span_count).items
+            expect(spans).to have(3 + nested_span_count).items
             expect(span.service).to eq(service_name)
           end
         end
@@ -456,9 +466,11 @@ RSpec.describe 'Sinatra instrumentation' do
           it do
             is_expected.to be_ok
             expect(span.trace_id).to eq(1)
-            expect(span.parent_id).to eq(2)
-            expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(2.0)
-            expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq('synthetics')
+            expect(span.parent).to eq(rack_span)
+            expect(rack_span.trace_id).to eq(1)
+            expect(rack_span.parent_id).to eq(2)
+            expect(rack_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(2.0)
+            expect(rack_span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq('synthetics')
           end
         end
       end
@@ -537,11 +549,14 @@ RSpec.describe 'Sinatra instrumentation' do
     context 'with nested app' do
       let(:mount_nested_app) { true }
       let(:top_span) { spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name } }
+      let(:top_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == top_span.parent  } }
       let(:nested_span) { spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == nested_app_name } }
+      let(:nested_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == nested_span.parent  } }
       let(:nested_app_name) { 'NestedApp' }
 
       context 'making request to top level app' do
         let(:span) { top_span }
+        let(:rack_span) { top_rack_span }
 
         include_examples 'sinatra examples'
         include_examples 'header tags'
@@ -555,6 +570,7 @@ RSpec.describe 'Sinatra instrumentation' do
         context 'asserting the parent span' do
           let(:app_name) { top_app_name }
           let(:span) { top_span }
+          let(:rack_span) { top_rack_span }
 
           include_examples 'sinatra examples', matching_app: false
           include_examples 'header tags'
@@ -563,47 +579,62 @@ RSpec.describe 'Sinatra instrumentation' do
 
         context 'matching the nested span' do
           let(:span) { nested_span }
+          let(:rack_span) { nested_rack_span }
 
-          context 'without rack' do
-            it 'creates spans for intermediate Sinatra apps' do
-              is_expected.to be_ok
-              expect(spans).to have(3).items
+          it 'creates spans for intermediate Sinatra apps' do
+            is_expected.to be_ok
+            expect(spans).to have(5).items
 
-              expect(top_span).to be_request_span resource: 'GET', app_name: top_app_name, matching_app: false
-              expect(span).to be_request_span parent: top_span
-              expect(route_span).to be_route_span parent: span
+            expect(top_span).to be_request_span resource: 'GET', app_name: top_app_name, matching_app: false, parent: top_rack_span
+            expect(top_rack_span).not_to be_nil
+            expect(top_rack_span.parent).to be_nil
+            expect(top_rack_span.resource).to eq('GET')
+            expect(span).to be_request_span parent: nested_rack_span
+            expect(nested_rack_span).not_to be_nil
+            expect(nested_rack_span.parent).to eq(top_span)
+            expect(route_span).to be_route_span parent: span
+            expect(nested_rack_span.resource).to eq(resource)
+          end
+
+          context 'with distributed_tracing' do
+            subject(:response) { get '/', query_string, headers }
+
+            let(:query_string) { {} }
+            let(:headers) do
+              {
+                'HTTP_X_DATADOG_TRACE_ID' => '1',
+                'HTTP_X_DATADOG_PARENT_ID' => '2',
+                'HTTP_X_DATADOG_SAMPLING_PRIORITY' => Datadog::Ext::Priority::USER_KEEP.to_s,
+                'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+              }
             end
 
-            context 'with route not found' do
-              let(:url) { '/not_a_route' }
-
-              # TODO: `resource` should not be high-cardinality for not found routes
-              # TODO: Using the HTTP method is one suggested alternative, as we
-              # TODO: don't yet have the HTTP response available to also retrieve the
-              # TODO: status code at middleware processing time.
-              # let(:resource) { 'GET' }
-
-              it do
-                is_expected.to be_not_found
-                expect(spans).to have(2).items
-
-                expect(top_span).to be_request_span app_name: top_app_name
-                expect(span).to be_request_span parent: top_span
-              end
+            it do
+              is_expected.to be_ok
+              expect(span.trace_id).to eq(1)
+              expect(span.parent_id).to_not eq(2)
+              expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not eq(2.0)
+              expect(rack_span.trace_id).to eq(1)
+              expect(rack_span.parent_id).to_not eq(2) # TODO: fails despite being nested
+              expect(rack_span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to_not eq(2.0)
             end
           end
 
-          context 'with rack' do
-            include_context 'with rack instrumentation'
+          context 'with route not found' do
+            let(:url) { '/not_a_route' }
 
-            it 'creates spans for intermediate Sinatra apps' do
-              is_expected.to be_ok
+            # TODO: `resource` should not be high-cardinality for not found routes
+            # TODO: Using the HTTP method is one suggested alternative, as we
+            # TODO: don't yet have the HTTP response available to also retrieve the
+            # TODO: status code at middleware processing time.
+            # let(:resource) { 'GET' }
+
+            it do
+              is_expected.to be_not_found
               expect(spans).to have(4).items
 
-              expect(top_span).to be_request_span parent: rack_span, app_name: top_app_name
-              expect(span).to be_request_span parent: top_span
-              expect(route_span).to be_route_span parent: span
-              expect(rack_span.resource).to eq(resource)
+              expect(top_span).to be_request_span app_name: top_app_name, resource: 'GET /not_a_route', parent: top_rack_span
+              expect(span).to be_request_span parent: nested_rack_span
             end
           end
         end
