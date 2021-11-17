@@ -73,6 +73,13 @@ module Datadog
             end
           end
 
+          option :job_service do |o|
+            o.on_set do |value|
+              # Update ActiveJob service name too
+              Datadog.configuration[:active_job][:service_name] = value
+            end
+          end
+
           option :middleware, default: true
           option :middleware_names, default: false
           option :template_base_path do |o|

@@ -22,7 +22,7 @@ module Datadog
       # Rails framework code, used to essentially:
       # - handle configuration entries which are specific to Datadog tracing
       # - instrument parts of the framework when needed
-      module Framework
+      module Framework # rubocop:disable Metrics/ModuleLength
         # After the Rails application finishes initializing, we configure the Rails
         # integration and all its sub-components with the application information
         # available.
@@ -65,6 +65,7 @@ module Datadog
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
+            config[:job_service] ||= "#{config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
           end
         end
 
@@ -132,7 +133,7 @@ module Datadog
 
           datadog_config.use(
             :active_job,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}",
+            service_name: rails_config[:job_service],
             log_injection: rails_config[:log_injection]
           )
         end
