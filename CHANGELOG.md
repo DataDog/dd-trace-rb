@@ -2,6 +2,43 @@
 
 ## [Unreleased]
 
+## [0.54.0] - 2021-11-17
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.54.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.53.0...v0.54.0
+
+### Added
+
+- MongoDB service name resolver when using multi cluster ([#1423][]) ([@skcc321][])
+- Service name override for ActiveJob in Rails configuration ([#1703][], [#1770][]) ([@hatstand][])
+- Profiler: Expose profile duration and start to the UI ([#1709][])
+- Profiler: Gather CPU time without monkey patching Thread ([#1735][], [#1740][])
+- Profiler: Link profiler samples to individual web requests ([#1688][])
+- Profiler: Capture threads with empty backtrace ([#1719][])
+- CI-App: Memoize environment tags to improve performance ([#1762][])
+- CI-App: `test.framework_version` tag for rspec and cucumber ([#1713][])
+
+### Changed
+
+- Set minimum version of dogstatsd-ruby 5 series to 5.3 ([#1717][])
+- Use USER_KEEP/USER_REJECT for RuleSampler decisions ([#1769][])
+
+### Fixed
+
+- "private method `ruby2_keywords' called" errors ([#1712][], [#1714][])
+- Configuration warning when Agent port is a String ([#1720][])
+- Ensure internal trace buffer respects its maximum size ([#1715][])
+- Remove erroneous maximum resque version support ([#1761][])
+- CI-App: Environment variables parsing precedence ([#1745][], [#1763][])
+- CI-App: GitHub Metadata Extraction ([#1771][])
+- Profiler: Missing thread id for natively created threads ([#1718][])
+- Docs: Active Job integration example code ([#1721][]) ([@y-yagi][])
+
+### Refactored
+
+- Redis client patch to use prepend ([#1743][]) ([@justinhoward][])
+
 ## [0.53.0] - 2021-10-06
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.53.0
@@ -476,26 +513,26 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.39.0...v0.40.0
 ### Fixed
 
 - Sinatra nested modular applications possibly leaking spans ([#1035][], [#1145][])
-  
+
   * **BREAKING** for nested modular Sinatra applications only:
     ```ruby
     class Nested < Sinatra::Base
     end
-    
+
     class TopLevel < Sinatra::Base
       use Nested # Nesting happens here
     end
     ```
   * Non-breaking for classic applications nor modular non-nested applications.
-  
+
   Fixes issues introduced by [#1015][] (in 0.35.0), when we first introduced Sinatra support for modular applications.
-  
+
   The main issue we had to solve for modular support is how to handle nested applications, as only one application is actually responsible for handling the route. A naive implementation would cause the creation of nested `sinatra.request` spans, even for applications that did not handle the request. This is technically correct, as Sinatra is traversing that middleware, accruing overhead, but that does not aligned with our existing behavior of having a single `sinatra.request` span.
-  
+
   While trying to achieve backwards-compatibility, we had to resort to a solution that turned out brittle: `sinatra.request` spans had to start in one middleware level and finished it in another. This allowed us to only capture the `sinatra.request` for the matching route, and skip the non-matching one. This caused unexpected issues on some user setups, specially around Sinatra middleware that created spans in between the initialization and closure of `sinatra.request` spans.
-  
+
   This change now address these implementation issues by creating multiple `sinatra.request`, one for each traversed Sinatra application, even non-matching ones. This instrumentation is more correct, but at the cost of being a breaking change for nested modular applications.
-  
+
   Please see [#1145][] for more information, and example screenshots on how traces for affected applications will look like.
 
 - Rack/Rails span error propagation with `rescue_from` ([#1155][], [#1162][])
@@ -1351,7 +1388,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.14.1...v0.14.2
 
 ### Fixed
 
-- Sampling priority from request headers not being used ([#521][])  
+- Sampling priority from request headers not being used ([#521][])
 
 ## [0.14.1] - 2018-08-21
 
@@ -1497,9 +1534,9 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.12.1...v0.13.0
 - Hash quantization into core library ([#410][])
 - MongoDB integration to use Hash quantization library ([#463][])
 
-### Changed 
+### Changed
 
-- Hash quantization truncates arrays with nested objects ([#463][]) 
+- Hash quantization truncates arrays with nested objects ([#463][])
 
 ## [0.13.0.beta1] - 2018-05-09
 
@@ -1848,7 +1885,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.53.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v0.54.0...master
+[0.54.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.53.0...v0.54.0
 [0.53.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.52.0...v0.53.0
 [0.52.0]: https://github.com/DataDog/dd-trace-rb/compare/v0.51.1...v0.52.0
 [0.51.1]: https://github.com/DataDog/dd-trace-rb/compare/v0.51.0...v0.51.1
@@ -2440,6 +2478,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1277]: https://github.com/DataDog/dd-trace-rb/issues/1277
 [#1278]: https://github.com/DataDog/dd-trace-rb/issues/1278
 [#1279]: https://github.com/DataDog/dd-trace-rb/issues/1279
+[#1280]: https://github.com/DataDog/dd-trace-rb/issues/1280
 [#1281]: https://github.com/DataDog/dd-trace-rb/issues/1281
 [#1283]: https://github.com/DataDog/dd-trace-rb/issues/1283
 [#1284]: https://github.com/DataDog/dd-trace-rb/issues/1284
@@ -2517,6 +2556,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1420]: https://github.com/DataDog/dd-trace-rb/issues/1420
 [#1421]: https://github.com/DataDog/dd-trace-rb/issues/1421
 [#1422]: https://github.com/DataDog/dd-trace-rb/issues/1422
+[#1423]: https://github.com/DataDog/dd-trace-rb/issues/1423
 [#1426]: https://github.com/DataDog/dd-trace-rb/issues/1426
 [#1427]: https://github.com/DataDog/dd-trace-rb/issues/1427
 [#1428]: https://github.com/DataDog/dd-trace-rb/issues/1428
@@ -2602,12 +2642,34 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1684]: https://github.com/DataDog/dd-trace-rb/issues/1684
 [#1685]: https://github.com/DataDog/dd-trace-rb/issues/1685
 [#1687]: https://github.com/DataDog/dd-trace-rb/issues/1687
+[#1688]: https://github.com/DataDog/dd-trace-rb/issues/1688
 [#1694]: https://github.com/DataDog/dd-trace-rb/issues/1694
 [#1695]: https://github.com/DataDog/dd-trace-rb/issues/1695
 [#1699]: https://github.com/DataDog/dd-trace-rb/issues/1699
 [#1700]: https://github.com/DataDog/dd-trace-rb/issues/1700
 [#1702]: https://github.com/DataDog/dd-trace-rb/issues/1702
+[#1703]: https://github.com/DataDog/dd-trace-rb/issues/1703
 [#1706]: https://github.com/DataDog/dd-trace-rb/issues/1706
+[#1709]: https://github.com/DataDog/dd-trace-rb/issues/1709
+[#1712]: https://github.com/DataDog/dd-trace-rb/issues/1712
+[#1713]: https://github.com/DataDog/dd-trace-rb/issues/1713
+[#1714]: https://github.com/DataDog/dd-trace-rb/issues/1714
+[#1715]: https://github.com/DataDog/dd-trace-rb/issues/1715
+[#1717]: https://github.com/DataDog/dd-trace-rb/issues/1717
+[#1718]: https://github.com/DataDog/dd-trace-rb/issues/1718
+[#1719]: https://github.com/DataDog/dd-trace-rb/issues/1719
+[#1720]: https://github.com/DataDog/dd-trace-rb/issues/1720
+[#1721]: https://github.com/DataDog/dd-trace-rb/issues/1721
+[#1735]: https://github.com/DataDog/dd-trace-rb/issues/1735
+[#1740]: https://github.com/DataDog/dd-trace-rb/issues/1740
+[#1743]: https://github.com/DataDog/dd-trace-rb/issues/1743
+[#1745]: https://github.com/DataDog/dd-trace-rb/issues/1745
+[#1761]: https://github.com/DataDog/dd-trace-rb/issues/1761
+[#1762]: https://github.com/DataDog/dd-trace-rb/issues/1762
+[#1763]: https://github.com/DataDog/dd-trace-rb/issues/1763
+[#1769]: https://github.com/DataDog/dd-trace-rb/issues/1769
+[#1770]: https://github.com/DataDog/dd-trace-rb/issues/1770
+[#1771]: https://github.com/DataDog/dd-trace-rb/issues/1771
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2670,6 +2732,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@gkampjes]: https://github.com/gkampjes
 [@gottfrois]: https://github.com/gottfrois
 [@guizmaii]: https://github.com/guizmaii
+[@hatstand]: https://github.com/hatstand
 [@hawknewton]: https://github.com/hawknewton
 [@hs-bguven]: https://github.com/hs-bguven
 [@illdelph]: https://github.com/illdelph
@@ -2679,6 +2742,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@jfrancoist]: https://github.com/jfrancoist
 [@joeyAghion]: https://github.com/joeyAghion
 [@jpaulgs]: https://github.com/jpaulgs
+[@justinhoward]: https://github.com/justinhoward
 [@jvalanen]: https://github.com/jvalanen
 [@kelvin-acosta]: https://github.com/kelvin-acosta
 [@kexoth]: https://github.com/kexoth
@@ -2716,6 +2780,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@senny]: https://github.com/senny
 [@shayonj]: https://github.com/shayonj
 [@sinsoku]: https://github.com/sinsoku
+[@skcc321]: https://github.com/skcc321
 [@soulcutter]: https://github.com/soulcutter
 [@stefanahman]: https://github.com/stefanahman
 [@steveh]: https://github.com/steveh
