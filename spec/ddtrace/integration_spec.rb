@@ -209,7 +209,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       it_behaves_like 'flushed trace'
-      it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+      it_behaves_like 'priority sampled', Datadog::Ext::Priority::USER_KEEP
       it_behaves_like 'rule sampling rate metric', 1.0
       it_behaves_like 'rate limit metric', 1.0
 
@@ -223,7 +223,7 @@ RSpec.describe 'Tracer integration tests' do
       let(:rule_sampler) { Datadog::Sampling::RuleSampler.new(default_sample_rate: Float::MIN) }
 
       it_behaves_like 'flushed trace'
-      it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+      it_behaves_like 'priority sampled', Datadog::Ext::Priority::USER_REJECT
       it_behaves_like 'rule sampling rate metric', Float::MIN
       it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
     end
@@ -236,7 +236,7 @@ RSpec.describe 'Tracer integration tests' do
         let(:rule) { Datadog::Sampling::SimpleRule.new(name: 'my.op') }
 
         it_behaves_like 'flushed trace'
-        it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
+        it_behaves_like 'priority sampled', Datadog::Ext::Priority::USER_KEEP
         it_behaves_like 'rule sampling rate metric', 1.0
         it_behaves_like 'rate limit metric', 1.0
 
@@ -244,7 +244,7 @@ RSpec.describe 'Tracer integration tests' do
           let(:rule) { Datadog::Sampling::SimpleRule.new(sample_rate: Float::MIN) }
 
           it_behaves_like 'flushed trace'
-          it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+          it_behaves_like 'priority sampled', Datadog::Ext::Priority::USER_REJECT
           it_behaves_like 'rule sampling rate metric', Float::MIN
           it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
         end
@@ -253,7 +253,7 @@ RSpec.describe 'Tracer integration tests' do
           let(:rule_sampler_opt) { { rate_limit: Float::MIN } }
 
           it_behaves_like 'flushed trace'
-          it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_REJECT
+          it_behaves_like 'priority sampled', Datadog::Ext::Priority::USER_REJECT
           it_behaves_like 'rule sampling rate metric', 1.0
           it_behaves_like 'rate limit metric', 0.0
         end
@@ -263,9 +263,10 @@ RSpec.describe 'Tracer integration tests' do
         let(:rule) { Datadog::Sampling::SimpleRule.new(name: 'not.my.op') }
 
         it_behaves_like 'flushed trace'
+        # The PrioritySampler was responsible for the sampling decision, not the Rule Sampler.
         it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
-        it_behaves_like 'rule sampling rate metric', nil # Rule sampler is never reached, thus has no value to provide
-        it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+        it_behaves_like 'rule sampling rate metric', nil
+        it_behaves_like 'rate limit metric', nil
       end
     end
   end

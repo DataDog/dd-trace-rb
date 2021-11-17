@@ -194,6 +194,12 @@ module Datadog
   class PrioritySampler
     extend Forwardable
 
+    # NOTE: We do not advise using a pre-sampler. It can save resources,
+    # but pre-sampling at rates < 100% may result in partial traces, unless
+    # the pre-sampler knows exactly how to drop a span without dropping its ancestors.
+    #
+    # Additionally, as service metrics are calculated in the Datadog Agent,
+    # the service's throughput will be underestimated.
     attr_reader :pre_sampler, :priority_sampler
 
     SAMPLE_RATE_METRIC_KEY = '_sample_rate'.freeze
@@ -209,17 +215,21 @@ module Datadog
 
     def sample!(span)
       # If pre-sampling is configured, do it first. (By default, this will sample at 100%.)
-      # NOTE: Pre-sampling at rates < 100% may result in partial traces; not recommended.
       span.sampled = pre_sample?(span) ? @pre_sampler.sample!(span) : true
 
       if span.sampled
-        # If priority sampling has already been applied upstream, use that, otherwise...
-        unless priority_assigned_upstream?(span)
-          # Roll the dice and determine whether how we set the priority.
-          priority = priority_sample!(span) ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+        # If priority sampling has already been applied upstream, use that value.
+        return true if priority_assigned?(span)
 
-          assign_priority!(span, priority)
-        end
+        # Check with post sampler how we set the priority.
+        sample = priority_sample!(span)
+
+        # Check if post sampler has already assigned a priority.
+        return true if priority_assigned?(span)
+
+        # If not, use agent priority values.
+        priority = sample ? Datadog::Ext::Priority::AUTO_KEEP : Datadog::Ext::Priority::AUTO_REJECT
+        assign_priority!(span, priority)
       else
         # If discarded by pre-sampling, set "reject" priority, so other
         # services for the same trace don't sample needlessly.
@@ -244,7 +254,7 @@ module Datadog
       end
     end
 
-    def priority_assigned_upstream?(span)
+    def priority_assigned?(span)
       span.context && !span.context.sampling_priority.nil?
     end
 
