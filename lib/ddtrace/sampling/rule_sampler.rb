@@ -114,11 +114,11 @@ module Datadog
       # Span priority should only be set when the {RuleSampler}
       # was responsible for the sampling decision.
       def set_priority(span, sampled)
-        if sampled
-          ForcedTracing.keep(span)
-        else
-          ForcedTracing.drop(span)
-        end
+        span.context.sampling_priority = if sampled
+                                           Datadog::Ext::Priority::USER_KEEP
+                                         else
+                                           Datadog::Ext::Priority::USER_REJECT
+                                         end
       end
 
       def set_rule_metrics(span, sample_rate)
