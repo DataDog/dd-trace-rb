@@ -47,16 +47,18 @@ module Datadog
           # retrieve integration settings
           tracer = configuration[:tracer]
 
+          previous_request_span = env[RACK_REQUEST_SPAN]
+
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
-          if configuration[:distributed_tracing]
+          if configuration[:distributed_tracing] && previous_request_span.nil?
             context = HTTPPropagator.extract(env)
             tracer.provider.context = context if context.trace_id
           end
 
           # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queue_time(env, tracer)
+          frontend_span = compute_queue_time(env, tracer) if previous_request_span.nil?
 
           trace_options = {
             service: configuration[:service_name],
@@ -101,6 +103,9 @@ module Datadog
           request_span.set_error(e) unless request_span.nil?
           raise e
         ensure
+          env[RACK_REQUEST_SPAN] = previous_request_span if previous_request_span
+          env[:datadog_rack_request_span] = env[RACK_REQUEST_SPAN]
+
           if request_span
             # Rack is a really low level interface and it doesn't provide any
             # advanced functionality like routers. Because of that, we assume that
@@ -120,7 +125,7 @@ module Datadog
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
-          tracer.provider.context = Datadog::Context.new if tracer
+          tracer.provider.context = Datadog::Context.new if tracer && request_span && request_span.parent.nil? || request_span.parent == frontend_span
         end
 
         def resource_name_for(env, status)
