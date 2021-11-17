@@ -213,16 +213,19 @@ module Datadog
           ref = env['GITHUB_REF'] if ref.nil? || ref.empty?
           branch, tag = branch_or_tag(ref)
 
+          pipeline_url = "#{env['GITHUB_SERVER_URL']}/#{env['GITHUB_REPOSITORY']}/actions/runs/#{env['GITHUB_RUN_ID']}"
+          pipeline_url = "#{pipeline_url}/attempts/#{env['GITHUB_RUN_ATTEMPT']}" if env['GITHUB_RUN_ATTEMPT']
+
           {
             Datadog::Ext::Git::TAG_BRANCH => branch,
             Datadog::Ext::Git::TAG_COMMIT_SHA => env['GITHUB_SHA'],
-            Datadog::Ext::Git::TAG_REPOSITORY_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}.git",
+            Datadog::Ext::Git::TAG_REPOSITORY_URL => "#{env['GITHUB_SERVER_URL']}/#{env['GITHUB_REPOSITORY']}.git",
             Datadog::Ext::Git::TAG_TAG => tag,
-            TAG_JOB_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
+            TAG_JOB_URL => "#{env['GITHUB_SERVER_URL']}/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
             TAG_PIPELINE_ID => env['GITHUB_RUN_ID'],
             TAG_PIPELINE_NAME => env['GITHUB_WORKFLOW'],
             TAG_PIPELINE_NUMBER => env['GITHUB_RUN_NUMBER'],
-            TAG_PIPELINE_URL => "https://github.com/#{env['GITHUB_REPOSITORY']}/commit/#{env['GITHUB_SHA']}/checks",
+            TAG_PIPELINE_URL => pipeline_url,
             TAG_PROVIDER_NAME => 'github',
             TAG_WORKSPACE_PATH => env['GITHUB_WORKSPACE'],
             Datadog::Ext::Git::TAG_COMMIT_AUTHOR_NAME => env['BUILD_REQUESTEDFORID'],
