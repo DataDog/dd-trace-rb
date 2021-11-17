@@ -52,16 +52,19 @@ module Datadog
         end
 
         def call(env)
+          # Find out if this is rack within rack
+          previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
+
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
-          if configuration[:distributed_tracing]
+          if configuration[:distributed_tracing] && previous_request_span.nil?
             trace_digest = HTTPPropagator.extract(env)
             Datadog::Tracing.continue_trace!(trace_digest)
           end
 
           # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queue_time(env)
+          frontend_span = compute_queue_time(env) if previous_request_span.nil?
 
           trace_options = { span_type: Datadog::Ext::HTTP::TYPE_INBOUND }
           trace_options[:service] = configuration[:service_name] if configuration[:service_name]
@@ -94,6 +97,9 @@ module Datadog
           request_span.set_error(e) unless request_span.nil?
           raise e
         ensure
+          env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
+          env[:datadog_rack_request_span] = env[Ext::RACK_ENV_REQUEST_SPAN]
+
           if request_span
             # Rack is a really low level interface and it doesn't provide any
             # advanced functionality like routers. Because of that, we assume that
