@@ -125,7 +125,7 @@ module Datadog
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
-          tracer.provider.context = Datadog::Context.new if tracer && request_span && request_span.parent.nil? || request_span.parent == frontend_span
+          tracer.provider.context = Datadog::Context.new if tracer && request_span && (request_span.parent_id == 0 || frontend_span && request_span.parent_id == frontend_span.span_id)
         end
 
         def resource_name_for(env, status)
