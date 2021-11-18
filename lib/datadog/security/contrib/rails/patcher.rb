@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'ddtrace/utils/only_once'
 
 require 'datadog/security/contrib/patcher'

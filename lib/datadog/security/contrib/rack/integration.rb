@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'datadog/security/contrib/integration'
 
 require 'datadog/security/contrib/rack/configuration/settings'

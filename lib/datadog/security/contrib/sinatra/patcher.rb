@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'datadog/security/contrib/patcher'
 require 'datadog/security/contrib/sinatra/integration'
 require 'datadog/security/contrib/rack/request_middleware'
