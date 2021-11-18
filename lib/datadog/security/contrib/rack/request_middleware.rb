@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require 'datadog/security/instrumentation/gateway'
 
