@@ -1,3 +1,5 @@
+# typed: false
+
 require 'datadog/security/instrumentation/gateway'
 
 require 'datadog/security/assets'
