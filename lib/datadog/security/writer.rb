@@ -2,6 +2,7 @@ require 'datadog/security/worker'
 
 module Datadog
   module Security
+    # Event writer
     class Writer
       def initialize(options = {})
         @mutex_after_fork = Mutex.new
@@ -61,5 +62,3 @@ module Datadog
     end
   end
 end
-
-

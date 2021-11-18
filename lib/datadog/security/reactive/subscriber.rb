@@ -1,6 +1,7 @@
 module Datadog
   module Security
     module Reactive
+      # Reactive Engine subscriber
       class Subscriber
         def initialize(&block)
           @block = block

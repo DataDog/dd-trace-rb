@@ -11,7 +11,9 @@ module Datadog
           def self.setup
             Datadog::Security.configure do |datadog_config|
               sinatra_config = config_with_defaults(datadog_config)
-              activate_rack!(datadog_config, sinatra_config) unless Datadog.configuration.instrumented_integrations.key?(:rack)
+              unless Datadog.configuration.instrumented_integrations.key?(:rack)
+                activate_rack!(datadog_config, sinatra_config)
+              end
             end
           end
 
@@ -30,5 +32,3 @@ module Datadog
     end
   end
 end
-
-

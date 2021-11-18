@@ -70,7 +70,13 @@ RSpec.describe 'Sinatra instrumentation' do
         active_span = Datadog.tracer.active_span
         observed[:active_span] = { name: active_span.name, resource: active_span.resource }
 
-        chain = lambda { |start| loop.with_object([start]) { |_, o| break o if o.last.parent.nil?; o << o.last.parent } }
+        chain = lambda do |start|
+          loop.with_object([start]) do |_, o|
+            break o if o.last.parent.nil?
+
+            o << o.last.parent
+          end
+        end
         spans = chain.call(active_span)
         observed[:spans] = spans
 
@@ -93,8 +99,16 @@ RSpec.describe 'Sinatra instrumentation' do
   end
 
   let(:sorted_spans) do
-    chain = lambda { |start| loop.with_object([start]) { |_, o| break o if o.last.parent.nil?; o << o.last.parent } }
-    sort = lambda { |list| list.sort_by { |e| chain.call(e).count } }
+    chain = lambda do |start|
+      loop.with_object([start]) do |_, o|
+        break o if o.last.parent.nil?
+
+        o << o.last.parent
+      end
+    end
+    sort = lambda do |list|
+      list.sort_by { |e| chain.call(e).count }
+    end
     sort.call(spans)
   end
   let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
@@ -355,15 +369,9 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
 
-            if nested_span_count > 0
-              expect(span.resource).to eq('GET /not_a_route')
-              expect(nested_span.resource).to eq('GET /not_a_route')
-            else
-              expect(span.resource).to eq('GET /not_a_route')
-            end
-
+            expect(span.resource).to eq('GET /not_a_route')
+            expect(nested_span.resource).to eq('GET /not_a_route') if nested_span_count > 0
             expect(span.parent).to be(rack_span)
-            binding.pry if rack_span.resource == 'GET 404'
             expect(rack_span.resource).to eq('GET /not_a_route')
           end
         end
@@ -549,9 +557,9 @@ RSpec.describe 'Sinatra instrumentation' do
     context 'with nested app' do
       let(:mount_nested_app) { true }
       let(:top_span) { spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name } }
-      let(:top_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == top_span.parent  } }
+      let(:top_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == top_span.parent } }
       let(:nested_span) { spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == nested_app_name } }
-      let(:nested_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == nested_span.parent  } }
+      let(:nested_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == nested_span.parent } }
       let(:nested_app_name) { 'NestedApp' }
 
       context 'making request to top level app' do

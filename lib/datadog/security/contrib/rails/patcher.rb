@@ -9,6 +9,7 @@ module Datadog
   module Security
     module Contrib
       module Rails
+        # Patcher for Security on Rails
         module Patcher
           include Datadog::Security::Contrib::Patcher
 
@@ -75,4 +76,3 @@ module Datadog
     end
   end
 end
-

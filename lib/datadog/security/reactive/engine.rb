@@ -4,6 +4,7 @@ require 'datadog/security/reactive/subscriber'
 module Datadog
   module Security
     module Reactive
+      # Reactive Engine
       class Engine
         def initialize
           @data = {}
@@ -29,8 +30,8 @@ module Datadog
 
               # is all data for the targets available?
               if (addresses - @data.keys).empty?
-                h = addresses.each_with_object({}) { |a, h| h[a] = @data[a] }
-                subscribers.each { |s| s.call(*h.values) }
+                hash = addresses.each_with_object({}) { |a, h| h[a] = @data[a] }
+                subscribers.each { |s| s.call(*hash.values) }
               end
             end
           end

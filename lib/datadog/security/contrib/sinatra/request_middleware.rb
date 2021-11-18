@@ -2,6 +2,7 @@ module Datadog
   module Security
     module Contrib
       module Sinatra
+        # Rack middleware for Security on Sinatra
         class RequestMiddleware
           def initialize(app, opt = {})
             @app = app
@@ -15,4 +16,3 @@ module Datadog
     end
   end
 end
-

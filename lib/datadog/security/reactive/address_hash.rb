@@ -1,11 +1,8 @@
 module Datadog
   module Security
     module Reactive
+      # Address for Reactive Engine
       class AddressHash < Hash
-        def []=(key, value)
-          super(key, value)
-        end
-
         def addresses
           keys.flatten
         end

@@ -1,6 +1,8 @@
 module Datadog
   module Security
     module Configuration
+      # Configuration settings, acting as an integration registry
+      # TODO: as with Configuration, this is a trivial implementation
       class Settings
         def initialize
           @integrations = []
@@ -8,7 +10,7 @@ module Datadog
 
         def merge(dsl)
           dsl.uses.each do |use|
-            name, options = use
+            name, _options = use
             registered_integration = Datadog::Security::Contrib::Integration.registry[name]
             @integrations << registered_integration
 

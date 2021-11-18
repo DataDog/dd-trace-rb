@@ -5,6 +5,7 @@ module Datadog
   module Security
     module Contrib
       module Rack
+        # Patcher for Rack integration
         module Patcher
           include Datadog::Security::Contrib::Patcher
 
@@ -26,11 +27,11 @@ module Datadog
 
               Reactive::Operation.new('rack.request') do |op|
                 if defined?(Datadog::Tracer) && Datadog.respond_to?(:tracer) && (tracer = Datadog.tracer)
-                  root_span = Datadog.tracer.active_root_span
-                  active_span = Datadog.tracer.active_span
+                  root_span = tracer.active_root_span
+                  active_span = tracer.active_span
 
-                  Datadog.logger.debug { "root span: #{root_span.span_id}"} if root_span
-                  Datadog.logger.debug { "active span: #{active_span.span_id}"} if active_span
+                  Datadog.logger.debug { "root span: #{root_span.span_id}" } if root_span
+                  Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
 
                   root_span.set_tag('_dd.appsec.enabled', 1)
                   root_span.set_tag('_dd.runtime_family', 'ruby')
@@ -45,7 +46,7 @@ module Datadog
                   # TODO: 'request.path_params',
                 ]
                 op.subscribe(*addresses) do |*values|
-                  Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}"}
+                  Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}" }
                   headers = values[0]
                   headers_no_cookies = headers.dup.tap { |h| h.delete('cookie') }
                   uri_raw = values[1]
@@ -65,7 +66,10 @@ module Datadog
                     # TODO: 'server.request.path_params' => path_params,
                   }
 
-                  fail if waf_context.context_obj.null?
+                  # TODO: this check is too low level
+                  # TODO: raise a proper exception
+                  raise if waf_context.context_obj.null?
+
                   action, result = waf_context.run(waf_args)
 
                   case action
@@ -102,6 +106,7 @@ module Datadog
                 end
 
                 block = catch(:block) do
+                  # TODO: extract header transformation and query string processing
                   op.publish('request.query', request.query_string.split('&').map { |e| e.split('=').map { |s| CGI.unescape(s) } })
                   op.publish('request.headers', (request.each_header.each_with_object({}) { |(k, v), h| h[k.gsub(/^HTTP_/, '').downcase.gsub('_', '-')] = v if k =~ /^HTTP_/ }))
                   op.publish('request.uri.raw', request.url)
@@ -137,7 +142,8 @@ module Datadog
             tags << "service:#{span.service}"
             tags << "env:#{env}" if env
 
-            request_headers = request.each_header.each_with_object({}) { |(k, v), h| h[k.gsub(/^HTTP_/, '').downcase.gsub('_', '-')] = v if k =~ /^HTTP_/ }
+            # TODO: extract header transformation
+            request_headers = request.each_header.each_with_object({}) { |(k, v), h| h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/ }
             hostname = Socket.gethostname
             platform = RUBY_PLATFORM
             os_type = case platform
@@ -149,7 +155,7 @@ module Datadog
             events = []
 
             data[:waf_result].data.each do |waf|
-              rule = rules['events'].select { |e| e["id"] == waf['rule'] }.first
+              rule = rules['events'].find { |e| e['id'] == waf['rule'] }
               waf['filter'].each do |filter|
                 event = {
                   event_id: SecureRandom.uuid,
@@ -184,7 +190,7 @@ module Datadog
                     host: {
                       os_type: os_type,
                       hostname: hostname,
-                      context_version: "0.1.0"
+                      context_version: '0.1.0'
                     },
                     http: {
                       context_version: '0.1.0',
@@ -202,9 +208,9 @@ module Datadog
                         useragent: request.user_agent,
                       },
                       response: {
-                      #   status: 200, # TODO: requires sending event after request
+                        # status: 200, # TODO: requires sending event after request
                         blocked: blocked,
-                      #   headers: {}, # TODO: requires sending event after request
+                        # headers: {}, # TODO: requires sending event after request
                       }
                     },
                     service: {

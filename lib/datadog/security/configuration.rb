@@ -2,32 +2,34 @@ require 'datadog/security/configuration/settings'
 
 module Datadog
   module Security
+    # Configuration for Security
+    # TODO: this is a trivial implementation, check with shareable code with
+    # tracer and other products
     module Configuration
       def self.included(base)
         base.extend(ClassMethods)
       end
 
+      # Configuration DSL implementation
       class DSL
         def initialize
           @uses = []
         end
 
         def use(name, options = {})
-          p [name, options]
           @uses << [name, options]
         end
 
-        def uses
-          @uses
-        end
+        attr_reader :uses
 
         def [](key)
-          found = @uses.select { |k, v| k == key }.first
+          found = @uses.find { |k, _| k == key }
 
           found.last if found
         end
       end
 
+      # class-level methods for Configuration
       module ClassMethods
         def configure
           dsl = DSL.new

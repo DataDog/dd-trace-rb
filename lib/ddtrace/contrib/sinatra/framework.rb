@@ -10,7 +10,9 @@ module Datadog
         def self.setup
           Datadog.configure do |datadog_config|
             sinatra_config = config_with_defaults(datadog_config)
-            activate_rack!(datadog_config, sinatra_config) unless Datadog.configuration.instrumented_integrations.key?(:rack)
+            unless Datadog.configuration.instrumented_integrations.key?(:rack)
+              activate_rack!(datadog_config, sinatra_config)
+            end
           end
         end
 
@@ -60,19 +62,16 @@ module Datadog
         # Introspect middlewares from a builder
         def self.middlewares(builder)
           builder.instance_variable_get(:@use).map do |proc_|
-            unless proc_.respond_to?(:binding) && proc_.binding.local_variable_defined?(:middleware)
-              next :unknown
-            end
+            next :unknown unless proc_.respond_to?(:binding) && proc_.binding.local_variable_defined?(:middleware)
 
             proc_.binding.local_variable_get(:middleware)
           end
         end
 
         def self.inspect_middlewares(builder)
-          Datadog.logger.debug { "Sinatra middlewares: " << middlewares(builder).map(&:inspect).inspect }
+          Datadog.logger.debug { 'Sinatra middlewares: ' << middlewares(builder).map(&:inspect).inspect }
         end
       end
     end
   end
 end
-
