@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.53.0)
-      ffi (~> 1.0)
+    ddtrace (0.54.0)
+      debase-ruby_core_source (= 0.10.12)
       msgpack
 
 GEM
@@ -37,11 +37,11 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
+    debase-ruby_core_source (0.10.12)
     debug_inspector (1.1.0)
     diff-lcs (1.4.4)
     docile (1.4.0)
     dogstatsd-ruby (5.2.0)
-    ffi (1.15.4)
     google-protobuf (3.17.3-x86_64-linux)
     hashdiff (1.0.1)
     memory_profiler (0.9.14)

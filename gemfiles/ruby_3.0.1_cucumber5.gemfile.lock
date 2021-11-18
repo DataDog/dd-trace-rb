@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.53.0)
-      ffi (~> 1.0)
+    ddtrace (0.54.0)
+      debase-ruby_core_source (= 0.10.12)
       msgpack
 
 GEM
@@ -75,6 +75,7 @@ GEM
       cucumber-core (~> 8.0, >= 8.0.1)
       cucumber-cucumber-expressions (~> 10.3, >= 10.3.0)
       cucumber-messages (~> 13.0, >= 13.0.1)
+    debase-ruby_core_source (0.10.12)
     debug_inspector (1.1.0)
     diff-lcs (1.4.4)
     docile (1.4.0)
