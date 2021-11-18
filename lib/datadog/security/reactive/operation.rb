@@ -4,10 +4,11 @@ require 'datadog/security/reactive/engine'
 module Datadog
   module Security
     module Reactive
+      # Reactive Engine nested operation tracking
       class Operation
-        attr_reader :reactive
-        attr_reader :parent
-        attr_reader :name
+        attr_reader :reactive,
+                    :parent,
+                    :name
 
         def initialize(name, parent = nil, reactive_engine = nil)
           Datadog.logger.debug { "operation: #{name} initialize" }

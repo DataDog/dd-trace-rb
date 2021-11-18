@@ -1,6 +1,9 @@
 module Datadog
   module Security
+    # Instrumentation for Security
     module Instrumentation
+      # Instrumentation gateway implementation
+      # TODO: this is going away soon
       class Gateway
         def initialize
           @listeners = {}

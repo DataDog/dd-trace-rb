@@ -1,13 +1,15 @@
 module Datadog
   module Security
     module Contrib
-      # Instrument Rails.
       module Rails
+        # Rails specific framework tie
         module Framework
           def self.setup
             Datadog::Security.configure do |datadog_config|
               rails_config = config_with_defaults(datadog_config)
-              activate_rack!(datadog_config, rails_config) unless Datadog.configuration.instrumented_integrations.key?(:rack)
+              unless Datadog.configuration.instrumented_integrations.key?(:rack)
+                activate_rack!(datadog_config, rails_config)
+              end
             end
           end
 
@@ -26,6 +28,3 @@ module Datadog
     end
   end
 end
-
-
-

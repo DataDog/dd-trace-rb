@@ -7,6 +7,7 @@ module Datadog
   module Security
     module Contrib
       module Rack
+        # Topmost Rack middleware for Security
         class RequestMiddleware
           def initialize(app, opt = {})
             @app = app
@@ -16,7 +17,10 @@ module Datadog
             if libddwaf_required?
               Datadog::Security::WAF.logger = Datadog.logger if Datadog.logger.debug?
               @waf = Datadog::Security::WAF::Handle.new(waf_rules)
-              fail if @waf.handle_obj.null?
+
+              # TODO: check is too low level
+              # TODO: use proper exception
+              raise if @waf.handle_obj.null?
             end
           end
 
@@ -28,7 +32,10 @@ module Datadog
             return @app.call(env) unless libddwaf_required?
 
             context = Datadog::Security::WAF::Context.new(@waf)
-            fail if context.context_obj.null?
+            # TODO: check is too low level
+            # TODO: use proper exception
+            raise if context.context_obj.null?
+
             env['datadog.waf.context'] = context
             env['datadog.waf.rules'] = waf_rules
             request = ::Rack::Request.new(env)

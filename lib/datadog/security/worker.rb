@@ -1,5 +1,6 @@
 module Datadog
   module Security
+    # Background worker
     class Worker
       def initialize(options = {})
         transport_options = {}
@@ -7,7 +8,7 @@ module Datadog
         @transport = options.fetch(:transport) do
           Transport::HTTP.default(**transport_options)
         end
-        @adapter = @transport.apis["v0.4"].adapter
+        @adapter = @transport.apis['v0.4'].adapter
 
         @mutex = Mutex.new
         @worker = nil
@@ -62,17 +63,18 @@ module Datadog
             req = Net::HTTP::Post.new(uri.path)
             req['X-Api-Version'] = 'v0.1.0'
             req['Content-Type'] = 'application/json'
-            req.body = JSON.dump({
+            payload = {
               protocol_version: 1,
               idempotency_key: SecureRandom.uuid,
               events: events,
-            })
+            }
+            req.body = JSON.dump(payload)
 
             res = http.request(req)
 
             case res
             when Net::HTTPSuccess
-              Datadog.logger.debug { "success" }
+              Datadog.logger.debug { 'success' }
             else
               Datadog.logger.debug { "failed: #{res.inspect}" }
             end
@@ -84,4 +86,3 @@ module Datadog
     end
   end
 end
-

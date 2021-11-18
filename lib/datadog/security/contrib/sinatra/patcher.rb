@@ -30,6 +30,7 @@ module Datadog
           end
         end
 
+        # Patcher for Security on Sinatra
         module Patcher
           include Datadog::Security::Contrib::Patcher
 
@@ -62,5 +63,3 @@ module Datadog
     end
   end
 end
-
-
