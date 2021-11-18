@@ -6,17 +6,41 @@ require 'ddtrace/ext/sampling'
 require 'ddtrace/diagnostics/health'
 
 module Datadog
-  # \Sampler performs client-side trace sampling.
+  # Interface for client-side trace sampling.
+  # @abstract
   class Sampler
-    def sample?(_trace)
+    # Returns `true` if the provided span should be kept as part of the trace.
+    # Otherwise, `false`.
+    #
+    # This method *must not* modify the `span`.
+    #
+    # @param [Datadog::Span] span
+    # @return [Boolean] should this span be kept?
+    # TODO: will this receive span, tracer or both
+    def sample?(span)
       raise NotImplementedError, 'Samplers must implement the #sample? method'
     end
 
-    def sample!(_trace)
+    # Returns `true` if the provided span should be kept as part of the trace.
+    # Otherwise, `false`.
+    #
+    # This method *may* modify the `span`, in case changes are necessary based on the
+    # sampling decision.
+    #
+    # @param [Datadog::Span] span
+    # @return [Boolean] should this span be kept?
+    # TODO: will this receive span, tracer or both
+    def sample!(span)
       raise NotImplementedError, 'Samplers must implement the #sample! method'
     end
 
-    def sample_rate(_trace)
+    # The sampling rate, if this sampler has such concept.
+    # Otherwise, `nil`.
+    #
+    # @param [Datadog::Span] span
+    # @return [Float,nil] sampling ratio between 0.0 and 1.0 (inclusive), or `nil` if not applicable
+    # TODO: will this receive span, tracer or both
+    def sample_rate(span)
       raise NotImplementedError, 'Samplers must implement the #sample_rate method'
     end
   end

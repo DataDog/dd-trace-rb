@@ -178,9 +178,17 @@ if defined?(RuboCop::RakeTask)
 end
 
 YARD::Rake::YardocTask.new(:docs) do |t|
+  # TODO: Should we hide everything form YARD docs that is not part of the public API?
+  # TODO: Also, the custom tag `@public_api` creates a bullet point section, which we don't need.
+
+  require_relative './yard/extensions' # Loads extension for configuration DSL processing
+
   t.options += ['--title', "ddtrace #{Datadog::VERSION::STRING} documentation"]
   t.options += ['--markup', 'markdown']
   t.options += ['--markup-provider', 'redcarpet']
+  t.options += ['lib/ddtrace/configuration/**/*.rb', 'lib/datadog/tracing.rb', 'lib/ddtrace/contrib/registry.rb',
+                "lib/ddtrace/contrib/patchable.rb"
+  ] # TODO: remove me
 end
 
 # Deploy tasks

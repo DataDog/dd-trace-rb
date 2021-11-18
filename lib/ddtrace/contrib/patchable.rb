@@ -10,6 +10,9 @@ module Datadog
 
       # Class methods for integrations
       module ClassMethods
+        # Version of the integration target code in the host application.
+        #
+        # This is the gem version, when the instrumentation target is a Ruby gem.
         def version
           nil
         end
@@ -19,7 +22,7 @@ module Datadog
           !version.nil?
         end
 
-        # Is the target loaded into the application? (e.g. constants defined?)
+        # Is the target loaded into the application? (e.g. gem loaded? Constants defined?)
         def loaded?
           true
         end
@@ -30,8 +33,11 @@ module Datadog
         end
 
         # Can the patch for this integration be applied?
+        #
+        # By default, this depends on {#available?}, {#loaded?}, and {#compatible?} all being
+        # truthy, as well as a {#patcher} object being available for activation.
         def patchable?
-          available? && loaded? && compatible?
+          available? && loaded? && compatible? && !patcher.nil?
         end
       end
 
@@ -42,7 +48,7 @@ module Datadog
         end
 
         def patch
-          if !self.class.patchable? || patcher.nil?
+          if !self.class.patchable?
             return {
               name: self.class.name,
               available: self.class.available?,

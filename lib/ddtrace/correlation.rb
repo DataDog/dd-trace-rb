@@ -76,6 +76,9 @@ module Datadog
     module_function
 
     # Produces a CorrelationIdentifier from the TraceDigest provided
+    #
+    # DEV: can we memoize this object, give it can be common to
+    # use a correlation multiple times, specially in the context of logging?
     def identifier_from_digest(digest)
       return Identifier.new.freeze unless digest
 
