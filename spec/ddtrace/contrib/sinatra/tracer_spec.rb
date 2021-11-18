@@ -556,10 +556,23 @@ RSpec.describe 'Sinatra instrumentation' do
 
     context 'with nested app' do
       let(:mount_nested_app) { true }
-      let(:top_span) { spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name } }
-      let(:top_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == top_span.parent } }
-      let(:nested_span) { spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == nested_app_name } }
-      let(:nested_rack_span) { spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == nested_span.parent } }
+
+      let(:top_span) do
+        spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name }
+      end
+
+      let(:top_rack_span) do
+        spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == top_span.parent }
+      end
+
+      let(:nested_span) do
+        spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == nested_app_name }
+      end
+
+      let(:nested_rack_span) do
+        spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x == nested_span.parent }
+      end
+
       let(:nested_app_name) { 'NestedApp' }
 
       context 'making request to top level app' do
@@ -593,7 +606,10 @@ RSpec.describe 'Sinatra instrumentation' do
             is_expected.to be_ok
             expect(spans).to have(5).items
 
-            expect(top_span).to be_request_span resource: 'GET', app_name: top_app_name, matching_app: false, parent: top_rack_span
+            expect(top_span).to be_request_span resource: 'GET',
+                                                app_name: top_app_name,
+                                                matching_app: false,
+                                                parent: top_rack_span
             expect(top_rack_span).not_to be_nil
             expect(top_rack_span.parent).to be_nil
             expect(top_rack_span.resource).to eq('GET')
@@ -641,7 +657,9 @@ RSpec.describe 'Sinatra instrumentation' do
               is_expected.to be_not_found
               expect(spans).to have(4).items
 
-              expect(top_span).to be_request_span app_name: top_app_name, resource: 'GET /not_a_route', parent: top_rack_span
+              expect(top_span).to be_request_span app_name: top_app_name,
+                                                  resource: 'GET /not_a_route',
+                                                  parent: top_rack_span
               expect(span).to be_request_span parent: nested_rack_span
             end
           end

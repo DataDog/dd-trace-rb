@@ -43,6 +43,8 @@ module Datadog
           )
         end
 
+        # rubocop:disable Metrics/PerceivedComplexity
+        # rubocop:disable Metrics/CyclomaticComplexity
         def call(env)
           # retrieve integration settings
           tracer = configuration[:tracer]
@@ -125,10 +127,13 @@ module Datadog
           # TODO: Remove this once we change how context propagation works. This
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
-          if tracer && request_span && (request_span.parent_id == 0 || frontend_span && request_span.parent_id == frontend_span.span_id)
+          if tracer && request_span &&
+             (request_span.parent_id == 0 || frontend_span && request_span.parent_id == frontend_span.span_id)
             tracer.provider.context = Datadog::Context.new
           end
         end
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
 
         def resource_name_for(env, status)
           if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
@@ -210,6 +215,9 @@ module Datadog
           # unless it has been already set by the underlying framework
           request_span.status = 1 if status.to_s.start_with?('5') && request_span.status.zero?
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
 
         private
 
