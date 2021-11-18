@@ -26,6 +26,8 @@ AllCops:
 # code for the sake of changing it to conform to a length set in 1928 (IBM).
 Layout/LineLength:
   Max: 124
+  Exclude:
+    - 'Rakefile'
 
 # These exceptions are good goals to attain, and probably will over time,
 # so periodic disabling and re-running to inspect values is suggested.
