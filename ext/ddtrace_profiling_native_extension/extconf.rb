@@ -1,5 +1,8 @@
 # typed: ignore
 
+# Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
+CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
+
 def skip_building_extension?
   # We don't support JRuby for profiling, and JRuby doesn't support native extensions, so let's just skip this entire
   # thing so that JRuby users of dd-trace-rb aren't impacted.
@@ -12,12 +15,28 @@ def skip_building_extension?
   # Microsoft Windows is unsupported, so let's not build the extension there.
   on_windows = Gem.win_platform?
 
+  # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
+  # building the extension.
+  if expected_to_use_mjit_but_mjit_is_disabled = CAN_USE_MJIT_HEADER && RbConfig::CONFIG["MJIT_SUPPORT"] != 'yes'
+    $stderr.puts(%(
++------------------------------------------------------------------------------+
+| Your Ruby has been compiled without JIT support (--disable-jit-support).     |
+| The profiling native extension requires a Ruby compiled with JIT support,    |
+| even if the JIT is not in use by the application itself.                     |
+|                                                                              |
+| WARNING: Without the profiling native extension, some profiling features     |
+| will not be available.                                                       |
++------------------------------------------------------------------------------+
+
+))
+  end
+
   # Experimental toggle to disable building the extension.
   # Disabling the extension will lead to the profiler not working in future releases.
   # If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.
   disabled_via_env = ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
 
-  on_jruby || on_truffleruby || on_windows || disabled_via_env
+  on_jruby || on_truffleruby || on_windows || expected_to_use_mjit_but_mjit_is_disabled || disabled_via_env
 end
 
 # IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
@@ -83,9 +102,6 @@ if RUBY_PLATFORM.include?('linux')
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
-
-# Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
-CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
