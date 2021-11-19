@@ -3,21 +3,30 @@
 # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
 CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
 
-def skip_building_extension?
+def on_jruby?
   # We don't support JRuby for profiling, and JRuby doesn't support native extensions, so let's just skip this entire
   # thing so that JRuby users of dd-trace-rb aren't impacted.
-  on_jruby = RUBY_ENGINE == 'jruby'
+  RUBY_ENGINE == 'jruby'
+end
 
+def on_truffleruby?
   # We don't officially support TruffleRuby for dd-trace-rb at all BUT let's not break adventurous customers that
   # want to give it a try.
-  on_truffleruby = RUBY_ENGINE == 'truffleruby'
+  RUBY_ENGINE == 'truffleruby'
+end
 
+def on_windows?
   # Microsoft Windows is unsupported, so let's not build the extension there.
-  on_windows = Gem.win_platform?
+  Gem.win_platform?
+end
 
+def expected_to_use_mjit_but_mjit_is_disabled?
   # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
   # building the extension.
-  if expected_to_use_mjit_but_mjit_is_disabled = CAN_USE_MJIT_HEADER && RbConfig::CONFIG["MJIT_SUPPORT"] != 'yes'
+  mjit_disabled = CAN_USE_MJIT_HEADER && RbConfig::CONFIG['MJIT_SUPPORT'] != 'yes'
+
+  if mjit_disabled
+    # rubocop:disable Style/StderrPuts
     $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | Your Ruby has been compiled without JIT support (--disable-jit-support).     |
@@ -31,12 +40,18 @@ def skip_building_extension?
 ))
   end
 
+  mjit_disabled
+end
+
+def disabled_via_env?
   # Experimental toggle to disable building the extension.
   # Disabling the extension will lead to the profiler not working in future releases.
   # If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.
-  disabled_via_env = ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
+  ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
+end
 
-  on_jruby || on_truffleruby || on_windows || expected_to_use_mjit_but_mjit_is_disabled || disabled_via_env
+def skip_building_extension?
+  disabled_via_env? || on_jruby? || on_truffleruby? || on_windows? || expected_to_use_mjit_but_mjit_is_disabled?
 end
 
 # IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
@@ -46,7 +61,6 @@ def add_compiler_flag(flag)
 end
 
 if skip_building_extension?
-  # rubocop:disable Style/StderrPuts
   $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | Skipping build of profiling native extension and replacing it with a no-op   |
