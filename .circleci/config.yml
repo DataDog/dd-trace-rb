@@ -494,6 +494,16 @@ job_configuration:
     ruby_version: '3.0'
     image: ivoanjo/docker-library:ddtrace_rb_3_0_1
     jit: true
+  - &config-3_1
+    <<: *filters_all_branches_and_tags
+    ruby_version: '3.1'
+    image: ivoanjo/docker-library:ddtrace_rb_3_1_0_preview1
+  - &config-3_1-jit
+    <<: *filters_all_branches_and_tags
+    ruby_version: '3.1'
+    image: ivoanjo/docker-library:ddtrace_rb_3_1_0_preview1
+    jit: true
+    # ADD NEW RUBIES HERE
   # JRuby
   - &config-jruby-9_2_0_0 # Oldest supported version
     <<: *filters_all_branches_and_tags
@@ -537,6 +547,8 @@ workflows:
             - test-2.6
             - test-2.7
             - test-3.0
+            - test-3.1
+            # ADD NEW RUBIES HERE
             - test-jruby-9.2.0.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
@@ -590,6 +602,13 @@ workflows:
           integration_apps: 'rack'
           ruby_version: '3.0'
           <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.1
+          # Note: Ruby 3 is not supported by Rails 5, hence we skip it
+          integration_apps: 'rack'
+          ruby_version: '3.1'
+          <<: *filters_all_branches_and_tags
+      # ADD NEW RUBIES HERE
       # MRI
       - orb/build:
           <<: *config-2_1
@@ -668,6 +687,23 @@ workflows:
           name: test-3.0-jit
           requires:
             - build-3.0-jit
+      - orb/build:
+          <<: *config-3_1
+          name: build-3.1
+      - orb/test:
+          <<: *config-3_1
+          name: test-3.1
+          requires:
+            - build-3.1
+      - orb/build:
+          <<: *config-3_1-jit
+          name: build-3.1-jit
+      - orb/test:
+          <<: *config-3_1-jit
+          name: test-3.1-jit
+          requires:
+            - build-3.1-jit
+      # ADD NEW RUBIES HERE
       # JRuby
       - orb/build:
           <<: *config-jruby-9_2_0_0
@@ -710,6 +746,9 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.0-jit
+            - test-3.1
+            - test-3.1-jit
+            # ADD NEW RUBIES HERE
             - test-jruby-9.2.0.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
@@ -727,6 +766,9 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.0-jit
+            - test-3.1
+            - test-3.1-jit
+            # ADD NEW RUBIES HERE
             - test-jruby-9.2.0.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
@@ -784,6 +826,13 @@ workflows:
           integration_apps: 'rack'
           ruby_version: '3.0'
           <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.1
+          # Note: Ruby 3 is not supported by Rails 5, hence we skip it
+          integration_apps: 'rack'
+          ruby_version: '3.1'
+          <<: *filters_all_branches_and_tags
+      # ADD NEW RUBIES HERE
       # MRI
       - orb/build:
           <<: *config-2_1
@@ -862,6 +911,23 @@ workflows:
           name: test-3.0-jit
           requires:
             - build-3.0-jit
+      - orb/build:
+          <<: *config-3_1
+          name: build-3.1
+      - orb/test:
+          <<: *config-3_1
+          name: test-3.1
+          requires:
+            - build-3.1
+      - orb/build:
+          <<: *config-3_1-jit
+          name: build-3.1-jit
+      - orb/test:
+          <<: *config-3_1-jit
+          name: test-3.1-jit
+          requires:
+            - build-3.1-jit
+      # ADD NEW RUBIES HERE
       # JRuby
       - orb/build:
           <<: *config-jruby-9_2_0_0

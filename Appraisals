@@ -1299,7 +1299,7 @@ elsif ruby_version?('2.7')
     end
   end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.0')
+elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
@@ -1402,6 +1402,7 @@ elsif ruby_version?('3.0')
     gem 'dogstatsd-ruby', '~> 4'
   end
 end
+# ADD NEW RUBIES HERE
 
 ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
                  "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
