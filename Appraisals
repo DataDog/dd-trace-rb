@@ -1305,6 +1305,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'mysql2', '~> 0.5', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-postgres' do
@@ -1312,6 +1313,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-postgres-redis' do
@@ -1320,6 +1322,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'redis', '>= 4.2.5'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-postgres-sidekiq' do
@@ -1329,6 +1332,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'rails_semantic_logger', '~> 4.0'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-semantic-logger' do
@@ -1336,6 +1340,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
+    gem 'net-smtp'
   end
 
   appraise 'resque2-redis3' do
@@ -1396,6 +1401,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
+    gem 'net-smtp'
   end
 
   appraise 'core-old' do
