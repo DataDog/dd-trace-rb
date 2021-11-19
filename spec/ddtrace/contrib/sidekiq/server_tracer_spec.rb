@@ -108,6 +108,10 @@ RSpec.describe 'Server tracer' do
     subject(:do_work) { DelayableClass.delay.do_work }
 
     before do
+      if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
+        pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
+      end
+
       stub_const('DelayableClass', Class.new do
         def self.do_work
           puts 'a'
