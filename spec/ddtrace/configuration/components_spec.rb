@@ -684,7 +684,8 @@ RSpec.describe Datadog::Configuration::Components do
 
     context 'given settings' do
       before do
-        skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
+        skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
+        skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
       end
 
       shared_examples_for 'disabled profiler' do
