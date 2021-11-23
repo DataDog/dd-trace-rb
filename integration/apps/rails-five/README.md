@@ -37,7 +37,8 @@ The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` 
 
 Within the container, run `bin/dd-demo <process>` where `<process>` is one of the following values:
 
- - `webrick`: WEBrick web server
+ - `puma`: Puma web server
+ - `unicorn`: Unicorn web server
  - `console`: Rails console
  - `irb`: IRB session
 
