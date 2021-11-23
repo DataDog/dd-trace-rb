@@ -124,9 +124,6 @@ module Datadog
                 else
                   active_trace
                 end
-
-        # TODO: Don't pass this through, when we remove context from span.
-        span_options[:_context] = context
       rescue StandardError => e
         Datadog.logger.debug { "Failed to trace: #{e}" }
 

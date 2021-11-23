@@ -336,9 +336,6 @@ module Datadog
       options[:start_time] = start_time unless start_time.nil?
       options[:tags] = tags unless tags.nil?
       options[:type] = type unless type.nil?
-      # TODO: Do we need to pass this through for backwards compatibility?
-      #       Should remove this when we can.
-      options[:context] = context
 
       # If a parent span isn't defined, use context's trace/span ID if available.
       # Necessary when root span isn't available, e.g. distributed trace.

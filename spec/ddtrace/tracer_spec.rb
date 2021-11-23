@@ -535,10 +535,13 @@ RSpec.describe Datadog::Tracer do
           let(:context) { Datadog::Context.new }
           let(:context_value) { context }
 
-          it 'creates span with specified context' do
+          it 'creates an unmanaged trace' do
             tracer.trace 'another' do
               expect(trace).to be_root_span
-              expect(trace.send(:context)).to eq context
+              # This context is one-off, and isn't stored in
+              # the tracer at all. We can only see the span
+              # isn't tracked by the tracer.
+              expect(trace).to_not be(tracer.active_span)
             end
           end
         end

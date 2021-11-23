@@ -44,7 +44,6 @@ module Datadog
     def initialize(
       name,
       child_of: nil,
-      context: nil,
       events: nil,
       on_error: nil,
       parent_id: 0,
@@ -95,7 +94,6 @@ module Datadog
       self.parent = parent if parent
 
       # Some other SpanOperation-specific behavior
-      @context = context
       @events = events || Events.new
       @span = nil
 
@@ -399,7 +397,6 @@ module Datadog
     # modifying the finalized span from the operation after
     # it has been finished.
     attr_reader \
-      :context,
       :events,
       :parent,
       :span
