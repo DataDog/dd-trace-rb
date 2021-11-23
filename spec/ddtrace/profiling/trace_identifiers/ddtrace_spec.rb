@@ -20,11 +20,17 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
       let(:root_span_id) { rand(1e12) }
       let(:root_span_type) { nil }
       let(:root_span) { instance_double(Datadog::Span, id: root_span_id, span_type: root_span_type) }
+      let(:resource) { nil }
 
       let(:tracer) { instance_double(Datadog::Tracer, active_trace: trace) }
 
       let(:trace) do
-        instance_double(Datadog::TraceOperation, active_span: span, root_span: root_span)
+        instance_double(
+          Datadog::TraceOperation,
+          active_span: span,
+          root_span: root_span,
+          resource: resource
+        )
       end
 
       context "when root span type is 'web'" do

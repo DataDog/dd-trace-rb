@@ -26,7 +26,7 @@ module Datadog
           root_span_id = root_span.id || 0
           span_id = span.id || 0
 
-          [root_span_id, span_id, maybe_extract_resource(root_span)] if root_span_id != 0 && span_id != 0
+          [root_span_id, span_id, maybe_extract_resource(trace, root_span)] if root_span_id != 0 && span_id != 0
         end
 
         private
@@ -34,8 +34,8 @@ module Datadog
         # NOTE: Currently we're only interested in HTTP service endpoints. Over time, this list may be expanded.
         # Resources MUST NOT include personal identifiable information (PII); this should not be the case with
         # ddtrace integrations, but worth mentioning just in case :)
-        def maybe_extract_resource(root_span)
-          root_span.resource if root_span.span_type == Datadog::Ext::HTTP::TYPE_INBOUND
+        def maybe_extract_resource(trace, root_span)
+          trace.resource if root_span.span_type == Datadog::Ext::HTTP::TYPE_INBOUND
         end
       end
     end
