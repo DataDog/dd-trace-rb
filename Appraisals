@@ -1299,12 +1299,13 @@ elsif ruby_version?('2.7')
     end
   end
 # ----------------------------------------------------------------------------------------------------------------------
-elsif ruby_version?('3.0')
+elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-postgres' do
@@ -1312,6 +1313,7 @@ elsif ruby_version?('3.0')
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-postgres-redis' do
@@ -1320,6 +1322,7 @@ elsif ruby_version?('3.0')
     gem 'redis', '>= 4.2.5'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-postgres-sidekiq' do
@@ -1329,6 +1332,7 @@ elsif ruby_version?('3.0')
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'rails_semantic_logger', '~> 4.0'
+    gem 'net-smtp'
   end
 
   appraise 'rails61-semantic-logger' do
@@ -1336,6 +1340,7 @@ elsif ruby_version?('3.0')
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
+    gem 'net-smtp'
   end
 
   appraise 'resque2-redis3' do
@@ -1396,12 +1401,14 @@ elsif ruby_version?('3.0')
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
+    gem 'net-smtp'
   end
 
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 end
+# ADD NEW RUBIES HERE
 
 ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
                  "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"

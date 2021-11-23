@@ -6,13 +6,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest]
-        ruby: [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, '3.0', head]
+        ruby: [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, '3.0', 3.1, head] # ADD NEW RUBIES HERE
     runs-on: ${{ matrix.os }}
     env:
       SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@v2
-      - uses: ruby/setup-ruby@b00551441a6fa3d528f3443dbff264a934b6e316 # v1.84.0
+      - uses: ruby/setup-ruby@f20f1eae726df008313d2e0d78c5e602562a1bcf # v1.86.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically

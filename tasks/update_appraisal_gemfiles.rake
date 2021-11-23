@@ -7,9 +7,11 @@ TRACER_VERSIONS = %w[
   2.6
   2.7
   3.0
+  3.1
   jruby-9.2.0.0
   jruby-9.2-latest
 ].freeze
+# ADD NEW RUBIES HERE
 
 desc 'Installs gems based on Appraisals and Gemfile changes, ' \
      'accepts list of tracer versions as task argument, defaults to all versions.'
