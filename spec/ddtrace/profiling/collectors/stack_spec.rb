@@ -22,7 +22,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   before do
-    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
 
     allow(recorder)
       .to receive(:[])

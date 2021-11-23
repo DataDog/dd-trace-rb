@@ -21,7 +21,7 @@ namespace :spec do
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
-  Rake::Task[:main].enhance([:compile]) if RUBY_PLATFORM != 'java' # Compile native extensions before running the main task
+  Rake::Task[:main].enhance([:compile]) unless %w[jruby truffleruby].include?(RUBY_ENGINE)
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'

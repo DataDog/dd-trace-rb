@@ -3,7 +3,8 @@ require 'ddtrace/profiling/native_extension'
 
 RSpec.describe Datadog::Profiling::NativeExtension do
   before do
-    skip('Profiling not supported on JRuby') if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
 
     begin
       require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"

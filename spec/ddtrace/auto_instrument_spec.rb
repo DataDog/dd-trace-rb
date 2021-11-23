@@ -112,7 +112,8 @@ RSpec.describe 'Profiler startup' do
   end
 
   it 'starts the profiler' do
-    skip 'Profiler not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
 
     profiler = instance_double('Datadog::Profiler')
 

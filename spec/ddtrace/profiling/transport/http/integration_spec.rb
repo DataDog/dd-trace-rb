@@ -7,7 +7,8 @@ require 'ddtrace/profiling/transport/http'
 
 RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
   before do
-    skip 'Profiler not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
   end
 
   describe 'HTTP#default' do

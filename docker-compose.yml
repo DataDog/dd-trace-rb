@@ -339,8 +339,8 @@ services:
       - bundle-jruby-9.2-latest:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
-  tracer-truffleruby-21.1.0:
-    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_1_0
+  tracer-truffleruby-21.3.0:
+    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_3_0
     command: /bin/bash
     depends_on:
       - ddagent
@@ -368,7 +368,7 @@ services:
     tty: true
     volumes:
       - .:/app
-      - bundle-truffleruby-21.1.0:/usr/local/bundle
+      - bundle-truffleruby-21.3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
@@ -456,5 +456,5 @@ volumes:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2.0.0:
   bundle-jruby-9.2-latest:
-  bundle-truffleruby-21.1.0:
+  bundle-truffleruby-21.3.0:
   ddagent_var_run:

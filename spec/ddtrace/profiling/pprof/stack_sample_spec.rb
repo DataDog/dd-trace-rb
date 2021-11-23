@@ -8,7 +8,8 @@ require 'ddtrace/profiling/pprof/stack_sample'
 
 RSpec.describe Datadog::Profiling::Pprof::StackSample do
   before do
-    skip 'Profiling is not supported on JRuby.' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
+    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
   end
 
   subject(:converter) { described_class.new(builder, sample_type_mappings) }
