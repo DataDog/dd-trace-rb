@@ -62,6 +62,7 @@ module Datadog
           # we must ensure that the span `resource` is set later
           request_span = tracer.trace(Ext::SPAN_REQUEST, **trace_options)
           request_span.resource = nil
+          request_trace = tracer.active_trace
           env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.
@@ -92,7 +93,7 @@ module Datadog
             # the result for this request; `resource` and `tags` are expected to
             # be set in another level but if they're missing, reasonable defaults
             # are used.
-            set_request_tags!(request_span, env, status, headers, response, original_env || env)
+            set_request_tags!(request_trace, request_span, env, status, headers, response, original_env || env)
 
             # ensure the request_span is finished and the context reset;
             # this assumes that the Rack middleware creates a root span
@@ -113,7 +114,7 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
-        def set_request_tags!(request_span, env, status, headers, response, original_env)
+        def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
           # URL for the current request; but some frameworks may override that

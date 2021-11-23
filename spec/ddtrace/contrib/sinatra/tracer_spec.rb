@@ -125,9 +125,10 @@ RSpec.describe 'Sinatra instrumentation' do
             it do
               is_expected.to be_ok
 
+              expect(trace.resource).to eq('GET /')
               expect(span).to be_request_span parent: rack_span, http_tags: true
               expect(route_span).to be_request_span parent: route_parent
-              expect(rack_span.resource).to eq('GET /')
+              expect(rack_span.resource).to eq('GET 200')
             end
           end
 
@@ -337,7 +338,10 @@ RSpec.describe 'Sinatra instrumentation' do
 
           it do
             is_expected.to be_not_found
+            expect(trace).to_not be nil
             expect(spans).to have(2 + nested_span_count).items
+
+            expect(trace.resource).to eq('GET 404')
 
             expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
             expect(span.resource).to eq('GET /not_a_route')
@@ -566,7 +570,10 @@ RSpec.describe 'Sinatra instrumentation' do
           context 'without rack' do
             it 'creates spans for intermediate Sinatra apps' do
               is_expected.to be_ok
+              expect(trace).to_not be nil
               expect(spans).to have(3).items
+
+              expect(trace.resource).to eq(resource)
 
               expect(top_span).to be_request_span resource: 'GET', app_name: top_app_name, matching_app: false
               expect(span).to be_request_span parent: top_span
@@ -597,12 +604,15 @@ RSpec.describe 'Sinatra instrumentation' do
 
             it 'creates spans for intermediate Sinatra apps' do
               is_expected.to be_ok
+              expect(trace).to_not be nil
               expect(spans).to have(4).items
 
-              expect(top_span).to be_request_span parent: rack_span, app_name: top_app_name
+              expect(trace.resource).to eq(resource)
+
+              expect(top_span).to be_request_span resource: 'GET', parent: rack_span, app_name: top_app_name
               expect(span).to be_request_span parent: top_span
               expect(route_span).to be_route_span parent: span
-              expect(rack_span.resource).to eq(resource)
+              expect(rack_span.resource).to eq('GET 200')
             end
           end
         end

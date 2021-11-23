@@ -109,13 +109,12 @@ module Datadog
               service: configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               resource: "#{request.request_method} #{@datadog_route}",
-            ) do |span|
+            ) do |span, trace|
               span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
               span.set_tag(Ext::TAG_ROUTE_PATH, @datadog_route)
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
-              rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-              rack_request_span.resource = span.resource if rack_request_span
+              trace.resource = span.resource
 
               sinatra_request_span =
                 if self.class <= ::Sinatra::Application # Classic style (top-level) application

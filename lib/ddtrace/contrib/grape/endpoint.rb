@@ -52,8 +52,10 @@ module Datadog
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               resource: resource
             )
+            trace = tracer.active_trace
 
-            try_setting_rack_request_resource(payload, span.resource)
+            # Set the trace resource
+            trace.resource = span.resource
 
             Thread.current[KEY_RUN] = true
           rescue StandardError => e
@@ -67,8 +69,9 @@ module Datadog
 
             return unless enabled?
 
+            trace = tracer.active_trace
             span = tracer.active_span
-            return unless span
+            return unless trace && span
 
             begin
               # collect endpoint details
@@ -77,7 +80,7 @@ module Datadog
               request_method = endpoint.options.fetch(:method).first
               path = endpoint_expand_path(endpoint)
 
-              try_setting_rack_request_resource(payload, span.resource)
+              trace.resource = span.resource
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -231,13 +234,6 @@ module Datadog
 
           def datadog_configuration
             Datadog.configuration[:grape]
-          end
-
-          def try_setting_rack_request_resource(payload, resource)
-            request_span = payload[:env][Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-            if !request_span.nil? && request_span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
-              request_span.resource = resource
-            end
           end
         end
       end

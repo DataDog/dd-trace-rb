@@ -547,9 +547,12 @@ RSpec.describe 'Grape instrumentation' do
       it 'integrates with the Rack integration' do
         is_expected.to be_ok
         expect(response.body).to eq('OK')
+        expect(trace).to_not be nil
         expect(spans.length).to eq(3)
 
         render_span, run_span, rack_span = spans
+
+        expect(trace.resource).to eq('RackTestingAPI GET /success')
 
         expect(render_span.name).to eq('grape.endpoint_render')
         expect(render_span.span_type).to eq('template')
@@ -574,7 +577,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq('rack')
-        expect(rack_span.resource).to eq('RackTestingAPI GET /success')
+        expect(rack_span.resource).to eq('GET 200')
         expect(rack_span).to_not have_error
         expect(rack_span).to be_root_span
       end
@@ -600,9 +603,12 @@ RSpec.describe 'Grape instrumentation' do
 
       it 'integrates with Rack integration when exception is thrown' do
         expect { subject }.to raise_error(StandardError, 'Ouch!')
+        expect(trace).to_not be nil
         expect(spans.length).to eq(3)
 
         render_span, run_span, rack_span = spans
+
+        expect(trace.resource).to eq('RackTestingAPI GET /hard_failure')
 
         expect(render_span.name).to eq('grape.endpoint_render')
         expect(render_span.span_type).to eq('template')
@@ -630,7 +636,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq('rack')
-        expect(rack_span.resource).to eq('RackTestingAPI GET /hard_failure')
+        expect(rack_span.resource).to eq('GET')
         expect(rack_span).to have_error
         expect(rack_span).to be_root_span
       end
@@ -673,9 +679,8 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.resource).to eq('RackTestingAPI GET /span_resource_rack/span_resource')
       end
 
-      it 'sets the rack (root) span resource before calling the endpoint' do
-        expect(trace.find_root_span.name).to eq('rack.request')
-        expect(trace.find_root_span.resource).to eq('RackTestingAPI GET /span_resource_rack/span_resource')
+      it 'sets the trace resource before calling the endpoint' do
+        expect(trace.resource).to eq('RackTestingAPI GET /span_resource_rack/span_resource')
       end
     end
   end

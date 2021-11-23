@@ -24,12 +24,15 @@ module Datadog
               span_type: type,
               resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
             )
+            trace = Datadog.tracer.active_trace
 
             # attach the current span to the tracing context
             tracing_context = payload.fetch(:tracing_context)
+            tracing_context[:dd_request_trace] = trace
             tracing_context[:dd_request_span] = span
 
-            try_setting_rack_request_resource(payload, span.resource)
+            # We want the route to show up as the trace's resource
+            trace.resource = span.resource
           rescue StandardError => e
             Datadog.logger.error(e.message)
           end
@@ -37,12 +40,13 @@ module Datadog
           def finish_processing(payload)
             # retrieve the tracing context and the latest active span
             tracing_context = payload.fetch(:tracing_context)
+            trace = tracing_context[:dd_request_trace]
             span = tracing_context[:dd_request_span]
             return unless span && !span.finished?
 
             begin
               # We repeat this in both start and at finish because the resource may have changed during the request
-              try_setting_rack_request_resource(payload, span.resource)
+              trace.resource = span.resource
 
               # Set analytics sample rate
               Utils.set_analytics_sample_rate(span)
@@ -86,14 +90,6 @@ module Datadog
             # assume that this controller doesn't handle exceptions.
             else
               false
-            end
-          end
-
-          def try_setting_rack_request_resource(payload, resource)
-            # Set the resource name of the Rack request span unless this is an exception controller.
-            unless payload.fetch(:exception_controller?)
-              rack_request_span = payload.fetch(:env)[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-              rack_request_span.resource = resource if rack_request_span
             end
           end
 
