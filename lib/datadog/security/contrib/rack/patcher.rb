@@ -157,7 +157,7 @@ module Datadog
             events = []
 
             data[:waf_result].data.each do |waf|
-              rule = rules['events'].find { |e| e['id'] == waf['rule'] }
+              rule = rules['rules'].find { |e| e['id'] == waf['rule'] }
               waf['filter'].each do |filter|
                 event = {
                   event_id: SecureRandom.uuid,
