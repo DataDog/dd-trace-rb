@@ -157,28 +157,31 @@ module Datadog
             events = []
 
             data[:waf_result].data.each do |waf|
-              rule = rules['rules'].find { |e| e['id'] == waf['rule'] }
-              waf['filter'].each do |filter|
+              rule = waf['rule']
+              waf['rule_matches'].each do |match|
                 event = {
                   event_id: SecureRandom.uuid,
                   event_type: 'appsec.threat.attack',
                   event_version: '0.1.0',
                   detected_at: timestamp,
-                  type: waf['flow'],
+                  type: rule['tags']['category'],
                   blocked: blocked,
                   rule: {
-                    id: waf['rule'],
+                    id: rule['id'],
                     name: rule['name'],
                     set: rule['tags']['type'],
                   },
                   rule_match: {
-                    operator: filter['operator'],
-                    operator_value: filter['operator_value'],
-                    parameters: [{
-                      name: filter['manifest_key'],
-                      value: filter['resolved_value'],
-                    }],
-                    highlight: [filter['match_status']],
+                    operator: match['operator'],
+                    operator_value: match['operator_value'],
+                    parameters: (match['parameters'].map do |parameter|
+                      {
+                        name: parameter['address'],
+                        key_path: parameter['key_path'],
+                        value: parameter['value'],
+                        highlight: parameter['highlight'],
+                      }
+                    end),
                   },
                   context: {
                     actor: {
