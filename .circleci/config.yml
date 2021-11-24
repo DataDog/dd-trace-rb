@@ -17,10 +17,6 @@ test_containers:
       image:
         description: Docker image location
         type: string
-      jit:
-        description: Jit enabled?
-        type: boolean
-        default: false
       resource_class_to_use:
         description: Resource class to use
         type: string
@@ -35,7 +31,6 @@ test_containers:
     JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
   - &container_parameters_environment
     - *container_base_environment
-    - RUBY_OPT: <<# parameters.jit >>--jit<</ parameters.jit >>
     - TEST_DATADOG_INTEGRATION: 1
     - COVERAGE_BASE_DIR: coverage
   - &container_base
@@ -489,20 +484,10 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
     image: ivoanjo/docker-library:ddtrace_rb_3_0_1
-  - &config-3_0-jit
-    <<: *filters_all_branches_and_tags
-    ruby_version: '3.0'
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_1
-    jit: true
   - &config-3_1
     <<: *filters_all_branches_and_tags
     ruby_version: '3.1'
     image: ivoanjo/docker-library:ddtrace_rb_3_1_0_preview1
-  - &config-3_1-jit
-    <<: *filters_all_branches_and_tags
-    ruby_version: '3.1'
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_0_preview1
-    jit: true
     # ADD NEW RUBIES HERE
   # JRuby
   - &config-jruby-9_2_0_0 # Oldest supported version
@@ -680,14 +665,6 @@ workflows:
           requires:
             - build-3.0
       - orb/build:
-          <<: *config-3_0-jit
-          name: build-3.0-jit
-      - orb/test:
-          <<: *config-3_0-jit
-          name: test-3.0-jit
-          requires:
-            - build-3.0-jit
-      - orb/build:
           <<: *config-3_1
           name: build-3.1
       - orb/test:
@@ -695,14 +672,6 @@ workflows:
           name: test-3.1
           requires:
             - build-3.1
-      - orb/build:
-          <<: *config-3_1-jit
-          name: build-3.1-jit
-      - orb/test:
-          <<: *config-3_1-jit
-          name: test-3.1-jit
-          requires:
-            - build-3.1-jit
       # ADD NEW RUBIES HERE
       # JRuby
       - orb/build:
@@ -745,9 +714,7 @@ workflows:
             - test-2.6
             - test-2.7
             - test-3.0
-            - test-3.0-jit
             - test-3.1
-            - test-3.1-jit
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.0.0
             - test-jruby-9.2-latest
@@ -765,9 +732,7 @@ workflows:
             - test-2.6
             - test-2.7
             - test-3.0
-            - test-3.0-jit
             - test-3.1
-            - test-3.1-jit
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.0.0
             - test-jruby-9.2-latest
@@ -904,14 +869,6 @@ workflows:
           requires:
             - build-3.0
       - orb/build:
-          <<: *config-3_0-jit
-          name: build-3.0-jit
-      - orb/test:
-          <<: *config-3_0-jit
-          name: test-3.0-jit
-          requires:
-            - build-3.0-jit
-      - orb/build:
           <<: *config-3_1
           name: build-3.1
       - orb/test:
@@ -919,14 +876,6 @@ workflows:
           name: test-3.1
           requires:
             - build-3.1
-      - orb/build:
-          <<: *config-3_1-jit
-          name: build-3.1-jit
-      - orb/test:
-          <<: *config-3_1-jit
-          name: test-3.1-jit
-          requires:
-            - build-3.1-jit
       # ADD NEW RUBIES HERE
       # JRuby
       - orb/build:
