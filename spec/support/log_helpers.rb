@@ -25,6 +25,33 @@ module LogHelpers
     end
   end
 
+  RSpec::Matchers.define :have_lazy_debug_logged do |expected|
+    match do |actual|
+      expect(actual).to have_received(:debug) do |*_args, &block|
+        result =  case expected
+                  when String
+                    begin
+                      expect(block.call).to include(expected)
+                    rescue RSpec::Expectations::ExpectationNotMetError
+                      false
+                    end
+                  when Regexp
+                    begin
+                      expect(block.call).to match(expected)
+                    rescue RSpec::Expectations::ExpectationNotMetError
+                      false
+                    end
+                  else
+                    raise "Don't know how to match '#{expected}'."
+                  end
+
+        return true if result
+      end
+
+      false
+    end
+  end
+
   shared_context 'tracer logging' do
     let(:log_buffer) { StringIO.new }
 
