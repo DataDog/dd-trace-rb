@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require 'ddtrace/profiling/flush'
+require 'ddtrace/profiling/pprof/code_identification'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/string_table'
 require 'ddtrace/utils/time'
@@ -26,13 +27,16 @@ module Datadog
         def initialize
           @functions = MessageSet.new(1)
           @locations = initialize_locations_hash
-          @mappings = MessageSet.new(1)
+          @mappings = MessageSet.new(1) { |filename, _| filename.hash }
           @sample_types = MessageSet.new
           @samples = []
           @string_table = StringTable.new
 
           # Cache this proc, since it's pretty expensive to keep recreating it
           @build_function = method(:build_function).to_proc
+          @build_mapping = method(:build_mapping).to_proc
+
+          @code_identification = CodeIdentification.new(mapping_id_for: method(:mapping_id_for).to_proc)
         end
 
         # The locations hash maps unique BacktraceLocation instances to their corresponding pprof Location objects;
@@ -95,7 +99,8 @@ module Datadog
                 &@build_function
               ).id,
               backtrace_location.lineno
-            )]
+            )],
+            mapping_id: @code_identification.mapping_for(backtrace_location.path),
           )
         end
 
@@ -114,11 +119,16 @@ module Datadog
           )
         end
 
-        def build_mapping(id, filename)
+        def build_mapping(id, filename, build_id = nil)
           Perftools::Profiles::Mapping.new(
             id: id,
-            filename: @string_table.fetch(filename)
+            filename: @string_table.fetch(filename),
+            build_id: build_id && @string_table.fetch(build_id),
           )
+        end
+
+        def mapping_id_for(filename:, build_id:)
+          @mappings.fetch(filename, build_id, &@build_mapping).id
         end
       end
     end
