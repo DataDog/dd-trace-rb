@@ -115,9 +115,9 @@ module Datadog
       # was responsible for the sampling decision.
       def set_priority(span, sampled)
         if sampled
-          ForcedTracing.keep(span)
+          ManualTracing.keep(span)
         else
-          ForcedTracing.drop(span)
+          ManualTracing.drop(span)
         end
       end
 
