@@ -54,15 +54,6 @@ RSpec.describe Datadog::Contrib::Extensions do
             end
           end
         end
-
-        context 'given a target and options' do
-          subject(:configure) { described_class.configure(target, opts) }
-
-          let(:target) { double('target') }
-          let(:opts) { {} }
-
-          it { expect { configure }.to_not raise_error }
-        end
       end
     end
 

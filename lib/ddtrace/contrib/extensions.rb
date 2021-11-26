@@ -35,14 +35,19 @@ module Datadog
 
       # Configuration methods for Datadog module.
       module Configuration
-        def configure(target = configuration, opts = {})
+        # TODO: Is is not possible to separate this configuration method
+        # TODO: from core ddtrace parts ()e.g. the registry).
+        # TODO: Today this method sits here in the `Datadog::Contrib::Extensions` namespace
+        # TODO: but cannot empirically constraints to the contrib domain only.
+        # TODO: We should promote most of this logic to core parts of ddtrace.
+        def configure(configuration = self.configuration)
           # Reconfigure core settings
           super
 
           # Activate integrations
-          if target.respond_to?(:integrations_pending_activation)
-            reduce_verbosity = target.respond_to?(:reduce_verbosity?) ? target.reduce_verbosity? : false
-            target.integrations_pending_activation.each do |integration|
+          if configuration.respond_to?(:integrations_pending_activation)
+            reduce_verbosity = configuration.respond_to?(:reduce_verbosity?) ? configuration.reduce_verbosity? : false
+            configuration.integrations_pending_activation.each do |integration|
               next unless integration.respond_to?(:patch)
 
               # integration.patch returns either true or a hash of details on why patching failed
@@ -64,10 +69,10 @@ module Datadog
               Datadog.logger.warn("Unable to patch #{patch_results[:name]} (#{desc})")
             end
 
-            target.integrations_pending_activation.clear
+            configuration.integrations_pending_activation.clear
           end
 
-          target
+          configuration
         end
 
         # Extensions for Datadog::Configuration::Settings

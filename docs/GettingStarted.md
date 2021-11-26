@@ -1210,7 +1210,7 @@ collection = client[:people]
 collection.insert_one({ name: 'Steve' })
 
 # In case you want to override the global configuration for a certain client instance
-Datadog.configure(client, options)
+Datadog.configure_onto(client, **options)
 ```
 
 Where `options` is an optional `Hash` that accepts the following parameters:
@@ -1307,11 +1307,11 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `service_name` | Service name used for `http` instrumentation | `'net/http'` |
 | `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
 
-If you wish to configure each connection object individually, you may use the `Datadog.configure` as it follows:
+If you wish to configure each connection object individually, you may use the `Datadog.configure_onto` as it follows:
 
 ```ruby
 client = Net::HTTP.new(host, port)
-Datadog.configure(client, options)
+Datadog.configure_onto(client, **options)
 ```
 
 ### Presto
@@ -1623,8 +1623,8 @@ end
 customer_cache = Redis.new
 invoice_cache = Redis.new
 
-Datadog.configure(customer_cache, service_name: 'customer-cache')
-Datadog.configure(invoice_cache, service_name: 'invoice-cache')
+Datadog.configure_onto(customer_cache, service_name: 'customer-cache')
+Datadog.configure_onto(invoice_cache, service_name: 'invoice-cache')
 
 # Traced call will belong to `customer-cache` service
 customer_cache.get(...)
@@ -1773,8 +1773,8 @@ sqlite_database = Sequel.sqlite
 postgres_database = Sequel.connect('postgres://user:password@host:port/database_name')
 
 # Configure each database with different service names
-Datadog.configure(sqlite_database, service_name: 'my-sqlite-db')
-Datadog.configure(postgres_database, service_name: 'my-postgres-db')
+Datadog.configure_onto(sqlite_database, service_name: 'my-sqlite-db')
+Datadog.configure_onto(postgres_database, service_name: 'my-postgres-db')
 ```
 
 ### Shoryuken
