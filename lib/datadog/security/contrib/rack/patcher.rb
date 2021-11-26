@@ -164,7 +164,7 @@ module Datadog
                   event_type: 'appsec.threat.attack',
                   event_version: '0.1.0',
                   detected_at: timestamp,
-                  type: rule['tags']['category'],
+                  type: rule['tags']['type'],
                   blocked: blocked,
                   rule: {
                     id: rule['id'],
