@@ -11,6 +11,7 @@ gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
+gem 'json-schema'
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
