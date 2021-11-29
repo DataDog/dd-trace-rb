@@ -50,18 +50,18 @@ module Datadog
 
       # Set well-known tags
       self.agent_sample_rate = agent_sample_rate
-      self.hostname = hostname
-      self.lang = lang
-      self.name = name
-      self.origin = origin
+      self.hostname = (hostname && hostname.dup)
+      self.lang = (lang && lang.dup)
+      self.name = (name && name.dup)
+      self.origin = (origin && origin.dup)
       self.process_id = process_id
       self.rate_limiter_rate = rate_limiter_rate
-      self.resource = resource
+      self.resource = (resource && resource.dup)
       self.rule_sample_rate = rule_sample_rate
-      self.runtime_id = runtime_id
+      self.runtime_id = (runtime_id && runtime_id.dup)
       self.sample_rate = sample_rate
       self.sampling_priority = sampling_priority
-      self.service = service
+      self.service = (service && service.dup)
     end
 
     def_delegators :spans, *SPANS_METHODS
@@ -83,7 +83,9 @@ module Datadog
       service: TAG_SERVICE
     }.each do |tag_name, tag_key|
       define_method(tag_name) { tags[tag_key] }
-      define_method(:"#{tag_name}=") { |value| tags[tag_key] = value }
+      define_method(:"#{tag_name}=") do |value|
+        value.nil? ? tags.delete(value) : tags[tag_key] = value
+      end
     end
 
     def keep!
@@ -97,10 +99,6 @@ module Datadog
     def sampled?
       sampling_priority == Datadog::Ext::Priority::AUTO_KEEP \
         || sampling_priority == Datadog::Ext::Priority::USER_KEEP
-    end
-
-    def empty?
-      spans.empty?
     end
 
     protected

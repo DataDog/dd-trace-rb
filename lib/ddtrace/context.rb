@@ -1,6 +1,5 @@
 # typed: true
 require 'ddtrace/utils/forking'
-require 'ddtrace/trace_operation'
 
 module Datadog
   # \Context is used to keep track of a hierarchy of spans for the current

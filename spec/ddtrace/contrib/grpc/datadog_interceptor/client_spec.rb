@@ -63,7 +63,7 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.service).to eq 'rspec' }
     specify { expect(span.resource).to eq 'myservice.endpoint' }
     specify { expect(span.get_tag('error.stack')).to be_nil }
-    specify { expect(span.get_tag(:some)).to eq 'datum' }
+    specify { expect(span.get_tag('some')).to eq 'datum' }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }

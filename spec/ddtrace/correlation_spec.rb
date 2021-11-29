@@ -15,14 +15,6 @@ RSpec.describe Datadog::Correlation do
     allow(Datadog.configuration).to receive(:version).and_return(default_version)
   end
 
-  RSpec::Matchers.define :be_a_frozen_copy_of do |expected|
-    match do |actual|
-      expect(actual).to eq expected
-      expect(actual).to_not be expected
-      expect(actual.frozen?).to be true
-    end
-  end
-
   shared_context 'correlation data' do
     let(:env) { 'dev' }
     let(:service) { 'acme-api' }

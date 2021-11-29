@@ -53,7 +53,7 @@ module Datadog
         # If the trace resource is undefined, or the root span wasn't
         # specified, don't set this. We don't want to overwrite the
         # resource of a span that is in the middle of the trace.
-        return if trace.resource.nil? || trace.send(:root_span_id).nil?
+        return if trace.resource.nil? || !@found_root_span
 
         root_span.resource = trace.resource
       end
@@ -157,6 +157,7 @@ module Datadog
         #       Figure out a better way to deal with this.
         root_span_id = trace.send(:root_span_id)
         root_span = trace.spans.find { |s| s.id == root_span_id } if root_span_id
+        @found_root_span = !root_span.nil?
         root_span || trace.spans.last
       end
     end

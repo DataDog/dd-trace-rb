@@ -37,11 +37,8 @@ module Datadog
       :active_span_count,
       :active_span,
       :id,
-      :lang,
-      :parent_span_id,
-      :process_id,
-      :runtime_id,
-      :tags
+      :max_length,
+      :parent_span_id
 
     attr_writer \
       :sampled
@@ -51,16 +48,13 @@ module Datadog
       events: nil,
       hostname: nil,
       id: nil,
-      lang: nil,
       max_length: DEFAULT_MAX_LENGTH,
       name: nil,
       origin: nil,
       parent_span_id: nil,
-      process_id: nil,
       rate_limiter_rate: nil,
       resource: nil,
       rule_sample_rate: nil,
-      runtime_id: nil,
       sample_rate: nil,
       sampled: nil,
       sampling_priority: nil,
@@ -70,20 +64,17 @@ module Datadog
       @events = events || Events.new
       @id = id || Utils.next_id
       @max_length = max_length || DEFAULT_MAX_LENGTH
-      @parent_span_id = parent_span_id || 0
+      @parent_span_id = parent_span_id
       @sampled = sampled.nil? ? false : sampled
 
       # Tags
       @agent_sample_rate = agent_sample_rate
       @hostname = hostname
-      @lang = Core::Environment::Identity.lang
       @name = name
       @origin = origin
-      @process_id = Datadog::Core::Environment::Identity.pid
       @rate_limiter_rate = rate_limiter_rate
       @resource = resource
       @rule_sample_rate = rule_sample_rate
-      @runtime_id = Datadog::Core::Environment::Identity.id
       @sample_rate = sample_rate
       @sampling_priority = sampling_priority
       @service = service
@@ -97,10 +88,6 @@ module Datadog
       @spans = []
     end
 
-    # TODO: Maybe not the right strategy for preventing
-    #       big traces? Prevents new spans from starting if
-    #       too many spans are finished. Has no effect if all
-    #       spans are in-flight... likely needs to change.
     def full?
       @max_length > 0 && @active_span_count >= @max_length
     end
@@ -118,10 +105,12 @@ module Datadog
     end
 
     def keep!
+      self.sampled = true
       self.sampling_priority = Datadog::Ext::Priority::USER_KEEP
     end
 
     def reject!
+      self.sampled = false
       self.sampling_priority = Datadog::Ext::Priority::USER_REJECT
     end
 
@@ -141,7 +130,7 @@ module Datadog
     def build_span(op_name, **span_options)
       begin
         # Resolve span options:
-        # Context, parent, service name, etc.
+        # Parent, service name, etc.
         span_options = build_span_options(**span_options)
 
         # Build a new span operation
@@ -169,19 +158,23 @@ module Datadog
     # Used for propagation across execution contexts.
     # Data should reflect the active state of the trace.
     def to_digest
+      # Resolve current span ID
+      span_id = @active_span && @active_span.id
+      span_id ||= @parent_span_id unless finished?
+
       TraceDigest.new(
-        span_id: (@active_span && @active_span.id) || @parent_span_id,
+        span_id: span_id,
         span_name: (@active_span && @active_span.name),
-        span_resource: (@active_span && @active_span.name),
+        span_resource: (@active_span && @active_span.resource),
         span_service: (@active_span && @active_span.service),
         span_type: (@active_span && @active_span.type),
         trace_hostname: @hostname,
         trace_id: @id,
         trace_name: @name,
         trace_origin: @origin,
-        trace_process_id: @process_id,
+        trace_process_id: Datadog::Core::Environment::Identity.pid,
         trace_resource: @resource,
-        trace_runtime_id: @runtime_id,
+        trace_runtime_id: Datadog::Core::Environment::Identity.id,
         trace_sampling_priority: @sampling_priority,
         trace_service: @service
       ).freeze
@@ -193,8 +186,8 @@ module Datadog
       self.class.new(
         agent_sample_rate: @agent_sample_rate,
         events: (@events && @events.dup),
+        hostname: (@hostname && @hostname.dup),
         id: @id,
-        lang: (@lang && @lang.dup),
         max_length: @max_length,
         name: (@name && @name.dup),
         origin: (@origin && @origin.dup),
@@ -253,7 +246,12 @@ module Datadog
       :root_span
 
     def activate_span!(span_op)
+      parent = @active_span
+
+      span_op.send(:parent=, parent) unless parent.nil?
+
       @active_span = span_op
+
       set_root_span!(span_op) unless root_span
     end
 
@@ -263,11 +261,6 @@ module Datadog
       # when spans finish out of order.
       span_op = span_op.send(:parent) while !span_op.nil? && span_op.finished?
       @active_span = span_op
-
-      # Set finished, to signal root span has completed.
-      @finished = true if span_op.nil?
-
-      span_op
     end
 
     def start_span(span_op)
@@ -290,7 +283,10 @@ module Datadog
         @spans << span unless span.nil?
 
         # Deactivate the span, re-activate parent.
-        deactivate_span!(parent)
+        deactivate_span!(span_op)
+
+        # Set finished, to signal root span has completed.
+        @finished = true if span_op == @root_span
 
         # Update active span count
         @active_span_count -= 1
@@ -319,7 +315,6 @@ module Datadog
     end
 
     def build_span_options(
-      context: nil,
       events: nil,
       on_error: nil,
       resource: nil,
@@ -337,14 +332,14 @@ module Datadog
       options[:tags] = tags unless tags.nil?
       options[:type] = type unless type.nil?
 
-      # If a parent span isn't defined, use context's trace/span ID if available.
-      # Necessary when root span isn't available, e.g. distributed trace.
+      # Use active span's span ID if available. Otherwise, the parent span ID.
+      # Necessary when this trace continues from another, e.g. distributed trace.
       if (parent = @active_span)
         options[:child_of] = parent
         options[:parent_id] = parent.id
         options[:service] ||= parent.service
       else
-        options[:parent_id] = @parent_span_id
+        options[:parent_id] = @parent_span_id || 0
       end
 
       # Build events
@@ -370,12 +365,12 @@ module Datadog
         agent_sample_rate: @agent_sample_rate,
         hostname: @hostname,
         id: @id,
-        lang: @lang,
+        lang: Datadog::Core::Environment::Identity.lang,
         origin: @origin,
-        process_id: @process_id,
+        process_id: Datadog::Core::Environment::Identity.pid,
         rate_limiter_rate: @rate_limiter_rate,
         rule_sample_rate: @rule_sample_rate,
-        runtime_id: @runtime_id,
+        runtime_id: Datadog::Core::Environment::Identity.id,
         sample_rate: @sample_rate,
         sampling_priority: @sampling_priority,
         name: @name,

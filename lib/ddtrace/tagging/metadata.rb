@@ -44,7 +44,7 @@ module Datadog
         if value.is_a?(Numeric) && !(value.is_a?(Integer) && !NUMERIC_TAG_SIZE_RANGE.cover?(value))
           set_metric(key, value)
         else
-          meta[key] = value.to_s
+          meta[key.to_s] = value.to_s
         end
       rescue StandardError => e
         Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
@@ -78,7 +78,7 @@ module Datadog
 
         # enforce that the value is a floating point number
         value = Float(value)
-        metrics[key] = value
+        metrics[key.to_s] = value
       rescue StandardError => e
         Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
       end

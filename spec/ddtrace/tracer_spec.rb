@@ -217,9 +217,11 @@ RSpec.describe Datadog::Tracer do
         end
 
         it 'adds a runtime ID to the trace' do
-          tracer.trace(name) do |_span, trace|
-            expect(trace.runtime_id).to eq(Datadog::Core::Environment::Identity.id)
+          tracer.trace(name) do
+            # Do something
           end
+
+          expect(traces.first.runtime_id).to eq(Datadog::Core::Environment::Identity.id)
         end
 
         context 'when #report_hostname' do
@@ -272,12 +274,12 @@ RSpec.describe Datadog::Tracer do
         end
 
         it 'trace has a runtime ID and PID tags' do
-          tracer.trace(name) do |_parent_span|
-            tracer.trace(name) do |_child_span, trace|
-              expect(trace.runtime_id).to eq(Datadog::Core::Environment::Identity.id)
-              expect(trace.process_id).to eq(Process.pid)
-            end
+          tracer.trace(name) do
+            # Do nothing
           end
+
+          expect(traces.first.runtime_id).to eq(Datadog::Core::Environment::Identity.id)
+          expect(traces.first.process_id).to eq(Process.pid)
         end
 
         context 'with spans that finish out of order' do
@@ -337,9 +339,6 @@ RSpec.describe Datadog::Tracer do
               grandchild.finish
             end
 
-            # TODO: Skip for now, but keep this test because it demonstrates something we should fix.
-            before { skip('There is no fix currently available for this failure.') }
-
             it 'has correct relationships' do
               grandparent = spans.find { |s| s.name == 'grandparent' }
               parent = spans.find { |s| s.name == 'parent' }
@@ -356,10 +355,10 @@ RSpec.describe Datadog::Tracer do
                   grandchild
                 ].all? { |s| s.trace_id == grandparent.trace_id }
               ).to be true
-              expect(grandparent.parent).to be nil
-              expect(parent.parent).to be grandparent
-              expect(child.parent).to be parent
-              expect(grandchild.parent).to be child
+              expect(grandparent.parent_id).to eq(0)
+              expect(parent.parent_id).to eq(grandparent.id)
+              expect(child.parent_id).to eq(parent.id)
+              expect(grandchild.parent_id).to eq(child.id)
 
               expect(
                 [
@@ -367,19 +366,10 @@ RSpec.describe Datadog::Tracer do
                   second_cousin
                 ].all? { |s| s.trace_id == great_uncle.trace_id }
               ).to be true
-              expect(great_uncle.parent).to be nil
-              expect(second_cousin.parent).to be great_uncle
+              expect(great_uncle.parent_id).to eq(0)
+              expect(second_cousin.parent_id).to eq(great_uncle.id)
 
               # Should be separate traces (can't have two root spans for a trace)
-              # TODO: This fails because when "grandparent" completes, it has unfinished
-              #       spans still present in the context. This prevents the context from resetting.
-              #       Thus when "great uncle" starts, it still shares the same trace ID as "grandparent"
-              #
-              #       When unfinished spans are present at trace complete, we need to decide what to do.
-              #       We could detach the context from the thread, and give the thread a new context.
-              #       This way unfinished spans could complete later, without holding the current context hostage.
-              #       However, this has a risk of causing Context objects to leak, if each unfinished span is
-              #       somehow held onto by instrumentation.
               expect(grandparent.trace_id).to_not eq(great_uncle.trace_id)
             end
           end
@@ -391,7 +381,7 @@ RSpec.describe Datadog::Tracer do
           it 'the trace has a runtime ID tag' do
             tracer.trace(name) do |_parent_span, trace|
               parent_process_id = Datadog::Core::Environment::Identity.id
-              expect(trace.runtime_id).to eq(parent_process_id)
+              expect(trace.flush!.runtime_id).to eq(parent_process_id)
 
               tracer.trace(name) do |_child_span|
                 expect_in_fork do
@@ -400,8 +390,8 @@ RSpec.describe Datadog::Tracer do
 
                   tracer.trace(name) do |_fork_parent_span, fork_trace|
                     # Tag should be set on the fork's parent span, but not be the same as the parent process runtime ID
-                    expect(fork_trace.runtime_id).to eq(fork_process_id)
-                    expect(fork_trace.runtime_id).to_not eq(parent_process_id)
+                    expect(fork_trace.flush!.runtime_id).to eq(fork_process_id)
+                    expect(fork_trace.flush!.runtime_id).to_not eq(parent_process_id)
                   end
                 end
               end
