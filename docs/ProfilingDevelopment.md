@@ -10,14 +10,13 @@ Components below live inside <../lib/ddtrace/profiling>:
 
 * `Collectors::Stack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
+* `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code, from libraries, from the standard library, etc).
 * `Encoding::Profile`: Encodes gathered data into the pprof format.
 * `Events::Stack`, `Events::StackSample`: Entity classes used to represent stacks.
-* `Ext::CPU`: Monkey patches Ruby's `Thread` with our `Ext::CThread` to enable CPU-time profiling.
-* `Ext::CThread`: Extension used to enable CPU-time profiling via use of Pthread's `getcpuclockid`.
 * `Ext::Forking`: Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
   profiling abilities after the VM forks (such as re-instrumenting the main thread, and restarting profiler threads).
 * `Pprof::*` (in <../lib/ddtrace/profiling/pprof>): Converts samples captured in the `Recorder` into the pprof format.
-* `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle fork() and CPU profiling.
+* `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle fork().
 * `Transport::*` (in <../lib/ddtrace/profiling/transport>): Implements transmission of profiling payloads to the Datadog agent
   or backend.
 * `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
