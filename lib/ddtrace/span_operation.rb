@@ -2,7 +2,6 @@ require 'forwardable'
 require 'time'
 
 require 'datadog/core/environment/identity'
-require 'ddtrace/ext/manual_tracing'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/runtime'
 
@@ -31,7 +30,6 @@ module Datadog
     attr_accessor \
       :name,
       :resource,
-      :sampled,
       :service,
       :type,
       :status
@@ -42,31 +40,19 @@ module Datadog
     alias :span_type :type
     alias :span_type= :type=
 
-    # SpanOperation attributes
-    # TODO: Deprecate use of #parent.
-    #       Instrumentation should not inspect trace structure,
-    #       or rely upon a parent span; it might get mutated or finished.
-    #       This attribute is provided for backwards compatibility only.
-    # TODO: Deprecate use of #context.
-    #       Context should be accessed from the tracer.
-    #       This attribute is provided for backwards compatibility only.
-    attr_reader \
-      :parent,
-      :context
-
     # TODO: Remove span_type
     def initialize(
       name,
       child_of: nil,
-      context: nil,
+      events: nil,
+      on_error: nil,
       parent_id: 0,
       resource: name,
       service: nil,
-      span_type: nil,
       start_time: nil,
       tags: nil,
       trace_id: nil,
-      type: span_type
+      type: nil
     )
       # Resolve service name
       parent = child_of
@@ -83,7 +69,6 @@ module Datadog
       @trace_id = trace_id || Utils.next_id
 
       @status = 0
-      @sampled = true
 
       @allocation_count_start = now_allocations
       @allocation_count_stop = @allocation_count_start
@@ -103,21 +88,17 @@ module Datadog
       # Set tags if provided.
       set_tags(tags) if tags
 
-      if parent.nil?
-        # Root span: set default tags.
-        set_tag(Datadog::Ext::Runtime::TAG_PID, Process.pid)
-        set_tag(Datadog::Ext::Runtime::TAG_ID, Datadog::Core::Environment::Identity.id)
-      else
-        # Only set parent if explicitly provided.
-        # We don't want it to override context-derived
-        # IDs if it's a distributed trace w/o a parent span.
-        self.parent = parent
-      end
+      # Only set parent if explicitly provided.
+      # We don't want it to override context-derived
+      # IDs if it's a distributed trace w/o a parent span.
+      self.parent = parent if parent
 
       # Some other SpanOperation-specific behavior
-      @context = context
       @events = events || Events.new
       @span = nil
+
+      # Subscribe :on_error event
+      @events.on_error.wrap_default(on_error) unless on_error.nil?
 
       # Start the span with start time, if given.
       start(start_time) if start_time
@@ -136,7 +117,7 @@ module Datadog
         begin
           start
         rescue StandardError => e
-          Datadog.logger.debug("Failed to start span: #{e}")
+          Datadog.logger.debug { "Failed to start span: #{e}" }
         ensure
           # We should yield to the provided block when possible, as this
           # block is application code that we don't want to hinder.
@@ -178,22 +159,15 @@ module Datadog
     end
 
     def start(start_time = nil)
-      # Don't overwrite the start time of a started span.
+      # Span can only be started once
       return self if started?
-
-      # If time provided, set it but don't trigger
-      # "before_start" as the span has already started.
-      if start_time
-        @start_time = start_time
-        return self
-      end
 
       # Trigger before_start event
       events.before_start.publish(self)
 
       # Start the span
-      @start_time = Utils::Time.now.utc
-      @duration_start = duration_marker
+      @start_time = start_time || Utils::Time.now.utc
+      @duration_start = start_time.nil? ? duration_marker : nil
 
       self
     end
@@ -343,6 +317,8 @@ module Datadog
 
     # Callback behavior
     class Events
+      include Datadog::Events
+
       DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
       attr_reader \
@@ -351,14 +327,14 @@ module Datadog
         :before_start,
         :on_error
 
-      def initialize
+      def initialize(on_error: nil)
         @after_finish = AfterFinish.new
         @after_stop = AfterStop.new
         @before_start = BeforeStart.new
         @on_error = OnError.new
 
         # Set default error behavior
-        on_error.subscribe(:default, &DEFAULT_ON_ERROR)
+        @on_error.subscribe(:default, &DEFAULT_ON_ERROR)
       end
 
       # Triggered when the span is finished, regardless of error.
@@ -387,6 +363,24 @@ module Datadog
         def initialize
           super(:on_error)
         end
+
+        # Call custom error handler but fallback to default behavior on failure.
+        def wrap_default(error_handler)
+          return unless error_handler
+
+          wrap(:default) do |original, op, error|
+            begin
+              error_handler.call(op, error)
+            rescue StandardError => e
+              Datadog.logger.debug do
+                "Custom on_error handler failed, using fallback behavior. \
+                 Error: #{e.message} Location: #{e.backtrace.first}"
+              end
+
+              original.call(op, error) if original
+            end
+          end
+        end
       end
     end
 
@@ -403,11 +397,9 @@ module Datadog
     # modifying the finalized span from the operation after
     # it has been finished.
     attr_reader \
-      :span,
-      :events
-
-    attr_writer \
-      :context
+      :events,
+      :parent,
+      :span
 
     # Create a Span from the operation which represents
     # the finalized measurement. We #dup here to prevent
@@ -424,7 +416,6 @@ module Datadog
         metrics: metrics && metrics.dup,
         parent_id: @parent_id,
         resource: @resource && @resource.dup,
-        sampled: @sampled,
         service: @service && @service.dup,
         start_time: @start_time,
         status: @status,
@@ -452,7 +443,6 @@ module Datadog
         @trace_id = parent.trace_id
         @parent_id = parent.id
         @service ||= parent.service
-        @sampled = parent.sampled
       end
     end
 

@@ -22,8 +22,8 @@ class TraceMiddleware
   end
 
   def call(env)
-    Datadog.tracer.trace('web.request', service: 'acme', resource: env['REQUEST_PATH']) do |span|
-      Datadog.runtime_metrics.associate_with_span(span)
+    Datadog.tracer.trace('web.request', service: 'acme', resource: env['REQUEST_PATH']) do |span, trace|
+      Datadog.runtime_metrics.associate_with_trace(trace)
       @app.call(env)
     end
   end

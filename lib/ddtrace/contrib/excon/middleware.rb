@@ -29,11 +29,13 @@ module Datadog
           begin
             unless datum.key?(:datadog_span)
               @options = build_request_options!(datum)
-              tracer.trace(Ext::SPAN_REQUEST).tap do |span|
-                datum[:datadog_span] = span
-                annotate!(span, datum)
-                propagate!(span, datum) if distributed_tracing?
-              end
+              span = tracer.trace(Ext::SPAN_REQUEST)
+              trace = tracer.active_trace
+              datum[:datadog_span] = span
+              annotate!(span, datum)
+              propagate!(trace, span, datum) if distributed_tracing?
+
+              span
             end
           rescue StandardError => e
             Datadog.logger.debug(e.message)
@@ -147,8 +149,8 @@ module Datadog
           Datadog.logger.debug(e.message)
         end
 
-        def propagate!(span, datum)
-          Datadog::HTTPPropagator.inject!(span.context, datum[:headers])
+        def propagate!(trace, span, datum)
+          Datadog::HTTPPropagator.inject!(trace, datum[:headers])
         end
 
         def build_request_options!(datum)

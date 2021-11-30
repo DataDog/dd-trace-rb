@@ -295,7 +295,7 @@ module Datadog
           o.lazy
         end
 
-        option :context_flush do |o|
+        option :trace_flush do |o|
           o.default { nil }
           o.lazy
         end

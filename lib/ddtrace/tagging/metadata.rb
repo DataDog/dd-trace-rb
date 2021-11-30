@@ -15,7 +15,7 @@ module Datadog
       # The Datadog agent will look for these values only as Tags, not Metrics.
       # @see https://github.com/DataDog/datadog-agent/blob/2ae2cdd315bcda53166dd8fa0dedcfc448087b9d/pkg/trace/stats/aggregation.go#L13-L17
       ENSURE_AGENT_TAGS = {
-        Ext::DistributedTracing::ORIGIN_KEY => true,
+        Ext::DistributedTracing::TAG_ORIGIN => true,
         Ext::Environment::TAG_VERSION => true,
         Ext::HTTP::STATUS_CODE => true,
         Ext::NET::TAG_HOSTNAME => true
@@ -44,7 +44,7 @@ module Datadog
         if value.is_a?(Numeric) && !(value.is_a?(Integer) && !NUMERIC_TAG_SIZE_RANGE.cover?(value))
           set_metric(key, value)
         else
-          meta[key] = value.to_s
+          meta[key.to_s] = value.to_s
         end
       rescue StandardError => e
         Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
@@ -78,7 +78,7 @@ module Datadog
 
         # enforce that the value is a floating point number
         value = Float(value)
-        metrics[key] = value
+        metrics[key.to_s] = value
       rescue StandardError => e
         Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
       end

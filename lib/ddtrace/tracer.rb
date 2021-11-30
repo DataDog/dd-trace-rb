@@ -5,6 +5,7 @@ require 'pathname'
 require 'datadog/core/environment/identity'
 require 'ddtrace/ext/environment'
 
+require 'ddtrace/context_provider'
 require 'ddtrace/context'
 require 'ddtrace/correlation'
 require 'ddtrace/event'
@@ -12,6 +13,8 @@ require 'ddtrace/logger'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/span_operation'
+require 'ddtrace/trace_flush'
+require 'ddtrace/trace_operation'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/writer'
 
@@ -23,62 +26,29 @@ module Datadog
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
   class Tracer
-    ALLOWED_SPAN_OPTIONS = [
-      :child_of,
-      :on_error,
-      :parent_id,
-      :resource,
-      :service,
-      :span_type,
-      :start_time,
-      :tags,
-      :trace_id,
-      :type
-    ].freeze
+    attr_reader \
+      :trace_flush,
+      :provider,
+      :sampler,
+      :tags
 
-    attr_reader :sampler, :tags, :provider, :context_flush
-    attr_accessor :default_service, :enabled, :writer
-
-    # Shorthand that calls the `shutdown!` method of a registered worker.
-    # It's useful to ensure that the Trace Buffer is properly flushed before
-    # shutting down the application.
-    #
-    # For instance:
-    #
-    #   tracer.trace('operation_name', service='rake_tasks') do |span_op|
-    #     span_op.set_tag('task.name', 'script')
-    #   end
-    #
-    #   tracer.shutdown!
-    #
-    def shutdown!
-      return unless @enabled
-
-      @writer.stop unless @writer.nil?
-    end
-
-    # Return the current active \Context for this traced execution. This method is
-    # automatically called when calling Tracer.trace or Tracer.start_span,
-    # but it can be used in the application code during manual instrumentation.
-    #
-    # This method makes use of a \ContextProvider that is automatically set during the tracer
-    # initialization, or while using a library instrumentation.
-    def call_context(key = nil)
-      @provider.context(key)
-    end
+    attr_accessor \
+      :default_service,
+      :enabled,
+      :writer
 
     # Initialize a new \Tracer used to create, sample and submit spans that measure the
     # time of sections of code.
     #
-    # @param context_flush [Datadog::ContextFlush] responsible for flushing spans from the execution context
+    # @param trace_flush [Datadog::TraceFlush] responsible for flushing spans from the execution context
     # @param context_provider [Datadog::DefaultContextProvider] ensures different execution contexts have distinct traces
     # @param default_service [String] A fallback value for {Datadog::Span#service}, as spans without service are rejected
     # @param enabled [Boolean] set if the tracer submits or not spans to the local agent
     # @param sampler [Datadog::Sampler] a tracer sampler, responsible for filtering out spans when needed
     # @param tags [Hash] default tags added to all spans
-    # @param writer [Datadog::Writer] consumes traces returned by the provided +context_flush+
+    # @param writer [Datadog::Writer] consumes traces returned by the provided +trace_flush+
     def initialize(
-      context_flush: Datadog::ContextFlush::Finished.new,
+      trace_flush: Datadog::TraceFlush::Finished.new,
       context_provider: Datadog::DefaultContextProvider.new,
       default_service: Datadog::Ext::Environment::FALLBACK_SERVICE_NAME,
       enabled: true,
@@ -86,7 +56,7 @@ module Datadog
       tags: {},
       writer: Datadog::Writer.new
     )
-      @context_flush = context_flush
+      @trace_flush = trace_flush
       @default_service = default_service
       @enabled = enabled
       @provider = context_provider
@@ -95,74 +65,10 @@ module Datadog
       @writer = writer
     end
 
-    # Set the given key / value tag pair at the tracer level. These tags will be
-    # appended to each span created by the tracer. Keys and values must be strings.
-    # A valid example is:
-    #
-    #   tracer.set_tags('env' => 'prod', 'component' => 'core')
-    def set_tags(tags)
-      string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
-      @tags = @tags.merge(string_tags)
-    end
-
-    # Build a span that will trace an operation called \name. This method allows
-    # parenting passing \child_of as an option. If it's missing, the newly created span is a
-    # root span. Available options are:
-    #
-    # * +service+: the service name for this span
-    # * +resource+: the resource this span refers, or \name if it's missing
-    # * +type+: the type of the span (such as \http, \db and so on)
-    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
-    # * +tags+: extra tags which should be added to the span.
-    def build_span(name, options = {})
-      # Resolve span options:
-      # Context, parent, service name, etc.
-      options = build_span_options(options)
-      context = options[:context]
-      on_error = options.delete(:on_error)
-
-      # Build a new span operation
-      span_op = Datadog::SpanOperation.new(name, **options)
-
-      # Add span operation to context
-      if context && context.add_span(span_op)
-        # Subscribe to finish event to close and record.
-        subscribe_span_finish(span_op, context)
-      else
-        # Could not add the span (context is probably full)
-        # Disassociate the span from the context
-        span_op.send(:context=, nil)
-      end
-
-      # Subscribe to the error event to run any custom error behavior.
-      subscribe_on_error(span_op, on_error)
-
-      # If it's a root span, sample it.
-      @sampler.sample!(span_op) unless options[:child_of]
-
-      span_op
-    end
-
-    # Build and start a span that will trace an operation called \name. This method allows
-    # parenting passing \child_of as an option. If it's missing, the newly created span is a
-    # root span. Available options are:
-    #
-    # * +service+: the service name for this span
-    # * +resource+: the resource this span refers, or \name if it's missing
-    # * +type+: the type of the span (such as \http, \db and so on)
-    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
-    # * +start_time+: when the span actually starts (defaults to \now)
-    # * +tags+: extra tags which should be added to the span.
-    def start_span(name, options = {})
-      span_op = build_span(name, options)
-      span_op.start(options[:start_time])
-      span_op
-    end
-
-    # Return a +span+ that will trace an operation called +name+. You could trace your code
+    # Return a +span+ and +trace+ that will trace an operation called +name+. You could trace your code
     # using a <tt>do-block</tt> like:
     #
-    #   tracer.trace('web.request') do |span_op|
+    #   tracer.trace('web.request') do |span_op, trace_op|
     #     span_op.service = 'my-web-site'
     #     span_op.resource = '/'
     #     span_op.set_tag('http.method', request.request_method)
@@ -189,60 +95,93 @@ module Datadog
     #
     # Available options are:
     #
-    # * +service+: the service name for this span
+    # * +autostart+: whether to autostart the span, if no block is provided.
+    # * +continue_from+: continue a trace from \TraceDigest. For async.
+    # * +on_error+: a block that overrides error handling behavior for this operation.
     # * +resource+: the resource this span refers, or \name if it's missing
-    # * +type+: the type of the span (such as \http, \db and so on)
-    # * +child_of+: a \Span or a \Context instance representing the parent for this span.
-    #   If not set, defaults to Tracer.call_context. If +nil+, a fresh \Context is created.
+    # * +service+: the service name for this span.
+    # * +start_time+: time which the span should have started.
     # * +tags+: extra tags which should be added to the span.
-    def trace(name, options = {}, &block)
+    # * +type+: the type of the span (such as \http, \db and so on)
+    # rubocop:disable Lint/UnderscorePrefixedVariableName
+    def trace(
+      name,
+      continue_from: nil,
+      _context: nil,
+      **span_options,
+      &block
+    )
+      return skip_trace(name, &block) unless enabled
+
+      context, trace = nil
+
+      # Resolve the trace
+      begin
+        context = _context || call_context
+        active_trace = context.active_trace
+        trace = if continue_from || active_trace.nil?
+                  start_trace(continue_from: continue_from)
+                else
+                  active_trace
+                end
+      rescue StandardError => e
+        Datadog.logger.debug { "Failed to trace: #{e}" }
+
+        # Tracing failed: fallback and run code without tracing.
+        return skip_trace(name, &block)
+      end
+
+      # Activate and start the trace
       if block
-        # If building a span somehow fails, try to run the original code anyways.
-        # This may help if it were manual instrumentation. However, if the code
-        # block in question attempts to access the non-existent span, then it will
-        # throw an error and fail anyways.
-        #
-        # TODO: Should migrate any span mutation instructions into its own block,
-        #       separate from the actual instrumented code.
-        begin
-          # Filter out invalid options & build a span
-          options = options.dup.tap { |opts| opts.delete(:start_time) }
-          span_op = build_span(name, options)
-        rescue StandardError => e
-          Datadog.logger.debug("Failed to build span: #{e}")
-          yield(nil)
-        else
-          span_op.measure(&block)
+        context.activate!(trace) do
+          start_span(name, _trace: trace, **span_options, &block)
         end
       else
-        start_span(name, options)
+        # Setup trace activation/deactivation
+        manual_trace_activation!(context, trace)
+
+        # Return the new span
+        start_span(name, _trace: trace, **span_options)
       end
     end
+    # rubocop:enable Lint/UnderscorePrefixedVariableName
 
-    # Record the given +context+. For compatibility with previous versions,
-    # +context+ can also be a span. It is similar to the +child_of+ argument,
-    # method will figure out what to do, submitting a +span+ for recording
-    # is like trying to record its +context+.
-    def record(context)
-      context = context.context if context.is_a?(Datadog::SpanOperation)
-      return if context.nil?
+    # Set the given key / value tag pair at the tracer level. These tags will be
+    # appended to each span created by the tracer. Keys and values must be strings.
+    # A valid example is:
+    #
+    #   tracer.set_tags('env' => 'prod', 'component' => 'core')
+    def set_tags(tags)
+      string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
+      @tags = @tags.merge(string_tags)
+    end
 
-      record_context(context)
+    # Return the current active trace or +nil+.
+    def active_trace(key = nil)
+      call_context(key).active_trace
     end
 
     # Return the current active span or +nil+.
     def active_span(key = nil)
-      call_context(key).current_span
-    end
-
-    # Return the current active root span or +nil+.
-    def active_root_span(key = nil)
-      call_context(key).current_root_span
+      trace = active_trace(key)
+      trace.active_span if trace
     end
 
     # Return a CorrelationIdentifier for active span
     def active_correlation(key = nil)
-      Datadog::Correlation.identifier_from_context(call_context(key))
+      trace = active_trace(key)
+      Datadog::Correlation.identifier_from_digest(
+        trace && trace.to_digest
+      )
+    end
+
+    # Setup a new trace to continue from where another
+    # trace left off. Used to continue distributed traces.
+    def continue_trace!(digest, key = nil, &block)
+      return unless digest && digest.is_a?(TraceDigest)
+
+      trace = start_trace(continue_from: digest)
+      call_context(key).activate!(trace, &block)
     end
 
     def trace_completed
@@ -264,53 +203,136 @@ module Datadog
       # rubocop:enable Lint/UselessMethodDefinition
     end
 
-    private
+    # Shorthand that calls the `shutdown!` method of a registered worker.
+    # It's useful to ensure that the Trace Buffer is properly flushed before
+    # shutting down the application.
+    #
+    # For instance:
+    #
+    #   tracer.trace('operation_name', service='rake_tasks') do |span_op|
+    #     span_op.set_tag('task.name', 'script')
+    #   end
+    #
+    #   tracer.shutdown!
+    #
+    def shutdown!
+      return unless @enabled
 
-    def build_span_options(options = {})
-      # Filter out disallowed options
-      options = ALLOWED_SPAN_OPTIONS.each_with_object({}) do |option, opts|
-        opts[option] = options[option] if options.key?(option)
-        opts
-      end
-
-      # Resolve context and parent, unless parenting is explicitly nullified.
-      if options.key?(:child_of) && options[:child_of].nil?
-        context = Context.new
-        parent = nil
-      else
-        context, parent = resolve_context_and_parent(options[:child_of])
-      end
-
-      # Build span options
-      options[:child_of] = parent
-      options[:context] = context
-      options[:service] ||= (parent && parent.service) || default_service
-      options[:tags] = resolve_tags(options[:tags])
-
-      # If a parent span isn't defined, use context's trace/span ID if available.
-      # Necessary when root span isn't available, e.g. distributed trace.
-      unless parent
-        if (span_id = (context && context.span_id))
-          options[:parent_id] = span_id
-        end
-
-        if (trace_id = (context && context.trace_id))
-          options[:trace_id] = trace_id
-        end
-      end
-
-      options
+      @writer.stop if @writer
     end
 
-    def resolve_context_and_parent(child_of)
-      context = child_of.is_a?(Context) ? child_of : call_context
-      parent = if child_of.is_a?(Context)
-                 child_of.current_span
-               else
-                 child_of || context.current_span
-               end
+    private
 
-      [context, parent]
+    # Return the current active \Context for this traced execution. This method is
+    # automatically called when calling Tracer.trace or Tracer.start_span,
+    # but it can be used in the application code during manual instrumentation.
+    #
+    # This method makes use of a \ContextProvider that is automatically set during the tracer
+    # initialization, or while using a library instrumentation.
+    def call_context(key = nil)
+      @provider.context(key)
+    end
+
+    def build_trace(digest = nil)
+      # Resolve hostname if configured
+      hostname = Core::Environment::Socket.hostname if Datadog.configuration.report_hostname
+      hostname = hostname && !hostname.empty? ? hostname : nil
+
+      if digest
+        TraceOperation.new(
+          hostname: hostname,
+          id: digest.trace_id,
+          origin: digest.trace_origin,
+          parent_span_id: digest.span_id,
+          sampling_priority: digest.trace_sampling_priority
+        )
+      else
+        TraceOperation.new(
+          hostname: hostname
+        )
+      end
+    end
+
+    def bind_trace_events!(trace_op)
+      events = trace_op.send(:events)
+
+      unless events.span_before_start.subscriptions[:tracer_span_before_start]
+        events.span_before_start.subscribe(:tracer_span_before_start) do |event_span_op, event_trace_op|
+          event_trace_op.service ||= @default_service
+          event_span_op.service ||= @default_service
+          sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
+        end
+      end
+
+      unless events.span_finished.subscriptions[:tracer_span_finished]
+        events.span_finished.subscribe(:tracer_span_finished) do |_event_span, event_trace_op|
+          flush_trace(event_trace_op)
+        end
+      end
+    end
+
+    def start_trace(continue_from: nil)
+      # Build a new trace using digest if provided.
+      trace = build_trace(continue_from)
+
+      # Bind trace events: sample trace, set default service, flush spans.
+      bind_trace_events!(trace)
+
+      trace
+    end
+
+    def start_span(
+      name,
+      continue_from: nil,
+      on_error: nil,
+      resource: nil,
+      service: nil,
+      start_time: nil,
+      tags: nil,
+      type: nil,
+      **kwargs,
+      &block
+    )
+      trace = kwargs[:_trace] || start_trace(continue_from: continue_from)
+      autostart = kwargs.key?(:_autostart) ? kwargs[:_autostart] : true
+
+      # Bind trace events: sample trace, set default service, flush spans.
+      # NOTE: This might be redundant sometimes (given #start_trace does this)
+      #       however, it is necessary because the Context/TraceOperation may
+      #       have been provided by a source outside the tracer e.g. OpenTracing
+      bind_trace_events!(trace)
+
+      span_options = {
+        events: build_span_events,
+        on_error: on_error,
+        resource: resource,
+        service: service,
+        start_time: start_time,
+        tags: resolve_tags(tags),
+        type: type || kwargs[:span_type]
+      }
+
+      if block
+        # Ignore start time if a block has been given
+        span_options.delete(:start_time)
+        trace.measure(name, **span_options, &block)
+      else
+        # Return the new span
+        span = trace.build_span(name, **span_options)
+        span.start(start_time) if autostart
+        span
+      end
+    end
+
+    def build_span_events(events = nil)
+      case events
+      when SpanOperation::Events
+        events
+      when Hash
+        SpanOperation::Events.build(events)
+      else
+        SpanOperation::Events.new
+      end
     end
 
     def resolve_tags(tags)
@@ -324,74 +346,70 @@ module Datadog
       end
     end
 
-    # Close the span on the context and record the finished span.
-    def subscribe_span_finish(span_op, context)
-      after_finish = span_op.send(:events).after_finish
-      after_finish.subscribe(:tracer_span_finished) do |_span, op|
-        begin
-          context.close_span(op) if context
-          record_span(op)
-        rescue StandardError => e
-          Datadog.logger.debug("Error closing finished span operation: #{e} Backtrace: #{e.backtrace.first(3)}")
-          Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
-        end
+    # Manually activate and deactivate the trace, when the span completes.
+    def manual_trace_activation!(context, trace)
+      # Get the original trace to restore
+      original_trace = context.active_trace
+
+      # Skip this, if it would have no effect.
+      return if original_trace == trace
+
+      # Setup the deactivation callback
+      trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
+        context.activate!(original_trace)
       end
+
+      # Activate the trace
+      context.activate!(trace)
     end
 
-    # Call custom error handler but fallback to default behavior on failure.
-    def subscribe_on_error(span_op, error_handler)
-      return unless error_handler.respond_to?(:call)
-
-      on_error = span_op.send(:events).on_error
-      on_error.wrap(:default) do |original, op, error|
-        begin
-          error_handler.call(op, error)
-        rescue StandardError => e
-          Datadog.logger.debug(
-            "Custom on_error handler failed, using fallback behavior. \
-             Error: #{e.message} Location: #{e.backtrace.first}"
-          )
-          original.call(op, error) if original
-        end
-      end
-    end
-
-    # Records the span (& its context)
-    def record_span(span_op)
+    # Sample a span, tagging the trace as appropriate.
+    def sample_trace(trace_op)
       begin
-        record_context(span_op.context) if span_op.context
+        @sampler.sample!(trace_op)
       rescue StandardError => e
-        Datadog.logger.debug("Error recording finished trace: #{e} Backtrace: #{e.backtrace.first}")
-        Datadog.health_metrics.error_span_finish(1, tags: ["error:#{e.class.name}"])
+        Datadog.logger.debug { "Failed to sample trace: #{e}" }
       end
     end
 
-    # Consume trace from +context+, according to +@context_flush+
-    # criteria.
-    #
-    # \ContextFlush#consume! can return nil or an empty list if the
-    # trace is not available to flush or if the trace has not been
-    # chosen to be sampled.
-    def record_context(context)
-      trace = @context_flush.consume!(context)
-
-      write(trace) if @enabled && trace && !trace.empty?
+    # Flush finished spans from the trace buffer, send them to writer.
+    def flush_trace(trace_op)
+      begin
+        trace = @trace_flush.consume!(trace_op)
+        write(trace) if trace && !trace.empty?
+      rescue StandardError => e
+        Datadog.logger.debug { "Failed to flush trace: #{e}" }
+      end
     end
 
     # Send the trace to the writer to enqueue the spans list in the agent
     # sending queue.
     def write(trace)
-      return if @writer.nil?
+      return unless trace && @writer
 
       if Datadog.configuration.diagnostics.debug
-        Datadog.logger.debug("Writing #{trace.length} spans (enabled: #{@enabled})")
-        str = String.new('')
-        PP.pp(trace, str)
-        Datadog.logger.debug(str)
+        Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})" }
+
+        if Datadog.logger.debug?
+          str = String.new('')
+          PP.pp(trace.spans, str)
+        end
       end
 
       @writer.write(trace)
       trace_completed.publish(trace)
+    end
+
+    # TODO: Make these dummy objects singletons to preserve memory.
+    def skip_trace(name)
+      span = SpanOperation.new(name)
+
+      if block_given?
+        trace = TraceOperation.new
+        yield(span, trace)
+      else
+        span
+      end
     end
   end
 end

@@ -227,10 +227,14 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
       it_behaves_like 'propagating distributed headers'
 
       context 'with sampling priority' do
-        let(:sampling_priority) { 0.2 }
+        let(:sampling_priority) { 2 }
 
         before do
-          tracer.provider.context.sampling_priority = sampling_priority
+          tracer.continue_trace!(
+            Datadog::TraceDigest.new(
+              trace_sampling_priority: sampling_priority
+            )
+          )
         end
 
         it_behaves_like 'propagating distributed headers'
@@ -263,10 +267,14 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
       it_behaves_like 'does not propagate distributed headers'
 
       context 'with sampling priority' do
-        let(:sampling_priority) { 0.2 }
+        let(:sampling_priority) { 2 }
 
         before do
-          tracer.provider.context.sampling_priority = sampling_priority
+          tracer.continue_trace!(
+            Datadog::TraceDigest.new(
+              trace_sampling_priority: sampling_priority
+            )
+          )
         end
 
         it_behaves_like 'does not propagate distributed headers'

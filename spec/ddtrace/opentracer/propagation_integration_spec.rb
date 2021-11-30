@@ -7,6 +7,7 @@ RSpec.describe 'OpenTracer context propagation' do
   subject(:tracer) { Datadog::OpenTracer::Tracer.new(writer: FauxWriter.new) }
 
   let(:datadog_tracer) { tracer.datadog_tracer }
+  let(:datadog_traces) { datadog_tracer.writer.traces(:keep) }
   let(:datadog_spans) { datadog_tracer.writer.spans(:keep) }
 
   after do
@@ -15,11 +16,11 @@ RSpec.describe 'OpenTracer context propagation' do
   end
 
   def sampling_priority_metric(span)
-    span.get_metric(Datadog::OpenTracer::TextMapPropagator::SAMPLING_PRIORITY_KEY)
+    span.get_metric(Datadog::OpenTracer::TextMapPropagator::TAG_SAMPLING_PRIORITY)
   end
 
   def origin_tag(span)
-    span.get_tag(Datadog::OpenTracer::TextMapPropagator::ORIGIN_KEY)
+    span.get_tag(Datadog::OpenTracer::TextMapPropagator::TAG_ORIGIN)
   end
 
   describe 'via OpenTracing::FORMAT_TEXT_MAP' do
@@ -34,8 +35,8 @@ RSpec.describe 'OpenTracer context propagation' do
 
       before do
         tracer.start_active_span(span_name) do |scope|
-          scope.span.context.datadog_context.sampling_priority = 1
-          scope.span.context.datadog_context.origin = 'synthetics'
+          scope.span.context.datadog_context.active_trace.sampling_priority = 1
+          scope.span.context.datadog_context.active_trace.origin = 'synthetics'
           baggage.each { |k, v| scope.span.set_baggage_item(k, v) }
           tracer.inject(
             scope.span.context,
@@ -90,15 +91,17 @@ RSpec.describe 'OpenTracer context propagation' do
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 
+        let(:datadog_trace) { datadog_traces.first }
         let(:datadog_span) { datadog_spans.first }
+
+        it { expect(datadog_trace.sampling_priority).to eq(sampling_priority) }
+        it { expect(datadog_trace.origin).to eq(origin) }
 
         it { expect(datadog_spans).to have(1).items }
         it { expect(datadog_span.name).to eq(span_name) }
         it { expect(datadog_span.finished?).to be(true) }
         it { expect(datadog_span.trace_id).to eq(trace_id) }
         it { expect(datadog_span.parent_id).to eq(parent_id) }
-        it { expect(sampling_priority_metric(datadog_span)).to eq(sampling_priority) }
-        it { expect(origin_tag(datadog_span)).to eq(origin) }
         it { expect(@scope.span.context.baggage).to include(baggage) }
       end
 
@@ -121,11 +124,13 @@ RSpec.describe 'OpenTracer context propagation' do
       let(:receiver_span_name) { 'operation.receiver' }
       let(:baggage) { { 'account_name' => 'acme' } }
       let(:carrier) { {} }
+      let(:datadog_sender_trace) { datadog_traces.last }
+      let(:datadog_receiver_trace) { datadog_traces.first }
 
       before do
         tracer.start_active_span(sender_span_name) do |sender_scope|
-          sender_scope.span.context.datadog_context.sampling_priority = 1
-          sender_scope.span.context.datadog_context.origin = 'synthetics'
+          sender_scope.span.context.datadog_context.active_trace.sampling_priority = 1
+          sender_scope.span.context.datadog_context.active_trace.origin = 'synthetics'
           baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
           tracer.inject(
             sender_scope.span.context,
@@ -142,17 +147,19 @@ RSpec.describe 'OpenTracer context propagation' do
       end
 
       it { expect(datadog_spans).to have(2).items }
+
+      it { expect(datadog_sender_trace.sampling_priority).to eq(1) }
+      it { expect(datadog_sender_trace.origin).to eq('synthetics') }
       it { expect(sender_datadog_span.name).to eq(sender_span_name) }
       it { expect(sender_datadog_span.finished?).to be(true) }
       it { expect(sender_datadog_span.parent_id).to eq(0) }
-      it { expect(sampling_priority_metric(sender_datadog_span)).to eq(1) }
-      it { expect(origin_tag(sender_datadog_span)).to eq('synthetics') }
+
+      it { expect(datadog_receiver_trace.sampling_priority).to eq(1) }
+      it { expect(datadog_receiver_trace.origin).to eq('synthetics') }
       it { expect(receiver_datadog_span.name).to eq(receiver_span_name) }
       it { expect(receiver_datadog_span.finished?).to be(true) }
       it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
       it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
-      it { expect(sampling_priority_metric(receiver_datadog_span)).to eq(1) }
-      it { expect(origin_tag(receiver_datadog_span)).to eq('synthetics') }
       it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
     end
   end
@@ -173,8 +180,8 @@ RSpec.describe 'OpenTracer context propagation' do
 
       before do
         tracer.start_active_span(span_name) do |scope|
-          scope.span.context.datadog_context.sampling_priority = 1
-          scope.span.context.datadog_context.origin = 'synthetics'
+          scope.span.context.datadog_context.active_trace.sampling_priority = 1
+          scope.span.context.datadog_context.active_trace.origin = 'synthetics'
           baggage.each { |k, v| scope.span.set_baggage_item(k, v) }
           tracer.inject(
             scope.span.context,
@@ -232,14 +239,16 @@ RSpec.describe 'OpenTracer context propagation' do
         let(:origin) { 'synthetics' }
 
         let(:datadog_span) { datadog_spans.first }
+        let(:datadog_trace) { datadog_traces.first }
+
+        it { expect(datadog_trace.sampling_priority).to eq(sampling_priority) }
+        it { expect(datadog_trace.origin).to eq('synthetics') }
 
         it { expect(datadog_spans).to have(1).items }
         it { expect(datadog_span.name).to eq(span_name) }
         it { expect(datadog_span.finished?).to be(true) }
         it { expect(datadog_span.trace_id).to eq(trace_id) }
         it { expect(datadog_span.parent_id).to eq(parent_id) }
-        it { expect(sampling_priority_metric(datadog_span)).to eq(sampling_priority) }
-        it { expect(origin_tag(datadog_span)).to eq('synthetics') }
         it { expect(@scope.span.context.baggage).to include(baggage) }
       end
 
@@ -260,6 +269,9 @@ RSpec.describe 'OpenTracer context propagation' do
       let(:sender_datadog_span) { datadog_spans.last }
       let(:receiver_datadog_span) { datadog_spans.first }
       let(:receiver_span_name) { 'operation.receiver' }
+      let(:datadog_sender_trace) { datadog_traces.last }
+      let(:datadog_receiver_trace) { datadog_traces.first }
+
       # NOTE: If these baggage names include either dashes or uppercase characters
       #       they will not make a round-trip with the same key format. They will
       #       be converted to underscores and lowercase characters, because Rack
@@ -269,8 +281,8 @@ RSpec.describe 'OpenTracer context propagation' do
 
       before do
         tracer.start_active_span(sender_span_name) do |sender_scope|
-          sender_scope.span.context.datadog_context.sampling_priority = 1
-          sender_scope.span.context.datadog_context.origin = 'synthetics'
+          sender_scope.span.context.datadog_context.active_trace.sampling_priority = 1
+          sender_scope.span.context.datadog_context.active_trace.origin = 'synthetics'
           baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
 
           carrier = {}
@@ -291,15 +303,17 @@ RSpec.describe 'OpenTracer context propagation' do
       end
 
       it { expect(datadog_spans).to have(2).items }
+
+      it { expect(datadog_sender_trace.sampling_priority).to eq(1) }
       it { expect(sender_datadog_span.name).to eq(sender_span_name) }
       it { expect(sender_datadog_span.finished?).to be(true) }
       it { expect(sender_datadog_span.parent_id).to eq(0) }
-      it { expect(sampling_priority_metric(sender_datadog_span)).to eq(1) }
+
+      it { expect(datadog_receiver_trace.sampling_priority).to eq(1) }
       it { expect(receiver_datadog_span.name).to eq(receiver_span_name) }
       it { expect(receiver_datadog_span.finished?).to be(true) }
       it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
       it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
-      it { expect(sampling_priority_metric(receiver_datadog_span)).to eq(1) }
       it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
     end
   end

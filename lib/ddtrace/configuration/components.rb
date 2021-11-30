@@ -5,6 +5,7 @@ require 'ddtrace/logger'
 require 'ddtrace/profiling'
 require 'ddtrace/runtime/metrics'
 require 'ddtrace/tracer'
+require 'ddtrace/trace_flush'
 require 'ddtrace/sync_writer'
 require 'ddtrace/workers/runtime_metrics'
 
@@ -56,11 +57,11 @@ module Datadog
 
           # Apply test mode settings if test mode is activated
           if settings.test_mode.enabled
-            context_flush = build_test_mode_context_flush(settings)
+            trace_flush = build_test_mode_trace_flush(settings)
             sampler = build_test_mode_sampler
             writer = build_test_mode_writer(settings, agent_settings)
           else
-            context_flush = build_context_flush(settings)
+            trace_flush = build_trace_flush(settings)
             sampler = build_sampler(settings)
             writer = build_writer(settings, agent_settings)
           end
@@ -70,18 +71,18 @@ module Datadog
           Tracer.new(
             default_service: settings.service,
             enabled: settings.tracer.enabled,
-            context_flush: context_flush,
+            trace_flush: trace_flush,
             sampler: sampler,
             writer: writer,
             tags: build_tracer_tags(settings),
           )
         end
 
-        def build_context_flush(settings)
+        def build_trace_flush(settings)
           if settings.tracer.partial_flush.enabled
-            Datadog::ContextFlush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
+            Datadog::TraceFlush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
           else
-            Datadog::ContextFlush::Finished.new
+            Datadog::TraceFlush::Finished.new
           end
         end
 
@@ -228,9 +229,9 @@ module Datadog
           end
         end
 
-        def build_test_mode_context_flush(settings)
+        def build_test_mode_trace_flush(settings)
           # If context flush behavior is provided, use it instead.
-          settings.test_mode.context_flush || build_context_flush(settings)
+          settings.test_mode.trace_flush || build_trace_flush(settings)
         end
 
         def build_test_mode_sampler

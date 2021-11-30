@@ -45,8 +45,8 @@ module Datadog
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
           if configuration[:distributed_tracing]
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
+            trace_digest = HTTPPropagator.extract(env)
+            tracer.continue_trace!(trace_digest)
           end
 
           # Create a root Span to keep track of frontend web servers
@@ -55,13 +55,14 @@ module Datadog
 
           trace_options = {
             service: configuration[:service_name],
-            resource: nil,
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           }
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = tracer.trace(Ext::SPAN_REQUEST, trace_options)
+          request_span = tracer.trace(Ext::SPAN_REQUEST, **trace_options)
+          request_span.resource = nil
+          request_trace = tracer.active_trace
           env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.
@@ -92,7 +93,7 @@ module Datadog
             # the result for this request; `resource` and `tags` are expected to
             # be set in another level but if they're missing, reasonable defaults
             # are used.
-            set_request_tags!(request_span, env, status, headers, response, original_env || env)
+            set_request_tags!(request_trace, request_span, env, status, headers, response, original_env || env)
 
             # ensure the request_span is finished and the context reset;
             # this assumes that the Rack middleware creates a root span
@@ -100,11 +101,6 @@ module Datadog
           end
 
           frontend_span.finish unless frontend_span.nil?
-
-          # TODO: Remove this once we change how context propagation works. This
-          # ensures we clean thread-local variables on each HTTP request avoiding
-          # memory leaks.
-          tracer.provider.context = Datadog::Context.new if tracer
         end
 
         def resource_name_for(env, status)
@@ -118,7 +114,7 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
-        def set_request_tags!(request_span, env, status, headers, response, original_env)
+        def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
           # URL for the current request; but some frameworks may override that
@@ -136,8 +132,8 @@ module Datadog
 
           request_span.resource ||= resource_name_for(env, status)
 
-          # Associate with runtime metrics
-          Datadog.runtime_metrics.associate_with_span(request_span)
+          # Set trace name if it hasn't been set yet (name == resource)
+          trace.resource = request_span.resource if trace.resource == trace.name
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

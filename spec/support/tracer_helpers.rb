@@ -112,15 +112,14 @@ module TracerHelpers
     }
 
     n.times do
-      span_op1 = Datadog::SpanOperation.new('client.testing', **defaults)
-      span_op2 = Datadog::SpanOperation.new('client.testing', **defaults, child_of: span_op2)
+      trace_op = Datadog::TraceOperation.new
 
-      span_op1.start
-      span_op2.start
-      span2 = span_op2.finish
-      span1 = span_op1.finish
+      trace_op.measure('client.testing', **defaults) do
+        trace_op.measure('client.testing', **defaults) do
+        end
+      end
 
-      traces << [span1, span2]
+      traces << trace_op.flush!
     end
 
     traces
@@ -136,8 +135,24 @@ module TracerHelpers
     tracer.writer
   end
 
+  def traces
+    @traces ||= writer.traces
+  end
+
   def spans
     @spans ||= writer.spans
+  end
+
+  # Returns the only trace in the current tracer writer.
+  #
+  # This method will not allow for ambiguous use,
+  # meaning it will throw an error when more than
+  # one span is available.
+  def trace
+    @trace ||= begin
+      expect(traces).to have(1).item, "Requested the only trace, but #{traces.size} traces are available"
+      traces.first
+    end
   end
 
   # Returns the only span in the current tracer writer.
@@ -152,9 +167,11 @@ module TracerHelpers
     end
   end
 
-  def clear_spans!
+  def clear_traces!
     writer.spans(:clear)
 
+    @traces = nil
+    @trace = nil
     @spans = nil
     @span = nil
   end

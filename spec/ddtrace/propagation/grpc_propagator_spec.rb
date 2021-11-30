@@ -4,71 +4,92 @@ require 'ddtrace/context'
 require 'ddtrace/propagation/grpc_propagator'
 
 RSpec.describe Datadog::GRPCPropagator do
-  describe '.inject!' do
-    subject { described_class }
-
-    let(:span_context) do
-      Datadog::Context.new(trace_id: 1234567890,
-                           span_id: 9876543210,
-                           sampling_priority: sampling_priority,
-                           origin: origin)
-    end
-
-    let(:sampling_priority) { nil }
-    let(:origin) { nil }
-
+  describe '::inject!' do
+    subject!(:inject!) { described_class.inject!(trace, metadata) }
     let(:metadata) { {} }
 
-    before { subject.inject!(span_context, metadata) }
+    shared_examples_for 'trace injection' do
+      let(:trace_id) { 1234567890 }
+      let(:span_id) { 9876543210 }
+      let(:sampling_priority) { nil }
+      let(:origin) { nil }
 
-    it 'injects the context trace id into the gRPC metadata' do
-      expect(metadata).to include('x-datadog-trace-id' => '1234567890')
-    end
+      it 'injects the context trace id into the gRPC metadata' do
+        expect(metadata).to include('x-datadog-trace-id' => '1234567890')
+      end
 
-    it 'injects the context parent span id into the gRPC metadata' do
-      expect(metadata).to include('x-datadog-parent-id' => '9876543210')
-    end
+      it 'injects the context parent span id into the gRPC metadata' do
+        expect(metadata).to include('x-datadog-parent-id' => '9876543210')
+      end
 
-    context 'when sampling priority set on context' do
-      let(:sampling_priority) { 0 }
+      context 'when sampling priority set on context' do
+        let(:sampling_priority) { 0 }
 
-      it 'injects the sampling priority into the gRPC metadata' do
-        expect(metadata).to include('x-datadog-sampling-priority' => '0')
+        it 'injects the sampling priority into the gRPC metadata' do
+          expect(metadata).to include('x-datadog-sampling-priority' => '0')
+        end
+      end
+
+      context 'when sampling priority not set on context' do
+        it 'leaves the sampling priority blank in the gRPC metadata' do
+          expect(metadata).not_to include('x-datadog-sampling-priority')
+        end
+      end
+
+      context 'when origin set on context' do
+        let(:origin) { 'synthetics' }
+
+        it 'injects the origin into the gRPC metadata' do
+          expect(metadata).to include('x-datadog-origin' => 'synthetics')
+        end
+      end
+
+      context 'when origin not set on context' do
+        it 'leaves the origin blank in the gRPC metadata' do
+          expect(metadata).not_to include('x-datadog-origin')
+        end
       end
     end
 
-    context 'when sampling priority not set on context' do
-      it 'leaves the sampling priority blank in the gRPC metadata' do
-        expect(metadata).not_to include('x-datadog-sampling-priority')
-      end
+    context 'given nil' do
+      let(:trace) { nil }
+      it { expect(metadata).to eq({}) }
     end
 
-    context 'when origin set on context' do
-      let(:origin) { 'synthetics' }
-
-      it 'injects the origin into the gRPC metadata' do
-        expect(metadata).to include('x-datadog-origin' => 'synthetics')
+    context 'given a TraceDigest and env' do
+      let(:trace) do
+        Datadog::TraceDigest.new(
+          span_id: span_id,
+          trace_id: trace_id,
+          trace_origin: origin,
+          trace_sampling_priority: sampling_priority
+        )
       end
+
+      it_behaves_like 'trace injection'
     end
 
-    context 'when origin not set on context' do
-      it 'leaves the origin blank in the gRPC metadata' do
-        expect(metadata).not_to include('x-datadog-origin')
+    context 'given a TraceOperation and env' do
+      let(:trace) do
+        Datadog::TraceOperation.new(
+          id: trace_id,
+          origin: origin,
+          parent_span_id: span_id,
+          sampling_priority: sampling_priority
+        )
       end
+
+      it_behaves_like 'trace injection'
     end
   end
 
   describe '.extract' do
-    subject { described_class.extract(metadata) }
+    subject(:extract) { described_class.extract(metadata) }
+    let(:trace_digest) { extract }
 
     context 'given empty metadata' do
-      let(:metadata) { {} }
-
-      it 'returns an empty context' do
-        expect(subject.trace_id).to be_nil
-        expect(subject.span_id).to be_nil
-        expect(subject.sampling_priority).to be_nil
-      end
+      let(:metadata) { nil }
+      it { is_expected.to be nil }
     end
 
     context 'given populated metadata' do
@@ -80,10 +101,10 @@ RSpec.describe Datadog::GRPCPropagator do
       end
 
       it 'returns a populated context' do
-        expect(subject.trace_id).to eq 1234567890
-        expect(subject.span_id).to eq 9876543210
-        expect(subject.sampling_priority).to be_zero
-        expect(subject.origin).to eq 'synthetics'
+        expect(trace_digest.span_id).to eq 9876543210
+        expect(trace_digest.trace_id).to eq 1234567890
+        expect(trace_digest.trace_origin).to eq 'synthetics'
+        expect(trace_digest.trace_sampling_priority).to be_zero
       end
     end
 
@@ -98,10 +119,10 @@ RSpec.describe Datadog::GRPCPropagator do
       end
 
       it 'returns a populated context with the first metadata array values' do
-        expect(subject.trace_id).to eq 12345
-        expect(subject.span_id).to eq 98765
-        expect(subject.sampling_priority).to be_zero
-        expect(subject.origin).to eq 'synthetics'
+        expect(trace_digest.span_id).to eq 98765
+        expect(trace_digest.trace_id).to eq 12345
+        expect(trace_digest.trace_origin).to eq 'synthetics'
+        expect(trace_digest.trace_sampling_priority).to be_zero
       end
     end
   end

@@ -11,8 +11,6 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
-  #
-  # rubocop:disable Metrics/ClassLength
   class Span
     include Tagging
 
@@ -38,7 +36,6 @@ module Datadog
       :name,
       :parent_id,
       :resource,
-      :sampled,
       :service,
       :type,
       :start_time,
@@ -73,7 +70,6 @@ module Datadog
       metrics: nil,
       parent_id: 0,
       resource: name,
-      sampled: true,
       service: nil,
       span_type: nil,
       start_time: nil,
@@ -93,8 +89,6 @@ module Datadog
       @meta = meta || {}
       @metrics = metrics || {}
       @status = status || 0
-
-      @sampled = sampled.nil? ? true : sampled
 
       @allocations = allocations || 0
 
@@ -166,64 +160,6 @@ module Datadog
       end
 
       h
-    end
-
-    # MessagePack serializer interface. Making this object
-    # respond to `#to_msgpack` allows it to be automatically
-    # serialized by MessagePack.
-    #
-    # This is more efficient than doing +MessagePack.pack(span.to_hash)+
-    # as we don't have to create an intermediate Hash.
-    #
-    # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
-    def to_msgpack(packer = nil)
-      # As of 1.3.3, JRuby implementation doesn't pass an existing packer
-      packer ||= MessagePack::Packer.new
-
-      if stopped?
-        packer.write_map_header(13) # Set header with how many elements in the map
-
-        packer.write('start')
-        packer.write(start_time_nano)
-
-        packer.write('duration')
-        packer.write(duration_nano)
-      else
-        packer.write_map_header(11) # Set header with how many elements in the map
-      end
-
-      # DEV: We use strings as keys here, instead of symbols, as
-      # DEV: MessagePack will ultimately convert them to strings.
-      # DEV: By providing strings directly, we skip this indirection operation.
-      packer.write('span_id')
-      packer.write(@id)
-      packer.write('parent_id')
-      packer.write(@parent_id)
-      packer.write('trace_id')
-      packer.write(@trace_id)
-      packer.write('name')
-      packer.write(@name)
-      packer.write('service')
-      packer.write(@service)
-      packer.write('resource')
-      packer.write(@resource)
-      packer.write('type')
-      packer.write(@type)
-      packer.write('meta')
-      packer.write(@meta)
-      packer.write('metrics')
-      packer.write(@metrics)
-      packer.write('allocations')
-      packer.write(allocations)
-      packer.write('error')
-      packer.write(@status)
-      packer
-    end
-
-    # JSON serializer interface.
-    # Used by older version of the transport.
-    def to_json(*args)
-      to_hash.to_json(*args)
     end
 
     # Return a human readable version of the span

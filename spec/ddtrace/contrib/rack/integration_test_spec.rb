@@ -514,13 +514,13 @@ RSpec.describe 'Rack integration tests' do
 
         before do
           responses.each { |response| expect(response).to be_ok }
-          expect(spans).to have(1).items
+          expect(spans).to have(2).items
         end
 
         it do
           # Ensure the context is properly cleaned between requests.
-          expect(tracer.provider.context.instance_variable_get(:@trace).length).to eq(0)
-          expect(spans).to have(1).items
+          expect(tracer.active_trace).to be nil
+          expect(spans).to have(2).items
         end
       end
     end

@@ -14,15 +14,26 @@ module Contrib
     end
 
     # Returns spans and caches it (similar to +let(:spans)+).
+    def traces
+      @traces ||= fetch_traces
+    end
+
+    # Returns spans and caches it (similar to +let(:spans)+).
     def spans
       @spans ||= fetch_spans
+    end
+
+    # Retrieves all traces in the current tracer instance.
+    # This method does not cache its results.
+    def fetch_traces(tracer = self.tracer)
+      tracer.instance_variable_get(:@traces) || []
     end
 
     # Retrieves and sorts all spans in the current tracer instance.
     # This method does not cache its results.
     def fetch_spans(tracer = self.tracer)
-      spans = tracer.instance_variable_get(:@spans) || []
-      spans.flatten.sort! do |a, b|
+      traces = fetch_traces(tracer)
+      traces.collect(&:spans).flatten.sort! do |a, b|
         if a.name == b.name
           if a.resource == b.resource
             if a.start_time == b.start_time
@@ -41,9 +52,11 @@ module Contrib
 
     # Remove all traces from the current tracer instance and
     # busts cache of +#spans+ and +#span+.
-    def clear_spans!
-      tracer.instance_variable_set(:@spans, [])
+    def clear_traces!
+      tracer.instance_variable_set(:@traces, [])
 
+      @traces = nil
+      @trace = nil
       @spans = nil
       @span = nil
     end
@@ -61,8 +74,8 @@ module Contrib
           allow(instance).to receive(:write) do |trace|
             instance.instance_exec do
               write_lock.synchronize do
-                @spans ||= []
-                @spans << trace
+                @traces ||= []
+                @traces << trace
               end
             end
           end

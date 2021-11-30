@@ -15,7 +15,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:writer) do
     Datadog::Writer.new.tap do |w|
       # write some stuff to trigger a #start
-      w.write([])
+      w.write(Datadog::TraceSegment.new([]))
+
       # now stop the writer and replace worker with ours, if we don't do
       # this the old worker will still be used.
       w.stop
@@ -70,10 +71,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # is consistent and that data flows through it.
     context 'with service names' do
       before do
-        tracer.start_span('my.op').tap do |s|
-          s.service = 'my.service'
+        tracer.trace('my.op', service: 'my.service') do
           sleep(0.001)
-          s.finish
         end
 
         wait_for_flush
@@ -109,9 +108,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # Test that a default service is provided if none has been given at all
     context 'with default service names' do
       before do
-        tracer.start_span('my.op').tap do |s|
+        tracer.trace('my.op') do
           sleep(0.001)
-          s.finish
         end
 
         wait_for_flush
@@ -151,8 +149,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         Datadog::Pipeline.before_flush(filter)
 
         # Create spans
-        tracer.start_span('keep', service: 'tracer-test').finish
-        tracer.start_span('discard', service: 'tracer-test').finish
+        tracer.trace('keep', service: 'tracer-test').finish
+        tracer.trace('discard', service: 'tracer-test').finish
 
         wait_for_flush(2)
       end
@@ -172,7 +170,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # Test that services are correctly flushed, with two of them
     context 'for two services' do
       before do
-        tracer.start_span('my.op').finish
+        tracer.trace('my.op').finish
       end
 
       it 'flushes the services correctly' do

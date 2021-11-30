@@ -4,8 +4,11 @@ require 'datadog/ci/spec_helper'
 require 'datadog/ci/test'
 
 RSpec.describe Datadog::CI::Test do
-  let(:tracer) { instance_double(Datadog::Tracer) }
+  let(:tracer) { instance_double(Datadog::Tracer, active_trace: trace_op) }
+  let(:trace_op) { instance_double(Datadog::TraceOperation) }
   let(:span_name) { 'span name' }
+
+  before { allow(trace_op).to receive(:origin=) }
 
   shared_examples_for 'default test span operation tags' do
     it do
@@ -24,6 +27,12 @@ RSpec.describe Datadog::CI::Test do
         expect(span_op.get_tag(key))
           .to eq(value)
       end
+    end
+
+    it do
+      expect(trace_op)
+        .to have_received(:origin=)
+        .with(Datadog::CI::Ext::Test::CONTEXT_ORIGIN)
     end
   end
 
@@ -46,7 +55,7 @@ RSpec.describe Datadog::CI::Test do
           .to receive(:trace) do |trace_span_name, trace_span_options, &trace_block|
             expect(trace_span_name).to be(span_name)
             expect(trace_span_options).to eq({ span_type: Datadog::CI::Ext::AppTypes::TEST })
-            trace_block.call(span_op)
+            trace_block.call(span_op, trace_op)
           end
 
         allow(Datadog::Contrib::Analytics).to receive(:set_measured)
@@ -83,7 +92,7 @@ RSpec.describe Datadog::CI::Test do
   end
 
   describe '::set_tags!' do
-    subject(:set_tags!) { described_class.set_tags!(span_op, tags) }
+    subject(:set_tags!) { described_class.set_tags!(trace_op, span_op, tags) }
     let(:span_op) { Datadog::SpanOperation.new(span_name) }
     let(:tags) { {} }
 
@@ -95,17 +104,11 @@ RSpec.describe Datadog::CI::Test do
       before { set_tags! }
     end
 
-    context 'when span operation has a context' do
-      let(:context) { instance_double(Datadog::Context) }
-
-      before do
-        allow(span_op).to receive(:context).and_return(context)
-        allow(context).to receive(:origin=)
-        set_tags!
-      end
+    context 'when trace operation is given' do
+      before { set_tags! }
 
       it do
-        expect(context)
+        expect(trace_op)
           .to have_received(:origin=)
           .with(Datadog::CI::Ext::Test::CONTEXT_ORIGIN)
       end

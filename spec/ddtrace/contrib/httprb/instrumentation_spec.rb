@@ -205,10 +205,14 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           end
 
           context 'with sampling priority' do
-            let(:sampling_priority) { 0.2 }
+            let(:sampling_priority) { 2 }
 
             before do
-              tracer.provider.context.sampling_priority = sampling_priority
+              tracer.continue_trace!(
+                Datadog::TraceDigest.new(
+                  trace_sampling_priority: sampling_priority
+                )
+              )
             end
 
             it 'does not propagate sampling priority' do
@@ -218,10 +222,14 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
         end
 
         context 'with sampling priority' do
-          let(:sampling_priority) { 0.2 }
+          let(:sampling_priority) { 2 }
 
           before do
-            tracer.provider.context.sampling_priority = sampling_priority
+            tracer.continue_trace!(
+              Datadog::TraceDigest.new(
+                trace_sampling_priority: sampling_priority
+              )
+            )
           end
 
           it 'propagates sampling priority' do

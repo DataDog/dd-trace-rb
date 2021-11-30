@@ -53,7 +53,7 @@ module Datadog
         begin
           traces = @trace_buffer.pop
           traces = Pipeline.process!(traces)
-          @trace_task.call(traces, @transport) unless @trace_task.nil?
+          @trace_task.call(traces, @transport) unless @trace_task.nil? || traces.empty?
         rescue StandardError => e
           # ensures that the thread will not die because of an exception.
           # TODO[manu]: findout the reason and reschedule the send if it's not
@@ -100,6 +100,8 @@ module Datadog
       # Enqueue an item in the trace internal buffer. This operation is thread-safe
       # because uses the +TraceBuffer+ data structure.
       def enqueue_trace(trace)
+        return unless trace && !trace.empty?
+
         @trace_buffer.push(trace)
       end
 

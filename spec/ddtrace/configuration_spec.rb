@@ -432,7 +432,7 @@ RSpec.describe Datadog::Configuration do
       subject(:tracer) { test_class.tracer }
 
       it { is_expected.to be_a_kind_of(Datadog::Tracer) }
-      it { expect(tracer.context_flush).to be_a_kind_of(Datadog::ContextFlush::Finished) }
+      it { expect(tracer.trace_flush).to be_a_kind_of(Datadog::TraceFlush::Finished) }
     end
 
     describe '#shutdown!' do

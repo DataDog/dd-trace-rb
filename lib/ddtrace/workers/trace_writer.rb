@@ -43,26 +43,12 @@ module Datadog
 
       def process_traces(traces)
         # Run traces through the processing pipeline
-        traces = Pipeline.process!(traces)
-
-        # Inject hostname if configured to do so
-        inject_hostname!(traces) if Datadog.configuration.report_hostname
-
-        traces
+        Pipeline.process!(traces)
       end
 
       def flush_traces(traces)
         transport.send_traces(traces).tap do |response|
           flush_completed.publish(response)
-        end
-      end
-
-      def inject_hostname!(traces)
-        traces.each do |trace|
-          next if trace.first.nil?
-
-          hostname = Datadog::Core::Environment::Socket.hostname
-          trace.first.set_tag(Ext::NET::TAG_HOSTNAME, hostname) unless hostname.nil? || hostname.empty?
         end
       end
 

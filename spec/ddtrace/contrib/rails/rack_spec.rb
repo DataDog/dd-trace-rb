@@ -24,12 +24,10 @@ RSpec.describe 'Rails Rack' do
     }
   end
 
-  let(:observed) { {} }
   let(:layout) { 'application' }
   let(:controllers) { [controller, errors_controller] }
   let(:controller) do
     layout_ = layout
-    observed = self.observed
     stub_const('TestController', Class.new(ActionController::Base) do
       include ::Rails.application.routes.url_helpers
 
@@ -99,11 +97,6 @@ RSpec.describe 'Rails Rack' do
       end
 
       define_method(:span_resource) do
-        active_span = Datadog.tracer.active_span
-        observed[:active_span] = { name: active_span.name, resource: active_span.resource }
-        root_span = Datadog.tracer.active_root_span
-        observed[:root_span] = { name: root_span.name, resource: root_span.resource }
-
         head :ok
       end
 
@@ -133,14 +126,17 @@ RSpec.describe 'Rails Rack' do
     it 'traces request' do
       is_expected.to be_ok
 
+      expect(trace).to_not be nil
       expect(spans).to have(4).items
 
       # Spans are sorted alphabetically
       request_span, controller_span, cache_span, render_span = spans
 
+      expect(trace.resource).to eq('TestController#full')
+
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('TestController#full')
+      expect(request_span.resource).to eq('GET 200')
       expect(request_span.get_tag('http.url')).to eq('/full')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')
@@ -231,11 +227,14 @@ RSpec.describe 'Rails Rack' do
     it 'traces complete stack' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(3).items
       request_span, controller_span, template_span = spans
 
+      expect(trace.resource).to eq('TestController#nonexistent_template')
+
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.resource).to eq('TestController#nonexistent_template')
+      expect(request_span.resource).to eq('GET 500')
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::MissingTemplate')
       expect(request_span).to have_error_message(include('Missing template test/does_not_exist'))
@@ -270,12 +269,15 @@ RSpec.describe 'Rails Rack' do
     it 'traces complete stack' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(4).items
 
       request_span, controller_span, partial_span, template_span = spans
 
+      expect(trace.resource).to eq('TestController#nonexistent_partial')
+
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.resource).to eq('TestController#nonexistent_partial')
+      expect(request_span.resource).to eq('GET 500')
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_message(include('Missing partial test/no_partial_here'))
@@ -316,12 +318,15 @@ RSpec.describe 'Rails Rack' do
     it 'traces with error information' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(2).items
       request_span, controller_span = spans
 
+      expect(trace.resource).to eq('TestController#error')
+
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('TestController#error')
+      expect(request_span.resource).to eq('GET 500')
       expect(request_span.get_tag('http.url')).to eq('/error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('500')
@@ -342,12 +347,15 @@ RSpec.describe 'Rails Rack' do
     it 'traces without explicit exception information' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have_at_least(2).items
       request_span, controller_span = spans
 
+      expect(trace.resource).to eq('TestController#soft_error')
+
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('TestController#soft_error')
+      expect(request_span.resource).to eq('GET 520')
       expect(request_span.get_tag('http.url')).to eq('/soft_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('520')
@@ -368,12 +376,15 @@ RSpec.describe 'Rails Rack' do
     it 'traces complete stack' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(2).items
       request_span, controller_span = spans
 
+      expect(trace.resource).to eq('TestController#sub_error')
+
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('TestController#sub_error')
+      expect(request_span.resource).to eq('GET 500')
       expect(request_span.get_tag('http.url')).to eq('/sub_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('500')
@@ -397,8 +408,11 @@ RSpec.describe 'Rails Rack' do
     it 'does not propagate error status to Rack span' do
       is_expected.to be_ok
 
+      expect(trace).to_not be nil
       expect(spans).to have(3).items
       request_span, controller_span, _template_span = spans
+
+      expect(trace.resource).to eq('TestController#error_handled_by_rescue_from')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
@@ -421,8 +435,11 @@ RSpec.describe 'Rails Rack' do
     it 'does not override trace resource names' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(2).items
       request_span, controller_span = spans
+
+      expect(trace.resource).to eq('ErrorsController#internal_server_error')
 
       expect(request_span).to have_error
       expect(request_span.resource).to_not eq(controller_span.resource)
@@ -438,8 +455,11 @@ RSpec.describe 'Rails Rack' do
     it 'sets status code' do
       is_expected.to be_not_found
 
+      expect(trace).to_not be nil
       expect(spans).to have_at_least(1).item
       request_span = spans[0]
+
+      expect(trace.resource).to eq('GET 404')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
@@ -457,12 +477,15 @@ RSpec.describe 'Rails Rack' do
     it 'does captures the attempted URL information' do
       is_expected.to be_not_found
 
+      expect(trace).to_not be nil
       expect(spans).to have_at_least(1).item
       request_span = spans[0]
 
+      expect(trace.resource).to eq('TestController#explicitly_not_found')
+
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('TestController#explicitly_not_found')
+      expect(request_span.resource).to eq('GET 404')
       expect(request_span.get_tag('http.url')).to eq('/explicitly_not_found')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('404')
@@ -482,8 +505,11 @@ RSpec.describe 'Rails Rack' do
     it 'has ActionView error tags' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(3).items
       request_span, controller_span, render_span = spans
+
+      expect(trace.resource).to eq('TestController#error_template')
 
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::Template::Error')
@@ -513,8 +539,11 @@ RSpec.describe 'Rails Rack' do
     it 'has ActionView error tags' do
       is_expected.to be_server_error
 
+      expect(trace).to_not be nil
       expect(spans).to have(4).items
       request_span, controller_span, partial_span, render_span = spans
+
+      expect(trace.resource).to eq('TestController#error_partial')
 
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::Template::Error')
@@ -549,21 +578,20 @@ RSpec.describe 'Rails Rack' do
     end
 
     it 'sets the controller span resource before calling the controller' do
-      expect(observed[:active_span]).to eq(name: 'rails.action_controller', resource: 'TestController#span_resource')
+      controller_span = spans.find { |s| s.name == 'rails.action_controller' }
+      expect(controller_span.name).to eq('rails.action_controller')
+      expect(controller_span.resource).to eq('TestController#span_resource')
     end
 
-    it 'sets the request span resource before calling the controller' do
-      expect(observed[:root_span]).to eq(name: 'rack.request', resource: 'TestController#span_resource')
+    it 'sets the trace resource before calling the controller' do
+      expect(trace.resource).to eq('TestController#span_resource')
     end
 
     context 'a custom controller span resource is applied' do
       subject(:response) { get '/custom_span_resource' }
 
       it 'propagates the custom controller span resource to the request span resource' do
-        expect(spans).to have(2).items
-        request_span, _controller_span = spans
-
-        expect(request_span.resource).to eq('CustomSpanResource')
+        expect(trace.resource).to eq('CustomSpanResource')
       end
     end
   end

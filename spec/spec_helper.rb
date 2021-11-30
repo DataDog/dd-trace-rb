@@ -27,6 +27,7 @@ require 'support/http_helpers'
 require 'support/log_helpers'
 require 'support/metric_helpers'
 require 'support/network_helpers'
+require 'support/object_helpers'
 require 'support/object_space_helper'
 require 'support/platform_helpers'
 require 'support/span_helpers'
@@ -54,6 +55,7 @@ RSpec.configure do |config|
   config.include LogHelpers
   config.include MetricHelpers
   config.include NetworkHelpers
+  config.include ObjectHelpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
   config.include TestHelpers

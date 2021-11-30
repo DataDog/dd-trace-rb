@@ -48,10 +48,10 @@ RSpec.describe 'tracing on the client connection' do
       expect(span.service).to eq 'rspec'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
 
-      clear_spans!
+      clear_traces!
 
       configured_client_interceptor.request_response(**keywords) {}
-      span = fetch_spans.first
+      span = fetch_spans.last
       expect(span.service).to eq 'cepsr'
       expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('cepsr')
     end
@@ -63,7 +63,7 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.service).to eq 'rspec' }
     specify { expect(span.resource).to eq 'myservice.endpoint' }
     specify { expect(span.get_tag('error.stack')).to be_nil }
-    specify { expect(span.get_tag(:some)).to eq 'datum' }
+    specify { expect(span.get_tag('some')).to eq 'datum' }
 
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }

@@ -42,7 +42,7 @@ module Datadog
 
             return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req, Datadog.tracer)
 
-            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span|
+            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
                 # even though service_name might already be in request_options,
                 # we need to capture the name from the pin since it could be
@@ -53,7 +53,7 @@ module Datadog
                 span.resource = req.method
 
                 if Datadog.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
-                  Datadog::HTTPPropagator.inject!(span.context, req)
+                  Datadog::HTTPPropagator.inject!(trace, req)
                 end
 
                 # Add additional request specific tags to the span.

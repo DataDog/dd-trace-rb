@@ -86,22 +86,23 @@ module Datadog
           # assigns all open Easy spans to the currently executing Multi context.
           #
           # @param parent_span [Datadog::Span] the Multi span, if executing in a Multi context.
-          def datadog_before_request(parent_span: nil)
+          def datadog_before_request(continue_from: nil)
             load_datadog_configuration_for(url)
 
-            trace_options = parent_span ? { child_of: parent_span } : {}
+            trace_options = continue_from ? { continue_from: continue_from } : {}
             @datadog_span = Datadog.tracer.trace(
               Ext::SPAN_REQUEST,
               service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-              **trace_options,
+              **trace_options
             )
+            datadog_trace = Datadog.tracer.active_trace
 
             datadog_tag_request
 
             if datadog_configuration[:distributed_tracing]
               @datadog_original_headers ||= {}
-              Datadog::HTTPPropagator.inject!(@datadog_span.context, @datadog_original_headers)
+              Datadog::HTTPPropagator.inject!(datadog_trace, @datadog_original_headers)
               self.headers = @datadog_original_headers
             end
           end

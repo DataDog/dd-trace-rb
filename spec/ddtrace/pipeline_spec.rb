@@ -21,79 +21,112 @@ RSpec.describe Datadog::Pipeline do
     subject(:pipeline) { described_class }
 
     context 'with empty pipeline' do
+      let(:trace) { Datadog::TraceSegment.new([span_list]) }
+
       it 'does not modify any spans' do
-        expect(subject.process!([span_list])).to eq([span_list])
+        expect(pipeline.process!([trace])).to eq([trace])
       end
     end
 
     context 'with a callable added' do
       it 'allows a callable to be added' do
-        expect(subject.before_flush(callable)).to eq([callable])
+        expect(pipeline.before_flush(callable)).to eq([callable])
       end
 
       it 'takes a block as an argument' do
-        expect(subject.before_flush(&callable)).to eq([callable])
+        expect(pipeline.before_flush(&callable)).to eq([callable])
       end
 
       it 'allows multiple callables as arguments' do
-        expect(subject.before_flush(callable, callable, callable)).to eq([callable, callable, callable])
+        expect(pipeline.before_flush(callable, callable, callable)).to eq([callable, callable, callable])
       end
 
       it 'concats and store multiple callables' do
-        subject.before_flush(callable)
-        expect(subject.before_flush(callable)).to eq([callable, callable])
+        pipeline.before_flush(callable)
+        expect(pipeline.before_flush(callable)).to eq([callable, callable])
       end
     end
 
     context 'with a filter added' do
+      subject(:filter) { pipeline.process!(traces) }
       let(:span_filter_a) { Datadog::Pipeline::SpanFilter.new { |span| span.name[/a/] } }
       let(:span_filter_c) { Datadog::Pipeline::SpanFilter.new { |span| span.name[/c/] } }
 
-      it 'applies a callable filter to each trace' do
-        subject.before_flush(span_filter_a)
+      context 'given a single trace' do
+        let(:traces) { [trace] }
+        let(:trace) { Datadog::TraceSegment.new(span_list) }
 
-        expect(subject.process!([span_list])).to eq([[span_b, span_c, span_d]])
+        before { pipeline.before_flush(span_filter_a) }
+
+        it 'applies a callable filter to each trace' do
+          is_expected.to eq(traces)
+          expect(filter.first.spans).to eq([span_b, span_c, span_d])
+        end
       end
 
-      it 'applies each callable filter to each trace' do
-        subject.before_flush(span_filter_a, span_filter_c)
+      context 'given multiple traces' do
+        let(:traces) { [trace_one, trace_two] }
+        let(:trace_one) { Datadog::TraceSegment.new([span_a, span_b]) }
+        let(:trace_two) { Datadog::TraceSegment.new([span_c, span_d]) }
 
-        expect(subject.process!([[span_a, span_b], [span_c, span_d]])).to eq([[span_b], [span_d]])
+        before { pipeline.before_flush(span_filter_a, span_filter_c) }
+
+        it 'applies each callable filter to each trace' do
+          is_expected.to eq(traces)
+          expect(filter[0].spans).to eq([span_b])
+          expect(filter[1].spans).to eq([span_d])
+        end
       end
     end
 
     context 'with a filter and processor added' do
+      subject(:filter_and_process) { pipeline.process!(traces) }
+
+      let(:traces) { [trace_one, trace_two] }
+      let(:trace_one) { Datadog::TraceSegment.new([span_a, span_b]) }
+      let(:trace_two) { Datadog::TraceSegment.new([span_c, span_d]) }
+
       let(:span_filter_a) { Datadog::Pipeline::SpanFilter.new { |span| span.name[/a/] } }
       let(:span_filter_c) { Datadog::Pipeline::SpanFilter.new { |span| span.name[/c/] } }
       let(:span_processor_upcase) { Datadog::Pipeline::SpanProcessor.new { |span| span.name.upcase! } }
       let(:span_processor_name) { Datadog::Pipeline::SpanProcessor.new { |span| span.name += '!' } }
 
+      before { pipeline.before_flush(span_filter_a, span_filter_c, span_processor_upcase, span_processor_name) }
+
       it 'applies a callable filter and processor to each trace' do
-        subject.before_flush(span_filter_a, span_filter_c, span_processor_upcase, span_processor_name)
-        expect(subject.process!([[span_a, span_b], [span_c, span_d]])).to eq([[span_b], [span_d]])
+        is_expected.to eq(traces)
+        expect(filter_and_process[0].spans).to eq([span_b])
+        expect(filter_and_process[1].spans).to eq([span_d])
         expect(span_b.name).to eq('B!')
         expect(span_d.name).to eq('D!')
       end
     end
 
     context 'with a custom callable' do
-      let(:custom_callable_conditional) { ->(trace) { trace if trace.size == 3 } }
-      let(:custom_callable_reverse) { ->(trace) { trace.reverse } }
+      subject(:custom_process) { pipeline.process!(traces) }
 
-      let(:traces) do
-        [
-          [span_a],
-          [
-            span_b,
-            span_c,
-            span_d
-          ]
-        ]
+      let(:custom_callable_conditional) do
+        lambda do |trace|
+          trace if trace.size == 3
+        end
       end
 
+      let(:custom_callable_reverse) do
+        lambda do |trace|
+          trace.spans.reverse!
+          trace
+        end
+      end
+
+      let(:traces) { [trace_one, trace_two] }
+      let(:trace_one) { Datadog::TraceSegment.new([span_a]) }
+      let(:trace_two) { Datadog::TraceSegment.new([span_b, span_c, span_d]) }
+
+      before { pipeline.before_flush(custom_callable_conditional, custom_callable_reverse) }
+
       it 'applies custom callable to each trace' do
-        subject.before_flush(custom_callable_conditional, custom_callable_reverse)
-        expect(subject.process!(traces)).to eq([traces[1].reverse])
+        is_expected.to eq([trace_two])
+        expect(custom_process.first.spans).to eq([span_d, span_c, span_b])
       end
     end
   end

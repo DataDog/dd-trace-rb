@@ -1082,22 +1082,22 @@ RSpec.describe Datadog::Configuration::Settings do
       end
     end
 
-    describe '#context_flush' do
-      subject(:context_flush) { settings.test_mode.context_flush }
+    describe '#trace_flush' do
+      subject(:trace_flush) { settings.test_mode.trace_flush }
 
       context 'default' do
         it { is_expected.to be nil }
       end
     end
 
-    describe '#context_flush=' do
-      let(:context_flush) { instance_double(Datadog::ContextFlush::Finished) }
+    describe '#trace_flush=' do
+      let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
 
-      it 'updates the #context_flush setting' do
-        expect { settings.test_mode.context_flush = context_flush }
-          .to change { settings.test_mode.context_flush }
+      it 'updates the #trace_flush setting' do
+        expect { settings.test_mode.trace_flush = trace_flush }
+          .to change { settings.test_mode.trace_flush }
           .from(nil)
-          .to(context_flush)
+          .to(trace_flush)
       end
     end
 

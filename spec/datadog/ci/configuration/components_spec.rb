@@ -43,7 +43,7 @@ RSpec.describe Datadog::CI::Configuration::Components do
             .to receive(:enabled=)
 
           allow(settings.test_mode)
-            .to receive(:context_flush=)
+            .to receive(:trace_flush=)
 
           allow(settings.test_mode)
             .to receive(:writer_options=)
@@ -62,8 +62,8 @@ RSpec.describe Datadog::CI::Configuration::Components do
 
           it do
             expect(settings.test_mode)
-              .to have_received(:context_flush=)
-              .with(settings.ci_mode.context_flush || kind_of(Datadog::CI::ContextFlush::Finished))
+              .to have_received(:trace_flush=)
+              .with(settings.ci_mode.trace_flush || kind_of(Datadog::CI::TraceFlush::Finished))
           end
 
           it do
@@ -83,7 +83,7 @@ RSpec.describe Datadog::CI::Configuration::Components do
 
           it do
             expect(settings.test_mode)
-              .to_not have_received(:context_flush=)
+              .to_not have_received(:trace_flush=)
           end
 
           it do

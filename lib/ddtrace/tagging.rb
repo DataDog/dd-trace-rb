@@ -1,5 +1,4 @@
 require 'ddtrace/tagging/analytics'
-require 'ddtrace/tagging/manual_tracing'
 require 'ddtrace/tagging/metadata'
 
 module Datadog
@@ -10,7 +9,6 @@ module Datadog
 
       # Additional extensions
       base.prepend(Tagging::Analytics)
-      base.prepend(Tagging::ManualTracing)
     end
   end
 end

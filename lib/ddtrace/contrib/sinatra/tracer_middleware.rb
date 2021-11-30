@@ -16,24 +16,23 @@ module Datadog
 
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/MethodLength
-        # rubocop:disable Metrics/CyclomaticComplexity
-        # rubocop:disable Metrics/PerceivedComplexity
         def call(env)
           # Set the trace context (e.g. distributed tracing)
-          if configuration[:distributed_tracing] && tracer.provider.context.trace_id.nil?
-            context = HTTPPropagator.extract(env)
-            tracer.provider.context = context if context.trace_id
+          if configuration[:distributed_tracing] && tracer.active_trace.nil?
+            original_trace = HTTPPropagator.extract(env)
+            tracer.continue_trace!(original_trace)
           end
 
           tracer.trace(
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-            # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
-            # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
-            resource: nil,
+            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           ) do |span|
             begin
+              # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
+              # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
+              span.resource = nil
+
               Sinatra::Env.set_datadog_span(env, @app_instance, span)
 
               response = @app.call(env)
@@ -52,14 +51,6 @@ module Datadog
               # If this app handled the request, then Contrib::Sinatra::Tracer OR Contrib::Sinatra::Base set the
               # resource; if no resource was set, let's use a fallback
               span.resource = env['REQUEST_METHOD'] if span.resource.nil?
-
-              # TODO: This backfills the non-matching Sinatra app with a "#{method} #{path}"
-              # TODO: resource name. This shouldn't be the case, as that app has never handled
-              # TODO: the response with that resource.
-              # TODO: We should replace this backfill code with a clear `resource` that signals
-              # TODO: that this Sinatra span was *not* responsible for processing the current request.
-              rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-              span.resource = rack_request_span.resource if rack_request_span && rack_request_span.resource
 
               if response
                 if (status = response[0])

@@ -1,30 +1,37 @@
 # typed: true
 require 'ddtrace/context'
 require 'ddtrace/ext/distributed'
+require 'ddtrace/trace_digest'
 
 module Datadog
-  # opentracing.io compliant methods for distributing trace context
+  # opentracing.io compliant methods for distributing trace headers
   # between two or more distributed services. Note this is very close
   # to the HTTPPropagator; the key difference is the way gRPC handles
   # header information (called "metadata") as it operates over HTTP2
   module GRPCPropagator
     include Ext::DistributedTracing
 
-    def self.inject!(context, metadata)
-      metadata[GRPC_METADATA_TRACE_ID] = context.trace_id.to_s
-      metadata[GRPC_METADATA_PARENT_ID] = context.span_id.to_s
-      metadata[GRPC_METADATA_SAMPLING_PRIORITY] = context.sampling_priority.to_s if context.sampling_priority
-      metadata[GRPC_METADATA_ORIGIN] = context.origin.to_s if context.origin
+    def self.inject!(digest, metadata)
+      return if digest.nil?
+
+      digest = digest.to_digest if digest.is_a?(TraceOperation)
+
+      metadata[GRPC_METADATA_TRACE_ID] = digest.trace_id.to_s
+      metadata[GRPC_METADATA_PARENT_ID] = digest.span_id.to_s
+      metadata[GRPC_METADATA_SAMPLING_PRIORITY] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
+      metadata[GRPC_METADATA_ORIGIN] = digest.trace_origin.to_s if digest.trace_origin
     end
 
     def self.extract(metadata)
       metadata = Carrier.new(metadata)
-      return Datadog::Context.new unless metadata.valid?
+      return nil unless metadata.valid?
 
-      Datadog::Context.new(trace_id: metadata.trace_id,
-                           span_id: metadata.parent_id,
-                           sampling_priority: metadata.sampling_priority,
-                           origin: metadata.origin)
+      Datadog::TraceDigest.new(
+        span_id: metadata.parent_id,
+        trace_id: metadata.trace_id,
+        trace_origin: metadata.origin,
+        trace_sampling_priority: metadata.sampling_priority
+      )
     end
 
     # opentracing.io compliant carrier object

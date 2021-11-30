@@ -23,7 +23,7 @@ module Datadog
 
             if datadog_multi_performing?
               # Start Easy span in case Multi is already performing
-              easy.datadog_before_request(parent_span: datadog_multi_span)
+              easy.datadog_before_request(continue_from: datadog_multi_trace_digest)
             end
             handles
           end
@@ -31,7 +31,7 @@ module Datadog
           def perform
             if tracer_enabled?
               easy_handles.each do |easy|
-                easy.datadog_before_request(parent_span: datadog_multi_span) unless easy.datadog_span_started?
+                easy.datadog_before_request(continue_from: datadog_multi_trace_digest) unless easy.datadog_span_started?
               end
             end
             super
@@ -39,6 +39,7 @@ module Datadog
             if tracer_enabled? && datadog_multi_performing?
               @datadog_multi_span.finish
               @datadog_multi_span = nil
+              @datadog_multi_trace_digest = nil
             end
           end
 
@@ -48,6 +49,12 @@ module Datadog
             instance_variable_defined?(:@datadog_multi_span) && !@datadog_multi_span.nil?
           end
 
+          def datadog_multi_trace_digest
+            return unless datadog_multi_span
+
+            @datadog_multi_trace_digest
+          end
+
           def datadog_multi_span
             return @datadog_multi_span if datadog_multi_performing?
 
@@ -55,6 +62,7 @@ module Datadog
               Ext::SPAN_MULTI_REQUEST,
               service: datadog_configuration[:service_name]
             )
+            @datadog_multi_trace_digest = Datadog.tracer.active_trace.to_digest
 
             # Tag as an external peer service
             @datadog_multi_span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, @datadog_multi_span.service)

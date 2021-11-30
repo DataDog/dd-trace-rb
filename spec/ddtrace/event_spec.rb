@@ -201,7 +201,7 @@ RSpec.describe Datadog::Event do
         it 'logs an error and continues to the next' do
           publish
 
-          expect(Datadog.logger).to have_received(:debug).with(/Error while handling 'first'/).once
+          expect(Datadog.logger).to have_lazy_debug_logged(/Error while handling 'first'/)
           expect(subscriptions[:second]).to have_received(:call).with(*args)
         end
       end

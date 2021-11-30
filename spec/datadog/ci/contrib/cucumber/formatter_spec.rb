@@ -52,7 +52,7 @@ RSpec.describe 'Cucumber formatter' do
       expect(step_span.resource).to eq('datadog')
 
       spans.each do |span|
-        expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY))
+        expect(span.get_tag(Datadog::Ext::DistributedTracing::TAG_ORIGIN))
           .to eq(Datadog::CI::Ext::Test::CONTEXT_ORIGIN)
       end
     end

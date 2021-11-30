@@ -273,7 +273,7 @@ If you aren't using a supported framework instrumentation, you may want to manua
 To trace any Ruby code, you can use the `Datadog.tracer.trace` method:
 
 ```ruby
-Datadog.tracer.trace(name, options) do |span|
+Datadog.tracer.trace(name, options) do |span, trace|
   # Wrap this block around the code you want to instrument
   # Additionally, you can modify the span here.
   # e.g. Change the resource name, set tags, etc...
@@ -285,14 +285,15 @@ Where `name` should be a `String` that describes the generic kind of operation b
 And `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Type | Description | Default |
-| --- | --- | --- | --- |
-| `service`     | `String` | The service name which this span belongs (e.g. `'my-web-service'`) | Tracer `default-service`, `$PROGRAM_NAME` or `'ruby'` |
-| `resource`    | `String` | Name of the resource or action being operated on. Traces with the same resource value will be grouped together for the purpose of metrics (but still independently viewable.) Usually domain specific, such as a URL, query, request, etc. (e.g. `'Article#submit'`, `http://example.com/articles/list`.) | `name` of Span. |
-| `span_type`   | `String` | The type of the span (such as `'http'`, `'db'`, etc.) | `nil` |
-| `child_of`    | `Datadog::SpanOperation` / `Datadog::Context` | Parent for this span. If not provided, will automatically become current active span. | `nil` |
-| `start_time`  | `Time` | When the span actually starts. Useful when tracing events that have already happened. | `Time.now` |
-| `tags`        | `Hash` | Extra tags which should be added to the span. | `{}` |
-| `on_error`    | `Proc` | Handler invoked when a block is provided to trace, and it raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| --------------- | ----------------------- | --- | --- |
+| `autostart`     | `Bool`                  | Whether the time measurement should be started automatically. If `false`, user must call `span.start`. | `true` |
+| `continue_from` | `Datadog::TraceDigest`  | Continues a trace that originated from another execution context. \TraceDigest describes the continuation point. | `nil` |
+| `on_error`      | `Proc`                  | Overrides error handling behavior, when a span raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `resource`      | `String`                | Name of the resource or action being operated on. Traces with the same resource value will be grouped together for the purpose of metrics (but still independently viewable.) Usually domain specific, such as a URL, query, request, etc. (e.g. `'Article#submit'`, `http://example.com/articles/list`.) | `name` of Span. |
+| `service`       | `String`                | The service name which this span belongs (e.g. `'my-web-service'`) | Tracer `default-service`, `$PROGRAM_NAME` or `'ruby'` |
+| `start_time`    | `Time`                  | When the span actually starts. Useful when tracing events that have already happened. | `Time.now` |
+| `tags`          | `Hash`                  | Extra tags which should be added to the span. | `{}` |
+| `type`          | `String`                | The type of the span (such as `'http'`, `'db'`, etc.) | `nil` |
 
 It's highly recommended you set both `service` and `resource` at a minimum. Spans without a `service` or `resource` as `nil` will be discarded by the Datadog agent.
 
@@ -367,13 +368,12 @@ current_span = Datadog.tracer.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
-You can also get the root span of the current active trace using the `active_root_span` method. This method will return `nil` if there is no active trace.
+You can also get the current active trace using the `active_trace` method. This method will return `nil` if there is no active trace.
 
 ```ruby
-# e.g. adding tag to active root span
+# e.g. accessing active trace
 
-current_root_span = Datadog.tracer.active_root_span
-current_root_span.set_tag('my_tag', 'my_value') unless current_root_span.nil?
+current_trace = Datadog.tracer.active_trace
 ```
 
 ## Integration instrumentation
@@ -2066,7 +2066,7 @@ The sampler can set the priority to the following values:
 
 Priority sampling is enabled by default. Enabling it ensures that your sampled distributed traces will be complete. Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
 
-You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `context#sampling_priority` to:
+You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `TraceOperation#sampling_priority` to:
 
  - `Datadog::Ext::Priority::USER_REJECT`: the user asked to reject the trace.
  - `Datadog::Ext::Priority::USER_KEEP`: the user asked to keep the trace.
@@ -2077,13 +2077,13 @@ If you change the priority, we recommend you do it as soon as possible - when th
 
 ```ruby
 # First, grab the active span
-span = Datadog.tracer.active_span
+trace = Datadog.tracer.active_trace
 
 # Indicate to reject the trace
-span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT
+trace.reject!
 
 # Indicate to keep the trace
-span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP
+trace.keep!
 ```
 
 ### Distributed Tracing
@@ -2216,19 +2216,19 @@ To make the process of propagating this metadata easier, you can use the `Datado
 On the client:
 
 ```ruby
-Datadog.tracer.trace('web.call') do |span|
-  # Inject span context into headers (`env` must be a Hash)
-  Datadog::HTTPPropagator.inject!(span.context, env)
+Datadog.tracer.trace('web.call') do |span, trace|
+  # Inject trace headers into request headers (`env` must be a Hash)
+  Datadog::HTTPPropagator.inject!(trace.to_digest, env)
 end
 ```
 
 On the server:
 
 ```ruby
-Datadog.tracer.trace('web.work') do |span|
-  # Build a context from headers (`env` must be a Hash)
-  context = HTTPPropagator.extract(request.env)
-  Datadog.tracer.provider.context = context if context.trace_id
+trace_digest = HTTPPropagator.extract(request.env)
+
+Datadog.tracer.trace('web.work', continue_from: trace_digest) do |span|
+  # Do web work...
 end
 ```
 
@@ -2339,9 +2339,9 @@ To properly correlate with Datadog logging, be sure the following is present in 
  - `dd.trace_id=<TRACE_ID>`: Where `<TRACE_ID>` is equal to `Datadog.tracer.active_correlation.trace_id` or `0` if no trace is active during logging.
  - `dd.span_id=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.span_id` or `0` if no trace is active during logging.
 
-By default, `Datadog::Correlation::Identifier#to_s` will return `dd.env=<ENV> dd.service=<SERVICE> dd.version=<VERSION> dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID>`.
+By default, `Datadog::Correlation::Identifier#to_log_format` will return `dd.env=<ENV> dd.service=<SERVICE> dd.version=<VERSION> dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID>`.
 
-If a trace is not active and the application environment & version is not configured, it will return `dd.trace_id=0 dd.span_id=0 dd.env= dd.version=`.
+If a trace is not active and the application environment & version is not configured, it will return `dd.env= dd.service= dd.version= dd.trace_id=0 dd.span_id=0`.
 
 An example of this in practice:
 
@@ -2356,7 +2356,7 @@ ENV['DD_VERSION'] = '2.5.17'
 logger = Logger.new(STDOUT)
 logger.progname = 'my_app'
 logger.formatter  = proc do |severity, datetime, progname, msg|
-  "[#{datetime}][#{progname}][#{severity}][#{Datadog.tracer.active_correlation}] #{msg}\n"
+  "[#{datetime}][#{progname}][#{severity}][#{Datadog.tracer.active_correlation.to_log_format}] #{msg}\n"
 end
 
 # When no trace is active

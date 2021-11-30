@@ -85,4 +85,12 @@ module SpanHelpers
       values_match? 0, value
     end
   end
+
+  RSpec::Matchers.define :have_metadata do |**tags|
+    match do |actual|
+      tags.all? do |key, value|
+        actual.get_tag(key) == value
+      end
+    end
+  end
 end

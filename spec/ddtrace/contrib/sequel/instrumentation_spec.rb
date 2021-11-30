@@ -47,7 +47,7 @@ RSpec.describe 'Sequel instrumentation' do
         String :name
       end
 
-      clear_spans!
+      clear_traces!
     end
 
     let(:normalized_adapter) { defined?(super) ? super() : adapter }

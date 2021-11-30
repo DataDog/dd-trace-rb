@@ -15,7 +15,7 @@ module Datadog
             on_error: configuration[:error_handler]
           }
 
-          tracer.trace(Ext::SPAN_JOB, trace_options) do |request_span|
+          tracer.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
             request_span.resource = job.class.name.to_s
             request_span.set_tag(Ext::TAG_JOB_QUEUE, job.que_attrs[:queue])
             request_span.set_tag(Ext::TAG_JOB_ID, job.que_attrs[:id])

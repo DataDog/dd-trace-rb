@@ -13,10 +13,10 @@ RSpec.describe Datadog::Sampling::RuleSampler do
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
 
-  let(:span_op) { Datadog::SpanOperation.new('dummy', context: Datadog::Context.new) }
+  let(:trace) { Datadog::TraceOperation.new }
 
   before do
-    allow(default_sampler).to receive(:sample?).with(span_op).and_return(nil)
+    allow(default_sampler).to receive(:sample?).with(trace).and_return(nil)
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
@@ -82,34 +82,34 @@ RSpec.describe Datadog::Sampling::RuleSampler do
     let(:sample_rate) { 0.8 }
 
     before do
-      allow(rule).to receive(:match?).with(span_op).and_return(true)
-      allow(rule).to receive(:sample?).with(span_op).and_return(sampled)
-      allow(rule).to receive(:sample_rate).with(span_op).and_return(sample_rate)
+      allow(rule).to receive(:match?).with(trace).and_return(true)
+      allow(rule).to receive(:sample?).with(trace).and_return(sampled)
+      allow(rule).to receive(:sample_rate).with(trace).and_return(sample_rate)
     end
   end
 
   describe '#sample!' do
-    subject(:sample) { rule_sampler.sample!(span_op) }
+    subject(:sample) { rule_sampler.sample!(trace) }
 
-    shared_examples 'a sampled! span operation' do
+    shared_examples 'a sampled! trace' do
       before { subject }
 
       it { is_expected.to eq(expected_sampled) }
 
-      it 'sets `span_op.sampled` flag' do
-        expect(span_op.sampled).to eq(expected_sampled)
+      it 'sets `trace.sampled?` flag' do
+        expect(trace.sampled?).to eq(expected_sampled)
       end
 
       it 'sets rule metrics' do
-        expect(span_op.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to eq(sample_rate)
+        expect(trace.rule_sample_rate).to eq(sample_rate)
       end
 
       it 'sets limiter metrics' do
-        expect(span_op.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to eq(effective_rate)
+        expect(trace.rate_limiter_rate).to eq(effective_rate)
       end
 
       it 'sets the sampling priority' do
-        expect(span_op.context.sampling_priority).to eq(sampling_priority)
+        expect(trace.sampling_priority).to eq(sampling_priority)
       end
     end
 
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         context 'and not rate limited' do
           let(:allow?) { true }
 
-          it_behaves_like 'a sampled! span operation' do
+          it_behaves_like 'a sampled! trace' do
             let(:expected_sampled) { true }
             let(:sampling_priority) { 2 }
           end
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
         context 'and rate limited' do
           let(:allow?) { false }
 
-          it_behaves_like 'a sampled! span operation' do
+          it_behaves_like 'a sampled! trace' do
             let(:expected_sampled) { false }
             let(:sampling_priority) { -1 }
           end
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       context 'and not sampled' do
         let(:sampled) { false }
 
-        it_behaves_like 'a sampled! span operation' do
+        it_behaves_like 'a sampled! trace' do
           let(:expected_sampled) { false }
           let(:sampling_priority) { -1 }
           let(:effective_rate) { nil } # Rate limiter was not evaluated
@@ -153,20 +153,20 @@ RSpec.describe Datadog::Sampling::RuleSampler do
       let(:delegated) { double }
 
       before do
-        allow(default_sampler).to receive(:sample!).with(span_op).and_return(delegated)
+        allow(default_sampler).to receive(:sample!).with(trace).and_return(delegated)
       end
 
       it { is_expected.to eq(delegated) }
 
       it 'skips metrics' do
         sample
-        expect(span_op.get_metric(Datadog::Ext::Sampling::RULE_SAMPLE_RATE)).to be_nil
-        expect(span_op.get_metric(Datadog::Ext::Sampling::RATE_LIMITER_RATE)).to be_nil
+        expect(trace.rule_sample_rate).to be_nil
+        expect(trace.rate_limiter_rate).to be_nil
       end
 
       it 'does not set sampling priority' do
         sample
-        expect(span_op.context.sampling_priority).to be_nil
+        expect(trace.sampling_priority).to be_nil
       end
 
       context 'when the default sampler is a RateByServiceSampler' do
@@ -175,17 +175,17 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
         it 'sets the agent rate metric' do
           expect(default_sampler).to receive(:sample_rate)
-            .with(span_op)
+            .with(trace)
             .and_return(sample_rate)
           sample
-          expect(span_op.get_metric(described_class::AGENT_RATE_METRIC_KEY)).to eq(sample_rate)
+          expect(trace.agent_sample_rate).to eq(sample_rate)
         end
       end
     end
   end
 
   describe '#sample?' do
-    subject(:sample) { rule_sampler.sample?(span_op) }
+    subject(:sample) { rule_sampler.sample?(trace) }
 
     it { expect { subject }.to raise_error(StandardError, 'RuleSampler cannot be evaluated without side-effects') }
   end

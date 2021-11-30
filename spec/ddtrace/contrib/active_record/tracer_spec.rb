@@ -92,7 +92,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
             # Warm it up
             Article.count
-            clear_spans!
+            clear_traces!
 
             Datadog.configure do |c|
               c.use :active_record, service_name: 'bad-no-match'

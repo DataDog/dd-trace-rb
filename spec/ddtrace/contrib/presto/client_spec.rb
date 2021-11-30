@@ -239,7 +239,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
       context 'a failed query' do
         before do
-          clear_spans!
+          clear_traces!
           begin
             client.run('SELECT banana')
           rescue Presto::Client::PrestoQueryError

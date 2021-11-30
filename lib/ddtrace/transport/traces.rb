@@ -1,6 +1,8 @@
 # typed: true
 require 'ddtrace/transport/parcel'
 require 'ddtrace/transport/request'
+require 'ddtrace/transport/serializable_trace'
+require 'ddtrace/transport/trace_formatter'
 require 'ddtrace/chunker'
 
 module Datadog
@@ -92,7 +94,14 @@ module Datadog
         module_function
 
         def encode_trace(encoder, trace)
-          encoder.encode(trace)
+          # Format the trace for transport
+          TraceFormatter.format!(trace)
+
+          # Make the trace serializable
+          serializable_trace = SerializableTrace.new(trace)
+
+          # Encode the trace
+          encoder.encode(serializable_trace)
         end
       end
 

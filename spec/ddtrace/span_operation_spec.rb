@@ -10,21 +10,14 @@ RSpec.describe Datadog::SpanOperation do
   shared_examples 'a root span operation' do
     it do
       is_expected.to have_attributes(
-        parent_id: 0,
-        parent: nil,
+        parent_id: 0
       )
-    end
-
-    it 'has default tags' do
-      expect(span_op.get_tag(Datadog::Ext::Runtime::TAG_PID)).to eq(Process.pid)
-      expect(span_op.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
     end
   end
 
   shared_examples 'a child span operation' do
     it 'associates to the parent' do
       expect(span_op).to have_attributes(
-        parent: parent,
         parent_id: parent.span_id,
         trace_id: parent.trace_id
       )
@@ -74,13 +67,11 @@ RSpec.describe Datadog::SpanOperation do
     context 'given only a name' do
       it 'has default attributes' do
         is_expected.to have_attributes(
-          context: nil,
           end_time: nil,
           id: kind_of(Integer),
           name: name,
           parent_id: 0,
           resource: name,
-          sampled: true,
           service: nil,
           start_time: nil,
           status: 0,
@@ -154,25 +145,55 @@ RSpec.describe Datadog::SpanOperation do
         end
       end
 
-      describe ':context' do
-        let(:options) { { context: context } }
+      context ':on_error' do
+        let(:options) { { on_error: block } }
+
+        let(:block) { proc { raise error } }
+        let(:error) { error_class.new('error message') }
+        let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
 
         context 'that is nil' do
-          let(:context) { nil }
+          let(:on_error) { nil }
 
-          it_behaves_like 'a root span operation'
+          context 'and #measure raises an error' do
+            subject(:measure) { span_op.measure { raise error } }
+
+            before { allow(span_op).to receive(:set_error) }
+
+            it 'propagates the error' do
+              expect { measure }.to raise_error(error)
+              expect(span_op).to have_received(:set_error).with(error)
+            end
+          end
         end
 
-        context 'that is a Context' do
-          let(:context) { instance_double(Datadog::Context) }
+        context 'that is a block' do
+          let(:on_error) { block }
 
-          it_behaves_like 'a root span operation'
+          it 'yields to the error block and raises the error' do
+            expect do
+              expect do |b|
+                options[:on_error] = b.to_proc
+                span_op.measure(&block)
+              end.to yield_with_args(
+                a_kind_of(described_class),
+                error
+              )
+            end.to raise_error(error)
 
-          # It should not modify the context:
-          # The tracer should be responsible for context management.
-          # This association exists only for backwards compatibility.
-          it 'associates with the Context' do
-            is_expected.to have_attributes(context: context)
+            # It should not set an error, as this overrides behavior.
+            expect(span_op).to_not have_error
+          end
+        end
+
+        context 'that is not a Proc' do
+          let(:on_error) { 'not a proc' }
+
+          it 'fallbacks to default error handler and log a debug message' do
+            expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
+            expect do
+              span_op.measure(&block)
+            end.to raise_error(error)
           end
         end
       end
@@ -252,21 +273,6 @@ RSpec.describe Datadog::SpanOperation do
         end
       end
 
-      describe ':span_type' do
-        let(:options) { { span_type: span_type } }
-        let(:span_type) { instance_double(String) }
-
-        context 'that is nil' do
-          let(:span_type) { nil }
-          it { is_expected.to have_attributes(span_type: nil) }
-        end
-
-        context 'that is a String' do
-          let(:span_type) { instance_double(String) }
-          it { is_expected.to have_attributes(span_type: span_type) }
-        end
-      end
-
       describe ':start_time' do
         let(:options) { { start_time: start_time } }
         let(:start_time) { instance_double(Time) }
@@ -306,20 +312,6 @@ RSpec.describe Datadog::SpanOperation do
           context 'and :child_of is not given' do
             it_behaves_like 'a root span operation'
             it { expect(span_op.get_tag('custom_tag')).to eq(tags['custom_tag']) }
-
-            context 'but :tags contains tags that conflict with defaults' do
-              let(:tags) do
-                {
-                  Datadog::Ext::Runtime::TAG_PID => -123,
-                  Datadog::Ext::Runtime::TAG_ID => 'custom-id'
-                }
-              end
-
-              it 'does not override runtime tags' do
-                expect(span_op.get_tag(Datadog::Ext::Runtime::TAG_PID)).to eq(Process.pid)
-                expect(span_op.get_tag(Datadog::Ext::Runtime::TAG_ID)).to eq(Datadog::Core::Environment::Identity.id)
-              end
-            end
           end
 
           context 'and :child_of is given' do
@@ -353,11 +345,6 @@ RSpec.describe Datadog::SpanOperation do
         context 'that is nil' do
           let(:type) { nil }
           it { is_expected.to have_attributes(type: nil) }
-
-          context 'but :span_type is given' do
-            let(:options) { { type: nil, span_type: type } }
-            it { is_expected.to have_attributes(type: type) }
-          end
         end
 
         context 'that is a String' do
@@ -559,7 +546,7 @@ RSpec.describe Datadog::SpanOperation do
       context 'and callbacks have been configured' do
         include_context 'callbacks'
         before { start }
-        it { expect(callback_spy).to_not have_received(:before_start) }
+        it { expect(callback_spy).to have_received(:before_start).with(span_op) }
       end
     end
 
@@ -613,7 +600,7 @@ RSpec.describe Datadog::SpanOperation do
           before { stop }
           it do
             expect(callback_spy).to have_received(:after_stop).with(span_op)
-            expect(callback_spy).to_not have_received(:before_start)
+            expect(callback_spy).to have_received(:before_start).with(span_op)
             expect(callback_spy).to_not have_received(:after_finish)
           end
         end
@@ -751,7 +738,8 @@ RSpec.describe Datadog::SpanOperation do
 
     context 'when not started' do
       it { expect { finish }.to change { span_op.end_time }.from(nil).to(kind_of(Time)) }
-      it { expect { finish }.to change { span_op.duration }.from(nil).to(0) }
+      # Will be a float, not 0 time, because "duration" is used, not time stamps.
+      it { expect { finish }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
     end
 
     context 'when already finished' do
@@ -837,6 +825,7 @@ RSpec.describe Datadog::SpanOperation do
         sleep(duration_wall_time)
         span_op.stop
 
+        puts "\nduration: #{duration}\nwall_time: #{duration_wall_time * 1e9}\n"
         expect(duration).to be_within(1).of(duration_wall_time * 1e9)
       end
 

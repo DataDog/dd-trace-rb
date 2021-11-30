@@ -32,7 +32,7 @@ RSpec.describe 'Rails database' do
       Article.count # Ensure warm up queries are executed before tests
     end
 
-    clear_spans!
+    clear_traces!
   end
 
   after { Article.delete_all }
@@ -60,7 +60,7 @@ RSpec.describe 'Rails database' do
   context 'on record creation' do
     before do
       Article.create(title: 'Instantiation test')
-      clear_spans!
+      clear_traces!
     end
 
     context 'with instantiation support' do
@@ -118,7 +118,7 @@ RSpec.describe 'Rails database' do
         Article.count
         expect(span.get_tag('active_record.db.cached')).to be_nil
 
-        clear_spans!
+        clear_traces!
 
         Article.count
         expect(span.get_tag('active_record.db.cached')).to eq('true')
