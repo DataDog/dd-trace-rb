@@ -27,11 +27,11 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
      - [Action Cable](#action-cable)
-     - [Action View](#action-view)
      - [Action Mailer](#action-mailer)
-     - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
+     - [Action View](#action-view)
      - [Active Job](#active-job)
+     - [Active Model Serializers](#active-model-serializers)
      - [Active Record](#active-record)
      - [Active Support](#active-support)
      - [AWS](#aws)
@@ -49,6 +49,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [http.rb](#httprb)
      - [httpclient](#httpclient)
      - [httpx](#httpx)
+     - [Kafka](#kafka)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
@@ -60,11 +61,11 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Rails](#rails)
      - [Rake](#rake)
      - [Redis](#redis)
-     - [Rest Client](#rest-client)
      - [Resque](#resque)
+     - [Rest Client](#rest-client)
      - [RSpec](#rspec)
-     - [Shoryuken](#shoryuken)
      - [Sequel](#sequel)
+     - [Shoryuken](#shoryuken)
      - [Sidekiq](#sidekiq)
      - [Sinatra](#sinatra)
      - [Sneakers](#sneakers)
@@ -395,10 +396,10 @@ For a list of available integrations, and their configuration options, please re
 | ------------------------ | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action Cable             | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
 | Action Mailer            | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
-| Action View              | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
-| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Action Pack              | `action_pack`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Action View              | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Job               | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | *[Link](#active-job)*               | *[Link](https://github.com/rails/rails/tree/master/activejob)*             |
+| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Active Record            | `active_record`            | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | Active Support           | `active_support`           | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
@@ -459,26 +460,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `action_cable` instrumentation | `'action_cable'` |
 
-### Action View
-
-Most of the time, Active Support is set up as part of Rails, but it can be activated separately:
-
-```ruby
-require 'actionview'
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.use :action_view, options
-end
-```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| ---| --- | --- |
-| `service_name` | Service name used for rendering instrumentation. | `action_view` |
-| `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
-
 ### Action Mailer
 
 The Action Mailer integration provides tracing for Rails 5 ActionMailer actions.
@@ -500,26 +481,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `service_name` | Service name used for `action_mailer` instrumentation | `'action_mailer'` |
 | `email_data` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
 
-### Active Model Serializers
-
-The Active Model Serializers integration traces the `serialize` event for version 0.9+ and the `render` event for version 0.10+.
-
-```ruby
-require 'active_model_serializers'
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.use :active_model_serializers, options
-end
-
-my_object = MyModel.new(name: 'my object')
-ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
-```
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `active_model_serializers` instrumentation. | `'active_model_serializers'` |
-
 ### Action Pack
 
 Most of the time, Action Pack is set up as part of Rails, but it can be activated separately:
@@ -538,6 +499,26 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | ---| --- | --- |
 | `service_name` | Service name used for rendering instrumentation. | `action_pack` |
+
+### Action View
+
+Most of the time, Action View is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'actionview'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :action_view, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| ---| --- | --- |
+| `service_name` | Service name used for rendering instrumentation. | `action_view` |
+| `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
 
 ### Active Job
 
@@ -559,6 +540,27 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
+
+### Active Model Serializers
+
+The Active Model Serializers integration traces the `serialize` event for version 0.9+ and the `render` event for version 0.10+.
+
+```ruby
+require 'active_model_serializers'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :active_model_serializers, options
+end
+
+my_object = MyModel.new(name: 'my object')
+ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
+```
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `service_name` | Service name used for `active_model_serializers` instrumentation. | `'active_model_serializers'` |
+
 
 ### Active Record
 
