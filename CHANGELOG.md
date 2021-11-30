@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [0.54.1] - 2021-11-30
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.54.1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.54.0...v0.54.1
+
+### Fixed
+
+- Skip building profiling native extension when Ruby has been compiled without JIT ([#1774][], [#1776][])
+
 ## [0.54.0] - 2021-11-17
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.54.0
@@ -2670,6 +2680,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1769]: https://github.com/DataDog/dd-trace-rb/issues/1769
 [#1770]: https://github.com/DataDog/dd-trace-rb/issues/1770
 [#1771]: https://github.com/DataDog/dd-trace-rb/issues/1771
+[#1774]: https://github.com/DataDog/dd-trace-rb/issues/1774
+[#1776]: https://github.com/DataDog/dd-trace-rb/issues/1776
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

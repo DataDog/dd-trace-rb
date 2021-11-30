@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (0.54.0)
+    ddtrace (0.54.1)
       debase-ruby_core_source (= 0.10.12)
       msgpack
 
@@ -31,7 +31,7 @@ GEM
     dogstatsd-ruby (5.2.0)
     faraday (0.17.0)
       multipart-post (>= 1.2, < 3)
-    google-protobuf (3.17.3-x86_64-linux)
+    google-protobuf (3.17.3)
     hashdiff (1.0.1)
     json (2.5.1)
     memory_profiler (0.9.14)
