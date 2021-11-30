@@ -488,6 +488,7 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '3.1'
     image: ivoanjo/docker-library:ddtrace_rb_3_1_0_preview1
+    resource_class_to_use: xlarge # Temporary, see https://github.com/DataDog/dd-trace-rb/issues/1791
     # ADD NEW RUBIES HERE
   # JRuby
   - &config-jruby-9_2_0_0 # Oldest supported version
