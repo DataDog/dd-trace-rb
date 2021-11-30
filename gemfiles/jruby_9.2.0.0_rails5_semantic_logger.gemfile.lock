@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.54.0)
+    ddtrace (0.54.1)
       debase-ruby_core_source (= 0.10.12)
       msgpack
 

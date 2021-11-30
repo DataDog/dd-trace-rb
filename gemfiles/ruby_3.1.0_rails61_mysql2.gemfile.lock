@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.54.0)
+    ddtrace (0.54.1)
       debase-ruby_core_source (= 0.10.12)
       msgpack
 
@@ -101,6 +101,7 @@ GEM
     debase-ruby_core_source (0.10.12)
     debug_inspector (1.1.0)
     diff-lcs (1.4.4)
+    digest (3.0.0)
     docile (1.4.0)
     dogstatsd-ruby (5.3.2)
     erubi (1.10.0)
@@ -110,6 +111,7 @@ GEM
     hashdiff (1.0.1)
     i18n (1.8.11)
       concurrent-ruby (~> 1.0)
+    io-wait (0.2.1)
     lograge (0.11.2)
       actionpack (>= 4)
       activesupport (>= 4)
@@ -128,6 +130,13 @@ GEM
     minitest (5.14.4)
     msgpack (1.4.2)
     mysql2 (0.5.3)
+    net-protocol (0.1.2)
+      io-wait
+      timeout
+    net-smtp (0.3.0)
+      digest
+      net-protocol
+      timeout
     nio4r (2.5.8)
     nokogiri (1.12.5)
       mini_portile2 (~> 2.6.1)
@@ -243,6 +252,7 @@ GEM
       activesupport (>= 5.2)
       sprockets (>= 3.0.0)
     thor (1.1.0)
+    timeout (0.2.0)
     tzinfo (2.0.4)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.1.0)
@@ -275,6 +285,7 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   mysql2 (~> 0.5)
+  net-smtp
   opentracing (>= 0.4.1)
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
