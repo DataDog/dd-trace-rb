@@ -123,9 +123,9 @@ RSpec.describe Datadog::SpanOperation do
           context 'and no :service is given' do
             it_behaves_like 'a child span operation'
 
-            it 'uses the parent span service' do
+            it 'does not use the parent span service' do
               is_expected.to have_attributes(
-                service: parent.service
+                service: nil
               )
             end
           end
@@ -136,7 +136,7 @@ RSpec.describe Datadog::SpanOperation do
 
             it_behaves_like 'a child span operation'
 
-            it 'uses the parent span service' do
+            it 'uses the :service option' do
               is_expected.to have_attributes(
                 service: service
               )
@@ -255,7 +255,7 @@ RSpec.describe Datadog::SpanOperation do
             let(:options) { { child_of: parent, service: service } }
 
             it_behaves_like 'a child span operation'
-            it { is_expected.to have_attributes(service: parent_service) }
+            it { is_expected.to have_attributes(service: service) }
           end
         end
 

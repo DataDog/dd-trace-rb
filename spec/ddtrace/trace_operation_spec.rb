@@ -854,7 +854,8 @@ RSpec.describe Datadog::TraceOperation do
               trace_op.measure('parent', service: active_service) { build_span }
             end
 
-            it { expect(span.service).to eq(active_service) }
+            # It should never inherit from a parent span
+            it { expect(span.service).to be nil }
           end
         end
 
@@ -1880,18 +1881,18 @@ RSpec.describe Datadog::TraceOperation do
         @thread_traces = Queue.new
 
         trace_op.measure('job', resource: 'import_job', service: 'job-worker') do |_span, trace|
-          trace.measure('load_data', resource: 'imports.csv') do
-            trace.measure('read_file', resource: 'imports.csv') do
+          trace.measure('load_data', resource: 'imports.csv', service: 'job-worker') do
+            trace.measure('read_file', resource: 'imports.csv', service: 'job-worker') do
               sleep(0.01)
             end
 
-            trace.measure('deserialize', resource: 'inventory') do
+            trace.measure('deserialize', resource: 'inventory', service: 'job-worker') do
               sleep(0.01)
             end
           end
 
           workers = nil
-          trace.measure('start_inserts', resource: 'inventory') do
+          trace.measure('start_inserts', resource: 'inventory', service: 'job-worker') do
             trace_digest = trace.to_digest
 
             workers = Array.new(5) do |index|
@@ -1919,12 +1920,12 @@ RSpec.describe Datadog::TraceOperation do
             end
           end
 
-          trace.measure('wait_inserts', resource: 'inventory') do |wait_span|
+          trace.measure('wait_inserts', resource: 'inventory', service: 'job-worker') do |wait_span|
             wait_span.set_tag('worker.count', workers.length)
             workers && workers.each { |w| w.alive? && w.join }
           end
 
-          trace.measure('update_log', resource: 'inventory') do
+          trace.measure('update_log', resource: 'inventory', service: 'job-worker') do
             sleep(0.01)
           end
         end

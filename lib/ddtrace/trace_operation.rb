@@ -337,7 +337,6 @@ module Datadog
       if (parent = @active_span)
         options[:child_of] = parent
         options[:parent_id] = parent.id
-        options[:service] ||= parent.service
       else
         options[:parent_id] = @parent_span_id || 0
       end

@@ -248,7 +248,7 @@ RSpec.describe Datadog::Tracer do
       end
 
       context 'when nesting spans' do
-        it 'propagates parent span and service name to children' do
+        it 'propagates parent span and uses default service name' do
           tracer.trace('parent', service: 'service-parent') do
             tracer.trace('child1') { |s| s.set_tag('tag', 'tag_1') }
             tracer.trace('child2', service: 'service-child2') { |s| s.set_tag('tag', 'tag_2') }
@@ -264,7 +264,7 @@ RSpec.describe Datadog::Tracer do
 
           expect(child1.parent_id).to be(parent.span_id)
           expect(child1.name).to eq('child1')
-          expect(child1.service).to eq('service-parent')
+          expect(child1.service).to eq(tracer.default_service)
           expect(child1.get_tag('tag')).to eq('tag_1')
 
           expect(child2.parent_id).to be(parent.span_id)

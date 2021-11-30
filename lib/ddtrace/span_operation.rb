@@ -54,9 +54,7 @@ module Datadog
       trace_id: nil,
       type: nil
     )
-      # Resolve service name
       parent = child_of
-      service ||= parent.service unless parent.nil?
 
       # Set span attributes
       @name = name
@@ -442,7 +440,6 @@ module Datadog
       else
         @trace_id = parent.trace_id
         @parent_id = parent.id
-        @service ||= parent.service
       end
     end
 
