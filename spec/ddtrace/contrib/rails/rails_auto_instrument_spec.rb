@@ -25,10 +25,9 @@ RSpec.describe 'Datadog::Contrib::AutoInstrument' do
     it 'configurations application correctly' do
       expect_in_fork do
         app
-        expect(app_name).to eq(config[:service_name])
-        expect(config[:service_name]).to eq(config[:controller_service])
-        expect("#{app_name}-cache").to eq(config[:cache_service])
-        expect(Datadog.configuration[:rails][:database_service]).to be_present
+
+        expect(config[:cache_service]).to eq("#{tracer.default_service}-cache")
+        expect(config[:database_service]).to be_present
         expect(config[:template_base_path]).to eq('views/')
       end
     end

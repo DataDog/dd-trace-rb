@@ -26,12 +26,6 @@ RSpec.describe 'Rails defaults' do
 
         it { expect(tracer_default_service).to match(/rails/) }
       end
-
-      describe 'Rails :service_name' do
-        subject(:rails_service_name) { Datadog.configuration[:rails].service_name }
-
-        it { expect(rails_service_name).to match(/rails/) }
-      end
     end
 
     context 'is configured' do
@@ -47,12 +41,6 @@ RSpec.describe 'Rails defaults' do
         subject(:tracer_default_service) { Datadog.tracer.default_service }
 
         it { expect(tracer_default_service).to eq(default_service) }
-      end
-
-      describe 'Rails :service_name' do
-        subject(:rails_service_name) { Datadog.configuration[:rails].service_name }
-
-        it { expect(rails_service_name).to eq(default_service) }
       end
     end
   end

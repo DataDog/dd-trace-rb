@@ -136,6 +136,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
+      expect(request_span.service).to eq(tracer.default_service)
       expect(request_span.resource).to eq('GET 200')
       expect(request_span.get_tag('http.url')).to eq('/full')
       expect(request_span.get_tag('http.method')).to eq('GET')
@@ -148,6 +149,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.span_type).to eq('web')
+      expect(controller_span.service).to eq(tracer.default_service)
       expect(controller_span.resource).to eq('TestController#full')
       expect(controller_span.get_tag('rails.route.action')).to eq('full')
       expect(controller_span.get_tag('rails.route.controller')).to eq('TestController')
@@ -160,14 +162,14 @@ RSpec.describe 'Rails Rack' do
       expect(cache_span.name).to eq('rails.cache')
       expect(cache_span.span_type).to eq('cache')
       expect(cache_span.resource).to eq('SET')
-      expect(cache_span.service).to eq("#{app_name}-cache")
+      expect(cache_span.service).to eq("#{tracer.default_service}-cache")
       expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(cache_span.get_tag('rails.cache.key')).to eq('empty-key')
       expect(cache_span).to_not be_measured
 
       expect(render_span.name).to eq('rails.render_template')
       expect(render_span.span_type).to eq('template')
-      expect(render_span.service).to eq(Datadog.configuration[:rails][:service_name])
+      expect(render_span.service).to eq(tracer.default_service)
       expect(render_span.resource).to eq('full.html.erb')
       expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
       expect(render_span.get_tag('rails.layout')).to eq('layouts/application')
