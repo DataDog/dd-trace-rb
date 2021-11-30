@@ -1,9 +1,7 @@
 # typed: ignore
 
 require 'datadog/security/instrumentation/gateway'
-
 require 'datadog/security/assets'
-require 'datadog/security/reactive/operation'
 
 module Datadog
   module Security
