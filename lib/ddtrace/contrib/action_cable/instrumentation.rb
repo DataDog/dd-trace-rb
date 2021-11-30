@@ -7,7 +7,7 @@ module Datadog
         # This module overrides the current Rack resource name to provide a meaningful name.
         module ActionCableConnection
           def on_open
-            Datadog.tracer.trace(Ext::SPAN_ON_OPEN) do |span|
+            Datadog.tracer.trace(Ext::SPAN_ON_OPEN) do |span, trace|
               begin
                 span.resource = "#{self.class}#on_open"
                 span.span_type = Datadog::Ext::AppTypes::WEB
@@ -15,9 +15,8 @@ module Datadog
                 span.set_tag(Ext::TAG_ACTION, 'on_open')
                 span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
 
-                # Set the resource name of the Rack request span
-                rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                rack_request_span.resource = span.resource if rack_request_span
+                # Set the resource name of the trace
+                trace.resource = span.resource
               rescue StandardError => e
                 Datadog.logger.error("Error preparing span for ActionCable::Connection: #{e}")
               end
