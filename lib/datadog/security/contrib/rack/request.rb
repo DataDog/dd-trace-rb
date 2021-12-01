@@ -14,6 +14,14 @@ module Datadog
           def self.body(request)
             request.body.read.tap { request.body.rewind }
           end
+
+          def self.url(request)
+            request.url
+          end
+
+          def self.cookies(request)
+            request.cookies
+          end
         end
       end
     end

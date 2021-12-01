@@ -10,8 +10,8 @@ module Datadog
               catch(:block) do
                 op.publish('request.query', Request.query(request))
                 op.publish('request.headers', Request.headers(request))
-                op.publish('request.uri.raw', request.url)
-                op.publish('request.cookies', request.cookies)
+                op.publish('request.uri.raw', Request.url(request))
+                op.publish('request.cookies', Request.cookies(request))
                 op.publish('request.body.raw', Request.body(request))
                 # TODO: op.publish('request.path_params', { k: v }) # route params only?
                 # TODO: op.publish('request.path', request.script_name + request.path) # unused for now
