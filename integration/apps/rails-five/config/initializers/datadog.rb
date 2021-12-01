@@ -2,7 +2,7 @@ require 'ddtrace'
 
 Datadog.configure do |c|
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')
-  c.analytics_enabled = true if Datadog::DemoEnv.feature?('analytics')
+  c.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
   c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
   if Datadog::DemoEnv.feature?('tracing')
