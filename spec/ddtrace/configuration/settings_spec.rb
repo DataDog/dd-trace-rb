@@ -47,27 +47,6 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
-  describe '#analytics_enabled' do
-    subject(:analytics_enabled) { settings.analytics_enabled }
-
-    let(:value) { double }
-
-    before { expect(settings.analytics).to receive(:enabled).and_return(value) }
-
-    it 'retrieves the value from the new setting' do
-      is_expected.to be value
-    end
-  end
-
-  describe '#analytics_enabled=' do
-    it 'changes the new #enabled setting' do
-      expect { settings.analytics_enabled = true }
-        .to change { settings.analytics.enabled }
-        .from(nil)
-        .to(true)
-    end
-  end
-
   describe '#api_key' do
     subject(:api_key) { settings.api_key }
 

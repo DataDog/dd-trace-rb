@@ -49,14 +49,6 @@ module Datadog
         end
       end
 
-      option :analytics_enabled do |o|
-        o.delegate_to { get_option(:analytics).enabled }
-        o.on_set do |value|
-          # TODO: Raise deprecation warning
-          get_option(:analytics).enabled = value
-        end
-      end
-
       option :api_key do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
         o.lazy

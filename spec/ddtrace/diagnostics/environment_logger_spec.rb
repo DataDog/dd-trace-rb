@@ -192,7 +192,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with analytics enabled' do
-        before { Datadog.configure { |c| c.analytics_enabled = true } }
+        before { Datadog.configure { |c| c.analytics.enabled = true } }
 
         it { is_expected.to include analytics_enabled: true }
       end
