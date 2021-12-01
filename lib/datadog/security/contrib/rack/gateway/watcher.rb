@@ -14,7 +14,6 @@ module Datadog
                 block = false
 
                 waf_context = request.env['datadog.waf.context']
-                waf_rules = request.env['datadog.waf.rules']
 
                 Datadog::Security::Reactive::Operation.new('rack.request') do |op|
                   if defined?(Datadog::Tracer) && Datadog.respond_to?(:tracer) && (tracer = Datadog.tracer)
@@ -28,7 +27,7 @@ module Datadog
                     root_span.set_tag('_dd.runtime_family', 'ruby')
                   end
 
-                  Reactive::Subscriber.subscribe(op, waf_context, waf_rules, active_span, request)
+                  Reactive::Subscriber.subscribe(op, waf_context, active_span, request)
                   block = Reactive::Publisher.publish(op, request)
                 end
 

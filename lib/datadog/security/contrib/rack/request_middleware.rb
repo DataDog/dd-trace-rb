@@ -37,7 +37,6 @@ module Datadog
             raise if context.context_obj.null?
 
             env['datadog.waf.context'] = context
-            env['datadog.waf.rules'] = waf_rules
             request = ::Rack::Request.new(env)
 
             block = Instrumentation.gateway.push('rack.request', request)
