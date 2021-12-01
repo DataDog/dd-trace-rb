@@ -2,6 +2,7 @@
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scope management
+    # @public_api
     class ThreadLocalScopeManager < ScopeManager
       # Make a span instance active.
       #
@@ -11,6 +12,7 @@ module Datadog
       # @return [Scope] instance to control the end of the active period for the
       #  Span. It is a programming error to neglect to call Scope#close on the
       #  returned instance.
+      # @public_api
       def activate(span, finish_on_close: true)
         ThreadLocalScope.new(
           manager: self,
@@ -27,6 +29,7 @@ module Datadog
       # If there is a non-null Scope, its wrapped Span becomes an implicit parent
       # (as Reference#CHILD_OF) of any newly-created Span at Tracer#start_active_span
       # or Tracer#start_span time.
+      # @public_api
       def active
         Thread.current[object_id.to_s]
       end

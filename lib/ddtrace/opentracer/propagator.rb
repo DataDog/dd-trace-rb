@@ -2,11 +2,13 @@
 module Datadog
   module OpenTracer
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
+    # @public_api
     module Propagator
       # Inject a SpanContext into the given carrier
       #
       # @param span_context [SpanContext]
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
+      # @public_api
       def inject(span_context, carrier)
         raise NotImplementedError
       end
@@ -15,6 +17,7 @@ module Datadog
       #
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
       # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
+      # @public_api
       def extract(carrier)
         raise NotImplementedError
       end

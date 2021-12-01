@@ -18,9 +18,9 @@ require 'ddtrace/trace_operation'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/writer'
 
-# \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
+# {Datadog} global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  # A \Tracer keeps track of the time spent by an application processing a single operation. For
+  # A {Datadog::Tracer} keeps track of the time spent by an application processing a single operation. For
   # example, a trace can be used to track the entire time spent processing a complicated web request.
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
@@ -37,7 +37,7 @@ module Datadog
       :enabled,
       :writer
 
-    # Initialize a new \Tracer used to create, sample and submit spans that measure the
+    # Initialize a new {Datadog::Tracer} used to create, sample and submit spans that measure the
     # time of sections of code.
     #
     # @param trace_flush [Datadog::TraceFlush] responsible for flushing spans from the execution context
@@ -96,7 +96,7 @@ module Datadog
     # Available options are:
     #
     # * +autostart+: whether to autostart the span, if no block is provided.
-    # * +continue_from+: continue a trace from \TraceDigest. For async.
+    # * +continue_from+: continue a trace from {Datadog::TraceDigest}. For async.
     # * +on_error+: a block that overrides error handling behavior for this operation.
     # * +resource+: the resource this span refers, or \name if it's missing
     # * +service+: the service name for this span.
@@ -223,11 +223,11 @@ module Datadog
 
     private
 
-    # Return the current active \Context for this traced execution. This method is
+    # Return the current active {Context} for this traced execution. This method is
     # automatically called when calling Tracer.trace or Tracer.start_span,
     # but it can be used in the application code during manual instrumentation.
     #
-    # This method makes use of a \ContextProvider that is automatically set during the tracer
+    # This method makes use of a {ContextProvider} that is automatically set during the tracer
     # initialization, or while using a library instrumentation.
     def call_context(key = nil)
       @provider.context(key)
