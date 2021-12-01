@@ -12,6 +12,7 @@ require 'ddtrace/ext/test'
 module Datadog
   module Configuration
     # Global configuration settings for the trace library.
+    # @public_api
     # rubocop:disable Metrics/ClassLength
     class Settings
       include Base
@@ -46,6 +47,7 @@ module Datadog
       # Legacy [App Analytics](https://docs.datadoghq.com/tracing/legacy_app_analytics/) configuration.
       #
       # @deprecated Use [Trace Retention and Ingestion](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/) controls.
+      # @public_api
       settings :analytics do
         # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
         # @return [Boolean,nil]
@@ -58,6 +60,7 @@ module Datadog
       # Profiler API key.
       # @default `DD_API_KEY` environment variable, otherwise `nil`
       # @return [String,nil]
+      # @public_api
       option :api_key do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
         o.lazy
@@ -67,6 +70,7 @@ module Datadog
       #
       # Enabling these surfaces debug information that can be helpful to
       # diagnose issues related to the tracer internals.
+      # @public_api
       settings :diagnostics do
         # Outputs all spans created by the host application to `Datadog.logger`.
         #
@@ -133,6 +137,7 @@ module Datadog
       # * `B3`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
       # * `B3 single header`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
       #
+      # @public_api
       settings :distributed_tracing do
         # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
         # data from incoming requests and messages.
@@ -177,6 +182,7 @@ module Datadog
       # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
       # @default `DD_ENV` environment variable, otherwise `nil`
       # @return [String,nil]
+      # @public_api
       option :env do |o|
         # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
@@ -186,6 +192,7 @@ module Datadog
       # Automatic correlation between tracing and logging.
       # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
       # @return [Boolean]
+      # @public_api
       option :log_injection do |o|
         o.default { env_to_bool(Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
         o.lazy
@@ -194,6 +201,7 @@ module Datadog
       # Internal `Datadog.logger` configuration.
       #
       # This logger instance is only used internally by the gem.
+      # @public_api
       settings :logger do
         # The `Datadog.logger` object.
         #
@@ -215,6 +223,7 @@ module Datadog
       # Datadog Profiler-specific configurations.
       #
       # @see https://docs.datadoghq.com/tracing/profiler/
+      # @public_api
       settings :profiling do
         # Enable profiling.
         #
@@ -266,11 +275,15 @@ module Datadog
         end
       end
 
+      # @public_api
       option :report_hostname do |o|
         o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
         o.lazy
       end
 
+      # [Runtime Metrics](https://docs.datadoghq.com/tracing/runtime_metrics/)
+      # are StatsD metrics collected by the tracer to gain additional insights into an application's performance.
+      # @public_api
       settings :runtime_metrics do
         # Enable runtime metrics.
         # @default `DD_RUNTIME_METRICS_ENABLED` environment variable, otherwise `false`
@@ -284,6 +297,7 @@ module Datadog
         option :statsd
       end
 
+      # TODO: remove me. Use `c.runtime_metrics.enabled =`
       # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics enabled: true`
       def runtime_metrics(options = nil)
         settings = get_option(:runtime_metrics)
@@ -296,6 +310,7 @@ module Datadog
         settings
       end
 
+      # TODO: remove me. Use `c.runtime_metrics.enabled =`
       # @deprecated Use `runtime_metrics.enabled` instead.
       # @return [Boolean]
       option :runtime_metrics_enabled do |o|
@@ -307,6 +322,7 @@ module Datadog
       end
 
       # Client-side sampling configuration.
+      # @public_api
       settings :sampling do
         # Default sampling rate for the tracer.
         #
@@ -338,6 +354,7 @@ module Datadog
       # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
       # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
       # @return [String]
+      # @public_api
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Environment::FALLBACK_SERVICE_NAME) }
@@ -354,6 +371,7 @@ module Datadog
 
       # TODO: profiler related. Ask @ivoanjo what this is for.
       # @return [String,nil]
+      # @public_api
       option :site do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SITE, nil) }
         o.lazy
@@ -364,6 +382,7 @@ module Datadog
       # These tags are applied to every span.
       # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
       # @return [Hash<String,String>]
+      # @public_api
       option :tags do |o|
         o.default do
           tags = {}
@@ -405,6 +424,7 @@ module Datadog
       end
 
       # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
+      # @public_api
       settings :test_mode do
         # Enable test mode. This allows the tracer to collect spans from test runs.
         #
@@ -439,6 +459,7 @@ module Datadog
       # For [Timecop](https://rubygems.org/gems/timecop), for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time when time is frozen.
       # @default `->{ Time.now }`
       # @return [Proc<Time>]
+      # @public_api
       option :time_now_provider do |o|
         o.default { ::Time.now }
 
@@ -456,6 +477,7 @@ module Datadog
       end
 
       # Tracer specific configurations.
+      # @public_api
       settings :tracer do
         # Enable trace collection and span generation.
         #
@@ -529,6 +551,7 @@ module Datadog
       # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
       # @default `DD_VERSION` environment variable, otherwise `nils`
       # @return [String,nil]
+      # @public_api
       option :version do |o|
         # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
