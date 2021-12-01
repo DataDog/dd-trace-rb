@@ -64,11 +64,13 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     let(:dumped_span) { trace[0] }
 
     # Test that one single span, in the most simple case, is correctly handled.
-    # this is not purely an intergration test as it does not rely on a real agent
+    # this is not purely an integration test as it does not rely on a real agent
     # but it checks that all the machinery around workers (tracer/writer/worker/transport)
     # is consistent and that data flows through it.
     context 'with service names' do
       before do
+        skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+
         tracer.start_span('my.op').tap do |s|
           s.service = 'my.service'
           sleep(0.001)
@@ -108,6 +110,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
     # Test that a default service is provided if none has been given at all
     context 'with default service names' do
       before do
+        skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+
         tracer.start_span('my.op').tap do |s|
           sleep(0.001)
           s.finish
