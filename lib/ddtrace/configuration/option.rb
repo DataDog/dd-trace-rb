@@ -2,6 +2,7 @@
 module Datadog
   module Configuration
     # Represents an instance of an integration configuration option
+    # @public_api
     class Option
       attr_reader \
         :definition

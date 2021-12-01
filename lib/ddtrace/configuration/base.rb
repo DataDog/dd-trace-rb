@@ -5,6 +5,7 @@ require 'ddtrace/configuration/options'
 module Datadog
   module Configuration
     # Basic configuration behavior
+    # @public_api
     module Base
       def self.included(base)
         base.extend(Datadog::Core::Environment::VariableHelpers)
@@ -16,6 +17,7 @@ module Datadog
       end
 
       # Class methods for configuration
+      # @public_api
       module ClassMethods
         protected
 
@@ -44,6 +46,7 @@ module Datadog
       end
 
       # Instance methods for configuration
+      # @public_api
       module InstanceMethods
         def initialize(options = {})
           configure(options) unless options.empty?
