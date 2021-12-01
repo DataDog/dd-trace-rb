@@ -6,7 +6,7 @@ module Datadog
       module Rack
         module Reactive
           module Subscriber
-            def self.subscribe(op, waf_context, waf_rules, active_span, request)
+            def self.subscribe(op, waf_context, active_span, request)
               addresses = [
                 'request.headers',
                 'request.uri.raw',
@@ -51,7 +51,7 @@ module Datadog
                     active_span.set_tag('appsec.event', 'true')
                     active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
                   end
-                  Event.record({ waf_result: result, waf_rules: waf_rules, span: active_span, request: request }, false)
+                  Event.record({ waf_result: result, span: active_span, request: request }, false)
                 when :block
                   Datadog.logger.debug { "WAF: #{result.inspect}" }
                   if active_span
@@ -59,7 +59,7 @@ module Datadog
                     active_span.set_tag('appsec.event', 'true')
                     active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
                   end
-                  Event.record({ waf_result: result, waf_rules: waf_rules, span: active_span, request: request }, true)
+                  Event.record({ waf_result: result, span: active_span, request: request }, true)
                   block = true
                 when :good
                   Datadog.logger.debug { "WAF OK: #{result.inspect}" }
