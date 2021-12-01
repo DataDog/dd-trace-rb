@@ -627,19 +627,20 @@ RSpec.describe Datadog::Configuration::Components do
                 .and_return(writer)
             end
 
-            context 'and :trace_flush' do
+            context 'and partial flushing' do
               before do
-                allow(settings.test_mode)
-                  .to receive(:trace_flush)
-                  .and_return(trace_flush)
+                allow(settings.tracer.partial_flush)
+                  .to receive(:enabled)
+                  .and_return(partial_flush)
               end
 
               context 'is not set' do
-                let(:trace_flush) { nil }
+                let(:partial_flush) { nil }
 
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
+                      trace_flush: kind_of(Datadog::CI::TraceFlush::Finished),
                       sampler: kind_of(Datadog::AllSampler),
                       writer: kind_of(Datadog::SyncWriter)
                     }
@@ -651,12 +652,12 @@ RSpec.describe Datadog::Configuration::Components do
               end
 
               context 'is set' do
-                let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
+                let(:partial_flush) { true }
 
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
-                      trace_flush: trace_flush,
+                      trace_flush: kind_of(Datadog::CI::TraceFlush::Partial),
                       sampler: kind_of(Datadog::AllSampler),
                       writer: kind_of(Datadog::SyncWriter)
                     }
@@ -670,7 +671,7 @@ RSpec.describe Datadog::Configuration::Components do
 
             context 'and :writer_options' do
               before do
-                allow(settings.test_mode)
+                allow(settings.tracer)
                   .to receive(:writer_options)
                   .and_return(writer_options)
               end

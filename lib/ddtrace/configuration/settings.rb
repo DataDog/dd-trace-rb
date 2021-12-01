@@ -282,16 +282,6 @@ module Datadog
           o.default { env_to_bool(Ext::Test::ENV_MODE_ENABLED, false) }
           o.lazy
         end
-
-        option :trace_flush do |o|
-          o.default { nil }
-          o.lazy
-        end
-
-        option :writer_options do |o|
-          o.default { {} }
-          o.lazy
-        end
       end
 
       option :time_now_provider do |o|

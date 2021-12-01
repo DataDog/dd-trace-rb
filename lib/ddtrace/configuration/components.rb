@@ -1,4 +1,5 @@
 # typed: true
+require 'datadog/ci/trace_flush'
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/logger'
@@ -230,8 +231,11 @@ module Datadog
         end
 
         def build_test_mode_trace_flush(settings)
-          # If context flush behavior is provided, use it instead.
-          settings.test_mode.trace_flush || build_trace_flush(settings)
+          if settings.tracer.partial_flush.enabled
+            Datadog::CI::TraceFlush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
+          else
+            Datadog::CI::TraceFlush::Finished.new
+          end
         end
 
         def build_test_mode_sampler
@@ -241,8 +245,7 @@ module Datadog
 
         def build_test_mode_writer(settings, agent_settings)
           # Flush traces synchronously, to guarantee they are written.
-          writer_options = settings.test_mode.writer_options || {}
-          Datadog::SyncWriter.new(agent_settings: agent_settings, **writer_options)
+          Datadog::SyncWriter.new(agent_settings: agent_settings, **settings.tracer.writer_options)
         end
 
         def build_profiler_recorder(settings)

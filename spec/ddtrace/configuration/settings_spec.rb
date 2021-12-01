@@ -1051,56 +1051,12 @@ RSpec.describe Datadog::Configuration::Settings do
       end
     end
 
-    describe '#trace_flush' do
-      subject(:trace_flush) { settings.test_mode.trace_flush }
-
-      context 'default' do
-        it { is_expected.to be nil }
-      end
-    end
-
-    describe '#trace_flush=' do
-      let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
-
-      it 'updates the #trace_flush setting' do
-        expect { settings.test_mode.trace_flush = trace_flush }
-          .to change { settings.test_mode.trace_flush }
-          .from(nil)
-          .to(trace_flush)
-      end
-    end
-
     describe '#enabled=' do
       it 'updates the #enabled setting' do
         expect { settings.test_mode.enabled = true }
           .to change { settings.test_mode.enabled }
           .from(false)
           .to(true)
-      end
-    end
-
-    describe '#writer_options' do
-      subject(:writer_options) { settings.test_mode.writer_options }
-
-      it { is_expected.to eq({}) }
-
-      context 'when modified' do
-        it 'does not modify the default by reference' do
-          settings.test_mode.writer_options[:foo] = :bar
-          expect(settings.test_mode.writer_options).to_not be_empty
-          expect(settings.test_mode.options[:writer_options].default_value).to be_empty
-        end
-      end
-    end
-
-    describe '#writer_options=' do
-      let(:options) { { priority_sampling: true } }
-
-      it 'updates the #writer_options setting' do
-        expect { settings.test_mode.writer_options = options }
-          .to change { settings.test_mode.writer_options }
-          .from({})
-          .to(options)
       end
     end
   end

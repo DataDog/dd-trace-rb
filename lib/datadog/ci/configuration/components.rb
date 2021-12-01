@@ -17,13 +17,6 @@ module Datadog
         def activate_ci_mode!(settings)
           # Activate underlying tracing test mode
           settings.test_mode.enabled = true
-
-          # Choose user defined TraceFlush or default to CI TraceFlush
-          settings.test_mode.trace_flush = settings.ci_mode.trace_flush \
-                                             || Datadog::CI::TraceFlush::Finished.new
-
-          # Pass through any other options
-          settings.test_mode.writer_options = settings.ci_mode.writer_options
         end
       end
     end

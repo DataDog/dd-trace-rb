@@ -42,12 +42,6 @@ RSpec.describe Datadog::CI::Configuration::Components do
           allow(settings.test_mode)
             .to receive(:enabled=)
 
-          allow(settings.test_mode)
-            .to receive(:trace_flush=)
-
-          allow(settings.test_mode)
-            .to receive(:writer_options=)
-
           components
         end
 
@@ -59,18 +53,6 @@ RSpec.describe Datadog::CI::Configuration::Components do
               .to have_received(:enabled=)
               .with(true)
           end
-
-          it do
-            expect(settings.test_mode)
-              .to have_received(:trace_flush=)
-              .with(settings.ci_mode.trace_flush || kind_of(Datadog::CI::TraceFlush::Finished))
-          end
-
-          it do
-            expect(settings.test_mode)
-              .to have_received(:writer_options=)
-              .with(settings.ci_mode.writer_options)
-          end
         end
 
         context 'is disabled' do
@@ -79,16 +61,6 @@ RSpec.describe Datadog::CI::Configuration::Components do
           it do
             expect(settings.test_mode)
               .to_not have_received(:enabled=)
-          end
-
-          it do
-            expect(settings.test_mode)
-              .to_not have_received(:trace_flush=)
-          end
-
-          it do
-            expect(settings.test_mode)
-              .to_not have_received(:writer_options=)
           end
         end
       end
