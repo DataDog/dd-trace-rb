@@ -22,7 +22,7 @@ RSpec.describe Datadog::Workers::AsyncTransport do
 
       it 'does not re-raise' do
         buf = StringIO.new
-        Datadog.configure { |c| c.logger = Datadog::Logger.new(buf) }
+        Datadog.configure { |c| c.logger.instance = Datadog::Logger.new(buf) }
 
         worker.enqueue_trace(get_test_traces(1))
 

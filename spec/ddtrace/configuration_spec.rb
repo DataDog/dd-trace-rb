@@ -125,7 +125,7 @@ RSpec.describe Datadog::Configuration do
 
           before do
             test_class.configure do |c|
-              c.logger = logger
+              c.logger.instance = logger
               c.diagnostics.debug = false
             end
           end
@@ -144,8 +144,8 @@ RSpec.describe Datadog::Configuration do
             # underlying streams can cause problems.
             expect(old_logger).to_not receive(:close)
 
-            test_class.configure { |c| c.logger = old_logger }
-            test_class.configure { |c| c.logger = new_logger }
+            test_class.configure { |c| c.logger.instance = old_logger }
+            test_class.configure { |c| c.logger.instance = new_logger }
           end
 
           it 'replaces the old logger' do
@@ -159,8 +159,8 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(logger).to_not receive(:close)
 
-            test_class.configure { |c| c.logger = logger }
-            test_class.configure { |c| c.logger = logger }
+            test_class.configure { |c| c.logger.instance = logger }
+            test_class.configure { |c| c.logger.instance = logger }
           end
 
           it 'reuses the same logger' do
@@ -174,7 +174,7 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(logger).to_not receive(:close)
 
-            test_class.configure { |c| c.logger = logger }
+            test_class.configure { |c| c.logger.instance = logger }
             test_class.configure { |_c| }
           end
 

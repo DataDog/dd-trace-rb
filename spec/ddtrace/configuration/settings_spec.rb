@@ -394,16 +394,6 @@ RSpec.describe Datadog::Configuration::Settings do
     end
   end
 
-  describe '#logger=' do
-    let(:logger) { Datadog::Logger.new($stdout) }
-
-    it 'sets the logger instance' do
-      expect { settings.logger = logger }.to change { settings.logger.instance }
-        .from(nil)
-        .to(logger)
-    end
-  end
-
   describe '#profiling' do
     describe '#enabled' do
       subject(:enabled) { settings.profiling.enabled }

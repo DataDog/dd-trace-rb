@@ -127,10 +127,6 @@ module Datadog
         option :level, default: ::Logger::INFO
       end
 
-      def logger=(logger)
-        get_option(:logger).instance = logger
-      end
-
       settings :profiling do
         option :enabled do |o|
           o.default { env_to_bool(Ext::Profiling::ENV_ENABLED, false) }

@@ -1986,7 +1986,7 @@ Additionally, it is possible to override the default logger and replace it by a 
 ```ruby
 f = File.new("my-custom.log", "w+") # Log messages should go there
 Datadog.configure do |c|
-  c.logger = Logger.new(f) # Overriding the default logger
+  c.logger.instance = Logger.new(f) # Overriding the default logger
   c.logger.level = ::Logger::INFO
 end
 
