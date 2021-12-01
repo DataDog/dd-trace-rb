@@ -335,55 +335,6 @@ module Datadog
         option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
       end
 
-      # Backwards compatibility for configuring tracer e.g. `c.tracer debug: true`
-      def tracer(options = nil)
-        settings = get_option(:tracer)
-        return settings if options.nil?
-
-        # If options were provided (old style) then raise warnings and apply them:
-        options = options.dup
-
-        if options.key?(:log)
-          # TODO: Raise deprecation warning
-          get_option(:logger).instance = options.delete(:log)
-        end
-
-        if options.key?(:tags)
-          # TODO: Raise deprecation warning
-          set_option(:tags, options.delete(:tags))
-        end
-
-        if options.key?(:env)
-          # TODO: Raise deprecation warning
-          set_option(:env, options.delete(:env))
-        end
-
-        if options.key?(:debug)
-          # TODO: Raise deprecation warning
-          get_option(:diagnostics).debug = options.delete(:debug)
-        end
-
-        if options.key?(:partial_flush)
-          # TODO: Raise deprecation warning
-          settings.partial_flush.enabled = options.delete(:partial_flush)
-        end
-
-        if options.key?(:min_spans_before_partial_flush)
-          # TODO: Raise deprecation warning
-          settings.partial_flush.min_spans_threshold = options.delete(:min_spans_before_partial_flush)
-        end
-
-        # Forward remaining options to settings
-        options.each do |key, value|
-          setter = :"#{key}="
-          settings.send(setter, value) if settings.respond_to?(setter)
-        end
-      end
-
-      def tracer=(tracer)
-        get_option(:tracer).instance = tracer
-      end
-
       option :version do |o|
         # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }

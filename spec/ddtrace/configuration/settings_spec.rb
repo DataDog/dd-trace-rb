@@ -1164,110 +1164,6 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#tracer' do
-    context 'old style' do
-      context 'given :debug' do
-        it 'updates the new #debug setting' do
-          expect { settings.tracer(debug: true) }
-            .to change { settings.diagnostics.debug }
-            .from(false)
-            .to(true)
-        end
-      end
-
-      context 'given :env' do
-        let(:env) { 'my-env' }
-
-        it 'updates the new #env setting' do
-          expect { settings.tracer env: env }
-            .to change { settings.env }
-            .from(nil)
-            .to(env)
-        end
-      end
-
-      context 'given :log' do
-        let(:custom_log) { Logger.new($stdout, level: Logger::INFO) }
-
-        it 'updates the new #instance setting' do
-          expect { settings.tracer(log: custom_log) }
-            .to change { settings.logger.instance }
-            .from(nil)
-            .to(custom_log)
-        end
-      end
-
-      describe 'given :min_spans_before_partial_flush' do
-        let(:value) { 1234 }
-
-        it 'updates the new #min_spans_threshold setting' do
-          expect { settings.tracer min_spans_before_partial_flush: value }
-            .to change { settings.tracer.partial_flush.min_spans_threshold }
-            .from(nil)
-            .to(value)
-        end
-      end
-
-      describe 'given :partial_flush' do
-        it 'updates the new #enabled setting' do
-          expect { settings.tracer partial_flush: true }
-            .to change { settings.tracer.partial_flush.enabled }
-            .from(false)
-            .to(true)
-        end
-      end
-
-      context 'given :tags' do
-        let(:tags) { { 'custom-tag' => 'custom-value' } }
-
-        it 'updates the new #tags setting' do
-          expect { settings.tracer tags: tags }
-            .to change { settings.tags }
-            .from({})
-            .to(tags)
-        end
-      end
-
-      context 'given :writer_options' do
-        before { settings.tracer(writer_options: { buffer_size: 1234 }) }
-
-        it 'updates the new #writer_options setting' do
-          expect(settings.tracer.writer_options).to eq(buffer_size: 1234)
-        end
-      end
-
-      context 'given some settings' do
-        let(:tracer) { Datadog::Tracer.new }
-
-        before do
-          settings.tracer(
-            enabled: false,
-            hostname: 'tracer.host.com',
-            port: 1234,
-            env: :config_test,
-            tags: { foo: :bar },
-            writer_options: { buffer_size: 1234 },
-            instance: tracer
-          )
-        end
-
-        it 'applies settings correctly' do
-          expect(settings.tracer.enabled).to be false
-          expect(settings.tracer.hostname).to eq('tracer.host.com')
-          expect(settings.tracer.port).to eq(1234)
-          expect(settings.env).to eq(:config_test)
-          expect(settings.tags['foo']).to eq(:bar)
-        end
-      end
-
-      it 'acts on the tracer option' do
-        previous_state = settings.tracer.enabled
-        settings.tracer(enabled: !previous_state)
-        expect(settings.tracer.enabled).to eq(!previous_state)
-        settings.tracer(enabled: previous_state)
-        expect(settings.tracer.enabled).to eq(previous_state)
-      end
-    end
-
     describe '#enabled' do
       subject(:enabled) { settings.tracer.enabled }
 
@@ -1491,16 +1387,6 @@ RSpec.describe Datadog::Configuration::Settings do
           .from({})
           .to(options)
       end
-    end
-  end
-
-  describe '#tracer=' do
-    let(:tracer) { instance_double(Datadog::Tracer) }
-
-    it 'sets the tracer instance' do
-      expect { settings.tracer = tracer }.to change { settings.tracer.instance }
-        .from(nil)
-        .to(tracer)
     end
   end
 
