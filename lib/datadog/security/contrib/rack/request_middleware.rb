@@ -12,6 +12,7 @@ module Datadog
           def initialize(app, opt = {})
             @app = app
 
+            # TODO: move to integration? (may be too early)
             require_libddwaf
 
             if libddwaf_required?
@@ -39,9 +40,15 @@ module Datadog
             env['datadog.waf.context'] = context
             request = ::Rack::Request.new(env)
 
-            block = Instrumentation.gateway.push('rack.request', request)
+            ret, res = Instrumentation.gateway.push('rack.request', request) do
+              @app.call(env)
+            end
 
-            block ? [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]] : @app.call(env)
+            if res
+              return [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]]
+            end
+
+            ret
           end
 
           def libddwaf_required?

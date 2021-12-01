@@ -3,48 +3,35 @@ module Datadog
     # Instrumentation for Security
     module Instrumentation
       # Instrumentation gateway implementation
-      # TODO: this is going away soon
       class Gateway
         def initialize
-          @listeners = {}
+          @middlewares = Hash.new([])
         end
 
-        def push(event_name, data)
-          event_callbacks = @listeners[event_name]
+        def push(name, env, &block)
+          block ||= -> {}
 
-          if event_callbacks
-            r = nil
-            event_callbacks.each { |e| break if (r = e.call(data)) }
-            r
+          middlewares = @middlewares[name]
+
+          return block.call if middlewares.empty?
+
+          wrapped = lambda do |_env|
+            [block.call, nil]
           end
+
+          stack = middlewares.reverse.reduce(wrapped) do |next_, middleware|
+            lambda do |env_|
+              middleware.call(next_, env_)
+            end
+          end
+
+          stack.call(env)
         end
 
-        def watch(event_name, &block)
-          (@listeners[event_name] ||= []) << block
+        def watch(name, &block)
+          @middlewares[name] << block
         end
-
-        # def hook(method)
-        #   gateway = self
-
-        #   Graft::Hook[method] do
-        #     before do |data|
-        #       gateway.push(data)
-        #     end
-        #   end
-        # end
       end
-
-      # Graft::Hook['foo#bar'].add do
-      #   Gateway.push('foo_bar_event', data)
-      # end
-
-      # Gateway.hook('foo#bar') do
-      #   data # returned
-      # end
-
-      # Gateway.watch('foo_bar_event') do |data|
-      # ...
-      # end
 
       def self.gateway
         @gateway ||= Gateway.new

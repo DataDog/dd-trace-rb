@@ -10,7 +10,7 @@ module Datadog
         module Gateway
           module Watcher
             def self.watch
-              Instrumentation.gateway.watch('rack.request') do |request|
+              Instrumentation.gateway.watch('rack.request') do |stack, request|
                 block = false
 
                 waf_context = request.env['datadog.waf.context']
@@ -31,7 +31,9 @@ module Datadog
                   block = Reactive::Publisher.publish(op, request)
                 end
 
-                block
+                next [nil, :block] if block
+
+                stack.call(request)
               end
             end
           end
