@@ -9,13 +9,8 @@ RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
     before do
       skip unless ENV['TEST_DATADOG_INTEGRATION']
-
-      Datadog.configure do |c|
-        c.tracer(**tracer_options)
-      end
     end
 
-    let(:tracer_options) { {} }
     let(:tracer) { Datadog.tracer }
   end
 
@@ -149,6 +144,12 @@ RSpec.describe 'Tracer integration tests' do
   describe 'rule sampler' do
     include_context 'agent-based test'
 
+    before do
+      Datadog.configure do |c|
+        c.tracer.sampler = sampler if sampler
+      end
+    end
+
     after do
       Datadog.configuration.sampling.reset!
     end
@@ -178,10 +179,10 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     let(:stats) { tracer.writer.stats }
-    let(:tracer_options) { { sampler: Datadog::PrioritySampler.new(post_sampler: rule_sampler) } }
+    let(:sampler) { Datadog::PrioritySampler.new(post_sampler: rule_sampler) }
 
     context 'with default settings' do
-      let(:tracer_options) { {} }
+      let(:sampler) { nil }
 
       it_behaves_like 'flushed trace'
       it_behaves_like 'priority sampled', Datadog::Ext::Priority::AUTO_KEEP
@@ -202,7 +203,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     context 'with rate set through DD_TRACE_SAMPLE_RATE environment variable' do
-      let(:tracer_options) { {} }
+      let(:sampler) { nil }
 
       around do |example|
         ClimateControl.modify('DD_TRACE_SAMPLE_RATE' => '1.0') do

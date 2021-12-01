@@ -116,16 +116,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         end
       end
     end
-
-    context 'when a custom hostname is specified via code using "tracer(hostname: ...)"' do
-      before do
-        ddtrace_settings.tracer(hostname: 'custom-hostname')
-      end
-
-      it 'contacts the agent using the http adapter, using the custom hostname' do
-        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
-      end
-    end
   end
 
   describe 'http adapter port' do
@@ -244,16 +234,6 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
         it 'falls back to the defaults' do
           expect(resolver).to have_attributes settings
         end
-      end
-    end
-
-    context 'when a custom port is specified via code using "tracer(port: ...)"' do
-      before do
-        ddtrace_settings.tracer(port: 1234)
-      end
-
-      it 'contacts the agent using the http adapter, using the custom port' do
-        expect(resolver).to have_attributes(**settings, port: 1234)
       end
     end
   end
