@@ -33,6 +33,9 @@ module Datadog
 
             # We want the route to show up as the trace's resource
             trace.resource = span.resource
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
           rescue StandardError => e
             Datadog.logger.error(e.message)
           end
