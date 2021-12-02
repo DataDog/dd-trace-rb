@@ -86,7 +86,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span).to_not be_nil
             expect(span.name).to eq(name)
             expect(span.resource).to eq(serializer)
-            expect(span.service).to eq('active_model_serializers')
+            expect(span.service).to eq(tracer.default_service)
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(adapter)
@@ -106,7 +106,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span).to_not be_nil
             expect(span.name).to eq(name)
             expect(span.resource).to eq(serializer)
-            expect(span.service).to eq('active_model_serializers')
+            expect(span.service).to eq(tracer.default_service)
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(test_obj.class.to_s)
@@ -122,7 +122,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span).to_not be_nil
             expect(span.name).to eq(name)
             expect(span.resource).to eq(serializer)
-            expect(span.service).to eq('active_model_serializers')
+            expect(span.service).to eq(tracer.default_service)
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to be_nil

@@ -18,7 +18,7 @@ module Datadog
         # Note, they share the same process method and before_trace method.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
+            {}
           end
 
           def tracer
@@ -30,8 +30,6 @@ module Datadog
           end
 
           def process(span, event, _id, payload)
-            span.service = configuration[:service_name]
-
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])

@@ -530,17 +530,12 @@ require 'active_model_serializers'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :active_model_serializers, options
+  c.use :active_model_serializers
 end
 
 my_object = MyModel.new(name: 'my object')
 ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
 ```
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `active_model_serializers` instrumentation. | `'active_model_serializers'` |
-
 
 ### Active Record
 
