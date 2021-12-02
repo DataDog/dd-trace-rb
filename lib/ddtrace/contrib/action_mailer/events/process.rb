@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/action_mailer/ext'
 require 'ddtrace/contrib/action_mailer/event'
 
@@ -33,6 +34,8 @@ module Datadog
             span.span_type = span_type
             span.set_tag(Ext::TAG_ACTION, payload[:action])
             span.set_tag(Ext::TAG_MAILER, payload[:mailer])
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PROCESS)
           end
         end
       end

@@ -32,6 +32,7 @@ module Datadog
           def process(span, event, _id, payload)
             span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = payload[:mailer]
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
