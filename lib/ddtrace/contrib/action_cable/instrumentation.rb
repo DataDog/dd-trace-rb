@@ -1,4 +1,7 @@
 # typed: false
+
+require 'ddtrace/ext/metadata'
+
 module Datadog
   module Contrib
     module ActionCable
@@ -14,6 +17,9 @@ module Datadog
 
                 span.set_tag(Ext::TAG_ACTION, 'on_open')
                 span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
+
+                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
 
                 # Set the resource name of the trace
                 trace.resource = span.resource
@@ -65,6 +71,9 @@ module Datadog
                 Contrib::Analytics.set_measured(span)
 
                 span.set_tag(Ext::TAG_CHANNEL_CLASS, channel.class.to_s)
+
+                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, hook)
 
                 yield
               end

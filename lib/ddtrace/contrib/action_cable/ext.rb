@@ -4,7 +4,6 @@ module Datadog
     module ActionCable
       # ActionCable integration constants
       module Ext
-        APP = 'action_cable'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTION_CABLE_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE'.freeze
@@ -16,7 +15,12 @@ module Datadog
         TAG_BROADCAST_CODER = 'action_cable.broadcast.coder'.freeze
         TAG_CHANNEL = 'action_cable.channel'.freeze
         TAG_CHANNEL_CLASS = 'action_cable.channel_class'.freeze
+        TAG_COMPONENT = 'action_cable'.freeze
         TAG_CONNECTION = 'action_cable.connection'.freeze
+        TAG_OPERATION_ACTION = 'action'.freeze
+        TAG_OPERATION_BROADCAST = 'broadcast'.freeze
+        TAG_OPERATION_ON_OPEN = 'on_open'.freeze
+        TAG_OPERATION_TRANSMIT = 'transmit'.freeze
         TAG_TRANSMIT_VIA = 'action_cable.transmit.via'.freeze
       end
     end

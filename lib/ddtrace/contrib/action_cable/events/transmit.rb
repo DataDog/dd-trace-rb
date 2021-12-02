@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/action_cable/event'
 
@@ -43,6 +44,9 @@ module Datadog
 
             span.set_tag(Ext::TAG_CHANNEL_CLASS, channel_class)
             span.set_tag(Ext::TAG_TRANSMIT_VIA, payload[:via])
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_TRANSMIT)
           end
         end
       end
