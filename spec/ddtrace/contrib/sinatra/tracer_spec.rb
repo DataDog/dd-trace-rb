@@ -232,6 +232,10 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('msg')
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_RENDER_TEMPLATE)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -244,6 +248,10 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('layout')
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_RENDER_TEMPLATE)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -279,6 +287,10 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to be nil
               expect(span.parent_id).to eq(route_span.span_id)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_RENDER_TEMPLATE)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -292,6 +304,10 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('layout')
               expect(span.parent_id).to eq(template_parent_span.span_id)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_RENDER_TEMPLATE)
             end
 
             it_behaves_like 'measured span for integration', true
@@ -352,6 +368,11 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
             expect(span.parent_id).to be(rack_span.span_id)
+
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_REQUEST)
 
             expect(rack_span.resource).to eq('GET 404')
           end
@@ -646,6 +667,19 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url) if app_name == self.app_name
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
       expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+
+      case span.name
+      when Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_REQUEST)
+      when Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_ROUTE)
+      end
+
       expect(span).to_not have_error
       if opts[:parent]
         expect(span.parent_id).to be(opts[:parent].span_id)
@@ -664,6 +698,10 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
       expect(span.parent_id).to be(opts[:parent].span_id) if opts[:parent]
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::Sinatra::Ext::TAG_COMPONENT)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::Sinatra::Ext::TAG_OPERATION_ROUTE)
     end
   end
 end

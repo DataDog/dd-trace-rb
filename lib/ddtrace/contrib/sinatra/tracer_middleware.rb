@@ -40,6 +40,9 @@ module Datadog
                 span.set_tag(name, value) if span.get_tag(name).nil?
               end
 
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
               request = ::Sinatra::Request.new(env)
               span.set_tag(Datadog::Ext::HTTP::URL, request.path)
               span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
