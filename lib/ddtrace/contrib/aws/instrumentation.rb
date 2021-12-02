@@ -32,8 +32,12 @@ module Datadog
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
 
+          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
+
           # Tag as an external peer service
           span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, context.safely(:host))
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

@@ -54,6 +54,15 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('host')).to eq('sts.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::Aws::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Aws::Ext::TAG_OPERATION_COMMAND)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+          .to eq('sts.us-stubbed-1.amazonaws.com')
       end
 
       it 'returns an unmodified response' do
@@ -92,6 +101,15 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::Aws::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Aws::Ext::TAG_OPERATION_COMMAND)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq('aws')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+          .to eq('s3.us-stubbed-1.amazonaws.com')
       end
 
       it_behaves_like 'a peer service span'
