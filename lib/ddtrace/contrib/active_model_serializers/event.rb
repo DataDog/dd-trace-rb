@@ -29,7 +29,7 @@ module Datadog
             Datadog.configuration[:active_model_serializers]
           end
 
-          def process(span, event, _id, payload)
+          def set_common_tags(span, payload)
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])

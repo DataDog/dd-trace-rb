@@ -53,6 +53,13 @@ RSpec.describe 'ActiveModelSerializers patcher' do
         Datadog::Contrib::ActiveModelSerializers::Events::Serialize.span_name
       end
     end
+    let(:operation_name) do
+      if ActiveModelSerializersHelpers.ams_0_10_or_newer?
+        Datadog::Contrib::ActiveModelSerializers::Ext::TAG_OPERATION_RENDER
+      else
+        Datadog::Contrib::ActiveModelSerializers::Ext::TAG_OPERATION_SERIALIZE
+      end
+    end
 
     let(:active_model_serializers_span) do
       spans.find { |s| s.name == name }
@@ -90,6 +97,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(adapter)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::ActiveModelSerializers::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(operation_name)
           end
         end
       end
@@ -110,6 +121,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(test_obj.class.to_s)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::ActiveModelSerializers::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(operation_name)
           end
         end
       else
@@ -126,6 +141,10 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to be_nil
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::ActiveModelSerializers::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(operation_name)
           end
         end
       end
