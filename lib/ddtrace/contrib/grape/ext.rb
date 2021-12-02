@@ -8,7 +8,6 @@ module Datadog
         ENV_ENABLED = 'DD_TRACE_GRAPE_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_GRAPE_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_GRAPE_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'grape'.freeze
         SPAN_ENDPOINT_RENDER = 'grape.endpoint_render'.freeze
         SPAN_ENDPOINT_RUN = 'grape.endpoint_run'.freeze
         SPAN_ENDPOINT_RUN_FILTERS = 'grape.endpoint_run_filters'.freeze
