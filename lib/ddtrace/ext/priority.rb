@@ -3,6 +3,7 @@ module Datadog
   module Ext
     # Priority is a hint given to the backend so that it knows which traces to reject or kept.
     # In a distributed context, it should be set before any context propagation (fork, RPC calls) to be effective.
+    # @public_api
     module Priority
       # Use this to explicitly inform the backend that a trace MUST be rejected and not stored.
       # This includes rules and rate limits configured by the user through the {RuleSampler}.

@@ -9,6 +9,7 @@ module Datadog
       end
 
       # Class methods for integrations
+      # @public_api
       module ClassMethods
         # Version of the integration target code in the host application.
         #
@@ -42,6 +43,7 @@ module Datadog
       end
 
       # Instance methods for integrations
+      # @public_api
       module InstanceMethods
         def patcher
           nil

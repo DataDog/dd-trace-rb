@@ -2,11 +2,13 @@
 module Datadog
   module Contrib
     # Registry is a collection of tracing integrations.
+    # @public_api
     class Registry
       include Enumerable
 
       Entry = Struct.new(:name, :klass, :auto_patch)
 
+      # @!visibility private
       def initialize
         @data = {}
         @mutex = Mutex.new

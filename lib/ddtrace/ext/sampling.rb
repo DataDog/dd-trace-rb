@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Sampling
       ENV_SAMPLE_RATE = 'DD_TRACE_SAMPLE_RATE'.freeze
       ENV_RATE_LIMIT = 'DD_TRACE_RATE_LIMIT'.freeze

@@ -15,6 +15,7 @@ module Datadog
     #
     # If a trace does not conform to any rules, a default
     # sampling strategy is applied.
+    # @public_api
     class RuleSampler
       extend Forwardable
 
@@ -76,6 +77,7 @@ module Datadog
         trace.sampled = sampled
       end
 
+      # @!visibility private
       def update(*args)
         return false unless @default_sampler.respond_to?(:update)
 

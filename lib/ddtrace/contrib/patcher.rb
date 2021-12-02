@@ -11,6 +11,7 @@ module Datadog
       end
 
       # Prepended instance methods for all patchers
+      # @public_api
       module CommonMethods
         def patch_name
           self.class != Class && self.class != Module ? self.class.name : name

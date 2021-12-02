@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Correlation
       ATTR_ENV = 'dd.env'.freeze
       ATTR_SERVICE = 'dd.service'.freeze

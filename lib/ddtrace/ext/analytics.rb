@@ -2,6 +2,7 @@
 module Datadog
   module Ext
     # Defines constants for trace analytics
+    # @public_api
     module Analytics
       DEFAULT_SAMPLE_RATE = 1.0
       ENV_TRACE_ANALYTICS_ENABLED = 'DD_TRACE_ANALYTICS_ENABLED'.freeze

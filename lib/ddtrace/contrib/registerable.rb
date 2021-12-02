@@ -10,6 +10,7 @@ module Datadog
       end
 
       # Class methods for registerable behavior
+      # @public_api
       module ClassMethods
         def register_as(name, options = {})
           registry = options.fetch(:registry, Contrib::REGISTRY)
