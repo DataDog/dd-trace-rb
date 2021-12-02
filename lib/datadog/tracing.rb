@@ -6,12 +6,11 @@ module Datadog
   # will only occur in new major versions releases.
   module Tracing
     class << self
-      # TODO: copy docs from Datadog::Tracer#trace
+      # (see Datadog::Tracer#trace)
       # @public_api
-      def trace(*args, &block)
-        tracer.trace(*args, &block)
+      def trace(name, **kwargs, &block)
+        tracer.trace(name, **kwargs, &block)
       end
-      ruby2_keywords :trace if respond_to?(:ruby2_keywords, true)
 
       # The currently active {Datadog::Tracer} instance.
       #
@@ -30,6 +29,50 @@ module Datadog
       # @public_api
       def tracer
         components.tracer
+      end
+
+      # TODO: should the logger be available publicly?
+      # TODO: Are there any valid use cases for Datadog.logger.log(...)
+      # TODO: from the host application?
+      #
+      # @public_api
+      def logger
+        Datadog.logger
+      end
+
+      # TODO: should the publicly exposed configuration be mutable?
+      # @public_api
+      def configuration
+        Datadog.configuration
+      end
+
+      # Apply configuration changes to `ddtrace`. An example of a {.configure} call:
+      # ```
+      # Datadog.configure do |c|
+      #   c.sampling.default_rate = 1.0
+      #   c.use :aws
+      #   c.use :rails
+      #   c.use :sidekiq
+      #   # c.diagnostics.debug = true # Enables debug output
+      # end
+      # ```
+      #
+      # Because many configuration changes require restarting internal components,
+      # invoking {.configure} is the only safe way to change `ddtrace` configuration.
+      #
+      # Successive calls to {.configure} maintain the previous configuration values:
+      # configuration is additive between {.configure} calls.
+      #
+      # The yielded configuration `c` comes pre-populated from environment variables, if
+      # any are applicable.
+      #
+      # See {Datadog::Configuration::Settings} for all available options, defaults, and
+      # available environment variables for configuration.
+      #
+      # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+      # @public_api
+      def configure(&block)
+        Datadog.configure(&block)
       end
 
       # The active, unfinished trace, representing the current instrumentation context.

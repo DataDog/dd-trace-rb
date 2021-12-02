@@ -65,44 +65,49 @@ module Datadog
       @writer = writer
     end
 
-    # Return a +span+ and +trace+ that will trace an operation called +name+. You could trace your code
+    # Return a {Datadog::SpanOperation span_op} and {Datadog::TraceOperation trace_op} that will trace an operation
+    # called `name`. You could trace your code
     # using a <tt>do-block</tt> like:
     #
-    #   tracer.trace('web.request') do |span_op, trace_op|
-    #     span_op.service = 'my-web-site'
-    #     span_op.resource = '/'
-    #     span_op.set_tag('http.method', request.request_method)
-    #     do_something()
-    #   end
-    #
-    # The <tt>tracer.trace()</tt> method can also be used without a block in this way:
-    #
-    #   span_op = tracer.trace('web.request', service: 'my-web-site')
+    # ```
+    # tracer.trace('web.request') do |span_op, trace_op|
+    #   span_op.service = 'my-web-site'
+    #   span_op.resource = '/'
+    #   span_op.set_tag('http.method', request.request_method)
     #   do_something()
-    #   span_op.finish()
+    # end
+    # ```
     #
-    # Remember that in this case, calling <tt>span_op.finish()</tt> is mandatory.
+    # The {#trace} method can also be used without a block in this way:
+    # ```
+    # span_op = tracer.trace('web.request', service: 'my-web-site')
+    # do_something()
+    # span_op.finish()
+    # ```
     #
-    # When a Trace is started, <tt>trace()</tt> will store the created span; subsequent spans will
+    # Remember that in this case, calling {Datadog::SpanOperation#finish} is mandatory.
+    #
+    # When a Trace is started, {#trace} will store the created span; subsequent spans will
     # become it's children and will inherit some properties:
+    # ```
+    # parent = tracer.trace('parent')   # has no parent span
+    # child  = tracer.trace('child')    # is a child of 'parent'
+    # child.finish()
+    # parent.finish()
+    # parent2 = tracer.trace('parent2') # has no parent span
+    # parent2.finish()
+    # ```
     #
-    #   parent = tracer.trace('parent')     # has no parent span
-    #   child  = tracer.trace('child')      # is a child of 'parent'
-    #   child.finish()
-    #   parent.finish()
-    #   parent2 = tracer.trace('parent2')   # has no parent span
-    #   parent2.finish()
-    #
-    # Available options are:
-    #
-    # * +autostart+: whether to autostart the span, if no block is provided.
-    # * +continue_from+: continue a trace from {Datadog::TraceDigest}. For async.
-    # * +on_error+: a block that overrides error handling behavior for this operation.
-    # * +resource+: the resource this span refers, or \name if it's missing
-    # * +service+: the service name for this span.
-    # * +start_time+: time which the span should have started.
-    # * +tags+: extra tags which should be added to the span.
-    # * +type+: the type of the span (such as \http, \db and so on)
+    # @param [String] name {Datadog::Span} operation name.
+    #   See {https://docs.datadoghq.com/tracing/guide/configuring-primary-operation/ Primary Operations in Services}.
+    # @param [Datadog::TraceDigest] continue_from continue a trace from a {Datadog::TraceDigest}. Used for async.
+    # @param [Boolean] autostart whether to autostart the span, if no block is provided.
+    # @param [Proc] on_error a block that overrides error handling behavior for this operation.
+    # @param [String] resource the resource this span refers, or {name} if it's missing
+    # @param [String] service the service name for this span.
+    # @param [Time] start_time time which the span should have started.
+    # @param [Hash<String,String>] tags extra tags which should be added to the span.
+    # @param [String] type the type of the span. See {Datadog::Ext::AppTypes}.
     # rubocop:disable Lint/UnderscorePrefixedVariableName
     def trace(
       name,

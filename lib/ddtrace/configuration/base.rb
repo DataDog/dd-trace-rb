@@ -23,6 +23,7 @@ module Datadog
 
         # Allows subgroupings of settings to be defined.
         # e.g. `settings :foo { option :bar }` --> `config.foo.bar`
+        # @param [Symbol] name option name. Methods will be created based on this name.
         def settings(name, &block)
           settings_class = new_settings_class(&block)
 
