@@ -4,7 +4,6 @@ module Datadog
     module ActiveSupport
       # ActiveSupport integration constants
       module Ext
-        APP = 'active_support'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTIVE_SUPPORT_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_SAMPLE_RATE'.freeze
@@ -20,6 +19,8 @@ module Datadog
         TAG_CACHE_BACKEND = 'rails.cache.backend'.freeze
         TAG_CACHE_KEY = 'rails.cache.key'.freeze
         TAG_CACHE_KEY_MULTI = 'rails.cache.keys'.freeze
+        TAG_COMPONENT = 'active_support'.freeze
+        TAG_OPERATION_CACHE = 'cache'.freeze
       end
     end
   end

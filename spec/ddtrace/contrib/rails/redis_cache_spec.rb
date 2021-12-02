@@ -90,6 +90,13 @@ MESSAGE
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(redis.trace_id)
       expect(cache.span_id).to eq(redis.parent_id)
+
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq("#{tracer.default_service}-cache")
     end
 
     it_behaves_like 'a peer service span' do
@@ -121,6 +128,20 @@ MESSAGE
         expect(cache_get.resource).to eq('GET')
         expect(redis_get.name).to eq('redis.command')
 
+        expect(cache_get.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+        expect(cache_get.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+        expect(cache_get.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq("#{tracer.default_service}-cache")
+
+        expect(cache_set.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+        expect(cache_set.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+        expect(cache_set.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq("#{tracer.default_service}-cache")
+
         # check that the value is really updated, and persistent
         expect(cache.read(key)).to eq(51)
         clear_traces!
@@ -133,6 +154,13 @@ MESSAGE
         cache, redis = spans
         expect(cache.name).to eq('rails.cache')
         expect(redis.name).to eq('redis.command')
+
+        expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+        expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+        expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq("#{tracer.default_service}-cache")
       end
     end
   end
@@ -154,6 +182,13 @@ MESSAGE
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(redis.trace_id)
       expect(cache.span_id).to eq(redis.parent_id)
+
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq("#{tracer.default_service}-cache")
     end
 
     it_behaves_like 'a peer service span' do
@@ -178,6 +213,13 @@ MESSAGE
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(del.trace_id)
       expect(cache.span_id).to eq(del.parent_id)
+
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+      expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq("#{tracer.default_service}-cache")
     end
 
     it_behaves_like 'a peer service span' do

@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/active_support/ext'
 
 module Datadog
@@ -34,6 +35,13 @@ module Datadog
             type = Ext::SPAN_TYPE_CACHE
             span = tracer.trace(Ext::SPAN_CACHE, service: service, span_type: type)
             span.resource = payload.fetch(:action)
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
+
+            # Tag as an external peer service
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, service)
+
             tracing_context[:dd_cache_span] = span
           rescue StandardError => e
             Datadog.logger.debug(e.message)
