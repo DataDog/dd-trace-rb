@@ -1,3 +1,6 @@
 <div class="note public_api">
   This <%= object.type.to_s %> is part of the <%= link_file('PublicApi.md', 'Public API') %>.
+  <% if [:module, :class].include?(object.type) %>
+    All attributes and methods defined in this <%= object.type.to_s %> are also part of the Public API.
+  <% end %>
 </div>
