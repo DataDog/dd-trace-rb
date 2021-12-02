@@ -167,6 +167,10 @@ RSpec.describe 'Rails Rack' do
       expect(render_span.resource).to eq('full.html.erb')
       expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
       expect(render_span.get_tag('rails.layout')).to eq('layouts/application')
+      expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
       expect(render_span).to be_measured
     end
 
@@ -188,6 +192,10 @@ RSpec.describe 'Rails Rack' do
         expect(render_span.resource).to eq('full.html.erb')
         expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
         expect(render_span.get_tag('rails.layout')).to be_nil
+        expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
       end
     end
   end
@@ -207,6 +215,10 @@ RSpec.describe 'Rails Rack' do
       expect(inner_partial_span.get_tag('rails.template_name')).to eq('_inner_partial.html.erb')
       expect(inner_partial_span).to be_measured
       expect(inner_partial_span.parent_id).to eq(outer_partial_span.span_id)
+      expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
 
       expect(outer_partial_span.name).to eq('rails.render_partial')
       expect(outer_partial_span.span_type).to eq('template')
@@ -214,6 +226,10 @@ RSpec.describe 'Rails Rack' do
       expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb')
       expect(outer_partial_span).to be_measured
       expect(outer_partial_span.parent_id).to eq(template_span.span_id)
+      expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
     end
 
     it 'tracing does not affect response body' do
@@ -264,6 +280,10 @@ RSpec.describe 'Rails Rack' do
       expect(template_span).to have_error_type('ActionView::MissingTemplate')
       expect(template_span).to have_error_message(include('Missing template test/does_not_exist'))
       expect(template_span).to have_error_stack
+      expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
     end
   end
 
@@ -311,6 +331,10 @@ RSpec.describe 'Rails Rack' do
       expect(partial_span).to have_error_type('ActionView::MissingTemplate')
       expect(partial_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(partial_span).to have_error_stack
+      expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
 
       expect(template_span.name).to eq('rails.render_template')
       expect(template_span.resource).to eq('partial_does_not_exist.html.erb') # Fallback value due to missing template
@@ -321,6 +345,10 @@ RSpec.describe 'Rails Rack' do
       expect(template_span).to have_error_type('ActionView::Template::Error')
       expect(template_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(template_span).to have_error_stack
+      expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
     end
   end
 
@@ -566,6 +594,10 @@ RSpec.describe 'Rails Rack' do
       expect(render_span).to have_error
       expect(render_span).to have_error_type('ActionView::Template::Error')
       expect(render_span).to have_error_message('divided by 0')
+      expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
     end
   end
 
@@ -604,9 +636,17 @@ RSpec.describe 'Rails Rack' do
       expect(partial_span).to have_error
       expect(partial_span).to have_error_type('ActionView::Template::Error')
       expect(partial_span).to have_error_message('divided by 0')
+      expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
 
       expect(render_span).to have_error
       expect(render_span).to have_error_type('ActionView::Template::Error')
+      expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+      expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
     end
   end
 

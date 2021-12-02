@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/action_view/ext'
 
 module Datadog
@@ -12,6 +13,9 @@ module Datadog
               Ext::SPAN_RENDER_PARTIAL,
               span_type: Datadog::Ext::HTTP::TEMPLATE
             ) do |span|
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_PARTIAL)
+
               with_datadog_span(span) { super(*args) }
             end
           end
