@@ -57,6 +57,10 @@ RSpec.describe 'Rack integration tests' do
           expect(span.get_tag('http.base_url')).to eq('http://example.org')
           expect(span.status).to eq(0)
           expect(span).to be_root_span
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+            .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
         end
       end
     end
@@ -92,6 +96,10 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
             expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
           end
         end
 
@@ -111,6 +119,10 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
             expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
           end
         end
 
@@ -134,6 +146,10 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
               expect(span).to be_root_span
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
             end
           end
 
@@ -154,6 +170,10 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
               expect(span).to be_root_span
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
             end
           end
         end
@@ -172,6 +192,10 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
             expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
           end
         end
       end
@@ -193,6 +217,10 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
             expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
           end
         end
       end
@@ -226,6 +254,10 @@ RSpec.describe 'Rack integration tests' do
           expect(span.get_tag('http.base_url')).to eq('http://example.org')
           expect(span.status).to eq(0)
           expect(span).to be_root_span
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+            .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
         end
       end
     end
@@ -259,6 +291,10 @@ RSpec.describe 'Rack integration tests' do
           expect(span.get_tag('error.stack')).to be nil
           expect(span.status).to eq(1)
           expect(span).to be_root_span
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+            .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
         end
       end
     end
@@ -295,6 +331,10 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
           end
         end
       end
@@ -330,6 +370,10 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('error.stack')).to_not be nil
             expect(span.status).to eq(1)
             expect(span).to be_root_span
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
           end
         end
       end
@@ -377,6 +421,10 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
               expect(span).to be_root_span
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
             end
           end
         end
@@ -420,6 +468,10 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('error.stack')).to eq('Handled exception')
               expect(span.status).to eq(1)
               expect(span).to be_root_span
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
             end
           end
         end
@@ -455,6 +507,10 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('error.stack')).to eq('Handled exception')
               expect(span.status).to eq(1)
               expect(span).to be_root_span
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
             end
           end
         end
@@ -577,6 +633,10 @@ RSpec.describe 'Rack integration tests' do
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
               expect(span.status).to eq(0)
               expect(span).to be_root_span
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
 
               # Request headers
               expect(span.get_tag('http.request.headers.cache_control')).to eq('no-cache')

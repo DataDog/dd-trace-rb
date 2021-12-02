@@ -1,6 +1,7 @@
 # typed: false
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
@@ -30,12 +31,21 @@ module Datadog
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
-          tracer.trace(
+          frontend_span = tracer.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
             span_type: Datadog::Ext::HTTP::TYPE_PROXY,
             start_time: request_start,
             service: configuration[:web_service_name]
           )
+
+          # Tag this span as belonging to Rack
+          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
+
+          # Set peer service (so its not believed to belong to this app)
+          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, configuration[:web_service_name])
+
+          frontend_span
         end
 
         def call(env)
@@ -112,6 +122,7 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
+        # rubocop:disable Metrics/MethodLength
         def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
@@ -132,6 +143,9 @@ module Datadog
 
           # Set trace name if it hasn't been set yet (name == resource)
           trace.resource = request_span.resource if trace.resource == trace.name
+
+          request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
