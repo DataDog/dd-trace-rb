@@ -10,7 +10,7 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
 
     name = call_params[0]
 
-    generated_module = YARD::CodeObjects::ModuleObject.new(namespace, 'Generated') do |o|
+    generated_module = YARD::CodeObjects::ModuleObject.new(namespace, 'DSL') do |o|
       o.docstring = 'Namespace for dynamically generated configuration classes.'
     end
 

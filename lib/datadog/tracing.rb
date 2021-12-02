@@ -4,18 +4,28 @@ module Datadog
   # The Datadog teams ensures that public methods in this module
   # only receive backwards compatible changes, and breaking changes
   # will only occur in new major versions releases.
+  # @public_api
   module Tracing
     class << self
       # (see Datadog::Tracer#trace)
       # @public_api
-      def trace(name, **kwargs, &block)
-        tracer.trace(name, **kwargs, &block)
+      def trace(name, continue_from: nil, **span_options, &block)
+        tracer.trace(name, continue_from: continue_from, **span_options, &block)
+      end
+
+      # (see Datadog::Tracer#continue_trace!)
+      # @public_api
+      def continue_trace!(digest, key = nil, &block)
+        tracer.continue_trace!(digest, key, &block)
       end
 
       # The currently active {Datadog::Tracer} instance.
       #
       # The instance returned can change throughout the lifetime of the application.
       # This means it is not advisable to cache it.
+      #
+      # The trace can be configured through {.configure},
+      # through {Datadog::Configuration::Settings::DSL::Tracer} options.
       #
       # TODO: I think this next paragraph can be better written.
       #
@@ -26,21 +36,30 @@ module Datadog
       # we strive to no introduce breaking changes to {Datadog::Tracing} methods.
       #
       # @return [Datadog::Tracer] the active tracer
+      # @!attribute [r] tracer
       # @public_api
       def tracer
         components.tracer
       end
 
-      # TODO: should the logger be available publicly?
-      # TODO: Are there any valid use cases for Datadog.logger.log(...)
-      # TODO: from the host application?
+      # The tracer's internal logger instance.
+      # All tracing log output is handled by this object.
       #
+      # The logger can be configured through {.configure},
+      # through {Datadog::Configuration::Settings::DSL::Logger} options.
+      #
+      # @!attribute [r] logger
       # @public_api
       def logger
         Datadog.logger
       end
 
-      # TODO: should the publicly exposed configuration be mutable?
+      # Current tracer configuration.
+      #
+      # To modify the configuration, use {.configure}.
+      #
+      # @return [Datadog::Configuration::Settings]
+      # @!attribute [r] configuration
       # @public_api
       def configuration
         Datadog.configuration
@@ -70,65 +89,37 @@ module Datadog
       # available environment variables for configuration.
       #
       # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+      # @return [void]
       # @public_api
       def configure(&block)
         Datadog.configure(&block)
       end
 
-      # The active, unfinished trace, representing the current instrumentation context.
-      #
-      # The active trace is thread-local.
-      #
-      # @return [Datadog::TraceSegment] the active trace
-      # @return [nil] if no trace is active
+      # (see Datadog::Tracer#active_trace)
       # @public_api
       def active_trace
         tracer.active_trace
       end
 
-      # The active, unfinished span, representing the currently instrumented application section.
-      #
-      # The active span belongs to an {.active_trace}.
-      #
-      # @see .active_trace
-      #
-      # @return [Datadog::SpanOperation] the active span
-      # @return [nil] if no trace is active, and thus no span is active
+      # (see Datadog::Tracer#active_span)
       # @public_api
       def active_span
         tracer.active_span
       end
 
-      # If an active trace is present, forces it to be retained by the Datadog backend.
-      #
-      # Any sampling logic will not be able to change this decision.
-      #
-      # @return [void]
+      # (see Datadog::TraceSegment#keep!)
       # @public_api
       def keep!
         active_trace.keep!
       end
 
-      # If an active trace is present, forces it to be dropped and not stored by the Datadog backend.
-      #
-      # TODO: should we mention billing? do we know if this directly affects billing?
-      #
-      # Any sampling logic will not be able to change this decision.
-      #
-      # @return [void]
+      # (see Datadog::TraceSegment#reject!)
       # @public_api
       def reject!
         active_trace.reject!
       end
 
-      # Information about the currently active trace that allows
-      # for another execution context to be linked to the active
-      # trace.
-      #
-      # The most common use case is for propagating distributed
-      # tracing information to downstream services.
-      #
-      # @return [Datadog::Correlation::Identifier] correlation object
+      # (see Datadog::Tracer#active_correlation)
       # @public_api
       def correlation
         tracer.active_correlation
@@ -148,7 +139,7 @@ module Datadog
       # @return [String] correlation information
       # @public_api
       def log_correlation
-        correlation.to_s
+        correlation.to_log_format
       end
 
       # Gracefully shuts down the tracer.
@@ -165,12 +156,12 @@ module Datadog
         components.shutdown!
       end
 
-      # Returns the integration registry instance.
+      # The global integration registry.
       #
       # This registry holds a reference to all integrations available
-      # for tracing.
+      # to the tracer.
       #
-      # Integrations registered in the registry can be activated as follows:
+      # Integrations registered in the {.registry} can be activated as follows:
       #
       # ```
       # Datadog.configure do |c|
@@ -178,7 +169,10 @@ module Datadog
       # end
       # ```
       #
+      # New integrations can be registered by implementing the {Datadog::Contrib::Integration} interface.
+      #
       # @return [Datadog::Contrib::Registry]
+      # @!attribute [r] registry
       # @public_api
       def registry
         Datadog::Contrib::REGISTRY
@@ -186,18 +180,10 @@ module Datadog
 
       private
 
+      # DEV: components hosts both tracing and profiling inner objects today
       def components
-        # TODO: where will components live, given it hosts tracing and profiling components?
         Datadog.send(:components)
       end
     end
   end
 end
-
-# TODO: simple testing, remove me
-# require 'ddtrace'
-# Datadog.configure do |c|
-#   c.diagnostics.debug = true
-# end
-#
-# Datadog::Tracing.trace('a') {}

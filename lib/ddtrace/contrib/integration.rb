@@ -16,7 +16,7 @@ module Datadog
     #   class Integration
     #     include ::Datadog::Contrib::Integration
     #
-    #     register_as :billing_api
+    #     register_as :billing_api # Register in the global tracing registry
     #
     #     def self.available?
     #       defined?(::BillingApi::Client) # Check if the target for instrumentation is present.

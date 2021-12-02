@@ -167,18 +167,35 @@ module Datadog
       @tags = @tags.merge(string_tags)
     end
 
-    # Return the current active trace or +nil+.
+    # The active, unfinished trace, representing the current instrumentation context.
+    #
+    # The active trace is thread-local.
+    #
+    # @return [Datadog::TraceSegment] the active trace
+    # @return [nil] if no trace is active
     def active_trace(key = nil)
       call_context(key).active_trace
     end
 
-    # Return the current active span or +nil+.
+    # The active, unfinished span, representing the currently instrumented application section.
+    #
+    # The active span belongs to an {.active_trace}.
+    #
+    # @return [Datadog::SpanOperation] the active span
+    # @return [nil] if no trace is active, and thus no span is active
     def active_span(key = nil)
       trace = active_trace(key)
       trace.active_span if trace
     end
 
-    # Return a CorrelationIdentifier for active span
+    # Information about the currently active trace that allows
+    # for another execution context to be linked to the active
+    # trace.
+    #
+    # The most common use case is for propagating distributed
+    # tracing information to downstream services.
+    #
+    # @return [Datadog::Correlation::Identifier] correlation object
     def active_correlation(key = nil)
       trace = active_trace(key)
       Datadog::Correlation.identifier_from_digest(
@@ -193,7 +210,8 @@ module Datadog
     #
     # @param [Datadog::TraceDigest] digest continue from the {Datadog::TraceDigest}.
     # @param [Thread] key thread-local context holder
-    # @return [Object,Datadog::TraceOperation] If a block is provided, returns the result of the block execution. Otherwise, the active {Datadog::TraceOperation} is returned.
+    # @return [Object] If a block is provided, the result of the block execution.
+    # @return [Datadog::TraceOperation] If no block, the active {Datadog::TraceOperation}.
     # @yield Optional block where this {#continue_trace!} `digest` scope is active.
     #   If no block, the `digest` remains active after {#continue_trace!} returns.
     def continue_trace!(digest, key = nil, &block)
