@@ -17,6 +17,7 @@ module Datadog
       :worker,
       :events
 
+    # @public_api
     def initialize(options = {})
       # writer and transport parameters
       @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
@@ -49,6 +50,11 @@ module Datadog
       @events = Events.new
     end
 
+    # Starts the internal {Writer} thread.
+    #
+    # The {Writer} is also automatically started when necessary during calls to {.send_spans}.
+    #
+    # @public_api
     def start
       @mutex_after_fork.synchronize do
         return false if @stopped
@@ -82,6 +88,7 @@ module Datadog
     # no internal work will be performed.
     #
     # It is not possible to restart a stopped writer instance.
+    # @public_api
     def stop
       @mutex_after_fork.synchronize { stop_worker }
     end
@@ -100,6 +107,7 @@ module Datadog
     private :start_worker, :stop_worker
 
     # flush spans to the trace-agent, handles spans only
+    # @public_api
     def send_spans(traces, transport)
       return true if traces.empty?
 
@@ -118,6 +126,7 @@ module Datadog
     end
 
     # enqueue the trace for submission to the API
+    # @public_api
     def write(trace)
       # In multiprocess environments, the main process initializes the +Writer+ instance and if
       # the process forks (i.e. a web server like Unicorn or Puma with multiple workers) the new
@@ -144,6 +153,7 @@ module Datadog
     end
 
     # stats returns a dictionary of stats about the writer.
+    # @public_api
     def stats
       {
         traces_flushed: @traces_flushed,

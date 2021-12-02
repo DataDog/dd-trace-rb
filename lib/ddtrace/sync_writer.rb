@@ -16,23 +16,33 @@ module Datadog
       :events,
       :transport
 
-    def initialize(options = {})
-      @transport = options.fetch(:transport) do
-        transport_options = options.fetch(:transport_options, {})
-        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+    # @param [Datadog::Transport::Traces::Transport] transport a custom transport instance. If provided, overrides `transport_options` and `agent_settings`.
+    # @param [Hash<Symbol,Object>] transport_options options for the default transport instance.
+    # @param [Datadog::Configuration::AgentSettingsResolver::AgentSettings] agent_settings agent options for the default transport instance.
+    # @public_api
+    def initialize(transport: nil, transport_options: {}, agent_settings: nil)
+      @transport = transport || begin
+        transport_options[:agent_settings] = agent_settings if agent_settings
         Transport::HTTP.default(**transport_options)
       end
 
       @events = Writer::Events.new
     end
 
+    # Sends traces to the configured transport.
+    #
+    # Traces are flushed immediately.
+    #
+    # @public_api
     def write(trace)
       flush_trace(trace)
     rescue => e
       Datadog.logger.debug(e)
     end
 
-    # Added for interface completeness
+    # Added for interface completeness.
+    # The {SyncWriter} does not need to be stopped as it holds no state.
+    # @public_api
     def stop
       # No cleanup to do for the SyncWriter
       true
