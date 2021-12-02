@@ -11,7 +11,6 @@ module Datadog
         RACK_ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'.freeze
         RACK_ENV_MIDDLEWARE_START_TIME = 'datadog.sinatra_middleware_start_time'.freeze
         RACK_ENV_MIDDLEWARE_TRACED = 'datadog.sinatra_middleware_traced'.freeze
-        SERVICE_NAME = 'sinatra'.freeze
         SPAN_RENDER_TEMPLATE = 'sinatra.render_template'.freeze
         SPAN_REQUEST = 'sinatra.request'.freeze
         SPAN_ROUTE = 'sinatra.route'.freeze

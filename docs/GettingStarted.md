@@ -1860,7 +1860,6 @@ Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before y
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `resource_script_names` | Prepend resource names with script name | `false` |
-| `service_name` | Service name used for `sinatra` instrumentation | `'sinatra'` |
 
 ### Sneakers
 

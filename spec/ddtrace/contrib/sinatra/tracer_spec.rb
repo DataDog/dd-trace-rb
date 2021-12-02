@@ -343,7 +343,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
             expect(trace.resource).to eq('GET 404')
 
-            expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
+            expect(span.service).to eq(tracer.default_service)
             expect(span.resource).to eq('GET /not_a_route')
             expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/not_a_route')
@@ -374,21 +374,6 @@ RSpec.describe 'Sinatra instrumentation' do
             request_span = spans.find { |s| s.name == 'sinatra.request' }
             expect(request_span.name).to eq('sinatra.request')
             expect(request_span.resource).to eq('GET /span_resource')
-          end
-        end
-      end
-
-      context 'with a custom service name' do
-        let(:configuration_options) { super().merge(service_name: service_name) }
-        let(:service_name) { 'my-sinatra-app' }
-
-        context 'and a simple request is made' do
-          subject(:response) { get '/' }
-
-          it do
-            is_expected.to be_ok
-            expect(spans).to have(2 + nested_span_count).items
-            expect(span.service).to eq(service_name)
           end
         end
       end
@@ -652,7 +637,7 @@ RSpec.describe 'Sinatra instrumentation' do
   RSpec::Matchers.define :be_request_span do |opts = {}|
     match(notify_expectation_failures: true) do |span|
       app_name = opts[:app_name] || self.app_name
-      expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
+      expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq(opts[:resource] || resource)
       expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq(http_method) if opts[:http_tags]
       expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(url) if opts[:http_tags]
@@ -672,7 +657,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
   RSpec::Matchers.define :be_route_span do |opts = {}|
     match(notify_expectation_failures: true) do |span|
-      expect(span.service).to eq(Datadog::Contrib::Sinatra::Ext::SERVICE_NAME)
+      expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq(resource)
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
       expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)

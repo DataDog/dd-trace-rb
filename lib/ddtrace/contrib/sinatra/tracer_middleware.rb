@@ -25,7 +25,6 @@ module Datadog
 
           tracer.trace(
             Ext::SPAN_REQUEST,
-            service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND
           ) do |span|
             begin
