@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_record/ext'
 require 'ddtrace/contrib/active_record/event'
@@ -31,6 +32,8 @@ module Datadog
           def process(span, event, _id, payload)
             span.resource = payload.fetch(:class_name)
             span.span_type = Ext::SPAN_TYPE_INSTANTIATION
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_INSTANTIATION)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

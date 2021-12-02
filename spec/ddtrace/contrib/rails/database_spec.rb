@@ -52,6 +52,14 @@ RSpec.describe 'Rails database' do
       expect(span.resource).to include('SELECT COUNT(*) FROM')
       # ensure that the sql.query tag is not set
       expect(span.get_tag('sql.query')).to be_nil
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_SQL)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq(adapter_name)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+        .to eq(adapter_host.to_s)
     end
 
     it_behaves_like 'a peer service span'
@@ -83,6 +91,10 @@ RSpec.describe 'Rails database' do
         expect(span.resource).to eq('Article')
         expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
         expect(span.get_tag('active_record.instantiation.record_count')).to eq(1)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_INSTANTIATION)
       end
 
       context 'inside parent trace' do
@@ -106,6 +118,10 @@ RSpec.describe 'Rails database' do
           expect(instantiation_span.resource).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.class_name')).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.record_count')).to eq(1)
+          expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+            .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+          expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_INSTANTIATION)
         end
       end
     end

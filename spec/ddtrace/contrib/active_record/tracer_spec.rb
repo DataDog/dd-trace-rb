@@ -55,6 +55,14 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
       expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_f)
       expect(span.get_tag('sql.query')).to eq(nil)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_SQL)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('mysql2')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+        .to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
     end
 
     context 'and service_name' do
