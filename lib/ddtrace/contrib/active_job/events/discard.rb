@@ -28,6 +28,7 @@ module Datadog
             span.name = span_name
             span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = payload[:job].class.name
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_DISCARD)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
