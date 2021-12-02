@@ -108,6 +108,12 @@ module Datadog
     # @param [Time] start_time time which the span should have started.
     # @param [Hash<String,String>] tags extra tags which should be added to the span.
     # @param [String] type the type of the span. See {Datadog::Ext::AppTypes}.
+    # @return [Object,Datadog::SpanOperation] If a block is provided, returns the result of the block execution. Otherwise, the active, unfinished {Datadog::SpanOperation} is returned.
+    # @yield Optional block where new newly created {Datadog::SpanOperation} captures the execution.
+    #   The span_op is {Datadog::SpanOperation#finish}ed when the block ends.
+    #   If no block, the active, unfinished {Datadog::SpanOperation} is returned instead.
+    # @yieldparam [Datadog::SpanOperation] span_op the newly created and active [Datadog::SpanOperation]
+    # @yieldparam [Datadog::TraceOperation] trace_op the active [Datadog::TraceOperation]
     # rubocop:disable Lint/UnderscorePrefixedVariableName
     def trace(
       name,
@@ -181,7 +187,15 @@ module Datadog
     end
 
     # Setup a new trace to continue from where another
-    # trace left off. Used to continue distributed traces.
+    # trace left off.
+    #
+    # Used to continue distributed or async traces.
+    #
+    # @param [Datadog::TraceDigest] digest continue from the {Datadog::TraceDigest}.
+    # @param [Thread] key thread-local context holder
+    # @return [Object,Datadog::TraceOperation] If a block is provided, returns the result of the block execution. Otherwise, the active {Datadog::TraceOperation} is returned.
+    # @yield Optional block where this {#continue_trace!} `digest` scope is active.
+    #   If no block, the `digest` remains active after {#continue_trace!} returns.
     def continue_trace!(digest, key = nil, &block)
       return unless digest && digest.is_a?(TraceDigest)
 
