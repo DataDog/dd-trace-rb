@@ -46,14 +46,14 @@ RSpec.describe 'tracing on the client connection' do
       default_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'rspec'
-      expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('rspec')
 
       clear_traces!
 
       configured_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.last
       expect(span.service).to eq 'cepsr'
-      expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('cepsr')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('cepsr')
     end
   end
 

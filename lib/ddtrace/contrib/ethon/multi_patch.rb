@@ -1,7 +1,7 @@
 # typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/ethon/ext'
 
@@ -65,7 +65,7 @@ module Datadog
             @datadog_multi_trace_digest = Datadog.tracer.active_trace.to_digest
 
             # Tag as an external peer service
-            @datadog_multi_span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, @datadog_multi_span.service)
+            @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, @datadog_multi_span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(@datadog_multi_span, analytics_sample_rate) if analytics_enabled?

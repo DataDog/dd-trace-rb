@@ -123,7 +123,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         context 'but peer.service is set' do
           before do
             allow(root_span).to receive(:get_tag)
-              .with(Datadog::Ext::Integration::TAG_PEER_SERVICE)
+              .with(Datadog::Ext::Metadata::TAG_PEER_SERVICE)
               .and_return('a-peer-service')
           end
 

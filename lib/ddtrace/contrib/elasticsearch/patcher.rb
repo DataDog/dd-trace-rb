@@ -1,7 +1,7 @@
 # typed: false
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/elasticsearch/ext'
@@ -80,7 +80,7 @@ module Datadog
                   body = JSON.generate(body) if body && !body.is_a?(String)
 
                   # Tag as an external peer service
-                  span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
                   # Set analytics sample rate
                   if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

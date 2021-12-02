@@ -73,7 +73,7 @@ module Datadog
             end
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
             set_analytics_sample_rate(span, req_options)
           end

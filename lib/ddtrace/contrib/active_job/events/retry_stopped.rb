@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_job/ext'
 require 'ddtrace/contrib/active_job/event'

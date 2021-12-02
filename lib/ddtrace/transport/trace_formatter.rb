@@ -1,4 +1,4 @@
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/socket'
@@ -77,7 +77,7 @@ module Datadog
       end
 
       def tag_lang!
-        return if trace.lang.nil? || root_span.get_tag(Ext::Integration::TAG_PEER_SERVICE)
+        return if trace.lang.nil? || root_span.get_tag(Ext::Metadata::TAG_PEER_SERVICE)
 
         root_span.set_tag(
           Ext::Runtime::TAG_LANG,

@@ -1,6 +1,6 @@
 # typed: ignore
 require 'ddtrace/ext/http'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 

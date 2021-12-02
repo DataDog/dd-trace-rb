@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/parsers'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 module Datadog
   module Contrib
@@ -27,7 +27,7 @@ module Datadog
           serialized_query = query.to_s
 
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
           # Set analytics sample rate
           Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

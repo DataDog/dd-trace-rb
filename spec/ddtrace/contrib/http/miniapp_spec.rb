@@ -60,7 +60,7 @@ RSpec.describe 'net/http miniapp tests' do
         http_spans.each do |span|
           expect(span.name).to eq('http.request')
           expect(span.service).to eq('net/http')
-          expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('net/http')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('net/http')
           expect(span.resource).to eq('GET')
           expect(span.get_tag('http.url')).to eq('/my/path')
           expect(span.get_tag('http.method')).to eq('GET')
