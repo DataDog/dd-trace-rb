@@ -1,12 +1,10 @@
-require 'datadog/security/event'
-
 module Datadog
   module Security
     module Contrib
       module Rack
         module Reactive
           module Subscriber
-            def self.subscribe(op, waf_context, active_span, request)
+            def self.subscribe(op, waf_context)
               addresses = [
                 'request.headers',
                 'request.uri.raw',
@@ -46,21 +44,11 @@ module Datadog
                 case action
                 when :monitor
                   Datadog.logger.debug { "WAF: #{result.inspect}" }
-                  if active_span
-                    active_span.set_tag('appsec.action', 'monitor')
-                    active_span.set_tag('appsec.event', 'true')
-                    active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
-                  end
-                  Event.record({ waf_result: result, span: active_span, request: request }, false)
+                  yield [action, result, false]
                 when :block
                   Datadog.logger.debug { "WAF: #{result.inspect}" }
-                  if active_span
-                    active_span.set_tag('appsec.action', 'block')
-                    active_span.set_tag('appsec.event', 'true')
-                    active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
-                  end
-                  Event.record({ waf_result: result, span: active_span, request: request }, true)
-                  block = true
+                  yield [action, result, true]
+                  throw(:block, [action, result, true])
                 when :good
                   Datadog.logger.debug { "WAF OK: #{result.inspect}" }
                 when :timeout
@@ -72,8 +60,6 @@ module Datadog
                 else
                   Datadog.logger.debug { "WAF UNKNOWN: #{action.inspect} #{result.inspect}" }
                 end
-
-                throw(:block, :block) if block
               end
             end
           end

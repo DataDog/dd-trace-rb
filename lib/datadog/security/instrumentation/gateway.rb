@@ -19,6 +19,7 @@ module Datadog
             [block.call, nil]
           end
 
+          # TODO: handle exceptions, except for wrapped
           stack = middlewares.reverse.reduce(wrapped) do |next_, middleware|
             lambda do |env_|
               middleware.call(next_, env_)
