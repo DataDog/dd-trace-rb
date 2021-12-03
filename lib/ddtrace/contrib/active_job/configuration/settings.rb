@@ -23,7 +23,7 @@ module Datadog
             o.lazy
           end
 
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
           option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
 
           DEPRECATION_WARN_ONLY_ONCE_TRUE = Datadog::Utils::OnlyOnce.new

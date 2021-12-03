@@ -64,7 +64,6 @@ module Datadog
             config[:service_name] ||= (Datadog.configuration.service_without_fallback || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
             config[:cache_service] ||= "#{config[:service_name]}-cache"
-            config[:job_service] ||= "#{config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
           end
         end
 
@@ -131,7 +130,7 @@ module Datadog
 
           datadog_config.use(
             :active_job,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}",
+            service_name: rails_config[:service_name],
             **deprecated_options
           )
         end

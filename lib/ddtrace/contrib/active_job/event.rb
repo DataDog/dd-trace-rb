@@ -15,7 +15,9 @@ module Datadog
         # Class methods for ActiveJob events.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
+            options = {}
+            options[:service] = configuration[:service_name] if configuration[:service_name]
+            options
           end
 
           def tracer

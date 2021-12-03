@@ -26,7 +26,7 @@ module Datadog
 
           def process(span, event, _id, payload)
             span.name = span_name
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = payload[:job].class.name
 
             # Set analytics sample rate

@@ -4,7 +4,6 @@ module Datadog
     module ActiveJob
       module Ext
         APP = 'active_job'.freeze
-        SERVICE_NAME = 'active_job'.freeze
 
         ENV_ENABLED = 'DD_TRACE_ACTIVE_JOB_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED'.freeze

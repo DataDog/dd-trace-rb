@@ -515,17 +515,11 @@ require 'active_job'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :active_job, options
+  c.use :active_job
 end
 
 ExampleJob.perform_later
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
 
 ### Active Model Serializers
 
