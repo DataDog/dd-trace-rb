@@ -4,6 +4,7 @@ require 'ddtrace/version'
 module Datadog
   module Core
     module Environment
+      # @public_api
       module Ext
         # Identity
         LANG = 'ruby'.freeze
