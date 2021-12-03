@@ -2,7 +2,7 @@
 --markup-provider redcarpet
 --tag default:"Defaults to"
 --readme docs/GettingStarted.md
---files docs/PublicApi.md
+--files docs/PublicApi.md,docs/AutoInstrumentation.md
 --template-path=yard/templates
 --tag='public_api:Public API'
 --hide-tag=public_api

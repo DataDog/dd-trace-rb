@@ -1,6 +1,6 @@
 def menu_lists
-  # Prepend Public API to existing menus
-  [ { :type => 'public_api', :title => 'Public API', :search_title => 'Public API' } ] + super
+  # Append Public API to existing menus
+  super + [ { :type => 'public_api', :title => 'Public API', :search_title => 'Public API' } ]
 end
 
 def stylesheets
