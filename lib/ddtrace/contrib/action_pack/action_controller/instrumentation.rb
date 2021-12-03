@@ -16,7 +16,7 @@ module Datadog
 
           def start_processing(payload)
             # trace the execution
-            service = Datadog.configuration[:action_pack][:controller_service]
+            service = Datadog.configuration[:action_pack][:service_name]
             type = Datadog::Ext::HTTP::TYPE_INBOUND
             span = Datadog.tracer.trace(
               Ext::SPAN_ACTION_CONTROLLER,

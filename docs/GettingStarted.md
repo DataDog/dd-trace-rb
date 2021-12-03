@@ -483,15 +483,9 @@ require 'actionpack'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :action_pack, options
+  c.use :action_pack
 end
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| ---| --- | --- |
-| `service_name` | Service name used for rendering instrumentation. | `action_pack` |
 
 ### Action View
 

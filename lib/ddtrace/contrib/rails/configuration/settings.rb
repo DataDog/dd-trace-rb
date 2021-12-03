@@ -50,13 +50,6 @@ module Datadog
             end
           end
 
-          option :controller_service do |o|
-            o.on_set do |value|
-              # Update ActionPack service name too
-              Datadog.configuration[:action_pack][:controller_service] = value
-            end
-          end
-
           option :database_service do |o|
             o.depends_on :service_name
             o.on_set do |value|

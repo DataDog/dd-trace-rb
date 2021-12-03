@@ -63,7 +63,6 @@ module Datadog
           datadog_config[:rails].tap do |config|
             config[:service_name] ||= (Datadog.configuration.service_without_fallback || Utils.app_name)
             config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
-            config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
             config[:job_service] ||= "#{config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
           end
@@ -105,10 +104,6 @@ module Datadog
 
         def self.activate_action_pack!(datadog_config, rails_config)
           return unless defined?(::ActionPack)
-
-          # TODO: This is configuring ActionPack but not patching. It will queue ActionPack
-          #       for patching, but patching won't take place until Datadog.configure completes.
-          #       Should we manually patch here?
 
           datadog_config.use(
             :action_pack,
