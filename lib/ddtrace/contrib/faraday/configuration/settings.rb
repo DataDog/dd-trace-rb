@@ -8,6 +8,7 @@ module Datadog
     module Faraday
       module Configuration
         # Custom settings for the Faraday integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_ERROR_HANDLER = lambda do |env|
             Datadog::Ext::HTTP::ERROR_RANGE.cover?(env[:status])

@@ -7,6 +7,7 @@ module Datadog
     module Rack
       module Configuration
         # Custom settings for the Rack integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_HEADERS = {
             response: %w[
