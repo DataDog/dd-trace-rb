@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Kafka
       # Kafka integration constants
+      # @public_api
       module Ext
         APP = 'kafka'.freeze
         ENV_ENABLED = 'DD_TRACE_KAFKA_ENABLED'.freeze

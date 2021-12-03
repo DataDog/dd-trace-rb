@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Excon
       # Excon integration constants
+      # @public_api
       module Ext
         APP = 'excon'.freeze
         ENV_ENABLED = 'DD_TRACE_EXCON_ENABLED'.freeze

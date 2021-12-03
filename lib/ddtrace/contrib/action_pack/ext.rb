@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActionPack
       # ActionPack integration constants
+      # @public_api
       module Ext
         APP = 'action_pack'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTION_PACK_ENABLED'.freeze

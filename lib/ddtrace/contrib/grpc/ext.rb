@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module GRPC
       # gRPC integration constants
+      # @public_api
       module Ext
         APP = 'grpc'.freeze
         ENV_ENABLED = 'DD_TRACE_GRPC_ENABLED'.freeze

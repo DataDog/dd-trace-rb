@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Grape
       # Grape integration constants
+      # @public_api
       module Ext
         APP = 'grape'.freeze
         ENV_ENABLED = 'DD_TRACE_GRAPE_ENABLED'.freeze

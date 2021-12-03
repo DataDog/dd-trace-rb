@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Elasticsearch
       # Elasticsearch integration constants
+      # @public_api
       module Ext
         APP = 'elasticsearch'.freeze
         ENV_ENABLED = 'DD_TRACE_ELASTICSEARCH_ENABLED'.freeze

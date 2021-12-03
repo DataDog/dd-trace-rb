@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Sidekiq
       # Sidekiq integration constants
+      # @public_api
       module Ext
         APP = 'sidekiq'.freeze
         CLIENT_SERVICE_NAME = 'sidekiq-client'.freeze

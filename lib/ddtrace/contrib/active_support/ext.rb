@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActiveSupport
       # ActiveSupport integration constants
+      # @public_api
       module Ext
         APP = 'active_support'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTIVE_SUPPORT_ENABLED'.freeze

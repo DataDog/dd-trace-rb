@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module RestClient
       # RestClient integration constants
+      # @public_api
       module Ext
         APP = 'rest_client'.freeze
         ENV_ENABLED = 'DD_TRACE_REST_CLIENT_ENABLED'.freeze

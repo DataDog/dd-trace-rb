@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActionView
       # ActionView integration constants
+      # @public_api
       module Ext
         APP = 'action_view'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTION_VIEW_ENABLED'.freeze

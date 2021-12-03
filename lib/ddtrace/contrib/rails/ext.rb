@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Rails
       # Rails integration constants
+      # @public_api
       module Ext
         APP = 'rails'.freeze
         ENV_ENABLED = 'DD_TRACE_RAILS_ENABLED'.freeze

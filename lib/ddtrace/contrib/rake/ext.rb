@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Rake
       # Rake integration constants
+      # @public_api
       module Ext
         APP = 'rake'.freeze
         ENV_ENABLED = 'DD_TRACE_RAKE_ENABLED'.freeze

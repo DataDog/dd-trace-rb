@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module HTTP
       # HTTP integration constants
+      # @public_api
       module Ext
         APP = 'net/http'.freeze
         ENV_ENABLED = 'DD_TRACE_HTTP_ENABLED'.freeze
