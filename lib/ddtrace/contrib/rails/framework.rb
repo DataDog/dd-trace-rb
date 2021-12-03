@@ -99,7 +99,7 @@ module Datadog
 
           datadog_config.use(
             :action_mailer,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionMailer::Ext::SERVICE_NAME}"
+            service_name: rails_config[:service_name]
           )
         end
 

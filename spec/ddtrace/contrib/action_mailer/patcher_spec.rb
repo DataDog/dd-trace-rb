@@ -58,7 +58,7 @@ RSpec.describe 'ActionMailer patcher' do
     context 'that doesn\'t raise an error' do
       it 'is expected to send a process span' do
         expect(span).to_not be nil
-        expect(span.service).to eq('action_mailer')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_mailer.process')
         expect(span.resource).to eq(mailer)
         expect(span.get_tag('action_mailer.action')).to eq(action)
@@ -69,7 +69,7 @@ RSpec.describe 'ActionMailer patcher' do
 
       it 'is expected to send a deliver span' do
         expect(deliver_span).to_not be nil
-        expect(deliver_span.service).to eq('action_mailer')
+        expect(deliver_span.service).to eq(tracer.default_service)
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
@@ -92,7 +92,7 @@ RSpec.describe 'ActionMailer patcher' do
 
       it 'is expected to add additional email date to deliver span' do
         expect(deliver_span).to_not be nil
-        expect(deliver_span.service).to eq('action_mailer')
+        expect(deliver_span.service).to eq(tracer.default_service)
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
