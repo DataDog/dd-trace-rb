@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('12.0')
 
+        # @public_api
         register_as :rake
 
         def self.version

@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.9.0')
 
+        # @public_api
         register_as :active_model_serializers
 
         def self.version

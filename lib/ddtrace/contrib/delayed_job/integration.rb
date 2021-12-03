@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('4.1')
 
+        # @public_api
         register_as :delayed_job
 
         def self.version

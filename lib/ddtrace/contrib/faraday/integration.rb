@@ -13,6 +13,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.14.0')
 
+        # @public_api
         register_as :faraday, auto_patch: true
 
         def self.version

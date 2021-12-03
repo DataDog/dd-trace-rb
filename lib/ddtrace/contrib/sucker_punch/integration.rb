@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('2.0.0')
 
+        # @public_api
         register_as :sucker_punch, auto_patch: true
 
         def self.version
