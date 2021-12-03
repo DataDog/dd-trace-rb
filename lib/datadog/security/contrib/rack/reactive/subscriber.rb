@@ -29,7 +29,7 @@ module Datadog
 
                 waf_args = {
                   'server.request.cookies' => cookies,
-                  'server.request.body' => body,
+                  'server.request.body.raw' => body,
                   'server.request.query' => query,
                   'server.request.uri.raw' => uri_raw,
                   'server.request.headers' => headers,
