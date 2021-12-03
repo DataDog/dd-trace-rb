@@ -53,10 +53,8 @@ module Datadog
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env, tracer)
 
-          trace_options = {
-            service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
-          }
+          trace_options = { span_type: Datadog::Ext::HTTP::TYPE_INBOUND }
+          trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later

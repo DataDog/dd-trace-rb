@@ -49,7 +49,7 @@ RSpec.describe 'Rack integration tests' do
         it do
           expect(span.name).to eq('rack.request')
           expect(span.span_type).to eq('web')
-          expect(span.service).to eq('rack')
+          expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 404')
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('404')
@@ -84,7 +84,7 @@ RSpec.describe 'Rack integration tests' do
           it do
             expect(span.name).to eq('rack.request')
             expect(span.span_type).to eq('web')
-            expect(span.service).to eq('rack')
+            expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
             expect(span.get_tag('http.status_code')).to eq('200')
@@ -101,7 +101,7 @@ RSpec.describe 'Rack integration tests' do
           it do
             expect(span.name).to eq('rack.request')
             expect(span.span_type).to eq('web')
-            expect(span.service).to eq('rack')
+            expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
             expect(span.get_tag('http.status_code')).to eq('200')
@@ -123,7 +123,7 @@ RSpec.describe 'Rack integration tests' do
             it do
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
-              expect(span.service).to eq('rack')
+              expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 200')
               expect(span.get_tag('http.method')).to eq('GET')
               expect(span.get_tag('http.status_code')).to eq('200')
@@ -143,7 +143,7 @@ RSpec.describe 'Rack integration tests' do
             it do
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
-              expect(span.service).to eq('rack')
+              expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 200')
               expect(span.get_tag('http.method')).to eq('GET')
               expect(span.get_tag('http.status_code')).to eq('200')
@@ -164,36 +164,11 @@ RSpec.describe 'Rack integration tests' do
           it do
             expect(span.name).to eq('rack.request')
             expect(span.span_type).to eq('web')
-            expect(span.service).to eq('rack')
+            expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET 200')
             expect(span.get_tag('http.method')).to eq('GET')
             expect(span.get_tag('http.status_code')).to eq('200')
             expect(span.get_tag('http.url')).to eq('/success/100')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span.status).to eq(0)
-            expect(span).to be_root_span
-          end
-        end
-
-        context 'when configured with a custom service name' do
-          let(:route) { '/success/' }
-          let(:rack_options) { super().merge(service_name: service_name) }
-          let(:service_name) { 'custom-rack' }
-
-          after do
-            Datadog.configure do |c|
-              c.use :rack, service_name: Datadog::Contrib::Rack::Ext::SERVICE_NAME
-            end
-          end
-
-          it do
-            expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
-            expect(span.service).to eq('custom-rack')
-            expect(span.resource).to eq('GET 200')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to eq('200')
-            expect(span.get_tag('http.url')).to eq('/success/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span.status).to eq(0)
             expect(span).to be_root_span
@@ -210,7 +185,7 @@ RSpec.describe 'Rack integration tests' do
           it do
             expect(span.name).to eq('rack.request')
             expect(span.span_type).to eq('web')
-            expect(span.service).to eq('rack')
+            expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('POST 200')
             expect(span.get_tag('http.method')).to eq('POST')
             expect(span.get_tag('http.status_code')).to eq('200')
@@ -243,7 +218,7 @@ RSpec.describe 'Rack integration tests' do
         it do
           expect(span.name).to eq('rack.request')
           expect(span.span_type).to eq('web')
-          expect(span.service).to eq('rack')
+          expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 400')
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('400')
@@ -275,7 +250,7 @@ RSpec.describe 'Rack integration tests' do
         it do
           expect(span.name).to eq('rack.request')
           expect(span.span_type).to eq('web')
-          expect(span.service).to eq('rack')
+          expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 500')
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('500')
@@ -309,7 +284,7 @@ RSpec.describe 'Rack integration tests' do
           it do
             expect(span.name).to eq('rack.request')
             expect(span.span_type).to eq('web')
-            expect(span.service).to eq('rack')
+            expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
             expect(span.get_tag('http.status_code')).to be nil
@@ -344,7 +319,7 @@ RSpec.describe 'Rack integration tests' do
           it do
             expect(span.name).to eq('rack.request')
             expect(span.span_type).to eq('web')
-            expect(span.service).to eq('rack')
+            expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
             expect(span.get_tag('http.status_code')).to be nil
@@ -394,7 +369,7 @@ RSpec.describe 'Rack integration tests' do
             it do
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
-              expect(span.service).to eq('rack')
+              expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET /app/')
               expect(span.get_tag('http.method')).to eq('GET_V2')
               expect(span.get_tag('http.status_code')).to eq('201')
@@ -436,7 +411,7 @@ RSpec.describe 'Rack integration tests' do
             it do
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
-              expect(span.service).to eq('rack')
+              expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
               expect(span.get_tag('http.status_code')).to eq('500')
@@ -471,7 +446,7 @@ RSpec.describe 'Rack integration tests' do
             it do
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
-              expect(span.service).to eq('rack')
+              expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
               expect(span.get_tag('http.status_code')).to eq('500')
@@ -594,7 +569,7 @@ RSpec.describe 'Rack integration tests' do
             it do
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
-              expect(span.service).to eq('rack')
+              expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 200')
               expect(span.get_tag('http.method')).to eq('GET')
               expect(span.get_tag('http.status_code')).to eq('200')
