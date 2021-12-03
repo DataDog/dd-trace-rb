@@ -29,15 +29,6 @@ module Datadog
           end
 
           def process(span, event, _id, payload)
-            # Inherit service name from parent, if available.
-            span.service = if configuration[:orm_service_name]
-                             configuration[:orm_service_name]
-                           elsif span.send(:parent)
-                             span.send(:parent).service
-                           else
-                             Ext::SERVICE_NAME
-                           end
-
             span.resource = payload.fetch(:class_name)
             span.span_type = Ext::SPAN_TYPE_INSTANTIATION
 

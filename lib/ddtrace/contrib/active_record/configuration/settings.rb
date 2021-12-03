@@ -24,7 +24,6 @@ module Datadog
             o.lazy
           end
 
-          option :orm_service_name
           option :service_name do |o|
             o.default { Utils.adapter_name }
             o.lazy
