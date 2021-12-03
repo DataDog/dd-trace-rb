@@ -8,6 +8,7 @@ module Datadog
   module Correlation
     # Represents current trace state with key identifiers
     class Identifier
+      # @public_api
       attr_reader \
         :env,
         :service,
