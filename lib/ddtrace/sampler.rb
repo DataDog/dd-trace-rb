@@ -9,38 +9,35 @@ module Datadog
   # Interface for client-side trace sampling.
   # @abstract
   class Sampler
-    # Returns `true` if the provided span should be kept as part of the trace.
+    # Returns `true` if the provided trace should be kept.
     # Otherwise, `false`.
     #
-    # This method *must not* modify the `span`.
+    # This method *must not* modify the `trace`.
     #
-    # @param [Datadog::Span] span
-    # @return [Boolean] should this span be kept?
-    # TODO: will this receive span, tracer or both
-    def sample?(span)
+    # @param [Datadog::Trace] trace
+    # @return [Boolean] should this trace be kept?
+    def sample?(_trace)
       raise NotImplementedError, 'Samplers must implement the #sample? method'
     end
 
-    # Returns `true` if the provided span should be kept as part of the trace.
+    # Returns `true` if the provided trace should be kept.
     # Otherwise, `false`.
     #
-    # This method *may* modify the `span`, in case changes are necessary based on the
+    # This method *may* modify the `trace`, in case changes are necessary based on the
     # sampling decision.
     #
-    # @param [Datadog::Span] span
-    # @return [Boolean] should this span be kept?
-    # TODO: will this receive span, tracer or both
-    def sample!(span)
+    # @param [Datadog::Trace] trace
+    # @return [Boolean] should this trace be kept?
+    def sample!(_trace)
       raise NotImplementedError, 'Samplers must implement the #sample! method'
     end
 
     # The sampling rate, if this sampler has such concept.
     # Otherwise, `nil`.
     #
-    # @param [Datadog::Span] span
+    # @param [Datadog::Trace] trace
     # @return [Float,nil] sampling ratio between 0.0 and 1.0 (inclusive), or `nil` if not applicable
-    # TODO: will this receive span, tracer or both
-    def sample_rate(span)
+    def sample_rate(_trace)
       raise NotImplementedError, 'Samplers must implement the #sample_rate method'
     end
   end

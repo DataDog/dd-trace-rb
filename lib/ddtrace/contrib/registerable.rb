@@ -25,8 +25,9 @@ module Datadog
         # @param [Datadog::Contrib::Registry] registry a custom registry. Defaults to the global tracing registry.
         # @param [Boolean] auto_patch will this integration be activated during
         #   {file:docs/AutoInstrumentation.md Auto Instrumentation}?
-        def register_as(name, registry: Datadog::Contrib::REGISTRY, auto_patch: false)
-          registry.add(name, new(name, options), auto_patch)
+        # @param [Hash] options additional keyword options passed to the initializer of a custom {Registerable} instrumentation
+        def register_as(name, registry: Datadog::Contrib::REGISTRY, auto_patch: false, **options)
+          registry.add(name, new(name, **options), auto_patch)
         end
       end
 
@@ -35,7 +36,7 @@ module Datadog
         attr_reader \
           :name
 
-        def initialize(name, options = {})
+        def initialize(name, **options)
           @name = name
         end
       end
