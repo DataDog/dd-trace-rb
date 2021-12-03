@@ -34,7 +34,7 @@ module Datadog
             channel_class = payload[:channel_class]
             action = payload[:action]
 
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = "#{channel_class}##{action}"
             span.span_type = span_type
 

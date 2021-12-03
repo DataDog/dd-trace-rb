@@ -32,7 +32,7 @@ module Datadog
           def process(span, _event, _id, payload)
             channel_class = payload[:channel_class]
 
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = channel_class
             span.span_type = span_type
 

@@ -450,15 +450,9 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :action_cable, options
+  c.use :action_cable
 end
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `action_cable` instrumentation | `'action_cable'` |
 
 ### Action Mailer
 

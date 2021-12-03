@@ -8,7 +8,6 @@ module Datadog
         ENV_ENABLED = 'DD_TRACE_ACTION_CABLE_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_CABLE_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'action_cable'.freeze
         SPAN_ACTION = 'action_cable.action'.freeze
         SPAN_BROADCAST = 'action_cable.broadcast'.freeze
         SPAN_ON_OPEN = 'action_cable.on_open'.freeze

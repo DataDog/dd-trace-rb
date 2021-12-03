@@ -52,7 +52,7 @@ module Datadog
               configuration = Datadog.configuration[:action_cable]
 
               Datadog.tracer.trace("action_cable.#{hook}") do |span|
-                span.service = configuration[:service_name]
+                span.service = configuration[:service_name] if configuration[:service_name]
                 span.resource = "#{channel.class}##{hook}"
                 span.span_type = Datadog::Ext::AppTypes::WEB
 

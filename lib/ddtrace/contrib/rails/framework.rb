@@ -22,7 +22,6 @@ module Datadog
       # Rails framework code, used to essentially:
       # - handle configuration entries which are specific to Datadog tracing
       # - instrument parts of the framework when needed
-      # rubocop:disable Metrics/ModuleLength:
       module Framework
         # After the Rails application finishes initializing, we configure the Rails
         # integration and all its sub-components with the application information
@@ -92,10 +91,7 @@ module Datadog
         def self.activate_action_cable!(datadog_config, rails_config)
           return unless defined?(::ActionCable)
 
-          datadog_config.use(
-            :action_cable,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
-          )
+          datadog_config.use(:action_cable)
         end
 
         def self.activate_action_mailer!(datadog_config, rails_config)
@@ -174,7 +170,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/ModuleLength:
     end
   end
 end

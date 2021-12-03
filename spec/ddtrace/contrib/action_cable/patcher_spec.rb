@@ -53,7 +53,7 @@ RSpec.describe 'ActionCable patcher' do
       it 'traces broadcast event' do
         broadcast
 
-        expect(span.service).to eq('action_cable')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.broadcast')
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('action_cable.broadcast')
@@ -99,7 +99,7 @@ RSpec.describe 'ActionCable patcher' do
       it 'traces the subscribe hook' do
         subscribe
 
-        expect(span.service).to end_with('-action_cable')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.subscribe')
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('ChatChannel#subscribe')
@@ -118,7 +118,7 @@ RSpec.describe 'ActionCable patcher' do
       it 'traces the unsubscribe hook' do
         unsubscribe
 
-        expect(span.service).to end_with('-action_cable')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.unsubscribe')
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('ChatChannel#unsubscribe')
@@ -135,7 +135,7 @@ RSpec.describe 'ActionCable patcher' do
       it 'traces perform action event' do
         perform
 
-        expect(span.service).to eq('action_cable')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.action')
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('ChatChannel#foo')
@@ -183,7 +183,7 @@ RSpec.describe 'ActionCable patcher' do
         perform
 
         expect(spans).to have(2).items
-        expect(span.service).to eq('action_cable')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.transmit')
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('ChatChannel')

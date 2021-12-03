@@ -32,7 +32,7 @@ module Datadog
 
           def process(span, _event, _id, payload)
             channel = payload[:broadcasting] # Channel has high cardinality
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.span_type = span_type
 
             # Set analytics sample rate
