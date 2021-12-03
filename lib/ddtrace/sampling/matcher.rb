@@ -2,11 +2,11 @@
 module Datadog
   module Sampling
     # Checks if a trace conforms to a matching criteria.
+    # @abstract
     # @public_api
     class Matcher
       # Returns `true` if the trace should conforms to this rule, `false` otherwise
       #
-      # @abstract
       # @param [TraceOperation] trace
       # @return [Boolean]
       def match?(trace)
