@@ -32,6 +32,8 @@ module Datadog
           def call(env)
             return @app.call(env) unless libddwaf_required?
 
+            # TODO: handle exceptions, except for @app.call
+
             context = Datadog::Security::WAF::Context.new(@waf)
             # TODO: check is too low level
             # TODO: use proper exception
