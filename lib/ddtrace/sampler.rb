@@ -46,6 +46,7 @@ module Datadog
   end
 
   # \AllSampler samples all the traces.
+  # @public_api
   class AllSampler < Sampler
     def sample?(_trace)
       true
@@ -61,6 +62,7 @@ module Datadog
   end
 
   # \RateSampler is based on a sample rate.
+  # @public_api
   class RateSampler < Sampler
     KNUTH_FACTOR = 1111111111111111111
 
@@ -101,6 +103,7 @@ module Datadog
   end
 
   # Samples at different rates by key.
+  # @public_api
   class RateByKeySampler < Sampler
     attr_reader \
       :default_key
@@ -185,6 +188,7 @@ module Datadog
   end
 
   # \RateByServiceSampler samples different services at different rates
+  # @public_api
   class RateByServiceSampler < RateByKeySampler
     DEFAULT_KEY = 'service:,env:'.freeze
 
@@ -215,6 +219,7 @@ module Datadog
   end
 
   # \PrioritySampler
+  # @public_api
   class PrioritySampler
     extend Forwardable
 

@@ -5,6 +5,7 @@ require 'ddtrace/ext/sampling'
 
 module Datadog
   # Serializable construct representing a trace
+  # @public_api
   class TraceSegment
     extend Forwardable
 

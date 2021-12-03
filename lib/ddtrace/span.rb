@@ -11,6 +11,7 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
+  # @public_api
   class Span
     include Tagging
 

@@ -107,7 +107,6 @@ module Datadog
     private :start_worker, :stop_worker
 
     # flush spans to the trace-agent, handles spans only
-    # @public_api
     def send_spans(traces, transport)
       return true if traces.empty?
 
