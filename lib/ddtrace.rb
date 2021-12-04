@@ -6,6 +6,7 @@
 # We need to ensure that any files loaded in our gemspec are also loaded here.
 require 'ddtrace/version'
 
+require 'datadog/tracing'
 require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/error'

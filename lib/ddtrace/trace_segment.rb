@@ -100,8 +100,6 @@ module Datadog
 
     # If an active trace is present, forces it to be dropped and not stored by the Datadog backend.
     #
-    # TODO: should we mention billing? do we know if this directly affects billing?
-    #
     # Any sampling logic will not be able to change this decision.
     #
     # @return [void]

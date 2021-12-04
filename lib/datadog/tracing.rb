@@ -15,8 +15,8 @@ module Datadog
 
       # (see Datadog::Tracer#continue_trace!)
       # @public_api
-      def continue_trace!(digest, key = nil, &block)
-        tracer.continue_trace!(digest, key, &block)
+      def continue_trace!(digest, &block)
+        tracer.continue_trace!(digest, &block)
       end
 
       # The currently active {Datadog::Tracer} instance.
@@ -108,15 +108,19 @@ module Datadog
       end
 
       # (see Datadog::TraceSegment#keep!)
+      # If no trace is active, no action is taken.
       # @public_api
       def keep!
-        active_trace.keep!
+        trace = active_trace
+        active_trace.keep! if trace
       end
 
       # (see Datadog::TraceSegment#reject!)
+      # If no trace is active, no action is taken.
       # @public_api
       def reject!
-        active_trace.reject!
+        trace = active_trace
+        active_trace.reject! if trace
       end
 
       # (see Datadog::Tracer#active_correlation)

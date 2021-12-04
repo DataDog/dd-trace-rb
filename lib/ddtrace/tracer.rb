@@ -193,12 +193,9 @@ module Datadog
       trace.active_span if trace
     end
 
-    # Information about the currently active trace that allows
-    # for another execution context to be linked to the active
-    # trace.
+    # Information about the currently active trace.
     #
-    # The most common use case is for propagating distributed
-    # tracing information to downstream services.
+    # The most common use cases are tagging log messages and metrics.
     #
     # @return [Datadog::Correlation::Identifier] correlation object
     # @public_api
@@ -228,6 +225,7 @@ module Datadog
       call_context(key).activate!(trace, &block)
     end
 
+    # TODO: make this private
     def trace_completed
       @trace_completed ||= TraceCompleted.new
     end
