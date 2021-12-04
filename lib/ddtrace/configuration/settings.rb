@@ -225,7 +225,7 @@ module Datadog
 
         # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
         # nil instead so that one can do
-        # nice_service_name = Datadog.configure.service_without_fallback || nice_service_name_default
+        # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
         o.helper(:service_without_fallback) do
           service_name = service
           service_name unless service_name.equal?(Ext::Environment::FALLBACK_SERVICE_NAME)

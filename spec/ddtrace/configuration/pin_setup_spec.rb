@@ -11,7 +11,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
   end
 
   describe '#call' do
-    before { described_class.new(target, options).call }
+    before { described_class.new(target, **options).call }
 
     context 'given options' do
       let(:options) do
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Configuration::PinSetup do
   end
 
   describe 'Datadog#configure' do
-    before { Datadog.configure(target, service_name: :foo, extra: :bar) }
+    before { Datadog.configure_onto(target, service_name: :foo, extra: :bar) }
 
     it do
       expect(target.datadog_pin.service).to eq(:foo)

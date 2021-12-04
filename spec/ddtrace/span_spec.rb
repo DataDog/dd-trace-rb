@@ -13,7 +13,7 @@ RSpec.describe Datadog::Span do
   let(:span_options) { {} }
 
   before do
-    Datadog.configure
+    Datadog.configure {}
   end
 
   after do

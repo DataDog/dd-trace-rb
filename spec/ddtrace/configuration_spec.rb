@@ -11,7 +11,7 @@ RSpec.describe Datadog::Configuration do
     subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Configuration }) }
 
     describe '#configure' do
-      subject(:configure) { test_class.configure }
+      subject(:configure) { test_class.configure {} }
 
       context 'when Settings are configured' do
         before do
@@ -70,26 +70,6 @@ RSpec.describe Datadog::Configuration do
 
             expect(new_components).to_not have_received(:shutdown!)
           end
-        end
-      end
-
-      context 'when an object is configured' do
-        subject(:configure) { test_class.configure(object, options) }
-
-        let(:object) { double('object') }
-        let(:options) { {} }
-
-        let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
-
-        it 'attaches a pin to the object' do
-          expect(Datadog::Configuration::PinSetup)
-            .to receive(:new)
-            .with(object, options)
-            .and_return(pin_setup)
-
-          expect(pin_setup).to receive(:call)
-
-          configure
         end
       end
 
@@ -377,6 +357,26 @@ RSpec.describe Datadog::Configuration do
       end
     end
 
+    describe '#configure_onto' do
+      subject(:configure) { test_class.configure_onto(object, **options) }
+
+      let(:object) { double('object') }
+      let(:options) { {} }
+
+      let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
+
+      it 'attaches a pin to the object' do
+        expect(Datadog::Configuration::PinSetup)
+          .to receive(:new)
+          .with(object, **options)
+          .and_return(pin_setup)
+
+        expect(pin_setup).to receive(:call)
+
+        configure
+      end
+    end
+
     describe '#health_metrics' do
       subject(:health_metrics) { test_class.health_metrics }
 
@@ -399,7 +399,7 @@ RSpec.describe Datadog::Configuration do
 
       context 'when components are being replaced' do
         before do
-          test_class.configure
+          test_class.configure {}
           allow(test_class.send(:components)).to receive(:shutdown!)
         end
 
@@ -413,7 +413,7 @@ RSpec.describe Datadog::Configuration do
             instance_double(Datadog::Configuration::Components, startup!: nil)
           end
 
-          test_class.configure
+          test_class.configure {}
 
           expect(logger_during_component_replacement).to be old_logger
         end
