@@ -62,10 +62,6 @@ module Datadog
         end
       end
 
-      def loop_back_off?
-        false
-      end
-
       def after_fork
         # Clear recorder's buffers by flushing events.
         # Objects from parent process will copy-on-write,

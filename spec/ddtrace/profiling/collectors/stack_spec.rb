@@ -154,12 +154,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  describe '#loop_back_off?' do
-    subject(:loop_back_off?) { collector.loop_back_off? }
-
-    it { is_expected.to be false }
-  end
-
   describe '#collect_and_wait' do
     subject(:collect_and_wait) { collector.collect_and_wait }
 
