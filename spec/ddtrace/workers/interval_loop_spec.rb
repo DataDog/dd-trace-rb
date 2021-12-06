@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'ddtrace/worker'
-require 'ddtrace/workers/loop'
+require 'ddtrace/workers/interval_loop'
 
 RSpec.describe Datadog::Workers::IntervalLoop do
   context 'when included into a worker' do
