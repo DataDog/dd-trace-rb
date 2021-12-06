@@ -13,12 +13,12 @@ RSpec.describe Datadog::Workers::IntervalLoop do
     end
 
     let(:task) { proc { |*args| worker_spy.perform(*args) } }
-    let(:worker_spy) { double('worker spy') }
+    let(:worker_spy) { double('worker spy') } # rubocop:disable RSpec/VerifiedDoubles
 
-    before { allow(worker_spy).to receive(:perform) }
-
-    # Stub conditional wait so tests run faster
-    before { allow(worker.send(:shutdown)).to receive(:wait) }
+    before do
+      allow(worker_spy).to receive(:perform)
+      allow(worker.send(:shutdown)).to receive(:wait) # Stub conditional wait so tests run faster
+    end
 
     shared_context 'loop limit' do
       let(:perform_limit) { 2 }
