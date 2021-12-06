@@ -79,6 +79,13 @@ module Datadog
               Datadog.configuration[:active_job][:service_name] = value
             end
           end
+          
+          option :mailer_service do |o|
+            o.on_set do |value|
+              # Update ActionMailer service name too
+              Datadog.configuration[:action_mailer][:service_name] = value
+            end
+          end
 
           option :middleware, default: true
           option :middleware_names, default: false
