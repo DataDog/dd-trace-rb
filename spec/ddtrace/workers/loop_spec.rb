@@ -224,21 +224,6 @@ RSpec.describe Datadog::Workers::IntervalLoop do
       end
     end
 
-    describe '#reset_loop_wait_time' do
-      context 'when the loop time has been changed' do
-        let(:value) { rand }
-
-        before { worker.loop_wait_time = value }
-
-        it do
-          expect { worker.reset_loop_wait_time }
-            .to change { worker.loop_wait_time }
-            .from(value)
-            .to(described_class::BASE_INTERVAL)
-        end
-      end
-    end
-
     describe '#loop_back_off!' do
       it do
         expect { worker.loop_back_off! }

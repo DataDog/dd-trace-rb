@@ -60,10 +60,6 @@ module Datadog
         @loop_wait_time = value
       end
 
-      def reset_loop_wait_time
-        self.loop_wait_time = loop_base_interval
-      end
-
       def loop_back_off!
         self.loop_wait_time = [loop_wait_time * BACK_OFF_RATIO, BACK_OFF_MAX].min
       end
