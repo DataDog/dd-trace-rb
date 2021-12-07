@@ -91,12 +91,6 @@ RSpec.describe Datadog::Profiling::Scheduler do
     end
   end
 
-  describe '#loop_back_off?' do
-    subject(:loop_back_off?) { scheduler.loop_back_off? }
-
-    it { is_expected.to be false }
-  end
-
   describe '#after_fork' do
     subject(:after_fork) { scheduler.after_fork }
 

@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'ddtrace/worker'
-require 'ddtrace/workers/loop'
+require 'ddtrace/workers/interval_loop'
 
 RSpec.describe Datadog::Workers::IntervalLoop do
   context 'when included into a worker' do
@@ -13,12 +13,12 @@ RSpec.describe Datadog::Workers::IntervalLoop do
     end
 
     let(:task) { proc { |*args| worker_spy.perform(*args) } }
-    let(:worker_spy) { double('worker spy') }
+    let(:worker_spy) { double('worker spy') } # rubocop:disable RSpec/VerifiedDoubles
 
-    before { allow(worker_spy).to receive(:perform) }
-
-    # Stub conditional wait so tests run faster
-    before { allow(worker.send(:shutdown)).to receive(:wait) }
+    before do
+      allow(worker_spy).to receive(:perform)
+      allow(worker.send(:shutdown)).to receive(:wait) # Stub conditional wait so tests run faster
+    end
 
     shared_context 'loop limit' do
       let(:perform_limit) { 2 }
@@ -222,27 +222,6 @@ RSpec.describe Datadog::Workers::IntervalLoop do
           .from(described_class::BASE_INTERVAL)
           .to(value)
       end
-    end
-
-    describe '#reset_loop_wait_time' do
-      context 'when the loop time has been changed' do
-        let(:value) { rand }
-
-        before { worker.loop_wait_time = value }
-
-        it do
-          expect { worker.reset_loop_wait_time }
-            .to change { worker.loop_wait_time }
-            .from(value)
-            .to(described_class::BASE_INTERVAL)
-        end
-      end
-    end
-
-    describe '#loop_back_off?' do
-      subject(:loop_back_off?) { worker.loop_back_off? }
-
-      it { is_expected.to be false }
     end
 
     describe '#loop_back_off!' do

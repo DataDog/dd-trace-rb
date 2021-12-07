@@ -88,10 +88,6 @@ module Datadog
           collect_and_wait
         end
 
-        def loop_back_off?
-          false
-        end
-
         def collect_and_wait
           run_time = Datadog::Utils::Time.measure do
             collect_events
