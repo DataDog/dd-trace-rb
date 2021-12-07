@@ -95,7 +95,7 @@ module Datadog
 
           datadog_config.use(
             :action_cable,
-            service_name: config[:cable_service]
+            service_name: rails_config[:cable_service]
           )
         end
 
@@ -104,7 +104,7 @@ module Datadog
 
           datadog_config.use(
             :action_mailer,
-            service_name: config[:mailer_service]
+            service_name: rails_config[:mailer_service]
           )
         end
 
