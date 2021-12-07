@@ -66,6 +66,8 @@ module Datadog
             config[:controller_service] ||= config[:service_name]
             config[:cache_service] ||= "#{config[:service_name]}-cache"
             config[:job_service] ||= "#{config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
+            config[:mailer_service] ||= "#{rails_config[:service_name]}-#{Contrib::ActionMailer::Ext::SERVICE_NAME}"
+            config[:cable_service] ||= "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
           end
         end
 
@@ -93,7 +95,7 @@ module Datadog
 
           datadog_config.use(
             :action_cable,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
+            service_name: config[:cable_service]
           )
         end
 
@@ -102,7 +104,7 @@ module Datadog
 
           datadog_config.use(
             :action_mailer,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionMailer::Ext::SERVICE_NAME}"
+            service_name: config[:mailer_service]
           )
         end
 

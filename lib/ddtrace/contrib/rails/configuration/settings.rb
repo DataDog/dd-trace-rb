@@ -79,11 +79,18 @@ module Datadog
               Datadog.configuration[:active_job][:service_name] = value
             end
           end
-          
+
           option :mailer_service do |o|
             o.on_set do |value|
               # Update ActionMailer service name too
               Datadog.configuration[:action_mailer][:service_name] = value
+            end
+          end
+
+          option :cable_service do |o|
+            o.on_set do |value|
+              # Update ActionCable service name too
+              Datadog.configuration[:action_cable][:service_name] = value
             end
           end
 
