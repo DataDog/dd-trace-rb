@@ -5,7 +5,7 @@ module Datadog
       # Instrumentation gateway implementation
       class Gateway
         def initialize
-          @middlewares = Hash.new([])
+          @middlewares = Hash.new { |h, k| h[k] = [] }
         end
 
         def push(name, env, &block)
