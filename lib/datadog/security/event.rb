@@ -4,6 +4,7 @@ module Datadog
       def self.record(data, blocked)
         span = data[:span]
         request = data[:request]
+        response = data[:response]
         env = Datadog.configuration.env
         tags = Datadog.configuration.tags
 
@@ -84,9 +85,9 @@ module Datadog
                     useragent: request.user_agent,
                   },
                   response: {
-                    # status: 200, # TODO: requires sending event after request
+                    status: response.status,
                     blocked: blocked,
-                    # headers: {}, # TODO: requires sending event after request
+                    headers: response.headers,
                   }
                 },
                 service: {
