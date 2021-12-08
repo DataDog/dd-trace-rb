@@ -14,6 +14,7 @@ module Datadog
             def self.watch
               Instrumentation.gateway.watch('rack.request') do |stack, request|
                 block = false
+                event = nil
                 waf_context = request.env['datadog.waf.context']
 
                 Security::Reactive::Operation.new('rack.request') do |op|
@@ -33,21 +34,30 @@ module Datadog
                   Rack::Reactive::Subscriber.subscribe(op, waf_context) do |action, result, block|
                     record = [:block, :monitor].include?(action)
                     if record
+                      # TODO: move into event record method?
                       if active_span
                         active_span.set_tag('appsec.action', action)
                         active_span.set_tag('appsec.event', 'true')
                         active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
                       end
-                      Security::Event.record({ waf_result: result, span: active_span, request: request }, block)
+                      # TODO: should this hash be an Event instance instead?
+                      event =  { waf_result: result, span: active_span, request: request }
                     end
                   end
 
                   _action, _result, block = Rack::Reactive::Publisher.publish(op, request)
                 end
 
-                next [nil, :block] if block
+                next [nil, [[:block, event]]] if block
 
-                stack.call(request)
+                ret, res = stack.call(request)
+
+                if event
+                  res = [] unless res
+                  res << [:monitor, event]
+                end
+
+                [ret, res]
               end
             end
           end

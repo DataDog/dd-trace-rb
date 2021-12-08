@@ -41,6 +41,7 @@ module Datadog
 
                 action, result = waf_context.run(waf_args)
 
+                # TODO: encapsulate return array in a type
                 case action
                 when :monitor
                   Datadog.logger.debug { "WAF: #{result.inspect}" }

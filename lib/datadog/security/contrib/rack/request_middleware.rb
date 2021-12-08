@@ -46,8 +46,16 @@ module Datadog
               @app.call(env)
             end
 
-            if res
-              return [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]]
+            if res && res.any? { |action, _event| action == :block }
+              ret = [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]]
+            end
+
+            response = ::Rack::Response.new(ret[2], ret[0], ret[1])
+
+            if res && res.any?
+              res.each do |action, event|
+                Security::Event.record(event.merge!(response: response), action == :block)
+              end
             end
 
             ret
