@@ -1,5 +1,10 @@
+--markup markdown
+--markup-provider redcarpet
 --readme docs/GettingStarted.md
---main docs/GettingStarted.md
--
-docs/GettingStarted.md
-LICENSE
+--tag='public_api:Public API'
+--hide-tag=public_api
+--files LICENSE
+--files docs/AutoInstrumentation.md
+--files docs/PublicApi.md
+--template-path=yard/templates
+-e ./yard/extensions.rb

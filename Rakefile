@@ -171,16 +171,19 @@ namespace :spec do
 end
 
 if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |t|
-    t.options << ['-D', '--force-exclusion']
-    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
+  RuboCop::RakeTask.new(:rubocop) do |_t|
   end
 end
 
 YARD::Rake::YardocTask.new(:docs) do |t|
+  # Options defined in `.yardopts` are read first, then merged with
+  # options defined here.
+  #
+  # It's recommended to define options in `.yardopts` instead of here,
+  # as `.yardopts` can be read by external YARD tools, like the
+  # hot-reload YARD server `yard server --reload`.
+
   t.options += ['--title', "ddtrace #{Datadog::VERSION::STRING} documentation"]
-  t.options += ['--markup', 'markdown']
-  t.options += ['--markup-provider', 'redcarpet']
 end
 
 # Deploy tasks
