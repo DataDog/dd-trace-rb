@@ -50,9 +50,14 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq(Datadog::Contrib::Dalli::Ext::TAG_COMPONENT)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq(Datadog::Contrib::Dalli::Ext::TAG_OPERATION_COMMAND)
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { test_host }
+    end
   end
 
   describe 'when multiplexed configuration is provided' do
@@ -79,9 +84,14 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq(Datadog::Contrib::Dalli::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq(Datadog::Contrib::Dalli::Ext::TAG_OPERATION_COMMAND)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { test_host }
+      end
     end
   end
 end

@@ -4,7 +4,6 @@ module Datadog
     module Dalli
       # Dalli integration constants
       module Ext
-        APP = 'dalli'.freeze
         ENV_ENABLED = 'DD_TRACE_DALLI_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_DALLI_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_DALLI_ANALYTICS_SAMPLE_RATE'.freeze
@@ -13,6 +12,8 @@ module Datadog
         SPAN_COMMAND = 'memcached.command'.freeze
         SPAN_TYPE_COMMAND = 'memcached'.freeze
         TAG_COMMAND = 'memcached.command'.freeze
+        TAG_COMPONENT = 'dalli'.freeze
+        TAG_OPERATION_COMMAND = 'command'.freeze
       end
     end
   end
