@@ -1,6 +1,6 @@
 # Auto Instrumentation
 
-`ddtrace` can automatically instrument all available libraries, without requiring the manual specification of each one.
+`ddtrace` can automatically instrument all available libraries, without requiring the manual setup of each one.
 
 ## Rails
 
