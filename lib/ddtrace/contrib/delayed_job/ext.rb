@@ -4,7 +4,6 @@ module Datadog
     module DelayedJob
       # DelayedJob integration constants
       module Ext
-        APP = 'delayed_job'.freeze
         ENV_ENABLED = 'DD_TRACE_DELAYED_JOB_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_DELAYED_JOB_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE'.freeze
@@ -14,6 +13,9 @@ module Datadog
         TAG_ID = 'delayed_job.id'.freeze
         TAG_PRIORITY = 'delayed_job.priority'.freeze
         TAG_QUEUE = 'delayed_job.queue'.freeze
+        TAG_COMPONENT = 'delayed_job'.freeze
+        TAG_OPERATION_ENQUEUE = 'enqueue'.freeze
+        TAG_OPERATION_JOB = 'job'.freeze
       end
     end
   end

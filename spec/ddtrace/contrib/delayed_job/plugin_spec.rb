@@ -166,6 +166,11 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       it 'span tags include number of attempts' do
         expect(span.get_tag('delayed_job.attempts')).to eq(0)
       end
+
+      it 'has invoke components and operation tags' do
+        span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+        span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
+      end
     end
 
     describe 'enqueue span' do
@@ -184,6 +189,11 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it 'has default service name' do
         expect(span.service).to eq(tracer.default_service)
+      end
+
+      it 'has enqueue components and operation tags' do
+        span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+        span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
       end
     end
   end
