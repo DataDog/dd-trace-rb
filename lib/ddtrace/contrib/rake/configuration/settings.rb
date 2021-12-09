@@ -24,7 +24,7 @@ module Datadog
           end
 
           option :quantize, default: {}
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
         end
       end
     end
