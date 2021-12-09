@@ -4,7 +4,7 @@
 
 ## Rails
 
-Add 'ddtrace', require: 'ddtrace/auto_instrument' to your Gemfile:
+Add the following to your `Gemfile`/`gems.rb` file:
 
 ```ruby
 source 'https://rubygems.org'
