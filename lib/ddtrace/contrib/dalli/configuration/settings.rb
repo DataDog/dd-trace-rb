@@ -23,7 +23,7 @@ module Datadog
             o.lazy
           end
 
-          option :service_name
+          option :service_name, default: Ext::SERVICE_NAME
         end
       end
     end
