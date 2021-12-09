@@ -155,9 +155,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it_behaves_like 'measured span for integration', true
 
-      it 'has service name taken from configuration' do
-        expect(span.service).not_to be_nil
-        expect(span.service).to eq(Datadog.configuration[:delayed_job][:service_name])
+      it 'has default service name' do
+        expect(span.service).to eq(tracer.default_service)
       end
 
       it 'span tags include job id' do
@@ -183,9 +182,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it_behaves_like 'measured span for integration', true
 
-      it 'has service name taken from configuration' do
-        expect(span.service).not_to be_nil
-        expect(span.service).to eq(Datadog.configuration[:delayed_job][:client_service_name])
+      it 'has default service name' do
+        expect(span.service).to eq(tracer.default_service)
       end
     end
   end
