@@ -43,7 +43,7 @@ RSpec.describe 'Dalli instrumentation' do
 
     it 'calls instrumentation' do
       expect(spans.size).to eq(1)
-      expect(span.service).to eq('memcached')
+      expect(span.service).to eq(tracer.default_service)
       expect(span.name).to eq('memcached.command')
       expect(span.span_type).to eq('memcached')
       expect(span.resource).to eq('SET')
