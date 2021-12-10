@@ -120,6 +120,11 @@ module Datadog
         # a) it's being shutting down (and is trying to report the last profile)
         # b) it's being run as a one-shot, usually in a test
         # ...so in those cases we don't sleep
+        #
+        # During PR review (https://github.com/DataDog/dd-trace-rb/pull/1807) we discussed the possible alternative of
+        # just sleeping before starting the scheduler loop. We ended up not going with that option to avoid the first
+        # profile containing up to DEFAULT_INTERVAL_SECONDS + DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS instead of the
+        # usual DEFAULT_INTERVAL_SECONDS size.
         if run_loop?
           jitter_seconds = rand * DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS # floating point number between (0.0...maximum)
           sleep(jitter_seconds)
