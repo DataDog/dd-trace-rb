@@ -1,3 +1,5 @@
+require 'datadog/core/environment/container'
+
 module Datadog
   module Security
     # Background worker
@@ -63,6 +65,9 @@ module Datadog
             req = Net::HTTP::Post.new(uri.path)
             req['X-Api-Version'] = 'v0.1.0'
             req['Content-Type'] = 'application/json'
+            container_id = Datadog::Core::Environment::Container.container_id
+            req['Datadog-Container-ID'] = container_id unless container_id.nil?
+
             payload = {
               protocol_version: 1,
               idempotency_key: SecureRandom.uuid,
