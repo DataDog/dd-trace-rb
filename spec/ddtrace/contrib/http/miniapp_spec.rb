@@ -61,12 +61,16 @@ RSpec.describe 'net/http miniapp tests' do
           expect(span.name).to eq('http.request')
           expect(span.service).to eq('net/http')
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('net/http')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME)).to eq(host)
           expect(span.resource).to eq('GET')
           expect(span.get_tag('http.url')).to eq('/my/path')
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('200')
           expect(span.parent_id).to eq(parent_span.span_id)
           expect(span.trace_id).to eq(trace_id)
+
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('net/http')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
         end
       end
     end
