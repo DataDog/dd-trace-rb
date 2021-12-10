@@ -20,7 +20,7 @@ module Datadog
             def run(query)
               tracer.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
-                  decorate!(span)
+                  decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
                   span.span_type = Datadog::Ext::SQL::TYPE
                   span.set_tag(Ext::TAG_QUERY_ASYNC, false)
@@ -35,7 +35,7 @@ module Datadog
             def query(query, &blk)
               tracer.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
-                  decorate!(span)
+                  decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
                   span.span_type = Datadog::Ext::SQL::TYPE
                   span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
@@ -50,7 +50,7 @@ module Datadog
             def kill(query_id)
               tracer.trace(Ext::SPAN_KILL, **span_options) do |span|
                 begin
-                  decorate!(span)
+                  decorate!(span, Ext::TAG_OPERATION_KILL)
                   span.resource = Ext::SPAN_KILL
                   span.span_type = Datadog::Ext::AppTypes::DB
                   # ^ not an SQL type span, since there's no SQL query
@@ -72,7 +72,7 @@ module Datadog
             def span_options
               {
                 service: datadog_configuration[:service_name],
-                app: Ext::APP,
+                app: Ext::TAG_COMPONENT,
                 app_type: Datadog::Ext::AppTypes::DB
               }
             end
@@ -81,8 +81,24 @@ module Datadog
               Datadog.tracer
             end
 
-            def decorate!(span)
-              set_nilable_tag!(span, :server, Datadog::Ext::NET::TARGET_HOST)
+            def decorate!(span, operation)
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, operation)
+
+              if (host_port = @options[:server])
+                if (match = /^([^:]+):(\d+)$/.match(host_port))
+                  host, port = match[1], match[2].to_i
+
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host)
+                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, port)
+
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host)
+                else
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host_port)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host_port)
+                end
+              end
+
               set_nilable_tag!(span, :user, Ext::TAG_USER_NAME)
               set_nilable_tag!(span, :schema, Ext::TAG_SCHEMA_NAME)
               set_nilable_tag!(span, :catalog, Ext::TAG_CATALOG_NAME)
