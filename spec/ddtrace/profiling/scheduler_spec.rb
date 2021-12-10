@@ -203,6 +203,33 @@ RSpec.describe Datadog::Profiling::Scheduler do
           flush_events
         end
       end
+
+      context 'when being run in a loop' do
+        before { allow(scheduler).to receive(:run_loop?).and_return(true) }
+
+        it 'sleeps for up to DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS seconds before reporting' do
+          expect(scheduler).to receive(:sleep) do |sleep_amount|
+            expect(sleep_amount).to be < described_class.const_get(:DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS)
+            expect(sleep_amount).to be_a_kind_of(Float)
+          end
+
+          expect(exporters).to all(receive(:export).with(flush))
+
+          flush_events
+        end
+      end
+
+      context 'when being run as a one-off' do
+        before { allow(scheduler).to receive(:run_loop?).and_return(false) }
+
+        it 'does not sleep before reporting' do
+          expect(scheduler).to_not receive(:sleep)
+
+          expect(exporters).to all(receive(:export).with(flush))
+
+          flush_events
+        end
+      end
     end
   end
 
