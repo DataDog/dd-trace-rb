@@ -8,7 +8,7 @@ module Datadog
         ENV_ENABLED = 'DD_TRACE_PRESTO_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_PRESTO_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_PRESTO_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'presto'.freeze
+        DEFAULT_PEER_SERVICE_NAME = 'presto'.freeze
         SPAN_QUERY = 'presto.query'.freeze
         SPAN_RESUME = 'presto.resume_query'.freeze
         SPAN_KILL = 'presto.kill_query'.freeze
