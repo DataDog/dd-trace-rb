@@ -10,14 +10,20 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
 
     name = call_params[0]
 
-    generated_module = YARD::CodeObjects::ModuleObject.new(namespace, 'DSL') do |o|
-      o.docstring = 'Namespace for dynamically generated configuration classes.'
+    if namespace.has_tag?(:dsl) # Check if we are already nested inside the DSL namespace
+      parent_module = namespace
+    else
+      # If not, create a DSL module to host generated classes
+      parent_module = YARD::CodeObjects::ModuleObject.new(namespace, 'DSL') do |o|
+        o.docstring = 'Namespace for dynamically generated configuration classes.'
+      end
+
+      register(parent_module)
     end
 
-    register(generated_module)
-
-    generated_class = YARD::CodeObjects::ClassObject.new(generated_module, camelize(name)) do |o|
+    generated_class = YARD::CodeObjects::ClassObject.new(parent_module, camelize(name)) do |o|
       o.docstring = 'Namespace for dynamically generated configuration classes.'
+      o.add_tag(YARD::Tags::Tag.new(:dsl, 'dsl'))
     end
 
     register(generated_class)
