@@ -125,6 +125,9 @@ module Datadog
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
             this_uri = uri
             return unless this_uri
 
@@ -132,6 +135,8 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, this_uri.host)
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, this_uri.port)
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, this_uri.host)
           end
 
           def set_span_error_message(message)

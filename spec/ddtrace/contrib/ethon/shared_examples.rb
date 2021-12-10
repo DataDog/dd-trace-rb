@@ -40,7 +40,17 @@ RSpec.shared_examples_for 'span' do
     expect(span.service).to eq('ethon')
   end
 
-  it_behaves_like 'a peer service span'
+  it 'has the component tag' do
+    expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('ethon')
+  end
+
+  it 'has the operation tag' do
+    expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+  end
+
+  it_behaves_like 'a peer service span' do
+    let(:peer_hostname) { host }
+  end
 end
 
 RSpec.shared_examples_for 'instrumented request' do

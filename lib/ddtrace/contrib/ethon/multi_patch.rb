@@ -64,6 +64,9 @@ module Datadog
             )
             @datadog_multi_trace_digest = Datadog.tracer.active_trace.to_digest
 
+            @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_MULTI_REQUEST)
+
             # Tag as an external peer service
             @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, @datadog_multi_span.service)
 
