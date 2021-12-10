@@ -1,6 +1,37 @@
+require 'datadog/security/contrib/rack/request'
+require 'datadog/security/contrib/rack/response'
+
 module Datadog
   module Security
     module Event
+      ALLOWED_REQUEST_HEADERS = [
+        'X-Forwarded-For',
+        'X-Client-IP',
+        'X-Real-IP',
+        'X-Forwarded',
+        'X-Cluster-Client-IP',
+        'Forwarded-For',
+        'Forwarded',
+        'Via',
+        'True-Client-IP',
+        'Content-Length',
+        'Content-Type',
+        'Content-Encoding',
+        'Content-Language',
+        'Host',
+        'User-Agent',
+        'Accept',
+        'Accept-Encoding',
+        'Accept-Language',
+      ].map!(&:downcase)
+
+      ALLOWED_RESPONSE_HEADERS = [
+        'Content-Length',
+        'Content-Type',
+        'Content-Encoding',
+        'Content-Language',
+      ].map!(&:downcase)
+
       def self.record(data, blocked)
         span = data[:span]
         request = data[:request]
@@ -18,6 +49,9 @@ module Datadog
         tags << "env:#{env}" if env
 
         request_headers = Security::Contrib::Rack::Request.headers(request)
+                          .select { |k, _| ALLOWED_REQUEST_HEADERS.include?(k.downcase) }
+        response_headers = Security::Contrib::Rack::Response.headers(response)
+                           .select { |k, _| ALLOWED_RESPONSE_HEADERS.include?(k.downcase) }
         hostname = Socket.gethostname
         platform = RUBY_PLATFORM
         os_type = case platform
@@ -87,7 +121,7 @@ module Datadog
                   response: {
                     status: response.status,
                     blocked: blocked,
-                    headers: response.headers,
+                    headers: response_headers,
                   }
                 },
                 service: {
