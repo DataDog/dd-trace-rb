@@ -4,7 +4,6 @@ module Datadog
     module Redis
       # Redis integration constants
       module Ext
-        APP = 'redis'.freeze
         ENV_ENABLED = 'DD_TRACE_REDIS_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_REDIS_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_REDIS_ANALYTICS_SAMPLE_RATE'.freeze
@@ -15,6 +14,8 @@ module Datadog
         TAG_DB = 'out.redis_db'.freeze
         TAG_RAW_COMMAND = 'redis.raw_command'.freeze
         TYPE = 'redis'.freeze
+        TAG_COMPONENT = 'redis'.freeze
+        TAG_OPERATION_COMMAND = 'command'.freeze
       end
     end
   end

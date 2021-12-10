@@ -91,7 +91,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'get span' do
@@ -105,7 +107,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
     end
 
@@ -175,7 +179,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'command_args disabled' do
@@ -221,7 +227,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
     end
 
@@ -237,7 +245,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'get span' do
@@ -257,7 +267,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'auth span' do
@@ -272,7 +284,9 @@ RSpec.describe 'Redis test' do
           expect(span.get_tag('redis.raw_command')).to eq('AUTH ?')
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
     end
   end
