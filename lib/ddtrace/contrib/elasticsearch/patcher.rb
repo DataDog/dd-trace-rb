@@ -44,7 +44,7 @@ module Datadog
 
               pin = Datadog::Pin.new(
                 service,
-                app: Datadog::Contrib::Elasticsearch::Ext::APP,
+                app: Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT,
                 app_type: Datadog::Ext::AppTypes::DB,
               )
               pin.onto(self)
@@ -66,14 +66,16 @@ module Datadog
 
               url = full_url.path
               response = nil
-              Datadog.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
+              Datadog.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
                   port = connection.host[:port] if connection
 
-                  span.service = pin.service
                   span.span_type = Datadog::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
+
+                  span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
                   # load JSON for the following fields unless they're already strings
                   params = JSON.generate(params) if params && !params.is_a?(String)
@@ -81,6 +83,7 @@ module Datadog
 
                   # Tag as an external peer service
                   span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host) if host
 
                   # Set analytics sample rate
                   if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

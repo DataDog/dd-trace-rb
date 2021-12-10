@@ -69,7 +69,18 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
-      it_behaves_like 'a peer service span'
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT)
+      }
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_OPERATION_QUERY)
+      }
+
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     describe 'health request span' do
@@ -84,7 +95,18 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
-      it_behaves_like 'a peer service span'
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT)
+      }
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_OPERATION_QUERY)
+      }
+
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -130,12 +152,23 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT)
+      }
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_OPERATION_QUERY)
+      }
+
       it 'tags span with quantized request body' do
         expect(span.get_tag('elasticsearch.body'))
           .to eq('{"field":"?","nested_object":{"value":"?"},"nested_array":["?"],"nested_object_array":[{"a":"?"},"?"]}')
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 end
