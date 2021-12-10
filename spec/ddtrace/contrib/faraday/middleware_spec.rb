@@ -50,7 +50,7 @@ RSpec.describe 'Faraday middleware' do
       expect(response.status).to eq(200)
 
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -85,7 +85,7 @@ RSpec.describe 'Faraday middleware' do
       it 'uses default configuration' do
         expect(response.status).to eq(200)
 
-        expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+        expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
         expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
         expect(request_span.resource).to eq('GET')
         expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -126,7 +126,7 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -145,7 +145,7 @@ RSpec.describe 'Faraday middleware' do
     subject!(:response) { client.post('/failure') }
 
     it do
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
@@ -167,7 +167,7 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect { response }.to raise_error(Faraday::ConnectionFailed)
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
