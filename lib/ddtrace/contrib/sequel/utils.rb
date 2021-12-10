@@ -47,9 +47,13 @@ module Datadog
             }
           end
 
-          def set_common_tags(span)
+          def set_common_tags(span, db_opts)
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+
             # Tag as an external peer service
             span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, db_opts[:host]) if db_opts[:host]
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
