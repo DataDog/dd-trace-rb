@@ -88,7 +88,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     it do
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     subject!(:response) { connection.post(path: '/failure') }
 
     it do
-      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
