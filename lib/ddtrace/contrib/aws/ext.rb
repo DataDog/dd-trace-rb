@@ -7,7 +7,7 @@ module Datadog
         ENV_ENABLED = 'DD_TRACE_AWS_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_AWS_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_AWS_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'aws'.freeze
+        DEFAULT_PEER_SERVICE_NAME = 'aws'.freeze
         SPAN_COMMAND = 'aws.command'.freeze
         TAG_AGENT = 'aws.agent'.freeze
         TAG_COMPONENT = 'aws'.freeze
