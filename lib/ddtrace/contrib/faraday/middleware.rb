@@ -44,8 +44,12 @@ module Datadog
           span.service = options[:split_by_domain] ? env[:url].host : options[:service_name]
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
+          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
           # Tag as an external peer service
           span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, env[:url].host)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(options[:analytics_enabled])
