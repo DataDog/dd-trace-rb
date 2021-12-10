@@ -1,3 +1,12 @@
+# frozen_string_literal: true
+
+# Hides all objects that are not part of the Public API from YARD docs.
+YARD::Parser::SourceParser.after_parse_list do
+  YARD::Registry.each do |obj|
+    obj.visibility = :private unless obj.has_tag?('public_api')
+  end
+end
+
 #
 # Generates modules for DSL categories created by {Datadog::Configuration::Base::ClassMethods#settings}.
 # `#settings` are groups that can contain multiple `#option`s or nested `#settings.`
