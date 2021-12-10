@@ -24,7 +24,7 @@ module Datadog
           end
 
           option :distributed_tracing, default: true
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
         end
       end
     end
