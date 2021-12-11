@@ -28,6 +28,10 @@ module Datadog
             def span_name
               Ext::SPAN_DELIVER_MESSAGES
             end
+
+            def span_options
+              super.merge({ tags: { Datadog::Ext::Metadata::TAG_OPERATION => Ext::TAG_OPERATION_DELIVER_MESSAGES }})
+            end
           end
         end
       end
