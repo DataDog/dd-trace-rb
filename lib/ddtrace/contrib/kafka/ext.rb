@@ -8,7 +8,6 @@ module Datadog
         ENV_ENABLED = 'DD_TRACE_KAFKA_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_KAFKA_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'kafka'.freeze
         SPAN_CONNECTION_REQUEST = 'kafka.connection.request'.freeze
         SPAN_CONSUMER_HEARTBEAT = 'kafka.consumer.heartbeat'.freeze
         SPAN_CONSUMER_JOIN_GROUP = 'kafka.consumer.join_group'.freeze

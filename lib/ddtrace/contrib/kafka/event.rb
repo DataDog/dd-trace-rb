@@ -32,7 +32,6 @@ module Datadog
           end
 
           def process(span, _event, _id, payload)
-            span.service = configuration[:service_name]
             span.set_tag(Ext::TAG_CLIENT, payload[:client_id])
 
             # Set analytics sample rate

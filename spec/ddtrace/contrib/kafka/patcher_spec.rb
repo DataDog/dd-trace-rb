@@ -46,7 +46,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.connection.request')
           expect(span.resource).to eq(api)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -72,7 +72,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.connection.request')
           expect(span.resource).to eq(api)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -121,7 +121,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.process_batch')
           expect(span.resource).to eq(topic)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -151,7 +151,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.process_batch')
           expect(span.resource).to eq(topic)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -204,7 +204,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.process_message')
           expect(span.resource).to eq(topic)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -234,7 +234,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.process_message')
           expect(span.resource).to eq(topic)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -284,7 +284,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.heartbeat')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -311,7 +311,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.heartbeat')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -351,7 +351,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.join_group')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -376,7 +376,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.join_group')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -414,7 +414,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.leave_group')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -439,7 +439,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.leave_group')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -477,7 +477,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.sync_group')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -502,7 +502,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.consumer.sync_group')
           expect(span.resource).to eq(group_id)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -542,7 +542,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.producer.send_messages')
           expect(span.resource).to eq(span.name)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -568,7 +568,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.producer.send_messages')
           expect(span.resource).to eq(span.name)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -611,7 +611,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.producer.deliver_messages')
           expect(span.resource).to eq(span.name)
           expect(span.get_tag('kafka.client')).to eq(client_id)
@@ -638,7 +638,7 @@ RSpec.describe 'Kafka patcher' do
 
         span.tap do |span|
           expect(span).to_not be nil
-          expect(span.service).to eq('kafka')
+          expect(span.service).to eq(tracer.default_service)
           expect(span.name).to eq('kafka.producer.deliver_messages')
           expect(span.resource).to eq(span.name)
           expect(span.get_tag('kafka.client')).to eq(client_id)
