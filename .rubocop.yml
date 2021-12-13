@@ -11,6 +11,7 @@ AllCops:
     - 'ext/**/*.rb'
     - 'test/**/*.rb'
     - 'spec/**/*.rb'
+    - 'yard/**/*.rb'
     - 'Gemfile'
     - 'Rakefile'
   Exclude:
