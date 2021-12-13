@@ -183,6 +183,8 @@ module Datadog
 
       @allocation_count_stop = now_allocations
 
+      set_metric('allocations', allocations)
+
       now = Utils::Time.now.utc
 
       # Provide a default start_time if unset.
@@ -262,7 +264,6 @@ module Datadog
     # Return the hash representation of the current span.
     def to_hash
       h = {
-        allocations: allocations,
         error: @status,
         id: @id,
         meta: meta,
@@ -300,7 +301,6 @@ module Datadog
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
         q.text "Duration: #{duration.to_f if stopped?}\n"
-        q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
           q.seplist meta.each do |key, value|
@@ -409,7 +409,6 @@ module Datadog
     def build_span
       Span.new(
         @name && @name.dup,
-        allocations: allocations,
         duration: duration,
         end_time: @end_time,
         id: @id,
@@ -463,7 +462,7 @@ module Datadog
       (duration * 1e9).to_i
     end
 
-    if defined?(JRUBY_VERSION) || Gem::Version.new(RUBY_VERSION) < Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
+    if defined?(JRUBY_VERSION)
       def now_allocations
         0
       end

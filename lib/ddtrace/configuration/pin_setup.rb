@@ -4,7 +4,7 @@ module Datadog
     # PinSetup translates a flat hash into a Pin configuration
     # This class should be removed if we ever remove/refactor the Pin class
     class PinSetup
-      def initialize(target, opts = {})
+      def initialize(target, **opts)
         @pin = Pin.get_from(target)
         @opts = opts
       end

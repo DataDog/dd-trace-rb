@@ -1,12 +1,11 @@
+--title "ddtrace x.y.z documentation"
 --markup markdown
 --markup-provider redcarpet
---tag default:"Defaults to"
 --readme docs/GettingStarted.md
---files docs/PublicApi.md,docs/AutoInstrumentation.md
---template-path=yard/templates
 --tag='public_api:Public API'
 --hide-tag=public_api
+--files LICENSE
+--files docs/AutoInstrumentation.md
+--files docs/PublicApi.md
+--template-path=yard/templates
 -e ./yard/extensions.rb
--
-docs/GettingStarted.md
-LICENSE

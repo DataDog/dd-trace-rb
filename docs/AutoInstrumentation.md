@@ -1,10 +1,10 @@
 # Auto Instrumentation
 
-`ddtrace` can automatically instrument all available libraries, without requiring the manual specification of each one.
+`ddtrace` can automatically instrument all available libraries, without requiring the manual setup of each one.
 
 ## Rails
 
-Add 'ddtrace', require: 'ddtrace/auto_instrument' to your Gemfile:
+Add the following to your `Gemfile`/`gems.rb` file:
 
 ```ruby
 source 'https://rubygems.org'
@@ -27,4 +27,4 @@ require 'ddtrace/auto_instrument'
 ## Additional configuration
 
 You can reconfigure, override, or disable any specific integration settings by adding
-a `Datadog.configure` call after `ddtrace/auto_instrument` is activated.
+a [`Datadog.configure`](GettingStarted.md#integration-instrumentation) call after `ddtrace/auto_instrument` is activated.

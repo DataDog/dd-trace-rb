@@ -171,21 +171,19 @@ namespace :spec do
 end
 
 if defined?(RuboCop::RakeTask)
-  RuboCop::RakeTask.new(:rubocop) do |t|
-    t.options << ['-D', '--force-exclusion']
-    t.patterns = ['lib/**/*.rb', 'test/**/*.rb', 'spec/**/*.rb', 'Gemfile', 'Rakefile']
+  RuboCop::RakeTask.new(:rubocop) do |_t|
   end
 end
 
 YARD::Rake::YardocTask.new(:docs) do |t|
-  require_relative './yard/extensions' # Loads extension for configuration DSL processing
+  # Options defined in `.yardopts` are read first, then merged with
+  # options defined here.
+  #
+  # It's recommended to define options in `.yardopts` instead of here,
+  # as `.yardopts` can be read by external YARD tools, like the
+  # hot-reload YARD server `yard server --reload`.
 
   t.options += ['--title', "ddtrace #{Datadog::VERSION::STRING} documentation"]
-  t.options += ['--markup', 'markdown']
-  t.options += ['--markup-provider', 'redcarpet']
-  t.options += ['lib/ddtrace/configuration/**/*.rb', 'lib/datadog/tracing.rb', 'lib/ddtrace/contrib/registry.rb',
-                "lib/ddtrace/contrib/patchable.rb"
-  ] # TODO: remove me. Makes this task run much faster for testing purposes.
 end
 
 # Deploy tasks
