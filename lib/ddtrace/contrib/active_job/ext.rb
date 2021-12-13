@@ -2,6 +2,7 @@
 module Datadog
   module Contrib
     module ActiveJob
+      # @public_api
       module Ext
         APP = 'active_job'.freeze
         SERVICE_NAME = 'active_job'.freeze

@@ -5,6 +5,7 @@ module Datadog
   module Contrib
     module Que
       # Que integration constants
+      # @public_api
       module Ext
         APP = 'que'
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_QUE_ANALYTICS_ENABLED'

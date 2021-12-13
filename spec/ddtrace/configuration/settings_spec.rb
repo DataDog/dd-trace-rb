@@ -1248,7 +1248,7 @@ RSpec.describe Datadog::Configuration::Settings do
       describe '#min_spans_threshold' do
         subject(:min_spans_threshold) { settings.tracer.partial_flush.min_spans_threshold }
 
-        it { is_expected.to be nil }
+        it { is_expected.to eq(500) }
       end
 
       describe '#min_spans_threshold=' do
@@ -1257,7 +1257,7 @@ RSpec.describe Datadog::Configuration::Settings do
         it 'updates the #min_spans_before_partial_flush setting' do
           expect { settings.tracer.partial_flush.min_spans_threshold = value }
             .to change { settings.tracer.partial_flush.min_spans_threshold }
-            .from(nil)
+            .from(500)
             .to(value)
         end
       end

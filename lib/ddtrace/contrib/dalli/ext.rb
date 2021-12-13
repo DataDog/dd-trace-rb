@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Dalli
       # Dalli integration constants
+      # @public_api
       module Ext
         APP = 'dalli'.freeze
         ENV_ENABLED = 'DD_TRACE_DALLI_ENABLED'.freeze

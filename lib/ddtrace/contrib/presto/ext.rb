@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Presto
       # Presto integration constants
+      # @public_api
       module Ext
         APP = 'presto'.freeze
         ENV_ENABLED = 'DD_TRACE_PRESTO_ENABLED'.freeze

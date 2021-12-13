@@ -34,6 +34,7 @@ module Datadog
       end
 
       # Acts as DSL for building OptionDefinitions
+      # @public_api
       class Builder
         attr_reader \
           :helpers

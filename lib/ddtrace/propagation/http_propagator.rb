@@ -9,6 +9,7 @@ require 'ddtrace/trace_digest'
 
 module Datadog
   # HTTPPropagator helps extracting and injecting HTTP headers.
+  # @public_api
   module HTTPPropagator
     include Ext::DistributedTracing
 

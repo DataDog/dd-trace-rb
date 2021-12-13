@@ -13,6 +13,7 @@ module Datadog
         MINIMUM_VERSION = Gem::Version.new('3.5.4')
         MINIMUM_SERVER_INTERNAL_TRACING_VERSION = Gem::Version.new('5.2.4')
 
+        # @public_api
         register_as :sidekiq
 
         def self.version

@@ -2,10 +2,13 @@
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scopes
+    # @public_api
     class ThreadLocalScope < Scope
+      # @public_api
       attr_reader \
         :finish_on_close
 
+      # @public_api
       def initialize(
         manager:,
         span:,
@@ -21,6 +24,7 @@ module Datadog
       #
       # NOTE: Calling close more than once on a single Scope instance leads to
       # undefined behavior.
+      # @public_api
       def close
         return unless equal?(manager.active)
 

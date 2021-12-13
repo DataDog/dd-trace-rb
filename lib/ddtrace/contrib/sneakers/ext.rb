@@ -5,6 +5,7 @@ module Datadog
   module Contrib
     module Sneakers
       # Sneakers integration constants
+      # @public_api
       module Ext
         APP = 'sneakers'
         ENV_ENABLED = 'DD_TRACE_SNEAKERS_ENABLED'

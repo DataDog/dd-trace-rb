@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Httprb
       # Httprb integration constants
+      # @public_api
       module Ext
         APP = 'httprb'.freeze
         ENV_ENABLED = 'DD_TRACE_HTTPRB_ENABLED'.freeze

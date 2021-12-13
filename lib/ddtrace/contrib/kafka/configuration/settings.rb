@@ -7,6 +7,7 @@ module Datadog
     module Kafka
       module Configuration
         # Custom settings for the Kafka integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }

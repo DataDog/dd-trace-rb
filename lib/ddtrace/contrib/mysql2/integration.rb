@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.3.21')
 
+        # @public_api
         register_as :mysql2
 
         def self.version

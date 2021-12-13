@@ -18,6 +18,7 @@ module Datadog
   # per execution context (e.g. Thread, etc.)
   #
   # rubocop:disable Metrics/ClassLength
+  # @public_api
   class TraceOperation
     DEFAULT_MAX_LENGTH = 100_000
 

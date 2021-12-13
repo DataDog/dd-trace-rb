@@ -14,6 +14,7 @@ module Datadog
 
     # Return a randomly generated integer, valid as a Span ID or Trace ID.
     # This method is thread-safe and fork-safe.
+    # @public_api
     def self.next_id
       after_fork! { reset! }
       id_rng.rand(Datadog::Span::RUBY_MAX_ID) # TODO: This should never return zero

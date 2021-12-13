@@ -13,6 +13,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('2.2.0')
 
+        # @public_api
         register_as :httpclient
 
         def self.version

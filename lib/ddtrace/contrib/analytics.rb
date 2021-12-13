@@ -4,6 +4,7 @@ require 'ddtrace/analytics'
 module Datadog
   module Contrib
     # Defines analytics behavior for integrations
+    # @public_api
     module Analytics
       module_function
 

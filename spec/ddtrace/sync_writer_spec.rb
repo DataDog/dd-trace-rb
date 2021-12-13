@@ -11,7 +11,7 @@ RSpec.describe Datadog::SyncWriter do
   let(:buffer) { [] }
 
   describe '::new' do
-    subject(:sync_writer) { described_class.new(options) }
+    subject(:sync_writer) { described_class.new(**options) }
 
     context 'given :agent_settings' do
       let(:options) { { agent_settings: agent_settings } }

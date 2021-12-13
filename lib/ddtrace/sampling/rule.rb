@@ -9,6 +9,7 @@ module Datadog
     # Sampling rule that dictates if a trace matches
     # a specific criteria and what sampling strategy to
     # apply in case of a positive match.
+    # @public_api
     class Rule
       extend Forwardable
 
@@ -39,6 +40,7 @@ module Datadog
     # A \Rule that matches a trace based on
     # trace name and/or service name and
     # applies a fixed sampling to matching spans.
+    # @public_api
     class SimpleRule < Rule
       # @param name [String,Regexp,Proc] Matcher for case equality (===) with the trace name, defaults to always match
       # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name, defaults to always match

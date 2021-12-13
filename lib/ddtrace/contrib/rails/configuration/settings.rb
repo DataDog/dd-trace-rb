@@ -6,6 +6,7 @@ module Datadog
     module Rails
       module Configuration
         # Custom settings for the Rails integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           def initialize(options = {})
             super(options)

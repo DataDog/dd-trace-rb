@@ -7,6 +7,7 @@ module Datadog
   module Core
     module Environment
       # For runtime identity
+      # @public_api
       module Identity
         extend Datadog::Utils::Forking
 

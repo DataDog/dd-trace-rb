@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Metrics
       DEFAULT_HOST = '127.0.0.1'.freeze
       DEFAULT_PORT = 8125

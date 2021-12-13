@@ -13,6 +13,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('2.1.0')
 
+        # @public_api
         register_as :mongo, auto_patch: true
 
         def self.version

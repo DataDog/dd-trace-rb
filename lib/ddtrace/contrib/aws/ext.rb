@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Aws
       # AWS integration constants
+      # @public_api
       module Ext
         APP = 'aws'.freeze
         ENV_ENABLED = 'DD_TRACE_AWS_ENABLED'.freeze

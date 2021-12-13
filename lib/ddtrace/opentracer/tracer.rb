@@ -4,52 +4,55 @@ require 'ddtrace/tracer'
 module Datadog
   module OpenTracer
     # OpenTracing adapter for Datadog::Tracer
+    # @public_api
     class Tracer < ::OpenTracing::Tracer
       extend Forwardable
 
+      # (see Datadog::Tracer)
+      # @return [Datadog::Tracer]
+      # @public_api
       attr_reader \
         :datadog_tracer
 
-      def_delegators \
-        :datadog_tracer,
-        :configure
-
+      # (see Datadog::Tracer#initialize)
+      # @public_api
       def initialize(**options)
         super()
         @datadog_tracer = Datadog::Tracer.new(**options)
       end
 
       # @return [ScopeManager] the current ScopeManager.
+      # @public_api
       def scope_manager
         @scope_manager ||= ThreadLocalScopeManager.new
       end
 
-      # Returns a newly started and activated Scope.
+      # Returns a newly started and activated {Scope}.
       #
-      # If the Tracer's ScopeManager#active is not nil, no explicit references
+      # If `scope_manager.active` is not nil, no explicit references
       # are provided, and `ignore_active_scope` is false, then an inferred
-      # References#CHILD_OF reference is created to the ScopeManager#active's
-      # SpanContext when start_active is invoked.
+      # {OpenTracing::Reference#CHILD_OF} reference is created to the `scope_manager.active`'s
+      # {SpanContext} when {#start_active_span} is invoked.
       #
       # @param operation_name [String] The operation name for the Span
       # @param child_of [SpanContext, Span] SpanContext that acts as a parent to
-      #        the newly-started Span. If a Span instance is provided, its
-      #        context is automatically substituted. See [Reference] for more
-      #        information.
-      #
+      #   the newly-started Span. If a Span instance is provided, its
+      #   context is automatically substituted. See [OpenTracing::Reference] for more
+      #   information.
       #   If specified, the `references` parameter must be omitted.
-      # @param references [Array<Reference>] An array of reference
+      # @param references [Array<OpenTracing::Reference>] An array of reference
       #   objects that identify one or more parent SpanContexts.
       # @param start_time [Time] When the Span started, if not now
       # @param tags [Hash] Tags to assign to the Span at start time
       # @param ignore_active_scope [Boolean] whether to create an implicit
-      #   References#CHILD_OF reference to the ScopeManager#active.
+      #   OpenTracing::Reference#CHILD_OF reference to the ScopeManager#active.
       # @param finish_on_close [Boolean] whether span should automatically be
       #   finished when Scope#close is called
       # @yield [Scope] If an optional block is passed to start_active it will
       #   yield the newly-started Scope. If `finish_on_close` is true then the
       #   Span will be finished automatically after the block is executed.
       # @return [Scope] The newly-started and activated Scope
+      # @public_api
       def start_active_span(operation_name,
                             child_of: nil,
                             references: nil,
@@ -105,15 +108,14 @@ module Datadog
         end
       end
 
-      # Like #start_active_span, but the returned Span has not been registered via the
-      # ScopeManager.
+      # Like {#start_active_span}, but the returned {Span} has not been registered via the
+      # {ScopeManager}.
       #
       # @param operation_name [String] The operation name for the Span
       # @param child_of [SpanContext, Span] SpanContext that acts as a parent to
-      #        the newly-started Span. If a Span instance is provided, its
-      #        context is automatically substituted. See [Reference] for more
-      #        information.
-      #
+      #   the newly-started Span. If a Span instance is provided, its
+      #   context is automatically substituted. See [Reference] for more
+      #   information.
       #   If specified, the `references` parameter must be omitted.
       # @param references [Array<Reference>] An array of reference
       #   objects that identify one or more parent SpanContexts.
@@ -123,6 +125,7 @@ module Datadog
       #   References#CHILD_OF reference to the ScopeManager#active.
       # @return [Span] the newly-started Span instance, which has not been
       #   automatically registered via the ScopeManager
+      # @public_api
       def start_span(operation_name,
                      child_of: nil,
                      references: nil,
@@ -155,11 +158,12 @@ module Datadog
         Span.new(datadog_span: datadog_span, span_context: span_context)
       end
 
-      # Inject a SpanContext into the given carrier
+      # Inject a {SpanContext} into the given carrier.
       #
       # @param span_context [SpanContext]
       # @param format [OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK]
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
+      # @public_api
       def inject(span_context, format, carrier)
         case format
         when OpenTracing::FORMAT_TEXT_MAP
@@ -173,11 +177,12 @@ module Datadog
         end
       end
 
-      # Extract a SpanContext in the given format from the given carrier.
+      # Extract a {SpanContext} in the given format from the given carrier.
       #
       # @param format [OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK]
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
       # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
+      # @public_api
       def extract(format, carrier)
         case format
         when OpenTracing::FORMAT_TEXT_MAP

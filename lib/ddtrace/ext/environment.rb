@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Environment
       ENV_API_KEY = 'DD_API_KEY'.freeze
       ENV_ENVIRONMENT = 'DD_ENV'.freeze

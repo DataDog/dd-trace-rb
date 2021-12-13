@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.9')
 
+        # @public_api
         register_as :concurrent_ruby
 
         def self.version

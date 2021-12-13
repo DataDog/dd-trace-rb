@@ -15,6 +15,7 @@ module Datadog
   # build a Span. When completed, it yields the Span.
   #
   # rubocop:disable Metrics/ClassLength
+  # @public_api
   class SpanOperation
     include Tagging
 

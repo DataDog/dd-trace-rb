@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Redis
       # Redis integration constants
+      # @public_api
       module Ext
         APP = 'redis'.freeze
         ENV_ENABLED = 'DD_TRACE_REDIS_ENABLED'.freeze

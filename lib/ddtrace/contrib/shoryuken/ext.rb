@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Shoryuken
       # Shoryuken integration constants
+      # @public_api
       module Ext
         APP = 'shoryuken'.freeze
         ENV_ENABLED = 'DD_TRACE_SHORYUKEN_ENABLED'.freeze

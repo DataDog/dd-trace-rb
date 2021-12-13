@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Ethon
       # Ethon integration constants
+      # @public_api
       module Ext
         APP = 'ethon'.freeze
         ENV_ENABLED = 'DD_TRACE_ETHON_ENABLED'.freeze

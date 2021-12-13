@@ -18,13 +18,13 @@ require 'ddtrace/trace_operation'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/writer'
 
-# \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  # A \Tracer keeps track of the time spent by an application processing a single operation. For
+  # A {Datadog::Tracer} keeps track of the time spent by an application processing a single operation. For
   # example, a trace can be used to track the entire time spent processing a complicated web request.
   # Even though the request may require multiple resources and machines to handle the request, all
   # of these function calls and sub-requests would be encapsulated within a single trace.
   # rubocop:disable Metrics/ClassLength
+  # @public_api
   class Tracer
     attr_reader \
       :trace_flush,
@@ -37,7 +37,7 @@ module Datadog
       :enabled,
       :writer
 
-    # Initialize a new \Tracer used to create, sample and submit spans that measure the
+    # Initialize a new {Datadog::Tracer} used to create, sample and submit spans that measure the
     # time of sections of code.
     #
     # @param trace_flush [Datadog::TraceFlush] responsible for flushing spans from the execution context
@@ -65,44 +65,57 @@ module Datadog
       @writer = writer
     end
 
-    # Return a +span+ and +trace+ that will trace an operation called +name+. You could trace your code
+    # Return a {Datadog::SpanOperation span_op} and {Datadog::TraceOperation trace_op} that will trace an operation
+    # called `name`. You could trace your code
     # using a <tt>do-block</tt> like:
     #
-    #   tracer.trace('web.request') do |span_op, trace_op|
-    #     span_op.service = 'my-web-site'
-    #     span_op.resource = '/'
-    #     span_op.set_tag('http.method', request.request_method)
-    #     do_something()
-    #   end
-    #
-    # The <tt>tracer.trace()</tt> method can also be used without a block in this way:
-    #
-    #   span_op = tracer.trace('web.request', service: 'my-web-site')
+    # ```
+    # tracer.trace('web.request') do |span_op, trace_op|
+    #   span_op.service = 'my-web-site'
+    #   span_op.resource = '/'
+    #   span_op.set_tag('http.method', request.request_method)
     #   do_something()
-    #   span_op.finish()
+    # end
+    # ```
     #
-    # Remember that in this case, calling <tt>span_op.finish()</tt> is mandatory.
+    # The {#trace} method can also be used without a block in this way:
+    # ```
+    # span_op = tracer.trace('web.request', service: 'my-web-site')
+    # do_something()
+    # span_op.finish()
+    # ```
     #
-    # When a Trace is started, <tt>trace()</tt> will store the created span; subsequent spans will
+    # Remember that in this case, calling {Datadog::SpanOperation#finish} is mandatory.
+    #
+    # When a Trace is started, {#trace} will store the created span; subsequent spans will
     # become it's children and will inherit some properties:
+    # ```
+    # parent = tracer.trace('parent')   # has no parent span
+    # child  = tracer.trace('child')    # is a child of 'parent'
+    # child.finish()
+    # parent.finish()
+    # parent2 = tracer.trace('parent2') # has no parent span
+    # parent2.finish()
+    # ```
     #
-    #   parent = tracer.trace('parent')     # has no parent span
-    #   child  = tracer.trace('child')      # is a child of 'parent'
-    #   child.finish()
-    #   parent.finish()
-    #   parent2 = tracer.trace('parent2')   # has no parent span
-    #   parent2.finish()
-    #
-    # Available options are:
-    #
-    # * +autostart+: whether to autostart the span, if no block is provided.
-    # * +continue_from+: continue a trace from \TraceDigest. For async.
-    # * +on_error+: a block that overrides error handling behavior for this operation.
-    # * +resource+: the resource this span refers, or \name if it's missing
-    # * +service+: the service name for this span.
-    # * +start_time+: time which the span should have started.
-    # * +tags+: extra tags which should be added to the span.
-    # * +type+: the type of the span (such as \http, \db and so on)
+    # @param [String] name {Datadog::Span} operation name.
+    #   See {https://docs.datadoghq.com/tracing/guide/configuring-primary-operation/ Primary Operations in Services}.
+    # @param [Datadog::TraceDigest] continue_from continue a trace from a {Datadog::TraceDigest}. Used for async.
+    # @param [Boolean] autostart whether to autostart the span, if no block is provided.
+    # @param [Proc] on_error a block that overrides error handling behavior for this operation.
+    # @param [String] resource the resource this span refers, or {name} if it's missing
+    # @param [String] service the service name for this span.
+    # @param [Time] start_time time which the span should have started.
+    # @param [Hash<String,String>] tags extra tags which should be added to the span.
+    # @param [String] type the type of the span. See {Datadog::Ext::AppTypes}.
+    # @return [Object] If a block is provided, returns the result of the block execution.
+    # @return [Datadog::SpanOperation] If no block is provided, returns the active, unfinished {Datadog::SpanOperation}.
+    # @yield Optional block where new newly created {Datadog::SpanOperation} captures the execution.
+    #   The span_op is {Datadog::SpanOperation#finish}ed when the block ends.
+    #   If no block, the active, unfinished {Datadog::SpanOperation} is returned instead.
+    # @yieldparam [Datadog::SpanOperation] span_op the newly created and active [Datadog::SpanOperation]
+    # @yieldparam [Datadog::TraceOperation] trace_op the active [Datadog::TraceOperation]
+    # @public_api
     # rubocop:disable Lint/UnderscorePrefixedVariableName
     def trace(
       name,
@@ -151,23 +164,41 @@ module Datadog
     # A valid example is:
     #
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
+    # @public_api
     def set_tags(tags)
       string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
       @tags = @tags.merge(string_tags)
     end
 
-    # Return the current active trace or +nil+.
+    # The active, unfinished trace, representing the current instrumentation context.
+    #
+    # The active trace is thread-local.
+    #
+    # @return [Datadog::TraceSegment] the active trace
+    # @return [nil] if no trace is active
+    # @public_api
     def active_trace(key = nil)
       call_context(key).active_trace
     end
 
-    # Return the current active span or +nil+.
+    # The active, unfinished span, representing the currently instrumented application section.
+    #
+    # The active span belongs to an {.active_trace}.
+    #
+    # @return [Datadog::SpanOperation] the active span
+    # @return [nil] if no trace is active, and thus no span is active
+    # @public_api
     def active_span(key = nil)
       trace = active_trace(key)
       trace.active_span if trace
     end
 
-    # Return a CorrelationIdentifier for active span
+    # Information about the currently active trace.
+    #
+    # The most common use cases are tagging log messages and metrics.
+    #
+    # @return [Datadog::Correlation::Identifier] correlation object
+    # @public_api
     def active_correlation(key = nil)
       trace = active_trace(key)
       Datadog::Correlation.identifier_from_digest(
@@ -176,7 +207,17 @@ module Datadog
     end
 
     # Setup a new trace to continue from where another
-    # trace left off. Used to continue distributed traces.
+    # trace left off.
+    #
+    # Used to continue distributed or async traces.
+    #
+    # @param [Datadog::TraceDigest] digest continue from the {Datadog::TraceDigest}.
+    # @param [Thread] key thread-local context holder
+    # @return [Object] If a block is provided, the result of the block execution.
+    # @return [Datadog::TraceOperation] If no block, the active {Datadog::TraceOperation}.
+    # @yield Optional block where this {#continue_trace!} `digest` scope is active.
+    #   If no block, the `digest` remains active after {#continue_trace!} returns.
+    # @public_api
     def continue_trace!(digest, key = nil, &block)
       return unless digest && digest.is_a?(TraceDigest)
 
@@ -184,6 +225,7 @@ module Datadog
       call_context(key).activate!(trace, &block)
     end
 
+    # TODO: make this private
     def trace_completed
       @trace_completed ||= TraceCompleted.new
     end
@@ -215,6 +257,7 @@ module Datadog
     #
     #   tracer.shutdown!
     #
+    # @public_api
     def shutdown!
       return unless @enabled
 
@@ -223,11 +266,11 @@ module Datadog
 
     private
 
-    # Return the current active \Context for this traced execution. This method is
+    # Return the current active {Context} for this traced execution. This method is
     # automatically called when calling Tracer.trace or Tracer.start_span,
     # but it can be used in the application code during manual instrumentation.
     #
-    # This method makes use of a \ContextProvider that is automatically set during the tracer
+    # This method makes use of a {ContextProvider} that is automatically set during the tracer
     # initialization, or while using a library instrumentation.
     def call_context(key = nil)
       @provider.context(key)

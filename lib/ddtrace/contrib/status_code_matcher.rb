@@ -5,6 +5,7 @@ require 'ddtrace/ext/http'
 module Datadog
   module Contrib
     # Contains methods helpful for tracing/annotating HTTP request libraries
+    # @public_api
     class StatusCodeMatcher
       REGEX_PARSER = /^\d{3}(?:-\d{3})?(?:,\d{3}(?:-\d{3})?)*$/.freeze
 

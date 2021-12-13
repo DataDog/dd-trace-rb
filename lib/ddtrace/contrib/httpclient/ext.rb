@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Httpclient
       # Httpclient integration constants
+      # @public_api
       module Ext
         APP = 'httpclient'.freeze
         ENV_ENABLED = 'DD_TRACE_HTTPCLIENT_ENABLED'.freeze

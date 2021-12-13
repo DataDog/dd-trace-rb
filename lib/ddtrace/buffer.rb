@@ -1,9 +1,10 @@
 # typed: true
 require 'ddtrace/diagnostics/health'
 
-# Trace buffer that accumulates traces for a consumer.
-# Consumption can happen from a different thread.
 module Datadog
+  # Trace buffer that accumulates traces for a consumer.
+  # Consumption can happen from a different thread.
+
   # Buffer that stores objects. The buffer has a maximum size and when
   # the buffer is full, a random object is discarded.
   class Buffer

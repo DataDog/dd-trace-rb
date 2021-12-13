@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActiveModelSerializers
       # ActiveModelSerializers integration constants
+      # @public_api
       module Ext
         APP = 'active_model_serializers'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED'.freeze

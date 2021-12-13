@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Sequel
       # Sequel integration constants
+      # @public_api
       module Ext
         APP = 'sequel'.freeze
         ENV_ENABLED = 'DD_TRACE_SEQUEL_ENABLED'.freeze

@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Rack
       # Rack integration constants
+      # @public_api
       module Ext
         APP = 'rack'.freeze
         ENV_ENABLED = 'DD_TRACE_RACK_ENABLED'.freeze

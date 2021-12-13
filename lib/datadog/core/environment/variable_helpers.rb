@@ -4,6 +4,7 @@ module Datadog
     # Namespace for handling application environment
     module Environment
       # Defines helper methods for environment
+      # @public_api
       module VariableHelpers
         extend self
 
