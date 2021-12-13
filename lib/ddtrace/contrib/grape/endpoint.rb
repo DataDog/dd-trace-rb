@@ -48,6 +48,7 @@ module Datadog
             # Store the beginning of a trace
             span = tracer.trace(
               Ext::SPAN_ENDPOINT_RUN,
+              service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               resource: resource
             )
@@ -116,6 +117,7 @@ module Datadog
             # Store the beginning of a trace
             span = tracer.trace(
               Ext::SPAN_ENDPOINT_RENDER,
+              service: service_name,
               span_type: Datadog::Ext::HTTP::TEMPLATE
             )
 
@@ -162,6 +164,7 @@ module Datadog
 
             span = tracer.trace(
               Ext::SPAN_ENDPOINT_RUN_FILTERS,
+              service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               start_time: start
             )
@@ -211,6 +214,10 @@ module Datadog
 
           def tracer
             Datadog.tracer
+          end
+
+          def service_name
+            datadog_configuration[:service_name]
           end
 
           def analytics_enabled?
