@@ -17,7 +17,7 @@ module Datadog
           def trace(keywords)
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-              service: service_name,
+              service: service_name, # TODO: Remove server-side service name configuration
               resource: format_resource(keywords[:method]),
               on_error: error_handler
             }

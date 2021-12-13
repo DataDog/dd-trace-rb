@@ -18,7 +18,7 @@ module Datadog
 
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-              service: service_name,
+              service: service_name, # Maintain client-side service name configuration
               resource: format_resource(keywords[:method])
             }
 
