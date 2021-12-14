@@ -63,7 +63,7 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
-        expect(span.service).to eq('resque')
+        expect(span.service).to eq(tracer.default_service)
         expect(span).to_not have_error
       end
 
@@ -107,7 +107,7 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
-        expect(span.service).to eq('resque')
+        expect(span.service).to eq(tracer.default_service)
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
