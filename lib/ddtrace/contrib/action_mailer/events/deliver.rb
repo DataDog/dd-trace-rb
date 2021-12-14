@@ -7,7 +7,7 @@ module Datadog
   module Contrib
     module ActionMailer
       module Events
-        # Defines instrumentation for process.action_mailer event
+        # Defines instrumentation for deliver.action_mailer event
         module Deliver
           include ActionMailer::Event
 
