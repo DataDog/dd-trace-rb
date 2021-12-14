@@ -169,7 +169,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -180,7 +180,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
         end
       end
 
@@ -215,7 +215,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(before_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(before_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+            .to eq('endpoint_run_filters')
 
           expect(render_span.name).to eq('grape.endpoint_render')
           expect(render_span.span_type).to eq('template')
@@ -226,7 +226,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            .to eq('endpoint_render')
 
           expect(after_span.name).to eq('grape.endpoint_run_filters')
           expect(after_span.span_type).to eq('web')
@@ -238,7 +238,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(after_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(after_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+            .to eq('endpoint_run_filters')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -249,7 +249,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
         end
       end
     end
@@ -269,7 +269,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
         end
 
         context 'and error_responses' do
@@ -288,7 +288,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
               .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+              .to eq('endpoint_run')
           end
         end
 
@@ -308,7 +308,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
               .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+              .to eq('endpoint_run')
           end
         end
 
@@ -328,7 +328,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
               .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+              .to eq('endpoint_run')
           end
         end
 
@@ -348,7 +348,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
               .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
             expect(spans[0].get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+              .to eq('endpoint_run')
           end
         end
       end
@@ -389,7 +389,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -405,7 +405,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
         end
       end
 
@@ -445,7 +445,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(before_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(before_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+            .to eq('endpoint_run_filters')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -456,7 +456,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
         end
       end
     end
@@ -489,7 +489,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -500,7 +500,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
 
           expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
           expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/widgets')
@@ -537,7 +537,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -548,7 +548,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
 
           expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
           expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/widgets')
@@ -575,7 +575,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            .to eq('endpoint_render')
 
           expect(run_span.name).to eq('grape.endpoint_run')
           expect(run_span.span_type).to eq('web')
@@ -586,7 +586,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
             .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
           expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+            .to eq('endpoint_run')
 
           expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
           expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/nested/widgets')
@@ -649,7 +649,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
         expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+          .to eq('endpoint_render')
 
         expect(run_span.name).to eq('grape.endpoint_run')
         expect(run_span.span_type).to eq('web')
@@ -660,7 +660,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
         expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+          .to eq('endpoint_run')
 
         expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
@@ -716,7 +716,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
         expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RENDER)
+          .to eq('endpoint_render')
 
         expect(run_span.name).to eq('grape.endpoint_run')
         expect(run_span.span_type).to eq('web')
@@ -727,7 +727,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::Grape::Ext::TAG_COMPONENT)
         expect(run_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Grape::Ext::TAG_OPERATION_ENDPOINT_RUN)
+          .to eq('endpoint_run')
 
         expect(run_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
         expect(run_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/hard_failure')
