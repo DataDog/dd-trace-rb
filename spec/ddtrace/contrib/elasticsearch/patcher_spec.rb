@@ -75,7 +75,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       }
       it {
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_OPERATION_QUERY)
+          .to eq('query')
       }
 
       it_behaves_like 'a peer service span' do
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       }
       it {
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_OPERATION_QUERY)
+          .to eq('query')
       }
 
       it_behaves_like 'a peer service span' do
@@ -158,7 +158,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       }
       it {
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_OPERATION_QUERY)
+          .to eq('query')
       }
 
       it 'tags span with quantized request body' do
