@@ -40,7 +40,6 @@ module Datadog
     alias :span_type :type
     alias :span_type= :type=
 
-    # TODO: Remove span_type
     def initialize(
       name,
       child_of: nil,
