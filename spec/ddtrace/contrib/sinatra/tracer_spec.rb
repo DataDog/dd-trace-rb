@@ -672,6 +672,8 @@ RSpec.describe 'Sinatra instrumentation' do
       when Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
           .to eq('route')
+      else
+        raise "Unknown span name: #{span.name}"
       end
 
       expect(span).to_not have_error
