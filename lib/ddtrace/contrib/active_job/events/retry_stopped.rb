@@ -8,7 +8,7 @@ module Datadog
   module Contrib
     module ActiveJob
       module Events
-        # Defines instrumentation for enqueue.active_job event
+        # Defines instrumentation for retry_stopped.active_job event
         module RetryStopped
           include ActiveJob::Event
 
