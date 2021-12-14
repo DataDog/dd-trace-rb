@@ -1,6 +1,10 @@
 # typed: true
 module Datadog
   module Ext
+    # Trace and span tags that represent meta information
+    # regarding the trace. These fields are normally only used
+    # internally, and can have special meaning to downstream
+    # trace processing.
     module Metadata
       # Name of package that was instrumented
       TAG_COMPONENT = 'component'.freeze
