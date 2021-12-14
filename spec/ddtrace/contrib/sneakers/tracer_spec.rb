@@ -79,6 +79,7 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
     it do
       expect { call }.to_not raise_error
       expect(spans).to have(1).items
+      expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq('MiddlewareWorker')
       expect(span.name).to eq(Datadog::Contrib::Sneakers::Ext::SPAN_JOB)
       expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_ROUTING_KEY)).to eq(routing_key)
