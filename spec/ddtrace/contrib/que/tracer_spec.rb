@@ -49,6 +49,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
       it 'captures all generic span information' do
         enqueue
 
+        expect(span.service).to eq(tracer.default_service)
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_args[:queue])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_args[:priority])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0)
