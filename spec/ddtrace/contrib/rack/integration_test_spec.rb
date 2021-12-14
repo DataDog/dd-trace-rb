@@ -58,9 +58,9 @@ RSpec.describe 'Rack integration tests' do
           expect(span.status).to eq(0)
           expect(span).to be_root_span
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-            .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            .to eq('rack')
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+            .to eq('request')
         end
       end
     end
@@ -97,9 +97,9 @@ RSpec.describe 'Rack integration tests' do
             expect(span.status).to eq(0)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              .to eq('rack')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+              .to eq('request')
           end
         end
 
@@ -120,9 +120,9 @@ RSpec.describe 'Rack integration tests' do
             expect(span.status).to eq(0)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              .to eq('rack')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+              .to eq('request')
           end
         end
 
@@ -147,9 +147,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span.status).to eq(0)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+                .to eq('rack')
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+                .to eq('request')
             end
           end
 
@@ -171,9 +171,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span.status).to eq(0)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+                .to eq('rack')
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+                .to eq('request')
             end
           end
         end
@@ -193,9 +193,9 @@ RSpec.describe 'Rack integration tests' do
             expect(span.status).to eq(0)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              .to eq('rack')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+              .to eq('request')
           end
         end
       end
@@ -218,9 +218,9 @@ RSpec.describe 'Rack integration tests' do
             expect(span.status).to eq(0)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              .to eq('rack')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+              .to eq('request')
           end
         end
       end
@@ -255,9 +255,9 @@ RSpec.describe 'Rack integration tests' do
           expect(span.status).to eq(0)
           expect(span).to be_root_span
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-            .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            .to eq('rack')
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+            .to eq('request')
         end
       end
     end
@@ -292,9 +292,9 @@ RSpec.describe 'Rack integration tests' do
           expect(span.status).to eq(1)
           expect(span).to be_root_span
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-            .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+            .to eq('rack')
           expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+            .to eq('request')
         end
       end
     end
@@ -332,9 +332,9 @@ RSpec.describe 'Rack integration tests' do
             expect(span.status).to eq(1)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              .to eq('rack')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+              .to eq('request')
           end
         end
       end
@@ -371,9 +371,9 @@ RSpec.describe 'Rack integration tests' do
             expect(span.status).to eq(1)
             expect(span).to be_root_span
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+              .to eq('rack')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+              .to eq('request')
           end
         end
       end
@@ -422,9 +422,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span.status).to eq(0)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+                .to eq('rack')
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+                .to eq('request')
             end
           end
         end
@@ -469,9 +469,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span.status).to eq(1)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+                .to eq('rack')
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+                .to eq('request')
             end
           end
         end
@@ -508,9 +508,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span.status).to eq(1)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+                .to eq('rack')
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+                .to eq('request')
             end
           end
         end
@@ -634,9 +634,9 @@ RSpec.describe 'Rack integration tests' do
               expect(span.status).to eq(0)
               expect(span).to be_root_span
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+                .to eq('rack')
               expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+                .to eq('request')
 
               # Request headers
               expect(span.get_tag('http.request.headers.cache_control')).to eq('no-cache')
