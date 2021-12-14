@@ -21,6 +21,9 @@ module Datadog
           }
 
           tracer.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+            request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             # Set analytics sample rate
             if Datadog::Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Datadog::Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
