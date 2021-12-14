@@ -14,7 +14,7 @@ module Datadog
         TAG_OPERATION_REQUEST = 'request'.freeze
         TAG_OPERATION_HTTP_SERVER_QUEUE = 'queue'.freeze
         WEBSERVER_APP = 'webserver'.freeze
-        WEBSERVER_SERVICE_NAME = 'web-server'.freeze
+        DEFAULT_PEER_WEBSERVER_SERVICE_NAME = 'web-server'.freeze
       end
     end
   end
