@@ -18,8 +18,7 @@ module Datadog
         register_as :que, auto_patch: true
 
         def self.version
-          Gem.loaded_specs[Datadog::Contrib::Que::Ext::APP] &&
-            Gem.loaded_specs[Datadog::Contrib::Que::Ext::APP].version
+          Gem.loaded_specs['que'] && Gem.loaded_specs['que'].version
         end
 
         def self.loaded?
