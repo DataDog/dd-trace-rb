@@ -54,8 +54,6 @@ module Datadog
       trace_id: nil,
       type: nil
     )
-      parent = child_of
-
       # Set span attributes
       @name = name
       @service = service
@@ -89,6 +87,7 @@ module Datadog
       # Only set parent if explicitly provided.
       # We don't want it to override context-derived
       # IDs if it's a distributed trace w/o a parent span.
+      parent = child_of
       self.parent = parent if parent
 
       # Some other SpanOperation-specific behavior
