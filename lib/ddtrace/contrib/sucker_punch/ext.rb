@@ -4,7 +4,6 @@ module Datadog
     module SuckerPunch
       # SuckerPunch integration constants
       module Ext
-        APP = 'sucker_punch'.freeze
         ENV_ENABLED = 'DD_TRACE_SUCKER_PUNCH_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_SUCKER_PUNCH_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SUCKER_PUNCH_ANALYTICS_SAMPLE_RATE'.freeze
@@ -14,6 +13,10 @@ module Datadog
         SPAN_PERFORM_IN = 'sucker_punch.perform_in'.freeze
         TAG_PERFORM_IN = 'sucker_punch.perform_in'.freeze
         TAG_QUEUE = 'sucker_punch.queue'.freeze
+        TAG_COMPONENT = 'sucker_punch'.freeze
+        TAG_OPERATION_PERFORM = 'perform'.freeze
+        TAG_OPERATION_PERFORM_ASYNC = 'perform_async'.freeze
+        TAG_OPERATION_PERFORM_IN = 'perform_in'.freeze
       end
     end
   end

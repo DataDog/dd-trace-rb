@@ -29,7 +29,7 @@ module Datadog
         def add_pin!
           Pin.new(
             get_option(:service_name),
-            app: Ext::APP,
+            app: Ext::TAG_COMPONENT,
             app_type: Datadog::Ext::AppTypes::WORKER,
           ).onto(::SuckerPunch)
         end

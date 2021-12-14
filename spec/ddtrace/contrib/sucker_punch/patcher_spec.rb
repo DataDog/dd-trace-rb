@@ -80,6 +80,8 @@ RSpec.describe 'sucker_punch instrumentation' do
       expect(job_span.resource).to eq("PROCESS #{worker_class}")
       expect(job_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
       expect(job_span.status).not_to eq(Datadog::Ext::Errors::STATUS)
+      expect(job_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sucker_punch')
+      expect(job_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('perform')
     end
 
     it 'instruments successful enqueuing' do
@@ -91,6 +93,8 @@ RSpec.describe 'sucker_punch instrumentation' do
       expect(enqueue_span.resource).to eq("ENQUEUE #{worker_class}")
       expect(enqueue_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
       expect(enqueue_span.get_metric('_dd.measured')).to eq(1.0)
+      expect(enqueue_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sucker_punch')
+      expect(enqueue_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('perform_async')
     end
   end
 
@@ -143,6 +147,8 @@ RSpec.describe 'sucker_punch instrumentation' do
       expect(enqueue_span.resource).to eq("ENQUEUE #{worker_class}")
       expect(enqueue_span.get_tag('sucker_punch.queue')).to eq(worker_class.to_s)
       expect(enqueue_span.get_tag('sucker_punch.perform_in')).to eq(0)
+      expect(enqueue_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sucker_punch')
+      expect(enqueue_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('perform_in')
     end
   end
 
