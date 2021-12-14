@@ -29,7 +29,6 @@ module Datadog
           end
 
           def process(span, _event, _id, payload)
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
 
             set_common_tags(span, payload)
