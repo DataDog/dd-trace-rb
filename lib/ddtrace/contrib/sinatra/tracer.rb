@@ -103,11 +103,13 @@ module Datadog
           # Invoked when a matching route is found.
           # This method yields directly to user code.
           def route_eval
+            configuration = Datadog.configuration[:sinatra]
             tracer = Datadog.tracer
             return super unless tracer.enabled
 
             tracer.trace(
               Ext::SPAN_ROUTE,
+              service: configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               resource: "#{request.request_method} #{@datadog_route}",
             ) do |span, trace|
