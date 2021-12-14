@@ -4,7 +4,6 @@ module Datadog
     module Racecar
       # Racecar integration constants
       module Ext
-        APP = 'racecar'.freeze
         ENV_ENABLED = 'DD_TRACE_RACECAR_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_RACECAR_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_RACECAR_ANALYTICS_SAMPLE_RATE'.freeze
@@ -18,6 +17,10 @@ module Datadog
         TAG_OFFSET = 'kafka.offset'.freeze
         TAG_PARTITION = 'kafka.partition'.freeze
         TAG_TOPIC = 'kafka.topic'.freeze
+        TAG_COMPONENT = 'racecar'.freeze
+        TAG_OPERATION_CONSUME = 'consume'.freeze
+        TAG_OPERATION_BATCH = 'batch'.freeze
+        TAG_OPERATION_MESSAGE = 'message'.freeze
       end
     end
   end

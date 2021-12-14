@@ -39,6 +39,8 @@ module Datadog
             span.service = configuration[:service_name]
             span.resource = payload[:consumer_class]
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+
             # Tag as an external peer service
             span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
