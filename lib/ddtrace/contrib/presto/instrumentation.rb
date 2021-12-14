@@ -86,9 +86,8 @@ module Datadog
               span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, operation)
 
               if (host_port = @options[:server])
-                if (match = /^([^:]+):(\d+)$/.match(host_port))
-                  host, port = match[1], match[2].to_i
-
+                host, port = Utils.extract_host_port(host_port)
+                if host && port
                   span.set_tag(Datadog::Ext::NET::TARGET_HOST, host)
                   span.set_tag(Datadog::Ext::NET::TARGET_PORT, port)
 

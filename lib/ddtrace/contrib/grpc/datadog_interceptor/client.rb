@@ -23,7 +23,7 @@ module Datadog
             }
 
             tracer.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
-              annotate!(trace, span, keywords[:metadata])
+              annotate!(trace, span, keywords[:metadata], keywords[:call])
 
               yield
             end
@@ -31,11 +31,16 @@ module Datadog
 
           private
 
-          def annotate!(trace, span, metadata)
+          def annotate!(trace, span, metadata, call)
             span.set_tags(metadata)
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_CLIENT)
 
             # Tag as an external peer service
             span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            host, _port = find_host_port(call)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host) if host
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -50,6 +55,23 @@ module Datadog
                         .split('/')
                         .reject(&:empty?)
                         .join('.')
+          end
+
+          def find_host_port(call)
+            return unless call
+
+            if call.respond_to?(:peer)
+              peer_address = call.peer
+            else
+              # call is a "view" class with restricted method visibility.
+              # We reach into it to find our data source anyway.
+              peer_address = call.instance_variable_get(:@wrapped).peer
+            end
+
+            Utils.extract_host_port(peer_address)
+          rescue => e
+            Datadog.logger.debug { "Could not parse host:port from #{call}: #{e}" }
+            nil
           end
         end
       end

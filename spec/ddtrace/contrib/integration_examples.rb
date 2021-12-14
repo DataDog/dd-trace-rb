@@ -26,6 +26,6 @@ RSpec.shared_examples 'a non-peer service span' do
   end
 
   it 'does not contain the peer hostname tag' do
-    expect(span.get_tag('peer.hostname')).to_not be nil
+    expect(span.get_tag('peer.hostname')).to be nil
   end
 end
