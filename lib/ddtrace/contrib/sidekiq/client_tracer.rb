@@ -20,6 +20,10 @@ module Datadog
 
           Datadog.tracer.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
             span.resource = resource
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PUSH)
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])

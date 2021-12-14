@@ -32,6 +32,8 @@ RSpec.describe 'Server tracer' do
     expect(span).to be_root_span
     expect(span.get_tag('sidekiq.job.args')).to be_nil
     expect(span.get_metric('_dd.measured')).to eq(1.0)
+    expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sidekiq')
+    expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
   end
 
   context 'with job run failing' do
