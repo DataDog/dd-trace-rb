@@ -35,6 +35,10 @@ module Datadog
           tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
             span.span_type = Datadog::Ext::AppTypes::WORKER
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
