@@ -73,8 +73,7 @@ module Datadog
             def __with_instrumentation(name)
               pin = Datadog::Pin.get_from(::SuckerPunch)
 
-              Datadog.tracer.trace(name) do |span|
-                span.service = pin.service
+              Datadog.tracer.trace(name, service: pin.service) do |span|
                 span.span_type = pin.app_type
                 span.set_tag(Ext::TAG_QUEUE, to_s)
                 yield span
