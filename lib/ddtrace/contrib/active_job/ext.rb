@@ -16,6 +16,7 @@ module Datadog
         TAG_COMPONENT = 'active_job'.freeze
         TAG_OPERATION_DISCARD = 'discard'.freeze
         TAG_OPERATION_ENQUEUE = 'enqueue'.freeze
+        TAG_OPERATION_ENQUEUE_AT = 'enqueue_at'.freeze
         TAG_OPERATION_ENQUEUE_RETRY = 'enqueue_retry'.freeze
         TAG_OPERATION_PERFORM = 'perform'.freeze
         TAG_OPERATION_RETRY_STOPPED = 'retry_stopped'.freeze
