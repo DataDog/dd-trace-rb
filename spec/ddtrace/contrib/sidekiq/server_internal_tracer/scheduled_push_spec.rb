@@ -24,9 +24,9 @@ RSpec.describe 'Server internal tracer' do
 
   it 'traces the looping scheduled push' do
     expect_in_sidekiq_server(duration: 6) do
-      span = spans.find { |s| s.service == 'sidekiq' && s.name == 'sidekiq.scheduled_push' }
+      span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.scheduled_push' }
 
-      expect(span.service).to eq('sidekiq')
+      expect(span.service).to eq(tracer.default_service)
       expect(span.name).to eq('sidekiq.scheduled_push')
       expect(span.span_type).to eq('worker')
       expect(span.resource).to eq('sidekiq.scheduled_push')

@@ -18,9 +18,9 @@ RSpec.describe 'Server internal tracer' do
     # https://github.com/mperham/sidekiq/blob/v6.2.2/lib/sidekiq/fetch.rb#L7-L9
     # https://redis.io/commands/blpop#blocking-behavior
     expect_in_sidekiq_server(duration: 3) do
-      span = spans.find { |s| s.service == 'sidekiq' && s.name == 'sidekiq.job_fetch' }
+      span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.job_fetch' }
 
-      expect(span.service).to eq('sidekiq')
+      expect(span.service).to eq(tracer.default_service)
       expect(span.name).to eq('sidekiq.job_fetch')
       expect(span.span_type).to eq('worker')
       expect(span.resource).to eq('sidekiq.job_fetch')

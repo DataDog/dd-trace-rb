@@ -11,8 +11,7 @@ module Datadog
           def fetch
             configuration = Datadog.configuration[:sidekiq]
 
-            Datadog.tracer.trace(Ext::SPAN_JOB_FETCH) do |span|
-              span.service = configuration[:service_name]
+            Datadog.tracer.trace(Ext::SPAN_JOB_FETCH, service: configuration[:service_name]) do |span|
               span.span_type = Datadog::Ext::AppTypes::WORKER
 
               # Set analytics sample rate
