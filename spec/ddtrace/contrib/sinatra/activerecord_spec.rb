@@ -100,8 +100,7 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
       expect(sqlite_span.span_type).to eq(Datadog::Ext::SQL::TYPE)
       expect(sqlite_span).to_not have_error
       expect(sqlite_span.parent_id).to eq(route_span.span_id)
-      expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+      expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sinatra')
       expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
         .to eq('sql')
       expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
