@@ -97,8 +97,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(adapter)
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::ActiveModelSerializers::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_model_serializers')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
               .to eq(operation_name)
           end
@@ -121,8 +120,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(test_obj.class.to_s)
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::ActiveModelSerializers::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_model_serializers')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
               .to eq(operation_name)
           end
@@ -141,8 +139,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to be_nil
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq(Datadog::Contrib::ActiveModelSerializers::Ext::TAG_COMPONENT)
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_model_serializers')
             expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
               .to eq(operation_name)
           end

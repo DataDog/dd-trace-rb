@@ -59,8 +59,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.resource).to eq('action_cable.broadcast')
         expect(span.get_tag('action_cable.channel')).to eq(channel)
         expect(span.get_tag('action_cable.broadcast.coder')).to eq('ActiveSupport::JSON')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_cable')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
           .to eq('broadcast')
         expect(span).to_not have_error
@@ -108,8 +107,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('ChatChannel#subscribe')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_cable')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('subscribe')
         expect(span).to_not have_error
       end
@@ -130,8 +128,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.span_type).to eq('web')
         expect(span.resource).to eq('ChatChannel#unsubscribe')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_cable')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('unsubscribe')
         expect(span).to_not have_error
       end
@@ -151,8 +148,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.resource).to eq('ChatChannel#foo')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.action')).to eq('foo')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_cable')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
           .to eq('action')
         expect(span).to_not have_error
@@ -203,8 +199,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.resource).to eq('ChatChannel')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.transmit.via')).to eq('streamed from chat_channel')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_cable')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
           .to eq('transmit')
         expect(span).to_not have_error
