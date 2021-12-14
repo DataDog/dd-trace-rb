@@ -55,8 +55,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
 
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::Aws::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
           .to eq('command')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
@@ -102,8 +101,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
 
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::Aws::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
           .to eq('command')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
