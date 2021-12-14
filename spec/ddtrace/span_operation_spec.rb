@@ -249,27 +249,11 @@ RSpec.describe Datadog::SpanOperation do
         context 'that is nil' do
           let(:service) { nil }
           it { is_expected.to have_attributes(service: nil) }
-
-          context 'but :child_of is defined' do
-            include_context 'parent span operation'
-            let(:options) { { child_of: parent, service: service } }
-
-            it_behaves_like 'a child span operation'
-            it { is_expected.to have_attributes(service: service) }
-          end
         end
 
         context 'that is a String' do
           let(:service) { instance_double(String) }
           it { is_expected.to have_attributes(service: service) }
-
-          context 'and :child_of is defined' do
-            include_context 'parent span operation'
-            let(:options) { { child_of: parent, service: service } }
-
-            it_behaves_like 'a child span operation'
-            it { is_expected.to have_attributes(service: service) }
-          end
         end
       end
 
