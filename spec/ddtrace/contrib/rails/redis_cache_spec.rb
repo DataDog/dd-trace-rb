@@ -92,11 +92,11 @@ MESSAGE
       expect(cache.span_id).to eq(redis.parent_id)
 
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+        .to eq('active_support')
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+        .to eq('cache')
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
-        .to eq("#{tracer.default_service}-cache")
+        .to eq("active_support-cache")
     end
 
     it_behaves_like 'a peer service span' do
@@ -129,18 +129,18 @@ MESSAGE
         expect(redis_get.name).to eq('redis.command')
 
         expect(cache_get.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+          .to eq('active_support')
         expect(cache_get.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+          .to eq('cache')
         expect(cache_get.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
-          .to eq("#{tracer.default_service}-cache")
+          .to eq("active_support-cache")
 
         expect(cache_set.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+          .to eq('active_support')
         expect(cache_set.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+          .to eq('cache')
         expect(cache_set.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
-          .to eq("#{tracer.default_service}-cache")
+          .to eq("active_support-cache")
 
         # check that the value is really updated, and persistent
         expect(cache.read(key)).to eq(51)
@@ -156,11 +156,11 @@ MESSAGE
         expect(redis.name).to eq('redis.command')
 
         expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+          .to eq('active_support')
         expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+          .to eq('cache')
         expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
-          .to eq("#{tracer.default_service}-cache")
+          .to eq("active_support-cache")
       end
     end
   end
@@ -184,11 +184,11 @@ MESSAGE
       expect(cache.span_id).to eq(redis.parent_id)
 
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+        .to eq('active_support')
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+        .to eq('cache')
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
-        .to eq("#{tracer.default_service}-cache")
+        .to eq("active_support-cache")
     end
 
     it_behaves_like 'a peer service span' do
@@ -215,11 +215,11 @@ MESSAGE
       expect(cache.span_id).to eq(del.parent_id)
 
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_COMPONENT)
+        .to eq('active_support')
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActiveSupport::Ext::TAG_OPERATION_CACHE)
+        .to eq('cache')
       expect(cache.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
-        .to eq("#{tracer.default_service}-cache")
+        .to eq("active_support-cache")
     end
 
     it_behaves_like 'a peer service span' do

@@ -41,7 +41,7 @@ module Datadog
             # being executed, but here we know better, get it from Rails config.
             # Don't set this if service has been explicitly provided by the user.
             rails_service_name =  datadog_config[:rails][:service_name] \
-                                  || Datadog.configure.service_without_fallback \
+                                  || Datadog.configuration.service_without_fallback \
                                   || Utils.app_name
             datadog_config.service ||= rails_service_name
 

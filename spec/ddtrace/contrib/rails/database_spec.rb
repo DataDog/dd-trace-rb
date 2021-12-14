@@ -54,9 +54,9 @@ RSpec.describe 'Rails database' do
       # ensure that the sql.query tag is not set
       expect(span.get_tag('sql.query')).to be_nil
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+        .to eq('active_record')
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_SQL)
+        .to eq('sql')
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
         .to eq(adapter_name)
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
@@ -93,9 +93,9 @@ RSpec.describe 'Rails database' do
         expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
         expect(span.get_tag('active_record.instantiation.record_count')).to eq(1)
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+          .to eq('active_record')
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_INSTANTIATION)
+          .to eq('instantiation')
       end
 
       context 'inside parent trace' do
@@ -120,9 +120,9 @@ RSpec.describe 'Rails database' do
           expect(instantiation_span.get_tag('active_record.instantiation.class_name')).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.record_count')).to eq(1)
           expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-            .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
+            .to eq('active_record')
           expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-            .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_INSTANTIATION)
+            .to eq('instantiation')
         end
       end
     end

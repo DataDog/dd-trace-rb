@@ -68,7 +68,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::ActionMailer::Ext::TAG_COMPONENT)
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionMailer::Ext::TAG_OPERATION_PROCESS)
+          .to eq('process')
       end
 
       it 'is expected to send a deliver span' do
@@ -83,7 +83,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::ActionMailer::Ext::TAG_COMPONENT)
         expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionMailer::Ext::TAG_OPERATION_DELIVER)
+          .to eq('deliver')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -110,7 +110,7 @@ RSpec.describe 'ActionMailer patcher' do
         expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::ActionMailer::Ext::TAG_COMPONENT)
         expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionMailer::Ext::TAG_OPERATION_DELIVER)
+          .to eq('deliver')
 
         expect(deliver_span.get_tag('action_mailer.to')).to eq('test@example.com')
         expect(deliver_span.get_tag('action_mailer.from')).to eq('test@example.com')

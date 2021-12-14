@@ -62,7 +62,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_OPERATION_BROADCAST)
+          .to eq('broadcast')
         expect(span).to_not have_error
       end
 
@@ -154,7 +154,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_OPERATION_ACTION)
+          .to eq('action')
         expect(span).to_not have_error
       end
 
@@ -206,7 +206,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
           .to eq(Datadog::Contrib::ActionCable::Ext::TAG_COMPONENT)
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionCable::Ext::TAG_OPERATION_TRANSMIT)
+          .to eq('transmit')
         expect(span).to_not have_error
       end
 

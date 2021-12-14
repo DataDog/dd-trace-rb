@@ -143,9 +143,9 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('200')
       expect(request_span).to be_measured
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.span_type).to eq('web')
@@ -153,16 +153,14 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span.resource).to eq('TestController#full')
       expect(controller_span.get_tag('rails.route.action')).to eq('full')
       expect(controller_span.get_tag('rails.route.controller')).to eq('TestController')
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
       expect(controller_span).to be_measured
 
       expect(cache_span.name).to eq('rails.cache')
       expect(cache_span.span_type).to eq('cache')
       expect(cache_span.resource).to eq('SET')
-      expect(cache_span.service).to eq("#{tracer.default_service}-cache")
+      expect(cache_span.service).to eq("active_support-cache")
       expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(cache_span.get_tag('rails.cache.key')).to eq('empty-key')
       expect(cache_span).to_not be_measured
@@ -174,9 +172,9 @@ RSpec.describe 'Rails Rack' do
       expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
       expect(render_span.get_tag('rails.layout')).to eq('layouts/application')
       expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
+        .to eq('render_template')
       expect(render_span).to be_measured
     end
 
@@ -198,10 +196,8 @@ RSpec.describe 'Rails Rack' do
         expect(render_span.resource).to eq('full.html.erb')
         expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
         expect(render_span.get_tag('rails.layout')).to be_nil
-        expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
-        expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-          .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
+        expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_view')
+        expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('render_template')
       end
     end
   end
@@ -222,9 +218,9 @@ RSpec.describe 'Rails Rack' do
       expect(inner_partial_span).to be_measured
       expect(inner_partial_span.parent_id).to eq(outer_partial_span.span_id)
       expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
+        .to eq('render_partial')
 
       expect(outer_partial_span.name).to eq('rails.render_partial')
       expect(outer_partial_span.span_type).to eq('template')
@@ -233,9 +229,9 @@ RSpec.describe 'Rails Rack' do
       expect(outer_partial_span).to be_measured
       expect(outer_partial_span.parent_id).to eq(template_span.span_id)
       expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(inner_partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
+        .to eq('render_partial')
     end
 
     it 'tracing does not affect response body' do
@@ -266,9 +262,9 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_message(include('Missing template test/does_not_exist'))
       expect(request_span).to have_error_stack
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.resource).to eq('TestController#nonexistent_template')
@@ -276,10 +272,8 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to have_error_type('ActionView::MissingTemplate')
       expect(controller_span).to have_error_message(include('Missing template test/does_not_exist'))
       expect(controller_span).to have_error_stack
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
 
       expect(template_span.name).to eq('rails.render_template')
       expect(template_span.resource).to eq('rails.render_template') # Fallback value due to missing template
@@ -291,9 +285,9 @@ RSpec.describe 'Rails Rack' do
       expect(template_span).to have_error_message(include('Missing template test/does_not_exist'))
       expect(template_span).to have_error_stack
       expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
+        .to eq('render_template')
     end
   end
 
@@ -321,9 +315,9 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(request_span).to have_error_stack
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.resource).to eq('TestController#nonexistent_partial')
@@ -331,10 +325,8 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to have_error_type('ActionView::Template::Error')
       expect(controller_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(controller_span).to have_error_stack
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
 
       expect(partial_span.name).to eq('rails.render_partial')
       expect(partial_span.resource).to eq('rails.render_partial') # Fallback value due to missing partial
@@ -346,9 +338,9 @@ RSpec.describe 'Rails Rack' do
       expect(partial_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(partial_span).to have_error_stack
       expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
+        .to eq('render_partial')
 
       expect(template_span.name).to eq('rails.render_template')
       expect(template_span.resource).to eq('partial_does_not_exist.html.erb') # Fallback value due to missing template
@@ -360,9 +352,9 @@ RSpec.describe 'Rails Rack' do
       expect(template_span).to have_error_message(include('Missing partial test/no_partial_here'))
       expect(template_span).to have_error_stack
       expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(template_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
+        .to eq('render_template')
     end
   end
 
@@ -387,19 +379,17 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error
       expect(request_span).to have_error_stack(match(/rack_spec\.rb.*\berror\b/))
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
       expect(controller_span).to have_error_type('ZeroDivisionError')
       expect(controller_span).to have_error_message('divided by 0')
       expect(controller_span).to have_error_stack
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
     end
   end
 
@@ -424,19 +414,17 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error
       expect(request_span).to_not have_error_stack
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
       expect(controller_span).to_not have_error_type
       expect(controller_span).to_not have_error_message
       expect(controller_span).to_not have_error_stack
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
     end
   end
 
@@ -464,19 +452,17 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_stack(match(/rack_spec\.rb.*\berror\b/))
       expect(request_span).to have_error_stack(match(/rack_spec\.rb.*\bsub_error\b/))
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
       expect(controller_span).to have_error_type('ZeroDivisionError')
       expect(controller_span).to have_error_message('divided by 0')
       expect(controller_span).to have_error_stack
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
     end
   end
 
@@ -498,17 +484,16 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('200')
       expect(request_span).to_not have_error
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
       expect(controller_span).to have_error_type('RescuableError')
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
       expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+        .to eq('controller')
     end
   end
 
@@ -530,16 +515,14 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error
       expect(request_span.resource).to_not eq(controller_span.resource)
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span).to have_error
       expect(controller_span.resource).to eq('ErrorsController#internal_server_error')
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
     end
   end
 
@@ -563,9 +546,9 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.status_code')).to eq('404')
       expect(request_span).to_not have_error
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
     end
   end
 
@@ -588,9 +571,9 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('404')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
     end
 
     it 'does not mark rack span as error' do
@@ -619,18 +602,16 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_message
       expect(request_span.resource).to_not eq(render_span.resource)
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span).to have_error
       expect(controller_span).to have_error_type('ActionView::Template::Error')
       expect(controller_span).to have_error_stack
       expect(controller_span).to have_error_message
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
 
       expect(render_span.name).to eq('rails.render_template')
       expect(render_span.span_type).to eq('template')
@@ -641,9 +622,9 @@ RSpec.describe 'Rails Rack' do
       expect(render_span).to have_error_type('ActionView::Template::Error')
       expect(render_span).to have_error_message('divided by 0')
       expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
+        .to eq('render_template')
     end
   end
 
@@ -665,18 +646,16 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_message
       expect(request_span.resource).to_not eq(render_span.resource)
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_COMPONENT)
+        .to eq('rack')
       expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::Rack::Ext::TAG_OPERATION_REQUEST)
+        .to eq('request')
 
       expect(controller_span).to have_error
       expect(controller_span).to have_error_type('ActionView::Template::Error')
       expect(controller_span).to have_error_stack
       expect(controller_span).to have_error_message
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_COMPONENT)
-      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionPack::Ext::TAG_OPERATION_CONTROLLER)
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_pack')
+      expect(controller_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('controller')
 
       expect(partial_span.name).to eq('rails.render_partial')
       expect(partial_span.span_type).to eq('template')
@@ -687,16 +666,16 @@ RSpec.describe 'Rails Rack' do
       expect(partial_span).to have_error_type('ActionView::Template::Error')
       expect(partial_span).to have_error_message('divided by 0')
       expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(partial_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_PARTIAL)
+        .to eq('render_partial')
 
       expect(render_span).to have_error
       expect(render_span).to have_error_type('ActionView::Template::Error')
       expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_COMPONENT)
+        .to eq('action_view')
       expect(render_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActionView::Ext::TAG_OPERATION_RENDER_TEMPLATE)
+        .to eq('render_template')
     end
   end
 

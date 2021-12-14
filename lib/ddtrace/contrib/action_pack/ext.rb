@@ -9,7 +9,7 @@ module Datadog
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_PACK_ANALYTICS_SAMPLE_RATE'.freeze
         SPAN_ACTION_CONTROLLER = 'rails.action_controller'.freeze
         TAG_COMPONENT = 'action_pack'.freeze
-        TAG_OPERATION_CONTROLLER = 'action_controller'.freeze
+        TAG_OPERATION_CONTROLLER = 'controller'.freeze
         TAG_ROUTE_ACTION = 'rails.route.action'.freeze
         TAG_ROUTE_CONTROLLER = 'rails.route.controller'.freeze
       end

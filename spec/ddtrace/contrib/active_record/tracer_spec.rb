@@ -58,7 +58,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
         .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_COMPONENT)
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq(Datadog::Contrib::ActiveRecord::Ext::TAG_OPERATION_SQL)
+        .to eq('sql')
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
         .to eq('mysql2')
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
