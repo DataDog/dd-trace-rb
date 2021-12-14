@@ -10,6 +10,10 @@ module Datadog
           def self.cookies(response)
             response.cookies
           end
+
+          def self.status(response)
+            response.status
+          end
         end
       end
     end

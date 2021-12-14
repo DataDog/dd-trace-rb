@@ -51,10 +51,25 @@ module Datadog
             end
 
             response = ::Rack::Response.new(ret[2], ret[0], ret[1])
+            response.instance_eval do
+              @waf_context = context
+            end
+
+            _, res2 = Instrumentation.gateway.push('rack.response', response)
+
+            res.each { |a, e| [a, e.merge!(response: response)] } if res
+            res2.each { |a, e| [a, e.merge!(request: request)] } if res2
+            if res2
+              if res
+                res = res + res2
+              else
+                res = res2
+              end
+            end
 
             if res && res.any?
               res.each do |action, event|
-                Security::Event.record(event.merge!(response: response), action == :block)
+                Security::Event.record(event, action == :block)
               end
             end
 

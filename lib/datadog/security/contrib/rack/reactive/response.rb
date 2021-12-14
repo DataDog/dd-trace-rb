@@ -1,38 +1,31 @@
+require 'datadog/security/contrib/rack/response'
+
 module Datadog
   module Security
     module Contrib
       module Rack
         module Reactive
-          module Subscriber
+          module Response
+            def self.publish(op, response)
+              catch(:block) do
+                op.publish('response.status', Rack::Response.status(response))
+
+                nil
+              end
+            end
+
             def self.subscribe(op, waf_context)
               addresses = [
-                'request.headers',
-                'request.uri.raw',
-                'request.query',
-                'request.cookies',
-                'request.body.raw',
-                # TODO: 'request.path_params',
+                'response.status',
               ]
 
               op.subscribe(*addresses) do |*values|
                 Datadog.logger.debug { "reacted to #{addresses.inspect}: #{values.inspect}" }
-                headers = values[0]
-                headers_no_cookies = headers.dup.tap { |h| h.delete('cookie') }
-                uri_raw = values[1]
-                query = values[2]
-                cookies = values[3]
-                body = values[4]
-                Datadog.logger.debug { "headers: #{headers}" }
-                Datadog.logger.debug { "headers_no_cookie: #{headers_no_cookies}" }
+
+                response_status = values[0]
 
                 waf_args = {
-                  'server.request.cookies' => cookies,
-                  'server.request.body.raw' => body,
-                  'server.request.query' => query,
-                  'server.request.uri.raw' => uri_raw,
-                  'server.request.headers' => headers,
-                  'server.request.headers.no_cookies' => headers_no_cookies,
-                  # TODO: 'server.request.path_params' => path_params,
+                  'server.response.status' => response_status.to_s,
                 }
 
                 # TODO: this check is too low level
