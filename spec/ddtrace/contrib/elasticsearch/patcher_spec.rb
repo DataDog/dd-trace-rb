@@ -70,8 +70,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
       }
       it {
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
@@ -96,8 +95,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
       }
       it {
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
@@ -153,8 +151,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
       }
       it {
         expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
