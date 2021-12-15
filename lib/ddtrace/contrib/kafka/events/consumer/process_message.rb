@@ -34,7 +34,7 @@ module Datadog
             end
 
             def span_options
-              super.merge({ tags: { Datadog::Ext::Metadata::TAG_OPERATION => Ext::TAG_OPERATION_PROCESS_MESSAGE }})
+              super.merge({ tags: { Datadog::Ext::Metadata::TAG_OPERATION => Ext::TAG_OPERATION_PROCESS_MESSAGE } })
             end
           end
         end

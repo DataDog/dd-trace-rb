@@ -60,13 +60,13 @@ module Datadog
           def find_host_port(call)
             return unless call
 
-            if call.respond_to?(:peer)
-              peer_address = call.peer
-            else
-              # call is a "view" class with restricted method visibility.
-              # We reach into it to find our data source anyway.
-              peer_address = call.instance_variable_get(:@wrapped).peer
-            end
+            peer_address = if call.respond_to?(:peer)
+                             call.peer
+                           else
+                             # call is a "view" class with restricted method visibility.
+                             # We reach into it to find our data source anyway.
+                             call.instance_variable_get(:@wrapped).peer
+                           end
 
             Utils.extract_host_port(peer_address)
           rescue => e

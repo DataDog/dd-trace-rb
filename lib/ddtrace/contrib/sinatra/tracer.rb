@@ -102,6 +102,7 @@ module Datadog
 
           # Invoked when a matching route is found.
           # This method yields directly to user code.
+          # rubocop:disable Metrics/MethodLength
           def route_eval
             configuration = Datadog.configuration[:sinatra]
             tracer = Datadog.tracer
@@ -147,6 +148,7 @@ module Datadog
               super
             end
           end
+          # rubocop:enable Metrics/MethodLength
         end
       end
     end

@@ -186,7 +186,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.resource).to eq('GET')
     end
 
-    it_behaves_like 'a peer service span'  do
+    it_behaves_like 'a peer service span' do
       let(:peer_hostname) { 'example.com' }
     end
 

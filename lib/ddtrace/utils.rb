@@ -97,7 +97,7 @@ module Datadog
       match = /^([^:]+):(\d+)$/.match(host_port)
       return unless match
 
-      return match[1], match[2].to_i
+      [match[1], match[2].to_i]
     end
   end
 end

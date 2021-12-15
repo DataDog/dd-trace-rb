@@ -160,7 +160,7 @@ RSpec.describe 'Rails Rack' do
       expect(cache_span.name).to eq('rails.cache')
       expect(cache_span.span_type).to eq('cache')
       expect(cache_span.resource).to eq('SET')
-      expect(cache_span.service).to eq("active_support-cache")
+      expect(cache_span.service).to eq('active_support-cache')
       expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(cache_span.get_tag('rails.cache.key')).to eq('empty-key')
       expect(cache_span).to_not be_measured
