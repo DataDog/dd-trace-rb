@@ -14,6 +14,10 @@ RSpec.describe 'Rails cache' do
     Datadog.configuration[:active_support][:cache_service] = 'rails-cache'
   end
 
+  after do
+    Datadog.configuration[:active_support].reset!
+  end
+
   before { app }
 
   let(:cache) { Rails.cache }

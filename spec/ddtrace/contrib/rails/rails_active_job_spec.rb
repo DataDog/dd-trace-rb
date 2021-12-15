@@ -101,7 +101,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
         .to eq('active_job')
       expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-        .to eq('enqueue')
+        .to eq('enqueue_at')
 
       if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(span.get_tag('active_job.job.priority')).to eq(-10)
