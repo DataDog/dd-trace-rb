@@ -685,7 +685,7 @@ To activate your integration, use the `Datadog.configure` method:
 # Inside Rails initializer or equivalent
 Datadog.configure do |c|
   # Patches ::Concurrent::Future to use ExecutorService that propagates context
-  c.use :concurrent_ruby, options
+  c.use :concurrent_ruby
 end
 
 # Pass context into code executed within Concurrent::Future
@@ -693,12 +693,6 @@ Datadog.tracer.trace('outer') do
   Concurrent::Future.execute { Datadog.tracer.trace('inner') { } }.wait
 end
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `concurrent-ruby` instrumentation | `'concurrent-ruby'` |
 
 ### Cucumber
 
@@ -777,8 +771,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
-| `client_service_name` | Service name used for client-side `DelayedJob` instrumentation | `'delayed_job-client'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 ### Elasticsearch
@@ -976,7 +968,6 @@ The `use :graphql` method accepts the following parameters. Additional options c
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `graphql` instrumentation | `'ruby-graphql'` |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
 
 **Manually configuring GraphQL schemas**
@@ -1164,7 +1155,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `kafka` instrumentation | `'kafka'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### MongoDB
@@ -1338,7 +1328,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `qless` instrumentation | `'qless'` |
 | `tag_job_data` | Enable tagging with job arguments. true for on, false for off. | `false` |
 | `tag_job_tags` | Enable tagging with job tags. true for on, false for off. | `false` |
 
@@ -1361,7 +1350,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `que` instrumentation | `'que'` |
 | `tag_args` | Enable tagging of a job's args field. `true` for on, `false` for off. | `false` |
 | `tag_data` | Enable tagging of a job's data field. `true` for on, `false` for off. | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
@@ -1656,7 +1644,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client
@@ -1766,7 +1753,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `shoryuken` instrumentation | `'shoryuken'` |
 | `tag_body` | Tag spans with the SQS message body `true` or `false` | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
@@ -1788,8 +1774,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
-| `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
 | `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
@@ -1874,7 +1858,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `sneakers` instrumentation | `'sneakers'` |
 | `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
@@ -1886,18 +1869,12 @@ The `sucker_punch` integration traces all scheduled jobs:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :sucker_punch, options
+  c.use :sucker_punch
 end
 
 # Execution of this job is traced
 LogJob.perform_async('login')
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `sucker_punch` instrumentation | `'sucker_punch'` |
 
 ## Advanced configuration
 
