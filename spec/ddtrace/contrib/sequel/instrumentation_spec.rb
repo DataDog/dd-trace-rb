@@ -79,7 +79,13 @@ RSpec.describe 'Sequel instrumentation' do
         end
 
         it_behaves_like 'a peer service span' do
-          let(:peer_hostname) { host }
+          let(:peer_hostname) do
+            if PlatformHelpers.jruby?
+              nil # TODO: Extract host for Sequel with JDBC
+            else
+              host
+            end
+          end
         end
 
         it_behaves_like 'measured span for integration', false

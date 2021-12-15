@@ -25,7 +25,7 @@ module Datadog
               span.service = datadog_pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
-              Utils.set_common_tags(span, opts)
+              Utils.set_common_tags(span, db)
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
               response = super(sql, options)
             end
