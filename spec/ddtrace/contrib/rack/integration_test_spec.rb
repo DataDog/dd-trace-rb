@@ -28,6 +28,20 @@ RSpec.describe 'Rack integration tests' do
       end.to_app
     end
 
+    shared_examples 'a rack GET 200 span' do
+      it do
+        expect(span.name).to eq('rack.request')
+        expect(span.span_type).to eq('web')
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.resource).to eq('GET 200')
+        expect(span.get_tag('http.method')).to eq('GET')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.status).to eq(0)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rack')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+      end
+    end
+
     context 'with no routes' do
       # NOTE: Have to give a Rack app at least one route.
       let(:routes) do
@@ -85,44 +99,26 @@ RSpec.describe 'Rack integration tests' do
         context 'without parameters' do
           let(:route) { '/success/' }
 
+          it_behaves_like 'a rack GET 200 span'
+
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
-            expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('GET 200')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to eq('200')
             expect(span.get_tag('http.url')).to eq('/success/')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span.status).to eq(0)
             expect(span).to be_root_span
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq('rack')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq('request')
           end
         end
 
         context 'with query string parameters' do
           let(:route) { '/success?foo=bar' }
 
+          it_behaves_like 'a rack GET 200 span'
+
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
-            expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('GET 200')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to eq('200')
             # Since REQUEST_URI isn't available in Rack::Test by default (comes from WEBrick/Puma)
             # it reverts to PATH_INFO, which doesn't have query string parameters.
             expect(span.get_tag('http.url')).to eq('/success')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span.status).to eq(0)
             expect(span).to be_root_span
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq('rack')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq('request')
           end
         end
 
@@ -132,48 +128,30 @@ RSpec.describe 'Rack integration tests' do
           context 'and default quantization' do
             let(:rack_options) { super().merge(quantize: {}) }
 
+            it_behaves_like 'a rack GET 200 span'
+
             it do
-              expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
-              expect(span.service).to eq(Datadog.configuration.service)
-              expect(span.resource).to eq('GET 200')
-              expect(span.get_tag('http.method')).to eq('GET')
-              expect(span.get_tag('http.status_code')).to eq('200')
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # However, that query string will be quantized.
               expect(span.get_tag('http.url')).to eq('/success?foo')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
-              expect(span.status).to eq(0)
               expect(span).to be_root_span
-              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq('rack')
-              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq('request')
             end
           end
 
           context 'and quantization activated for the query' do
             let(:rack_options) { super().merge(quantize: { query: { show: ['foo'] } }) }
 
+            it_behaves_like 'a rack GET 200 span'
+
             it do
-              expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
-              expect(span.service).to eq(Datadog.configuration.service)
-              expect(span.resource).to eq('GET 200')
-              expect(span.get_tag('http.method')).to eq('GET')
-              expect(span.get_tag('http.status_code')).to eq('200')
               # Since REQUEST_URI is set (usually provided by WEBrick/Puma)
               # it uses REQUEST_URI, which has query string parameters.
               # The query string will not be quantized, per the option.
               expect(span.get_tag('http.url')).to eq('/success?foo=bar')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
-              expect(span.status).to eq(0)
               expect(span).to be_root_span
-              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq('rack')
-              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq('request')
             end
           end
         end
@@ -181,21 +159,12 @@ RSpec.describe 'Rack integration tests' do
         context 'with sub-route' do
           let(:route) { '/success/100' }
 
+          it_behaves_like 'a rack GET 200 span'
+
           it do
-            expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
-            expect(span.service).to eq(Datadog.configuration.service)
-            expect(span.resource).to eq('GET 200')
-            expect(span.get_tag('http.method')).to eq('GET')
-            expect(span.get_tag('http.status_code')).to eq('200')
             expect(span.get_tag('http.url')).to eq('/success/100')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span.status).to eq(0)
             expect(span).to be_root_span
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-              .to eq('rack')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-              .to eq('request')
           end
         end
       end
@@ -622,21 +591,12 @@ RSpec.describe 'Rack integration tests' do
               expect(spans).to have(1).items
             end
 
+            it_behaves_like 'a rack GET 200 span'
+
             it do
-              expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
-              expect(span.service).to eq(Datadog.configuration.service)
-              expect(span.resource).to eq('GET 200')
-              expect(span.get_tag('http.method')).to eq('GET')
-              expect(span.get_tag('http.status_code')).to eq('200')
               expect(span.get_tag('http.url')).to eq('/headers/')
               expect(span.get_tag('http.base_url')).to eq('http://example.org')
-              expect(span.status).to eq(0)
               expect(span).to be_root_span
-              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
-                .to eq('rack')
-              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
-                .to eq('request')
 
               # Request headers
               expect(span.get_tag('http.request.headers.cache_control')).to eq('no-cache')
