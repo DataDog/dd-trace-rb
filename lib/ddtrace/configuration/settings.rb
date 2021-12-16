@@ -59,6 +59,9 @@ module Datadog
       end
 
       # Profiler API key.
+      #
+      # For internal use only.
+      #
       # @default `DD_API_KEY` environment variable, otherwise `nil`
       # @return [String,nil]
       # @public_api
