@@ -1,15 +1,22 @@
 # typed: false
 RSpec.describe Datadog::Profiling::Flush do
   describe '#new' do
-    context 'given no arguments' do
-      subject(:identifier) { described_class.new }
+    let(:start) { double('start') }
+    let(:finish) { double('finish') }
+    let(:event_groups) { double('event_groups') }
+    let(:event_count) { double('event_count') }
+
+    context 'given only required arguments' do
+      subject(:identifier) {
+        described_class.new(start: start, finish: finish, event_groups: event_groups, event_count: event_count)
+      }
 
       it do
         is_expected.to have_attributes(
-          start: nil,
-          finish: nil,
-          event_groups: nil,
-          event_count: nil,
+          start: start,
+          finish: finish,
+          event_groups: event_groups,
+          event_count: event_count,
           runtime_id: Datadog::Core::Environment::Identity.id,
           service: Datadog.configuration.service,
           env: Datadog.configuration.env,
@@ -28,28 +35,24 @@ RSpec.describe Datadog::Profiling::Flush do
     context 'given full arguments' do
       subject(:identifier) do
         described_class.new(
-          start,
-          finish,
-          event_groups,
-          event_count,
-          runtime_id,
-          service,
-          env,
-          version,
-          host,
-          language,
-          runtime_engine,
-          runtime_platform,
-          runtime_version,
-          profiler_version,
-          tags
+          start: start,
+          finish: finish,
+          event_groups: event_groups,
+          event_count: event_count,
+          runtime_id: runtime_id,
+          service: service,
+          env: env,
+          version: version,
+          host: host,
+          language: language,
+          runtime_engine: runtime_engine,
+          runtime_platform: runtime_platform,
+          runtime_version: runtime_version,
+          profiler_version: profiler_version,
+          tags: tags,
         )
       end
 
-      let(:start) { double('start') }
-      let(:finish) { double('finish') }
-      let(:event_groups) { double('event_groups') }
-      let(:event_count) { double('event_count') }
       let(:runtime_id) { double('runtime_id') }
       let(:service) { double('service') }
       let(:env) { double('env') }
@@ -78,7 +81,7 @@ RSpec.describe Datadog::Profiling::Flush do
           runtime_platform: runtime_platform,
           runtime_version: runtime_version,
           profiler_version: profiler_version,
-          tags: tags
+          tags: tags,
         )
       end
     end

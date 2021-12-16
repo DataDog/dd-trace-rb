@@ -22,19 +22,40 @@ module Datadog
       :profiler_version,
       :tags
     ) do
-      def initialize(*args)
-        super
-        self.runtime_id = runtime_id || Datadog::Core::Environment::Identity.id
-        self.service = service || Datadog.configuration.service
-        self.env = env || Datadog.configuration.env
-        self.version = version || Datadog.configuration.version
-        self.host = host || Datadog::Core::Environment::Socket.hostname
-        self.language = language || Datadog::Core::Environment::Identity.lang
-        self.runtime_engine = runtime_engine || Datadog::Core::Environment::Identity.lang_engine
-        self.runtime_platform = runtime_platform || Datadog::Core::Environment::Identity.lang_platform
-        self.runtime_version = runtime_version || Datadog::Core::Environment::Identity.lang_version
-        self.profiler_version = profiler_version || Datadog::Core::Environment::Identity.tracer_version
-        self.tags = tags || Datadog.configuration.tags
+      def initialize(
+        start:,
+        finish:,
+        event_groups:,
+        event_count:,
+        runtime_id: Datadog::Core::Environment::Identity.id,
+        service: Datadog.configuration.service,
+        env: Datadog.configuration.env,
+        version: Datadog.configuration.version,
+        host: Datadog::Core::Environment::Socket.hostname,
+        language: Datadog::Core::Environment::Identity.lang,
+        runtime_engine: Datadog::Core::Environment::Identity.lang_engine,
+        runtime_platform: Datadog::Core::Environment::Identity.lang_platform,
+        runtime_version: Datadog::Core::Environment::Identity.lang_version,
+        profiler_version: Datadog::Core::Environment::Identity.tracer_version,
+        tags: Datadog.configuration.tags
+      )
+        super(
+          start,
+          finish,
+          event_groups,
+          event_count,
+          runtime_id,
+          service,
+          env,
+          version,
+          host,
+          language,
+          runtime_engine,
+          runtime_platform,
+          runtime_version,
+          profiler_version,
+          tags,
+        )
       end
     end
 
