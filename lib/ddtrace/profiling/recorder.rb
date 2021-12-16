@@ -56,10 +56,10 @@ module Datadog
         end
 
         Flush.new(
-          start,
-          finish,
-          event_groups,
-          event_count
+          start: start,
+          finish: finish,
+          event_groups: event_groups,
+          event_count: event_count,
         )
       end
 
