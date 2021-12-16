@@ -627,6 +627,21 @@ RSpec.describe Datadog::Configuration::Settings do
           end
         end
       end
+
+      describe '#code_provenance_enabled' do
+        subject(:code_provenance_enabled) { settings.profiling.advanced.code_provenance_enabled }
+
+        it { is_expected.to be true }
+      end
+
+      describe '#code_provenance_enabled=' do
+        it 'updates the #code_provenance_enabled setting' do
+          expect { settings.profiling.advanced.code_provenance_enabled = false }
+            .to change { settings.profiling.advanced.code_provenance_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
     end
 
     describe '#upload' do

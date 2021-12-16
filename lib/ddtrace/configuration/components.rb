@@ -120,7 +120,14 @@ module Datadog
             endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
           )
 
-          recorder = build_profiler_recorder(settings)
+          # TODO: It's a bit weird to treat this collector differently from others. See the TODO on the
+          # Datadog::Profiling::Recorder class for a discussion of this choice.
+          if settings.profiling.advanced.code_provenance_enabled
+            code_provenance_collector =
+              Datadog::Profiling::Collectors::CodeProvenance.new
+          end
+
+          recorder = build_profiler_recorder(settings, code_provenance_collector)
           collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
           exporters = build_profiler_exporters(settings, agent_settings)
           scheduler = build_profiler_scheduler(settings, recorder, exporters)
@@ -171,10 +178,12 @@ module Datadog
           end
         end
 
-        def build_profiler_recorder(settings)
+        def build_profiler_recorder(settings, code_provenance_collector)
           event_classes = [Datadog::Profiling::Events::StackSample]
 
-          Datadog::Profiling::Recorder.new(event_classes, settings.profiling.advanced.max_events)
+          Datadog::Profiling::Recorder.new(
+            event_classes, settings.profiling.advanced.max_events, code_provenance_collector: code_provenance_collector
+          )
         end
 
         def build_profiler_collectors(settings, recorder, trace_identifiers_helper)

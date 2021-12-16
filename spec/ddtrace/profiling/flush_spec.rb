@@ -1,15 +1,23 @@
 # typed: false
+
 RSpec.describe Datadog::Profiling::Flush do
   describe '#new' do
     let(:start) { double('start') }
     let(:finish) { double('finish') }
     let(:event_groups) { double('event_groups') }
     let(:event_count) { double('event_count') }
+    let(:code_provenance) { double('code_provenance') }
 
     context 'given only required arguments' do
-      subject(:identifier) {
-        described_class.new(start: start, finish: finish, event_groups: event_groups, event_count: event_count)
-      }
+      subject(:identifier) do
+        described_class.new(
+          start: start,
+          finish: finish,
+          event_groups: event_groups,
+          event_count: event_count,
+          code_provenance: code_provenance,
+        )
+      end
 
       it do
         is_expected.to have_attributes(
@@ -17,6 +25,7 @@ RSpec.describe Datadog::Profiling::Flush do
           finish: finish,
           event_groups: event_groups,
           event_count: event_count,
+          code_provenance: code_provenance,
           runtime_id: Datadog::Core::Environment::Identity.id,
           service: Datadog.configuration.service,
           env: Datadog.configuration.env,
@@ -39,6 +48,7 @@ RSpec.describe Datadog::Profiling::Flush do
           finish: finish,
           event_groups: event_groups,
           event_count: event_count,
+          code_provenance: code_provenance,
           runtime_id: runtime_id,
           service: service,
           env: env,
@@ -71,6 +81,7 @@ RSpec.describe Datadog::Profiling::Flush do
           finish: finish,
           event_groups: event_groups,
           event_count: event_count,
+          code_provenance: code_provenance,
           runtime_id: runtime_id,
           service: service,
           env: env,
