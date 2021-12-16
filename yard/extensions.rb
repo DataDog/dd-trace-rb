@@ -36,6 +36,17 @@ YARD::Parser::SourceParser.after_parse_list do
   end
 end
 
+# Remove magic comments from documentation (e.g. Rubocop directives, TODOs, DEVs)
+YARD::Parser::SourceParser.after_parse_list do
+  YARD::Registry.each do |obj|
+    docstring = obj.docstring
+    next if docstring.empty?
+
+    docstring.replace(docstring.all.gsub(/^[A-Z]+: .*/, '')) # Removes TODO:, DEV:
+    docstring.replace(docstring.all.gsub(/^rubocop:.*/, '')) # Removes rubocop:...
+  end
+end
+
 #
 # Generates modules for DSL categories created by {Datadog::Configuration::Base::ClassMethods#settings}.
 # `#settings` are groups that can contain multiple `#option`s or nested `#settings.`
