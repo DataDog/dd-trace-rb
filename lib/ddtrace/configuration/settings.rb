@@ -314,7 +314,6 @@ module Datadog
         settings
       end
 
-      # TODO: remove me. Use `c.runtime_metrics.enabled =`
       # @deprecated Use `runtime_metrics.enabled` instead.
       # @return [Boolean]
       option :runtime_metrics_enabled do |o|
@@ -373,7 +372,13 @@ module Datadog
         end
       end
 
-      # TODO: profiler related. Ask @ivoanjo what this is for.
+      # The Datadog site host to send data to.
+      # By default, data is sent to the Datadog US site: `app.datadoghq.com`.
+      #
+      # If your organization is on another site, you must update this value to the new site.
+      #
+      # @see https://docs.datadoghq.com/agent/troubleshooting/site/
+      # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
       # @return [String,nil]
       # @public_api
       option :site do |o|
