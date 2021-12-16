@@ -4,7 +4,7 @@ require 'ddtrace/profiling'
 module ProfileHelpers
   include Kernel
 
-  def get_test_profiling_flush
+  def get_test_profiling_flush(code_provenance: nil)
     stack_one = Array(Thread.current.backtrace_locations).first(3)
     stack_two = Array(Thread.current.backtrace_locations).first(3)
 
@@ -35,6 +35,7 @@ module ProfileHelpers
       finish: finish,
       event_groups: event_groups,
       event_count: stack_samples.length,
+      code_provenance: code_provenance,
     )
   end
 

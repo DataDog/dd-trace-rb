@@ -124,6 +124,26 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           expect(tags).to include(/host:#{container_id}/)
         end
       end
+
+      context 'when code provenance data is available' do
+        let(:flush) do
+          get_test_profiling_flush(
+            code_provenance: Datadog::Profiling::Collectors::CodeProvenance.new.refresh.generate_json
+          )
+        end
+
+        it 'sends profiles with code provenance data successfully' do
+          client.send_profiling_flush(flush)
+
+          boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+          body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+          code_provenance_data = JSON.parse(Datadog::Utils::Compression.gunzip(body.fetch('data[code_provenance.json]')))
+
+          expect(code_provenance_data)
+            .to include('v1' => array_including(hash_including('type' => 'library', 'name' => 'ddtrace')))
+        end
+      end
     end
 
     context 'via agent' do

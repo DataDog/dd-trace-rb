@@ -13,6 +13,7 @@ module Datadog
   module Configuration
     # Global configuration settings for the trace library.
     # rubocop:disable Metrics/ClassLength
+    # rubocop:disable Metrics/BlockLength
     class Settings
       include Base
 
@@ -183,6 +184,10 @@ module Datadog
               end
             end
           end
+
+          # Disable gathering of names and versions of gems in use by the service, used to power grouping and
+          # categorization of stack traces.
+          option :code_provenance_enabled, default: true
         end
 
         settings :upload do

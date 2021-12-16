@@ -40,7 +40,6 @@ flow:
 3. Inside `Datadog::Components`, the `build_profiler` method triggers the execution of the `Tasks::Setup`
 4. The `Setup` task activates our extensions
     * `Datadog::Profiling::Ext::Forking`
-    * `Datadog::Profiling::Ext::CPU`
 5. Still inside `Datadog::Components`, the `build_profiler` method then creates and wires up the Profiler as such:
     ```asciiflow
             +------------+
@@ -61,6 +60,11 @@ flow:
             +-+-------+-+
             | Recorder  |
             +-----------+
+              |
+              v
+        +-----------------+
+        | Code Provenance |
+        +-----------------+
     ```
 6. The profiler gets started when `startup!` is called by `Datadog::Configuration` after component creation.
 
