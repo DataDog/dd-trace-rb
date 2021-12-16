@@ -74,6 +74,34 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     it 'returns self' do
       expect(code_provenance.refresh).to be code_provenance
     end
+
+    context "when a gem's path is inside another gem's path" do
+      # I'm not entirely sure if this can happen in end-user apps, but can happen in CI if bundler is configured to
+      # install dependencies into a subfolder of ddtrace. In particular GitHub Actions does this.
+
+      it 'matches the loaded file to the longest matching path' do
+        code_provenance.refresh(
+          loaded_files: ['/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3/lib/byebug.rb'],
+          loaded_specs: [
+            instance_double(
+              Gem::Specification,
+              name: 'ddtrace',
+              version: '1.2.3',
+              gem_dir: '/dd-trace-rb'
+            ),
+            instance_double(
+              Gem::Specification,
+              name: 'byebug',
+              version: '4.5.6',
+              gem_dir: '/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3'
+            )
+          ],
+        )
+
+        expect(code_provenance.generate).to have(1).item
+        expect(code_provenance.generate.first).to have_attributes(name: 'byebug')
+      end
+    end
   end
 
   describe '#generate_json' do
