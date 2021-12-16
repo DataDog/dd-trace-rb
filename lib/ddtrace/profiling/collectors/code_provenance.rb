@@ -58,12 +58,32 @@ module Datadog
           libraries_by_path[library.path] = library
         end
 
+        # Ruby hash maps are guaranteed to keep the insertion order of keys. Here, we sort @libraries_by_path so
+        # that the hash can be iterated in reverse order of paths.
+        #
+        # Why we do this: We do this to make sure that if there are libraries with paths that are prefixes of other
+        # libraries, e.g. '/home/foo' and '/home/foo/bar', we match to the longest path first.
+        # When reverse sorting paths as strings, '/home/foo/bar' will come before '/home/foo'.
+        #
+        # This way, when we iterate the @libraries_by_path hash, we know the first hit will also be the longest.
+        #
+        # Alternatively/in the future we could instead use a trie to match paths, but I doubt for the data sizes we're
+        # looking at that a trie is that much faster than using Ruby's built-in native collections.
+        def sort_libraries_by_longest_path_first
+          @libraries_by_path = @libraries_by_path.sort.reverse!.to_h
+        end
+
         def record_loaded_specs(loaded_specs)
+          recorded_library = false
+
           loaded_specs.each do |spec|
             next if libraries_by_name.key?(spec.name)
 
             record_library(Library.new(type: 'library', name: spec.name, version: spec.version, path: spec.gem_dir))
+            recorded_library = true
           end
+
+          sort_libraries_by_longest_path_first if recorded_library
         end
 
         def record_loaded_files(loaded_files)
