@@ -34,14 +34,8 @@ module Datadog
                   Rack::Reactive::Request.subscribe(op, waf_context) do |action, result, block|
                     record = [:block, :monitor].include?(action)
                     if record
-                      # TODO: move into event record method?
-                      if active_span
-                        active_span.set_tag('appsec.action', action)
-                        active_span.set_tag('appsec.event', 'true')
-                        active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
-                      end
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, span: active_span, request: request }
+                      event =  { waf_result: result, span: active_span, request: request, action: action }
                     end
                   end
 
@@ -82,14 +76,8 @@ module Datadog
                   Rack::Reactive::Response.subscribe(op, waf_context) do |action, result, block|
                     record = [:block, :monitor].include?(action)
                     if record
-                      # TODO: move into event record method?
-                      if active_span
-                        active_span.set_tag('appsec.action', action)
-                        active_span.set_tag('appsec.event', 'true')
-                        active_span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
-                      end
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, span: active_span, response: response }
+                      event =  { waf_result: result, span: active_span, response: response, action: action }
                     end
                   end
 

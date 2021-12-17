@@ -32,13 +32,23 @@ module Datadog
         'Content-Language',
       ].map!(&:downcase)
 
-      def self.record(data, blocked)
+      def self.record(data)
         span = data[:span]
         request = data[:request]
         response = data[:response]
+        action = data[:action]
         env = Datadog.configuration.env
         tags = Datadog.configuration.tags
 
+        blocked = action == :block
+
+        if span
+          span.set_tag('appsec.action', action)
+          span.set_tag('appsec.event', 'true')
+          span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
+        end
+
+        # TODO: move to event occurence
         timestamp = Time.now.utc.iso8601
 
         tags = [
