@@ -1,11 +1,9 @@
 # typed: ignore
-require 'ddtrace/contrib/support/spec_helper'
+require 'datadog/ci/contrib/support/spec_helper'
 require 'ddtrace/ext/integration'
 
 require 'cucumber'
 require 'ddtrace'
-
-require 'datadog/ci/contrib/support/spec_helper'
 
 RSpec.describe 'Cucumber formatter' do
   extend ConfigurationHelpers

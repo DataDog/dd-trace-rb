@@ -1,5 +1,4 @@
 # typed: false
-require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/ext/integration'
 
 require 'datadog/ci/contrib/support/spec_helper'

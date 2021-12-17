@@ -1,7 +1,6 @@
 # typed: true
 require 'ddtrace/contrib/patcher'
 require 'datadog/ci/contrib/rspec/example'
-require 'datadog/ci/contrib/rspec/integration'
 
 module Datadog
   module CI
