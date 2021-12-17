@@ -68,8 +68,8 @@ module Datadog
             end
 
             if res && res.any?
-              res.each do |action, event|
-                Security::Event.record(event, action == :block)
+              res.each do |_action, event|
+                Security::Event.record(event)
               end
             end
 
