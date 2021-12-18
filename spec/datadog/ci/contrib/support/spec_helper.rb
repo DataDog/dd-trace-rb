@@ -1,4 +1,4 @@
-# typed: strict
+# typed: ignore
 require 'datadog/ci/spec_helper'
 require 'datadog/ci/contrib/support/mode_helpers'
 require 'ddtrace/contrib/support/spec_helper'
