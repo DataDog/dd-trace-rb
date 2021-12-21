@@ -8,7 +8,6 @@ module Datadog
   # between two or more distributed services. Note this is very close
   # to the HTTPPropagator; the key difference is the way gRPC handles
   # header information (called "metadata") as it operates over HTTP2
-  # @public_api
   module GRPCPropagator
     include Ext::DistributedTracing
 
