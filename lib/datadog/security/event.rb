@@ -32,75 +32,127 @@ module Datadog
         'Content-Language',
       ].map!(&:downcase)
 
-      def self.record(data)
-        span = data[:span]
-        request = data[:request]
-        response = data[:response]
-        action = data[:action]
-        env = Datadog.configuration.env
-        tags = Datadog.configuration.tags
-
-        blocked = action == :block
-
-        if span
-          span.set_tag('appsec.event', 'true')
-          span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
-        end
-
-        # TODO: move to event occurence
-        timestamp = Time.now.utc.iso8601
-
-        tags = [
-          '_dd.appsec.enabled:1',
-          '_dd.runtime_family:ruby',
-        ]
-        tags << "service:#{span.service}"
-        tags << "env:#{env}" if env
-
-        request_headers = Security::Contrib::Rack::Request.headers(request)
-                          .select { |k, _| ALLOWED_REQUEST_HEADERS.include?(k.downcase) }
-        response_headers = Security::Contrib::Rack::Response.headers(response)
-                           .select { |k, _| ALLOWED_RESPONSE_HEADERS.include?(k.downcase) }
-        hostname = Socket.gethostname
-        platform = RUBY_PLATFORM
-        os_type = case platform
-                  when /darwin/ then 'Mac OS X'
-                  when /linux/ then 'Linux'
-                  when /mingw/ then 'Windows'
-                  end
-        runtime_type = RUBY_ENGINE
-        runtime_version = RUBY_VERSION
-        lib_version = Datadog::VERSION::STRING
-
-        event_type = 'appsec.threat.attack'
-
+      def self.record(*events)
         transport = :span
+        #transport = :api
+
         case transport
         when :span
-          root_span = data[:root_span]
+          record_via_span(*events)
+        when :api
+          record_via_api(*events)
+        end
+      end
 
-          fail unless root_span
+      def self.record_via_span(*events)
+        events.group_by { |e| e[:root_span] }.each do |root_span, event_group|
+          unless root_span
+            Datadog.logger.debug { "{ error: 'no root span: cannot record', event_group: #{event_group.inspect}}" }
+            next
+          end
 
+          # TODO: this is a hack but there is no API to do that
           root_span_tags = root_span.instance_eval { @meta }.keys
 
-          request_headers.each do |header, value|
-            tag_name = "http.request.headers.#{header}"
-            root_span.set_tag(tag_name, value) unless root_span_tags.map { |tag| tag.tr('_', '-') if tag =~ /\.headers\./ }.include?(tag_name)
+          # prepare and gather tags to apply
+          tags = event_group.each_with_object({}) do |event, tags|
+            span = event[:span]
+
+            if span
+              span.set_tag('appsec.event', 'true')
+              span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
+            end
+
+            # TODO: done some place else
+            # tags['_dd.appsec.enabled'] = 1
+            # tags['_dd.runtime_family'] = 'ruby'
+
+            request = event[:request]
+            response = event[:response]
+
+            # TODO: assume HTTP request context for now
+            request_headers = Security::Contrib::Rack::Request.headers(request)
+              .select { |k, _| ALLOWED_REQUEST_HEADERS.include?(k.downcase) }
+            response_headers = Security::Contrib::Rack::Response.headers(response)
+              .select { |k, _| ALLOWED_RESPONSE_HEADERS.include?(k.downcase) }
+
+            request_headers.each do |header, value|
+              tags["http.request.headers.#{header}"] = value
+            end
+
+            response_headers.each do |header, value|
+              tags["http.response.headers.#{header}"] = value
+            end
+
+            tags['http.host'] = request.host
+            tags['http.useragent'] = request.user_agent
+            tags['network.client.ip'] = request.ip
+
+            # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
+            tags['_dd.origin'] = 'appsec'
+
+            # accumulate triggers
+            tags['_dd.appsec.triggers'] ||= []
+            tags['_dd.appsec.triggers'] += event[:waf_result].data
           end
 
-          response_headers.each do |header, value|
-            tag_name = "http.response.headers.#{header}"
-            root_span.set_tag(tag_name, value) unless root_span_tags.map { |tag| tag.tr('_', '-') if tag =~ /\.headers\./ }.include?(tag_name)
-          end
+          # apply tags to root span
 
-          root_span.set_tag('http.host', request.host) unless root_span_tags.include?('http.host')
-          root_span.set_tag('http.useragent', request.user_agent)
-          root_span.set_tag('network.client.ip', request.ip)
-          # root_span.set_tag('actor.ip', request.ip) # TODO: uses client IP resolution algorithm
-          root_span.set_tag('_dd.origin', 'appsec') unless root_span_tags.include?('_dd.origin')
-          triggers = data[:waf_result].data
+          # complex types are unsupported, we need to serialize to a string
+          triggers = tags.delete('_dd.appsec.triggers')
           root_span.set_tag('_dd.appsec.json', JSON.dump({triggers: triggers}))
-        when :api
+
+          tags.each do |key, value|
+            unless root_span_tags.map { |tag| tag =~ /\.headers\./ ? tag.tr('_', '-') : tag }.include?(key)
+              root_span.set_tag(key, value)
+            end
+          end
+        end
+      end
+
+      def self.record_via_api(*events)
+        events.each do |data|
+          span = data[:span]
+          request = data[:request]
+          response = data[:response]
+          action = data[:action]
+          env = Datadog.configuration.env
+          tags = Datadog.configuration.tags
+
+          blocked = action == :block
+
+          if span
+            span.set_tag('appsec.event', 'true')
+            span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
+          end
+
+          # TODO: move to event occurence
+          timestamp = Time.now.utc.iso8601
+
+          tags = [
+            '_dd.appsec.enabled:1',
+            '_dd.runtime_family:ruby',
+          ]
+          tags << "service:#{span.service}"
+          tags << "env:#{env}" if env
+
+          request_headers = Security::Contrib::Rack::Request.headers(request)
+                            .select { |k, _| ALLOWED_REQUEST_HEADERS.include?(k.downcase) }
+          response_headers = Security::Contrib::Rack::Response.headers(response)
+                            .select { |k, _| ALLOWED_RESPONSE_HEADERS.include?(k.downcase) }
+          hostname = Socket.gethostname
+          platform = RUBY_PLATFORM
+          os_type = case platform
+                    when /darwin/ then 'Mac OS X'
+                    when /linux/ then 'Linux'
+                    when /mingw/ then 'Windows'
+                    end
+          runtime_type = RUBY_ENGINE
+          runtime_version = RUBY_VERSION
+          lib_version = Datadog::VERSION::STRING
+
+          event_type = 'appsec.threat.attack'
+
           events = []
 
           data[:waf_result].data.each do |waf|
