@@ -74,38 +74,66 @@ module Datadog
 
         event_type = 'appsec.threat.attack'
 
-        events = []
+        transport = :span
+        case transport
+        when :span
+          root_span = data[:root_span]
 
-        data[:waf_result].data.each do |waf|
-          rule = waf['rule']
-          waf['rule_matches'].each do |match|
-            event_id = SecureRandom.uuid
-            event = for_api_transport(
-              event_id,
-              event_type,
-              timestamp,
-              rule,
-              blocked,
-              match,
-              request,
-              os_type,
-              hostname,
-              request_headers,
-              response,
-              response_headers,
-              span,
-              env,
-              tags,
-              runtime_type,
-              runtime_version,
-              lib_version,
-            )
+          fail unless root_span
 
-            events << event
+          root_span_tags = root_span.instance_eval { @meta }.keys
+
+          request_headers.each do |header, value|
+            tag_name = "http.request.headers.#{header}"
+            root_span.set_tag(tag_name, value) unless root_span_tags.map { |tag| tag.tr('_', '-') if tag =~ /\.headers\./ }.include?(tag_name)
           end
-        end
 
-        Datadog::Security.writer.write(events)
+          response_headers.each do |header, value|
+            tag_name = "http.response.headers.#{header}"
+            root_span.set_tag(tag_name, value) unless root_span_tags.map { |tag| tag.tr('_', '-') if tag =~ /\.headers\./ }.include?(tag_name)
+          end
+
+          root_span.set_tag('http.host', request.host) unless root_span_tags.include?('http.host')
+          root_span.set_tag('http.useragent', request.user_agent)
+          root_span.set_tag('network.client.ip', request.ip)
+          # root_span.set_tag('actor.ip', request.ip) # TODO: uses client IP resolution algorithm
+          root_span.set_tag('_dd.origin', 'appsec') unless root_span_tags.include?('_dd.origin')
+          triggers = data[:waf_result].data
+          root_span.set_tag('_dd.appsec.json', JSON.dump({triggers: triggers}))
+        when :api
+          events = []
+
+          data[:waf_result].data.each do |waf|
+            rule = waf['rule']
+            waf['rule_matches'].each do |match|
+              event_id = SecureRandom.uuid
+              event = for_api_transport(
+                event_id,
+                event_type,
+                timestamp,
+                rule,
+                blocked,
+                match,
+                request,
+                os_type,
+                hostname,
+                request_headers,
+                response,
+                response_headers,
+                span,
+                env,
+                tags,
+                runtime_type,
+                runtime_version,
+                lib_version,
+              )
+
+              events << event
+            end
+          end
+
+          Datadog::Security.writer.write(events)
+        end
       end
 
       def self.for_api_transport(event_id, event_type, timestamp, rule, blocked, match, request, os_type, hostname, request_headers, response, response_headers, span, env, tags, runtime_type, runtime_version, lib_version)
