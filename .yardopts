@@ -7,6 +7,7 @@
 --hide-tag public_api
 --files LICENSE
 --files docs/AutoInstrumentation.md
+--files docs/Deprecation.md
 --files docs/PublicApi.md
 --template-path yard/templates
 -e ./yard/extensions.rb
