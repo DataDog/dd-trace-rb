@@ -32,15 +32,25 @@ end
 # Hides all objects that are not part of the Public API from YARD docs.
 YARD::Parser::SourceParser.after_parse_list do
   YARD::Registry.each do |obj|
-    unless obj.has_tag?('public_api')
-      obj.visibility = :private
+    case obj
+    when YARD::CodeObjects::ModuleObject, YARD::CodeObjects::ClassObject
+      # Mark modules and classes as private if they are not tagged with @public_api
+      unless obj.has_tag?('public_api')
+        obj.visibility = :private
+        next
+      end
+    else
+      # Do not change visibility of individual objects.
+      # We'll handle their visibility in their encompassing modules and classes instead.
       next
     end
 
     # Ensure the ancestor module chain of `obj` is also
-    # made visisble in the documentation.
+    # made visible in the documentation.
     while obj
       obj.visibility = :public
+      obj.add_tag(YARD::Tags::Tag.new(:public_api, nil))
+
       obj = obj.namespace
     end
   end
