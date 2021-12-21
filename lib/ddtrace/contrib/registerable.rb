@@ -27,7 +27,9 @@ module Datadog
         #   {file:docs/AutoInstrumentation.md Auto Instrumentation}?
         # @param [Hash] options additional keyword options passed to the initializer of
         #   a custom {Registerable} instrumentation
+        # @see Datadog::Contrib::Integration
         def register_as(name, registry: Datadog::Contrib::REGISTRY, auto_patch: false, **options)
+          Integration
           registry.add(name, new(name, **options), auto_patch)
         end
       end
