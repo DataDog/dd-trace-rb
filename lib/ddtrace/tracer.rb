@@ -227,6 +227,7 @@ module Datadog
       call_context(key).activate!(trace, &block)
     end
 
+    # @!visibility private
     # TODO: make this private
     def trace_completed
       @trace_completed ||= TraceCompleted.new
