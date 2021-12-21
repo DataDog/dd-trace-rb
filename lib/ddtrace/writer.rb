@@ -51,9 +51,9 @@ module Datadog
       @events = Events.new
     end
 
-    # Starts the internal {Writer} thread.
+    # Explicitly starts the {Writer}'s internal worker.
     #
-    # The {Writer} is also automatically started when necessary during calls to {.send_spans}.
+    # The {Writer} is also automatically started when necessary during calls to {.write}.
     def start
       @mutex_after_fork.synchronize do
         return false if @stopped
