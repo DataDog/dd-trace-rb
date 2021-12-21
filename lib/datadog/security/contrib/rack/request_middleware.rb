@@ -68,9 +68,7 @@ module Datadog
             end
 
             if res && res.any?
-              res.each do |_action, event|
-                Security::Event.record(event)
-              end
+              Security::Event.record(*res.map { |_action, event| event })
             end
 
             ret
