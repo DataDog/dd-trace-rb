@@ -389,7 +389,7 @@ module Datadog
         o.lazy
       end
 
-      # Default tracing span tags.
+      # Default tracing and profiling span tags.
       #
       # These tags are applied to every span.
       # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
