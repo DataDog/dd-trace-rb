@@ -42,7 +42,7 @@ module Datadog
       Datadog.logger.debug(e)
     end
 
-    # Added for interface completeness.
+    # Does nothing.
     # The {SyncWriter} does not need to be stopped as it holds no state.
     # @public_api
     def stop
