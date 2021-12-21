@@ -35,7 +35,7 @@ module Datadog
                     record = [:block, :monitor].include?(action)
                     if record
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, span: active_span, request: request, action: action }
+                      event =  { waf_result: result, root_span: root_span, span: active_span, request: request, action: action }
                     end
                   end
 
@@ -77,7 +77,7 @@ module Datadog
                     record = [:block, :monitor].include?(action)
                     if record
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, span: active_span, response: response, action: action }
+                      event =  { waf_result: result, root_span: root_span, span: active_span, response: response, action: action }
                     end
                   end
 
