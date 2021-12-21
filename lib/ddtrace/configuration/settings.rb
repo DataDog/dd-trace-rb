@@ -98,6 +98,7 @@ module Datadog
         # Internal tracer {Datadog::Statsd} metrics collection.
         #
         # The list of metrics collected can be found in {Datadog::Ext::Diagnostics::Health::Metrics}.
+        # @public_api
         settings :health_metrics do
           # Enable health metrics collection.
           #
@@ -119,6 +120,7 @@ module Datadog
         end
 
         # Tracer startup debug log statement configuration.
+        # @public_api
         settings :startup_logs do
           # Enable startup logs collection.
           #
@@ -241,10 +243,12 @@ module Datadog
           o.lazy
         end
 
+        # @public_api
         settings :exporter do
           option :transport
         end
 
+        # @public_api
         settings :advanced do
           # This should never be reduced, as it can cause the resulting profiles to become biased.
           # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
@@ -258,6 +262,7 @@ module Datadog
             o.lazy
           end
 
+          # @public_api
           settings :endpoint do
             settings :collection do
               # When using profiling together with tracing, this controls if endpoint names
@@ -273,6 +278,7 @@ module Datadog
           end
         end
 
+        # @public_api
         settings :upload do
           option :timeout_seconds do |o|
             o.setter { |value| value.nil? ? 30.0 : value.to_f }
@@ -527,6 +533,7 @@ module Datadog
         #
         # The trace flame graph will display the partial trace as it is received and constantly
         # update with new spans as they are flushed.
+        # @public_api
         settings :partial_flush do
           # Enable partial trace flushing.
           #
