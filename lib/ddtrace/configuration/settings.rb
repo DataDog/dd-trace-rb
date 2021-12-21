@@ -510,7 +510,9 @@ module Datadog
           o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
           o.lazy
         end
-        option :hostname # TODO: Deprecate
+
+        # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
+        option :hostname
 
         # A custom tracer instance.
         #
@@ -555,7 +557,8 @@ module Datadog
           option :min_spans_threshold, default: 500
         end
 
-        option :port # TODO: Deprecate
+        # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
+        option :port
         option :priority_sampling # TODO: Deprecate
 
         # A custom sampler instance.
