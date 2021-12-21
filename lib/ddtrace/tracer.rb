@@ -88,7 +88,7 @@ module Datadog
     # Remember that in this case, calling {Datadog::SpanOperation#finish} is mandatory.
     #
     # When a Trace is started, {#trace} will store the created span; subsequent spans will
-    # become it's children and will inherit some properties:
+    # become its children and will inherit some properties:
     # ```
     # parent = tracer.trace('parent')   # has no parent span
     # child  = tracer.trace('child')    # is a child of 'parent'
