@@ -11,6 +11,7 @@ require 'ddtrace/utils/only_once'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
+  # DEV: Our goal is for {Datadog::Workers::TraceWriter} to replace this class in the future
   class Writer
     attr_reader \
       :transport,
