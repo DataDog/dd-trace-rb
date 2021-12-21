@@ -63,10 +63,6 @@ module Datadog
               span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
             end
 
-            # TODO: done some place else
-            # tags['_dd.appsec.enabled'] = 1
-            # tags['_dd.runtime_family'] = 'ruby'
-
             request = event[:request]
             response = event[:response]
 
