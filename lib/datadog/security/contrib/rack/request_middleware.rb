@@ -42,36 +42,30 @@ module Datadog
             env['datadog.waf.context'] = context
             request = ::Rack::Request.new(env)
 
-            ret, res = Instrumentation.gateway.push('rack.request', request) do
+            request_return, request_response = Instrumentation.gateway.push('rack.request', request) do
               @app.call(env)
             end
 
-            if res && res.any? { |action, _event| action == :block }
-              ret = [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]]
+            if request_response && request_response.any? { |action, _event| action == :block }
+              request_return = [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]]
             end
 
-            response = ::Rack::Response.new(ret[2], ret[0], ret[1])
+            response = ::Rack::Response.new(request_return[2], request_return[0], request_return[1])
             response.instance_eval do
               @waf_context = context
             end
 
-            _, res2 = Instrumentation.gateway.push('rack.response', response)
+            _, response_response = Instrumentation.gateway.push('rack.response', response)
 
-            res.each { |a, e| [a, e.merge!(response: response)] } if res
-            res2.each { |a, e| [a, e.merge!(request: request)] } if res2
-            if res2
-              if res
-                res = res + res2
-              else
-                res = res2
-              end
+            request_response.each { |_, e| e.merge!(response: response) } if request_response
+            response_response.each { |_, e| e.merge!(request: request) } if response_response
+            both_response = (request_response || []) + (response_response || [])
+
+            if both_response.any?
+              Security::Event.record(*both_response.map { |_action, event| event })
             end
 
-            if res && res.any?
-              Security::Event.record(*res.map { |_action, event| event })
-            end
-
-            ret
+            request_return
           end
 
           def libddwaf_required?
