@@ -12,7 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.3.21')
 
-        # @public_api
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :mysql2
 
         def self.version

@@ -13,7 +13,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('2.2.0')
 
-        # @public_api
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :httpclient
 
         def self.version
