@@ -87,7 +87,7 @@ module Datadog
           # @param [Symbol] integration_name the integration name
           # @param [Object] key the integration-specific lookup key
           # @return [Datadog::Contrib::Configuration::Settings]
-          # @public_api
+          # @public_api Used for Datadog.configuration[:my_integration]
           def [](integration_name, key = :default)
             integration = fetch_integration(integration_name)
             integration.resolve(key) unless integration.nil?
