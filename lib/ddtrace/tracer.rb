@@ -100,7 +100,8 @@ module Datadog
     #
     # @param [String] name {Datadog::Span} operation name.
     #   See {https://docs.datadoghq.com/tracing/guide/configuring-primary-operation/ Primary Operations in Services}.
-    # @param [Datadog::TraceDigest] continue_from continue a trace from a {Datadog::TraceDigest}. Used for async.
+    # @param [Datadog::TraceDigest] continue_from continue a trace from a {Datadog::TraceDigest}.
+    #   Used for linking traces that are executed asynchronously.
     # @param [Boolean] autostart whether to autostart the span, if no block is provided.
     # @param [Proc] on_error a block that overrides error handling behavior for this operation.
     # @param [String] resource the resource this span refers, or {name} if it's missing
