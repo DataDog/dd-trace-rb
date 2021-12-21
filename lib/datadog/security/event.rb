@@ -100,7 +100,7 @@ module Datadog
 
           tags.each do |key, value|
             unless root_span_tags.map { |tag| tag =~ /\.headers\./ ? tag.tr('_', '-') : tag }.include?(key)
-              root_span.set_tag(key, value)
+              root_span.set_tag(key, value.is_a?(String) ? value.encode('UTf-8') : value)
             end
           end
         end
