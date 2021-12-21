@@ -516,8 +516,8 @@ module Datadog
 
         # A custom tracer instance.
         #
-        # It must respected the contract of {Datadog::Tracer}.
-        # It's recommended to inherit from {Datadog::Tracer} to ease the implementation
+        # It must respect the contract of {Datadog::Tracer}.
+        # It's recommended to delegate methods to {Datadog::Tracer} to ease the implementation
         # of a custom tracer.
         #
         # This option will not return the live tracer instance: it only holds a custom
