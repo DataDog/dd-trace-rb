@@ -4,7 +4,7 @@ module Datadog
       module Rack
         module Response
           def self.headers(response)
-            response.headers
+            response.headers.each_with_object({}) { |(k, v), h| h[k.downcase] = v }
           end
 
           def self.cookies(response)
