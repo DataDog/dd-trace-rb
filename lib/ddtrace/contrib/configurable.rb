@@ -31,7 +31,6 @@ module Datadog
         # DEV(1.0): Unfortunately, change this would be a breaking change for all custom integrations,
         # DEV(1.0): thus we have to be very intentional with the right time to make this change.
         # DEV(1.0): Currently marking this for a 1.0 milestone.
-        # @public_api
         def default_configuration
           Configuration::Settings.new
         end
