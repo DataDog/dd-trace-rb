@@ -173,6 +173,7 @@ module Datadog
     #
     # The active trace is thread-local.
     #
+    # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Datadog::TraceSegment] the active trace
     # @return [nil] if no trace is active
     # @public_api
@@ -184,6 +185,7 @@ module Datadog
     #
     # The active span belongs to an {.active_trace}.
     #
+    # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Datadog::SpanOperation] the active span
     # @return [nil] if no trace is active, and thus no span is active
     # @public_api
@@ -196,6 +198,7 @@ module Datadog
     #
     # The most common use cases are tagging log messages and metrics.
     #
+    # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Datadog::Correlation::Identifier] correlation object
     # @public_api
     def active_correlation(key = nil)
@@ -211,7 +214,7 @@ module Datadog
     # Used to continue distributed or async traces.
     #
     # @param [Datadog::TraceDigest] digest continue from the {Datadog::TraceDigest}.
-    # @param [Thread] key thread-local context holder
+    # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Object] If a block is provided, the result of the block execution.
     # @return [Datadog::TraceOperation] If no block, the active {Datadog::TraceOperation}.
     # @yield Optional block where this {#continue_trace!} `digest` scope is active.
@@ -271,6 +274,8 @@ module Datadog
     #
     # This method makes use of a {ContextProvider} that is automatically set during the tracer
     # initialization, or while using a library instrumentation.
+    #
+    # @param [Thread] key Thread to retrieve tracer from. Defaults to current thread.
     def call_context(key = nil)
       @provider.context(key)
     end
