@@ -112,8 +112,6 @@ module Datadog
     # @return [Object] If a block is provided, returns the result of the block execution.
     # @return [Datadog::SpanOperation] If no block is provided, returns the active, unfinished {Datadog::SpanOperation}.
     # @yield Optional block where new newly created {Datadog::SpanOperation} captures the execution.
-    #   The span_op is {Datadog::SpanOperation#finish}ed when the block ends.
-    #   If no block, the active, unfinished {Datadog::SpanOperation} is returned instead.
     # @yieldparam [Datadog::SpanOperation] span_op the newly created and active [Datadog::SpanOperation]
     # @yieldparam [Datadog::TraceOperation] trace_op the active [Datadog::TraceOperation]
     # @public_api
