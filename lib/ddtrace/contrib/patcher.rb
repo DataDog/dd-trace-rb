@@ -3,7 +3,10 @@ require 'ddtrace/utils/only_once'
 
 module Datadog
   module Contrib
-    # Common behavior for patcher modules
+    # Common behavior for patcher modules.
+    #
+    # `include`ing {Contrib::Patcher} into a new module is the recommend way to create a custom patcher.
+    # The patcher can then be provided to a custom {Datadog::Contrib::Integration} for instrumentation.
     module Patcher
       def self.included(base)
         base.singleton_class.prepend(CommonMethods)
