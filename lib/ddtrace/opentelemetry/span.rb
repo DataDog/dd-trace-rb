@@ -8,7 +8,6 @@ module Datadog
       TAG_SERVICE_NAME = 'service.name'.freeze
       TAG_SERVICE_VERSION = 'service.version'.freeze
 
-      # @public_api
       def set_tag(key, value)
         # Configure sampling priority if they give us a forced tracing tag
         # DEV: Do not set if the value they give us is explicitly "false"
