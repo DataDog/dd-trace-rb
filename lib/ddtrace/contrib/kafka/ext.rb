@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Kafka
       # Kafka integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'kafka'.freeze
         ENV_ENABLED = 'DD_TRACE_KAFKA_ENABLED'.freeze

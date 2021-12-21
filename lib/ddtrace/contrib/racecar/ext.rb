@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Racecar
       # Racecar integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'racecar'.freeze
         ENV_ENABLED = 'DD_TRACE_RACECAR_ENABLED'.freeze

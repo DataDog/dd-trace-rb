@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module ActionView
       # ActionView integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'action_view'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTION_VIEW_ENABLED'.freeze

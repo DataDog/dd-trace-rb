@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module RestClient
       # RestClient integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'rest_client'.freeze
         ENV_ENABLED = 'DD_TRACE_REST_CLIENT_ENABLED'.freeze

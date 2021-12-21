@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Aws
       # AWS integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'aws'.freeze
         ENV_ENABLED = 'DD_TRACE_AWS_ENABLED'.freeze

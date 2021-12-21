@@ -4,7 +4,7 @@ require 'ddtrace/version'
 module Datadog
   module Core
     module Environment
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         # Identity
         LANG = 'ruby'.freeze

@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module ActiveModelSerializers
       # ActiveModelSerializers integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'active_model_serializers'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED'.freeze

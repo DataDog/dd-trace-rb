@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Resque
       # Resque integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'resque'.freeze
         ENV_ENABLED = 'DD_TRACE_RESQUE_ENABLED'.freeze

@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Sidekiq
       # Sidekiq integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'sidekiq'.freeze
         CLIENT_SERVICE_NAME = 'sidekiq-client'.freeze

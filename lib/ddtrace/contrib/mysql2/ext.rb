@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Mysql2
       # Mysql2 integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'mysql2'.freeze
         ENV_ENABLED = 'DD_TRACE_MYSQL2_ENABLED'.freeze

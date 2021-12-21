@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module HTTP
       # HTTP integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'net/http'.freeze
         ENV_ENABLED = 'DD_TRACE_HTTP_ENABLED'.freeze

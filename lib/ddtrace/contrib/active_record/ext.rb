@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module ActiveRecord
       # ActiveRecord integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'active_record'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTIVE_RECORD_ENABLED'.freeze

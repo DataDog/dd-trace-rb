@@ -3,7 +3,7 @@ module Datadog
   module Contrib
     module Qless
       # Qless integration constants
-      # @public_api
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'qless'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_QLESS_ANALYTICS_ENABLED'.freeze
