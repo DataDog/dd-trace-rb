@@ -43,7 +43,6 @@ module Datadog
         blocked = action == :block
 
         if span
-          span.set_tag('appsec.action', action)
           span.set_tag('appsec.event', 'true')
           span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
         end
