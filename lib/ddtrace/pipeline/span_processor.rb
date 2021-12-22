@@ -2,6 +2,7 @@
 module Datadog
   module Pipeline
     # SpanProcessor
+    # @public_api
     class SpanProcessor
       def initialize(operation = nil, &block)
         callable = operation || block
@@ -11,6 +12,7 @@ module Datadog
         @operation = operation || block
       end
 
+      # @!visibility private
       def call(trace)
         trace.spans.each do |span|
           @operation.call(span) rescue next

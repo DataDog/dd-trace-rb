@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module DelayedJob
       # DelayedJob integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'delayed_job'.freeze
         ENV_ENABLED = 'DD_TRACE_DELAYED_JOB_ENABLED'.freeze

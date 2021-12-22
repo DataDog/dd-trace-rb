@@ -2,10 +2,12 @@
 --markup markdown
 --markup-provider redcarpet
 --readme docs/GettingStarted.md
---tag='public_api:Public API'
---hide-tag=public_api
+--tag default:"Defaults to"
+--tag 'public_api:Public API'
+--hide-tag public_api
 --files LICENSE
 --files docs/AutoInstrumentation.md
+--files docs/Deprecation.md
 --files docs/PublicApi.md
---template-path=yard/templates
+--template-path yard/templates
 -e ./yard/extensions.rb

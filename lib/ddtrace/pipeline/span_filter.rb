@@ -2,6 +2,7 @@
 module Datadog
   module Pipeline
     # SpanFilter implements a processor that filters entire span subtrees
+    # @public_api
     class SpanFilter
       def initialize(filter = nil, &block)
         callable = filter || block
@@ -14,6 +15,7 @@ module Datadog
       # NOTE: this SpanFilter implementation only handles traces in which child spans appear
       # after parent spans in the trace array. If in the future child spans can be before
       # parent spans, then the code below will need to be updated.
+      # @!visibility private
       def call(trace)
         deleted = Set.new
 

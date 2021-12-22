@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module SuckerPunch
       # SuckerPunch integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'sucker_punch'.freeze
         ENV_ENABLED = 'DD_TRACE_SUCKER_PUNCH_ENABLED'.freeze

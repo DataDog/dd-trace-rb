@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Faraday
       # Faraday integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'faraday'.freeze
         ENV_ENABLED = 'DD_TRACE_FARADAY_ENABLED'.freeze

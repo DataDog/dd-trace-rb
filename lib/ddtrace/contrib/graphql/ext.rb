@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module GraphQL
       # GraphQL integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'ruby-graphql'.freeze
         ENV_ENABLED = 'DD_TRACE_GRAPHQL_ENABLED'.freeze

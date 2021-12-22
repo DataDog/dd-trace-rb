@@ -5,6 +5,7 @@ module Datadog
   # A custom logger with minor enhancements:
   # - progname defaults to ddtrace to clearly identify Datadog dd-trace-rb related messages
   # - adds last caller stack-trace info to know where the message comes from
+  # @public_api
   class Logger < ::Logger
     PREFIX = 'ddtrace'.freeze
 

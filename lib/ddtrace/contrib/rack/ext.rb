@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Rack
       # Rack integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'rack'.freeze
         ENV_ENABLED = 'DD_TRACE_RACK_ENABLED'.freeze

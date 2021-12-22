@@ -14,10 +14,11 @@ module Datadog
   #
   # Supports synchronous code flow *only*. Usage across
   # multiple threads will result in incorrect relationships.
-  # For async support, a \TraceOperation should be employed
+  # For async support, a {Datadog::TraceOperation} should be employed
   # per execution context (e.g. Thread, etc.)
   #
   # rubocop:disable Metrics/ClassLength
+  # @public_api
   class TraceOperation
     DEFAULT_MAX_LENGTH = 100_000
 

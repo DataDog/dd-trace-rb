@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActionMailer
       # ActionMailer integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'action_mailer'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTION_MAILER_ENABLED'.freeze

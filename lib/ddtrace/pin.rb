@@ -1,9 +1,8 @@
 # typed: true
 require 'ddtrace/utils/only_once'
 
-# \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
 module Datadog
-  # A \Pin (a.k.a Patch INfo) is a small class which is used to
+  # A {Datadog::Pin} (a.k.a Patch INfo) is a small class which is used to
   # set tracing metadata on a particular traced object.
   # This is useful if you wanted to, say, trace two different
   # database clusters.

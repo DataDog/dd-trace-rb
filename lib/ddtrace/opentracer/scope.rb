@@ -2,6 +2,7 @@
 module Datadog
   module OpenTracer
     # OpenTracing adapter for scope
+    # @public_api
     class Scope < ::OpenTracing::Scope
       attr_reader \
         :manager,

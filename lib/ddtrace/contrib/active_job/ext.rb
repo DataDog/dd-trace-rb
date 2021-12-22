@@ -2,6 +2,7 @@
 module Datadog
   module Contrib
     module ActiveJob
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'active_job'.freeze
         SERVICE_NAME = 'active_job'.freeze

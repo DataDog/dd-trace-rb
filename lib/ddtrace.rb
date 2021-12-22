@@ -23,7 +23,8 @@ require 'ddtrace/contrib/extensions'
 
 require 'ddtrace/opentelemetry/extensions'
 
-# \Datadog global namespace that includes all tracing functionality for Tracer and Span classes.
+# Global namespace that includes all Datadog functionality.
+# @public_api
 module Datadog
   extend Configuration
   extend AutoInstrumentBase

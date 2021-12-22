@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Ethon
       # Ethon integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         APP = 'ethon'.freeze
         ENV_ENABLED = 'DD_TRACE_ETHON_ENABLED'.freeze

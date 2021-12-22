@@ -3,12 +3,14 @@ require 'ddtrace/version'
 
 module Datadog
   module Ext
+    # @public_api
     module Runtime
       TAG_ID = 'runtime-id'.freeze
       TAG_LANG = 'language'.freeze
       TAG_PID = 'system.pid'.freeze
 
       # Metrics
+      # @public_api
       module Metrics
         ENV_ENABLED = 'DD_RUNTIME_METRICS_ENABLED'.freeze
 

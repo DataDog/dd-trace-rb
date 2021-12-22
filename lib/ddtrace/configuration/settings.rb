@@ -12,10 +12,12 @@ require 'ddtrace/ext/test'
 module Datadog
   module Configuration
     # Global configuration settings for the trace library.
+    # @public_api
     # rubocop:disable Metrics/ClassLength
     class Settings
       include Base
 
+      # @!visibility private
       def initialize(*_)
         super
 
@@ -42,19 +44,46 @@ module Datadog
         tags
       end
 
+      # Legacy [App Analytics](https://docs.datadoghq.com/tracing/legacy_app_analytics/) configuration.
+      #
+      # @deprecated Use [Trace Retention and Ingestion](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/)
+      #   controls.
+      # @public_api
       settings :analytics do
+        # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
+        # @return [Boolean,nil]
         option :enabled do |o|
           o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
           o.lazy
         end
       end
 
+      # Profiler API key.
+      #
+      # For internal use only.
+      #
+      # @default `DD_API_KEY` environment variable, otherwise `nil`
+      # @return [String,nil]
       option :api_key do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
         o.lazy
       end
 
+      # Internal tracer diagnostic settings.
+      #
+      # Enabling these surfaces debug information that can be helpful to
+      # diagnose issues related to the tracer internals.
+      # @public_api
       settings :diagnostics do
+        # Outputs all spans created by the host application to `Datadog.logger`.
+        #
+        # **This option is very verbose!** It's only recommended for non-production
+        # environments.
+        #
+        # This option is helpful when trying to understand what information the
+        # tracer is sending to the Agent or backend.
+        # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
+        # @return [Boolean]
         option :debug do |o|
           o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG, false) }
           o.lazy
@@ -65,16 +94,40 @@ module Datadog
           end
         end
 
+        # Internal tracer {Datadog::Statsd} metrics collection.
+        #
+        # The list of metrics collected can be found in {Datadog::Ext::Diagnostics::Health::Metrics}.
+        # @public_api
         settings :health_metrics do
+          # Enable health metrics collection.
+          #
+          # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
+          # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false) }
             o.lazy
           end
 
+          # {Datadog::Statsd} instance to collect health metrics.
+          #
+          # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
+          #
+          # @default `nil`
+          # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
+          # @return [nil] an instance with default agent configuration will be lazily created
           option :statsd
         end
 
+        # Tracer startup debug log statement configuration.
+        # @public_api
         settings :startup_logs do
+          # Enable startup logs collection.
+          #
+          # If `nil`, defaults to logging startup logs when `ddtrace` detects that the application
+          # is *not* running in a development environment.
+          #
+          # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `nil`
+          # @return [Boolean,nil]
           option :enabled do |o|
             # Defaults to nil as we want to know when the default value is being used
             o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_STARTUP_LOGS, nil) }
@@ -83,7 +136,25 @@ module Datadog
         end
       end
 
+      # [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing) propagation
+      # style configuration.
+      #
+      # The supported formats are:
+      # * `Datadog`: Datadog propagation format, described by [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing).
+      # * `B3`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
+      # * `B3 single header`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
+      #
+      # @public_api
       settings :distributed_tracing do
+        # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
+        # data from incoming requests and messages.
+        #
+        # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
+        # The first format to have valid data present will be used.
+        #
+        # @default `DD_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
+        #   otherwise `['Datadog','B3','B3 single header']`.
+        # @return [Array<String>]
         option :propagation_extract_style do |o|
           o.default do
             # Look for all headers by default
@@ -96,6 +167,13 @@ module Datadog
           o.lazy
         end
 
+        # The data propagation styles the tracer will use to inject distributed tracing propagation
+        # data into outgoing requests and messages.
+        #
+        # The tracer will inject data from all styles specified in this option.
+        #
+        # @default `DD_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
+        # @return [Array<String>]
         option :propagation_inject_style do |o|
           o.default do
             env_to_list(
@@ -108,35 +186,66 @@ module Datadog
         end
       end
 
+      # The `env` tag in Datadog. Use it to separate out your staging, development, and production environments.
+      # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
+      # @default `DD_ENV` environment variable, otherwise `nil`
+      # @return [String,nil]
       option :env do |o|
         # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
         o.lazy
       end
 
+      # Automatic correlation between tracing and logging.
+      # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
+      # @return [Boolean]
       option :log_injection do |o|
         o.default { env_to_bool(Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
         o.lazy
       end
 
+      # Internal `Datadog.logger` configuration.
+      #
+      # This logger instance is only used internally by the gem.
+      # @public_api
       settings :logger do
+        # The `Datadog.logger` object.
+        #
+        # Can be overwritten with a custom logger object that respects the
+        # [built-in Ruby Logger](https://ruby-doc.org/stdlib-3.0.1/libdoc/logger/rdoc/Logger.html)
+        # interface.
+        #
+        # @return Logger::Severity
         option :instance do |o|
           o.on_set { |value| set_option(:level, value.level) unless value.nil? }
         end
 
+        # Log level for `Datadog.logger`.
+        # @see Logger::Severity
+        # @return Logger::Severity
         option :level, default: ::Logger::INFO
       end
 
+      # Datadog Profiler-specific configurations.
+      #
+      # @see https://docs.datadoghq.com/tracing/profiler/
+      # @public_api
       settings :profiling do
+        # Enable profiling.
+        #
+        # @default `DD_PROFILING_ENABLED` environment variable, otherwise `false`
+        # @return [Boolean]
         option :enabled do |o|
           o.default { env_to_bool(Ext::Profiling::ENV_ENABLED, false) }
           o.lazy
         end
 
+        # @public_api
         settings :exporter do
           option :transport
         end
 
+        # @public_api
         settings :advanced do
           # This should never be reduced, as it can cause the resulting profiles to become biased.
           # The current default should be enough for most services, allowing 16 threads to be sampled around 30 times
@@ -150,10 +259,14 @@ module Datadog
             o.lazy
           end
 
+          # @public_api
           settings :endpoint do
             settings :collection do
               # When using profiling together with tracing, this controls if endpoint names
               # are gathered and reported together with profiles.
+              #
+              # @default `DD_PROFILING_ENDPOINT_COLLECTION_ENABLED` environment variable, otherwise `true`
+              # @return [Boolean]
               option :enabled do |o|
                 o.default { env_to_bool(Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED, true) }
                 o.lazy
@@ -162,6 +275,7 @@ module Datadog
           end
         end
 
+        # @public_api
         settings :upload do
           option :timeout_seconds do |o|
             o.setter { |value| value.nil? ? 30.0 : value.to_f }
@@ -176,7 +290,13 @@ module Datadog
         o.lazy
       end
 
+      # [Runtime Metrics](https://docs.datadoghq.com/tracing/runtime_metrics/)
+      # are StatsD metrics collected by the tracer to gain additional insights into an application's performance.
+      # @public_api
       settings :runtime_metrics do
+        # Enable runtime metrics.
+        # @default `DD_RUNTIME_METRICS_ENABLED` environment variable, otherwise `false`
+        # @return [Boolean]
         option :enabled do |o|
           o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
           o.lazy
@@ -186,6 +306,7 @@ module Datadog
         option :statsd
       end
 
+      # TODO: remove me. Use `c.runtime_metrics.enabled =`
       # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics enabled: true`
       def runtime_metrics(options = nil)
         settings = get_option(:runtime_metrics)
@@ -198,6 +319,8 @@ module Datadog
         settings
       end
 
+      # @deprecated Use `runtime_metrics.enabled` instead.
+      # @return [Boolean]
       option :runtime_metrics_enabled do |o|
         o.delegate_to { get_option(:runtime_metrics).enabled }
         o.on_set do |value|
@@ -206,18 +329,39 @@ module Datadog
         end
       end
 
+      # Client-side sampling configuration.
+      # @public_api
       settings :sampling do
+        # Default sampling rate for the tracer.
+        #
+        # If `nil`, the trace uses an automatic sampling strategy that tries to ensure
+        # the collection of traces that are considered important (e.g. traces with an error, traces
+        # for resources not seen recently).
+        #
+        # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
+        # @return [Float,nil]
         option :default_rate do |o|
           o.default { env_to_float(Ext::Sampling::ENV_SAMPLE_RATE, nil) }
           o.lazy
         end
 
+        # Rate limit for number of spans per second.
+        #
+        # Spans created above the limit will contribute to service metrics, but won't
+        # have their payload stored.
+        #
+        # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
+        # @return [Numeric,nil]
         option :rate_limit do |o|
           o.default { env_to_float(Ext::Sampling::ENV_RATE_LIMIT, 100) }
           o.lazy
         end
       end
 
+      # The `service` tag in Datadog. Use it to group related traces into a service.
+      # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
+      # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
+      # @return [String]
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Environment::FALLBACK_SERVICE_NAME) }
@@ -232,11 +376,24 @@ module Datadog
         end
       end
 
+      # The Datadog site host to send data to.
+      # By default, data is sent to the Datadog US site: `app.datadoghq.com`.
+      #
+      # If your organization is on another site, you must update this value to the new site.
+      #
+      # @see https://docs.datadoghq.com/agent/troubleshooting/site/
+      # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
+      # @return [String,nil]
       option :site do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SITE, nil) }
         o.lazy
       end
 
+      # Default tracing and profiling span tags.
+      #
+      # These tags are applied to every span.
+      # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
+      # @return [Hash<String,String>]
       option :tags do |o|
         o.default do
           tags = {}
@@ -277,23 +434,44 @@ module Datadog
         o.lazy
       end
 
+      # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
+      # @public_api
       settings :test_mode do
+        # Enable test mode. This allows the tracer to collect spans from test runs.
+        #
+        # It also prevents the tracer from collecting spans in a production environment. Only use in a test environment.
+        #
+        # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
+        # @return [Boolean]
         option :enabled do |o|
           o.default { env_to_bool(Ext::Test::ENV_MODE_ENABLED, false) }
           o.lazy
         end
 
+        # TODO: Remove this configuration.
+        # TODO: It is not necessary, as it be configured by the default flushing trace configuration.
         option :trace_flush do |o|
           o.default { nil }
           o.lazy
         end
 
+        # TODO: Remove this configuration.
+        # TODO: It is not necessary, as it be configured by the default writer trace configuration.
         option :writer_options do |o|
           o.default { {} }
           o.lazy
         end
       end
 
+      # The time provider used by the tracer. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
+      #
+      # When testing, it can be helpful to use a different time provider.
+      #
+      # For [Timecop](https://rubygems.org/gems/timecop), for example, `->{ Time.now_without_mock_time }`
+      # allows the tracer to use the real wall time when time is frozen.
+      #
+      # @default `->{ Time.now }`
+      # @return [Proc<Time>]
       option :time_now_provider do |o|
         o.default { ::Time.now }
 
@@ -310,27 +488,85 @@ module Datadog
         end
       end
 
+      # Tracer specific configurations.
+      # @public_api
       settings :tracer do
+        # Enable trace collection and span generation.
+        #
+        # You can use this option to disable tracing without having to
+        # remove the library as a whole.
+        #
+        # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
+        # @return [Boolean]
         option :enabled do |o|
           o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
           o.lazy
         end
-        option :hostname # TODO: Deprecate
+
+        # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
+        option :hostname
+
+        # A custom tracer instance.
+        #
+        # It must respect the contract of {Datadog::Tracer}.
+        # It's recommended to delegate methods to {Datadog::Tracer} to ease the implementation
+        # of a custom tracer.
+        #
+        # This option will not return the live tracer instance: it only holds a custom
+        # tracing instance, if any. The live tracer instance can be found in {Datadog.tracer}.
+        #
+        # @default `nil`
+        # @return [Object,nil]
         option :instance
 
+        # Configures an alternative trace transport behavior, where
+        # traces can be sent to the agent and backend before all spans
+        # have finished.
+        #
+        # This is useful for long-running jobs or very large traces.
+        #
+        # The trace flame graph will display the partial trace as it is received and constantly
+        # update with new spans as they are flushed.
+        # @public_api
         settings :partial_flush do
+          # Enable partial trace flushing.
+          #
+          # @default `false`
+          # @return [Boolean]
           option :enabled, default: false
-          option :min_spans_threshold
+
+          # Minimum number of finished spans required in a single unfinished trace before
+          # the tracer will consider that trace for partial flushing.
+          #
+          # This option helps preserve a minimum amount of batching in the
+          # flushing process, reducing network overhead.
+          #
+          # This threshold only applies to unfinished traces. Traces that have finished
+          # are always flushed immediately.
+          #
+          # @default 500
+          # @return [Boolean]
+          option :min_spans_threshold, default: 500
         end
 
-        option :port # TODO: Deprecate
+        # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
+        option :port
         option :priority_sampling # TODO: Deprecate
+
+        # A custom sampler instance.
+        # The object must respect the {Datadog::Sampler} interface.
+        # @default `nil`
+        # @return [Object,nil]
         option :sampler
         option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
         option :writer # TODO: Deprecate
         option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
       end
 
+      # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
+      # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
+      # @default `DD_VERSION` environment variable, otherwise `nils`
+      # @return [String,nil]
       option :version do |o|
         # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }

@@ -85,7 +85,7 @@ module Datadog
           # the +parent_span+ parameter with the parent Multi span. This correctly
           # assigns all open Easy spans to the currently executing Multi context.
           #
-          # @param parent_span [Datadog::Span] the Multi span, if executing in a Multi context.
+          # @param [Datadog::Span] continue_from the Multi span, if executing in a Multi context.
           def datadog_before_request(continue_from: nil)
             load_datadog_configuration_for(url)
 
