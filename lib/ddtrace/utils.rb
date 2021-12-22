@@ -4,6 +4,7 @@ require 'ddtrace/utils/forking'
 
 module Datadog
   # Utils contains low-level utilities, typically to provide pseudo-random trace IDs.
+  # @public_api
   module Utils
     extend Utils::Forking
 
@@ -14,7 +15,6 @@ module Datadog
 
     # Return a randomly generated integer, valid as a Span ID or Trace ID.
     # This method is thread-safe and fork-safe.
-    # @public_api
     def self.next_id
       after_fork! { reset! }
       id_rng.rand(Datadog::Span::RUBY_MAX_ID) # TODO: This should never return zero
@@ -38,6 +38,7 @@ module Datadog
     #
     # If `omission.size` is larger than `size`, the output
     # will still be `omission.size` in length.
+    # @!visibility private
     def self.truncate(value, size, omission = '...'.freeze)
       string = value.to_s
 
@@ -56,6 +57,7 @@ module Datadog
 
     # Ensure `str` is a valid UTF-8, ready to be
     # sent through the tracer transport.
+    # @!visibility private
     def self.utf8_encode(str, options = {})
       str = str.to_s
 
@@ -78,6 +80,7 @@ module Datadog
       options.fetch(:placeholder, EMPTY_STRING)
     end
 
+    # @!visibility private
     def self.without_warnings
       # This is typically used when monkey patching functions such as
       # intialize, which Ruby advices you not to. Use cautiously.
