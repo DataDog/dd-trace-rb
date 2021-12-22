@@ -88,7 +88,9 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
 
     name = call_params[0]
 
-    if namespace.has_tag?(:dsl) # Check if we are already nested inside the DSL namespace
+    # Check if we are already nested inside the DSL namespace
+    if namespace.has_tag?(:dsl)
+      # If yes, do not add a second, nested DSL module. Use the parent directly.
       parent_module = namespace
     else
       # If not, create a DSL module to host generated classes
@@ -100,11 +102,11 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
     end
 
     # The generated class inherits the docstring from the current statement.
-    generated_class = YARD::CodeObjects::ClassObject.new(parent_module, camelize(name)) do |o|
-      o.add_tag(YARD::Tags::Tag.new(:dsl, 'dsl'))
-    end
+    generated_class = YARD::CodeObjects::ClassObject.new(parent_module, camelize(name))
 
     register(generated_class)
+
+    generated_class.add_tag(YARD::Tags::Tag.new(:dsl, 'dsl'))
 
     # Remove @public_api tag from this statement, as `setting :option` is a method call
     # and @public_api tags should only exists in modules and classes.
