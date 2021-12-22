@@ -76,6 +76,7 @@ module Datadog
         end
 
         # Extensions for Datadog::Configuration::Settings
+        # @public_api
         module Settings
           InvalidIntegrationError = Class.new(StandardError)
 
@@ -84,10 +85,13 @@ module Datadog
           #
           # How the matching is performed is integration-specific.
           #
+          # @example
+          #   Datadog.configuration[:integration_name]
+          # @example
+          #   Datadog.configuration[:integration_name][:sub_configuration]
           # @param [Symbol] integration_name the integration name
           # @param [Object] key the integration-specific lookup key
           # @return [Datadog::Contrib::Configuration::Settings]
-          # @public_api Used for Datadog.configuration[:my_integration]
           def [](integration_name, key = :default)
             integration = fetch_integration(integration_name)
             integration.resolve(key) unless integration.nil?
@@ -103,6 +107,7 @@ module Datadog
           # @param [Object] describes the previously configured `describes:` object. If `nil`,
           #   fetches the default configuration
           # @return [Datadog::Contrib::Configuration::Settings]
+          # @!visibility private
           def configuration(integration_name, describes = nil)
             integration = fetch_integration(integration_name)
             integration.configuration(describes) unless integration.nil?
@@ -124,24 +129,29 @@ module Datadog
 
           alias_method :use, :instrument
 
+          # @!visibility private
           def integrations_pending_activation
             @integrations_pending_activation ||= Set.new
           end
 
+          # @!visibility private
           def instrumented_integrations
             @instrumented_integrations ||= {}
           end
 
+          # @!visibility private
           def reset!
             instrumented_integrations.clear
             super
           end
 
+          # @!visibility private
           def fetch_integration(name)
             Contrib::REGISTRY[name] ||
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
           end
 
+          # @!visibility private
           def reduce_verbosity?
             defined?(@reduce_verbosity) ? @reduce_verbosity : false
           end
