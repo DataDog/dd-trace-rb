@@ -114,7 +114,6 @@ module Datadog
     # @yield Optional block where new newly created {Datadog::SpanOperation} captures the execution.
     # @yieldparam [Datadog::SpanOperation] span_op the newly created and active [Datadog::SpanOperation]
     # @yieldparam [Datadog::TraceOperation] trace_op the active [Datadog::TraceOperation]
-    # @public_api
     # rubocop:disable Lint/UnderscorePrefixedVariableName
     def trace(
       name,
@@ -162,7 +161,6 @@ module Datadog
     # appended to each span created by the tracer. Keys and values must be strings.
     # @example
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
-    # @public_api
     def set_tags(tags)
       string_tags = tags.collect { |k, v| [k.to_s, v] }.to_h
       @tags = @tags.merge(string_tags)
@@ -175,7 +173,6 @@ module Datadog
     # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Datadog::TraceSegment] the active trace
     # @return [nil] if no trace is active
-    # @public_api
     def active_trace(key = nil)
       call_context(key).active_trace
     end
@@ -187,7 +184,6 @@ module Datadog
     # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Datadog::SpanOperation] the active span
     # @return [nil] if no trace is active, and thus no span is active
-    # @public_api
     def active_span(key = nil)
       trace = active_trace(key)
       trace.active_span if trace
@@ -199,7 +195,6 @@ module Datadog
     #
     # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
     # @return [Datadog::Correlation::Identifier] correlation object
-    # @public_api
     def active_correlation(key = nil)
       trace = active_trace(key)
       Datadog::Correlation.identifier_from_digest(
@@ -218,7 +213,6 @@ module Datadog
     # @return [Datadog::TraceOperation] If no block, the active {Datadog::TraceOperation}.
     # @yield Optional block where this {#continue_trace!} `digest` scope is active.
     #   If no block, the `digest` remains active after {#continue_trace!} returns.
-    # @public_api
     def continue_trace!(digest, key = nil, &block)
       return unless digest && digest.is_a?(TraceDigest)
 
@@ -257,7 +251,6 @@ module Datadog
     #   end
     #
     #   tracer.shutdown!
-    # @public_api
     def shutdown!
       return unless @enabled
 
