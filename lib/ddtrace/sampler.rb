@@ -8,6 +8,7 @@ require 'ddtrace/diagnostics/health'
 module Datadog
   # Interface for client-side trace sampling.
   # @abstract
+  # @public_api
   class Sampler
     # Returns `true` if the provided trace should be kept.
     # Otherwise, `false`.
@@ -16,7 +17,7 @@ module Datadog
     #
     # @param [Datadog::Trace] trace
     # @return [Boolean] should this trace be kept?
-    def sample?(_trace)
+    def sample?(trace)
       raise NotImplementedError, 'Samplers must implement the #sample? method'
     end
 
@@ -28,7 +29,7 @@ module Datadog
     #
     # @param [Datadog::Trace] trace
     # @return [Boolean] should this trace be kept?
-    def sample!(_trace)
+    def sample!(trace)
       raise NotImplementedError, 'Samplers must implement the #sample! method'
     end
 
@@ -37,7 +38,7 @@ module Datadog
     #
     # @param [Datadog::Trace] trace
     # @return [Float,nil] sampling ratio between 0.0 and 1.0 (inclusive), or `nil` if not applicable
-    def sample_rate(_trace)
+    def sample_rate(trace)
       raise NotImplementedError, 'Samplers must implement the #sample_rate method'
     end
   end
