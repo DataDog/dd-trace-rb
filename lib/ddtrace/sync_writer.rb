@@ -11,6 +11,7 @@ module Datadog
   # Note: If you're wondering if this class is used at all, since there are no other references to it on the codebase,
   # the separate `datadog-lambda` uses it as of February 2021:
   # <https://github.com/DataDog/datadog-lambda-rb/blob/c15f0f0916c90123416dc44e7d6800ef4a7cfdbf/lib/datadog/lambda.rb#L38>
+  # @public_api
   class SyncWriter
     attr_reader \
       :events,
@@ -21,7 +22,6 @@ module Datadog
     # @param [Hash<Symbol,Object>] transport_options options for the default transport instance.
     # @param [Datadog::Configuration::AgentSettingsResolver::AgentSettings] agent_settings agent options for
     #   the default transport instance.
-    # @public_api
     def initialize(transport: nil, transport_options: {}, agent_settings: nil)
       @transport = transport || begin
         transport_options[:agent_settings] = agent_settings if agent_settings
@@ -34,8 +34,6 @@ module Datadog
     # Sends traces to the configured transport.
     #
     # Traces are flushed immediately.
-    #
-    # @public_api
     def write(trace)
       flush_trace(trace)
     rescue => e
@@ -44,7 +42,6 @@ module Datadog
 
     # Does nothing.
     # The {SyncWriter} does not need to be stopped as it holds no state.
-    # @public_api
     def stop
       # No cleanup to do for the SyncWriter
       true
