@@ -64,7 +64,6 @@ module Datadog
       #
       # @default `DD_API_KEY` environment variable, otherwise `nil`
       # @return [String,nil]
-      # @public_api
       option :api_key do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
         o.lazy
@@ -191,7 +190,6 @@ module Datadog
       # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
       # @default `DD_ENV` environment variable, otherwise `nil`
       # @return [String,nil]
-      # @public_api
       option :env do |o|
         # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
@@ -201,7 +199,6 @@ module Datadog
       # Automatic correlation between tracing and logging.
       # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
       # @return [Boolean]
-      # @public_api
       option :log_injection do |o|
         o.default { env_to_bool(Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
         o.lazy
@@ -288,7 +285,6 @@ module Datadog
         end
       end
 
-      # @public_api
       option :report_hostname do |o|
         o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
         o.lazy
@@ -366,7 +362,6 @@ module Datadog
       # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
       # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
       # @return [String]
-      # @public_api
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Environment::FALLBACK_SERVICE_NAME) }
@@ -389,7 +384,6 @@ module Datadog
       # @see https://docs.datadoghq.com/agent/troubleshooting/site/
       # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
       # @return [String,nil]
-      # @public_api
       option :site do |o|
         o.default { ENV.fetch(Ext::Environment::ENV_SITE, nil) }
         o.lazy
@@ -400,7 +394,6 @@ module Datadog
       # These tags are applied to every span.
       # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
       # @return [Hash<String,String>]
-      # @public_api
       option :tags do |o|
         o.default do
           tags = {}
@@ -479,7 +472,6 @@ module Datadog
       #
       # @default `->{ Time.now }`
       # @return [Proc<Time>]
-      # @public_api
       option :time_now_provider do |o|
         o.default { ::Time.now }
 
@@ -575,7 +567,6 @@ module Datadog
       # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
       # @default `DD_VERSION` environment variable, otherwise `nils`
       # @return [String,nil]
-      # @public_api
       option :version do |o|
         # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }

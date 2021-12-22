@@ -92,22 +92,28 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
       parent_module = namespace
     else
       # If not, create a DSL module to host generated classes
-      parent_module = YARD::CodeObjects::ModuleObject.new(namespace, 'DSL') do |o|
-        o.docstring = 'Namespace for dynamically generated configuration classes.'
-      end
+      parent_module = YARD::CodeObjects::ModuleObject.new(namespace, 'DSL')
 
       register(parent_module)
+
+      parent_module.docstring = 'Namespace for dynamically generated configuration classes.'
     end
 
+    # The generated class inherits the docstring from the current statement.
     generated_class = YARD::CodeObjects::ClassObject.new(parent_module, camelize(name)) do |o|
-      o.docstring = 'Namespace for dynamically generated configuration classes.'
       o.add_tag(YARD::Tags::Tag.new(:dsl, 'dsl'))
     end
 
     register(generated_class)
 
+    # Remove @public_api tag from this statement, as `setting :option` is a method call
+    # and @public_api tags should only exists in modules and classes.
+    # The encompassing DSL modules and classes will inherit this tag, this only
+    # applies to the accessor method.
+    new_docstring = statement.docstring.to_s.sub(/^\s*@public_api\b.*/, '')
+
     statement.docstring = <<~YARD
-      #{statement.docstring}
+      #{new_docstring}
       @return [#{generated_class.path}] a configuration object
     YARD
 
