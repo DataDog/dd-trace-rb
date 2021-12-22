@@ -104,7 +104,7 @@ module Datadog
     #   Used for linking traces that are executed asynchronously.
     # @param [Boolean] autostart whether to autostart the span, if no block is provided.
     # @param [Proc] on_error a block that overrides error handling behavior for this operation.
-    # @param [String] resource the resource this span refers, or {name} if it's missing
+    # @param [String] resource the resource this span refers, or `name` if it's missing
     # @param [String] service the service name for this span.
     # @param [Time] start_time time which the span should have started.
     # @param [Hash<String,String>] tags extra tags which should be added to the span.

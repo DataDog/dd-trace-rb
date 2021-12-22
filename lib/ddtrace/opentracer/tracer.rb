@@ -28,7 +28,8 @@ module Datadog
       #
       # If `scope_manager.active` is not nil, no explicit references
       # are provided, and `ignore_active_scope` is false, then an inferred
-      # {OpenTracing::Reference#CHILD_OF} reference is created to the `scope_manager.active`'s
+      # {https://www.rubydoc.info/gems/opentracing/0.5.0/OpenTracing/Reference OpenTracing::Reference#CHILD_OF}
+      # reference is created to the `scope_manager.active`'s
       # {SpanContext} when {#start_active_span} is invoked.
       #
       # @param operation_name [String] The operation name for the Span
