@@ -3,7 +3,7 @@ require 'msgpack'
 
 module Datadog
   module Transport
-    # Adds serialization functions to a \TraceSegment
+    # Adds serialization functions to a {Datadog::TraceSegment}
     class SerializableTrace
       attr_reader \
         :trace
@@ -32,7 +32,7 @@ module Datadog
       end
     end
 
-    # Adds serialization functions to a \Span
+    # Adds serialization functions to a {Datadog::Span}
     class SerializableSpan
       attr_reader \
         :span

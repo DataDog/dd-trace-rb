@@ -14,7 +14,7 @@ module Datadog
       end
     end
 
-    # A \Matcher that supports matching a trace by
+    # A {Datadog::Sampling::Matcher} that supports matching a trace by
     # trace name and/or service name.
     # @public_api
     class SimpleMatcher < Matcher
@@ -41,7 +41,7 @@ module Datadog
       end
     end
 
-    # A \Matcher that allows for arbitrary trace matching
+    # A {Datadog::Sampling::Matcher} that allows for arbitrary trace matching
     # based on the return value of a provided block.
     # @public_api
     class ProcMatcher < Matcher

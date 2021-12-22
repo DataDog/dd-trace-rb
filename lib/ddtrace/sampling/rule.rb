@@ -37,7 +37,7 @@ module Datadog
       def_delegators :@sampler, :sample?, :sample_rate
     end
 
-    # A \Rule that matches a trace based on
+    # A {Datadog::Sampling::Rule} that matches a trace based on
     # trace name and/or service name and
     # applies a fixed sampling to matching spans.
     # @public_api
@@ -46,13 +46,13 @@ module Datadog
       # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name, defaults to always match
       # @param sample_rate [Float] Sampling rate between +[0,1]+
       def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate: 1.0)
-        # We want to allow 0.0 to drop all traces, but \RateSampler
+        # We want to allow 0.0 to drop all traces, but {Datadog::RateSampler}
         # considers 0.0 an invalid rate and falls back to 100% sampling.
         #
         # We address that here by not setting the rate in the constructor,
         # but using the setter method.
         #
-        # We don't want to make this change directly to \RateSampler
+        # We don't want to make this change directly to {Datadog::RateSampler}
         # because it breaks its current contract to existing users.
         sampler = Datadog::RateSampler.new
         sampler.sample_rate = sample_rate

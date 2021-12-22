@@ -162,7 +162,7 @@ module Datadog
       end
     end
 
-    # \RateLimiter that accepts all resources,
+    # {Datadog::Sampling::RateLimiter} that accepts all resources,
     # with no limits.
     # @public_api
     class UnlimitedLimiter < RateLimiter

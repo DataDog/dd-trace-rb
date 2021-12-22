@@ -15,7 +15,7 @@ module Datadog
   class Span
     include Tagging
 
-    # The max value for a \Span identifier.
+    # The max value for a {Datadog::Span} identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
     # Limited to +2<<62-1+ positive integers, as Ruby is able to represent such numbers "inline",

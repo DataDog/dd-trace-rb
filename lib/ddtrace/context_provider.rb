@@ -32,16 +32,16 @@ module Datadog
   end
 
   # ThreadLocalContext can be used as a tracer global reference to create
-  # a different \Context for each thread. In synchronous tracer, this
-  # is required to prevent multiple threads sharing the same \Context
+  # a different {Datadog::Context} for each thread. In synchronous tracer, this
+  # is required to prevent multiple threads sharing the same {Datadog::Context}
   # in different executions.
   class ThreadLocalContext
     # ThreadLocalContext can be used as a tracer global reference to create
-    # a different \Context for each thread. In synchronous tracer, this
-    # is required to prevent multiple threads sharing the same \Context
+    # a different {Datadog::Context} for each thread. In synchronous tracer, this
+    # is required to prevent multiple threads sharing the same {Datadog::Context}
     # in different executions.
     #
-    # To support multiple tracers simultaneously, each \ThreadLocalContext
+    # To support multiple tracers simultaneously, each {Datadog::ThreadLocalContext}
     # instance has its own thread-local variable.
     def initialize
       @key = "datadog_context_#{object_id}".to_sym

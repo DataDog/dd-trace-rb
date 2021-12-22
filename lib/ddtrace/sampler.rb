@@ -42,7 +42,7 @@ module Datadog
     end
   end
 
-  # \AllSampler samples all the traces.
+  # {Datadog::AllSampler} samples all the traces.
   # @public_api
   class AllSampler < Sampler
     def sample?(_trace)
@@ -58,16 +58,16 @@ module Datadog
     end
   end
 
-  # \RateSampler is based on a sample rate.
+  # {Datadog::RateSampler} is based on a sample rate.
   # @public_api
   class RateSampler < Sampler
     KNUTH_FACTOR = 1111111111111111111
 
-    # Initialize a \RateSampler.
+    # Initialize a {Datadog::RateSampler}.
     # This sampler keeps a random subset of the traces. Its main purpose is to
     # reduce the instrumentation footprint.
     #
-    # * +sample_rate+: the sample rate as a \Float between 0.0 and 1.0. 0.0
+    # * +sample_rate+: the sample rate as a {Float} between 0.0 and 1.0. 0.0
     #   means that no trace will be sampled; 1.0 means that all traces will be
     #   sampled.
     def initialize(sample_rate = 1.0)
@@ -184,7 +184,7 @@ module Datadog
     end
   end
 
-  # \RateByServiceSampler samples different services at different rates
+  # {Datadog::RateByServiceSampler} samples different services at different rates
   # @public_api
   class RateByServiceSampler < RateByKeySampler
     DEFAULT_KEY = 'service:,env:'.freeze
@@ -215,7 +215,7 @@ module Datadog
     end
   end
 
-  # \PrioritySampler
+  # {Datadog::PrioritySampler}
   # @public_api
   class PrioritySampler
     extend Forwardable
