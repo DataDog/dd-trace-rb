@@ -160,8 +160,7 @@ module Datadog
 
     # Set the given key / value tag pair at the tracer level. These tags will be
     # appended to each span created by the tracer. Keys and values must be strings.
-    # A valid example is:
-    #
+    # @example
     #   tracer.set_tags('env' => 'prod', 'component' => 'core')
     # @public_api
     def set_tags(tags)
@@ -252,14 +251,12 @@ module Datadog
     # It's useful to ensure that the Trace Buffer is properly flushed before
     # shutting down the application.
     #
-    # For instance:
-    #
+    # @example
     #   tracer.trace('operation_name', service='rake_tasks') do |span_op|
     #     span_op.set_tag('task.name', 'script')
     #   end
     #
     #   tracer.shutdown!
-    #
     # @public_api
     def shutdown!
       return unless @enabled
