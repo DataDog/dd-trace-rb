@@ -1,7 +1,6 @@
 # typed: false
 # frozen_string_literal: true
 
-# Datadog global namespace
 module Datadog
   # Error is a value-object responsible for sanitizing/encapsulating error data
   class Error

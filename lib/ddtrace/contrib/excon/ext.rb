@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Excon
       # Excon integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ENABLED = 'DD_TRACE_EXCON_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_EXCON_ANALYTICS_ENABLED'.freeze

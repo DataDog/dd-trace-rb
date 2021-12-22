@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActionCable
       # ActionCable integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ENABLED = 'DD_TRACE_ACTION_CABLE_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_CABLE_ANALYTICS_ENABLED'.freeze

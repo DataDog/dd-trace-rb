@@ -11,6 +11,8 @@ require 'ddtrace/utils/only_once'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
+  # DEV: Our goal is for {Datadog::Workers::TraceWriter} to replace this class in the future
+  # @public_api
   class Writer
     attr_reader \
       :transport,
@@ -49,6 +51,9 @@ module Datadog
       @events = Events.new
     end
 
+    # Explicitly starts the {Writer}'s internal worker.
+    #
+    # The {Writer} is also automatically started when necessary during calls to {.write}.
     def start
       @mutex_after_fork.synchronize do
         return false if @stopped
@@ -64,6 +69,7 @@ module Datadog
     end
 
     # spawns a worker for spans; they share the same transport which is thread-safe
+    # @!visibility private
     def start_worker
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @worker = Datadog::Workers::AsyncTransport.new(
@@ -100,6 +106,7 @@ module Datadog
     private :start_worker, :stop_worker
 
     # flush spans to the trace-agent, handles spans only
+    # @!visibility private
     def send_spans(traces, transport)
       return true if traces.empty?
 

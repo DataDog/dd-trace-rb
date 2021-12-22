@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Dalli
       # Dalli integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ENABLED = 'DD_TRACE_DALLI_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_DALLI_ANALYTICS_ENABLED'.freeze

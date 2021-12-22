@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/diagnostics/health'
 require 'ddtrace/logger'

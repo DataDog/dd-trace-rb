@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module ActiveSupport
       # ActiveSupport integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ENABLED = 'DD_TRACE_ACTIVE_SUPPORT_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_SUPPORT_ANALYTICS_ENABLED'.freeze

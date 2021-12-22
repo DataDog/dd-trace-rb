@@ -2,6 +2,7 @@
 module Datadog
   module OpenTracer
     # OpenTracing adapter for Datadog::Span
+    # @public_api
     class Span < ::OpenTracing::Span
       attr_reader \
         :datadog_span

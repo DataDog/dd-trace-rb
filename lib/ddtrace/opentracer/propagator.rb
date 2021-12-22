@@ -2,6 +2,8 @@
 module Datadog
   module OpenTracer
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
+    # @abstract
+    # @public_api
     module Propagator
       # Inject a SpanContext into the given carrier
       #

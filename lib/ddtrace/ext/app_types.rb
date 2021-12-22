@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module AppTypes
       WEB = 'web'.freeze
       DB = 'db'.freeze

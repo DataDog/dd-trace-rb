@@ -3,6 +3,7 @@ module Datadog
   module Contrib
     module Rake
       # Rake integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ENABLED = 'DD_TRACE_RAKE_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_RAKE_ANALYTICS_ENABLED'.freeze

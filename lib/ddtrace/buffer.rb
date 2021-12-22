@@ -1,9 +1,10 @@
 # typed: true
 require 'ddtrace/diagnostics/health'
 
-# Trace buffer that accumulates traces for a consumer.
-# Consumption can happen from a different thread.
 module Datadog
+  # Trace buffer that accumulates traces for a consumer.
+  # Consumption can happen from a different thread.
+
   # Buffer that stores objects. The buffer has a maximum size and when
   # the buffer is full, a random object is discarded.
   class Buffer
@@ -311,7 +312,7 @@ module Datadog
   # Trace buffer that stores application traces, has a maximum size, and
   # can be safely used concurrently on any environment.
   #
-  # @see {Datadog::ThreadSafeBuffer}
+  # @see Datadog::ThreadSafeBuffer
   class ThreadSafeTraceBuffer < ThreadSafeBuffer
     prepend MeasuredBuffer
   end
@@ -319,7 +320,7 @@ module Datadog
   # Trace buffer that stores application traces, has a maximum size, and
   # can be safely used concurrently with CRuby.
   #
-  # @see {Datadog::CRubyBuffer}
+  # @see Datadog::CRubyBuffer
   class CRubyTraceBuffer < CRubyBuffer
     prepend MeasuredBuffer
   end

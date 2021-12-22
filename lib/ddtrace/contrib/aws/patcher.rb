@@ -23,7 +23,7 @@ module Datadog
           add_plugin(Seahorse::Client::Base, *loaded_constants)
 
           # Special handling for S3 URL Presigning.
-          # @see {Datadog::Contrib::Aws::S3Presigner}
+          # @see Datadog::Contrib::Aws::S3Presigner
           ::Aws::S3::Presigner.prepend(S3Presigner) if defined?(::Aws::S3::Presigner)
         end
 

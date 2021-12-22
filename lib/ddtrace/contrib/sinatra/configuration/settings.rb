@@ -8,6 +8,7 @@ module Datadog
     module Sinatra
       module Configuration
         # Custom settings for the Sinatra integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_HEADERS = {
             response: %w[Content-Type X-Request-ID]

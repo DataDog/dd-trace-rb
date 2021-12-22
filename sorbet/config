@@ -1,3 +1,4 @@
 --dir
 .
 --ignore=/integration
+--ignore=/yard

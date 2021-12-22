@@ -2,16 +2,16 @@
 require 'ddtrace/utils/forking'
 
 module Datadog
-  # \Context is used to keep track of a hierarchy of spans for the current
-  # execution flow. During each logical execution, the same \Context is
+  # {Datadog::Context} is used to keep track of a hierarchy of spans for the current
+  # execution flow. During each logical execution, the same {Datadog::Context} is
   # used to represent a single logical trace, even if the trace is built
   # asynchronously.
   #
-  # A single code execution may use multiple \Context if part of the execution
+  # A single code execution may use multiple {Datadog::Context} if part of the execution
   # must not be related to the current tracing. As example, a delayed job may
   # compose a standalone trace instead of being related to the same trace that
   # generates the job itself. On the other hand, if it's part of the same
-  # \Context, it will be related to the original trace.
+  # {Datadog::Context}, it will be related to the original trace.
   class Context
     include Datadog::Utils::Forking
 

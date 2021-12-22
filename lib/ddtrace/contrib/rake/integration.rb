@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('12.0')
 
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :rake
 
         def self.version

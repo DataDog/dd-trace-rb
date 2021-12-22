@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('1.7.9')
 
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :graphql, auto_patch: true
 
         def self.version

@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module HTTP
       BASE_URL = 'http.base_url'.freeze
       ERROR_RANGE = (500...600).freeze

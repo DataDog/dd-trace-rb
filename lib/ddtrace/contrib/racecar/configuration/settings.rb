@@ -7,6 +7,7 @@ module Datadog
     module Racecar
       module Configuration
         # Custom settings for the Racecar integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }

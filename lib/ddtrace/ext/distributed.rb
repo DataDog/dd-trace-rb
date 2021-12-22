@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module DistributedTracing
       # HTTP headers one should set for distributed tracing.
       # These are cross-language (eg: Python, Go and other implementations should honor these)

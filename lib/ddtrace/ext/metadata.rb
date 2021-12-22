@@ -5,6 +5,7 @@ module Datadog
     # regarding the trace. These fields are normally only used
     # internally, and can have special meaning to downstream
     # trace processing.
+    # @public_api
     module Metadata
       # Name of package that was instrumented
       TAG_COMPONENT = 'component'.freeze

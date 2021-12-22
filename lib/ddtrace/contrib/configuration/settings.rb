@@ -6,6 +6,7 @@ module Datadog
   module Contrib
     module Configuration
       # Common settings for all integrations
+      # @public_api
       class Settings
         include Datadog::Configuration::Base
 

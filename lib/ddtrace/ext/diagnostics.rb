@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Diagnostics
       DD_TRACE_STARTUP_LOGS = 'DD_TRACE_STARTUP_LOGS'.freeze
       DD_TRACE_DEBUG = 'DD_TRACE_DEBUG'.freeze

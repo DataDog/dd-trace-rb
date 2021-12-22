@@ -3,7 +3,7 @@ require 'msgpack'
 
 module Datadog
   module Transport
-    # Adds serialization functions to a \TraceSegment
+    # Adds serialization functions to a {Datadog::TraceSegment}
     class SerializableTrace
       attr_reader \
         :trace
@@ -32,7 +32,7 @@ module Datadog
       end
     end
 
-    # Adds serialization functions to a \Span
+    # Adds serialization functions to a {Datadog::Span}
     class SerializableSpan
       attr_reader \
         :span
@@ -53,8 +53,10 @@ module Datadog
       def to_msgpack(packer = nil)
         packer ||= MessagePack::Packer.new
 
+        number_of_elements_to_write = 10
+
         if span.stopped?
-          packer.write_map_header(13) # Set header with how many elements in the map
+          packer.write_map_header(number_of_elements_to_write + 2) # Set header with how many elements in the map
 
           packer.write('start')
           packer.write(time_nano(span.start_time))
@@ -62,7 +64,7 @@ module Datadog
           packer.write('duration')
           packer.write(duration_nano(span.duration))
         else
-          packer.write_map_header(11) # Set header with how many elements in the map
+          packer.write_map_header(number_of_elements_to_write) # Set header with how many elements in the map
         end
 
         # DEV: We use strings as keys here, instead of symbols, as
@@ -86,8 +88,6 @@ module Datadog
         packer.write(span.meta)
         packer.write('metrics')
         packer.write(span.metrics)
-        packer.write('allocations')
-        packer.write(span.allocations)
         packer.write('error')
         packer.write(span.status)
         packer

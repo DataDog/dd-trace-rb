@@ -6,6 +6,7 @@ module Datadog
   # Encoding module that encodes data for the AgentTransport
   module Encoding
     # Encoder interface that provides the logic to encode traces and service
+    # @abstract
     module Encoder
       include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
 

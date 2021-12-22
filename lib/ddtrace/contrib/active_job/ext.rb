@@ -2,6 +2,7 @@
 module Datadog
   module Contrib
     module ActiveJob
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ENABLED = 'DD_TRACE_ACTIVE_JOB_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_JOB_ANALYTICS_ENABLED'.freeze

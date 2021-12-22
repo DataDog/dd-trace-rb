@@ -6,6 +6,7 @@ require 'ddtrace/ext/net'
 module Datadog
   module Tagging
     # Adds metadata & metric tag behavior
+    # @public_api
     module Metadata
       # This limit is for numeric tags because uint64 could end up rounded.
       NUMERIC_TAG_SIZE_RANGE = (-1 << 53..1 << 53).freeze
@@ -83,7 +84,7 @@ module Datadog
         Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
       end
 
-      # This method removes a metric for the given key. It acts like {#remove_tag}.
+      # This method removes a metric for the given key. It acts like {#clear_tag}.
       def clear_metric(key)
         metrics.delete(key)
       end

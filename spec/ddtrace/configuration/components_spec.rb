@@ -676,7 +676,7 @@ RSpec.describe Datadog::Configuration::Components do
               end
 
               context 'are set' do
-                let(:writer_options) { { foo: :bar } }
+                let(:writer_options) { { transport_options: :bar } }
 
                 it_behaves_like 'new tracer' do
                   let(:options) do

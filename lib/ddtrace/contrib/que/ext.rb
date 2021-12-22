@@ -5,6 +5,7 @@ module Datadog
   module Contrib
     module Que
       # Que integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_QUE_ANALYTICS_ENABLED'
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE'

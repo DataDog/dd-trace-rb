@@ -6,6 +6,7 @@ require 'ddtrace/configuration/option_definition_set'
 module Datadog
   module Configuration
     # Behavior for a configuration object that has options
+    # @public_api
     module Options
       def self.included(base)
         base.extend(ClassMethods)
@@ -13,6 +14,7 @@ module Datadog
       end
 
       # Class behavior for a configuration object with options
+      # @public_api
       module ClassMethods
         def options
           # Allows for class inheritance of option definitions
@@ -57,6 +59,7 @@ module Datadog
       end
 
       # Instance behavior for a configuration object with options
+      # @public_api
       module InstanceMethods
         def options
           @options ||= OptionSet.new

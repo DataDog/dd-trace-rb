@@ -11,10 +11,11 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
+  # @public_api
   class Span
     include Tagging
 
-    # The max value for a \Span identifier.
+    # The max value for a {Datadog::Span} identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
     # Limited to +2<<62-1+ positive integers, as Ruby is able to represent such numbers "inline",
@@ -28,7 +29,6 @@ module Datadog
     EXTERNAL_MAX_ID = 1 << 64
 
     attr_accessor \
-      :allocations,
       :end_time,
       :id,
       :meta,
@@ -62,7 +62,6 @@ module Datadog
     # TODO: Remove span_type
     def initialize(
       name,
-      allocations: 0,
       duration: nil,
       end_time: nil,
       id: nil,
@@ -89,8 +88,6 @@ module Datadog
       @meta = meta || {}
       @metrics = metrics || {}
       @status = status || 0
-
-      @allocations = allocations || 0
 
       # start_time and end_time track wall clock. In Ruby, wall clock
       # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -141,7 +138,6 @@ module Datadog
     # isn't handled by this method.
     def to_hash
       h = {
-        allocations: @allocations,
         error: @status,
         meta: @meta,
         metrics: @metrics,
@@ -179,7 +175,6 @@ module Datadog
         q.text "Start: #{start_time}\n"
         q.text "End: #{end_time}\n"
         q.text "Duration: #{duration.to_f}\n"
-        q.text "Allocations: #{allocations}\n"
         q.group(2, 'Tags: [', "]\n") do
           q.breakable
           q.seplist @meta.each do |key, value|

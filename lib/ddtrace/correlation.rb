@@ -7,6 +7,7 @@ module Datadog
   # e.g. Retrieve a correlation to the current trace for logging, etc.
   module Correlation
     # Represents current trace state with key identifiers
+    # @public_api
     class Identifier
       attr_reader \
         :env,
@@ -24,6 +25,7 @@ module Datadog
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
+      # @!visibility private
       def initialize(
         env: nil,
         service: nil,
@@ -76,8 +78,12 @@ module Datadog
     module_function
 
     # Produces a CorrelationIdentifier from the TraceDigest provided
+    #
+    # DEV: can we memoize this object, give it can be common to
+    # use a correlation multiple times, specially in the context of logging?
+    # @!visibility private
     def identifier_from_digest(digest)
-      return Identifier.new.freeze unless digest
+      return Identifier.new unless digest
 
       Identifier.new(
         span_id: digest.span_id,

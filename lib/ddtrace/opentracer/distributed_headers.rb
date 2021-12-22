@@ -5,6 +5,7 @@ require 'ddtrace/ext/distributed'
 module Datadog
   module OpenTracer
     # DistributedHeaders provides easy access and validation to headers
+    # @public_api
     class DistributedHeaders
       include Datadog::Ext::DistributedTracing
 

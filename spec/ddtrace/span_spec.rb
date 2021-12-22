@@ -213,7 +213,6 @@ RSpec.describe Datadog::Span do
         type: nil,
         meta: {},
         metrics: {},
-        allocations: 0,
         error: 0
       )
     end

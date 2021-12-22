@@ -5,6 +5,7 @@ require 'ddtrace/ext/sampling'
 
 module Datadog
   # Serializable construct representing a trace
+  # @public_api
   class TraceSegment
     extend Forwardable
 
@@ -88,10 +89,20 @@ module Datadog
       end
     end
 
+    # If an active trace is present, forces it to be retained by the Datadog backend.
+    #
+    # Any sampling logic will not be able to change this decision.
+    #
+    # @return [void]
     def keep!
       self.sampling_priority = Datadog::Ext::Priority::USER_KEEP
     end
 
+    # If an active trace is present, forces it to be dropped and not stored by the Datadog backend.
+    #
+    # Any sampling logic will not be able to change this decision.
+    #
+    # @return [void]
     def reject!
       self.sampling_priority = Datadog::Ext::Priority::USER_REJECT
     end
