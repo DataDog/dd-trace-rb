@@ -9,28 +9,23 @@ module Datadog
     class DistributedHeaders
       include Datadog::Ext::DistributedTracing
 
-      # @public_api
       def initialize(carrier)
         @carrier = carrier
       end
 
-      # @public_api
       def valid?
         # Sampling priority is optional.
         !trace_id.nil? && !parent_id.nil?
       end
 
-      # @public_api
       def trace_id
         id HTTP_HEADER_TRACE_ID
       end
 
-      # @public_api
       def parent_id
         id HTTP_HEADER_PARENT_ID
       end
 
-      # @public_api
       def sampling_priority
         hdr = @carrier[HTTP_HEADER_SAMPLING_PRIORITY]
         # It's important to make a difference between no header,
@@ -43,7 +38,6 @@ module Datadog
         value
       end
 
-      # @public_api
       def origin
         hdr = @carrier[HTTP_HEADER_ORIGIN]
         # Only return the value if it is not an empty string
