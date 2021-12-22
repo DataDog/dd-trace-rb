@@ -4,11 +4,9 @@ module Datadog
     # OpenTracing adapter for Datadog::Span
     # @public_api
     class Span < ::OpenTracing::Span
-      # @public_api
       attr_reader \
         :datadog_span
 
-      # @public_api
       def initialize(datadog_span:, span_context:)
         @datadog_span = datadog_span
         @span_context = span_context
@@ -17,7 +15,6 @@ module Datadog
       # Set the name of the operation
       #
       # @param [String] name
-      # @public_api
       def operation_name=(name)
         datadog_span.name = name
       end
@@ -25,7 +22,6 @@ module Datadog
       # Span Context
       #
       # @return [SpanContext]
-      # @public_api
       def context
         @span_context
       end
@@ -34,7 +30,6 @@ module Datadog
       # @param key [String] the key of the tag
       # @param value [String, Numeric, Boolean] the value of the tag. If it's not
       # a String, Numeric, or Boolean it will be encoded with to_s
-      # @public_api
       def set_tag(key, value)
         # Special cases to convert opentracing tags to datadog tags
         case key
@@ -50,7 +45,6 @@ module Datadog
       # Set a baggage item on the span
       # @param key [String] the key of the baggage item
       # @param value [String] the value of the baggage item
-      # @public_api
       def set_baggage_item(key, value)
         tap do
           # SpanContext is immutable, so to make changes
@@ -65,7 +59,6 @@ module Datadog
       # Get a baggage item
       # @param key [String] the key of the baggage item
       # @return [String] value of the baggage item
-      # @public_api
       def get_baggage_item(key)
         context.baggage[key]
       end
@@ -78,7 +71,6 @@ module Datadog
       # @param event [String] event name for the log
       # @param timestamp [Time] time of the log
       # @param fields [Hash] Additional information to log
-      # @public_api
       def log(event: nil, timestamp: Time.now, **fields)
         super # Log deprecation warning
 
@@ -89,7 +81,6 @@ module Datadog
       # Add a log entry to this span
       # @param timestamp [Time] time of the log
       # @param fields [Hash] Additional information to log
-      # @public_api
       def log_kv(timestamp: Time.now, **fields)
         # If the fields specify an error
         datadog_span.set_error(fields[:'error.object']) if fields.key?(:'error.object')
@@ -97,7 +88,6 @@ module Datadog
 
       # Finish the {Span}
       # @param end_time [Time] custom end time, if not now
-      # @public_api
       def finish(end_time: Time.now)
         datadog_span.finish(end_time)
       end
