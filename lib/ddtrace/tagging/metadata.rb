@@ -84,7 +84,7 @@ module Datadog
         Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
       end
 
-      # This method removes a metric for the given key. It acts like {#remove_tag}.
+      # This method removes a metric for the given key. It acts like {#clear_tag}.
       def clear_metric(key)
         metrics.delete(key)
       end
