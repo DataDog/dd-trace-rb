@@ -10,19 +10,16 @@ module Datadog
 
       # (see Datadog::Tracer)
       # @return [Datadog::Tracer]
-      # @public_api
       attr_reader \
         :datadog_tracer
 
       # (see Datadog::Tracer#initialize)
-      # @public_api
       def initialize(**options)
         super()
         @datadog_tracer = Datadog::Tracer.new(**options)
       end
 
       # @return [ScopeManager] the current ScopeManager.
-      # @public_api
       def scope_manager
         @scope_manager ||= ThreadLocalScopeManager.new
       end
@@ -52,7 +49,6 @@ module Datadog
       #   yield the newly-started Scope. If `finish_on_close` is true then the
       #   Span will be finished automatically after the block is executed.
       # @return [Scope] The newly-started and activated Scope
-      # @public_api
       def start_active_span(operation_name,
                             child_of: nil,
                             references: nil,
@@ -125,7 +121,6 @@ module Datadog
       #   References#CHILD_OF reference to the ScopeManager#active.
       # @return [Span] the newly-started Span instance, which has not been
       #   automatically registered via the ScopeManager
-      # @public_api
       def start_span(operation_name,
                      child_of: nil,
                      references: nil,
@@ -163,7 +158,6 @@ module Datadog
       # @param span_context [SpanContext]
       # @param format [OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK]
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
-      # @public_api
       def inject(span_context, format, carrier)
         case format
         when OpenTracing::FORMAT_TEXT_MAP
@@ -182,7 +176,6 @@ module Datadog
       # @param format [OpenTracing::FORMAT_TEXT_MAP, OpenTracing::FORMAT_BINARY, OpenTracing::FORMAT_RACK]
       # @param carrier [Carrier] A carrier object of the type dictated by the specified `format`
       # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
-      # @public_api
       def extract(format, carrier)
         case format
         when OpenTracing::FORMAT_TEXT_MAP
