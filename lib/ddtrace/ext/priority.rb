@@ -6,14 +6,14 @@ module Datadog
     # @public_api
     module Priority
       # Use this to explicitly inform the backend that a trace MUST be rejected and not stored.
-      # This includes rules and rate limits configured by the user through the {RuleSampler}.
+      # This includes rules and rate limits configured by the user through the {Datadog::Sampling::RuleSampler}.
       USER_REJECT = -1
       # Used by the {PrioritySampler} to inform the backend that a trace should be rejected and not stored.
       AUTO_REJECT = 0
       # Used by the {PrioritySampler} to inform the backend that a trace should be kept and stored.
       AUTO_KEEP = 1
       # Use this to explicitly inform the backend that a trace MUST be kept and stored.
-      # This includes rules and rate limits configured by the user through the {RuleSampler}.
+      # This includes rules and rate limits configured by the user through the {Datadog::Sampling::RuleSampler}.
       USER_KEEP = 2
     end
   end
