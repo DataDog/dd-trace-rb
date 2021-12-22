@@ -312,7 +312,7 @@ module Datadog
   # Trace buffer that stores application traces, has a maximum size, and
   # can be safely used concurrently on any environment.
   #
-  # @see {Datadog::ThreadSafeBuffer}
+  # @see Datadog::ThreadSafeBuffer
   class ThreadSafeTraceBuffer < ThreadSafeBuffer
     prepend MeasuredBuffer
   end
@@ -320,7 +320,7 @@ module Datadog
   # Trace buffer that stores application traces, has a maximum size, and
   # can be safely used concurrently with CRuby.
   #
-  # @see {Datadog::CRubyBuffer}
+  # @see Datadog::CRubyBuffer
   class CRubyTraceBuffer < CRubyBuffer
     prepend MeasuredBuffer
   end
