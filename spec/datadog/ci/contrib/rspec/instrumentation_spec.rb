@@ -54,6 +54,17 @@ RSpec.describe 'RSpec hooks' do
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_STATUS)).to eq(Datadog::CI::Ext::Test::Status::PASS)
   end
 
+  it 'creates correct span on shared examples' do
+    spec = with_new_rspec_environment do
+      require 'spec/datadog/ci/contrib/rspec/some_shared_examples'
+      spec = RSpec.describe 'some test' do
+        include_examples 'Testing shared examples'
+      end.tap(&:run)
+    end
+
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
+  end
+
   it 'creates spans for several examples' do
     num_examples = 20
     with_new_rspec_environment do
