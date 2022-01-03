@@ -9,8 +9,6 @@ module Datadog
     module Metadata
       # Name of package that was instrumented
       TAG_COMPONENT = 'component'.freeze
-      # Role of the service in executing an operation (e.g. client vs server)
-      TAG_KIND = 'kind'.freeze
       # Type of operation being performed (e.g. )
       TAG_OPERATION = 'operation'.freeze
       # Hostname of external service interacted with
