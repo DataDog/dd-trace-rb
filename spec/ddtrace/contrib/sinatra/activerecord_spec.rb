@@ -95,11 +95,23 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
 
       expect(sqlite_span.get_tag('active_record.db.vendor')).to eq('sqlite')
       expect(sqlite_span.get_tag('active_record.db.name')).to eq(':memory:')
+      # TODO: Populate hostname and port for JDBC connections
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?
       expect(sqlite_span.get_tag('out.port')).to eq(adapter_port.to_s) unless adapter_port.nil?
       expect(sqlite_span.span_type).to eq(Datadog::Ext::SQL::TYPE)
       expect(sqlite_span).to_not have_error
       expect(sqlite_span.parent_id).to eq(route_span.span_id)
+      expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_record')
+      expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('sql')
+      expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('sqlite')
+
+      unless adapter_host.nil?
+        # TODO: Populate hostname for JDBC connections
+        expect(sqlite_span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+          .to eq(adapter_host.to_s)
+      end
 
       expect(route_span).to_not have_error
     end

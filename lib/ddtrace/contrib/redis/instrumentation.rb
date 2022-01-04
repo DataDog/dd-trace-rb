@@ -54,7 +54,7 @@ module Datadog
             @datadog_pin ||= begin
               pin = Datadog::Pin.new(
                 datadog_configuration[:service_name],
-                app: Ext::APP,
+                app: Ext::TAG_COMPONENT,
                 app_type: Datadog::Ext::AppTypes::DB,
               )
               pin.onto(self)

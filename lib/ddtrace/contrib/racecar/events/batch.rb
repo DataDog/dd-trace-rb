@@ -21,6 +21,10 @@ module Datadog
           def span_name
             Ext::SPAN_BATCH
           end
+
+          def span_options
+            super.merge(tags: { Datadog::Ext::Metadata::TAG_OPERATION => Ext::TAG_OPERATION_BATCH })
+          end
         end
       end
     end

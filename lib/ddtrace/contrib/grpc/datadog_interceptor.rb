@@ -37,7 +37,7 @@ module Datadog
           def add_datadog_pin!
             Pin.new(
               service_name,
-              app: Ext::APP,
+              app: Ext::TAG_COMPONENT,
               app_type: Datadog::Ext::AppTypes::WEB,
             ).tap do |pin|
               yield(pin) if block_given?

@@ -69,7 +69,9 @@ RSpec.describe 'net/http requests' do
         before { response }
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     context 'that returns 404' do
@@ -93,7 +95,9 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.msg')).to be nil
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
 
       context 'when configured with #after_request hook' do
         before { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -159,7 +163,9 @@ RSpec.describe 'net/http requests' do
         expect(span.status).to eq(0)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -189,7 +195,9 @@ RSpec.describe 'net/http requests' do
         expect(span.status).to eq(0)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -212,7 +220,9 @@ RSpec.describe 'net/http requests' do
         expect(span.service).to eq(service_name)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 

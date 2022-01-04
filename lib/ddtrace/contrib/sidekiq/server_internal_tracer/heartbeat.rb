@@ -11,9 +11,11 @@ module Datadog
           def ❤ # rubocop:disable Naming/AsciiIdentifiers, Naming/MethodName
             configuration = Datadog.configuration[:sidekiq]
 
-            Datadog.tracer.trace(Ext::SPAN_HEARTBEAT) do |span|
-              span.service = configuration[:service_name]
+            Datadog.tracer.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
               span.span_type = Datadog::Ext::AppTypes::WORKER
+
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_HEARTBEAT)
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

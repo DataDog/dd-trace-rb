@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/dalli/ext'
@@ -22,8 +22,12 @@ module Datadog
               span.service = datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Dalli::Ext::SPAN_TYPE_COMMAND
 
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
+
               # Tag as an external peer service
-              span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, hostname)
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

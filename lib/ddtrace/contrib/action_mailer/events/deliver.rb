@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/action_mailer/ext'
 require 'ddtrace/contrib/action_mailer/event'
 
@@ -6,7 +7,7 @@ module Datadog
   module Contrib
     module ActionMailer
       module Events
-        # Defines instrumentation for process.action_mailer event
+        # Defines instrumentation for deliver.action_mailer event
         module Deliver
           include ActionMailer::Event
 
@@ -33,6 +34,8 @@ module Datadog
             span.span_type = span_type
             span.set_tag(Ext::TAG_MAILER, payload[:mailer])
             span.set_tag(Ext::TAG_MSG_ID, payload[:message_id])
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
 
             # Since email date can contain PII we disable by default
             # Some of these fields can be either strings or arrays, so we try to normalize

@@ -44,40 +44,11 @@ module Datadog
             end
           end
 
-          option :cache_service do |o|
-            o.on_set do |value|
-              # Update ActiveSupport service name too
-              Datadog.configuration[:active_support][:cache_service] = value
-            end
-          end
-
-          option :controller_service do |o|
-            o.on_set do |value|
-              # Update ActionPack service name too
-              Datadog.configuration[:action_pack][:controller_service] = value
-            end
-          end
-
-          option :database_service do |o|
-            o.depends_on :service_name
-            o.on_set do |value|
-              # Update ActiveRecord service name too
-              Datadog.configuration[:active_record][:service_name] = value
-            end
-          end
-
           option :distributed_tracing, default: true
           option :exception_controller do |o|
             o.on_set do |value|
               # Update ActionPack exception controller too
               Datadog.configuration[:action_pack][:exception_controller] = value
-            end
-          end
-
-          option :job_service do |o|
-            o.on_set do |value|
-              # Update ActiveJob service name too
-              Datadog.configuration[:active_job][:service_name] = value
             end
           end
 

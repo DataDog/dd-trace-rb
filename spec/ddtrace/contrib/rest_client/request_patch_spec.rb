@@ -90,7 +90,14 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
-          it_behaves_like 'a peer service span'
+          it 'has correct component and operation tags' do
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rest_client')
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+          end
+
+          it_behaves_like 'a peer service span' do
+            let(:peer_hostname) { host }
+          end
 
           it_behaves_like 'measured span for integration', false
         end
@@ -204,7 +211,14 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
               expect(span.service).to eq('rest_client')
             end
 
-            it_behaves_like 'a peer service span'
+            it 'has correct component and operation tags' do
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rest_client')
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+            end
+
+            it_behaves_like 'a peer service span' do
+              let(:peer_hostname) { host }
+            end
           end
         end
       end

@@ -1,4 +1,5 @@
 # typed: true
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/active_job/ext'
 
@@ -15,7 +16,9 @@ module Datadog
         # Class methods for ActiveJob events.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
+            options = {}
+            options[:service] = configuration[:service_name] if configuration[:service_name]
+            options
           end
 
           def tracer
@@ -33,6 +36,8 @@ module Datadog
                              payload[:adapter].class.name
                            end
             span.set_tag(Ext::TAG_ADAPTER, adapter_name)
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             job = payload[:job]
             span.set_tag(Ext::TAG_JOB_ID, job.job_id)

@@ -5,11 +5,9 @@ module Datadog
       # Kafka integration constants
       # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
-        APP = 'kafka'.freeze
         ENV_ENABLED = 'DD_TRACE_KAFKA_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_KAFKA_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_KAFKA_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'kafka'.freeze
         SPAN_CONNECTION_REQUEST = 'kafka.connection.request'.freeze
         SPAN_CONSUMER_HEARTBEAT = 'kafka.consumer.heartbeat'.freeze
         SPAN_CONSUMER_JOIN_GROUP = 'kafka.consumer.join_group'.freeze
@@ -35,6 +33,16 @@ module Datadog
         TAG_SENT_MESSAGE_COUNT = 'kafka.sent_message_count'.freeze
         TAG_TOPIC = 'kafka.topic'.freeze
         TAG_TOPIC_PARTITIONS = 'kafka.topic_partitions'.freeze
+        TAG_COMPONENT = 'kafka'.freeze
+        TAG_OPERATION_CONNECTION_REQUEST = 'connection.request'.freeze
+        TAG_OPERATION_CONSUMER_HEARTBEAT = 'consumer.heartbeat'.freeze
+        TAG_OPERATION_CONSUMER_JOIN_GROUP = 'consumer.join_group'.freeze
+        TAG_OPERATION_CONSUMER_LEAVE_GROUP = 'consumer.leave_group'.freeze
+        TAG_OPERATION_CONSUMER_SYNC_GROUP = 'consumer.sync_group'.freeze
+        TAG_OPERATION_DELIVER_MESSAGES = 'producer.deliver_messages'.freeze
+        TAG_OPERATION_PROCESS_BATCH = 'consumer.process_batch'.freeze
+        TAG_OPERATION_PROCESS_MESSAGE = 'consumer.process_message'.freeze
+        TAG_OPERATION_SEND_MESSAGES = 'producer.send_messages'.freeze
       end
     end
   end

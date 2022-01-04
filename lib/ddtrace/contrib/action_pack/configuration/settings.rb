@@ -24,9 +24,8 @@ module Datadog
             o.lazy
           end
 
-          option :controller_service
           option :exception_controller
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
         end
       end
     end

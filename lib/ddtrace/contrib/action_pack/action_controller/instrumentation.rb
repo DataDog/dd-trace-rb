@@ -16,7 +16,7 @@ module Datadog
 
           def start_processing(payload)
             # trace the execution
-            service = Datadog.configuration[:action_pack][:controller_service]
+            service = Datadog.configuration[:action_pack][:service_name]
             type = Datadog::Ext::HTTP::TYPE_INBOUND
             span = Datadog.tracer.trace(
               Ext::SPAN_ACTION_CONTROLLER,
@@ -33,6 +33,9 @@ module Datadog
 
             # We want the route to show up as the trace's resource
             trace.resource = span.resource
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
           rescue StandardError => e
             Datadog.logger.error(e.message)
           end

@@ -33,7 +33,7 @@ module Datadog
           option :headers, default: DEFAULT_HEADERS
           option :resource_script_names, default: false
 
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
         end
       end
     end

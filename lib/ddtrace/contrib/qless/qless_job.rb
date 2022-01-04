@@ -30,6 +30,9 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_DATA, formatted_data)
             end
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])

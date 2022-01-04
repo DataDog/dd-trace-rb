@@ -29,8 +29,8 @@ module Datadog
             o.lazy
           end
 
-          option :service_name, default: Ext::SERVICE_NAME
-          option :client_service_name, default: Ext::CLIENT_SERVICE_NAME
+          option :service_name
+          option :client_service_name
           option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end

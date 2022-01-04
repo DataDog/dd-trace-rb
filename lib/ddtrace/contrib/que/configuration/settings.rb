@@ -9,7 +9,7 @@ module Datadog
       module Configuration
         # Default settings for the Que integration
         class Settings < Datadog::Contrib::Configuration::Settings
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
           option :distributed_tracing, default: true
 
           option :enabled do |o|

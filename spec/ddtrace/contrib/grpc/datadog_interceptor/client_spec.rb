@@ -10,6 +10,9 @@ RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
 
   let(:configuration_options) { { service_name: 'rspec' } }
+  let(:peer) { "#{host}:#{port}" }
+  let(:host) { 'host.name' }
+  let(:port) { 0 }
 
   before do
     Datadog.configure do |c|
@@ -27,7 +30,7 @@ RSpec.describe 'tracing on the client connection' do
   context 'using client-specific configurations' do
     let(:keywords) do
       { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall'),
+        call: instance_double('GRPC::ActiveCall', peer: peer),
         method: 'MyService.Endpoint',
         metadata: { some: 'datum' } }
     end
@@ -46,14 +49,14 @@ RSpec.describe 'tracing on the client connection' do
       default_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'rspec'
-      expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('rspec')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('rspec')
 
       clear_traces!
 
       configured_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.last
       expect(span.service).to eq 'cepsr'
-      expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('cepsr')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('cepsr')
     end
   end
 
@@ -65,12 +68,19 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.get_tag('error.stack')).to be_nil }
     specify { expect(span.get_tag('some')).to eq 'datum' }
 
+    it 'has component and operation tags' do
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('grpc')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('client')
+    end
+
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { host }
+    end
 
     it_behaves_like 'measured span for integration', false
   end
@@ -78,7 +88,7 @@ RSpec.describe 'tracing on the client connection' do
   describe '#request_response' do
     let(:keywords) do
       { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall'),
+        call: instance_double('GRPC::ActiveCall', peer: peer),
         method: 'MyService.Endpoint',
         metadata: { some: 'datum' } }
     end
@@ -92,7 +102,7 @@ RSpec.describe 'tracing on the client connection' do
 
   describe '#client_streamer' do
     let(:keywords) do
-      { call: instance_double('GRPC::ActiveCall'),
+      { call: instance_double('GRPC::ActiveCall', peer: peer),
         method: 'MyService.Endpoint',
         metadata: { some: 'datum' } }
     end
@@ -107,7 +117,7 @@ RSpec.describe 'tracing on the client connection' do
   describe '#server_streamer' do
     let(:keywords) do
       { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall'),
+        call: instance_double('GRPC::ActiveCall', peer: peer),
         method: 'MyService.Endpoint',
         metadata: { some: 'datum' } }
     end
@@ -122,7 +132,7 @@ RSpec.describe 'tracing on the client connection' do
   describe '#bidi_streamer' do
     let(:keywords) do
       { requests: instance_double(Array),
-        call: instance_double('GRPC::ActiveCall'),
+        call: instance_double('GRPC::ActiveCall', peer: peer),
         method: 'MyService.Endpoint',
         metadata: { some: 'datum' } }
     end

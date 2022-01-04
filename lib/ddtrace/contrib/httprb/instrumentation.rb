@@ -55,6 +55,9 @@ module Datadog
           private
 
           def annotate_span_with_request!(span, req, req_options)
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
             if req.verb && req.verb.is_a?(String) || req.verb.is_a?(Symbol)
               http_method = req.verb.to_s.upcase
               span.resource = http_method
@@ -68,12 +71,14 @@ module Datadog
               span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, uri.host)
             else
               logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
             end
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
             set_analytics_sample_rate(span, req_options)
           end
@@ -100,7 +105,7 @@ module Datadog
 
             @datadog_pin ||= Datadog::Pin.new(
               service,
-              app: Ext::APP,
+              app: Ext::TAG_COMPONENT,
               app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
             )
 
@@ -117,7 +122,7 @@ module Datadog
 
             @default_datadog_pin ||= Datadog::Pin.new(
               service,
-              app: Ext::APP,
+              app: Ext::TAG_COMPONENT,
               app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
             )
           end

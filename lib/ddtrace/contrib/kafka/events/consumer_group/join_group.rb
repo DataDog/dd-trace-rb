@@ -22,6 +22,10 @@ module Datadog
             def span_name
               Ext::SPAN_CONSUMER_JOIN_GROUP
             end
+
+            def span_options
+              super.merge({ tags: { Datadog::Ext::Metadata::TAG_OPERATION => Ext::TAG_OPERATION_CONSUMER_JOIN_GROUP } })
+            end
           end
         end
       end

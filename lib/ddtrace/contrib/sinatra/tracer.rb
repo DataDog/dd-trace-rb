@@ -84,6 +84,9 @@ module Datadog
             return super unless tracer.enabled
 
             tracer.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
+
               span.set_tag(Ext::TAG_TEMPLATE_ENGINE, engine)
 
               # If data is a string, it is a literal template and we don't
@@ -99,6 +102,7 @@ module Datadog
 
           # Invoked when a matching route is found.
           # This method yields directly to user code.
+          # rubocop:disable Metrics/MethodLength
           def route_eval
             configuration = Datadog.configuration[:sinatra]
             tracer = Datadog.tracer
@@ -113,6 +117,9 @@ module Datadog
               span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
               span.set_tag(Ext::TAG_ROUTE_PATH, @datadog_route)
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
+
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ROUTE)
 
               trace.resource = span.resource
 
@@ -141,6 +148,7 @@ module Datadog
               super
             end
           end
+          # rubocop:enable Metrics/MethodLength
         end
       end
     end

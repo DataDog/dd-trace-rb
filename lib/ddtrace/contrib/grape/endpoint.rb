@@ -57,6 +57,9 @@ module Datadog
             # Set the trace resource
             trace.resource = span.resource
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
+
             Thread.current[KEY_RUN] = true
           rescue StandardError => e
             Datadog.logger.error(e.message)
@@ -112,11 +115,14 @@ module Datadog
             return unless enabled?
 
             # Store the beginning of a trace
-            tracer.trace(
+            span = tracer.trace(
               Ext::SPAN_ENDPOINT_RENDER,
               service: service_name,
               span_type: Datadog::Ext::HTTP::TEMPLATE
             )
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
 
             Thread.current[KEY_RENDER] = true
           rescue StandardError => e
@@ -164,6 +170,9 @@ module Datadog
             )
 
             begin
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 

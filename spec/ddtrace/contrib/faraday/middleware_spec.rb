@@ -50,7 +50,7 @@ RSpec.describe 'Faraday middleware' do
       expect(response.status).to eq(200)
 
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -60,9 +60,14 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
 
     it 'executes without warnings' do
       expect { response }.to_not output(/WARNING/).to_stderr
@@ -85,7 +90,7 @@ RSpec.describe 'Faraday middleware' do
       it 'uses default configuration' do
         expect(response.status).to eq(200)
 
-        expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+        expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
         expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
         expect(request_span.resource).to eq('GET')
         expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -95,6 +100,9 @@ RSpec.describe 'Faraday middleware' do
         expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
         expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
         expect(request_span).to_not have_error
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
       end
 
       it 'executes without warnings' do
@@ -126,7 +134,7 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -136,16 +144,21 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
   end
 
   context 'when there is a failing request' do
     subject!(:response) { client.post('/failure') }
 
     it do
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
@@ -157,9 +170,14 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
       expect(request_span).to have_error_message('Boom!')
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
   end
 
   context 'with library error' do
@@ -167,7 +185,7 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect { response }.to raise_error(Faraday::ConnectionFailed)
-      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -179,9 +197,14 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Faraday::ConnectionFailed')
       expect(request_span).to have_error_message(/Test error/)
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
     end
 
     it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+
       subject do
         begin
           client.get('/error')
@@ -219,7 +242,9 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.resource).to eq('GET')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
 
     context 'and the host matches a specific configuration' do
       before do
@@ -295,6 +320,7 @@ RSpec.describe 'Faraday middleware' do
 
     it_behaves_like 'a peer service span' do
       let(:span) { request_span }
+      let(:peer_hostname) { 'example.com' }
     end
   end
 
@@ -310,6 +336,7 @@ RSpec.describe 'Faraday middleware' do
 
     it_behaves_like 'a peer service span' do
       let(:span) { request_span }
+      let(:peer_hostname) { 'example.com' }
     end
   end
 

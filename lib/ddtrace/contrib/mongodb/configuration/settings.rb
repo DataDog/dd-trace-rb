@@ -27,7 +27,7 @@ module Datadog
           end
 
           option :quantize, default: DEFAULT_QUANTIZE
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
         end
       end
     end

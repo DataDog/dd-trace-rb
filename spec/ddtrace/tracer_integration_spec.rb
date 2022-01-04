@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'for a mock job with fan-out/fan-in behavior' do
       subject(:job) do
-        tracer.trace('job', resource: 'import_job', service: 'job-worker') do |_span, trace|
+        tracer.trace('job', resource: 'import_job') do |_span, trace|
           tracer.trace('load_data', resource: 'imports.csv') do
             tracer.trace('read_file', resource: 'imports.csv') do
               sleep(0.01)
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: 0,
           name: 'job',
           resource: 'import_job',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(load_data_span).to have_attributes(
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'load_data',
           resource: 'imports.csv',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(read_file_span).to have_attributes(
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: load_data_span.id,
           name: 'read_file',
           resource: 'imports.csv',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(deserialize_span).to have_attributes(
@@ -158,7 +158,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: load_data_span.id,
           name: 'deserialize',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(start_inserts_span).to have_attributes(
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'start_inserts',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(db_query_spans).to all(
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'wait_inserts',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
         expect(wait_insert_span.get_tag('worker.count')).to eq(5.0)
 
@@ -197,7 +197,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'update_log',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
       end
     end

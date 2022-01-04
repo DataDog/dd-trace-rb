@@ -1,6 +1,6 @@
 # typed: false
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/integration'

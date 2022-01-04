@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_job/ext'
 require 'ddtrace/contrib/active_job/event'
@@ -26,8 +26,9 @@ module Datadog
 
           def process(span, event, _id, payload)
             span.name = span_name
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = payload[:job].class.name
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENQUEUE)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

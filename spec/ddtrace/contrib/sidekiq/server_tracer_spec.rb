@@ -24,7 +24,7 @@ RSpec.describe 'Server tracer' do
     expect(spans).to have(2).items
 
     span, _push = spans
-    expect(span.service).to eq('sidekiq')
+    expect(span.service).to eq(tracer.default_service)
     expect(span.resource).to eq('EmptyWorker')
     expect(span.get_tag('sidekiq.job.queue')).to eq('default')
     expect(span.get_tag('sidekiq.job.delay')).to_not be_nil
@@ -32,6 +32,8 @@ RSpec.describe 'Server tracer' do
     expect(span).to be_root_span
     expect(span.get_tag('sidekiq.job.args')).to be_nil
     expect(span.get_metric('_dd.measured')).to eq(1.0)
+    expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sidekiq')
+    expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
   end
 
   context 'with job run failing' do
@@ -52,7 +54,7 @@ RSpec.describe 'Server tracer' do
       expect(spans).to have(2).items
 
       span, _push = spans
-      expect(span.service).to eq('sidekiq')
+      expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq('ErrorWorker')
       expect(span.get_tag('sidekiq.job.queue')).to eq('default')
       expect(span.get_tag('sidekiq.job.delay')).to_not be_nil
@@ -86,7 +88,7 @@ RSpec.describe 'Server tracer' do
 
       custom, empty, _push, _push = spans
 
-      expect(empty.service).to eq('sidekiq')
+      expect(empty.service).to eq(tracer.default_service)
       expect(empty.resource).to eq('EmptyWorker')
       expect(empty.get_tag('sidekiq.job.queue')).to eq('default')
       expect(empty.get_tag('sidekiq.job.delay')).to_not be_nil

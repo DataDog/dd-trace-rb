@@ -16,7 +16,9 @@ module Datadog
         # Class methods for ActionMailer events.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
+            options = {}
+            options[:service] = configuration[:service_name] if configuration[:service_name]
+            options
           end
 
           def tracer
@@ -28,8 +30,9 @@ module Datadog
           end
 
           def process(span, event, _id, payload)
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.resource = payload[:mailer]
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

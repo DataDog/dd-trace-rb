@@ -26,7 +26,7 @@ module Datadog
           end
 
           option :schemas
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_nam
         end
       end
     end

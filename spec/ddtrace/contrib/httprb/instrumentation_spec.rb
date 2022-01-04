@@ -124,7 +124,14 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
             expect(span.service).to eq('httprb')
           end
 
-          it_behaves_like 'a peer service span'
+          it 'has correct component and operation tags' do
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('httprb')
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+          end
+
+          it_behaves_like 'a peer service span' do
+            let(:peer_hostname) { host }
+          end
 
           it_behaves_like 'analytics for integration' do
             let(:analytics_enabled_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }

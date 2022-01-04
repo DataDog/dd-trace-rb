@@ -21,7 +21,6 @@ RSpec.describe 'GraphQL patcher' do
       remove_patch!(:graphql)
       Datadog.configure do |c|
         c.use :graphql,
-              service_name: 'graphql-test',
               schemas: [schema]
       end
     end
@@ -79,7 +78,7 @@ RSpec.describe 'GraphQL patcher' do
 
         # Expect each span to be properly named
         spans.each do |span|
-          expect(span.service).to eq('graphql-test')
+          expect(span.service).to eq(tracer.default_service)
           expect(valid_resource_names).to include(span.resource)
         end
       end

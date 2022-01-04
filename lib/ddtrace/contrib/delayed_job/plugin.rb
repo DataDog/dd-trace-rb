@@ -24,6 +24,9 @@ module Datadog
             span.set_tag(Ext::TAG_ATTEMPTS, job.attempts)
             span.span_type = Datadog::Ext::AppTypes::WORKER
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             yield job
           end
         end
@@ -40,6 +43,9 @@ module Datadog
             span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
             span.set_tag(Ext::TAG_PRIORITY, job.priority)
             span.span_type = Datadog::Ext::AppTypes::WORKER
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENQUEUE)
 
             yield job
           end

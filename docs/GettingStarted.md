@@ -27,11 +27,11 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
      - [Action Cable](#action-cable)
-     - [Action View](#action-view)
      - [Action Mailer](#action-mailer)
-     - [Active Model Serializers](#active-model-serializers)
      - [Action Pack](#action-pack)
+     - [Action View](#action-view)
      - [Active Job](#active-job)
+     - [Active Model Serializers](#active-model-serializers)
      - [Active Record](#active-record)
      - [Active Support](#active-support)
      - [AWS](#aws)
@@ -49,6 +49,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [http.rb](#httprb)
      - [httpclient](#httpclient)
      - [httpx](#httpx)
+     - [Kafka](#kafka)
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
@@ -60,11 +61,11 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Rails](#rails)
      - [Rake](#rake)
      - [Redis](#redis)
-     - [Rest Client](#rest-client)
      - [Resque](#resque)
+     - [Rest Client](#rest-client)
      - [RSpec](#rspec)
-     - [Shoryuken](#shoryuken)
      - [Sequel](#sequel)
+     - [Shoryuken](#shoryuken)
      - [Sidekiq](#sidekiq)
      - [Sinatra](#sinatra)
      - [Sneakers](#sneakers)
@@ -395,10 +396,10 @@ For a list of available integrations, and their configuration options, please re
 | ------------------------ | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
 | Action Cable             | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
 | Action Mailer            | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
-| Action View              | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
-| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Action Pack              | `action_pack`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Action View              | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
 | Active Job               | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | *[Link](#active-job)*               | *[Link](https://github.com/rails/rails/tree/master/activejob)*             |
+| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
 | Active Record            | `active_record`            | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
 | Active Support           | `active_support`           | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
 | AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
@@ -449,35 +450,9 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :action_cable, options
+  c.use :action_cable
 end
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `action_cable` instrumentation | `'action_cable'` |
-
-### Action View
-
-Most of the time, Active Support is set up as part of Rails, but it can be activated separately:
-
-```ruby
-require 'actionview'
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.use :action_view, options
-end
-```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| ---| --- | --- |
-| `service_name` | Service name used for rendering instrumentation. | `action_view` |
-| `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
 
 ### Action Mailer
 
@@ -497,28 +472,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
-| `service_name` | Service name used for `action_mailer` instrumentation | `'action_mailer'` |
 | `email_data` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
-
-### Active Model Serializers
-
-The Active Model Serializers integration traces the `serialize` event for version 0.9+ and the `render` event for version 0.10+.
-
-```ruby
-require 'active_model_serializers'
-require 'ddtrace'
-
-Datadog.configure do |c|
-  c.use :active_model_serializers, options
-end
-
-my_object = MyModel.new(name: 'my object')
-ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
-```
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `active_model_serializers` instrumentation. | `'active_model_serializers'` |
 
 ### Action Pack
 
@@ -529,7 +483,20 @@ require 'actionpack'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :action_pack, options
+  c.use :action_pack
+end
+```
+
+### Action View
+
+Most of the time, Action View is set up as part of Rails, but it can be activated separately:
+
+```ruby
+require 'actionview'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :action_view, options
 end
 ```
 
@@ -537,7 +504,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | ---| --- | --- |
-| `service_name` | Service name used for rendering instrumentation. | `action_pack` |
+| `template_base_path` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
 
 ### Active Job
 
@@ -548,17 +515,27 @@ require 'active_job'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :active_job, options
+  c.use :active_job
 end
 
 ExampleJob.perform_later
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+### Active Model Serializers
 
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `active_job` instrumentation | `'active_job'` |
+The Active Model Serializers integration traces the `serialize` event for version 0.9+ and the `render` event for version 0.10+.
+
+```ruby
+require 'active_model_serializers'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.use :active_model_serializers
+end
+
+my_object = MyModel.new(name: 'my object')
+ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
+```
 
 ### Active Record
 
@@ -585,7 +562,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | ---| --- | --- |
-| `orm_service_name` | Service name used for the mapping portion of query results to ActiveRecord objects. Inherits service name from parent by default. | _parent.service_name_ (e.g. `'mysql2'`) |
 | `service_name` | Service name used for database portion of `active_record` instrumentation. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
@@ -709,7 +685,7 @@ To activate your integration, use the `Datadog.configure` method:
 # Inside Rails initializer or equivalent
 Datadog.configure do |c|
   # Patches ::Concurrent::Future to use ExecutorService that propagates context
-  c.use :concurrent_ruby, options
+  c.use :concurrent_ruby
 end
 
 # Pass context into code executed within Concurrent::Future
@@ -717,12 +693,6 @@ Datadog.tracer.trace('outer') do
   Concurrent::Future.execute { Datadog.tracer.trace('inner') { } }.wait
 end
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `concurrent-ruby` instrumentation | `'concurrent-ruby'` |
 
 ### Cucumber
 
@@ -801,8 +771,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `DelayedJob` instrumentation | `'delayed_job'` |
-| `client_service_name` | Service name used for client-side `DelayedJob` instrumentation | `'delayed_job-client'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 ### Elasticsearch
@@ -978,7 +946,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `grape` instrumentation | `'grape'` |
 | `error_statuses`| Defines a status code or range of status codes which should be marked as errors. `'404,405,500-599'` or `[404,405,'500-599']` | `nil` |
 
 ### GraphQL
@@ -1001,7 +968,6 @@ The `use :graphql` method accepts the following parameters. Additional options c
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `graphql` instrumentation | `'ruby-graphql'` |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
 
 **Manually configuring GraphQL schemas**
@@ -1189,7 +1155,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `kafka` instrumentation | `'kafka'` |
 | `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### MongoDB
@@ -1363,7 +1328,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `qless` instrumentation | `'qless'` |
 | `tag_job_data` | Enable tagging with job arguments. true for on, false for off. | `false` |
 | `tag_job_tags` | Enable tagging with job tags. true for on, false for off. | `false` |
 
@@ -1386,7 +1350,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `que` instrumentation | `'que'` |
 | `tag_args` | Enable tagging of a job's args field. `true` for on, `false` for off. | `false` |
 | `tag_data` | Enable tagging of a job's data field. `true` for on, `false` for off. | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
@@ -1448,7 +1411,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `quantize.query.exclude` | Defines which values should be removed entirely. Excludes nothing by default. May be an Array of strings, or `:all` to remove the query string entirely. Option must be nested inside the `query` option. | `nil` |
 | `quantize.fragment` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | `nil` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
-| `service_name` | Service name used for `rack` instrumentation | `'rack'` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
 **Configuring URL quantization behavior**
@@ -1501,11 +1463,9 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `cache_service` | Cache service name used when tracing cache activity | `'<app_name>-cache'` |
-| `controller_service` | Service name used when tracing a Rails action controller | `'<app_name>'` |
 | `database_service` | Database service name used when tracing database activity | `'<app_name>-<adapter_name>'` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `exception_controller` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | `nil` |
-| `job_service` | Service name used when tracing ActiveJob activity. | `<app_name>-active_job` |
 | `middleware` | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load. | `true` |
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
 | `service_name` | Service name used when tracing application requests (on the `rack` level) | `'<app_name>'` (inferred from your Rails application namespace) |
@@ -1550,7 +1510,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
-| `service_name` | Service name used for `rake` instrumentation | `'rake'` |
 
 **Configuring task quantization behavior**
 
@@ -1685,7 +1644,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `resque` instrumentation | `'resque'` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client
@@ -1795,7 +1753,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `service_name` | Service name used for `shoryuken` instrumentation | `'shoryuken'` |
 | `tag_body` | Tag spans with the SQS message body `true` or `false` | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
@@ -1817,8 +1774,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `client_service_name` | Service name used for client-side `sidekiq` instrumentation | `'sidekiq-client'` |
-| `service_name` | Service name used for server-side `sidekiq` instrumentation | `'sidekiq'` |
 | `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
@@ -1883,7 +1838,6 @@ Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before y
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `headers` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `resource_script_names` | Prepend resource names with script name | `false` |
-| `service_name` | Service name used for `sinatra` instrumentation | `'sinatra'` |
 
 ### Sneakers
 
@@ -1904,7 +1858,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
-| `service_name` | Service name used for `sneakers` instrumentation | `'sneakers'` |
 | `tag_body` | Enable tagging of job message. `true` for on, `false` for off. | `false` |
 | `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
 
@@ -1916,18 +1869,12 @@ The `sucker_punch` integration traces all scheduled jobs:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :sucker_punch, options
+  c.use :sucker_punch
 end
 
 # Execution of this job is traced
 LogJob.perform_async('login')
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `service_name` | Service name used for `sucker_punch` instrumentation | `'sucker_punch'` |
 
 ## Advanced configuration
 

@@ -17,6 +17,10 @@ module Datadog
 
           tracer.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
             request_span.resource = job.class.name.to_s
+
+            request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             request_span.set_tag(Ext::TAG_JOB_QUEUE, job.que_attrs[:queue])
             request_span.set_tag(Ext::TAG_JOB_ID, job.que_attrs[:id])
             request_span.set_tag(Ext::TAG_JOB_PRIORITY, job.que_attrs[:priority])
@@ -50,7 +54,7 @@ module Datadog
         end
 
         def configuration
-          Datadog.configuration[Datadog::Contrib::Que::Ext::APP.to_sym]
+          Datadog.configuration[:que]
         end
       end
     end

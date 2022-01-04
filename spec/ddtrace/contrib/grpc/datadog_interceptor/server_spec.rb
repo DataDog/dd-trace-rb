@@ -32,6 +32,11 @@ RSpec.describe 'tracing on the server connection' do
     it { expect(span.get_tag('error.stack')).to be_nil }
     it { expect(span.get_tag('some')).to eq 'datum' }
 
+    it 'has component and operation tags' do
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('grpc')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('service')
+    end
+
     it_behaves_like 'analytics for integration' do
       let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }

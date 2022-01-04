@@ -22,7 +22,6 @@ module Datadog
       # Rails framework code, used to essentially:
       # - handle configuration entries which are specific to Datadog tracing
       # - instrument parts of the framework when needed
-      # rubocop:disable Metrics/ModuleLength:
       module Framework
         # After the Rails application finishes initializing, we configure the Rails
         # integration and all its sub-components with the application information
@@ -38,12 +37,15 @@ module Datadog
           #       used to reconfigure tracer components with Rails-sourced defaults.
           #       This is a trade-off we take to get nice defaults.
           Datadog.configure do |datadog_config|
-            rails_config = config_with_defaults(datadog_config)
-
             # By default, default service would be guessed from the script
             # being executed, but here we know better, get it from Rails config.
             # Don't set this if service has been explicitly provided by the user.
-            datadog_config.service ||= rails_config[:service_name]
+            rails_service_name =  datadog_config[:rails][:service_name] \
+                                  || Datadog.configuration.service_without_fallback \
+                                  || Utils.app_name
+            datadog_config.service ||= rails_service_name
+
+            rails_config = datadog_config[:rails]
 
             activate_rack!(datadog_config, rails_config)
             activate_action_cable!(datadog_config, rails_config)
@@ -55,18 +57,6 @@ module Datadog
             activate_active_record!(datadog_config, rails_config)
             activate_lograge!(datadog_config, rails_config)
             activate_semantic_logger!(datadog_config, rails_config)
-          end
-        end
-
-        def self.config_with_defaults(datadog_config)
-          # We set defaults here instead of in the patcher because we need to wait
-          # for the Rails application to be fully initialized.
-          datadog_config[:rails].tap do |config|
-            config[:service_name] ||= (Datadog.configuration.service_without_fallback || Utils.app_name)
-            config[:database_service] ||= "#{config[:service_name]}-#{Contrib::ActiveRecord::Utils.adapter_name}"
-            config[:controller_service] ||= config[:service_name]
-            config[:cache_service] ||= "#{config[:service_name]}-cache"
-            config[:job_service] ||= "#{config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}"
           end
         end
 
@@ -83,19 +73,13 @@ module Datadog
         def self.activate_active_support!(datadog_config, rails_config)
           return unless defined?(::ActiveSupport)
 
-          datadog_config.use(
-            :active_support,
-            cache_service: rails_config[:cache_service]
-          )
+          datadog_config.use(:active_support)
         end
 
         def self.activate_action_cable!(datadog_config, rails_config)
           return unless defined?(::ActionCable)
 
-          datadog_config.use(
-            :action_cable,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionCable::Ext::SERVICE_NAME}"
-          )
+          datadog_config.use(:action_cable)
         end
 
         def self.activate_action_mailer!(datadog_config, rails_config)
@@ -103,16 +87,12 @@ module Datadog
 
           datadog_config.use(
             :action_mailer,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActionMailer::Ext::SERVICE_NAME}"
+            service_name: rails_config[:service_name]
           )
         end
 
         def self.activate_action_pack!(datadog_config, rails_config)
           return unless defined?(::ActionPack)
-
-          # TODO: This is configuring ActionPack but not patching. It will queue ActionPack
-          #       for patching, but patching won't take place until Datadog.configure completes.
-          #       Should we manually patch here?
 
           datadog_config.use(
             :action_pack,
@@ -140,7 +120,7 @@ module Datadog
 
           datadog_config.use(
             :active_job,
-            service_name: "#{rails_config[:service_name]}-#{Contrib::ActiveJob::Ext::SERVICE_NAME}",
+            service_name: rails_config[:service_name],
             **deprecated_options
           )
         end
@@ -148,10 +128,7 @@ module Datadog
         def self.activate_active_record!(datadog_config, rails_config)
           return unless defined?(::ActiveRecord)
 
-          datadog_config.use(
-            :active_record,
-            service_name: rails_config[:database_service]
-          )
+          datadog_config.use(:active_record)
         end
 
         def self.activate_lograge!(datadog_config, rails_config)
@@ -174,7 +151,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/ModuleLength:
     end
   end
 end

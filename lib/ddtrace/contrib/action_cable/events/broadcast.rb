@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/action_cable/event'
 
@@ -32,7 +33,7 @@ module Datadog
 
           def process(span, _event, _id, payload)
             channel = payload[:broadcasting] # Channel has high cardinality
-            span.service = configuration[:service_name]
+            span.service = configuration[:service_name] if configuration[:service_name]
             span.span_type = span_type
 
             # Set analytics sample rate
@@ -42,6 +43,9 @@ module Datadog
 
             span.set_tag(Ext::TAG_CHANNEL, channel)
             span.set_tag(Ext::TAG_BROADCAST_CODER, payload[:coder])
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_BROADCAST)
           end
         end
       end

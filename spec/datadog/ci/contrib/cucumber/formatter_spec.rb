@@ -1,6 +1,6 @@
 # typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 require 'cucumber'
 require 'ddtrace'

@@ -41,7 +41,6 @@ module Datadog
     alias :span_type :type
     alias :span_type= :type=
 
-    # TODO: Remove span_type
     def initialize(
       name,
       child_of: nil,
@@ -55,10 +54,6 @@ module Datadog
       trace_id: nil,
       type: nil
     )
-      # Resolve service name
-      parent = child_of
-      service ||= parent.service unless parent.nil?
-
       # Set span attributes
       @name = name
       @service = service
@@ -92,6 +87,7 @@ module Datadog
       # Only set parent if explicitly provided.
       # We don't want it to override context-derived
       # IDs if it's a distributed trace w/o a parent span.
+      parent = child_of
       self.parent = parent if parent
 
       # Some other SpanOperation-specific behavior
@@ -442,7 +438,6 @@ module Datadog
       else
         @trace_id = parent.trace_id
         @parent_id = parent.id
-        @service ||= parent.service
       end
     end
 

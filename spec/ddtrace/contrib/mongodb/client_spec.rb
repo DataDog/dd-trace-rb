@@ -62,7 +62,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(spans.first.service).to eq(service)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     context 'with a different service name using describes option' do
@@ -92,7 +94,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(spans.first.service).to eq(primary_service)
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       context 'secondary client' do
@@ -115,7 +119,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(spans.first.service).to eq(secondary_service)
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { secondary_host }
+        end
       end
     end
 
@@ -141,6 +147,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag('mongodb.collection')).to eq(collection_value)
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('mongodb')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -148,7 +156,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
 
       it_behaves_like 'measured span for integration', false
     end

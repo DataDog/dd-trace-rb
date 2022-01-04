@@ -87,8 +87,18 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
           expect(multi_span.name).to eq('ethon.multi.request')
         end
 
+        it 'has component and operation tags' do
+          expect(multi_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('ethon')
+          expect(multi_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('multi.request')
+        end
+
         it 'makes multi span a parent for easy span' do
           expect(easy_span.parent_id).to eq(multi_span.span_id)
+        end
+
+        it_behaves_like 'a peer service span' do
+          let(:span) { multi_span }
+          let(:peer_hostname) { nil } # Multi spans can have many hostnames in a single execution
         end
 
         it_behaves_like 'analytics for integration' do

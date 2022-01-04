@@ -26,7 +26,7 @@ module Datadog
             o.lazy
           end
 
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
 
           option :error_statuses, default: nil do |o|
             o.setter do |new_value, _old_value|

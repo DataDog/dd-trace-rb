@@ -92,5 +92,16 @@ module Datadog
         $VERBOSE = v
       end
     end
+
+    # Extracts hostname and port from
+    # a string that contains both, separated by ':'.
+    # @return [String,Integer] hostname and port
+    # @return [nil] if format did not match
+    def self.extract_host_port(host_port)
+      match = /^([^:]+):(\d+)$/.match(host_port)
+      return unless match
+
+      [match[1], match[2].to_i]
+    end
   end
 end

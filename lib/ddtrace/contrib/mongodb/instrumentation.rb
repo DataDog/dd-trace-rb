@@ -56,7 +56,7 @@ module Datadog
 
                 Datadog::Pin.new(
                   service,
-                  app: Datadog::Contrib::MongoDB::Ext::APP,
+                  app: Datadog::Contrib::MongoDB::Ext::TAG_COMPONENT,
                   app_type: Datadog::Ext::AppTypes::DB,
                 )
               end
