@@ -44,7 +44,7 @@ class ProfilerSubmission
   end
 
   def check_valid_pprof
-    output_pprof = @adapter_buffer.last[:form]["data[0]"].io
+    output_pprof = @adapter_buffer.last[:form]["data[rubyprofile.pprof]"].io
 
     expected_hashes = [
       "395dd7e65b35be6eede78ac9be072df8d6d79653f8c248691ad9bdd1d8b507de",

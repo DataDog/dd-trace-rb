@@ -99,13 +99,11 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         expect(body).to include(
-          'runtime-id' => Datadog::Core::Environment::Identity.id,
-          'recording-start' => kind_of(String),
-          'recording-end' => kind_of(String),
-          'data[0]' => kind_of(String),
-          'types[0]' => /auto/,
-          'runtime' => Datadog::Core::Environment::Ext::LANG,
-          'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
+          'version' => '3',
+          'start' => kind_of(String),
+          'end' => kind_of(String),
+          'data[rubyprofile.pprof]' => kind_of(String),
+          'family' => 'ruby',
         )
 
         tags = body['tags[]'].list

@@ -57,22 +57,21 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         expect(env.headers).to eq({})
 
         expect(env.form).to include(
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_DATA => kind_of(Datadog::Vendor::Multipart::Post::UploadIO),
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RECORDING_START => flush.start.utc.iso8601,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RECORDING_END => flush.finish.utc.iso8601,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RUNTIME => flush.language,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RUNTIME_ID => flush.runtime_id,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS => array_including(
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_HOST}:#{flush.host}"
+          'version' => '3',
+          'data[rubyprofile.pprof]' => kind_of(Datadog::Vendor::Multipart::Post::UploadIO),
+          'start' => flush.start.utc.iso8601,
+          'end' => flush.finish.utc.iso8601,
+          'family' => flush.language,
+          'tags' => array_including(
+            "runtime:#{flush.language}",
+            "runtime-id:#{flush.runtime_id}",
+            "runtime_engine:#{flush.runtime_engine}",
+            "runtime_platform:#{flush.runtime_platform}",
+            "runtime_version:#{flush.runtime_version}",
+            "pid:#{Process.pid}",
+            "profiler_version:#{flush.profiler_version}",
+            "language:#{flush.language}",
+            "host:#{flush.host}"
           )
         )
       end
@@ -128,7 +127,10 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
           # the service/env/version in the settings object from the tags if they are available (see settings.rb).
           # But simulating them being different here makes it easier to test that no duplicates are added -- that
           # effectively the tag versions are ignored and we only include the top-level flush versions.
-          let(:tags) { { 'service' => 'service_tag', 'env' => 'env_tag', 'version' => 'version_tag', 'some_other_tag' => 'some_other_value' } }
+          let(:tags) do
+            { 'service' => 'service_tag', 'env' => 'env_tag', 'version' => 'version_tag',
+              'some_other_tag' => 'some_other_value' }
+          end
 
           before do
             flush.tags = tags
