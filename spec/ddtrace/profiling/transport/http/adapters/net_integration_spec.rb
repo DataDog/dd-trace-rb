@@ -13,7 +13,6 @@ require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net profiling integration tests' do
   before do
-    skip 'TEST_DATADOG_INTEGRATION is not defined' unless ENV['TEST_DATADOG_INTEGRATION']
     skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
     skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
   end
