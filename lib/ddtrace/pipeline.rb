@@ -1,7 +1,6 @@
 # typed: true
 module Datadog
   # Pipeline
-  # @public_api
   module Pipeline
     require_relative 'pipeline/span_filter'
     require_relative 'pipeline/span_processor'
