@@ -34,9 +34,8 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
       let(:request) { Datadog::Profiling::Transport::Request.new(flush) }
       let(:flush) { get_test_profiling_flush }
 
-      let(:pprof) { instance_double(Datadog::Profiling::Pprof::Payload, data: data, types: types) }
+      let(:pprof) { instance_double(Datadog::Profiling::Pprof::Payload, data: data) }
       let(:data) { 'pprof_string_data' }
-      let(:types) { [:wall_time_ns] }
       let(:http_response) { instance_double(Datadog::Profiling::Transport::HTTP::Response) }
 
       let(:block) do
@@ -161,19 +160,6 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
             expect(env.form.fetch(Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS))
               .to include('some_other_tag:some_other_value')
           end
-        end
-      end
-    end
-
-    context 'when the pprof contains wall & CPU time types' do
-      it_behaves_like 'profile request' do
-        let(:types) { [:wall_time_ns, :cpu_time_ns] }
-
-        it 'includes env tags' do
-          call
-          expect(env.form).to include(
-            Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TYPES => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TYPES_AUTO
-          )
         end
       end
     end
