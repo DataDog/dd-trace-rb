@@ -11,7 +11,7 @@ module Datadog
 
     # {.before_flush} allows application to alter or filter out traces before they are flushed.
     #
-    # @see file:docs/ProcessingPipeline.md Processing Pipeline
+    # @see file:docs/GettingStarted.md#processing-pipeline Processing Pipeline
     # @param [Array<Proc>] processors a list of callable objects that receive a list of {Datadog::Span}s and can modify
     #   or filter our spans.
     # @yield Optional that receives an array of spans and returns the desired remaining spans.
