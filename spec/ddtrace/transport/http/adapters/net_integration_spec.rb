@@ -44,8 +44,13 @@ RSpec.describe 'Adapters::Net tracing integration tests' do
     end
 
     after do
-      server.shutdown
-      @server_thread.join
+      unless RSpec.current_example.skipped?
+        # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
+        # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
+        # and join to be called on a nil @server_thread
+        server.shutdown
+        @server_thread.join
+      end
     end
   end
 
