@@ -8,6 +8,7 @@
 --files LICENSE
 --files docs/AutoInstrumentation.md
 --files docs/Deprecation.md
+--files docs/ProcessingPipeline.md
 --files docs/PublicApi.md
 --template-path yard/templates
 -e ./yard/extensions.rb

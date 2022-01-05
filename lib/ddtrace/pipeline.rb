@@ -9,6 +9,14 @@ module Datadog
     @mutex = Mutex.new
     @processors = []
 
+    # {.before_flush} allows application to alter or filter out traces before they are flushed.
+    #
+    # @see file:docs/ProcessingPipeline.md Processing Pipeline
+    # @param [Array<Proc>] processors a list of callable objects that receive a list of {Datadog::Span}s and can modify
+    #   or filter our spans.
+    # @yield Optional that receives an array of spans and returns the desired remaining spans.
+    # @yieldparam [Array<Datadog::Span>] spans spans that can be modified or removed from list before flushing.
+    # @yieldreturn [Array<Datadog::Span>] an array of spans to be kept. An empty array means all spans were dropped.
     def self.before_flush(*processors, &processor_block)
       processors = [processor_block] if processors.empty?
 
