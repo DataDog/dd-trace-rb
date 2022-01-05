@@ -550,17 +550,18 @@ module Datadog
         end
 
         # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
-        option :port
-        option :priority_sampling # TODO: Deprecate
+        option :priority_sampling
 
         # A custom sampler instance.
         # The object must respect the {Datadog::Sampler} interface.
         # @default `nil`
         # @return [Object,nil]
         option :sampler
-        option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
-        option :writer # TODO: Deprecate
-        option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
+
+        # TODO: Tracing transport and writer require further refactoring {FINISH THS MARCO }
+        option :transport_options, default: ->(_i) { {} }, lazy: true
+        option :writer
+        option :writer_options, default: ->(_i) { {} }, lazy: true
       end
 
       # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
@@ -572,6 +573,17 @@ module Datadog
         o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
         o.lazy
       end
+
+      settings :agent do
+        option :port
+      end
     end
   end
+end
+
+Datadog.configure do |c|
+  # c.tracer.hostname = '1.2.3.4'
+  # c.tracer.port = 1234
+  c.agent.hostname = '1.2.3.4'
+  c.agent.port = 1234
 end
