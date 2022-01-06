@@ -136,9 +136,13 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 *EOL* indicates support is no longer provided.
 
+### Apple macOS support
+
+Use of `ddtrace` on macOS is supported for development, but not for production deployments.
+
 ### Microsoft Windows support
 
-Using `ddtrace ` on Microsoft Windows is currently unsupported. We'll still accept community contributions and issues,
+Using `ddtrace` on Microsoft Windows is currently unsupported. We'll still accept community contributions and issues,
 but will consider them as having low priority.
 
 ## Installation

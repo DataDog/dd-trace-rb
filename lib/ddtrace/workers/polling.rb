@@ -1,6 +1,6 @@
 # typed: false
 require 'ddtrace/workers/async'
-require 'ddtrace/workers/loop'
+require 'ddtrace/workers/interval_loop'
 
 module Datadog
   module Workers

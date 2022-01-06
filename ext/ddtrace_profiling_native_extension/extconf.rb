@@ -1,4 +1,5 @@
 # typed: ignore
+# rubocop:disable Style/StderrPuts
 
 # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
 CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
@@ -26,7 +27,6 @@ def expected_to_use_mjit_but_mjit_is_disabled?
   mjit_disabled = CAN_USE_MJIT_HEADER && RbConfig::CONFIG['MJIT_SUPPORT'] != 'yes'
 
   if mjit_disabled
-    # rubocop:disable Style/StderrPuts
     $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | Your Ruby has been compiled without JIT support (--disable-jit-support).     |
@@ -55,9 +55,14 @@ def skip_building_extension?
 end
 
 # IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
-# doublecheck that what you're adding can be reasonably expected to exist on their systems.
+# doublecheck that what you're adding can be reasonably expected to work on their systems.
 def add_compiler_flag(flag)
   $CFLAGS << ' ' << flag
+end
+
+def skip_building_extension!
+  File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  exit
 end
 
 if skip_building_extension?
@@ -68,14 +73,12 @@ if skip_building_extension?
 +------------------------------------------------------------------------------+
 
 ))
-
-  File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
-  return
+  skip_building_extension!
 end
 
 $stderr.puts(%(
 +------------------------------------------------------------------------------+
-| **Preparing to build the ddtrace native extension...**                       |
+| ** Preparing to build the ddtrace native extension... **                     |
 |                                                                              |
 | If you run into any failures during this step, you can set the               |
 | `DD_PROFILING_NO_EXTENSION` environment variable to `true` e.g.              |
@@ -90,7 +93,6 @@ $stderr.puts(%(
 +------------------------------------------------------------------------------+
 
 ))
-# rubocop:enable Style/StderrPuts
 
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
@@ -124,6 +126,34 @@ end
 EXTENSION_NAME = "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
 if CAN_USE_MJIT_HEADER
+  mjit_header_file_name = "rb_mjit_min_header-#{RUBY_VERSION}.h"
+
+  # Validate that the mjit header can actually be compiled on this system. We learned via
+  # https://github.com/DataDog/dd-trace-rb/issues/1799 and https://github.com/DataDog/dd-trace-rb/issues/1792
+  # that even if the header seems to exist, it may not even compile.
+  # `have_macro` actually tries to compile a file that mentions the given macro, so if this passes, we should be good to
+  # use the MJIT header.
+  # Finally, the `COMMON_HEADERS` conflict with the MJIT header so we need to temporarily disable them for this check.
+  original_common_headers = MakeMakefile::COMMON_HEADERS
+  MakeMakefile::COMMON_HEADERS = ''.freeze
+  unless have_macro('RUBY_MJIT_H', mjit_header_file_name)
+    $stderr.puts(%(
++------------------------------------------------------------------------------+
+| WARNING: Unable to compile a needed component for ddtrace native extension.  |
+| Your C compiler or Ruby VM just-in-time compiler seems to be broken.         |
+|                                                                              |
+| You will be NOT be able to use ddtrace profiling features,                   |
+| but all other features will work fine!                                       |
+|                                                                              |
+| For help solving this issue, please contact Datadog support at               |
+| <https://docs.datadoghq.com/help/>.                                          |
++------------------------------------------------------------------------------+
+
+))
+    skip_building_extension!
+  end
+  MakeMakefile::COMMON_HEADERS = original_common_headers
+
   $defs << '-DUSE_MJIT_HEADER'
 
   # NOTE: This needs to come after all changes to $defs
@@ -136,7 +166,7 @@ if CAN_USE_MJIT_HEADER
     File.read($extconf_h)
         .sub('#endif',
              <<-EXTCONF_H.strip
-#define RUBY_MJIT_HEADER "rb_mjit_min_header-#{RUBY_VERSION}.h"
+#define RUBY_MJIT_HEADER "#{mjit_header_file_name}"
 
 #endif
              EXTCONF_H
@@ -164,3 +194,4 @@ else
   Debase::RubyCoreSource
     .create_makefile_with_core(proc { have_header('vm_core.h') && thread_native_for_ruby_2_1.call }, EXTENSION_NAME)
 end
+# rubocop:enable Style/StderrPuts
