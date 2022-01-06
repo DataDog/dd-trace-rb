@@ -42,7 +42,7 @@ class ProfilerSampleLoopBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0.001} : {time: 70, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 70, warmup: 2}
       x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop'))
 
       x.report("stack collector #{ENV['CONFIG']}") do
