@@ -463,7 +463,7 @@ job_configuration:
   - &config-2_3
     <<: *filters_all_branches_and_tags
     ruby_version: '2.3'
-    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
+    image: marcotc/docker-library:ddtrace_rb_2_3_8
   - &config-2_4
     <<: *filters_all_branches_and_tags
     ruby_version: '2.4'
