@@ -2201,42 +2201,7 @@ Then you must enable the request queuing feature, by setting `request_queuing: t
 
 ### Processing Pipeline
 
-Some applications might require that traces be altered or filtered out before they are sent upstream. The processing pipeline allows users to create *processors* to define such behavior.
-
-Processors can be any object that responds to `#call` accepting `trace` as an argument (which is an `Array` of `Datadog::Span`s.)
-
-For example:
-
-```ruby
-lambda_processor = ->(trace) do
-  # Processing logic...
-  trace
-end
-
-class MyCustomProcessor
-  def call(trace)
-    # Processing logic...
-    trace
-  end
-end
-custom_processor = MyFancyProcessor.new
-```
-
-`#call` blocks of processors *must* return the `trace` object; this return value will be passed to the next processor in the pipeline.
-
-These processors must then be added to the pipeline via `Datadog::Pipeline.before_flush`:
-
-```ruby
-Datadog::Pipeline.before_flush(lambda_processor, custom_processor)
-```
-
-You can also define processors using the short-hand block syntax for `Datadog::Pipeline.before_flush`:
-
-```ruby
-Datadog::Pipeline.before_flush do |trace|
-  trace.delete_if { |span| span.name =~ /forbidden/ }
-end
-```
+Some applications might require that traces be altered or filtered out before they are sent to Datadog. The processing pipeline allows you to create *processors* to define such behavior.
 
 #### Filtering
 
@@ -2261,6 +2226,34 @@ Datadog::Pipeline.before_flush(
   Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
 )
 ```
+
+#### Custom processor
+
+Processors can be any object that responds to `#call` accepting `trace` as an argument (which is an `Array` of `Datadog::Span`s.)
+
+For example, using the short-hand block syntax:
+
+```ruby
+Datadog::Pipeline.before_flush do |trace|
+   # Processing logic...
+   trace
+end
+```
+
+For a custom processor class:
+
+```ruby
+class MyCustomProcessor
+  def call(trace)
+    # Processing logic...
+    trace
+  end
+end
+
+Datadog::Pipeline.before_flush(MyCustomProcessor.new)
+```
+
+In both cases, the processor method *must* return the `trace` object; this return value will be passed to the next processor in the pipeline.
 
 ### Trace correlation
 
