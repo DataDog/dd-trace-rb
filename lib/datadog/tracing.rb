@@ -24,7 +24,7 @@ module Datadog
       # The instance returned can change throughout the lifetime of the application.
       # This means it is not advisable to cache it.
       #
-      # The trace can be configured through {.configure},
+      # The tracer can be configured through {.configure},
       # through {Datadog::Configuration::Settings::DSL::Tracer} options.
       #
       # TODO: This next paragraph can be better written.
@@ -67,7 +67,7 @@ module Datadog
 
       # Apply configuration changes to `ddtrace`. An example of a {.configure} call:
       # ```
-      # Datadog.configure do |c|
+      # Datadog::Tracing.configure do |c|
       #   c.sampling.default_rate = 1.0
       #   c.use :aws
       #   c.use :rails
@@ -168,7 +168,7 @@ module Datadog
       # Integrations registered in the {.registry} can be activated as follows:
       #
       # ```
-      # Datadog.configure do |c|
+      # Datadog::Tracing.configure do |c|
       #   c.use :my_registered_integration, **my_options
       # end
       # ```
