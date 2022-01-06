@@ -28,7 +28,12 @@ gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.10'
 gem 'rspec-collection_matchers', '~> 1.1'
-gem 'rspec_junit_formatter', '>= 0.4.1'
+if RUBY_VERSION >= '2.3.0'
+  gem 'rspec_junit_formatter', '>= 0.5.1'
+else
+  # Newer versions do not support Ruby < 2.3.
+  gem 'rspec_junit_formatter', '<= 0.4.1'
+end
 gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
 gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
