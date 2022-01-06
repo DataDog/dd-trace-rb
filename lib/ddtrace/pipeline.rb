@@ -10,6 +10,9 @@ module Datadog
     @processors = []
 
     # {.before_flush} allows application to alter or filter out traces before they are flushed.
+    # If both `processors` and `processor_block` are provided, both are added to the internal
+    # processors list, with `processor_block` being added after `processors`.
+    #
     # @see file:docs/GettingStarted.md#processing-pipeline Processing Pipeline
     #
     # @overload before_flush(*processors)
