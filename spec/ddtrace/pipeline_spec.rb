@@ -12,6 +12,7 @@ RSpec.describe Datadog::Pipeline do
   let(:span_d) { generate_span('d') }
   let(:span_list) { [span_a, span_b, span_c, span_d] }
   let(:callable) { ->(trace) { trace } }
+  let(:callable2) { ->(trace) { trace } }
 
   after do
     described_class.processors = []
@@ -38,12 +39,16 @@ RSpec.describe Datadog::Pipeline do
       end
 
       it 'allows multiple callables as arguments' do
-        expect(pipeline.before_flush(callable, callable, callable)).to eq([callable, callable, callable])
+        expect(pipeline.before_flush(callable, callable2, callable)).to eq([callable, callable2, callable])
       end
 
       it 'concats and store multiple callables' do
         pipeline.before_flush(callable)
-        expect(pipeline.before_flush(callable)).to eq([callable, callable])
+        expect(pipeline.before_flush(callable2)).to eq([callable, callable2])
+      end
+
+      it 'takes an object and block' do
+        expect(pipeline.before_flush(callable, &callable2)).to eq([callable, callable2])
       end
     end
 
