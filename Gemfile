@@ -72,7 +72,13 @@ gem 'opentracing', '>= 0.4.1'
 #       lib/ddtrace/profiling.rb: it breaks for some older rubies in CI without BUNDLE_FORCE_RUBY_PLATFORM=true.
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
-gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'] if RUBY_PLATFORM != 'java'
+if RUBY_PLATFORM != 'java'
+  if RUBY_VERSION >= '2.4.0' # Bundler 1.x fails to recognize that version >= 3.19.2 is not compatible with older rubies
+    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
+  else
+    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
+  end
+end
 
 # For type checking
 # Sorbet releases almost daily, with new checks introduced that can make a
