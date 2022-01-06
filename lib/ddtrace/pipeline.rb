@@ -10,15 +10,20 @@ module Datadog
     @processors = []
 
     # {.before_flush} allows application to alter or filter out traces before they are flushed.
-    #
     # @see file:docs/GettingStarted.md#processing-pipeline Processing Pipeline
-    # @param [Array<Proc>] processors a list of callable objects that receive a list of {Datadog::Span}s and can modify
-    #   or filter our spans.
-    # @yield Optional that receives an array of spans and returns the desired remaining spans.
-    # @yieldparam [Array<Datadog::Span>] spans spans that can be modified or removed from list before flushing.
-    # @yieldreturn [Array<Datadog::Span>] an array of spans to be kept. An empty array means all spans were dropped.
+    #
+    # @overload before_flush(*processors)
+    #   @param [Array<Datadog::Pipeline::SpanProcessor>] processors a list of processors that can modify
+    #     or filter the trace.
+    #   @param [Array<#call(Datadog::TraceSegment)>] processors a list of callable objects that receive a
+    #     {Datadog::TraceSegment} and can modify or filter the trace.
+    # @overload before_flush(&processor_block)
+    #   @yield Receive a {Datadog::TraceSegment} and can modify or filter the trace.
+    #   @yieldparam [Datadog::TraceSegment] trace trace object that can be modified or filtered.
+    #   @yieldreturn [Datadog::TraceSegment] the trace object that will be passed to the next processor. Normally
+    #     the same `trace` parameter object should be returned.
     def self.before_flush(*processors, &processor_block)
-      processors = [processor_block] if processors.empty?
+      processors << processor_block if processor_block
 
       @mutex.synchronize do
         @processors.concat(processors)
