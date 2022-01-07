@@ -275,10 +275,10 @@ After setting up, your services will appear on the [APM services page](https://a
 
 If you aren't using a supported framework instrumentation, you may want to manually instrument your code.
 
-To trace any Ruby code, you can use the `Datadog.tracer.trace` method:
+To trace any Ruby code, you can use the `Datadog::Tracing.trace` method:
 
 ```ruby
-Datadog.tracer.trace(name, options) do |span, trace|
+Datadog::Tracing.trace(name, options) do |span, trace|
   # Wrap this block around the code you want to instrument
   # Additionally, you can modify the span here.
   # e.g. Change the resource name, set tags, etc...
@@ -306,9 +306,9 @@ Example of manual instrumentation in action:
 
 ```ruby
 get '/posts' do
-  Datadog.tracer.trace('web.request', service: 'my-blog', resource: 'GET /posts') do |span|
+  Datadog::Tracing.trace('web.request', service: 'my-blog', resource: 'GET /posts') do |span|
     # Trace the activerecord call
-    Datadog.tracer.trace('posts.fetch') do
+    Datadog::Tracing.trace('posts.fetch') do
       @posts = Posts.order(created_at: :desc).limit(10)
     end
 
@@ -317,7 +317,7 @@ get '/posts' do
     span.set_tag('posts.count', @posts.length)
 
     # Trace the template rendering
-    Datadog.tracer.trace('template.render') do
+    Datadog::Tracing.trace('template.render') do
       erb :index
     end
   end
@@ -326,36 +326,36 @@ end
 
 ### Asynchronous tracing
 
-It might not always be possible to wrap `Datadog.tracer.trace` around a block of code. Some event or notification based instrumentation might only notify you when an event begins or ends.
+It might not always be possible to wrap `Datadog::Tracing.trace` around a block of code. Some event or notification based instrumentation might only notify you when an event begins or ends.
 
-To trace these operations, you can trace code asynchronously by calling `Datadog.tracer.trace` without a block:
+To trace these operations, you can trace code asynchronously by calling `Datadog::Tracing.trace` without a block:
 
 ```ruby
 # Some instrumentation framework calls this after an event finishes...
 def db_query(start, finish, query)
-  span = Datadog.tracer.trace('database.query', start_time: start)
+  span = Datadog::Tracing.trace('database.query', start_time: start)
   span.resource = query
   span.finish(finish)
 end
 ```
 
-Calling `Datadog.tracer.trace` without a block will cause the function to return a `Datadog::SpanOperation` that is started, but not finished. You can then modify this span however you wish, then close it `finish`.
+Calling `Datadog::Tracing.trace` without a block will cause the function to return a `Datadog::SpanOperation` that is started, but not finished. You can then modify this span however you wish, then close it `finish`.
 
 *You must not leave any unfinished spans.* If any spans are left open when the trace completes, the trace will be discarded. You can [activate debug mode](#tracer-settings) to check for warnings if you suspect this might be happening.
 
-To avoid this scenario when handling start/finish events, you can use `Datadog.tracer.active_span` to get the current active span.
+To avoid this scenario when handling start/finish events, you can use `Datadog::Tracing.active_span` to get the current active span.
 
 ```ruby
 # e.g. ActiveSupport::Notifications calls this when an event starts
 def start(name, id, payload)
   # Start a span
-  Datadog.tracer.trace(name)
+  Datadog::Tracing.trace(name)
 end
 
 # e.g. ActiveSupport::Notifications calls this when an event finishes
 def finish(name, id, payload)
   # Retrieve current active span (thread-safe)
-  current_span = Datadog.tracer.active_span
+  current_span = Datadog::Tracing.active_span
   unless current_span.nil?
     current_span.resource = payload[:query]
     current_span.finish
@@ -369,7 +369,7 @@ You can tag additional information to the current active span from any method. N
 ```ruby
 # e.g. adding tag to active span
 
-current_span = Datadog.tracer.active_span
+current_span = Datadog::Tracing.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
@@ -378,7 +378,7 @@ You can also get the current active trace using the `active_trace` method. This 
 ```ruby
 # e.g. accessing active trace
 
-current_trace = Datadog.tracer.active_trace
+current_trace = Datadog::Tracing.active_trace
 ```
 
 ## Integration instrumentation
@@ -693,8 +693,8 @@ Datadog.configure do |c|
 end
 
 # Pass context into code executed within Concurrent::Future
-Datadog.tracer.trace('outer') do
-  Concurrent::Future.execute { Datadog.tracer.trace('inner') { } }.wait
+Datadog::Tracing.trace('outer') do
+  Concurrent::Future.execute { Datadog::Tracing.trace('inner') { } }.wait
 end
 ```
 
@@ -1151,15 +1151,9 @@ require 'kafka'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.use :kafka, options
+  c.use :kafka
 end
 ```
-
-Where `options` is an optional `Hash` that accepts the following parameters:
-
-| Key | Description | Default |
-| --- | ----------- | ------- |
-| `tracer` | `Datadog::Tracer` used to perform instrumentation. Usually you don't need to set this. | `Datadog.tracer` |
 
 ### MongoDB
 
@@ -2024,16 +2018,30 @@ You can also set this priority manually to either drop a non-interesting trace o
 
 When not using [distributed tracing](#distributed-tracing), you may change the priority at any time, as long as the trace incomplete. But it has to be done before any context propagation (fork, RPC calls) to be useful in a distributed context. Changing the priority after the context has been propagated causes different parts of a distributed trace to use different priorities. Some parts might be kept, some parts might be rejected, and this can cause the trace to be partially stored and remain incomplete.
 
-If you change the priority, we recommend you do it as soon as possible - when the root span has just been created.
+If you change the priority, we recommend you do it as soon as possible: distributed tracing requests will include
+the sampling decision, thus setting the sampling decision late can cause downstream services to have a different sampling
+rate than the originating service trace.
+
+```ruby
+# Rejects the active trace
+Datadog::Tracing.reject!
+
+# Keeps the active trace
+Datadog::Tracing.keep!
+```
+
+It's safe to use `Datadog::Tracing.reject!` and `Datadog::Tracing.keep!` when no trace is active.
+
+You can also reject a specific trace instance:
 
 ```ruby
 # First, grab the active span
-trace = Datadog.tracer.active_trace
+trace = Datadog::Tracing.active_trace
 
-# Indicate to reject the trace
+# Rejects the trace
 trace.reject!
 
-# Indicate to keep the trace
+# Keeps the trace
 trace.keep!
 ```
 
@@ -2167,7 +2175,7 @@ To make the process of propagating this metadata easier, you can use the `Datado
 On the client:
 
 ```ruby
-Datadog.tracer.trace('web.call') do |span, trace|
+Datadog::Tracing.trace('web.call') do |span, trace|
   # Inject trace headers into request headers (`env` must be a Hash)
   Datadog::HTTPPropagator.inject!(trace.to_digest, env)
 end
@@ -2178,7 +2186,7 @@ On the server:
 ```ruby
 trace_digest = HTTPPropagator.extract(request.env)
 
-Datadog.tracer.trace('web.work', continue_from: trace_digest) do |span|
+Datadog::Tracing.trace('web.work', continue_from: trace_digest) do |span|
   # Do web work...
 end
 ```
@@ -2212,7 +2220,7 @@ Some applications might require that traces be altered or filtered out before th
 You can use the `Datadog::Pipeline::SpanFilter` processor to remove spans, when the block evaluates as truthy:
 
 ```ruby
-Datadog::Pipeline.before_flush(
+Datadog::Tracing.before_flush(
   # Remove spans that match a particular resource
   Datadog::Pipeline::SpanFilter.new { |span| span.resource =~ /PingController/ },
   # Remove spans that are trafficked to localhost
@@ -2225,7 +2233,7 @@ Datadog::Pipeline.before_flush(
 You can use the `Datadog::Pipeline::SpanProcessor` processor to modify spans:
 
 ```ruby
-Datadog::Pipeline.before_flush(
+Datadog::Tracing.before_flush(
   # Strip matching text from the resource field
   Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
 )
@@ -2238,7 +2246,7 @@ Processors can be any object that responds to `#call` accepting `trace` as an ar
 For example, using the short-hand block syntax:
 
 ```ruby
-Datadog::Pipeline.before_flush do |trace|
+Datadog::Tracing.before_flush do |trace|
    # Processing logic...
    trace
 end
@@ -2254,7 +2262,7 @@ class MyCustomProcessor
   end
 end
 
-Datadog::Pipeline.before_flush(MyCustomProcessor.new)
+Datadog::Tracing.before_flush(MyCustomProcessor.new)
 ```
 
 In both cases, the processor method *must* return the `trace` object; this return value will be passed to the next processor in the pipeline.
@@ -2273,17 +2281,17 @@ It can be disabled by setting the environment variable `DD_LOGS_INJECTION=false`
 
 #### For logging in Ruby applications
 
-To add correlation IDs to your logger, add a log formatter which retrieves the correlation IDs with `Datadog.tracer.active_correlation`, then add them to the message.
+To add correlation IDs to your logger, add a log formatter which retrieves the correlation IDs with `Datadog::Tracing.correlation`, then add them to the message.
 
 To properly correlate with Datadog logging, be sure the following is present in the log message, in order as they appear:
 
- - `dd.env=<ENV>`: Where `<ENV>` is equal to `Datadog.tracer.active_correlation.env`. Omit if no environment is configured.
- - `dd.service=<SERVICE>`: Where `<SERVICE>` is equal to `Datadog.tracer.active_correlation.service`. Omit if no default service name is configured.
- - `dd.version=<VERSION>`: Where `<VERSION>` is equal to `Datadog.tracer.active_correlation.version`. Omit if no application version is configured.
- - `dd.trace_id=<TRACE_ID>`: Where `<TRACE_ID>` is equal to `Datadog.tracer.active_correlation.trace_id` or `0` if no trace is active during logging.
- - `dd.span_id=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog.tracer.active_correlation.span_id` or `0` if no trace is active during logging.
+ - `dd.env=<ENV>`: Where `<ENV>` is equal to `Datadog::Tracing.correlation.env`. Omit if no environment is configured.
+ - `dd.service=<SERVICE>`: Where `<SERVICE>` is equal to `Datadog::Tracing.correlation.service`. Omit if no default service name is configured.
+ - `dd.version=<VERSION>`: Where `<VERSION>` is equal to `Datadog::Tracing.correlation.version`. Omit if no application version is configured.
+ - `dd.trace_id=<TRACE_ID>`: Where `<TRACE_ID>` is equal to `Datadog::Tracing.correlation.trace_id` or `0` if no trace is active during logging.
+ - `dd.span_id=<SPAN_ID>`: Where `<SPAN_ID>` is equal to `Datadog::Tracing.correlation.span_id` or `0` if no trace is active during logging.
 
-By default, `Datadog::Correlation::Identifier#to_log_format` will return `dd.env=<ENV> dd.service=<SERVICE> dd.version=<VERSION> dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID>`.
+`Datadog::Tracing.log_correlation` will return `dd.env=<ENV> dd.service=<SERVICE> dd.version=<VERSION> dd.trace_id=<TRACE_ID> dd.span_id=<SPAN_ID>`.
 
 If a trace is not active and the application environment & version is not configured, it will return `dd.env= dd.service= dd.version= dd.trace_id=0 dd.span_id=0`.
 
@@ -2300,7 +2308,7 @@ ENV['DD_VERSION'] = '2.5.17'
 logger = Logger.new(STDOUT)
 logger.progname = 'my_app'
 logger.formatter  = proc do |severity, datetime, progname, msg|
-  "[#{datetime}][#{progname}][#{severity}][#{Datadog.tracer.active_correlation.to_log_format}] #{msg}\n"
+  "[#{datetime}][#{progname}][#{severity}][#{Datadog::Tracing.log_correlation}] #{msg}\n"
 end
 
 # When no trace is active
@@ -2308,7 +2316,7 @@ logger.warn('This is an untraced operation.')
 # [2019-01-16 18:38:41 +0000][my_app][WARN][dd.env=production dd.service=billing-api dd.version=2.5.17 dd.trace_id=0 dd.span_id=0] This is an untraced operation.
 
 # When a trace is active
-Datadog.tracer.trace('my.operation') { logger.warn('This is a traced operation.') }
+Datadog::Tracing.trace('my.operation') { logger.warn('This is a traced operation.') }
 # [2019-01-16 18:38:41 +0000][my_app][WARN][dd.env=production dd.service=billing-api dd.version=2.5.17 dd.trace_id=8545847825299552251 dd.span_id=3711755234730770098] This is a traced operation.
 ```
 
