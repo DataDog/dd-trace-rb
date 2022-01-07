@@ -13,7 +13,6 @@ require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net profiling integration tests' do
   before do
-    skip 'TEST_DATADOG_INTEGRATION is not defined' unless ENV['TEST_DATADOG_INTEGRATION']
     skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
     skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
   end
@@ -76,7 +75,6 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         allow(Datadog.configuration).to receive(:tags).and_return(tags)
       end
 
-      # rubocop:disable Layout/LineLength
       it 'sends profiles successfully' do
         client.send_profiling_flush(flush)
 
@@ -101,34 +99,31 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         expect(body).to include(
-          'runtime-id' => Datadog::Core::Environment::Identity.id,
-          'recording-start' => kind_of(String),
-          'recording-end' => kind_of(String),
-          'data[0]' => kind_of(String),
-          'types[0]' => /auto/,
-          'runtime' => Datadog::Core::Environment::Ext::LANG,
-          'format' => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF
+          'version' => '3',
+          'start' => kind_of(String),
+          'end' => kind_of(String),
+          'data[rubyprofile.pprof]' => kind_of(String),
+          'family' => 'ruby',
         )
 
-        tags = body["#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS}[]"].list
+        tags = body['tags[]'].list
         expect(tags).to include(
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{Datadog::Core::Environment::Ext::LANG}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{uuid_regex.source}/,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{Datadog::Core::Environment::Ext::LANG_ENGINE}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{Datadog::Core::Environment::Ext::LANG_PLATFORM}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{Datadog::Core::Environment::Ext::LANG_VERSION}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{Datadog::Core::Environment::Ext::TRACER_VERSION}/o,
-          /#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{Datadog::Core::Environment::Ext::LANG}/o,
+          /runtime:ruby/o,
+          /runtime-id:#{uuid_regex.source}/,
+          /runtime_engine:#{Datadog::Core::Environment::Ext::LANG_ENGINE}/o,
+          /runtime_platform:#{Datadog::Core::Environment::Ext::LANG_PLATFORM}/o,
+          /runtime_version:#{Datadog::Core::Environment::Ext::LANG_VERSION}/o,
+          /pid:#{Process.pid}/o,
+          /profiler_version:#{Datadog::Core::Environment::Ext::TRACER_VERSION}/o,
+          /language:ruby/o,
           'test_tag:test_value'
         )
 
         if Datadog::Core::Environment::Container.container_id
           container_id = Datadog::Core::Environment::Container.container_id[0..11]
-          expect(tags).to include(/#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_HOST}:#{container_id}/)
+          expect(tags).to include(/host:#{container_id}/)
         end
       end
-      # rubocop:enable Layout/LineLength
     end
 
     context 'via agent' do
