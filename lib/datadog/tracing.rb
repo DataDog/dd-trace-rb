@@ -136,8 +136,8 @@ module Datadog
       # Example:
       #
       # ```
-      # MyLogger.log("#{Datadog::Tracing.log_correlation}] My log message")
-      # # dd.env=prod dd.service=billing dd.version=13.8 dd.trace_id=545847825299552251 dd.span_id=711755234730770098 My log message
+      # MyLogger.log("#{Datadog::Tracing.log_correlation}] My message")
+      # # dd.env=prod dd.service=auth dd.version=13.8 dd.trace_id=5458478252992251 dd.span_id=7117552347370098 My message
       # ```
       #
       # @return [String] correlation information
