@@ -27,14 +27,7 @@ module Datadog
       # The tracer can be configured through {.configure},
       # through {Datadog::Configuration::Settings::DSL::Tracer} options.
       #
-      # TODO: This next paragraph can be better written.
-      #
-      # Most of the functionality available through the {.tracer} instance is
-      # also available in public methods in the {Datadog::Tracing} module.
-      # It is preferable to use the public methods in the {Datadog::Tracing} when possible
-      # as {Datadog::Tracing} strongly defines the tracing public API, and thus
-      # we strive to no introduce breaking changes to {Datadog::Tracing} methods.
-      #
+      # @deprecated Use public API methods available in {Datadog::Tracing} instead.
       # @return [Datadog::Tracer] the active tracer
       # @!attribute [r] tracer
       # @public_api
