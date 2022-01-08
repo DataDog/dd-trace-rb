@@ -2,12 +2,14 @@
 # All the doubles in this file are simple pass through values.
 # There's no value in making them verifying doubles.
 RSpec.describe Datadog::Tracing do
+  let(:returned) { double('delegated return value') }
+
   describe '.active_span' do
     subject(:active_span) { described_class.active_span }
 
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:active_span)
-      active_span
+      expect(Datadog.tracer).to receive(:active_span).and_return(returned)
+      expect(active_span).to eq(returned)
     end
   end
 
@@ -47,8 +49,9 @@ RSpec.describe Datadog::Tracing do
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:continue_trace!).with(digest) { |&b| expect(b).to be(block) }
-      continue_trace!
+      expect(Datadog.tracer).to receive(:continue_trace!)
+        .with(digest) { |&b| expect(b).to be(block) }.and_return(returned)
+      expect(continue_trace!).to eq(returned)
     end
   end
 
@@ -62,7 +65,8 @@ RSpec.describe Datadog::Tracing do
     it 'delegates to the tracer' do
       expect(Datadog.tracer).to receive(:trace)
         .with(name, continue_from: continue_from, **span_options) { |&b| expect(b).to be(block) }
-      trace
+        .and_return(returned)
+      expect(trace).to eq(returned)
     end
   end
 
@@ -74,8 +78,8 @@ RSpec.describe Datadog::Tracing do
       end
 
       it 'delegates to the active trace' do
-        expect(Datadog.tracer.active_trace).to receive(:reject!)
-        reject!
+        expect(Datadog.tracer.active_trace).to receive(:reject!).and_return(returned)
+        expect(reject!).to eq(returned)
       end
     end
 
@@ -102,7 +106,8 @@ RSpec.describe Datadog::Tracing do
       # Once we memoize `Datadog::Correlation#identifier_from_digest`, we can simplify this
       # `receive_message_chain` assertion to `expect(Datadog.tracer.active_correlation).to receive(:to_log_format)`
       expect(Datadog.tracer).to receive_message_chain(:active_correlation, :to_log_format)
-      log_correlation
+        .and_return(returned)
+      expect(log_correlation).to eq(returned)
     end
     # rubocop:enable RSpec/MessageChain
   end
@@ -152,8 +157,8 @@ RSpec.describe Datadog::Tracing do
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:active_correlation)
-      correlation
+      expect(Datadog.tracer).to receive(:active_correlation).and_return(returned)
+      expect(correlation).to eq(returned)
     end
   end
 
