@@ -166,5 +166,13 @@ RSpec.describe Datadog::Tracing do
       before_flush
     end
   end
+
+  describe '.enabled?' do
+    subject(:enabled?) { described_class.enabled? }
+    it 'delegates to the tracer' do
+      expect(Datadog.tracer).to receive(:enabled)
+      enabled?
+    end
+  end
 end
 # rubocop:enable RSpec/VerifiedDoubles

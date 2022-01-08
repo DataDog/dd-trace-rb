@@ -180,6 +180,12 @@ module Datadog
         Datadog::Pipeline.before_flush(*processors, &processor_block)
       end
 
+      # Is the tracer collecting telemetry data in this process?
+      # @return [Boolean] `true` if the tracer is collecting data in this process, otherwise `false`.
+      def enabled?
+        tracer.enabled
+      end
+
       private
 
       # DEV: components hosts both tracing and profiling inner objects today
