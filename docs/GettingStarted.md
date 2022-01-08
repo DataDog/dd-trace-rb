@@ -2018,9 +2018,9 @@ You can also set this priority manually to either drop a non-interesting trace o
 
 When not using [distributed tracing](#distributed-tracing), you may change the priority at any time, as long as the trace incomplete. But it has to be done before any context propagation (fork, RPC calls) to be useful in a distributed context. Changing the priority after the context has been propagated causes different parts of a distributed trace to use different priorities. Some parts might be kept, some parts might be rejected, and this can cause the trace to be partially stored and remain incomplete.
 
-If you change the priority, we recommend you do it as soon as possible: distributed tracing requests will include
-the sampling decision, thus setting the sampling decision late can cause downstream services to have a different sampling
-rate than the originating service trace.
+For this reason, if you change the priority, we recommend you do it as soon as possible.
+
+To change the sampling priority, you can use the following methods:
 
 ```ruby
 # Rejects the active trace
