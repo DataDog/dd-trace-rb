@@ -150,7 +150,7 @@ module Datadog
       # {.shutdown!} cannot be reversed.
       # @public_api
       def shutdown!
-        components.shutdown!
+        tracer.shutdown!
       end
 
       # The global integration registry.

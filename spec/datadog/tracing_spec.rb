@@ -122,11 +122,11 @@ RSpec.describe Datadog::Tracing do
   describe '.shutdown!' do
     subject(:shutdown!) { described_class.shutdown! }
     it 'delegates to global components' do
-      allow(Datadog.send(:components)).to receive(:shutdown!)
+      allow(Datadog.send(:components).tracer).to receive(:shutdown!)
 
       shutdown!
 
-      expect(Datadog.send(:components)).to have_received(:shutdown!)
+      expect(Datadog.send(:components).tracer).to have_received(:shutdown!)
     end
   end
 
