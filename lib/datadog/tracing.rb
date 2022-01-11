@@ -1,7 +1,7 @@
 module Datadog
   # Datadog APM tracing public API.
   #
-  # The Datadog teams ensures that public methods in this module
+  # The Datadog team ensures that public methods in this module
   # only receive backwards compatible changes, and breaking changes
   # will only occur in new major versions releases.
   # @public_api
