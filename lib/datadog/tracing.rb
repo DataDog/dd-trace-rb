@@ -1,3 +1,5 @@
+require 'ddtrace/configuration/validation_proxy'
+
 module Datadog
   # Datadog APM tracing public API.
   #
@@ -49,13 +51,17 @@ module Datadog
 
       # Current tracer configuration.
       #
+      # Access to non-tracer configuration will raise an error.
+      #
       # To modify the configuration, use {.configure}.
       #
       # @return [Datadog::Configuration::Settings]
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        Datadog.configuration
+        Datadog::Configuration::ValidationProxy::Tracing.new(
+          Datadog.send(:internal_configuration)
+        )
       end
 
       # Apply configuration changes to `Datadog::Tracing`. An example of a {.configure} call:
@@ -65,9 +71,15 @@ module Datadog
       #   c.use :aws
       #   c.use :rails
       #   c.use :sidekiq
-      #   # c.diagnostics.debug = true # Enables debug output
       # end
       # ```
+      # See {Datadog::Configuration::Settings} for all available options, defaults, and
+      # available environment variables for configuration.
+      #
+      # Only permits access to tracing configuration settings; others will raise an error.
+      # If you wish to configure a global setting, use `Datadog.configure`` instead.
+      # If you wish to configure a setting for a specific Datadog component (e.g. Profiling),
+      # use the corresponding `Datadog::COMPONENT.configure` method instead.
       #
       # Because many configuration changes require restarting internal components,
       # invoking {.configure} is the only safe way to change `ddtrace` configuration.
@@ -81,11 +93,19 @@ module Datadog
       # See {Datadog::Configuration::Settings} for all available options, defaults, and
       # available environment variables for configuration.
       #
+      # Will raise errors if invalid setting is accessed.
+      #
       # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
       # @return [void]
       # @public_api
-      def configure(&block)
-        Datadog.configure(&block)
+      def configure
+        # Wrap block with trace option validation
+        wrapped_block = proc do |c|
+          yield(Datadog::Configuration::ValidationProxy::Tracing.new(c))
+        end
+
+        # Configure application normally
+        Datadog.send(:internal_configure, &wrapped_block)
       end
 
       # Apply configuration changes only to a specific Ruby object. An example of a {.configure_onto} call:

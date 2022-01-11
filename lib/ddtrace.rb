@@ -36,6 +36,7 @@ module Datadog
   extend Contrib::AutoInstrument
   # Load Contrib extension to global Datadog objects
   Configuration::Settings.include Contrib::Extensions::Configuration::Settings
+  Configuration::ValidationProxy::Tracing.include Contrib::Extensions::Configuration::ValidationProxy
 
   # Load and extend OpenTelemetry compatibility by default
   extend OpenTelemetry::Extensions

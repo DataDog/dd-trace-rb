@@ -1,4 +1,5 @@
 # typed: false
+require 'forwardable'
 require 'set'
 require 'datadog/contrib'
 require 'ddtrace/configuration/settings'
@@ -159,6 +160,20 @@ module Datadog
           def reduce_log_verbosity
             @reduce_verbosity ||= true
           end
+        end
+
+        module ValidationProxy
+          extend Forwardable
+
+          def_delegators \
+            :settings,
+            :[],
+            :instrument,
+            :instrumented_integrations,
+            :integrations_pending_activation,
+            :reduce_log_verbosity,
+            :reduce_verbosity?,
+            :use
         end
       end
     end

@@ -39,24 +39,40 @@ module Datadog
 
     attr_writer :configuration
 
+    # Current Datadog configuration.
+    #
+    # Access to non-global configuration will raise an error.
+    #
+    # To modify the configuration, use {.configure}.
+    #
+    # @return [Datadog::Configuration::Settings]
+    # @!attribute [r] configuration
+    # @public_api
     def configuration
-      @configuration ||= Settings.new
+      Datadog::Configuration::ValidationProxy::Global.new(
+        internal_configuration
+      )
     end
 
-    # Apply configuration changes to `ddtrace`. An example of a {.configure} call:
+    # Apply global configuration changes to `Datadog`. An example of a {.configure} call:
     #
     # ```
     # Datadog.configure do |c|
-    #   c.sampling.default_rate = 1.0
-    #   c.use :aws
-    #   c.use :rails
-    #   c.use :sidekiq
+    #   c.service = 'my-service'
+    #   c.env = 'staging'
     #   # c.diagnostics.debug = true # Enables debug output
     # end
     # ```
     #
+    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # available environment variables for configuration.
+    #
+    # Only permits access to global configuration settings; others will raise an error.
+    # If you wish to configure a setting for a specific Datadog component (e.g. Tracing),
+    # use the corresponding `Datadog::COMPONENT.configure` method instead.
+    #
     # Because many configuration changes require restarting internal components,
-    # invoking {.configure} is the only safe way to change `ddtrace` configuration.
+    # invoking {.configure} is the only safe way to change `Datadog` configuration.
     #
     # Successive calls to {.configure} maintain the previous configuration values:
     # configuration is additive between {.configure} calls.
@@ -64,26 +80,17 @@ module Datadog
     # The yielded configuration `c` comes pre-populated from environment variables, if
     # any are applicable.
     #
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
-    # available environment variables for configuration.
-    #
     # @param [Datadog::Configuration::Settings] configuration the base configuration object. Provide a custom instance
     #   if you are managing the configuration yourself. By default, the global configuration object is used.
     # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
     def configure(configuration = self.configuration)
-      yield(configuration)
-
-      safely_synchronize do |write_components|
-        write_components.call(
-          if components?
-            replace_components!(configuration, @components)
-          else
-            build_components(configuration)
-          end
-        )
+      # Wrap block with global option validation
+      wrapped_block = proc do |c|
+        yield(Datadog::Configuration::ValidationProxy::Global.new(c))
       end
 
-      configuration
+      # Configure application normally
+      internal_configure(&wrapped_block)
     end
 
     def_delegators \
@@ -213,6 +220,28 @@ module Datadog
       end
 
       nil
+    end
+
+    private
+
+    def internal_configure(configuration = self.internal_configuration)
+      yield(configuration)
+
+      safely_synchronize do |write_components|
+        write_components.call(
+          if components?
+            replace_components!(configuration, @components)
+          else
+            build_components(configuration)
+          end
+        )
+      end
+
+      configuration
+    end
+
+    def internal_configuration
+      @configuration ||= Settings.new
     end
   end
 end

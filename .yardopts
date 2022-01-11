@@ -2,6 +2,7 @@
 --markup markdown
 --markup-provider redcarpet
 --readme docs/GettingStarted.md
+--tag configure_with:"Configure with"
 --tag default:"Defaults to"
 --tag 'public_api:Public API'
 --hide-tag public_api

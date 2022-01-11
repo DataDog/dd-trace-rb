@@ -1,3 +1,5 @@
+require 'spec_helper'
+
 # rubocop:disable RSpec/VerifiedDoubles
 # All the doubles in this file are simple pass through values.
 # There's no value in making them verifying doubles.
@@ -142,8 +144,29 @@ RSpec.describe Datadog::Tracing do
     let(:block) { -> {} }
 
     it 'delegates to the global configuration' do
-      expect(Datadog).to receive(:configure) { |&b| expect(b).to be(block) }
+      expect(Datadog).to receive(:configure) { |&b| expect(b).to be_a_kind_of(Proc) }
       configure
+    end
+
+    context 'validation' do
+      it 'wraps the configuration object with a proxy' do
+        described_class.configure do |c|
+          expect(c).to be_a_kind_of(Datadog::Configuration::ValidationProxy::Tracing)
+        end
+      end
+
+      it 'allows tracing options' do
+        described_class.configure do |c|
+          expect(c).to respond_to(:tracer)
+          expect(c).to respond_to(:instrument)
+        end
+      end
+
+      it 'raises errors for non-tracing options' do
+        described_class.configure do |c|
+          expect(c).to_not respond_to(:profiling)
+        end
+      end
     end
   end
 
