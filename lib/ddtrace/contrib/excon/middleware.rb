@@ -29,8 +29,8 @@ module Datadog
           begin
             unless datum.key?(:datadog_span)
               @options = build_request_options!(datum)
-              span = tracer.trace(Ext::SPAN_REQUEST)
-              trace = tracer.active_trace
+              span = Datadog::Tracing.trace(Ext::SPAN_REQUEST)
+              trace = Datadog::Tracing.active_trace
               datum[:datadog_span] = span
               annotate!(span, datum)
               propagate!(trace, span, datum) if distributed_tracing?
@@ -93,10 +93,6 @@ module Datadog
 
         private
 
-        def tracer
-          Datadog.tracer
-        end
-
         def analytics_enabled?
           Contrib::Analytics.enabled?(@options[:analytics_enabled])
         end
@@ -106,7 +102,7 @@ module Datadog
         end
 
         def distributed_tracing?
-          @options[:distributed_tracing] == true && tracer.enabled
+          @options[:distributed_tracing] == true && Datadog::Tracing.enabled?
         end
 
         def error_handler

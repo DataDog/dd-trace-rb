@@ -32,7 +32,7 @@ module Datadog
         def around_perform0_ddtrace(*args)
           return yield unless datadog_configuration && tracer
 
-          tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
             span.span_type = Datadog::Ext::AppTypes::WORKER
 
@@ -60,7 +60,7 @@ module Datadog
         end
 
         def shutdown_tracer_when_forked!
-          tracer.shutdown! if forked?
+          Datadog::Tracing.shutdown! if forked?
         end
 
         private
@@ -74,10 +74,6 @@ module Datadog
 
         def span_options
           { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
-        end
-
-        def tracer
-          Datadog.tracer
         end
 
         def datadog_configuration
@@ -100,7 +96,9 @@ Resque.after_fork do
   ).onto(::Resque)
 
   # Clean the state so no CoW happens
-  tracer = Datadog.tracer
+  # TODO: Remove this. Should be obsolete with new context management.
+  #       But leave this in the interim... should be safe.
+  tracer = Datadog::Tracing.send(:tracer)
   next if tracer.nil?
 
   tracer.provider.context = nil

@@ -20,7 +20,7 @@ module Datadog
           service = worker_config(resource, :service_name) || @sidekiq_service
           tag_args = worker_config(resource, :tag_args) || configuration[:tag_args]
 
-          Datadog.tracer.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER,
+          Datadog::Tracing.trace(Ext::SPAN_JOB, service: service, span_type: Datadog::Ext::AppTypes::WORKER,
                                               on_error: @error_handler) do |span|
             span.resource = resource
 

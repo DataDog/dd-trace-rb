@@ -58,7 +58,7 @@ module Datadog
           def datadog_multi_span
             return @datadog_multi_span if datadog_multi_performing?
 
-            @datadog_multi_span = Datadog.tracer.trace(
+            @datadog_multi_span = Datadog::Tracing.trace(
               Ext::SPAN_MULTI_REQUEST,
               service: datadog_configuration[:service_name]
             )

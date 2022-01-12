@@ -31,7 +31,7 @@ RSpec.describe Datadog::Tracing do
 
     context 'with an active trace' do
       let!(:trace) do
-        Datadog.tracer.trace('test.trace')
+        Datadog::Tracing.trace('test.trace')
       end
 
       it 'delegates to the active trace' do
@@ -78,7 +78,7 @@ RSpec.describe Datadog::Tracing do
     subject(:reject!) { described_class.reject! }
     context 'with an active trace' do
       let!(:trace) do
-        Datadog.tracer.trace('test.trace')
+        Datadog::Tracing.trace('test.trace')
       end
 
       it 'delegates to the active trace' do

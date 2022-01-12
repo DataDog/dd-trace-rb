@@ -11,7 +11,7 @@ module Datadog
           # Legacy shared code for Rails >= 3.1 template rendering
           module Rails31Plus
             def render(*args, &block)
-              datadog_tracer.trace(
+              Datadog::Tracing.trace(
                 Ext::SPAN_RENDER_TEMPLATE,
                 span_type: Datadog::Ext::HTTP::TEMPLATE
               ) do |span|
@@ -63,10 +63,6 @@ module Datadog
             private
 
             attr_accessor :active_datadog_span
-
-            def datadog_tracer
-              Datadog.tracer
-            end
 
             def with_datadog_span(span)
               self.active_datadog_span = span

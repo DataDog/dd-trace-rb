@@ -49,10 +49,6 @@ module Datadog
             Datadog::Tracing.configuration[:grpc]
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def service_name
             (datadog_pin && datadog_pin.service_name) || datadog_configuration[:service_name]
           end

@@ -77,7 +77,7 @@ RSpec.describe 'Rails middleware' do
           end
 
           def call(env)
-            Datadog.tracer.trace('custom.test') do
+            Datadog::Tracing.trace('custom.test') do
               @app.call(env)
             end
           end

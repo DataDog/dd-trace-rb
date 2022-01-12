@@ -27,7 +27,7 @@ module Datadog
 
             return super unless pin
 
-            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+            Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
                 request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)

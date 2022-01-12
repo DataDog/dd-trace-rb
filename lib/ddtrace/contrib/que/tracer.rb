@@ -15,7 +15,7 @@ module Datadog
             on_error: configuration[:error_handler]
           }
 
-          tracer.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+          Datadog::Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
             request_span.resource = job.class.name.to_s
 
             request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -47,10 +47,6 @@ module Datadog
               configuration[:analytics_sample_rate]
             )
           end
-        end
-
-        def tracer
-          Datadog.tracer
         end
 
         def configuration

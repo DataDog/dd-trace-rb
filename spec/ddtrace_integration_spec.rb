@@ -15,7 +15,7 @@ RSpec.describe 'ddtrace integration' do
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
-      Datadog.tracer.trace('test.op') {}
+      Datadog::Tracing.trace('test.op') {}
     end
 
     def wait_for_tracer_sent
@@ -92,13 +92,13 @@ RSpec.describe 'ddtrace integration' do
 
     context 'calling public apis' do
       it 'does not error on tracing' do
-        span_op = Datadog.tracer.trace('test')
+        span_op = Datadog::Tracing.trace('test')
 
         expect(span_op.finish).to be_truthy
       end
 
       it 'does not error on tracing with block' do
-        value = Datadog.tracer.trace('test') do |span_op|
+        value = Datadog::Tracing.trace('test') do |span_op|
           expect(span_op).to be_a(Datadog::SpanOperation)
           :return
         end

@@ -24,14 +24,14 @@ module Datadog
           @app = app
         end
 
-        def compute_queue_time(env, tracer)
+        def compute_queue_time(env)
           return unless configuration[:request_queuing]
 
           # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
-          frontend_span = tracer.trace(
+          frontend_span = Datadog::Tracing.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
             span_type: Datadog::Ext::HTTP::TYPE_PROXY,
             start_time: request_start,
@@ -49,28 +49,25 @@ module Datadog
         end
 
         def call(env)
-          # retrieve integration settings
-          tracer = Datadog.tracer
-
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
           if configuration[:distributed_tracing]
             trace_digest = HTTPPropagator.extract(env)
-            tracer.continue_trace!(trace_digest)
+            Datadog::Tracing.continue_trace!(trace_digest)
           end
 
           # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queue_time(env, tracer)
+          frontend_span = compute_queue_time(env)
 
           trace_options = { span_type: Datadog::Ext::HTTP::TYPE_INBOUND }
           trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = tracer.trace(Ext::SPAN_REQUEST, **trace_options)
+          request_span = Datadog::Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
           request_span.resource = nil
-          request_trace = tracer.active_trace
+          request_trace = Datadog::Tracing.active_trace
           env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.

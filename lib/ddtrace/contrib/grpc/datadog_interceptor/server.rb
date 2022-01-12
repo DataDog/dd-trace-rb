@@ -23,9 +23,9 @@ module Datadog
             }
             metadata = keywords[:call].metadata
 
-            set_distributed_context!(tracer, metadata)
+            set_distributed_context!(metadata)
 
-            tracer.trace(Ext::SPAN_SERVICE, **options) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
               annotate!(span, metadata)
 
               yield
@@ -34,8 +34,8 @@ module Datadog
 
           private
 
-          def set_distributed_context!(tracer, metadata)
-            tracer.continue_trace!(Datadog::GRPCPropagator.extract(metadata))
+          def set_distributed_context!(metadata)
+            Datadog::Tracing.continue_trace!(Datadog::GRPCPropagator.extract(metadata))
           rescue StandardError => e
             Datadog.logger.debug(
               "unable to propagate GRPC metadata to context: #{e}"

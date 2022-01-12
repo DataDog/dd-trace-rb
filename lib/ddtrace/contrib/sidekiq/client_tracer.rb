@@ -18,7 +18,7 @@ module Datadog
         def call(worker_class, job, queue, redis_pool)
           resource = job_resource(job)
 
-          Datadog.tracer.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
             span.resource = resource
 
             span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)

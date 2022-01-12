@@ -18,12 +18,12 @@ module Datadog
         # rubocop:disable Metrics/MethodLength
         def call(env)
           # Set the trace context (e.g. distributed tracing)
-          if configuration[:distributed_tracing] && tracer.active_trace.nil?
+          if configuration[:distributed_tracing] && Datadog::Tracing.active_trace.nil?
             original_trace = HTTPPropagator.extract(env)
-            tracer.continue_trace!(original_trace)
+            Datadog::Tracing.continue_trace!(original_trace)
           end
 
-          tracer.trace(
+          Datadog::Tracing.trace(
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND
@@ -80,10 +80,6 @@ module Datadog
         end
 
         private
-
-        def tracer
-          Datadog.tracer
-        end
 
         def analytics_enabled?
           Contrib::Analytics.enabled?(configuration[:analytics_enabled])

@@ -66,7 +66,7 @@ module Datadog
 
               url = full_url.path
               response = nil
-              Datadog.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
+              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection

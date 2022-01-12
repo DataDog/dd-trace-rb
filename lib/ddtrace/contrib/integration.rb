@@ -46,7 +46,7 @@ module Datadog
     #
     #   module Instrumentation
     #     def api_request!(env)
-    #       Datadog.tracer.trace('billing.request',
+    #       Datadog::Tracing.trace('billing.request',
     #                            type: 'http',
     #                            service: Datadog::Tracing.configuration[:billing_api][:service]) do |span|
     #         span.resource = env[:route].to_s

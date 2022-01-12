@@ -90,7 +90,7 @@ module Datadog
             load_datadog_configuration_for(url)
 
             trace_options = continue_from ? { continue_from: continue_from } : {}
-            @datadog_span = Datadog.tracer.trace(
+            @datadog_span = Datadog::Tracing.trace(
               Ext::SPAN_REQUEST,
               service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
