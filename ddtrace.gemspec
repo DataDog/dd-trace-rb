@@ -50,7 +50,7 @@ Gem::Specification.new do |spec|
   #
   # Because we only use this for older Rubies, and we consider it "feature-complete" for those older Rubies,
   # we're pinning it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '= 0.10.13'
+  spec.add_dependency 'debase-ruby_core_source', '<= 0.10.14'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
 end
