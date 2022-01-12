@@ -10,7 +10,7 @@ module Contrib
   module TracerHelpers
     # Returns the current tracer instance
     def tracer
-      Datadog.tracer
+      Datadog::Tracing.send(:tracer)
     end
 
     # Returns spans and caches it (similar to +let(:spans)+).
@@ -92,7 +92,7 @@ module Contrib
       # with mock assertions.
       config.around do |example|
         example.run.tap do
-          Datadog.tracer.shutdown!
+          Datadog::Tracing.shutdown!
         end
       end
     end

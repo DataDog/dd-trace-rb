@@ -178,7 +178,7 @@ module TracerHelpers
 
   def tracer_shutdown!
     if defined?(@use_real_tracer) && @use_real_tracer
-      Datadog.tracer.shutdown!
+      Datadog::Tracing.shutdown!
     elsif defined?(@tracer) && @tracer
       @tracer.shutdown!
       @tracer = nil
