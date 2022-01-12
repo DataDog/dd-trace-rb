@@ -4,10 +4,10 @@ require 'datadog/ci/spec_helper'
 require 'datadog/ci/test'
 
 RSpec.describe Datadog::CI::Test do
-  let(:tracer) { instance_double(Datadog::Tracer, active_trace: trace_op) }
   let(:trace_op) { instance_double(Datadog::TraceOperation) }
   let(:span_name) { 'span name' }
 
+  before { allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op) }
   before { allow(trace_op).to receive(:origin=) }
 
   shared_examples_for 'default test span operation tags' do
@@ -40,7 +40,7 @@ RSpec.describe Datadog::CI::Test do
     let(:options) { {} }
 
     context 'when given a block' do
-      subject(:trace) { described_class.trace(tracer, span_name, options, &block) }
+      subject(:trace) { described_class.trace(span_name, options, &block) }
       let(:span_op) { Datadog::SpanOperation.new(span_name) }
       let(:block) { proc { |s| block_spy.call(s) } }
       # rubocop:disable RSpec/VerifiedDoubles
@@ -51,7 +51,7 @@ RSpec.describe Datadog::CI::Test do
       before do
         allow(block_spy).to receive(:call).and_return(block_result)
 
-        allow(tracer)
+        allow(Datadog::Tracing)
           .to receive(:trace) do |trace_span_name, trace_span_options, &trace_block|
             expect(trace_span_name).to be(span_name)
             expect(trace_span_options).to eq({ span_type: Datadog::CI::Ext::AppTypes::TEST })
@@ -69,11 +69,11 @@ RSpec.describe Datadog::CI::Test do
     end
 
     context 'when not given a block' do
-      subject(:trace) { described_class.trace(tracer, span_name, options) }
+      subject(:trace) { described_class.trace(span_name, options) }
       let(:span_op) { Datadog::SpanOperation.new(span_name) }
 
       before do
-        allow(tracer)
+        allow(Datadog::Tracing)
           .to receive(:trace)
           .with(
             span_name,

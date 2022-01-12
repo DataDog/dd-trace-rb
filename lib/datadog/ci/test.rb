@@ -13,19 +13,19 @@ module Datadog
     # Common behavior for CI tests
     module Test
       # Creates a new span for a CI test
-      def self.trace(tracer, span_name, options = {})
+      def self.trace(span_name, options = {})
         span_options = {
           span_type: Ext::AppTypes::TEST
         }.merge(options[:span_options] || {})
 
         if block_given?
-          tracer.trace(span_name, **span_options) do |span, trace|
+          Datadog::Tracing.trace(span_name, **span_options) do |span, trace|
             set_tags!(trace, span, options)
             yield(span, trace)
           end
         else
-          span = tracer.trace(span_name, **span_options)
-          trace = tracer.active_trace
+          span = Datadog::Tracing.trace(span_name, **span_options)
+          trace = Datadog::Tracing.active_trace
           set_tags!(trace, span, options)
           span
         end

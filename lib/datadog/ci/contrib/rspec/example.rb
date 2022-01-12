@@ -28,7 +28,6 @@ module Datadog
               end
 
               CI::Test.trace(
-                tracer,
                 configuration[:operation_name],
                 {
                   span_options: {
@@ -62,10 +61,6 @@ module Datadog
 
             def configuration
               Datadog::Tracing.configuration[:rspec]
-            end
-
-            def tracer
-              Datadog.tracer
             end
           end
         end
