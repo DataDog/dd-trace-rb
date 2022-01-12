@@ -1,6 +1,8 @@
 require 'benchmark/ips'
 require 'ddtrace'
 
+puts RUBY_DESCRIPTION
+
 MODE = ENV['MODE']
 
 if MODE == 'no'
@@ -17,9 +19,7 @@ end
 Benchmark.ips do |x|
   x.config(time: 30, warmup: 5)
 
-  x.report("#{MODE} tracking") do |times|
-    Datadog::Profiling::NativeExtension.allocate_many_objects(times)
-  end
+  x.report("#{MODE} tracking", "Object.new")
 
   x.compare!
 end

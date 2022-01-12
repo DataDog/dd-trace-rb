@@ -24,7 +24,6 @@ void Init_ddtrace_profiling_native_extension(void) {
   rb_define_singleton_method(native_extension_module, "start_allocation_tracing", start_allocation_tracing, 0);
 
   rb_define_singleton_method(native_extension_module, "allocation_count", get_allocation_count, 0);
-  rb_define_singleton_method(native_extension_module, "allocate_many_objects", allocate_many_objects, 1);
 }
 
 static VALUE native_working_p(VALUE self) {
@@ -51,14 +50,4 @@ static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
 
 static VALUE get_allocation_count(VALUE self) {
   return ULONG2NUM(allocation_count);
-}
-
-static VALUE allocate_many_objects(VALUE self, VALUE how_many) {
-  unsigned long count = NUM2ULONG(how_many);
-
-  for (unsigned long i = 0; i < count; i++) {
-    rb_newobj();
-  }
-
-  return Qtrue;
 }
