@@ -1,6 +1,8 @@
 require 'benchmark/ips'
 require 'ddtrace'
 
+puts RUBY_DESCRIPTION
+
 MODE = ENV['MODE']
 
 if MODE == 'no'
