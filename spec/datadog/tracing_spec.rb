@@ -94,13 +94,6 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
-  describe '.tracer' do
-    subject(:tracer) { described_class.tracer }
-    it 'returns the global tracer' do
-      expect(tracer).to be(Datadog.tracer)
-    end
-  end
-
   describe '.log_correlation' do
     subject(:log_correlation) { described_class.log_correlation }
 

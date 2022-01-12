@@ -268,7 +268,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'replaces the old tracer and shuts it down' do
-            expect(test_class.tracer).to be new_tracer
+            expect(test_class.send(:components).tracer).to be new_tracer
           end
         end
 
@@ -283,7 +283,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'reuses the same tracer' do
-            expect(test_class.tracer).to be tracer
+            expect(test_class.send(:components).tracer).to be tracer
           end
         end
 
@@ -298,7 +298,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'reuses the same tracer' do
-            expect(test_class.tracer).to be tracer
+            expect(test_class.send(:components).tracer).to be tracer
           end
         end
       end
@@ -406,13 +406,6 @@ RSpec.describe Datadog::Configuration do
       it { is_expected.to be_a_kind_of(Datadog::Workers::RuntimeMetrics) }
       it { expect(runtime_metrics.enabled?).to be false }
       it { expect(runtime_metrics.running?).to be false }
-    end
-
-    describe '#tracer' do
-      subject(:tracer) { test_class.tracer }
-
-      it { is_expected.to be_a_kind_of(Datadog::Tracer) }
-      it { expect(tracer.trace_flush).to be_a_kind_of(Datadog::TraceFlush::Finished) }
     end
 
     describe '#shutdown!' do

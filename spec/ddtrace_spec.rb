@@ -6,12 +6,6 @@ RSpec.describe Datadog do
     subject(:datadog) { described_class }
 
     describe 'behavior' do
-      describe '#tracer' do
-        subject(:tracer) { datadog.tracer }
-
-        it { is_expected.to be_an_instance_of(Datadog::Tracer) }
-      end
-
       describe '#configuration' do
         subject(:configuration) { datadog.configuration }
 

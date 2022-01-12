@@ -23,14 +23,6 @@ RSpec.describe 'ActiveModelSerializers patcher' do
       c.use :active_model_serializers, configuration_options
     end
 
-    # Make sure to update the subscription tracer,
-    # so we aren't writing to a stale tracer.
-    if Datadog::Contrib::ActiveModelSerializers::Patcher.patched?
-      Datadog::Contrib::ActiveModelSerializers::Events.subscriptions.each do |subscription|
-        allow(subscription).to receive(:tracer).and_return(tracer)
-      end
-    end
-
     raise_on_rails_deprecation!
   end
 

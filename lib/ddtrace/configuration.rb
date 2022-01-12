@@ -97,8 +97,7 @@ module Datadog
       :components,
       :health_metrics,
       :profiler,
-      :runtime_metrics,
-      :tracer
+      :runtime_metrics
 
     def logger
       # avoid initializing components if they didn't already exist

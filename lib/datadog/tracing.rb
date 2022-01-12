@@ -21,22 +21,6 @@ module Datadog
         tracer.continue_trace!(digest, &block)
       end
 
-      # The currently active {Datadog::Tracer} instance.
-      #
-      # The instance returned can change throughout the lifetime of the application.
-      # This means it is not advisable to cache it.
-      #
-      # The tracer can be configured through {.configure},
-      # through {Datadog::Configuration::Settings::DSL::Tracer} options.
-      #
-      # @deprecated Use public API methods available in {Datadog::Tracing} instead.
-      # @return [Datadog::Tracer] the active tracer
-      # @!attribute [r] tracer
-      # @public_api
-      def tracer
-        components.tracer
-      end
-
       # The tracer's internal logger instance.
       # All tracing log output is handled by this object.
       #
@@ -235,6 +219,10 @@ module Datadog
       # DEV: components hosts both tracing and profiling inner objects today
       def components
         Datadog.send(:components)
+      end
+
+      def tracer
+        components.tracer
       end
     end
   end
