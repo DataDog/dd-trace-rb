@@ -98,7 +98,7 @@ RSpec.describe 'Rails ActionController' do
             observed = self.observed
             stub_const('TestController', Class.new(base_class) do
               define_method(:index) do
-                observed[:active_span_resource] = Datadog.tracer.active_span.resource
+                observed[:active_span_resource] = Datadog::Tracing.active_span.resource
               end
             end)
           end

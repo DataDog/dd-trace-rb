@@ -40,7 +40,7 @@ module Datadog
             pin = datadog_pin(request_options)
             return super(req, body, &block) unless pin
 
-            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req, Datadog.tracer)
+            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req)
 
             Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
@@ -52,7 +52,7 @@ module Datadog
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if Datadog.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
+                if Datadog::Tracing.enabled? && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(trace, req)
                 end
 

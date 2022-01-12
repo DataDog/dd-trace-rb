@@ -10,10 +10,9 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
   let(:circuit_breaker_class) { Class.new { include Datadog::Contrib::HTTP::CircuitBreaker } }
 
   describe '#should_skip_tracing?' do
-    subject(:should_skip_tracing?) { circuit_breaker.should_skip_tracing?(request, tracer) }
+    subject(:should_skip_tracing?) { circuit_breaker.should_skip_tracing?(request) }
 
     let(:request) { ::Net::HTTP::Post.new('/some/path') }
-    let(:tracer) { instance_double(Datadog::Tracer) }
 
     context 'given a normal request' do
       before do
@@ -21,7 +20,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
           .with(request)
           .and_return(false)
 
-        allow(tracer).to receive(:active_span).and_return(nil)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
       end
 
       it { is_expected.to be false }
@@ -45,7 +44,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
           .with(request)
           .and_return(false)
 
-        allow(tracer).to receive(:active_span).and_return(active_span)
+        allow(Datadog::Tracing).to receive(:active_span).and_return(active_span)
       end
 
       it { is_expected.to be true }

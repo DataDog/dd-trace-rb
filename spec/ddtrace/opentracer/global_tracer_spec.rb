@@ -16,7 +16,7 @@ RSpec.describe Datadog::OpenTracer::GlobalTracer do
 
         it do
           expect(global_tracer).to be(tracer)
-          expect(Datadog.tracer).to be(tracer.datadog_tracer)
+          expect(Datadog::Tracing.send(:tracer)).to be(tracer.datadog_tracer)
         end
       end
 
@@ -25,7 +25,7 @@ RSpec.describe Datadog::OpenTracer::GlobalTracer do
 
         it do
           expect(global_tracer).to be(tracer)
-          expect(Datadog.tracer).to_not be(tracer)
+          expect(Datadog::Tracing.send(:tracer)).to_not be(tracer)
         end
       end
     end

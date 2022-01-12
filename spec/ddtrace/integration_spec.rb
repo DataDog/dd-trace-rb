@@ -11,7 +11,7 @@ RSpec.describe 'Tracer integration tests' do
       skip unless ENV['TEST_DATADOG_INTEGRATION']
     end
 
-    let(:tracer) { Datadog.tracer }
+    let(:tracer) { Datadog::Tracing.send(:tracer) }
   end
 
   shared_examples 'flushed trace' do
@@ -301,7 +301,7 @@ RSpec.describe 'Tracer integration tests' do
 
         # Fork the process
         fork_id = fork do
-          allow(Datadog.tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
+          allow(tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
             m.call(*args).tap { write.write(graceful_signal) }
           end
 
@@ -371,8 +371,6 @@ RSpec.describe 'Tracer integration tests' do
   describe 'sampling priority integration' do
     include_context 'agent-based test'
 
-    # Expect default tracer & tracer instance to both have priority sampling.
-    it { expect(Datadog.tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
     it { expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
 
     it do
@@ -504,7 +502,7 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
 
-    let(:tracer) { Datadog.tracer }
+    let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:hostname) { double('hostname') }
     let(:port) { 34567 }
 

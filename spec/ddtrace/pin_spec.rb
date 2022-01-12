@@ -117,7 +117,7 @@ RSpec.describe Datadog::Pin do
     it { is_expected.to be true }
 
     context 'when the tracer is disabled' do
-      before { Datadog.tracer.enabled = false }
+      before { allow(Datadog::Tracing).to receive(:enabled?).and_return(false) }
 
       it { is_expected.to be false }
     end

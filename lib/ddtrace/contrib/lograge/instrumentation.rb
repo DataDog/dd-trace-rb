@@ -16,7 +16,7 @@ module Datadog
             original_custom_options = super(event)
 
             # Retrieves trace information for current thread
-            correlation = Datadog.tracer.active_correlation
+            correlation = Datadog::Tracing.correlation
             # merge original lambda with datadog context
 
             datadog_trace_log_hash = {

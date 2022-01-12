@@ -163,8 +163,8 @@ RSpec.describe 'Resque instrumentation' do
           expect(tracer.active_span.parent_id).to eq(0)
         end
 
-        # On completion of the fork, `Datadog.tracer.shutdown!` will be invoked.
-        expect(tracer).to receive(:shutdown!)
+        # On completion of the fork, `Datadog::Tracing.shutdown!` will be invoked.
+        expect(Datadog::Tracing).to receive(:shutdown!)
 
         tracer.trace('main.process') do
           perform_job(job_class)

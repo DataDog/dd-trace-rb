@@ -107,7 +107,7 @@ module Datadog
       # @return [String] target agent URL for trace flushing
       def agent_url
         # Retrieve the effect agent URL, regardless of how it was configured
-        transport = Datadog.tracer.writer.transport
+        transport = Datadog::Tracing.send(:tracer).writer.transport
         adapter = transport.client.api.adapter
         adapter.url
       end

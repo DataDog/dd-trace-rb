@@ -31,7 +31,7 @@ module Datadog
             schema.use(
               ::GraphQL::Tracing::DataDogTracing,
               # By default, Tracing::DataDogTracing indirectly delegates the tracer instance
-              # to +Datadog.tracer+. If we provide a tracer argument here it will be eagerly cached,
+              # to +Datadog::Tracing.tracer+. If we provide a tracer argument here it will be eagerly cached,
               # and Tracing::DataDogTracing will send traces to a stale tracer instance.
               service: service_name,
               analytics_enabled: analytics_enabled,
@@ -42,7 +42,7 @@ module Datadog
               use(
                 ::GraphQL::Tracing::DataDogTracing,
                 # By default, Tracing::DataDogTracing indirectly delegates the tracer instance
-                # to +Datadog.tracer+. If we provide a tracer argument here it will be eagerly cached,
+                # to +Datadog::Tracing.tracer+. If we provide a tracer argument here it will be eagerly cached,
                 # and Tracing::DataDogTracing will send traces to a stale tracer instance.
                 service: service_name,
                 analytics_enabled: analytics_enabled,

@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing do
     subject(:active_span) { described_class.active_span }
 
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:active_span).and_return(returned)
+      expect(Datadog::Tracing.send(:tracer)).to receive(:active_span).and_return(returned)
       expect(active_span).to eq(returned)
     end
   end
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing do
     subject(:active_trace) { described_class.active_trace }
 
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:active_trace)
+      expect(Datadog::Tracing.send(:tracer)).to receive(:active_trace)
       active_trace
     end
   end
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing do
       end
 
       it 'delegates to the active trace' do
-        expect(Datadog.tracer.active_trace).to receive(:keep!)
+        expect(Datadog::Tracing.send(:tracer).active_trace).to receive(:keep!)
         keep!
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing do
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:continue_trace!)
+      expect(Datadog::Tracing.send(:tracer)).to receive(:continue_trace!)
         .with(digest) { |&b| expect(b).to be(block) }.and_return(returned)
       expect(continue_trace!).to eq(returned)
     end
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing do
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:trace)
+      expect(Datadog::Tracing.send(:tracer)).to receive(:trace)
         .with(name, continue_from: continue_from, **span_options) { |&b| expect(b).to be(block) }
         .and_return(returned)
       expect(trace).to eq(returned)
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Tracing do
       end
 
       it 'delegates to the active trace' do
-        expect(Datadog.tracer.active_trace).to receive(:reject!).and_return(returned)
+        expect(Datadog::Tracing.send(:tracer).active_trace).to receive(:reject!).and_return(returned)
         expect(reject!).to eq(returned)
       end
     end
@@ -106,10 +106,10 @@ RSpec.describe Datadog::Tracing do
 
     # rubocop:disable RSpec/MessageChain
     it 'delegates to the active correlation' do
-      # DEV: `Datadog.tracer.active_correlation` returns a new object on every invocation.
+      # DEV: Datadog::Tracer#active_correlation returns a new object on every invocation.
       # Once we memoize `Datadog::Correlation#identifier_from_digest`, we can simplify this
       # `receive_message_chain` assertion to `expect(Datadog.tracer.active_correlation).to receive(:to_log_format)`
-      expect(Datadog.tracer).to receive_message_chain(:active_correlation, :to_log_format)
+      expect(Datadog::Tracing.send(:tracer)).to receive_message_chain(:active_correlation, :to_log_format)
         .and_return(returned)
       expect(log_correlation).to eq(returned)
     end
@@ -170,115 +170,6 @@ RSpec.describe Datadog::Tracing do
         end
       end
     end
-
-    # context 'when the metrics' do
-    #   context 'are replaced' do
-    #     let(:old_statsd) { instance_double(Datadog::Statsd) }
-    #     let(:new_statsd) { instance_double(Datadog::Statsd) }
-
-    #     before do
-    #       expect(old_statsd).to receive(:close).once
-
-    #       described_class.configure do |c|
-    #         c.runtime_metrics.statsd = old_statsd
-    #       end
-
-    #       described_class.configure do |c|
-    #         c.runtime_metrics.statsd = new_statsd
-    #       end
-    #     end
-
-    #     it 'replaces the old Statsd and closes it' do
-    #       expect(described_class.configuration.runtime_metrics.metrics.statsd).to be new_statsd
-    #     end
-    #   end
-
-    #   context 'are reused' do
-    #     let(:statsd) { instance_double(Datadog::Statsd) }
-
-    #     before do
-    #       expect(statsd).to_not receive(:close)
-
-    #       described_class.configure do |c|
-    #         c.runtime_metrics.statsd = statsd
-    #       end
-
-    #       described_class.configure do |c|
-    #         c.runtime_metrics.statsd = statsd
-    #       end
-    #     end
-
-    #     it 'reuses the same Statsd' do
-    #       expect(described_class.configuration.runtime_metrics.metrics.statsd).to be statsd
-    #     end
-    #   end
-
-    #   context 'are not changed' do
-    #     let(:statsd) { instance_double(Datadog::Statsd) }
-
-    #     before do
-    #       expect(statsd).to_not receive(:close)
-
-    #       described_class.configure do |c|
-    #         c.runtime_metrics.statsd = statsd
-    #       end
-
-    #       described_class.configure { |_c| }
-    #     end
-
-    #     it 'reuses the same Statsd' do
-    #       expect(described_class.configuration.runtime_metrics.metrics.statsd).to be statsd
-    #     end
-    #   end
-    # end
-
-    # context 'when the tracer' do
-    #   context 'is replaced' do
-    #     let(:old_tracer) { Datadog::Tracer.new }
-    #     let(:new_tracer) { Datadog::Tracer.new }
-
-    #     before do
-    #       expect(old_tracer).to receive(:shutdown!)
-
-    #       described_class.configure { |c| c.tracer.instance = old_tracer }
-    #       described_class.configure { |c| c.tracer.instance = new_tracer }
-    #     end
-
-    #     it 'replaces the old tracer and shuts it down' do
-    #       expect(described_class.tracer).to be new_tracer
-    #     end
-    #   end
-
-    #   context 'is reused' do
-    #     let(:tracer) { Datadog::Tracer.new }
-
-    #     before do
-    #       expect(tracer).to_not receive(:shutdown!)
-
-    #       described_class.configure { |c| c.tracer.instance = tracer }
-    #       described_class.configure { |c| c.tracer.instance = tracer }
-    #     end
-
-    #     it 'reuses the same tracer' do
-    #       expect(described_class.tracer).to be tracer
-    #     end
-    #   end
-
-    #   context 'is not changed' do
-    #     let(:tracer) { Datadog::Tracer.new }
-
-    #     before do
-    #       expect(tracer).to_not receive(:shutdown!)
-
-    #       described_class.configure { |c| c.tracer.instance = tracer }
-    #       described_class.configure { |_c| }
-    #     end
-
-    #     it 'reuses the same tracer' do
-    #       expect(described_class.tracer).to be tracer
-    #     end
-    #   end
-    # end
   end
 
   describe '.configure_onto' do
@@ -314,7 +205,7 @@ RSpec.describe Datadog::Tracing do
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:active_correlation).and_return(returned)
+      expect(Datadog::Tracing.send(:tracer)).to receive(:active_correlation).and_return(returned)
       expect(correlation).to eq(returned)
     end
   end
@@ -332,7 +223,7 @@ RSpec.describe Datadog::Tracing do
   describe '.enabled?' do
     subject(:enabled?) { described_class.enabled? }
     it 'delegates to the tracer' do
-      expect(Datadog.tracer).to receive(:enabled)
+      expect(Datadog::Tracing.send(:tracer)).to receive(:enabled)
       enabled?
     end
   end

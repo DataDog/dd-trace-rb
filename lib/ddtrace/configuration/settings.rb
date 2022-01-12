@@ -499,14 +499,14 @@ module Datadog
         # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
         option :hostname
 
-        # A custom tracer instance.
+        # A custom tracer instance. Advanced usage only.
         #
         # It must respect the contract of {Datadog::Tracer}.
         # It's recommended to delegate methods to {Datadog::Tracer} to ease the implementation
         # of a custom tracer.
         #
         # This option will not return the live tracer instance: it only holds a custom
-        # tracing instance, if any. The live tracer instance can be found in {Datadog.tracer}.
+        # tracing instance, if any. The live tracer instance can be found in {Datadog::Tracing.tracer}.
         #
         # @default `nil`
         # @return [Object,nil]

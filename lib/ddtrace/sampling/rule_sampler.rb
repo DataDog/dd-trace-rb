@@ -50,7 +50,7 @@ module Datadog
                              @rules << SimpleRule.new(sample_rate: default_sample_rate)
                              nil
                            else
-                             RateByServiceSampler.new(1.0, env: -> { Datadog.tracer.tags[:env] })
+                             RateByServiceSampler.new(1.0, env: -> { Datadog::Tracing.send(:tracer).tags[:env] })
                            end
       end
 

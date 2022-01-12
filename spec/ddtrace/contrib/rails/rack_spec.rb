@@ -101,7 +101,7 @@ RSpec.describe 'Rails Rack' do
       end
 
       def custom_span_resource
-        Datadog.tracer.active_span.resource = 'CustomSpanResource'
+        Datadog::Tracing.active_span.resource = 'CustomSpanResource'
 
         head :ok
       end

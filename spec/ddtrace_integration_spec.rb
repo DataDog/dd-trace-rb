@@ -19,7 +19,7 @@ RSpec.describe 'ddtrace integration' do
     end
 
     def wait_for_tracer_sent
-      try_wait_until { Datadog.tracer.writer.transport.stats.success > 0 }
+      try_wait_until { Datadog::Tracing.send(:tracer).writer.transport.stats.success > 0 }
     end
 
     context 'for threads' do

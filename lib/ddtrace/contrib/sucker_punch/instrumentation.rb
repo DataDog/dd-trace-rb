@@ -17,7 +17,7 @@ module Datadog
           ::SuckerPunch::Job::ClassMethods.class_eval do
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
-              Datadog.tracer.provider.context = Datadog::Context.new
+              Datadog::Tracing.send(:tracer).provider.context = Datadog::Context.new
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"

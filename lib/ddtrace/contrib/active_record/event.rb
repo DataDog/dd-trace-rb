@@ -17,10 +17,6 @@ module Datadog
             {}
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def configuration
             Datadog::Tracing.configuration[:active_record]
           end

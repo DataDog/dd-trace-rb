@@ -22,7 +22,7 @@ RSpec.describe 'Rails defaults' do
       end
 
       describe 'Global tracer default_service' do
-        subject(:tracer_default_service) { Datadog.tracer.default_service }
+        subject(:tracer_default_service) { Datadog::Tracing.send(:tracer).default_service }
 
         it { expect(tracer_default_service).to match(/rails/) }
       end
@@ -38,7 +38,7 @@ RSpec.describe 'Rails defaults' do
       end
 
       describe 'Global tracer default_service' do
-        subject(:tracer_default_service) { Datadog.tracer.default_service }
+        subject(:tracer_default_service) { Datadog::Tracing.send(:tracer).default_service }
 
         it { expect(tracer_default_service).to eq(default_service) }
       end

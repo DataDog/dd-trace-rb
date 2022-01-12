@@ -21,10 +21,6 @@ module Datadog
             options
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def configuration
             Datadog::Tracing.configuration[:active_job]
           end

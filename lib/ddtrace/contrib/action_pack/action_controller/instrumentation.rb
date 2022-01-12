@@ -24,7 +24,7 @@ module Datadog
               span_type: type,
               resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
             )
-            trace = Datadog.tracer.active_trace
+            trace = Datadog::Tracing.active_trace
 
             # attach the current span to the tracing context
             tracing_context = payload.fetch(:tracing_context)

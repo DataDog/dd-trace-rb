@@ -33,7 +33,7 @@ module Datadog
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                if Datadog.tracer.enabled && !should_skip_distributed_tracing?(pin)
+                if Datadog::Tracing.enabled? && !should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(trace, req)
                 end
 

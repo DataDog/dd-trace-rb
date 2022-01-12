@@ -6,7 +6,7 @@ require 'support/faux_writer'
 module Contrib
   # Contrib-specific tracer helpers.
   # For contrib, we only allow one tracer to be active:
-  # the global +Datadog.tracer+.
+  # the global tracer in +Datadog::Tracing+.
   module TracerHelpers
     # Returns the current tracer instance
     def tracer

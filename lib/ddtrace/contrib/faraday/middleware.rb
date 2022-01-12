@@ -28,7 +28,7 @@ module Datadog
 
           Datadog::Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
             annotate!(span, env, request_options)
-            propagate!(trace, span, env) if request_options[:distributed_tracing] && tracer.enabled
+            propagate!(trace, span, env) if request_options[:distributed_tracing] && Datadog::Tracing.enabled?
             app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
           end
         end

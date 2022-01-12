@@ -17,7 +17,7 @@ module Datadog
             # interesting details.
             # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
             # to avoid any kind of issue.
-            current_span = Datadog::Tracing.trace.active_span
+            current_span = Datadog::Tracing.active_span
             return if current_span.try(:name) == Ext::SPAN_CACHE &&
                       (
                         payload[:action] == Ext::RESOURCE_CACHE_GET &&
