@@ -91,12 +91,16 @@ module Datadog
       # (see Datadog::Tracer#active_trace)
       # @public_api
       def active_trace
+        return unless tracer
+
         tracer.active_trace
       end
 
       # (see Datadog::Tracer#active_span)
       # @public_api
       def active_span
+        return unless tracer
+
         tracer.active_span
       end
 
@@ -119,6 +123,8 @@ module Datadog
       # (see Datadog::Tracer#active_correlation)
       # @public_api
       def correlation
+        return unless tracer
+
         tracer.active_correlation
       end
 
@@ -150,6 +156,8 @@ module Datadog
       # {.shutdown!} cannot be reversed.
       # @public_api
       def shutdown!
+        return unless tracer
+
         tracer.shutdown!
       end
 
@@ -183,6 +191,8 @@ module Datadog
       # Is the tracer collecting telemetry data in this process?
       # @return [Boolean] `true` if the tracer is collecting data in this process, otherwise `false`.
       def enabled?
+        return false unless tracer
+
         tracer.enabled
       end
 
