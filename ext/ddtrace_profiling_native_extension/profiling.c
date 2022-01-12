@@ -54,8 +54,9 @@ static VALUE get_allocation_count(VALUE self) {
 }
 
 static VALUE allocate_many_objects(VALUE self, VALUE how_many) {
-  int count = NUM2ULONG(how_many);
-  for (int i = 0; i < count; i++) {
+  unsigned long count = NUM2ULONG(how_many);
+
+  for (unsigned long i = 0; i < count; i++) {
     rb_newobj();
   }
 
