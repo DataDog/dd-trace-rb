@@ -58,7 +58,7 @@ module Datadog
         Datadog.configuration
       end
 
-      # Apply configuration changes to `ddtrace`. An example of a {.configure} call:
+      # Apply configuration changes to `Datadog::Tracing`. An example of a {.configure} call:
       # ```
       # Datadog::Tracing.configure do |c|
       #   c.sampling.default_rate = 1.0
