@@ -14,7 +14,7 @@ RSpec.describe 'Redis mini app test' do
     Datadog.configure { |c| c.use :redis }
 
     # Configure client instance with custom options
-    Datadog.configure_onto(client, service_name: 'test-service')
+    Datadog::Tracing.configure_onto(client, service_name: 'test-service')
   end
 
   let(:client) do

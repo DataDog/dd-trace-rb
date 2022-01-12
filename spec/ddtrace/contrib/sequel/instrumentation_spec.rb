@@ -12,7 +12,7 @@ RSpec.describe 'Sequel instrumentation' do
   let(:configuration_options) { {} }
   let(:sequel) do
     Sequel.connect(sequel_connection_string).tap do |db|
-      Datadog.configure_onto(db)
+      Datadog::Tracing.configure_onto(db)
     end
   end
 

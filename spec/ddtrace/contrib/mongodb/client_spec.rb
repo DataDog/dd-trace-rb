@@ -52,7 +52,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     context 'with a different service name' do
       let(:service) { 'mongodb-primary' }
 
-      before { Datadog.configure_onto(client, service_name: service) }
+      before { Datadog::Tracing.configure_onto(client, service_name: service) }
 
       subject { client[collection].insert_one(name: 'FKA Twigs') }
 

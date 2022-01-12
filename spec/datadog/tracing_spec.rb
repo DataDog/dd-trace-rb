@@ -147,6 +147,25 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
+  describe '.configure_onto' do
+    subject(:configure_onto) { described_class.configure_onto(object, **options) }
+
+    let(:object) { double('object') }
+    let(:options) { {} }
+
+    let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
+
+    it 'attaches a pin to the object' do
+      expect(Datadog::Configuration::PinSetup)
+        .to receive(:new)
+        .with(object, **options)
+        .and_return(pin_setup)
+
+      expect(pin_setup).to receive(:call)
+
+      configure_onto
+    end
+  end
 
   describe '.configuration' do
     subject(:configuration) { described_class.configuration }
