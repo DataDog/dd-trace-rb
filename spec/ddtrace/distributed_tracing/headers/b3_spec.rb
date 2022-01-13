@@ -7,7 +7,7 @@ require 'ddtrace/ext/distributed'
 require 'ddtrace/distributed_tracing/headers/b3'
 
 RSpec.describe Datadog::DistributedTracing::Headers::B3 do
-  let(:context) { Datadog.Context.new }
+  let(:context) { Datadog::Context.new }
 
   # Helper to format env header keys
   def env_header(name)

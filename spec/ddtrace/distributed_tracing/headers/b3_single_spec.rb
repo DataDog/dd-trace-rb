@@ -12,7 +12,7 @@ RSpec.describe Datadog::DistributedTracing::Headers::B3Single do
   # https://github.com/apache/incubator-zipkin-b3-propagation/tree/7c6e9f14d6627832bd80baa87ac7dabee7be23cf#single-header
   # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
 
-  let(:context) { Datadog.Context.new }
+  let(:context) { Datadog::Context.new }
 
   # Helper to format env header keys
   def env_header(name)
