@@ -139,7 +139,7 @@ module Datadog
 
     private
 
-    def internal_configure(configuration = self.internal_configuration)
+    def internal_configure(configuration = internal_configuration)
       yield(configuration)
 
       safely_synchronize do |write_components|

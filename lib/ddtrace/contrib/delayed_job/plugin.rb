@@ -11,8 +11,12 @@ module Datadog
         def self.instrument_invoke(job, &block)
           return yield(job) unless Datadog::Tracing.enabled?
 
-          Datadog::Tracing.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
-                                      on_error: configuration[:error_handler]) do |span|
+          Datadog::Tracing.trace(
+            Ext::SPAN_JOB,
+            service: configuration[:service_name],
+            resource: job_name(job),
+            on_error: configuration[:error_handler]
+          ) do |span|
             set_sample_rate(span)
 
             # Measure service stats
@@ -34,7 +38,11 @@ module Datadog
         def self.instrument_enqueue(job, &block)
           return yield(job) unless Datadog::Tracing.enabled?
 
-          Datadog::Tracing.trace(Ext::SPAN_ENQUEUE, service: configuration[:client_service_name], resource: job_name(job)) do |span|
+          Datadog::Tracing.trace(
+            Ext::SPAN_ENQUEUE,
+            service: configuration[:client_service_name],
+            resource: job_name(job)
+          ) do |span|
             set_sample_rate(span)
 
             # Measure service stats

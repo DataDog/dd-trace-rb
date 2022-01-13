@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing do
     subject(:active_span) { described_class.active_span }
 
     it 'delegates to the tracer' do
-      expect(Datadog::Tracing.send(:tracer)).to receive(:active_span).and_return(returned)
+      expect(described_class.send(:tracer)).to receive(:active_span).and_return(returned)
       expect(active_span).to eq(returned)
     end
   end
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Tracing do
     subject(:active_trace) { described_class.active_trace }
 
     it 'delegates to the tracer' do
-      expect(Datadog::Tracing.send(:tracer)).to receive(:active_trace)
+      expect(described_class.send(:tracer)).to receive(:active_trace)
       active_trace
     end
   end
@@ -31,11 +31,11 @@ RSpec.describe Datadog::Tracing do
 
     context 'with an active trace' do
       let!(:trace) do
-        Datadog::Tracing.trace('test.trace')
+        described_class.trace('test.trace')
       end
 
       it 'delegates to the active trace' do
-        expect(Datadog::Tracing.send(:tracer).active_trace).to receive(:keep!)
+        expect(described_class.send(:tracer).active_trace).to receive(:keep!)
         keep!
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Tracing do
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
-      expect(Datadog::Tracing.send(:tracer)).to receive(:continue_trace!)
+      expect(described_class.send(:tracer)).to receive(:continue_trace!)
         .with(digest) { |&b| expect(b).to be(block) }.and_return(returned)
       expect(continue_trace!).to eq(returned)
     end
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Tracing do
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
-      expect(Datadog::Tracing.send(:tracer)).to receive(:trace)
+      expect(described_class.send(:tracer)).to receive(:trace)
         .with(name, continue_from: continue_from, **span_options) { |&b| expect(b).to be(block) }
         .and_return(returned)
       expect(trace).to eq(returned)
@@ -78,11 +78,11 @@ RSpec.describe Datadog::Tracing do
     subject(:reject!) { described_class.reject! }
     context 'with an active trace' do
       let!(:trace) do
-        Datadog::Tracing.trace('test.trace')
+        described_class.trace('test.trace')
       end
 
       it 'delegates to the active trace' do
-        expect(Datadog::Tracing.send(:tracer).active_trace).to receive(:reject!).and_return(returned)
+        expect(described_class.send(:tracer).active_trace).to receive(:reject!).and_return(returned)
         expect(reject!).to eq(returned)
       end
     end
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Tracing do
       # DEV: Datadog::Tracer#active_correlation returns a new object on every invocation.
       # Once we memoize `Datadog::Correlation#identifier_from_digest`, we can simplify this
       # `receive_message_chain` assertion to `expect(Datadog.tracer.active_correlation).to receive(:to_log_format)`
-      expect(Datadog::Tracing.send(:tracer)).to receive_message_chain(:active_correlation, :to_log_format)
+      expect(described_class.send(:tracer)).to receive_message_chain(:active_correlation, :to_log_format)
         .and_return(returned)
       expect(log_correlation).to eq(returned)
     end
@@ -198,7 +198,7 @@ RSpec.describe Datadog::Tracing do
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
     it 'delegates to the tracer' do
-      expect(Datadog::Tracing.send(:tracer)).to receive(:active_correlation).and_return(returned)
+      expect(described_class.send(:tracer)).to receive(:active_correlation).and_return(returned)
       expect(correlation).to eq(returned)
     end
   end
@@ -216,7 +216,7 @@ RSpec.describe Datadog::Tracing do
   describe '.enabled?' do
     subject(:enabled?) { described_class.enabled? }
     it 'delegates to the tracer' do
-      expect(Datadog::Tracing.send(:tracer)).to receive(:enabled)
+      expect(described_class.send(:tracer)).to receive(:enabled)
       enabled?
     end
   end

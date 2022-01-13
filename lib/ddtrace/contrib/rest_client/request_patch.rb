@@ -48,9 +48,11 @@ module Datadog
           end
 
           def datadog_trace_request(uri)
-            span = Datadog::Tracing.trace(Ext::SPAN_REQUEST,
-                                        service: datadog_configuration[:service_name],
-                                        span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND)
+            span = Datadog::Tracing.trace(
+              Ext::SPAN_REQUEST,
+              service: datadog_configuration[:service_name],
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+            )
 
             trace = Datadog::Tracing.active_trace
 

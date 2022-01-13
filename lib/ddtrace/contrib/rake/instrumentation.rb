@@ -38,7 +38,9 @@ module Datadog
           private
 
           def shutdown_tracer!
-            Datadog::Tracing.shutdown! if Datadog::Tracing.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+            if Datadog::Tracing.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+              Datadog::Tracing.shutdown!
+            end
           end
 
           def annotate_invoke!(span, args)

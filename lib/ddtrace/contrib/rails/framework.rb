@@ -40,9 +40,9 @@ module Datadog
             # By default, default service would be guessed from the script
             # being executed, but here we know better, get it from Rails config.
             # Don't set this if service has been explicitly provided by the user.
-            rails_service_name =  Datadog::Tracing.configuration[:rails][:service_name] \
-                                    || Datadog.configuration.service_without_fallback \
-                                    || Utils.app_name
+            rails_service_name = Datadog::Tracing.configuration[:rails][:service_name] \
+                                   || Datadog.configuration.service_without_fallback \
+                                   || Utils.app_name
 
             datadog_config.service ||= rails_service_name
           end

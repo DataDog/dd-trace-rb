@@ -139,7 +139,9 @@ module Datadog
       # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
       #       instead of working through the trace writer.
       # Associate trace with runtime metrics
-      Datadog.runtime_metrics.associate_with_trace(trace) if Datadog::Tracing.configuration.runtime_metrics.enabled && !trace.empty?
+      if Datadog::Tracing.configuration.runtime_metrics.enabled && !trace.empty?
+        Datadog.runtime_metrics.associate_with_trace(trace)
+      end
 
       worker_local = @worker
 

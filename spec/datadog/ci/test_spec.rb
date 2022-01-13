@@ -7,8 +7,10 @@ RSpec.describe Datadog::CI::Test do
   let(:trace_op) { instance_double(Datadog::TraceOperation) }
   let(:span_name) { 'span name' }
 
-  before { allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op) }
-  before { allow(trace_op).to receive(:origin=) }
+  before do
+    allow(Datadog::Tracing).to receive(:active_trace).and_return(trace_op)
+    allow(trace_op).to receive(:origin=)
+  end
 
   shared_examples_for 'default test span operation tags' do
     it do
