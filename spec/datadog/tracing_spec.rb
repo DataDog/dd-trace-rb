@@ -112,13 +112,6 @@ RSpec.describe Datadog::Tracing do
     # rubocop:enable RSpec/MessageChain
   end
 
-  describe '.configuration' do
-    subject(:configuration) { described_class.configuration }
-    it 'returns the global configuration' do
-      expect(configuration).to eq(Datadog.configuration)
-    end
-  end
-
   describe '.shutdown!' do
     subject(:shutdown!) { described_class.shutdown! }
     it 'delegates to global components' do
@@ -141,16 +134,6 @@ RSpec.describe Datadog::Tracing do
     subject(:registry) { described_class.registry }
     it 'returns the global registry' do
       expect(registry).to eq(Datadog::Contrib::REGISTRY)
-    end
-  end
-
-  describe '.configure' do
-    subject(:configure) { described_class.configure(&block) }
-    let(:block) { -> {} }
-
-    it 'delegates to the global configuration' do
-      expect(Datadog).to receive(:configure) { |&b| expect(b).to be(block) }
-      configure
     end
   end
 
