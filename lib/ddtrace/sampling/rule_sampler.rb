@@ -28,9 +28,9 @@ module Datadog
       #   between +[0,1]+, defaults to +1+
       # @param default_sampler [Sample] fallback strategy when no rules apply to a trace
       def initialize(rules = [],
-                     rate_limit: Datadog.configuration.sampling.rate_limit,
+                     rate_limit: Datadog::Tracing.configuration.sampling.rate_limit,
                      rate_limiter: nil,
-                     default_sample_rate: Datadog.configuration.sampling.default_rate,
+                     default_sample_rate: Datadog::Tracing.configuration.sampling.default_rate,
                      default_sampler: nil)
 
         @rules = rules

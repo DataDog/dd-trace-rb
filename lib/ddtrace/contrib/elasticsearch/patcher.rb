@@ -40,7 +40,7 @@ module Datadog
             end
 
             def initialize(*args, &block)
-              service = Datadog.configuration[:elasticsearch][:service_name]
+              service = Datadog::Tracing.configuration[:elasticsearch][:service_name]
 
               pin = Datadog::Pin.new(
                 service,
@@ -115,7 +115,7 @@ module Datadog
             end
 
             def datadog_configuration
-              Datadog.configuration[:elasticsearch]
+              Datadog::Tracing.configuration[:elasticsearch]
             end
           end
         end

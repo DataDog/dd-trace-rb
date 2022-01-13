@@ -10,7 +10,7 @@ RSpec.describe 'Disabled tracer' do
   let(:job_class) { EmptyWorker }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.tracer.enabled = false
     end
 

@@ -12,16 +12,16 @@ RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :redis, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:redis].reset_configuration!
+    Datadog::Tracing.registry[:redis].reset_configuration!
     example.run
-    Datadog.registry[:redis].reset_configuration!
+    Datadog::Tracing.registry[:redis].reset_configuration!
   end
 
   shared_examples_for 'a Redis driver' do |driver|

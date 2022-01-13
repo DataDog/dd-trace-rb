@@ -86,7 +86,7 @@ module Datadog
           private
 
           def configuration
-            Datadog.configuration[:cucumber]
+            Datadog::Tracing.configuration[:cucumber]
           end
 
           def tracer

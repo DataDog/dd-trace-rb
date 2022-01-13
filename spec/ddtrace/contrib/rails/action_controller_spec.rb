@@ -14,7 +14,7 @@ RSpec.describe 'Rails ActionController' do
   let(:base_class) { ActionController::Base }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rails, rails_options
       # Manually activate ActionPack to trigger patching.
       # This is because Rails instrumentation normally defers patching until #after_initialize

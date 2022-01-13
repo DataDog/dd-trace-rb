@@ -58,7 +58,7 @@ module Datadog
         end
 
         def self.configuration
-          Datadog.configuration[:delayed_job]
+          Datadog::Tracing.configuration[:delayed_job]
         end
 
         def self.tracer

@@ -12,12 +12,12 @@ RSpec.describe 'Rack integration distributed tracing' do
   let(:rack_options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rack, rack_options
     end
   end
 
-  after { Datadog.registry[:rack].reset_configuration! }
+  after { Datadog::Tracing.registry[:rack].reset_configuration! }
 
   shared_context 'an incoming HTTP request' do
     subject(:response) { get '/' }

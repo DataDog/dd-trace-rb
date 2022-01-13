@@ -116,7 +116,7 @@ module Datadog
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate(request_options))
           end
 
-          def datadog_pin(config = Datadog.configuration[:http])
+          def datadog_pin(config = Datadog::Tracing.configuration[:http])
             service = config[:service_name]
 
             @datadog_pin ||= Datadog::Pin.new(
@@ -141,7 +141,7 @@ module Datadog
           end
 
           def default_datadog_pin
-            config = Datadog.configuration[:http]
+            config = Datadog::Tracing.configuration[:http]
             service = config[:service_name]
             @default_datadog_pin ||= Datadog::Pin.new(
               service,
@@ -161,7 +161,7 @@ module Datadog
           end
 
           def datadog_configuration(host = :default)
-            Datadog.configuration[:http, host]
+            Datadog::Tracing.configuration[:http, host]
           end
 
           def analytics_enabled?(request_options)

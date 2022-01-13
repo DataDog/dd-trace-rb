@@ -32,7 +32,7 @@ RSpec.describe Datadog::Contrib::Registerable do
 
           context 'is not provided' do
             it do
-              expect(Datadog.registry).to receive(:add)
+              expect(Datadog::Tracing.registry).to receive(:add)
                 .with(name, a_kind_of(registerable_class), false)
               register_as
             end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Contrib::Registerable do
             let(:options) { { auto_patch: true } }
 
             it do
-              expect(Datadog.registry).to receive(:add)
+              expect(Datadog::Tracing.registry).to receive(:add)
                 .with(name, a_kind_of(registerable_class), true)
               register_as
             end
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Contrib::Registerable do
 
           context 'is not provided' do
             it do
-              expect(Datadog.registry).to receive(:add)
+              expect(Datadog::Tracing.registry).to receive(:add)
                 .with(name, a_kind_of(registerable_class), false)
               register_as
             end

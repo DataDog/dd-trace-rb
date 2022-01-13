@@ -77,7 +77,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:ethon]
+            Datadog::Tracing.configuration[:ethon]
           end
 
           def tracer_enabled?

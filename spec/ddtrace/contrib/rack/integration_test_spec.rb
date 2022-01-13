@@ -13,7 +13,7 @@ RSpec.describe 'Rack integration tests' do
   let(:rack_options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rack, rack_options
     end
   end
@@ -547,7 +547,7 @@ RSpec.describe 'Rack integration tests' do
 
       context 'when configured to tag headers' do
         before do
-          Datadog.configure do |c|
+          Datadog::Tracing.configure do |c|
             c.use :rack, headers: {
               request: [
                 'Cache-Control'
@@ -569,7 +569,7 @@ RSpec.describe 'Rack integration tests' do
 
         after do
           # Reset to default headers
-          Datadog.configure do |c|
+          Datadog::Tracing.configure do |c|
             c.use :rack, headers: {}
           end
         end

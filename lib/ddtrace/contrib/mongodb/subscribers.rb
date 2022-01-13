@@ -108,7 +108,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog.configuration[:mongo]
+          Datadog::Tracing.configuration[:mongo]
         end
       end
     end

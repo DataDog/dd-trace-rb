@@ -30,15 +30,15 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure { |c| c.use :delayed_job, configuration_options }
+    Datadog::Tracing.configure { |c| c.use :delayed_job, configuration_options }
     Delayed::Worker.delay_jobs = false
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:delayed_job].reset_configuration!
+    Datadog::Tracing.registry[:delayed_job].reset_configuration!
     example.run
-    Datadog.registry[:delayed_job].reset_configuration!
+    Datadog::Tracing.registry[:delayed_job].reset_configuration!
   end
 
   describe 'instrumenting worker execution' do

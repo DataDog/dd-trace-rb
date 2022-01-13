@@ -6,7 +6,7 @@ RSpec.describe 'Rails trace analytics' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rails, configuration_options
       # Manually activate ActionPack to trigger patching.
       # This is because Rails instrumentation normally defers patching until #after_initialize
@@ -18,11 +18,11 @@ RSpec.describe 'Rails trace analytics' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rails].reset_configuration!
-    Datadog.registry[:action_pack].reset_configuration!
+    Datadog::Tracing.registry[:rails].reset_configuration!
+    Datadog::Tracing.registry[:action_pack].reset_configuration!
     example.run
-    Datadog.registry[:rails].reset_configuration!
-    Datadog.registry[:action_pack].reset_configuration!
+    Datadog::Tracing.registry[:rails].reset_configuration!
+    Datadog::Tracing.registry[:action_pack].reset_configuration!
   end
 
   describe 'for a controller action' do

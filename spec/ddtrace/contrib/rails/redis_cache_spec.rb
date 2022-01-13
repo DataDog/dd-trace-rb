@@ -47,7 +47,7 @@ MESSAGE
   before { app }
 
   before do
-    Datadog.configure { |c| c.use :redis }
+    Datadog::Tracing.configure { |c| c.use :redis }
     Datadog::Tracing.configure_onto(client_from_driver(driver))
   end
 

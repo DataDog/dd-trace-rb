@@ -46,7 +46,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:grpc]
+            Datadog::Tracing.configuration[:grpc]
           end
 
           def tracer

@@ -28,17 +28,17 @@ RSpec.describe 'Sequel instrumentation' do
     skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
 
     # Patch Sequel
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :sequel, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:sequel].reset_configuration!
+    Datadog::Tracing.registry[:sequel].reset_configuration!
     Sequel::DATABASES.each(&:disconnect)
     example.run
-    Datadog.registry[:sequel].reset_configuration!
+    Datadog::Tracing.registry[:sequel].reset_configuration!
   end
 
   shared_context 'instrumented queries' do

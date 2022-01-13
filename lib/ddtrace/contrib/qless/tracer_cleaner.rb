@@ -26,7 +26,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog.configuration[:qless]
+          Datadog::Tracing.configuration[:qless]
         end
       end
     end

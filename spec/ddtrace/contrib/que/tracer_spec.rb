@@ -27,7 +27,7 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :que, configuration_options
     end
 
@@ -35,9 +35,9 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
 
   around do |example|
-    Datadog.registry[:que].reset_configuration!
+    Datadog::Tracing.registry[:que].reset_configuration!
     example.run
-    Datadog.registry[:que].reset_configuration!
+    Datadog::Tracing.registry[:que].reset_configuration!
   end
 
   describe '#call' do

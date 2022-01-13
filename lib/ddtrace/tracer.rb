@@ -273,7 +273,7 @@ module Datadog
 
     def build_trace(digest = nil)
       # Resolve hostname if configured
-      hostname = Core::Environment::Socket.hostname if Datadog.configuration.report_hostname
+      hostname = Core::Environment::Socket.hostname if Datadog::Tracing.configuration.report_hostname
       hostname = hostname && !hostname.empty? ? hostname : nil
 
       if digest

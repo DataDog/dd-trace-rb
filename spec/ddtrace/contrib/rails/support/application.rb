@@ -22,10 +22,10 @@ RSpec.shared_context 'Rails test application' do
       Rails.cache = nil
     end
 
-    without_warnings { Datadog.configuration.reset! }
-    Datadog.configuration[:rails].reset_options!
-    Datadog.configuration[:rack].reset_options!
-    Datadog.configuration[:redis].reset_options!
+    without_warnings { Datadog::Tracing.configuration.reset! }
+    Datadog::Tracing.configuration[:rails].reset_options!
+    Datadog::Tracing.configuration[:rack].reset_options!
+    Datadog::Tracing.configuration[:redis].reset_options!
   end
 
   let(:app) do

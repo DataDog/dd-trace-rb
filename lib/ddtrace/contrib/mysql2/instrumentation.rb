@@ -42,7 +42,7 @@ module Datadog
 
           def datadog_pin
             @datadog_pin ||= Datadog::Pin.new(
-              Datadog.configuration[:mysql2][:service_name],
+              Datadog::Tracing.configuration[:mysql2][:service_name],
               app: Ext::TAG_COMPONENT,
               app_type: Datadog::Ext::AppTypes::DB,
             )
@@ -51,7 +51,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog.configuration[:mysql2]
+            Datadog::Tracing.configuration[:mysql2]
           end
 
           def analytics_enabled?

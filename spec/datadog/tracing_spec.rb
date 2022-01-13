@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+require 'datadog/statsd'
+
 # rubocop:disable RSpec/VerifiedDoubles
 # All the doubles in this file are simple pass through values.
 # There's no value in making them verifying doubles.
@@ -141,10 +143,10 @@ RSpec.describe Datadog::Tracing do
 
   describe '.configure' do
     subject(:configure) { described_class.configure(&block) }
-    let(:block) { -> {} }
+    let(:block) { proc {} }
 
     it 'delegates to the global configuration' do
-      expect(Datadog).to receive(:configure) { |&b| expect(b).to be_a_kind_of(Proc) }
+      expect(Datadog).to receive(:internal_configure) { |&b| expect(b).to be_a_kind_of(Proc) }
       configure
     end
 
@@ -168,6 +170,115 @@ RSpec.describe Datadog::Tracing do
         end
       end
     end
+
+    # context 'when the metrics' do
+    #   context 'are replaced' do
+    #     let(:old_statsd) { instance_double(Datadog::Statsd) }
+    #     let(:new_statsd) { instance_double(Datadog::Statsd) }
+
+    #     before do
+    #       expect(old_statsd).to receive(:close).once
+
+    #       described_class.configure do |c|
+    #         c.runtime_metrics.statsd = old_statsd
+    #       end
+
+    #       described_class.configure do |c|
+    #         c.runtime_metrics.statsd = new_statsd
+    #       end
+    #     end
+
+    #     it 'replaces the old Statsd and closes it' do
+    #       expect(described_class.configuration.runtime_metrics.metrics.statsd).to be new_statsd
+    #     end
+    #   end
+
+    #   context 'are reused' do
+    #     let(:statsd) { instance_double(Datadog::Statsd) }
+
+    #     before do
+    #       expect(statsd).to_not receive(:close)
+
+    #       described_class.configure do |c|
+    #         c.runtime_metrics.statsd = statsd
+    #       end
+
+    #       described_class.configure do |c|
+    #         c.runtime_metrics.statsd = statsd
+    #       end
+    #     end
+
+    #     it 'reuses the same Statsd' do
+    #       expect(described_class.configuration.runtime_metrics.metrics.statsd).to be statsd
+    #     end
+    #   end
+
+    #   context 'are not changed' do
+    #     let(:statsd) { instance_double(Datadog::Statsd) }
+
+    #     before do
+    #       expect(statsd).to_not receive(:close)
+
+    #       described_class.configure do |c|
+    #         c.runtime_metrics.statsd = statsd
+    #       end
+
+    #       described_class.configure { |_c| }
+    #     end
+
+    #     it 'reuses the same Statsd' do
+    #       expect(described_class.configuration.runtime_metrics.metrics.statsd).to be statsd
+    #     end
+    #   end
+    # end
+
+    # context 'when the tracer' do
+    #   context 'is replaced' do
+    #     let(:old_tracer) { Datadog::Tracer.new }
+    #     let(:new_tracer) { Datadog::Tracer.new }
+
+    #     before do
+    #       expect(old_tracer).to receive(:shutdown!)
+
+    #       described_class.configure { |c| c.tracer.instance = old_tracer }
+    #       described_class.configure { |c| c.tracer.instance = new_tracer }
+    #     end
+
+    #     it 'replaces the old tracer and shuts it down' do
+    #       expect(described_class.tracer).to be new_tracer
+    #     end
+    #   end
+
+    #   context 'is reused' do
+    #     let(:tracer) { Datadog::Tracer.new }
+
+    #     before do
+    #       expect(tracer).to_not receive(:shutdown!)
+
+    #       described_class.configure { |c| c.tracer.instance = tracer }
+    #       described_class.configure { |c| c.tracer.instance = tracer }
+    #     end
+
+    #     it 'reuses the same tracer' do
+    #       expect(described_class.tracer).to be tracer
+    #     end
+    #   end
+
+    #   context 'is not changed' do
+    #     let(:tracer) { Datadog::Tracer.new }
+
+    #     before do
+    #       expect(tracer).to_not receive(:shutdown!)
+
+    #       described_class.configure { |c| c.tracer.instance = tracer }
+    #       described_class.configure { |_c| }
+    #     end
+
+    #     it 'reuses the same tracer' do
+    #       expect(described_class.tracer).to be tracer
+    #     end
+    #   end
+    # end
   end
 
   describe '.configure_onto' do
@@ -193,7 +304,10 @@ RSpec.describe Datadog::Tracing do
   describe '.configuration' do
     subject(:configuration) { described_class.configuration }
     it 'returns the global configuration' do
-      expect(configuration).to eq(Datadog.configuration)
+      expect(configuration)
+        .to be_a_kind_of(Datadog::Configuration::ValidationProxy::Tracing)
+
+      expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
     end
   end
 

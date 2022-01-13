@@ -111,7 +111,7 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'does not error on configuration access' do
-        expect(Datadog.configuration.runtime_metrics.enabled).to be(true).or be(false)
+        expect(Datadog::Tracing.configuration.runtime_metrics.enabled).to be(true).or be(false)
       end
 
       it 'does not error on reporting health metrics' do

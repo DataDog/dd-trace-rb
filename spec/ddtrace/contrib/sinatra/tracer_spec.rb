@@ -78,7 +78,7 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:with_rack) { false }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rack if with_rack
       c.use :sinatra, configuration_options
     end
@@ -86,9 +86,9 @@ RSpec.describe 'Sinatra instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:sinatra].reset_configuration!
+    Datadog::Tracing.registry[:sinatra].reset_configuration!
     example.run
-    Datadog.registry[:sinatra].reset_configuration!
+    Datadog::Tracing.registry[:sinatra].reset_configuration!
   end
 
   shared_context 'with rack instrumentation' do

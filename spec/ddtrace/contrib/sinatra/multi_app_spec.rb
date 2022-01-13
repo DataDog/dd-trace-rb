@@ -13,12 +13,12 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
   let(:options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :sinatra, options
     end
   end
 
-  after { Datadog.registry[:sinatra].reset_configuration! }
+  after { Datadog::Tracing.registry[:sinatra].reset_configuration! }
 
   shared_context 'multi-app' do
     let(:app) do

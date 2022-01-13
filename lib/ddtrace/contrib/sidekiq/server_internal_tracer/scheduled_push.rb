@@ -8,7 +8,7 @@ module Datadog
         # https://github.com/mperham/sidekiq/wiki/Scheduled-Jobs
         module ScheduledPush
           def enqueue
-            configuration = Datadog.configuration[:sidekiq]
+            configuration = Datadog::Tracing.configuration[:sidekiq]
 
             Datadog.tracer.trace(Ext::SPAN_SCHEDULED_PUSH, service: configuration[:service_name]) do |span|
               span.span_type = Datadog::Ext::AppTypes::WORKER

@@ -30,9 +30,7 @@ module Datadog
     end
 
     def enabled?
-      return tracer.enabled if tracer
-
-      false
+      Datadog::Tracing.enabled?
     end
 
     # rubocop:disable Style/TrivialAccessors
@@ -58,12 +56,6 @@ module Datadog
 
     def to_s
       "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
-    end
-
-    private
-
-    def tracer
-      Datadog.tracer
     end
   end
 end

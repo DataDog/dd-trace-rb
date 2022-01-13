@@ -151,7 +151,7 @@ module Datadog
           end
 
           def load_datadog_configuration_for(host = :default)
-            @datadog_configuration = Datadog.configuration[:ethon, host]
+            @datadog_configuration = Datadog::Tracing.configuration[:ethon, host]
           end
 
           def tracer_enabled?

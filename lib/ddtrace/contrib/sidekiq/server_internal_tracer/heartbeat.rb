@@ -9,7 +9,7 @@ module Datadog
           private
 
           def ❤ # rubocop:disable Naming/AsciiIdentifiers, Naming/MethodName
-            configuration = Datadog.configuration[:sidekiq]
+            configuration = Datadog::Tracing.configuration[:sidekiq]
 
             Datadog.tracer.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
               span.span_type = Datadog::Ext::AppTypes::WORKER

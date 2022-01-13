@@ -102,8 +102,8 @@ class Worker
   end
 end
 
-if Datadog.respond_to?(:configure)
-  Datadog.configure do |d|
+if Datadog::Tracing.respond_to?(:configure)
+  Datadog::Tracing.configure do |d|
     d.use :rails, enabled: true, tags: { 'tag' => 'value' }
     d.use :http
     d.use :sidekiq, service_name: 'service'
@@ -115,7 +115,7 @@ if Datadog.respond_to?(:configure)
       true if span.service == 'B'
     end
 
-    Datadog::Pipeline.before_flush(processor)
+    Datadog::Tracing.before_flush(processor)
   end
 end
 

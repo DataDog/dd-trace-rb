@@ -10,9 +10,10 @@ RSpec.describe Datadog::Correlation do
   let(:default_version) { 'default-version' }
 
   before do
-    allow(Datadog.configuration).to receive(:env).and_return(default_env)
-    allow(Datadog.configuration).to receive(:service).and_return(default_service)
-    allow(Datadog.configuration).to receive(:version).and_return(default_version)
+    settings = Datadog.configuration.send(:settings)
+    allow(settings).to receive(:env).and_return(default_env)
+    allow(settings).to receive(:service).and_return(default_service)
+    allow(settings).to receive(:version).and_return(default_version)
   end
 
   shared_context 'correlation data' do

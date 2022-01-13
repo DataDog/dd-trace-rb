@@ -11,7 +11,7 @@ RSpec.describe 'RSpec hooks' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rspec, configuration_options
     end
   end

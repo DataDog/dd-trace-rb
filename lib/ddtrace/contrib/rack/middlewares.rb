@@ -199,7 +199,7 @@ module Datadog
         private
 
         def configuration
-          Datadog.configuration[:rack]
+          Datadog::Tracing.configuration[:rack]
         end
 
         def parse_request_headers(env)

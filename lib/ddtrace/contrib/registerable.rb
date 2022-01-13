@@ -16,7 +16,7 @@ module Datadog
         # Once registered, this integration can be activated with:
         #
         # ```
-        # Datadog.configure do |c|
+        # Datadog::Tracing.configure do |c|
         #   c.use :name
         # end
         # ```

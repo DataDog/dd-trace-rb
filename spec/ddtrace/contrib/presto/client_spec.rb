@@ -24,7 +24,7 @@ RSpec.describe 'Presto::Client instrumentation' do
   end
   let(:service) { 'presto' }
   let(:host) { ENV.fetch('TEST_PRESTO_HOST', 'localhost') }
-  let(:port) { ENV.fetch('TEST_PRESTO_PORT', 8080) }
+  let(:port) { ENV.fetch('TEST_PRESTO_PORT', 8080).to_i }
   let(:user) { 'test_user' }
   let(:schema) { 'test_schema' }
   let(:catalog) { 'memory' }
@@ -57,28 +57,28 @@ RSpec.describe 'Presto::Client instrumentation' do
   end
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :presto, configuration_options
     end
   end
 
   around do |example|
     without_warnings do
-      Datadog.registry[:presto].reset_configuration!
+      Datadog::Tracing.registry[:presto].reset_configuration!
       example.run
-      Datadog.registry[:presto].reset_configuration!
-      Datadog.configuration.reset!
+      Datadog::Tracing.registry[:presto].reset_configuration!
+      Datadog::Tracing.configuration.reset!
     end
   end
 
   context 'when the tracer is disabled' do
     before do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.enabled = false
       end
     end
 
-    after { Datadog.configuration.tracer.reset! }
+    after { Datadog::Tracing.configuration.tracer.reset! }
 
     it 'does not produce spans' do
       client.run('SELECT 1')

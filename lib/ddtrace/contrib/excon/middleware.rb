@@ -162,7 +162,7 @@ module Datadog
         end
 
         def datadog_configuration(host = :default)
-          Datadog.configuration[:excon, host]
+          Datadog::Tracing.configuration[:excon, host]
         end
       end
     end

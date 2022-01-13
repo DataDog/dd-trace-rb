@@ -91,7 +91,7 @@ module Datadog
 
       # @return [Boolean, nil]
       def enabled
-        Datadog.configuration.tracer.enabled
+        Datadog::Tracing.configuration.tracer.enabled
       end
 
       # @return [String] configured application service name
@@ -129,12 +129,12 @@ module Datadog
 
       # @return [Boolean, nil] analytics enabled in configuration
       def analytics_enabled
-        !!Datadog.configuration.analytics.enabled
+        !!Datadog::Tracing.configuration.analytics.enabled
       end
 
       # @return [Numeric, nil] tracer sample rate configured
       def sample_rate
-        sampler = Datadog.configuration.tracer.sampler
+        sampler = Datadog::Tracing.configuration.tracer.sampler
         return nil unless sampler
 
         sampler.sample_rate(nil) rescue nil
@@ -147,7 +147,7 @@ module Datadog
       #
       # @return [Hash, nil] sample rules configured
       def sampling_rules
-        sampler = Datadog.configuration.tracer.sampler
+        sampler = Datadog::Tracing.configuration.tracer.sampler
         return nil unless sampler.is_a?(Datadog::PrioritySampler) &&
                           sampler.priority_sampler.is_a?(Datadog::Sampling::RuleSampler)
 
@@ -172,7 +172,7 @@ module Datadog
 
       # @return [Boolean, nil] runtime metrics enabled in configuration
       def runtime_metrics_enabled
-        Datadog.configuration.runtime_metrics.enabled
+        Datadog::Tracing.configuration.runtime_metrics.enabled
       end
 
       # Concatenated list of integrations activated, with their gem version.
@@ -202,12 +202,12 @@ module Datadog
 
       # @return [Boolean, nil] partial flushing enabled in configuration
       def partial_flushing_enabled
-        !!Datadog.configuration.tracer.partial_flush.enabled
+        !!Datadog::Tracing.configuration.tracer.partial_flush.enabled
       end
 
       # @return [Boolean, nil] priority sampling enabled in configuration
       def priority_sampling_enabled
-        !!Datadog.configuration.tracer.priority_sampling
+        !!Datadog::Tracing.configuration.tracer.priority_sampling
       end
 
       # @return [Boolean, nil] health metrics enabled in configuration
@@ -255,7 +255,7 @@ module Datadog
       private
 
       def instrumented_integrations
-        Datadog.configuration.instrumented_integrations
+        Datadog::Tracing.configuration.instrumented_integrations
       end
 
       # Capture all active integration settings into "integrationName_settingName: value" entries.

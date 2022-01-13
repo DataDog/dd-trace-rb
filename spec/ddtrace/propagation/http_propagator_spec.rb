@@ -7,9 +7,9 @@ require 'ddtrace/propagation/http_propagator'
 RSpec.describe Datadog::HTTPPropagator do
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    without_warnings { Datadog.configuration.reset! }
+    without_warnings { Datadog::Tracing.configuration.reset! }
     example.run
-    without_warnings { Datadog.configuration.reset! }
+    without_warnings { Datadog::Tracing.configuration.reset! }
   end
 
   let(:tracer) { get_test_tracer }

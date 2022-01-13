@@ -80,7 +80,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:redis, options]
+            Datadog::Tracing.configuration[:redis, options]
           end
         end
       end

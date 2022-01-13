@@ -24,7 +24,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :mongo, configuration_options
     end
   end
@@ -32,9 +32,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
   around do |example|
     without_warnings do
       # Reset before and after each example; don't allow global state to linger.
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Tracing.registry[:mongo].reset_configuration!
       example.run
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Tracing.registry[:mongo].reset_configuration!
       client.database.drop if drop_database?
       client.close
     end
@@ -74,7 +74,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:secondary_host) { 'localhost' }
 
       before do
-        Datadog.configure do |c|
+        Datadog::Tracing.configure do |c|
           c.use :mongo, describes: /#{host}/ do |mongo|
             mongo.service_name = primary_service
           end
@@ -103,9 +103,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
-            Datadog.registry[:mongo].reset_configuration!
+            Datadog::Tracing.registry[:mongo].reset_configuration!
             example.run
-            Datadog.registry[:mongo].reset_configuration!
+            Datadog::Tracing.registry[:mongo].reset_configuration!
             secondary_client.database.drop if drop_database?
             secondary_client.close
           end

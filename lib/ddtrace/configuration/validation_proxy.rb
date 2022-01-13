@@ -7,13 +7,22 @@ module Datadog
     class ValidationProxy
       extend Forwardable
 
-      def initialize(configuration)
-        @configuration = configuration
+      FORWARDED_METHODS = [
+        :reset!,
+        :to_h
+      ].freeze
+
+      def_delegators \
+        :settings,
+        *FORWARDED_METHODS
+
+      def initialize(settings)
+        @settings = settings
       end
 
       protected
 
-      attr_reader :configuration
+      attr_reader :settings
 
       # Forwards global configuration settings
       class Global < self
@@ -25,6 +34,7 @@ module Datadog
           :env=,
           :logger,
           :service,
+          :service_without_fallback,
           :service=,
           :site,
           :site=,
@@ -37,7 +47,7 @@ module Datadog
         ].freeze
 
         def_delegators \
-          :configuration,
+          :settings,
           *FORWARDED_METHODS
       end
 
@@ -46,18 +56,22 @@ module Datadog
         FORWARDED_METHODS = [
           :analytics,
           :distributed_tracing,
+          :instrument,
+          :instrumented_integrations,
           :log_injection,
           :log_injection=,
+          :reduce_log_verbosity,
           :report_hostname,
           :report_hostname=,
           :runtime_metrics,
           :sampling,
           :test_mode,
-          :tracer
+          :tracer,
+          :use
         ].freeze
 
         def_delegators \
-          :configuration,
+          :settings,
           *FORWARDED_METHODS
       end
 
@@ -68,7 +82,18 @@ module Datadog
         ].freeze
 
         def_delegators \
-          :configuration,
+          :settings,
+          *FORWARDED_METHODS
+      end
+
+      # Forwards CI configuration settings
+      class CI < self
+        FORWARDED_METHODS = [
+          :ci_mode
+        ].freeze
+
+        def_delegators \
+          :settings,
           *FORWARDED_METHODS
       end
     end

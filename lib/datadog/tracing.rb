@@ -216,28 +216,6 @@ module Datadog
         current_tracer.shutdown!
       end
 
-      # The global integration registry.
-      #
-      # This registry holds a reference to all integrations available
-      # to the tracer.
-      #
-      # Integrations registered in the {.registry} can be activated as follows:
-      #
-      # ```
-      # Datadog::Tracing.configure do |c|
-      #   c.use :my_registered_integration, **my_options
-      # end
-      # ```
-      #
-      # New integrations can be registered by implementing the {Datadog::Contrib::Integration} interface.
-      #
-      # @return [Datadog::Contrib::Registry]
-      # @!attribute [r] registry
-      # @public_api
-      def registry
-        Datadog::Contrib::REGISTRY
-      end
-
       # (see Datadog::Pipeline.before_flush)
       def before_flush(*processors, &processor_block)
         Datadog::Pipeline.before_flush(*processors, &processor_block)

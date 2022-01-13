@@ -29,7 +29,7 @@ module Datadog
         def activate_forking_extensions
           if Ext::Forking.supported?
             Ext::Forking.apply!
-          elsif Datadog.configuration.profiling.enabled
+          elsif Datadog::Profiling.configuration.profiling.enabled
             Datadog.logger.debug('Profiler forking extensions skipped; forking not supported.')
           end
         rescue StandardError, ScriptError => e

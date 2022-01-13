@@ -41,16 +41,16 @@ RSpec.describe 'Resque instrumentation' do
     ::Resque::Failure.clear
 
     # Patch Resque
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :resque, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:resque].reset_configuration!
+    Datadog::Tracing.registry[:resque].reset_configuration!
     example.run
-    Datadog.registry[:resque].reset_configuration!
+    Datadog::Tracing.registry[:resque].reset_configuration!
   end
 
   shared_examples 'job execution tracing' do

@@ -34,7 +34,7 @@ module Datadog
 
           def datadog_pin
             @pin ||= Datadog::Pin.new(
-              Datadog.configuration[:sequel][:service_name] || adapter_name,
+              Datadog::Tracing.configuration[:sequel][:service_name] || adapter_name,
               app: Ext::TAG_COMPONENT,
               app_type: Datadog::Ext::AppTypes::DB,
             )

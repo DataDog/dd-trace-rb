@@ -39,7 +39,7 @@ RSpec.describe 'Rails Railtie' do
   end
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :rails, rails_options
     end
   end
@@ -55,7 +55,7 @@ RSpec.describe 'Rails Railtie' do
     context 'set to false' do
       let(:rails_options) { super().merge(middleware: false) }
 
-      after { Datadog.configuration[:rails][:middleware] = true }
+      after { Datadog::Tracing.configuration[:rails][:middleware] = true }
 
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware) }
       it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware) }

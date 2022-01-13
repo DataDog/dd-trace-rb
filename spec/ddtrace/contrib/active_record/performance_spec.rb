@@ -17,12 +17,12 @@ RSpec.describe 'ActiveRecord tracing performance' do
     skip('Performance test does not run in CI.')
 
     # Configure the tracer
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :active_record, options
     end
   end
 
-  after { Datadog.registry[:active_record].reset_configuration! }
+  after { Datadog::Tracing.registry[:active_record].reset_configuration! }
 
   describe 'for an in-memory database' do
     let!(:connection) do

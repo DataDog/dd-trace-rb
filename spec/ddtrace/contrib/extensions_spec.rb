@@ -25,7 +25,7 @@ RSpec.describe Datadog::Contrib::Extensions do
   end
 
   context 'for' do
-    describe Datadog do
+    describe Datadog::Tracing do
       describe '#configure' do
         include_context 'registry with integration' do
           before { stub_const('Datadog::Contrib::REGISTRY', registry) }

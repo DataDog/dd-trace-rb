@@ -89,7 +89,7 @@ module Datadog
             span.set_error(error)
           end
 
-          def datadog_pin(config = Datadog.configuration[:httprb])
+          def datadog_pin(config = Datadog::Tracing.configuration[:httprb])
             service = config[:service_name]
 
             @datadog_pin ||= Datadog::Pin.new(
@@ -106,7 +106,7 @@ module Datadog
           end
 
           def default_datadog_pin
-            config = Datadog.configuration[:httpclient]
+            config = Datadog::Tracing.configuration[:httpclient]
             service = config[:service_name]
 
             @default_datadog_pin ||= Datadog::Pin.new(
@@ -117,7 +117,7 @@ module Datadog
           end
 
           def datadog_configuration(host = :default)
-            Datadog.configuration[:httpclient, host]
+            Datadog::Tracing.configuration[:httpclient, host]
           end
 
           def analytics_enabled?(request_options)
@@ -131,7 +131,7 @@ module Datadog
           def should_skip_distributed_tracing?(pin)
             return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
 
-            !Datadog.configuration[:httpclient][:distributed_tracing]
+            !Datadog::Tracing.configuration[:httpclient][:distributed_tracing]
           end
 
           def set_analytics_sample_rate(span, request_options)

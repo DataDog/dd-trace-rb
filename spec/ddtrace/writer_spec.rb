@@ -155,7 +155,7 @@ RSpec.describe Datadog::Writer do
         let(:trace) { instance_double(Datadog::TraceSegment) }
 
         before do
-          allow(Datadog.configuration.runtime_metrics)
+          allow(Datadog::Tracing.configuration.runtime_metrics)
             .to receive(:enabled).and_return(false)
         end
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Writer do
               .to receive(:enqueue_trace)
               .with(trace)
 
-            allow(Datadog.configuration.runtime_metrics)
+            allow(Datadog::Tracing.configuration.runtime_metrics)
               .to receive(:enabled)
               .and_return(true)
           end

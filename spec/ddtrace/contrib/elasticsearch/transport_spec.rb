@@ -27,12 +27,12 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :elasticsearch, configuration_options
     end
   end
 
-  after { Datadog.registry[:elasticsearch].reset_configuration! }
+  after { Datadog::Tracing.registry[:elasticsearch].reset_configuration! }
 
   context 'when configured with middleware' do
     let(:client) do

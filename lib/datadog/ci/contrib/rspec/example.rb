@@ -61,7 +61,7 @@ module Datadog
             private
 
             def configuration
-              Datadog.configuration[:rspec]
+              Datadog::Tracing.configuration[:rspec]
             end
 
             def tracer

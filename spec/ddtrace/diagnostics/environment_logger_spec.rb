@@ -154,9 +154,9 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with tracer disabled' do
-        before { Datadog.configure { |c| c.tracer.enabled = false } }
+        before { Datadog::Tracing.configure { |c| c.tracer.enabled = false } }
 
-        after { Datadog.configure { |c| c.tracer.enabled = true } }
+        after { Datadog::Tracing.configure { |c| c.tracer.enabled = true } }
 
         it { is_expected.to include enabled: false }
       end
@@ -192,27 +192,27 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with analytics enabled' do
-        before { Datadog.configure { |c| c.analytics.enabled = true } }
+        before { Datadog::Tracing.configure { |c| c.analytics.enabled = true } }
 
         it { is_expected.to include analytics_enabled: true }
       end
 
       context 'with runtime metrics enabled' do
-        before { Datadog.configure { |c| c.runtime_metrics.enabled = true } }
+        before { Datadog::Tracing.configure { |c| c.runtime_metrics.enabled = true } }
 
-        after { Datadog.configuration.runtime_metrics.reset! }
+        after { Datadog::Tracing.configuration.runtime_metrics.reset! }
 
         it { is_expected.to include runtime_metrics_enabled: true }
       end
 
       context 'with partial flushing enabled' do
-        before { Datadog.configure { |c| c.tracer.partial_flush.enabled = true } }
+        before { Datadog::Tracing.configure { |c| c.tracer.partial_flush.enabled = true } }
 
         it { is_expected.to include partial_flushing_enabled: true }
       end
 
       context 'with priority sampling enabled' do
-        before { Datadog.configure { |c| c.tracer.priority_sampling = true } }
+        before { Datadog::Tracing.configure { |c| c.tracer.priority_sampling = true } }
 
         it { is_expected.to include priority_sampling_enabled: true }
       end
@@ -232,19 +232,19 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
 
       context 'with unix socket transport' do
         before do
-          Datadog.configure do |c|
+          Datadog::Tracing.configure do |c|
             c.tracer.transport_options = ->(t) { t.adapter :unix, '/tmp/trace.sock' }
           end
         end
 
-        after { Datadog.configure { |c| c.tracer.transport_options = {} } }
+        after { Datadog::Tracing.configure { |c| c.tracer.transport_options = {} } }
 
         it { is_expected.to include agent_url: include('unix') }
         it { is_expected.to include agent_url: include('/tmp/trace.sock') }
       end
 
       context 'with integrations loaded' do
-        before { Datadog.configure { |c| c.use :http, options } }
+        before { Datadog::Tracing.configure { |c| c.use :http, options } }
 
         let(:options) { {} }
 

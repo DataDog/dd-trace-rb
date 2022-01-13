@@ -134,11 +134,31 @@ module Datadog
       return current_components if current_components || !allow_initialization
 
       safely_synchronize do |write_components|
-        (defined?(@components) && @components) || write_components.call(build_components(configuration))
+        (defined?(@components) && @components) || write_components.call(build_components(internal_configuration))
       end
     end
 
     private
+
+    def internal_configure(configuration = self.internal_configuration)
+      yield(configuration)
+
+      safely_synchronize do |write_components|
+        write_components.call(
+          if components?
+            replace_components!(configuration, @components)
+          else
+            build_components(configuration)
+          end
+        )
+      end
+
+      configuration
+    end
+
+    def internal_configuration
+      @configuration ||= Settings.new
+    end
 
     # Gracefully shuts down the tracer and disposes of component references,
     # allowing execution to start anew.
@@ -220,28 +240,6 @@ module Datadog
       end
 
       nil
-    end
-
-    private
-
-    def internal_configure(configuration = self.internal_configuration)
-      yield(configuration)
-
-      safely_synchronize do |write_components|
-        write_components.call(
-          if components?
-            replace_components!(configuration, @components)
-          else
-            build_components(configuration)
-          end
-        )
-      end
-
-      configuration
-    end
-
-    def internal_configuration
-      @configuration ||= Settings.new
     end
   end
 end

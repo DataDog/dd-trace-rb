@@ -46,7 +46,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog.configuration[:aws].get_option(option)
+          Datadog::Tracing.configuration[:aws].get_option(option)
         end
       end
     end

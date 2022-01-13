@@ -74,7 +74,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog.configuration[:sucker_punch]
+              Datadog::Tracing.configuration[:sucker_punch]
             end
 
             def __with_instrumentation(name)

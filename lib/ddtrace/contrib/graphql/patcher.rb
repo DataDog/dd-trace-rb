@@ -53,7 +53,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog.configuration[:graphql].get_option(option)
+          Datadog::Tracing.configuration[:graphql].get_option(option)
         end
       end
     end

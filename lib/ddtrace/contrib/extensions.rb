@@ -15,20 +15,33 @@ module Datadog
     # process.
     # Most of this file should probably live inside the tracer core.
     module Extensions
-      def self.extended(base)
-        base.extend(Helpers)
-        base.extend(Configuration)
+      def self.extend!
+        Datadog::Tracing.singleton_class.prepend Helpers
+        Datadog::Tracing.singleton_class.prepend Configuration
+        Datadog::Configuration::Settings.include Configuration::Settings
+        Datadog::Configuration::ValidationProxy::Tracing.include Configuration::ValidationProxy
       end
 
       # Helper methods for Datadog module.
       module Helpers
-        # Returns the global integration registry.
+        # The global integration registry.
         #
-        # This method is not safe to use while the tracer is initializing,
-        # thus access to the registry should go through
-        # ::Datadog::Contrib::REGISTRY for internal tracer work.
+        # This registry holds a reference to all integrations available
+        # to the tracer.
         #
-        # External use of this method is always safe.
+        # Integrations registered in the {.registry} can be activated as follows:
+        #
+        # ```
+        # Datadog::Tracing.configure do |c|
+        #   c.use :my_registered_integration, **my_options
+        # end
+        # ```
+        #
+        # New integrations can be registered by implementing the {Datadog::Contrib::Integration} interface.
+        #
+        # @return [Datadog::Contrib::Registry]
+        # @!attribute [r] registry
+        # @public_api
         def registry
           Contrib::REGISTRY
         end
@@ -41,11 +54,13 @@ module Datadog
         # TODO: Today this method sits here in the `Datadog::Contrib::Extensions` namespace
         # TODO: but cannot empirically constraints to the contrib domain only.
         # TODO: We should promote most of this logic to core parts of ddtrace.
-        def configure(configuration = self.configuration)
+        def configure(&block)
           # Reconfigure core settings
-          super
+          super(&block)
 
           # Activate integrations
+          configuration = self.configuration
+
           if configuration.respond_to?(:integrations_pending_activation)
             reduce_verbosity = configuration.respond_to?(:reduce_verbosity?) ? configuration.reduce_verbosity? : false
             configuration.integrations_pending_activation.each do |integration|
@@ -87,9 +102,9 @@ module Datadog
           # How the matching is performed is integration-specific.
           #
           # @example
-          #   Datadog.configuration[:integration_name]
+          #   Datadog::Tracing.configuration[:integration_name]
           # @example
-          #   Datadog.configuration[:integration_name][:sub_configuration]
+          #   Datadog::Tracing.configuration[:integration_name][:sub_configuration]
           # @param [Symbol] integration_name the integration name
           # @param [Object] key the integration-specific lookup key
           # @return [Datadog::Contrib::Configuration::Settings]

@@ -16,9 +16,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Article.count
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:active_record].reset!
+    Datadog::Tracing.configuration[:active_record].reset!
 
-    Datadog.configure do |c|
+    Datadog::Tracing.configure do |c|
       c.use :active_record, configuration_options
     end
 
@@ -27,9 +27,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:active_record].reset_configuration!
+    Datadog::Tracing.registry[:active_record].reset_configuration!
     example.run
-    Datadog.registry[:active_record].reset_configuration!
+    Datadog::Tracing.registry[:active_record].reset_configuration!
   end
 
   context 'when query is made' do
@@ -101,7 +101,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
             Article.count
             clear_traces!
 
-            Datadog.configure do |c|
+            Datadog::Tracing.configure do |c|
               c.use :active_record, service_name: 'bad-no-match'
               c.use :active_record, describes: { makara_role: primary_role }, service_name: primary_service_name
               c.use :active_record, describes: { makara_role: secondary_role }, service_name: secondary_service_name
