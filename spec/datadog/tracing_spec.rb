@@ -137,6 +137,24 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
+  describe '.configure' do
+    subject(:configure) { described_class.configure(&block) }
+    let(:block) { -> {} }
+
+    it 'delegates to the global configuration' do
+      expect(Datadog).to receive(:configure) { |&b| expect(b).to be(block) }
+      configure
+    end
+  end
+
+
+  describe '.configuration' do
+    subject(:configuration) { described_class.configuration }
+    it 'returns the global configuration' do
+      expect(configuration).to eq(Datadog.configuration)
+    end
+  end
+
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
     it 'delegates to the tracer' do

@@ -47,6 +47,47 @@ module Datadog
         Datadog.logger
       end
 
+      # Current tracer configuration.
+      #
+      # To modify the configuration, use {.configure}.
+      #
+      # @return [Datadog::Configuration::Settings]
+      # @!attribute [r] configuration
+      # @public_api
+      def configuration
+        Datadog.configuration
+      end
+
+      # Apply configuration changes to `Datadog::Tracing`. An example of a {.configure} call:
+      # ```
+      # Datadog::Tracing.configure do |c|
+      #   c.sampling.default_rate = 1.0
+      #   c.use :aws
+      #   c.use :rails
+      #   c.use :sidekiq
+      #   # c.diagnostics.debug = true # Enables debug output
+      # end
+      # ```
+      #
+      # Because many configuration changes require restarting internal components,
+      # invoking {.configure} is the only safe way to change `ddtrace` configuration.
+      #
+      # Successive calls to {.configure} maintain the previous configuration values:
+      # configuration is additive between {.configure} calls.
+      #
+      # The yielded configuration `c` comes pre-populated from environment variables, if
+      # any are applicable.
+      #
+      # See {Datadog::Configuration::Settings} for all available options, defaults, and
+      # available environment variables for configuration.
+      #
+      # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+      # @return [void]
+      # @public_api
+      def configure(&block)
+        Datadog.configure(&block)
+      end
+
       # (see Datadog::Tracer#active_trace)
       # @public_api
       def active_trace
