@@ -119,6 +119,10 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
+# TODO: hardcoded paths
+ENV['PKG_CONFIG_PATH'] = "/Users/ivo.anjo/datadog/libddprof/ddprof-full-build/lib/pkgconfig/:#{ENV['PKG_CONFIG_PATH']}"
+pkg_config('ddprof_ffi') || raise('Failed to setup libddprof')
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.

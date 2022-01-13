@@ -2,14 +2,20 @@
 #include <ruby/debug.h>
 
 #include "clock_id.h"
+#include <ddprof/ffi.h>
 
 static VALUE native_working_p(VALUE self);
 static VALUE start_allocation_tracing(VALUE self);
 static void on_newobj_event(VALUE tracepoint_info, void *_unused);
 static VALUE get_allocation_count(VALUE self);
 static VALUE allocate_many_objects(VALUE self, VALUE how_many);
+static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer);
+static void maybe_initialize_profile();
+static VALUE ensure_string(VALUE object);
+static VALUE export_allocation_profile(VALUE self);
 
 static unsigned long allocation_count = 0;
+static ddprof_ffi_Profile *allocation_profile = 0;
 
 void Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -24,6 +30,8 @@ void Init_ddtrace_profiling_native_extension(void) {
   rb_define_singleton_method(native_extension_module, "start_allocation_tracing", start_allocation_tracing, 0);
 
   rb_define_singleton_method(native_extension_module, "allocation_count", get_allocation_count, 0);
+
+  rb_define_singleton_method(native_extension_module, "export_allocation_profile", export_allocation_profile, 0);
 }
 
 static VALUE native_working_p(VALUE self) {
@@ -45,9 +53,94 @@ static VALUE start_allocation_tracing(VALUE self) {
 
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   allocation_count++;
+
+  int buffer_max_size = 1024;
+  VALUE stack_buffer[buffer_max_size];
+  int lines_buffer[buffer_max_size];
+
+  int stack_depth = rb_profile_frames(
+    0, // stack starting depth
+    buffer_max_size,
+    stack_buffer,
+    lines_buffer
+  );
+
+  record_sample(stack_depth, stack_buffer, lines_buffer);
+
   return;
 }
 
 static VALUE get_allocation_count(VALUE self) {
   return ULONG2NUM(allocation_count);
+}
+
+static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer) {
+  maybe_initialize_profile();
+
+  struct ddprof_ffi_Location locations[stack_depth];
+  struct ddprof_ffi_Line lines[stack_depth];
+
+  for (int i = 0; i < stack_depth; i++) {
+    VALUE name = rb_profile_frame_full_label(stack_buffer[i]);
+    VALUE filename = rb_profile_frame_absolute_path(stack_buffer[i]);
+    if (NIL_P(filename)) {
+      filename = rb_profile_frame_path(stack_buffer[i]);
+    }
+
+    name = ensure_string(name);
+    filename = ensure_string(filename);
+
+    locations[i] = (struct ddprof_ffi_Location){.lines = (struct ddprof_ffi_Slice_line){&lines[i], 1}};
+    lines[i] = (struct ddprof_ffi_Line){
+      .function = (struct ddprof_ffi_Function){
+        .name = {StringValuePtr(name), RSTRING_LEN(name)},
+        .filename = {StringValuePtr(filename), RSTRING_LEN(filename)}
+      },
+      .line = lines_buffer[i],
+    };
+  }
+
+  int64_t metric = 1;
+
+  struct ddprof_ffi_Sample sample = {
+    .locations = {locations, stack_depth},
+    .values = {&metric, 1}
+  };
+
+  ddprof_ffi_Profile_add(allocation_profile, sample);
+}
+
+static void maybe_initialize_profile() {
+  if (allocation_profile != 0) return;
+
+  const struct ddprof_ffi_ValueType alloc_samples = {
+    .type_ = {"alloc-samples", sizeof("alloc-samples") - 1},
+    .unit = {"count", sizeof("count") - 1},
+  };
+  const struct ddprof_ffi_Slice_value_type sample_types = {&alloc_samples, 1};
+  const struct ddprof_ffi_Period period = {alloc_samples, 60};
+  allocation_profile = ddprof_ffi_Profile_new(sample_types, &period);
+}
+
+static VALUE ensure_string(VALUE object) {
+  Check_Type(object, T_STRING);
+
+  return object;
+}
+
+static VALUE export_allocation_profile(VALUE self) {
+  maybe_initialize_profile();
+
+  struct ddprof_ffi_EncodedProfile *profile =
+    ddprof_ffi_Profile_serialize(allocation_profile);
+
+  if (profile == NULL) {
+    return Qnil;
+  }
+
+  VALUE profile_string = rb_str_new((char *) profile->buffer.ptr, profile->buffer.len);
+
+  ddprof_ffi_EncodedProfile_delete(profile);
+
+  return profile_string;
 }
