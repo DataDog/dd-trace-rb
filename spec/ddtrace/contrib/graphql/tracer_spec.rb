@@ -31,6 +31,8 @@ RSpec.describe 'GraphQL patcher' do
     end
 
     describe 'query trace' do
+      before { skip('GraphQL does not support ddtrace 1.0. Code must be updated in their package.') }
+
       subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
 
       let(:query) { '{ foo(id: 1) { name } }' }
