@@ -2,8 +2,8 @@
 #   srb rbi todo
 
 # typed: strong
-module ::ActionCable::Connection::Base; end
 module ::ActionCable::Channel::Base; end
+module ::ActionCable::Connection::Base; end
 module ::ActionDispatch::ExceptionWrapper; end
 module ::ActionDispatch::Response; end
 module ::ActionView::PartialRenderer; end
@@ -18,10 +18,10 @@ module ::ActiveSupport::Cache; end
 module ::ActiveSupport::Cache::RedisStore; end
 module ::ActiveSupport::Cache::Store; end
 module ::ActiveSupport::Notifications; end
-module ::ActiveSupport::TaggedLogging; end
 module ::Aws; end
 module ::Aws::S3::Presigner; end
 module ::Cucumber::Runtime; end
+module ::Dalli::Protocol::Binary; end
 module ::Dalli::Server; end
 module ::Delayed::Worker; end
 module ::Elasticsearch::Transport::Client; end
@@ -70,7 +70,6 @@ module ::Shoryuken; end
 module ::Sidekiq; end
 module ::Sidekiq::Launcher; end
 module ::Sidekiq::Processor; end
-module ::Sidekiq::Scheduled; end
 module ::Sidekiq::Scheduled::Poller; end
 module ::Sinatra; end
 module ::Sinatra::Application; end
@@ -92,7 +91,6 @@ module Datadog::Contrib::Faraday::RackBuilder::Middleware; end
 module Datadog::Contrib::GRPC::DatadogInterceptor::Base; end
 module Datadog::Contrib::GRPC::DatadogInterceptor::Client; end
 module Datadog::Contrib::GRPC::DatadogInterceptor::Server; end
-module Datadog::Contrib::Rails::Patcher::ActionDispatch::ShowExceptions; end
 module Datadog::Logger::INFO; end
 module Datadog::OpenTracer::SpanContext::NOOP_INSTANCE; end
 module Datadog::Vendor::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver::AdapterNotFound; end

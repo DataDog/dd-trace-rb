@@ -18,7 +18,7 @@ module Datadog
         end
 
         def patch
-          ::Dalli::Server.include(Instrumentation)
+          Integration.dalli_class.include(Instrumentation)
         end
       end
     end

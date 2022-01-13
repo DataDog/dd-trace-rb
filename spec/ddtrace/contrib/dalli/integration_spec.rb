@@ -59,6 +59,27 @@ RSpec.describe Datadog::Contrib::Dalli::Integration do
     end
   end
 
+  describe '.dalli_class' do
+    subject(:dalli_class) { described_class.dalli_class }
+
+    context 'when "dalli" gem is loaded with a version' do
+      context 'is below the dalli protocol version' do
+        include_context 'loaded gems', dalli: decrement_gem_version(described_class::DALLI_PROTOCOL_BINARY_VERSIONN)
+        it { is_expected.to be ::Dalli::Server }
+      end
+
+      context 'that meets the minimum version' do
+        include_context 'loaded gems', dalli: described_class::DALLI_PROTOCOL_BINARY_VERSIONN
+        it { is_expected.to be ::Dalli::Protocol::Binary }
+      end
+    end
+
+    context 'when gem is not loaded' do
+      include_context 'loaded gems', dalli: nil
+      it { is_expected.to be false }
+    end
+  end
+
   describe '#auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }
 
