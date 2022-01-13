@@ -68,15 +68,10 @@ RSpec.describe Datadog::Contrib::Dalli::Integration do
         it { is_expected.to be ::Dalli::Server }
       end
 
-      context 'that meets the minimum version' do
+      context 'that meets the dalli protocol version' do
         include_context 'loaded gems', dalli: described_class::DALLI_PROTOCOL_BINARY_VERSIONN
         it { is_expected.to be ::Dalli::Protocol::Binary }
       end
-    end
-
-    context 'when gem is not loaded' do
-      include_context 'loaded gems', dalli: nil
-      it { is_expected.to be false }
     end
   end
 
