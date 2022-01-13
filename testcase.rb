@@ -8,7 +8,6 @@ class ClassD; def initialize; end; end
 
 def main
   tp = Datadog::Profiling::NativeExtension.start_allocation_tracing
-  tp.enable
 
   ClassA.new
   ClassB.new

@@ -11,12 +11,12 @@ static VALUE get_allocation_count(VALUE self);
 static VALUE allocate_many_objects(VALUE self, VALUE how_many);
 static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer);
 static void initialize_allocation_profile();
-static VALUE ensure_string(VALUE object);
 static VALUE export_allocation_profile(VALUE self);
 
 static unsigned long allocation_count = 0;
 static ddprof_ffi_Profile *allocation_profile = 0;
-
+static VALUE allocation_tracepoint = 0;
+static VALUE missing_string = 0;
 
 void Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -34,6 +34,16 @@ void Init_ddtrace_profiling_native_extension(void) {
   rb_define_singleton_method(native_extension_module, "export_allocation_profile", export_allocation_profile, 0);
 
   initialize_allocation_profile();
+  allocation_tracepoint = rb_tracepoint_new(
+    0, // all threads
+    RUBY_INTERNAL_EVENT_NEWOBJ, // object allocation,
+    on_newobj_event,
+    0 // unused
+  );
+  rb_global_variable(&allocation_tracepoint);
+
+  missing_string = rb_str_new2("(nil)");
+  rb_global_variable(&missing_string);
 }
 
 static VALUE native_working_p(VALUE self) {
@@ -43,14 +53,9 @@ static VALUE native_working_p(VALUE self) {
 }
 
 static VALUE start_allocation_tracing(VALUE self) {
-  VALUE tracepoint = rb_tracepoint_new(
-    0, // all threads
-    RUBY_INTERNAL_EVENT_NEWOBJ, // object allocation,
-    on_newobj_event,
-    0 // unused
-  );
+  rb_tracepoint_enable(allocation_tracepoint);
 
-  return tracepoint;
+  return allocation_tracepoint;
 }
 
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
@@ -87,8 +92,8 @@ static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffe
       filename = rb_profile_frame_path(stack_buffer[i]);
     }
 
-    name = ensure_string(name);
-    filename = ensure_string(filename);
+    name = NIL_P(name) ? missing_string : name;
+    filename = NIL_P(filename) ? missing_string : filename;
 
     locations[i] = (struct ddprof_ffi_Location){.lines = (struct ddprof_ffi_Slice_line){&lines[i], 1}};
     lines[i] = (struct ddprof_ffi_Line){
@@ -116,27 +121,25 @@ static void initialize_allocation_profile() {
     .unit = {"count", sizeof("count") - 1},
   };
   const struct ddprof_ffi_Slice_value_type sample_types = {&alloc_samples, 1};
-  const struct ddprof_ffi_Period period = {alloc_samples, 60};
-  allocation_profile = ddprof_ffi_Profile_new(sample_types, &period);
-}
-
-static VALUE ensure_string(VALUE object) {
-  Check_Type(object, T_STRING);
-
-  return object;
+  allocation_profile = ddprof_ffi_Profile_new(sample_types, NULL /* Period is optional */);
 }
 
 static VALUE export_allocation_profile(VALUE self) {
-  struct ddprof_ffi_EncodedProfile *profile =
-    ddprof_ffi_Profile_serialize(allocation_profile);
+  VALUE tracepoint_status = rb_tracepoint_enabled_p(allocation_tracepoint);
 
-  if (profile == NULL) {
-    return Qnil;
-  }
+  // Stop any tracking while we're generating a profile
+  rb_tracepoint_disable(allocation_tracepoint);
 
-  VALUE profile_string = rb_str_new((char *) profile->buffer.ptr, profile->buffer.len);
+  struct ddprof_ffi_EncodedProfile *serialized_profile = ddprof_ffi_Profile_serialize(allocation_profile);
 
-  ddprof_ffi_EncodedProfile_delete(profile);
+  if (serialized_profile == NULL) rb_raise(rb_eRuntimeError, "Failed to serialize profile");
+
+  VALUE profile_string = rb_str_new((char *) serialized_profile->buffer.ptr, serialized_profile->buffer.len);
+  ddprof_ffi_EncodedProfile_delete(serialized_profile);
+
+  if (!ddprof_ffi_Profile_reset(allocation_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
+
+  if (tracepoint_status == Qtrue) rb_tracepoint_enable(allocation_tracepoint);
 
   return profile_string;
 }
