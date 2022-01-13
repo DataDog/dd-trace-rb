@@ -6,6 +6,7 @@
 
 static VALUE native_working_p(VALUE self);
 static VALUE start_allocation_tracing(VALUE self);
+static VALUE stop_allocation_tracing(VALUE self);
 static void on_newobj_event(VALUE tracepoint_info, void *_unused);
 static VALUE get_allocation_count(VALUE self);
 static VALUE allocate_many_objects(VALUE self, VALUE how_many);
@@ -30,6 +31,7 @@ void Init_ddtrace_profiling_native_extension(void) {
 
   // Experimental support for allocation tracking
   rb_define_singleton_method(native_extension_module, "start_allocation_tracing", start_allocation_tracing, 0);
+  rb_define_singleton_method(native_extension_module, "stop_allocation_tracing", stop_allocation_tracing, 0);
   rb_define_singleton_method(native_extension_module, "allocation_count", get_allocation_count, 0);
   rb_define_singleton_method(native_extension_module, "export_allocation_profile", export_allocation_profile, 0);
 
@@ -56,6 +58,14 @@ static VALUE start_allocation_tracing(VALUE self) {
   rb_tracepoint_enable(allocation_tracepoint);
 
   return allocation_tracepoint;
+}
+
+static VALUE stop_allocation_tracing(VALUE self) {
+  rb_tracepoint_disable(allocation_tracepoint);
+
+  if (!ddprof_ffi_Profile_reset(allocation_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
+
+  return Qtrue;
 }
 
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
