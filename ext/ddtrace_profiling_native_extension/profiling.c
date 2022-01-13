@@ -10,12 +10,13 @@ static void on_newobj_event(VALUE tracepoint_info, void *_unused);
 static VALUE get_allocation_count(VALUE self);
 static VALUE allocate_many_objects(VALUE self, VALUE how_many);
 static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer);
-static void maybe_initialize_profile();
+static void initialize_allocation_profile();
 static VALUE ensure_string(VALUE object);
 static VALUE export_allocation_profile(VALUE self);
 
 static unsigned long allocation_count = 0;
 static ddprof_ffi_Profile *allocation_profile = 0;
+
 
 void Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -27,11 +28,12 @@ void Init_ddtrace_profiling_native_extension(void) {
 
   rb_define_singleton_method(native_extension_module, "clock_id_for", clock_id_for, 1); // from clock_id.h
 
+  // Experimental support for allocation tracking
   rb_define_singleton_method(native_extension_module, "start_allocation_tracing", start_allocation_tracing, 0);
-
   rb_define_singleton_method(native_extension_module, "allocation_count", get_allocation_count, 0);
-
   rb_define_singleton_method(native_extension_module, "export_allocation_profile", export_allocation_profile, 0);
+
+  initialize_allocation_profile();
 }
 
 static VALUE native_working_p(VALUE self) {
@@ -75,8 +77,6 @@ static VALUE get_allocation_count(VALUE self) {
 }
 
 static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer) {
-  maybe_initialize_profile();
-
   struct ddprof_ffi_Location locations[stack_depth];
   struct ddprof_ffi_Line lines[stack_depth];
 
@@ -110,9 +110,7 @@ static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffe
   ddprof_ffi_Profile_add(allocation_profile, sample);
 }
 
-static void maybe_initialize_profile() {
-  if (allocation_profile != 0) return;
-
+static void initialize_allocation_profile() {
   const struct ddprof_ffi_ValueType alloc_samples = {
     .type_ = {"alloc-samples", sizeof("alloc-samples") - 1},
     .unit = {"count", sizeof("count") - 1},
@@ -129,8 +127,6 @@ static VALUE ensure_string(VALUE object) {
 }
 
 static VALUE export_allocation_profile(VALUE self) {
-  maybe_initialize_profile();
-
   struct ddprof_ffi_EncodedProfile *profile =
     ddprof_ffi_Profile_serialize(allocation_profile);
 
