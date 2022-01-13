@@ -306,29 +306,6 @@ module Datadog
         option :statsd
       end
 
-      # TODO: remove me. Use `c.runtime_metrics.enabled =`
-      # Backwards compatibility for configuring runtime metrics e.g. `c.runtime_metrics enabled: true`
-      def runtime_metrics(options = nil)
-        settings = get_option(:runtime_metrics)
-        return settings if options.nil?
-
-        # If options were provided (old style) then raise warnings and apply them:
-        # TODO: Raise deprecation warning
-        settings.enabled = options[:enabled] if options.key?(:enabled)
-        settings.statsd = options[:statsd] if options.key?(:statsd)
-        settings
-      end
-
-      # @deprecated Use `runtime_metrics.enabled` instead.
-      # @return [Boolean]
-      option :runtime_metrics_enabled do |o|
-        o.delegate_to { get_option(:runtime_metrics).enabled }
-        o.on_set do |value|
-          # TODO: Raise deprecation warning
-          get_option(:runtime_metrics).enabled = value
-        end
-      end
-
       # Client-side sampling configuration.
       # @public_api
       settings :sampling do

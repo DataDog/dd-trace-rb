@@ -614,40 +614,6 @@ RSpec.describe Datadog::Configuration::Settings do
   end
 
   describe '#runtime_metrics' do
-    describe 'old style' do
-      context 'given nothing' do
-        subject(:runtime_metrics) { settings.runtime_metrics }
-
-        it 'returns the new settings object' do
-          is_expected.to be_a_kind_of(Datadog::Configuration::Base)
-        end
-      end
-
-      context 'given :enabled' do
-        subject(:runtime_metrics) { settings.runtime_metrics enabled: true }
-
-        it 'updates the new #enabled setting' do
-          expect { settings.runtime_metrics enabled: true }
-            .to change { settings.runtime_metrics.enabled }
-            .from(false)
-            .to(true)
-        end
-      end
-
-      context 'given :statsd' do
-        subject(:runtime_metrics) { settings.runtime_metrics statsd: statsd }
-
-        let(:statsd) { double('statsd') }
-
-        it 'updates the new #statsd setting' do
-          expect { settings.runtime_metrics statsd: statsd }
-            .to change { settings.runtime_metrics.statsd }
-            .from(nil)
-            .to(statsd)
-        end
-      end
-    end
-
     describe '#enabled' do
       subject(:enabled) { settings.runtime_metrics.enabled }
 
@@ -715,27 +681,6 @@ RSpec.describe Datadog::Configuration::Settings do
           .from(nil)
           .to(statsd)
       end
-    end
-  end
-
-  describe '#runtime_metrics_enabled' do
-    subject(:runtime_metrics_enabled) { settings.runtime_metrics_enabled }
-
-    let(:value) { double }
-
-    before { expect(settings.runtime_metrics).to receive(:enabled).and_return(value) }
-
-    it 'retrieves the value from the new setting' do
-      is_expected.to be value
-    end
-  end
-
-  describe '#runtime_metrics_enabled=' do
-    it 'changes the new #enabled setting' do
-      expect { settings.runtime_metrics_enabled = true }
-        .to change { settings.runtime_metrics.enabled }
-        .from(false)
-        .to(true)
     end
   end
 
