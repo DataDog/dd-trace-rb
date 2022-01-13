@@ -50,17 +50,19 @@ module Datadog
       # (see Datadog::Tracer#active_trace)
       # @public_api
       def active_trace
-        return unless tracer
+        current_tracer = tracer
+        return unless current_tracer
 
-        tracer.active_trace
+        current_tracer.active_trace
       end
 
       # (see Datadog::Tracer#active_span)
       # @public_api
       def active_span
-        return unless tracer
+        current_tracer = tracer
+        return unless current_tracer
 
-        tracer.active_span
+        current_tracer.active_span
       end
 
       # (see Datadog::TraceSegment#keep!)
@@ -82,9 +84,10 @@ module Datadog
       # (see Datadog::Tracer#active_correlation)
       # @public_api
       def correlation
-        return unless tracer
+        current_tracer = tracer
+        return unless current_tracer
 
-        tracer.active_correlation
+        current_tracer.active_correlation
       end
 
       # Textual representation of {.correlation}, which can be
@@ -115,9 +118,10 @@ module Datadog
       # {.shutdown!} cannot be reversed.
       # @public_api
       def shutdown!
-        return unless tracer
+        current_tracer = tracer
+        return unless current_tracer
 
-        tracer.shutdown!
+        current_tracer.shutdown!
       end
 
       # The global integration registry.
@@ -150,9 +154,10 @@ module Datadog
       # Is the tracer collecting telemetry data in this process?
       # @return [Boolean] `true` if the tracer is collecting data in this process, otherwise `false`.
       def enabled?
-        return false unless tracer
+        current_tracer = tracer
+        return false unless current_tracer
 
-        tracer.enabled
+        current_tracer.enabled
       end
 
       private
