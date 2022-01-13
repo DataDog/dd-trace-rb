@@ -52,11 +52,11 @@ module Datadog
                   "#{FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
                   "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
                   "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
-                  "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
+                  "#{FORM_FIELD_TAG_RUNTIME_VERSION}:3.9.9",
                   "#{FORM_FIELD_TAG_PID}:#{Process.pid}",
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
                   # NOTE: Redundant w/ 'runtime'; may want to remove this later.
-                  "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
+                  "#{FORM_FIELD_TAG_LANGUAGE}:python",
                   "#{FORM_FIELD_TAG_HOST}:#{flush.host}",
                   *flush
                     .tags
@@ -64,7 +64,7 @@ module Datadog
                     .map { |tag_key, tag_value| "#{tag_key}:#{tag_value}" }
                 ],
                 FORM_FIELD_PPROF_DATA => pprof_file,
-                FORM_FIELD_FAMILY => flush.language,
+                FORM_FIELD_FAMILY => 'go',
               }
 
               # Optional fields
@@ -74,6 +74,8 @@ module Datadog
 
               # May not be available/enabled
               form[FORM_FIELD_CODE_PROVENANCE_DATA] = build_code_provenance(flush) if flush.code_provenance
+
+              form['data[memory.pprof]'] = build_memory_profile(flush) if flush.memory_profile
 
               form
             end
@@ -97,6 +99,16 @@ module Datadog
                 StringIO.new(gzipped_code_provenance),
                 HEADER_CONTENT_TYPE_OCTET_STREAM,
                 CODE_PROVENANCE_FILENAME,
+              )
+            end
+
+            def build_memory_profile(flush)
+              gzipped_memory_profile = Datadog::Utils::Compression.gzip(flush.memory_profile)
+
+              Datadog::Vendor::Multipart::Post::UploadIO.new(
+                StringIO.new(gzipped_memory_profile),
+                HEADER_CONTENT_TYPE_OCTET_STREAM,
+                'memory.pprof',
               )
             end
           end

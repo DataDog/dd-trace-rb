@@ -19,10 +19,11 @@ def main
 
   puts "Got info for #{Datadog::Profiling::NativeExtension.allocation_count} events"
 
-  File.write('test.pprof', Datadog::Profiling::NativeExtension.export_allocation_profile)
-  puts "Wrote output to test.pprof"
+  # File.write('test.pprof', Datadog::Profiling::NativeExtension.export_allocation_profile)
+  # puts "Wrote output to test.pprof"
 
   #binding.pry
+  sleep 10
 end
 
 main

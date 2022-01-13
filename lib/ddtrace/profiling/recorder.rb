@@ -74,12 +74,17 @@ module Datadog
 
         code_provenance = @code_provenance_collector.refresh.generate_json if @code_provenance_collector
 
+        memory_profile = Datadog::Profiling::NativeExtension.export_allocation_profile
+        puts "Writing memory_profile to memory.pprof"
+        File.write('memory.pprof', memory_profile)
+
         Flush.new(
           start: start,
           finish: finish,
           event_groups: event_groups,
           event_count: event_count,
           code_provenance: code_provenance,
+          memory_profile: memory_profile,
         )
       end
 

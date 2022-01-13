@@ -13,6 +13,7 @@ module Datadog
 
     def start
       collectors.each(&:start)
+      Datadog::Profiling::NativeExtension.start_allocation_tracing
       scheduler.start
     end
 
@@ -24,8 +25,11 @@ module Datadog
         collector.stop(true)
       end
 
+
       scheduler.enabled = false
       scheduler.stop(true)
+
+      Datadog::Profiling::NativeExtension.stop_allocation_tracing
     end
   end
 end
