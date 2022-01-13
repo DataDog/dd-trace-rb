@@ -74,7 +74,7 @@ module Datadog
                   Datadog.logger.warn(
                     "log_injection is now a global option that defaults to `true`\n" \
                     "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.use :rails, log_injection: ...`.'
+                    'Please remove the `log_injection` setting from `c.instrument :rails, log_injection: ...`.'
                   )
                 end
               else
@@ -82,7 +82,7 @@ module Datadog
                   Datadog.logger.warn(
                     "log_injection is now a global option that defaults to `true`\n" \
                      "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.use :rails, log_injection: ...` and use ' \
+                    'Please remove the `log_injection` setting from `c.instrument :rails, log_injection: ...` and use ' \
                     "`Datadog::Tracing.configure { |c| c.log_injection = false }` if you wish to disable it.\n"
                   )
                 end

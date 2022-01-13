@@ -39,18 +39,20 @@ module Datadog
                   Datadog.logger.warn(
                     "log_injection is now a global option that defaults to `true`\n" \
                     "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.use :active_job, log_injection: ...`.'
+                    'Please remove the `log_injection` setting from `c.instrument :active_job, log_injection: ...`.'
                   )
                 end
               else
+                # rubocop:disable Layout/LineLength
                 DEPRECATION_WARN_ONLY_ONCE_FALSE.run do
                   Datadog.logger.warn(
                     "log_injection is now a global option that defaults to `true`\n" \
                     "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.use :active_job, log_injection: ...` and use ' \
+                    'Please remove the `log_injection` setting from `c.instrument :active_job, log_injection: ...` and use ' \
                     "`Datadog::Tracing.configure { |c| c.log_injection = false }` if you wish to disable it.\n"
                   )
                 end
+                # rubocop:enable Layout/LineLength
               end
             end
           end

@@ -21,8 +21,8 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :sinatra, options
-      c.use :active_record, options
+      c.instrument :sinatra, options
+      c.instrument :active_record, options
     end
   end
 

@@ -28,7 +28,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :elasticsearch, configuration_options
+      c.instrument :elasticsearch, configuration_options
     end
   end
 

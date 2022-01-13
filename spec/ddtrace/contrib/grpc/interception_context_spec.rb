@@ -14,7 +14,7 @@ RSpec.describe GRPC::InterceptionContext do
   describe '#intercept!' do
     before do
       Datadog::Tracing.configure do |c|
-        c.use :grpc, configuration_options
+        c.instrument :grpc, configuration_options
       end
 
       subject.intercept!(type, keywords) {}

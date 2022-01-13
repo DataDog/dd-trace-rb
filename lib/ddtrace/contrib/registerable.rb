@@ -17,7 +17,7 @@ module Datadog
         #
         # ```
         # Datadog::Tracing.configure do |c|
-        #   c.use :name
+        #   c.instrument :name
         # end
         # ```
         #

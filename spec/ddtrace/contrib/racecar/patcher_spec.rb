@@ -17,7 +17,7 @@ RSpec.describe 'Racecar patcher' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :racecar, configuration_options
+      c.instrument :racecar, configuration_options
     end
   end
 

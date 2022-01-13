@@ -18,7 +18,7 @@ RSpec.describe 'ActiveRecord tracing performance' do
 
     # Configure the tracer
     Datadog::Tracing.configure do |c|
-      c.use :active_record, options
+      c.instrument :active_record, options
     end
   end
 

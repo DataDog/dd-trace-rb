@@ -244,7 +244,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with integrations loaded' do
-        before { Datadog::Tracing.configure { |c| c.use :http, options } }
+        before { Datadog::Tracing.configure { |c| c.instrument :http, options } }
 
         let(:options) { {} }
 

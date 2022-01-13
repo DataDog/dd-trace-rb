@@ -24,7 +24,7 @@ RSpec.describe 'net/http requests' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure { |c| c.use :http, configuration_options }
+    Datadog::Tracing.configure { |c| c.instrument :http, configuration_options }
   end
 
   around do |example|
@@ -244,13 +244,13 @@ RSpec.describe 'net/http requests' do
     context 'and the host matches a specific configuration' do
       before do
         Datadog::Tracing.configure do |c|
-          c.use :http, configuration_options
-          c.use :http, describes: /127.0.0.1/ do |http|
+          c.instrument :http, configuration_options
+          c.instrument :http, describes: /127.0.0.1/ do |http|
             http.service_name = 'bar'
             http.split_by_domain = false
           end
 
-          c.use :http, describes: /badexample\.com/ do |http|
+          c.instrument :http, describes: /badexample\.com/ do |http|
             http.service_name = 'bar_bad'
             http.split_by_domain = false
           end
@@ -381,12 +381,12 @@ RSpec.describe 'net/http requests' do
 
     context 'when disabled' do
       before do
-        Datadog::Tracing.configure { |c| c.use :http, distributed_tracing: false }
+        Datadog::Tracing.configure { |c| c.instrument :http, distributed_tracing: false }
         client.get(path)
       end
 
       after do
-        Datadog::Tracing.configure { |c| c.use :http, distributed_tracing: true }
+        Datadog::Tracing.configure { |c| c.instrument :http, distributed_tracing: true }
       end
 
       let(:span) { spans.last }

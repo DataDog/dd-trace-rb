@@ -13,7 +13,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :ethon, configuration_options
+      c.instrument :ethon, configuration_options
     end
   end
 

@@ -10,8 +10,8 @@ RSpec.describe 'Rails database' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :rails
-      c.use :active_record, service_name: database_service
+      c.instrument :rails
+      c.instrument :active_record, service_name: database_service
     end
   end
 

@@ -33,7 +33,7 @@ module Datadog
         #
         # ```
         # Datadog::Tracing.configure do |c|
-        #   c.use :my_registered_integration, **my_options
+        #   c.instrument :my_registered_integration, **my_options
         # end
         # ```
         #
@@ -143,8 +143,6 @@ module Datadog
             end
           end
 
-          alias_method :use, :instrument
-
           # @!visibility private
           def integrations_pending_activation
             @integrations_pending_activation ||= Set.new
@@ -187,8 +185,7 @@ module Datadog
             :instrumented_integrations,
             :integrations_pending_activation,
             :reduce_log_verbosity,
-            :reduce_verbosity?,
-            :use
+            :reduce_verbosity?
         end
       end
     end

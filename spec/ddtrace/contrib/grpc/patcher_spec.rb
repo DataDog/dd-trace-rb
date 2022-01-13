@@ -13,7 +13,7 @@ RSpec.describe 'GRPC instrumentation' do
   # Enable the test tracer
   before do
     Datadog::Tracing.configure do |c|
-      c.use :grpc, configuration_options
+      c.instrument :grpc, configuration_options
     end
   end
 

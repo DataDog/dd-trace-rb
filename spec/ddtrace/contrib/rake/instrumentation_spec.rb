@@ -32,7 +32,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
 
     # Patch Rake
     Datadog::Tracing.configure do |c|
-      c.use :rake, configuration_options
+      c.instrument :rake, configuration_options
     end
   end
 
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     Datadog::Tracing.registry[:rake].reset_configuration!
 
     # We don't want instrumentation enabled during the rest of the test suite...
-    Datadog::Tracing.configure { |c| c.use :rake, enabled: false }
+    Datadog::Tracing.configure { |c| c.instrument :rake, enabled: false }
   end
 
   def reset_task!(task_name)

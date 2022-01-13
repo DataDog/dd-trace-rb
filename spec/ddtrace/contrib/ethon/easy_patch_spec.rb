@@ -14,7 +14,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :ethon, configuration_options
+      c.instrument :ethon, configuration_options
     end
   end
 
@@ -69,12 +69,12 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       context 'and the host matches a specific configuration' do
         before do
           Datadog::Tracing.configure do |c|
-            c.use :ethon, describes: /example\.com/ do |ethon|
+            c.instrument :ethon, describes: /example\.com/ do |ethon|
               ethon.service_name = 'baz'
               ethon.split_by_domain = false
             end
 
-            c.use :ethon, describes: /badexample\.com/ do |ethon|
+            c.instrument :ethon, describes: /badexample\.com/ do |ethon|
               ethon.service_name = 'baz_bad'
               ethon.split_by_domain = false
             end

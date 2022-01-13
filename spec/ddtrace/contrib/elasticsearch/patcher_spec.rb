@@ -16,7 +16,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :elasticsearch, configuration_options
+      c.instrument :elasticsearch, configuration_options
     end
 
     wait_http_server(server, 60)

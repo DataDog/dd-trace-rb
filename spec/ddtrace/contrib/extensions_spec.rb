@@ -34,16 +34,6 @@ RSpec.describe Datadog::Contrib::Extensions do
         context 'given a block' do
           subject(:configure) { described_class.configure(&block) }
 
-          context 'that calls #use for an integration' do
-            let(:block) { proc { |c| c.use integration_name } }
-
-            it 'configures & patches the integration' do
-              expect(integration).to receive(:configure).with(:default, any_args)
-              expect(integration).to receive(:patch).and_call_original
-              configure
-            end
-          end
-
           context 'that calls #instrument for an integration' do
             let(:block) { proc { |c| c.instrument integration_name } }
 
@@ -83,7 +73,7 @@ RSpec.describe Datadog::Contrib::Extensions do
         let(:options) { {} }
         let(:default_settings) { settings.configuration(integration_name) }
 
-        before { settings.use(integration_name, options) }
+        before { settings.instrument(integration_name, options) }
 
         context 'with a matching described configuration' do
           let(:options) { { describes: matcher } }
@@ -101,8 +91,8 @@ RSpec.describe Datadog::Contrib::Extensions do
         end
       end
 
-      describe '#use' do
-        subject(:result) { settings.use(integration_name, options) }
+      describe '#instrument' do
+        subject(:result) { settings.instrument(integration_name, options) }
 
         let(:options) { {} }
 
@@ -158,14 +148,14 @@ RSpec.describe Datadog::Contrib::Extensions do
           context 'which is provided only a name' do
             it do
               expect(integration).to receive(:configure).with(:default, {})
-              settings.use(integration_name)
+              settings.instrument(integration_name)
             end
           end
 
           context 'which is provided a block' do
             it do
               expect(integration).to receive(:configure).with(:default, {}).and_call_original
-              expect { |b| settings.use(integration_name, options, &b) }.to yield_with_args(
+              expect { |b| settings.instrument(integration_name, options, &b) }.to yield_with_args(
                 a_kind_of(Datadog::Contrib::Configuration::Settings)
               )
             end

@@ -122,8 +122,8 @@ RSpec.describe 'Grape instrumentation' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :rack, configuration_options if with_rack
-      c.use :grape, configuration_options
+      c.instrument :rack, configuration_options if with_rack
+      c.instrument :grape, configuration_options
     end
   end
 

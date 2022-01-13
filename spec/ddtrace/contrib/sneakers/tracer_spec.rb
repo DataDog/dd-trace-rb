@@ -37,7 +37,7 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
     allow(queue).to receive(:exchange).and_return(exchange)
     Sneakers.configure(daemonize: true, log: '/tmp/sneakers.log')
     Datadog::Tracing.configure do |c|
-      c.use :sneakers, configuration_options
+      c.instrument :sneakers, configuration_options
     end
   end
 

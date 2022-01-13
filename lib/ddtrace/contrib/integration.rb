@@ -59,7 +59,7 @@ module Datadog
     # end
     #
     # Datadog::Tracing.configure do |c|
-    #   c.use :billing_api # Settings (e.g. `service:`) can be provided as keyword arguments.
+    #   c.instrument :billing_api # Settings (e.g. `service:`) can be provided as keyword arguments.
     # end
     # ```
     #

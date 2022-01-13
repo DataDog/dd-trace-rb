@@ -79,8 +79,8 @@ RSpec.describe 'Sinatra instrumentation' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :rack if with_rack
-      c.use :sinatra, configuration_options
+      c.instrument :rack if with_rack
+      c.instrument :sinatra, configuration_options
     end
   end
 

@@ -14,7 +14,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :sinatra, options
+      c.instrument :sinatra, options
     end
   end
 

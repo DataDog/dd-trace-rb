@@ -23,7 +23,7 @@ RSpec.describe 'Rack integration with other middleware' do
     end
 
     Datadog::Tracing.configure do |c|
-      c.use :rack, rack_options
+      c.instrument :rack, rack_options
     end
   end
 

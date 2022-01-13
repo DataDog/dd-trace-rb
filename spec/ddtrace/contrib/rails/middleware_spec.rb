@@ -31,8 +31,8 @@ RSpec.describe 'Rails middleware' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :rack if use_rack
-      c.use :rails, rails_options
+      c.instrument :rack if use_rack
+      c.instrument :rails, rails_options
     end
   end
 

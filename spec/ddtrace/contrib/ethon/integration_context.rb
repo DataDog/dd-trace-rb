@@ -71,7 +71,7 @@ RSpec.shared_context 'integration context' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :ethon, configuration_options
+      c.instrument :ethon, configuration_options
     end
   end
 

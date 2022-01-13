@@ -13,7 +13,7 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
     Shoryuken.worker_executor = Shoryuken::Worker::InlineExecutor
 
     Datadog::Tracing.configure do |c|
-      c.use :shoryuken, configuration_options
+      c.instrument :shoryuken, configuration_options
     end
   end
 

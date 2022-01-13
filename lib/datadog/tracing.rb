@@ -52,9 +52,9 @@ module Datadog
       # ```
       # Datadog::Tracing.configure do |c|
       #   c.sampling.default_rate = 1.0
-      #   c.use :aws
-      #   c.use :rails
-      #   c.use :sidekiq
+      #   c.instrument :aws
+      #   c.instrument :rails
+      #   c.instrument :sidekiq
       # end
       # ```
       # See {Datadog::Configuration::Settings} for all available options, defaults, and
@@ -96,7 +96,7 @@ module Datadog
       #
       # ```
       # Datadog::Tracing.configure do |c|
-      #   c.use :http, service_name: 'http-requests'
+      #   c.instrument :http, service_name: 'http-requests'
       # end
       #
       # client = Net::HTTP.new(host, port)

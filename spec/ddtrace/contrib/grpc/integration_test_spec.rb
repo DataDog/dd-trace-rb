@@ -9,7 +9,7 @@ RSpec.describe 'gRPC integration test' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :grpc, service_name: 'rspec'
+      c.instrument :grpc, service_name: 'rspec'
     end
   end
 

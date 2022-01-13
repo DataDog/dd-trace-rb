@@ -64,7 +64,7 @@ module Datadog
         end
 
         def self.activate_rack!(trace_config, rails_config)
-          trace_config.use(
+          trace_config.instrument(
             :rack,
             application: ::Rails.application,
             service_name: rails_config[:service_name],
@@ -76,19 +76,19 @@ module Datadog
         def self.activate_active_support!(trace_config, rails_config)
           return unless defined?(::ActiveSupport)
 
-          trace_config.use(:active_support)
+          trace_config.instrument(:active_support)
         end
 
         def self.activate_action_cable!(trace_config, rails_config)
           return unless defined?(::ActionCable)
 
-          trace_config.use(:action_cable)
+          trace_config.instrument(:action_cable)
         end
 
         def self.activate_action_mailer!(trace_config, rails_config)
           return unless defined?(::ActionMailer)
 
-          trace_config.use(
+          trace_config.instrument(
             :action_mailer,
             service_name: rails_config[:service_name]
           )
@@ -97,7 +97,7 @@ module Datadog
         def self.activate_action_pack!(trace_config, rails_config)
           return unless defined?(::ActionPack)
 
-          trace_config.use(
+          trace_config.instrument(
             :action_pack,
             service_name: rails_config[:service_name]
           )
@@ -106,7 +106,7 @@ module Datadog
         def self.activate_action_view!(trace_config, rails_config)
           return unless defined?(::ActionView)
 
-          trace_config.use(
+          trace_config.instrument(
             :action_view,
             service_name: rails_config[:service_name]
           )
@@ -117,11 +117,11 @@ module Datadog
 
           # Check before passing :log_injection to the Rails configuration
           # to avoid triggering a deprecated setting warning when the user
-          # didn't actually provide an explicit `c.use rails, :log_injection`.
+          # didn't actually provide an explicit `c.instrument rails, :log_injection`.
           deprecated_options = {}
           deprecated_options[:log_injection] = rails_config[:log_injection] unless rails_config[:log_injection].nil?
 
-          trace_config.use(
+          trace_config.instrument(
             :active_job,
             service_name: rails_config[:service_name],
             **deprecated_options
@@ -131,14 +131,14 @@ module Datadog
         def self.activate_active_record!(trace_config, rails_config)
           return unless defined?(::ActiveRecord)
 
-          trace_config.use(:active_record)
+          trace_config.instrument(:active_record)
         end
 
         def self.activate_lograge!(trace_config, rails_config)
           return unless defined?(::Lograge)
 
           if rails_config[:log_injection]
-            trace_config.use(
+            trace_config.instrument(
               :lograge
             )
           end
@@ -148,7 +148,7 @@ module Datadog
           return unless defined?(::SemanticLogger)
 
           if rails_config[:log_injection]
-            trace_config.use(
+            trace_config.instrument(
               :semantic_logger
             )
           end

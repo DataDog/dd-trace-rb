@@ -14,7 +14,7 @@ RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :rack, configuration_options
+      c.instrument :rack, configuration_options
     end
   end
 

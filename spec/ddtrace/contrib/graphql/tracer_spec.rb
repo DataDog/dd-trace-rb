@@ -20,8 +20,7 @@ RSpec.describe 'GraphQL patcher' do
     before do
       remove_patch!(:graphql)
       Datadog::Tracing.configure do |c|
-        c.use :graphql,
-              schemas: [schema]
+        c.instrument :graphql, schemas: [schema]
       end
     end
 

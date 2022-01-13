@@ -2,7 +2,7 @@ require 'datadog/ci'
 
 # Enable CI tracing
 Datadog::Tracing.configure do |c|
-  c.use :rspec
+  c.instrument :rspec
 end
 
 Datadog::CI.configure do |c|

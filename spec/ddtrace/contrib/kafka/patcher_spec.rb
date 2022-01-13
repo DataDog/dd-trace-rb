@@ -15,7 +15,7 @@ RSpec.describe 'Kafka patcher' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :kafka, configuration_options
+      c.instrument :kafka, configuration_options
     end
   end
 

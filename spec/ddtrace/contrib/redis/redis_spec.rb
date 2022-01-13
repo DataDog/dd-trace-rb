@@ -13,7 +13,7 @@ RSpec.describe 'Redis test' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :redis, configuration_options
+      c.instrument :redis, configuration_options
     end
   end
 

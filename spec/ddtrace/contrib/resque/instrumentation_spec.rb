@@ -42,7 +42,7 @@ RSpec.describe 'Resque instrumentation' do
 
     # Patch Resque
     Datadog::Tracing.configure do |c|
-      c.use :resque, configuration_options
+      c.instrument :resque, configuration_options
     end
   end
 

@@ -39,7 +39,7 @@ module Datadog
           c.reduce_log_verbosity
           # This will activate auto-instrumentation for Rails
           integrations.each do |integration_name|
-            c.use integration_name
+            c.instrument integration_name
           end
         end
       end

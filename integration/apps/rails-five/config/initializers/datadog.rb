@@ -10,9 +10,9 @@ if Datadog::DemoEnv.feature?('tracing')
     c.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
     c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
-    c.use :rails
-    c.use :redis, service_name: 'acme-redis'
-    c.use :resque
+    c.instrument :rails
+    c.instrument :redis, service_name: 'acme-redis'
+    c.instrument :resque
   end
 end
 

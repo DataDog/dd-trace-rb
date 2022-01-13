@@ -48,7 +48,7 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :httpclient, configuration_options
+      c.instrument :httpclient, configuration_options
     end
   end
 
@@ -250,12 +250,12 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
           context 'and the host matches a specific configuration' do
             before do
               Datadog::Tracing.configure do |c|
-                c.use :httpclient, describes: /localhost/ do |httpclient|
+                c.instrument :httpclient, describes: /localhost/ do |httpclient|
                   httpclient.service_name = 'bar'
                   httpclient.split_by_domain = false
                 end
 
-                c.use :httpclient, describes: /random/ do |httpclient|
+                c.instrument :httpclient, describes: /random/ do |httpclient|
                   httpclient.service_name = 'barz'
                   httpclient.split_by_domain = false
                 end

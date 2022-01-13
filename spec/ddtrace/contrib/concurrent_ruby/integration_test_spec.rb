@@ -62,7 +62,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
   describe 'patching' do
     subject(:patch) do
       Datadog::Tracing.configure do |c|
-        c.use :concurrent_ruby
+        c.instrument :concurrent_ruby
       end
     end
 
@@ -84,7 +84,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
   context 'when context propagation is enabled' do
     before do
       Datadog::Tracing.configure do |c|
-        c.use :concurrent_ruby
+        c.instrument :concurrent_ruby
       end
     end
 

@@ -29,7 +29,7 @@ RSpec.describe 'Sequel instrumentation' do
 
     # Patch Sequel
     Datadog::Tracing.configure do |c|
-      c.use :sequel, configuration_options
+      c.instrument :sequel, configuration_options
     end
   end
 

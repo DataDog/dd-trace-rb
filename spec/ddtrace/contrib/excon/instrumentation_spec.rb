@@ -35,7 +35,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.use :excon, configuration_options
+      c.instrument :excon, configuration_options
     end
   end
 
@@ -193,12 +193,12 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     context 'and the host matches a specific configuration' do
       before do
         Datadog::Tracing.configure do |c|
-          c.use :excon, describes: /example\.com/ do |excon|
+          c.instrument :excon, describes: /example\.com/ do |excon|
             excon.service_name = 'bar'
             excon.split_by_domain = false
           end
 
-          c.use :excon, describes: /badexample\.com/ do |excon|
+          c.instrument :excon, describes: /badexample\.com/ do |excon|
             excon.service_name = 'bar_bad'
             excon.split_by_domain = false
           end
@@ -296,10 +296,10 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     before do
       @old_service_name = Datadog::Tracing.configuration[:excon][:service_name]
-      Datadog::Tracing.configure { |c| c.use :excon, service_name: service_name }
+      Datadog::Tracing.configure { |c| c.instrument :excon, service_name: service_name }
     end
 
-    after { Datadog::Tracing.configure { |c| c.use :excon, service_name: @old_service_name } }
+    after { Datadog::Tracing.configure { |c| c.instrument :excon, service_name: @old_service_name } }
 
     it do
       subject
