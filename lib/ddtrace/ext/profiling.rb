@@ -23,13 +23,9 @@ module Datadog
         module HTTP
           URI_TEMPLATE_DD_API = 'https://intake.profile.%s/'.freeze
 
-          FORM_FIELD_DATA = 'data[0]'.freeze
-          FORM_FIELD_FORMAT = 'format'.freeze
-          FORM_FIELD_FORMAT_PPROF = 'pprof'.freeze
-          FORM_FIELD_RECORDING_END = 'recording-end'.freeze
-          FORM_FIELD_RECORDING_START = 'recording-start'.freeze
-          FORM_FIELD_RUNTIME = 'runtime'.freeze
-          FORM_FIELD_RUNTIME_ID = 'runtime-id'.freeze
+          FORM_FIELD_RECORDING_START = 'start'.freeze
+          FORM_FIELD_RECORDING_END = 'end'.freeze
+          FORM_FIELD_FAMILY = 'family'.freeze
           FORM_FIELD_TAG_ENV = 'env'.freeze
           FORM_FIELD_TAG_HOST = 'host'.freeze
           FORM_FIELD_TAG_LANGUAGE = 'language'.freeze
@@ -43,13 +39,13 @@ module Datadog
           FORM_FIELD_TAG_SERVICE = 'service'.freeze
           FORM_FIELD_TAG_VERSION = 'version'.freeze
           FORM_FIELD_TAGS = 'tags'.freeze
-          FORM_FIELD_TYPES = 'types[0]'.freeze
-          FORM_FIELD_TYPES_AUTO = 'auto'.freeze
+          FORM_FIELD_INTAKE_VERSION = 'version'.freeze
 
           HEADER_CONTENT_TYPE = 'Content-Type'.freeze
           HEADER_CONTENT_TYPE_OCTET_STREAM = 'application/octet-stream'.freeze
 
-          PPROF_DEFAULT_FILENAME = 'profile.pb.gz'.freeze
+          FORM_FIELD_PPROF_DATA = 'data[rubyprofile.pprof]'.freeze
+          PPROF_DEFAULT_FILENAME = 'rubyprofile.pprof.gz'.freeze
         end
       end
     end

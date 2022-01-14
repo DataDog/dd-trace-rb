@@ -9,7 +9,6 @@ require 'ddtrace/profiling/transport/http/response'
 require 'ddtrace/profiling/transport/request'
 require 'ddtrace/transport/http/env'
 
-# rubocop:disable Layout/LineLength
 RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
   subject(:endpoint) { described_class.new(path, encoder) }
 
@@ -34,9 +33,8 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
       let(:request) { Datadog::Profiling::Transport::Request.new(flush) }
       let(:flush) { get_test_profiling_flush }
 
-      let(:pprof) { instance_double(Datadog::Profiling::Pprof::Payload, data: data, types: types) }
+      let(:pprof) { instance_double(Datadog::Profiling::Pprof::Payload, data: data) }
       let(:data) { 'pprof_string_data' }
-      let(:types) { [:wall_time_ns] }
       let(:http_response) { instance_double(Datadog::Profiling::Transport::HTTP::Response) }
 
       let(:block) do
@@ -59,22 +57,21 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         expect(env.headers).to eq({})
 
         expect(env.form).to include(
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_DATA => kind_of(Datadog::Vendor::Multipart::Post::UploadIO),
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_FORMAT_PPROF,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RECORDING_START => flush.start.utc.iso8601,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RECORDING_END => flush.finish.utc.iso8601,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RUNTIME => flush.language,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_RUNTIME_ID => flush.runtime_id,
-          Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS => array_including(
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PID}:#{Process.pid}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
-            "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_HOST}:#{flush.host}"
+          'version' => '3',
+          'data[rubyprofile.pprof]' => kind_of(Datadog::Vendor::Multipart::Post::UploadIO),
+          'start' => flush.start.utc.iso8601,
+          'end' => flush.finish.utc.iso8601,
+          'family' => flush.language,
+          'tags' => array_including(
+            "runtime:#{flush.language}",
+            "runtime-id:#{flush.runtime_id}",
+            "runtime_engine:#{flush.runtime_engine}",
+            "runtime_platform:#{flush.runtime_platform}",
+            "runtime_version:#{flush.runtime_version}",
+            "pid:#{Process.pid}",
+            "profiler_version:#{flush.profiler_version}",
+            "language:#{flush.language}",
+            "host:#{flush.host}"
           )
         )
       end
@@ -95,7 +92,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         it 'reports the additional tags as part of the tags field' do
           call
 
-          expect(env.form).to include(Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS => array_including(
+          expect(env.form).to include('tags' => array_including(
             'test_tag_key:test_tag_value', 'another_tag_key:another_tag_value'
           ))
         end
@@ -117,10 +114,10 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         it 'includes service/env/version as tags' do
           call
           expect(env.form).to include(
-            Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS => array_including(
-              "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_SERVICE}:#{flush.service}",
-              "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_ENV}:#{flush.env}",
-              "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_VERSION}:#{flush.version}"
+            'tags' => array_including(
+              "service:#{flush.service}",
+              "env:#{flush.env}",
+              "version:#{flush.version}"
             )
           )
         end
@@ -130,7 +127,10 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
           # the service/env/version in the settings object from the tags if they are available (see settings.rb).
           # But simulating them being different here makes it easier to test that no duplicates are added -- that
           # effectively the tag versions are ignored and we only include the top-level flush versions.
-          let(:tags) { { 'service' => 'service_tag', 'env' => 'env_tag', 'version' => 'version_tag', 'some_other_tag' => 'some_other_value' } }
+          let(:tags) do
+            { 'service' => 'service_tag', 'env' => 'env_tag', 'version' => 'version_tag',
+              'some_other_tag' => 'some_other_value' }
+          end
 
           before do
             flush.tags = tags
@@ -140,10 +140,10 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
             call
 
             expect(env.form).to include(
-              Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS => array_including(
-                "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_SERVICE}:#{flush.service}",
-                "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_ENV}:#{flush.env}",
-                "#{Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAG_VERSION}:#{flush.version}"
+              'tags' => array_including(
+                "service:#{flush.service}",
+                "env:#{flush.env}",
+                "version:#{flush.version}"
               )
             )
           end
@@ -151,32 +151,16 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
           it 'does not include the values for these tags from the flush.tags hash' do
             call
 
-            expect(env.form.fetch(Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS))
-              .to_not include('service:service_tag', 'env:env_tag', 'version:version_tag')
+            expect(env.form.fetch('tags')).to_not include('service:service_tag', 'env:env_tag', 'version:version_tag')
           end
 
           it 'includes other defined tags' do
             call
 
-            expect(env.form.fetch(Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TAGS))
-              .to include('some_other_tag:some_other_value')
+            expect(env.form.fetch('tags')).to include('some_other_tag:some_other_value')
           end
-        end
-      end
-    end
-
-    context 'when the pprof contains wall & CPU time types' do
-      it_behaves_like 'profile request' do
-        let(:types) { [:wall_time_ns, :cpu_time_ns] }
-
-        it 'includes env tags' do
-          call
-          expect(env.form).to include(
-            Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TYPES => Datadog::Ext::Profiling::Transport::HTTP::FORM_FIELD_TYPES_AUTO
-          )
         end
       end
     end
   end
 end
-# rubocop:enable Layout/LineLength

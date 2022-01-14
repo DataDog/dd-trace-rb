@@ -12,6 +12,11 @@ jobs:
       SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@v2
+      # bundler appears to match both prerelease and release rubies when we
+      # want the former only. relax the constraint to allow any version for
+      # head rubies
+      - if: ${{ matrix.ruby == 'head' }}
+        run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
       - uses: ruby/setup-ruby@f20f1eae726df008313d2e0d78c5e602562a1bcf # v1.86.0
         with:
           ruby-version: ${{ matrix.ruby }}
