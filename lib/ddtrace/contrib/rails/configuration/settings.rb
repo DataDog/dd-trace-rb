@@ -61,34 +61,6 @@ module Datadog
               Datadog::Tracing.configuration[:action_view][:template_base_path] = value
             end
           end
-
-          DEPRECATION_WARN_ONLY_ONCE_TRUE = Datadog::Utils::OnlyOnce.new
-          DEPRECATION_WARN_ONLY_ONCE_FALSE = Datadog::Utils::OnlyOnce.new
-
-          option :log_injection do |o|
-            o.delegate_to { Datadog::Tracing.configuration.log_injection }
-            o.lazy
-            o.on_set do |value|
-              if value
-                DEPRECATION_WARN_ONLY_ONCE_TRUE.run do
-                  Datadog.logger.warn(
-                    "log_injection is now a global option that defaults to `true`\n" \
-                    "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.instrument :rails, log_injection: ...`.'
-                  )
-                end
-              else
-                DEPRECATION_WARN_ONLY_ONCE_FALSE.run do
-                  Datadog.logger.warn(
-                    "log_injection is now a global option that defaults to `true`\n" \
-                     "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.instrument :rails, log_injection: ...` and use ' \
-                    "`Datadog::Tracing.configure { |c| c.log_injection = false }` if you wish to disable it.\n"
-                  )
-                end
-              end
-            end
-          end
         end
       end
     end

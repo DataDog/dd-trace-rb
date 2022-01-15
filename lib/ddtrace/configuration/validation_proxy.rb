@@ -8,8 +8,7 @@ module Datadog
       extend Forwardable
 
       FORWARDED_METHODS = [
-        :reset!,
-        :to_h
+        :reset!
       ].freeze
 
       def_delegators \
@@ -66,8 +65,7 @@ module Datadog
           :runtime_metrics,
           :sampling,
           :test_mode,
-          :tracer,
-          :use
+          :tracer
         ].freeze
 
         def_delegators \

@@ -67,7 +67,7 @@ module Datadog
       Datadog.send(:internal_configure, &wrapped_block)
     end
 
-    # Current tracer configuration.
+    # Current profiler configuration.
     #
     # Access to non-profiling configuration will raise an error.
     #

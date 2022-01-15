@@ -40,7 +40,7 @@ module Datadog
             # Otherwise the middleware stack will be frozen.
             # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
             add_middleware(app) if Datadog::Tracing.configuration[:rails][:middleware]
-            add_logger(app) if Datadog::Tracing.configuration[:rails][:log_injection]
+            add_logger(app) if Datadog::Tracing.configuration.log_injection
           end
         end
 

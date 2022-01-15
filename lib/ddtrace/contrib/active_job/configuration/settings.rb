@@ -26,36 +26,6 @@ module Datadog
 
           option :service_name
           option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
-
-          DEPRECATION_WARN_ONLY_ONCE_TRUE = Datadog::Utils::OnlyOnce.new
-          DEPRECATION_WARN_ONLY_ONCE_FALSE = Datadog::Utils::OnlyOnce.new
-
-          option :log_injection do |o|
-            o.delegate_to { Datadog::Tracing.configuration.log_injection }
-            o.lazy
-            o.on_set do |value|
-              if value
-                DEPRECATION_WARN_ONLY_ONCE_TRUE.run do
-                  Datadog.logger.warn(
-                    "log_injection is now a global option that defaults to `true`\n" \
-                    "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.instrument :active_job, log_injection: ...`.'
-                  )
-                end
-              else
-                # rubocop:disable Layout/LineLength
-                DEPRECATION_WARN_ONLY_ONCE_FALSE.run do
-                  Datadog.logger.warn(
-                    "log_injection is now a global option that defaults to `true`\n" \
-                    "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.instrument :active_job, log_injection: ...` and use ' \
-                    "`Datadog::Tracing.configure { |c| c.log_injection = false }` if you wish to disable it.\n"
-                  )
-                end
-                # rubocop:enable Layout/LineLength
-              end
-            end
-          end
         end
       end
     end

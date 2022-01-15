@@ -74,7 +74,7 @@ module Datadog
       # Datadog diagnostic settings.
       #
       # Enabling these surfaces debug information that can be helpful to
-      # diagnose issues related to the tracer internals.
+      # diagnose issues related to Datadog internals.
       # @configure_with Datadog
       # @public_api
       settings :diagnostics do
@@ -84,7 +84,7 @@ module Datadog
         # environments.
         #
         # This option is helpful when trying to understand what information the
-        # tracer is sending to the Agent or backend.
+        # Datadog features are sending to the Agent or backend.
         # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
         # @return [Boolean]
         option :debug do |o|
@@ -97,7 +97,7 @@ module Datadog
           end
         end
 
-        # Internal tracer {Datadog::Statsd} metrics collection.
+        # Internal {Datadog::Statsd} metrics collection.
         #
         # The list of metrics collected can be found in {Datadog::Ext::Diagnostics::Health::Metrics}.
         # @public_api
@@ -369,6 +369,8 @@ module Datadog
       #
       # If your organization is on another site, you must update this value to the new site.
       #
+      # For internal use only.
+      #
       # @see https://docs.datadoghq.com/agent/troubleshooting/site/
       # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
       # @return [String,nil]
@@ -378,9 +380,10 @@ module Datadog
         o.lazy
       end
 
-      # Default tracing and profiling span tags.
+      # Default tags
       #
-      # These tags are applied to every span.
+      # These tags are used by all Datadog products, when applicable.
+      # e.g. trace spans, profiles, etc.
       # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
       # @return [Hash<String,String>]
       # @configure_with Datadog
@@ -439,27 +442,23 @@ module Datadog
           o.lazy
         end
 
-        # TODO: Remove this configuration.
-        # TODO: It is not necessary, as it be configured by the default flushing trace configuration.
         option :trace_flush do |o|
           o.default { nil }
           o.lazy
         end
 
-        # TODO: Remove this configuration.
-        # TODO: It is not necessary, as it be configured by the default writer trace configuration.
         option :writer_options do |o|
           o.default { {} }
           o.lazy
         end
       end
 
-      # The time provider used by the tracer. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
+      # The time provider used by Datadog. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
       #
       # When testing, it can be helpful to use a different time provider.
       #
       # For [Timecop](https://rubygems.org/gems/timecop), for example, `->{ Time.now_without_mock_time }`
-      # allows the tracer to use the real wall time when time is frozen.
+      # allows Datadog features to use the real wall time when time is frozen.
       #
       # @default `->{ Time.now }`
       # @return [Proc<Time>]
@@ -499,7 +498,7 @@ module Datadog
         # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
         option :hostname
 
-        # A custom tracer instance. Advanced usage only.
+        # A custom tracer instance.
         #
         # It must respect the contract of {Datadog::Tracer}.
         # It's recommended to delegate methods to {Datadog::Tracer} to ease the implementation
@@ -507,6 +506,8 @@ module Datadog
         #
         # This option will not return the live tracer instance: it only holds a custom
         # tracing instance, if any. The live tracer instance can be found in {Datadog::Tracing.tracer}.
+        #
+        # For internal use only.
         #
         # @default `nil`
         # @return [Object,nil]

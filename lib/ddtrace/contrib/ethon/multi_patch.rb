@@ -19,7 +19,7 @@ module Datadog
         module InstanceMethods
           def add(easy)
             handles = super
-            return handles if handles.nil? || !Datadog::Tracing.enabled?
+            return handles unless handles && Datadog::Tracing.enabled?
 
             if datadog_multi_performing?
               # Start Easy span in case Multi is already performing
