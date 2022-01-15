@@ -101,7 +101,7 @@ if ruby_version?('2.1')
     gem 'activerecord-mysql-adapter'
     gem 'aws-sdk', '~> 2.0'
     gem 'concurrent-ruby'
-    gem 'dalli', '>= 3.0.0'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -133,10 +133,6 @@ if ruby_version?('2.1')
     gem 'sucker_punch'
     gem 'timers', '< 4.2'
     gem 'typhoeus'
-  end
-
-  appraise 'contrib-old' do
-    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -291,7 +287,7 @@ elsif ruby_version?('2.2')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli', '>= 3.0.0'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -330,10 +326,6 @@ elsif ruby_version?('2.2')
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
-  end
-
-  appraise 'contrib-old' do
-    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -495,7 +487,7 @@ elsif ruby_version?('2.3')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli', '>= 3.0.0'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -539,7 +531,6 @@ elsif ruby_version?('2.3')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
-    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -614,7 +605,7 @@ elsif ruby_version?('2.4')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli', '>= 3.0.0'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -658,7 +649,6 @@ elsif ruby_version?('2.4')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
-    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -851,7 +841,7 @@ elsif ruby_version?('2.5')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli', '>= 3.0.0'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -906,7 +896,6 @@ elsif ruby_version?('2.5')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
-    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do

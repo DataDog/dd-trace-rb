@@ -1549,7 +1549,7 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   cucumber
-  dalli
+  dalli (< 3.0.0)
   ddtrace!
   delayed_job
   delayed_job_active_record

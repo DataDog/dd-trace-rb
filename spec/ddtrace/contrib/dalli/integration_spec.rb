@@ -64,15 +64,19 @@ RSpec.describe Datadog::Contrib::Dalli::Integration do
 
     context 'when "dalli" gem is loaded with a version' do
       context 'is below the dalli protocol version' do
-        skip if Gem.loaded_specs['dalli'].version >= described_class::DALLI_PROTOCOL_BINARY_VERSION
+        it "Loads the Dalli::Server class" do
+          skip "running on dalli above min" if Gem.loaded_specs['dalli'].version >= described_class::DALLI_PROTOCOL_BINARY_VERSION
 
-        it { is_expected.to be ::Dalli::Server }
+          expect(subject).to be ::Dalli::Server
+        end
       end
 
       context 'that meets the dalli protocol version' do
-        skip if Gem.loaded_specs['dalli'].version < described_class::DALLI_PROTOCOL_BINARY_VERSION
+        it "Loads the Dalli::Protocol::Binary class" do
+          skip "running on dalli below min" if Gem.loaded_specs['dalli'].version < described_class::DALLI_PROTOCOL_BINARY_VERSION
 
-        it { is_expected.to be ::Dalli::Protocol::Binary }
+          expect(subject).to eq ::Dalli::Protocol::Binary
+        end
       end
     end
   end
