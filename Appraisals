@@ -95,17 +95,13 @@ if ruby_version?('2.1')
     gem 'lograge', '~> 0.11'
   end
 
-  appraise 'dalli3' do
-    gem 'dalli', '>= 3.0.0'
-  end
-
   appraise 'contrib' do
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'activerecord', '3.2.22.5'
     gem 'activerecord-mysql-adapter'
     gem 'aws-sdk', '~> 2.0'
     gem 'concurrent-ruby'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -137,6 +133,10 @@ if ruby_version?('2.1')
     gem 'sucker_punch'
     gem 'timers', '< 4.2'
     gem 'typhoeus'
+  end
+
+  appraise 'contrib-old' do
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -284,10 +284,6 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
-  appraise 'dalli3' do
-    gem 'dalli', '>= 3.0.0'
-  end
-
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -295,7 +291,7 @@ elsif ruby_version?('2.2')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -334,6 +330,10 @@ elsif ruby_version?('2.2')
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
+  end
+
+  appraise 'contrib-old' do
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -488,10 +488,6 @@ elsif ruby_version?('2.3')
 
   (3..4).each { |v| gem_cucumber(v) }
 
-  appraise 'dalli3' do
-    gem 'dalli', '>= 3.0.0'
-  end
-
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -499,7 +495,7 @@ elsif ruby_version?('2.3')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -543,6 +539,7 @@ elsif ruby_version?('2.3')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -609,10 +606,6 @@ elsif ruby_version?('2.4')
 
   (3..4).each { |v| gem_cucumber(v) }
 
-  appraise 'dalli3' do
-    gem 'dalli', '>= 3.0.0'
-  end
-
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -621,7 +614,7 @@ elsif ruby_version?('2.4')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -665,6 +658,7 @@ elsif ruby_version?('2.4')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -849,10 +843,6 @@ elsif ruby_version?('2.5')
 
   (3..5).each { |v| gem_cucumber(v) }
 
-  appraise 'dalli3' do
-    gem 'dalli', '>= 3.0.0'
-  end
-
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -861,7 +851,7 @@ elsif ruby_version?('2.5')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -916,6 +906,7 @@ elsif ruby_version?('2.5')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -1067,10 +1058,6 @@ elsif ruby_version?('2.6')
 
     (3..5).each { |v| gem_cucumber(v) }
 
-    appraise 'dalli3' do
-      gem 'dalli', '>= 3.0.0'
-    end
-
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -1079,7 +1066,7 @@ elsif ruby_version?('2.6')
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber'
-      gem 'dalli', '< 3.0.0'
+      gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
@@ -1122,6 +1109,7 @@ elsif ruby_version?('2.6')
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+      gem 'dalli', '< 3.0.0'
     end
 
     appraise 'core-old' do
@@ -1274,10 +1262,6 @@ elsif ruby_version?('2.7')
 
     (3..5).each { |v| gem_cucumber(v) }
 
-    appraise 'dalli3' do
-      gem 'dalli', '>= 3.0.0'
-    end
-
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -1286,7 +1270,7 @@ elsif ruby_version?('2.7')
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber'
-      gem 'dalli', '< 3.0.0'
+      gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
@@ -1328,6 +1312,7 @@ elsif ruby_version?('2.7')
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+      gem 'dalli', '< 3.0.0'
     end
 
     appraise 'core-old' do
@@ -1389,10 +1374,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'resque', '>= 2.0'
   end
 
-  appraise 'dalli3' do
-    gem 'dalli', '>= 3.0.0'
-  end
-
   (3..5).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
@@ -1403,7 +1384,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
