@@ -95,13 +95,17 @@ if ruby_version?('2.1')
     gem 'lograge', '~> 0.11'
   end
 
+  appraise 'dalli3' do
+    gem 'dalli', '>= 3.0.0'
+  end
+
   appraise 'contrib' do
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'activerecord', '3.2.22.5'
     gem 'activerecord-mysql-adapter'
     gem 'aws-sdk', '~> 2.0'
     gem 'concurrent-ruby'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -280,6 +284,10 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
+  appraise 'dalli3' do
+    gem 'dalli', '>= 3.0.0'
+  end
+
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -287,7 +295,7 @@ elsif ruby_version?('2.2')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -480,6 +488,10 @@ elsif ruby_version?('2.3')
 
   (3..4).each { |v| gem_cucumber(v) }
 
+  appraise 'dalli3' do
+    gem 'dalli', '>= 3.0.0'
+  end
+
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -487,7 +499,7 @@ elsif ruby_version?('2.3')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -597,6 +609,10 @@ elsif ruby_version?('2.4')
 
   (3..4).each { |v| gem_cucumber(v) }
 
+  appraise 'dalli3' do
+    gem 'dalli', '>= 3.0.0'
+  end
+
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -605,7 +621,7 @@ elsif ruby_version?('2.4')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -833,6 +849,10 @@ elsif ruby_version?('2.5')
 
   (3..5).each { |v| gem_cucumber(v) }
 
+  appraise 'dalli3' do
+    gem 'dalli', '>= 3.0.0'
+  end
+
   appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
@@ -841,7 +861,7 @@ elsif ruby_version?('2.5')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -1047,6 +1067,10 @@ elsif ruby_version?('2.6')
 
     (3..5).each { |v| gem_cucumber(v) }
 
+    appraise 'dalli3' do
+      gem 'dalli', '>= 3.0.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -1055,7 +1079,7 @@ elsif ruby_version?('2.6')
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber'
-      gem 'dalli'
+      gem 'dalli', '< 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
@@ -1173,7 +1197,7 @@ elsif ruby_version?('2.7')
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
-    end    
+    end
 
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
@@ -1250,6 +1274,10 @@ elsif ruby_version?('2.7')
 
     (3..5).each { |v| gem_cucumber(v) }
 
+    appraise 'dalli3' do
+      gem 'dalli', '>= 3.0.0'
+    end
+
     appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
@@ -1258,7 +1286,7 @@ elsif ruby_version?('2.7')
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber'
-      gem 'dalli'
+      gem 'dalli', '< 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
@@ -1361,6 +1389,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'resque', '>= 2.0'
   end
 
+  appraise 'dalli3' do
+    gem 'dalli', '>= 3.0.0'
+  end
+
   (3..5).each { |v| gem_cucumber(v) }
 
   appraise 'contrib' do
@@ -1371,7 +1403,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
