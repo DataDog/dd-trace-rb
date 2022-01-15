@@ -111,11 +111,7 @@ end
 
 ## Instrumentation
 
-### Removed `Datadog.tracer`
-
-Many of the functions accessed directly through `Datadog.tracer` have been moved to `Datadog::Tracing` instead.
-
-### Manual tracing
+### Manual tracing & trace model
 
 Manual tracing is now done through the public API.
 
@@ -138,7 +134,133 @@ end
 
 The yielded `span` is nearly identical in behavior, except access to some fields (like `context`) been removed. Instead, the `trace`, which models the trace itself, grants access to new functions.
 
-For more details about new behaviors for manual tracing, see [this pull request](https://github.com/DataDog/dd-trace-rb/pull/1783).
+For more details about new behaviors and the trace model, see [this pull request](https://github.com/DataDog/dd-trace-rb/pull/1783).
+
+### Accessing trace state
+
+The public API provides new functions to access active trace data:
+
+```ruby
+# Retuns the active TraceOperation for the current thread
+Datadog::Tracing.active_trace
+# Returns the active SpanOperation for the current thread
+Datadog::Tracing.active_span
+# Returns an immutable set of identifiers for the current trace state
+Datadog::Tracing.correlation
+```
+
+Use of `active_root_span` has been removed.
+
+### Distributed tracing
+
+Previously, distributed tracing required building new `Datadog::Context` objects, then replacing the context within the tracer.
+
+Instead, users utilize `TraceDigest` objects derived from a trace. This object which represents the state of a trace. It can be used to propagate a trace across execution boundaries (processes, threads), or to continue a trace locally.
+
+```ruby
+# Get trace digest
+trace = Datadog::Tracing.active_trace
+trace_digest = trace.to_digest
+
+# Continue a trace: explicit continuation
+# Inherits trace properties from the trace digest
+Datadog::Tracing.trace('my.job', continue_from: trace_digest) do |span, trace|
+  trace.id == trace_digest.trace_id
+end
+
+# Continue a trace: implicit continuation
+# Digest will be "consumed" by the next `trace` operation
+Datadog::Tracing.continue_trace!(trace_digest)
+
+# Next trace inherits trace properties
+Datadog::Tracing.trace('my.job') do |span, trace|
+  trace.id == trace_digest.trace_id
+end
+
+# Second trace does NOT inherit trace properties
+Datadog::Tracing.trace('my.job') do |span, trace|
+  trace.id != trace_digest.trace_id
+end
+```
+
+#### Propagation over HTTP/gRPC
+
+To propagate a local trace to a remote service:
+
+```ruby
+# HTTP
+# `headers` should behave like a Hash
+Datadog::HTTPPropagator.inject!(trace_digest, headers)
+
+# gRPC
+# `headers` should behave like a Hash
+Datadog::GRPCPropagator.inject!(trace_digest, headers)
+```
+
+To continue a propagated trace locally:
+
+```ruby
+# HTTP
+digest = HTTPPropagator.extract(request.env)
+digest # => #<Datadog::TraceDigest>
+
+# gRPC
+digest = Datadog::GRPCPropagator.extract(metadata)
+digest # => #<Datadog::TraceDigest>
+```
+
+#### Propagation between threads
+
+Traces do not implicitly propagate across threads, as they are considered different execution contexts.
+
+However, if you wish to do this, trace propagation across threads is similar to cross-process. A `TraceDigest` should be produced and consumed.
+
+NOTE: The same `TraceOperation` object should never be shared between threads; this would create race conditions.
+
+```ruby
+# Get trace digest
+trace = Datadog::Tracing.active_trace
+
+# NOTE: We must produce the digest BEFORE starting the thread.
+#       Otherwise if its lazily evaluated within the thread,
+#       the thread's trace may follow the wrong parent span.
+trace_digest = trace.to_digest
+
+Thread.new do
+  # Inherits trace properties from the trace digest
+  Datadog::Tracing.trace('my.job', continue_from: trace_digest) do |span, trace|
+    trace.id == trace_digest.trace_id
+  end
+end
+```
+
+### Sampling
+
+Accessing `call_context` to set explicit sampling has been removed.
+
+Instead, use the `TraceOperation` to set the sampling decision.
+
+```ruby
+# From within the trace:
+Datadog::Tracing.trace('web.request') do |span, trace|
+  trace.reject! if env.path == '/healthcheck'
+end
+
+# From outside the trace:
+Datadog::Tracing.keep! # Keeps current trace
+Datadog::Tracing.reject! # Drops current trace
+```
+
+### Processing pipeline
+
+When using a trace processor in the processing pipeline, the block yields a `TraceSegment` as `trace` instead of `Array[Datadog::Span]`. This object can be modified by reference.
+
+```ruby
+Datadog::Tracing.before_flush do |trace|
+   # Processing logic...
+   trace
+end
+```
 
 ### Service naming
 
@@ -164,6 +286,14 @@ end
 To reflect the following trace instead:
 
 *(Picture of 1.0 trace here)*
+
+### Removed `Datadog.tracer`
+
+Many of the functions accessed directly through `Datadog.tracer` have been moved to `Datadog::Tracing` instead.
+
+### Context
+
+Direct usage of `Datadog::Context` has been removed. Previously, it was used to modify or access active trace state. Most of these use cases have been replaced by `TraceOperation` and have been given new APIs.
 
 ## Full list of breaking changes
 
