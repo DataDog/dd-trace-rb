@@ -1421,6 +1421,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
+  add_appraise 'contrib-old' do
+    gem 'dalli', '< 3.0.0'
+  end
+
   add_appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
