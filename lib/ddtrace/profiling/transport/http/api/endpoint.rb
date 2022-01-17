@@ -52,11 +52,11 @@ module Datadog
                   "#{FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
                   "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
                   "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
-                  "#{FORM_FIELD_TAG_RUNTIME_VERSION}:3.9.9",
+                  "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
                   "#{FORM_FIELD_TAG_PID}:#{Process.pid}",
                   "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
                   # NOTE: Redundant w/ 'runtime'; may want to remove this later.
-                  "#{FORM_FIELD_TAG_LANGUAGE}:python",
+                  "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
                   "#{FORM_FIELD_TAG_HOST}:#{flush.host}",
                   *flush
                     .tags
@@ -64,7 +64,7 @@ module Datadog
                     .map { |tag_key, tag_value| "#{tag_key}:#{tag_value}" }
                 ],
                 FORM_FIELD_PPROF_DATA => pprof_file,
-                FORM_FIELD_FAMILY => 'go',
+                FORM_FIELD_FAMILY => flush.language,
               }
 
               # Optional fields
