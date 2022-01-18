@@ -13,7 +13,7 @@ module Datadog
 
           middlewares = @middlewares[name]
 
-          return block.call if middlewares.empty?
+          return [block.call, nil] if middlewares.empty?
 
           wrapped = lambda do |_env|
             [block.call, nil]
