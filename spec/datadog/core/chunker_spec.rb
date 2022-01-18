@@ -2,24 +2,24 @@
 require 'spec_helper'
 require 'spec/support/language_helpers'
 
-require 'ddtrace/chunker'
+require 'datadog/core/chunker'
 
-RSpec.describe Datadog::Chunker do
+RSpec.describe Datadog::Core::Chunker do
   describe '.chunk_by_size' do
-    subject(:encode) { described_class.chunk_by_size(list, max_chunk_size) }
+    subject(:chunk_by_size) { described_class.chunk_by_size(list, max_chunk_size) }
 
     let(:list) { %w[1 22 333] }
     let(:max_chunk_size) { 3 }
 
     it do
-      expect(subject.to_a).to eq([%w[1 22], ['333']])
+      expect(chunk_by_size.to_a).to eq([%w[1 22], ['333']])
     end
 
     context 'with single element that is too large' do
       let(:list) { ['55555'] }
 
       it 'returns single element exceeding maximum' do
-        expect(subject.to_a).to eq([['55555']])
+        expect(chunk_by_size.to_a).to eq([['55555']])
       end
     end
 
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Chunker do
         end
 
         it 'does not force enumerator expansion' do
-          expect(subject).to be_a(Enumerator::Lazy)
+          expect(chunk_by_size).to be_a(Enumerator::Lazy)
         end
       end
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Chunker do
         end
 
         it do
-          expect(subject).to be_a(Enumerator)
+          expect(chunk_by_size).to be_a(Enumerator)
         end
       end
     end

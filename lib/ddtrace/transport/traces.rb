@@ -1,9 +1,9 @@
 # typed: true
+require 'datadog/core/chunker'
 require 'ddtrace/transport/parcel'
 require 'ddtrace/transport/request'
 require 'ddtrace/transport/serializable_trace'
 require 'ddtrace/transport/trace_formatter'
-require 'ddtrace/chunker'
 
 module Datadog
   module Transport
@@ -67,7 +67,7 @@ module Datadog
                              traces.map { |t| encode_one(t) }.reject(&:nil?)
                            end
 
-          Datadog::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
+          Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
             [encoder.join(chunk), chunk.size]
           end
         end
