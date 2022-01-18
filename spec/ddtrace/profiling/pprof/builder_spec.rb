@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
 
   subject(:builder) { described_class.new }
 
-  let(:id_sequence) { Datadog::Utils::Sequence.new(1) }
+  let(:id_sequence) { Datadog::Core::Utils::Sequence.new(1) }
 
   def rand_int
     rand(1e3)

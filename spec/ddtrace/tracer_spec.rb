@@ -734,8 +734,8 @@ RSpec.describe Datadog::Tracer do
     context 'given a TraceDigest' do
       let(:digest) do
         Datadog::TraceDigest.new(
-          span_id: Datadog::Utils.next_id,
-          trace_id: Datadog::Utils.next_id,
+          span_id: Datadog::Core::Utils.next_id,
+          trace_id: Datadog::Core::Utils.next_id,
           trace_origin: 'synthetics',
           trace_sampling_priority: Datadog::Ext::Priority::USER_KEEP
         )

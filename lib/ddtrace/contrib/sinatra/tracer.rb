@@ -5,7 +5,7 @@ require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
 require 'ddtrace/propagation/http_propagator'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/tracer_middleware'
 require 'ddtrace/contrib/sinatra/env'
@@ -76,7 +76,7 @@ module Datadog
 
         # Method overrides for Sinatra::Base
         module Base
-          MISSING_REQUEST_SPAN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+          MISSING_REQUEST_SPAN_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
           private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
 
           def render(engine, data, *)

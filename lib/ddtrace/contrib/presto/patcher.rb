@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/presto/ext'
 require 'ddtrace/contrib/presto/instrumentation'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   module Contrib
@@ -11,7 +11,7 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
-        PATCH_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+        PATCH_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
 
         module_function
 

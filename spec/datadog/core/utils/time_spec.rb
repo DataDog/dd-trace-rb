@@ -2,9 +2,9 @@
 require 'spec_helper'
 
 require 'time'
-require 'ddtrace/utils/time'
+require 'datadog/core/utils/time'
 
-RSpec.describe Datadog::Utils::Time do
+RSpec.describe Datadog::Core::Utils::Time do
   describe '#get_time' do
     subject(:get_time) { described_class.get_time }
 

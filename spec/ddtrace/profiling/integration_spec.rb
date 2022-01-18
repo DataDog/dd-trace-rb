@@ -3,7 +3,7 @@ require 'spec_helper'
 require 'ddtrace/profiling/spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/utils/time'
+require 'datadog/core/utils/time'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/pprof/template'
 require 'ddtrace/profiling/collectors/stack'
@@ -215,8 +215,8 @@ RSpec.describe 'profiling integration test' do
       it { is_expected.to be_kind_of(Perftools::Profiles::Profile) }
 
       it 'is well formed' do
-        start_ns = Datadog::Utils::Time.as_utc_epoch_ns(start)
-        finish_ns = Datadog::Utils::Time.as_utc_epoch_ns(finish)
+        start_ns = Datadog::Core::Utils::Time.as_utc_epoch_ns(start)
+        finish_ns = Datadog::Core::Utils::Time.as_utc_epoch_ns(finish)
 
         is_expected.to have_attributes(
           drop_frames: 0,

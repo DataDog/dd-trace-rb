@@ -468,14 +468,14 @@ module Datadog
         o.default { ::Time.now }
 
         o.on_set do |time_provider|
-          Utils::Time.now_provider = time_provider
+          Core::Utils::Time.now_provider = time_provider
         end
 
         o.resetter do |_value|
           # TODO: Resetter needs access to the default value
           # TODO: to help reduce duplication.
           -> { ::Time.now }.tap do |default|
-            Utils::Time.now_provider = default
+            Core::Utils::Time.now_provider = default
           end
         end
       end

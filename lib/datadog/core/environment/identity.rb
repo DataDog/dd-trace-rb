@@ -1,7 +1,7 @@
 # typed: false
 require 'securerandom'
 require 'datadog/core/environment/ext'
-require 'ddtrace/utils/forking'
+require 'datadog/core/utils/forking'
 
 module Datadog
   module Core
@@ -9,7 +9,7 @@ module Datadog
       # For runtime identity
       # @public_api
       module Identity
-        extend Datadog::Utils::Forking
+        extend Datadog::Core::Utils::Forking
 
         module_function
 

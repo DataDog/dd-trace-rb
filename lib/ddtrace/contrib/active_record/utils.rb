@@ -9,7 +9,7 @@ module Datadog
         EMPTY_CONFIG = {}.freeze
 
         def self.adapter_name
-          Datadog::Utils::Database.normalize_vendor(connection_config[:adapter])
+          Datadog::Core::Utils::Database.normalize_vendor(connection_config[:adapter])
         end
 
         def self.database_name

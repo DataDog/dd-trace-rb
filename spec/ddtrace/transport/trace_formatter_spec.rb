@@ -44,7 +44,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
   end
 
   shared_context 'missing root span' do
-    let(:trace) { Datadog::TraceSegment.new(spans, root_span_id: Datadog::Utils.next_id, **trace_options) }
+    let(:trace) { Datadog::TraceSegment.new(spans, root_span_id: Datadog::Core::Utils.next_id, **trace_options) }
     let(:spans) { Array.new(3) { Datadog::Span.new('my.job') } }
     let(:root_span) { spans.last }
   end
