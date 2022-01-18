@@ -1,8 +1,8 @@
 # typed: false
 require 'spec_helper'
-require 'ddtrace/quantization/hash'
+require 'datadog/core/quantization/hash'
 
-RSpec.describe Datadog::Quantization::Hash do
+RSpec.describe Datadog::Core::Quantization::Hash do
   describe '#format' do
     subject(:result) { described_class.format(hash, options) }
 
