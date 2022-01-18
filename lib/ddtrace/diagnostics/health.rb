@@ -1,13 +1,13 @@
 # typed: strict
 require 'ddtrace/ext/diagnostics'
-require 'ddtrace/metrics'
+require 'datadog/core/metrics/client'
 
 module Datadog
   module Diagnostics
     # Health-related diagnostics
     module Health
       # Health metrics for diagnostics
-      class Metrics < ::Datadog::Metrics
+      class Metrics < ::Datadog::Core::Metrics::Client
         count :api_errors, Ext::Diagnostics::Health::Metrics::METRIC_API_ERRORS
         count :api_requests, Ext::Diagnostics::Health::Metrics::METRIC_API_REQUESTS
         count :api_responses, Ext::Diagnostics::Health::Metrics::METRIC_API_RESPONSES

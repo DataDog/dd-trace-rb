@@ -1,12 +1,11 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/metrics'
-
-require 'benchmark'
 require 'datadog/statsd'
 
-RSpec.describe Datadog::Metrics do
+require 'datadog/core/metrics/client'
+
+RSpec.describe Datadog::Core::Metrics::Client do
   include_context 'metrics'
 
   subject(:metrics) { described_class.new(**options) }
@@ -46,7 +45,7 @@ RSpec.describe Datadog::Metrics do
       end
 
       context 'when a statsd instance is provided' do
-        let(:statsd) { double('Statsd') }
+        let(:statsd) { instance_double(Datadog::Statsd) }
         let(:options) { { statsd: statsd } }
 
         it 'uses the provided instance' do
@@ -219,7 +218,7 @@ RSpec.describe Datadog::Metrics do
         let(:value) { 'my-hostname' }
 
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_HOST => value) do
+          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_HOST => value) do
             example.run
           end
         end
@@ -229,12 +228,12 @@ RSpec.describe Datadog::Metrics do
 
       context 'not set' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_HOST => nil) do
+          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_HOST => nil) do
             example.run
           end
         end
 
-        it { is_expected.to eq(Datadog::Ext::Metrics::DEFAULT_HOST) }
+        it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_HOST) }
       end
     end
   end
@@ -247,7 +246,7 @@ RSpec.describe Datadog::Metrics do
         let(:value) { '1234' }
 
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_PORT => value) do
+          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_PORT => value) do
             example.run
           end
         end
@@ -257,12 +256,12 @@ RSpec.describe Datadog::Metrics do
 
       context 'not set' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Metrics::ENV_DEFAULT_PORT => nil) do
+          ClimateControl.modify(Datadog::Core::Metrics::Ext::ENV_DEFAULT_PORT => nil) do
             example.run
           end
         end
 
-        it { is_expected.to eq(Datadog::Ext::Metrics::DEFAULT_PORT) }
+        it { is_expected.to eq(Datadog::Core::Metrics::Ext::DEFAULT_PORT) }
       end
     end
   end
@@ -770,16 +769,16 @@ RSpec.describe Datadog::Metrics do
     context 'given an Array of Metrics' do
       let(:metrics_list) do
         [
-          described_class::Metric.new(:distribution, dist_name, dist_value, dist_options),
-          described_class::Metric.new(:increment, inc_name, nil, inc_options)
+          Datadog::Core::Metrics::Metric.new(:distribution, dist_name, dist_value, dist_options),
+          Datadog::Core::Metrics::Metric.new(:increment, inc_name, nil, inc_options)
         ]
       end
 
-      let(:dist_name) { double('distribution name') }
+      let(:dist_name) { 'my-dist' }
       let(:dist_value) { 1 }
-      let(:dist_options) { double('distribution options') }
-      let(:inc_name) { double('increment name') }
-      let(:inc_options) { double('increment options') }
+      let(:dist_options) { { dist: true } }
+      let(:inc_name) { 'my-incr' }
+      let(:inc_options) { { incr: true } }
 
       before do
         allow(metrics).to receive(:distribution)
@@ -816,216 +815,6 @@ RSpec.describe Datadog::Metrics do
 
       it 'does not call nonexistent method #close' do
         close
-      end
-    end
-  end
-end
-
-RSpec.describe Datadog::Metrics::Options do
-  context 'when included into a class' do
-    subject(:instance) { options_class.new }
-
-    let(:options_class) { stub_const('OptionsClass', Class.new { include Datadog::Metrics::Options }) }
-
-    describe '#default_metric_options' do
-      subject(:default_metric_options) { instance.default_metric_options }
-
-      it { is_expected.to be_a_kind_of(Hash) }
-      it { expect(default_metric_options.frozen?).to be false }
-
-      describe ':tags' do
-        subject(:default_tags) { default_metric_options[:tags] }
-
-        it { is_expected.to be_a_kind_of(Array) }
-        it { expect(default_tags.frozen?).to be false }
-
-        it 'includes default tags' do
-          is_expected.to include(
-            "#{Datadog::Ext::Metrics::TAG_LANG}:#{Datadog::Core::Environment::Identity.lang}",
-            "#{Datadog::Ext::Metrics::TAG_LANG_INTERPRETER}:#{Datadog::Core::Environment::Identity.lang_interpreter}",
-            "#{Datadog::Ext::Metrics::TAG_LANG_VERSION}:#{Datadog::Core::Environment::Identity.lang_version}",
-            "#{Datadog::Ext::Metrics::TAG_TRACER_VERSION}:#{Datadog::Core::Environment::Identity.tracer_version}"
-          )
-        end
-
-        context 'when #env configuration setting' do
-          before do
-            settings = Datadog.configuration.send(:settings)
-            allow(settings).to receive(:env).and_return(environment)
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to_not include(/\A#{Datadog::Core::Environment::Ext::TAG_ENV}:/o) }
-          end
-
-          context 'is defined' do
-            let(:environment) { 'my-env' }
-
-            it { is_expected.to include("#{Datadog::Core::Environment::Ext::TAG_ENV}:#{environment}") }
-          end
-        end
-
-        context 'when Datadog::Environment.version' do
-          before do
-            settings = Datadog.configuration.send(:settings)
-            allow(settings).to receive(:version).and_return(version)
-          end
-
-          context 'is not defined' do
-            let(:version) { nil }
-
-            it { is_expected.to_not include(/\A#{Datadog::Core::Environment::Ext::TAG_VERSION}:/o) }
-          end
-
-          context 'is defined' do
-            let(:version) { 'my-version' }
-
-            it { is_expected.to include("#{Datadog::Core::Environment::Ext::TAG_VERSION}:#{version}") }
-          end
-        end
-      end
-    end
-  end
-end
-
-RSpec.describe Datadog::Metrics::Logging::Adapter do
-  subject(:adapter) { described_class.new(logger) }
-
-  let(:logger) { instance_double(Logger) }
-
-  def have_received_json_metric(expected_hash)
-    have_received(:info) do |msg|
-      json = JSON.parse(msg)
-      expect(json).to include('stat' => expected_hash[:stat])
-      expect(json).to include('type' => expected_hash[:type])
-      expect(json).to include('value' => expected_hash[:value]) if expected_hash.key?(:value)
-      expect(json).to include('options' => hash_including(expected_hash[:options]))
-    end
-  end
-
-  describe '#initialize' do
-    context 'by default' do
-      subject(:adapter) { described_class.new }
-
-      describe '#logger' do
-        subject(:logger) { adapter.logger }
-
-        it { expect(logger.level).to be(Logger::INFO) }
-        it { expect(logger.instance_variable_get(:@logdev).dev).to eq($stdout) }
-      end
-    end
-
-    context 'given a logger' do
-      subject(:adapter) { described_class.new(logger) }
-
-      let(:logger) { instance_double(Logger) }
-
-      it { expect(adapter.logger).to be logger }
-    end
-  end
-
-  describe '#count' do
-    subject(:count) { adapter.count(stat, value, options) }
-
-    let(:stat) { :my_stat }
-    let(:value) { 100 }
-    let(:options) { { tags: ['foo:bar'] } }
-
-    before { allow(logger).to receive(:info) }
-
-    it 'sends a JSON-encoded metric to the logger' do
-      count
-      expect(logger).to have_received_json_metric(
-        stat: stat.to_s,
-        type: 'count',
-        value: value,
-        options: { 'tags' => array_including(options[:tags]) }
-      )
-    end
-  end
-
-  describe '#distribution' do
-    subject(:distribution) { adapter.distribution(stat, value, options) }
-
-    let(:stat) { :my_stat }
-    let(:value) { 100 }
-    let(:options) { { tags: ['foo:bar'] } }
-
-    before { allow(logger).to receive(:info) }
-
-    it 'sends a JSON-encoded metric to the logger' do
-      distribution
-      expect(logger).to have_received_json_metric(
-        stat: stat.to_s,
-        type: 'distribution',
-        value: value,
-        options: { 'tags' => array_including(options[:tags]) }
-      )
-    end
-  end
-
-  describe '#increment' do
-    subject(:increment) { adapter.increment(stat, options) }
-
-    let(:stat) { :my_stat }
-    let(:options) { { tags: ['foo:bar'] } }
-
-    before { allow(logger).to receive(:info) }
-
-    it 'sends a JSON-encoded metric to the logger' do
-      increment
-      expect(logger).to have_received_json_metric(
-        stat: stat.to_s,
-        type: 'increment',
-        options: { 'tags' => array_including(options[:tags]) }
-      )
-    end
-  end
-
-  describe '#gauge' do
-    subject(:gauge) { adapter.gauge(stat, value, options) }
-
-    let(:stat) { :my_stat }
-    let(:value) { 100 }
-    let(:options) { { tags: ['foo:bar'] } }
-
-    before { allow(logger).to receive(:info) }
-
-    it 'sends a JSON-encoded metric to the logger' do
-      gauge
-      expect(logger).to have_received_json_metric(
-        stat: stat.to_s,
-        type: 'gauge',
-        value: value,
-        options: { 'tags' => array_including(options[:tags]) }
-      )
-    end
-  end
-
-  context 'when used in Datadog::Metrics' do
-    subject(:metrics) { Datadog::Metrics.new(statsd: adapter) }
-
-    describe 'and #count is sent' do
-      subject(:count) { metrics.count(stat, value, options) }
-
-      let(:stat) { :my_stat }
-      let(:value) { 100 }
-      let(:options) { { tags: ['foo:bar'] } }
-
-      before do
-        allow(adapter).to receive(:count)
-        count
-      end
-
-      it 'forwards the message to the adapter' do
-        expect(adapter).to have_received(:count)
-          .with(
-            stat,
-            value,
-            hash_including(tags: array_including(options[:tags]))
-          )
       end
     end
   end

@@ -13,7 +13,7 @@ require 'datadog/core/quantization/hash'
 require 'datadog/core/quantization/http'
 require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
-require 'ddtrace/metrics'
+require 'datadog/core/metrics/client'
 require 'ddtrace/auto_instrument_base'
 require 'ddtrace/profiling'
 
