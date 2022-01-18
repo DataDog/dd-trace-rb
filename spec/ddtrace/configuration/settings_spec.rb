@@ -50,9 +50,9 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#api_key' do
     subject(:api_key) { settings.api_key }
 
-    context "when #{Datadog::Ext::Environment::ENV_API_KEY}" do
+    context "when #{Datadog::Core::Environment::Ext::ENV_API_KEY}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_API_KEY => api_key_env) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_API_KEY => api_key_env) do
           example.run
         end
       end
@@ -270,9 +270,9 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#env' do
     subject(:env) { settings.env }
 
-    context "when #{Datadog::Ext::Environment::ENV_ENVIRONMENT}" do
+    context "when #{Datadog::Core::Environment::Ext::ENV_ENVIRONMENT}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => environment) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => environment) do
           example.run
         end
       end
@@ -292,7 +292,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when an env tag is defined in DD_TAGS' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'env:env-from-tag') do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => 'env:env-from-tag') do
           example.run
         end
       end
@@ -303,7 +303,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'and defined via DD_ENV' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Environment::ENV_ENVIRONMENT => 'env-from-dd-env') do
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => 'env-from-dd-env') do
             example.run
           end
         end
@@ -725,9 +725,9 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#service' do
     subject(:service) { settings.service }
 
-    context "when #{Datadog::Ext::Environment::ENV_SERVICE}" do
+    context "when #{Datadog::Core::Environment::Ext::ENV_SERVICE}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => env_service) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => env_service) do
           example.run
         end
       end
@@ -747,7 +747,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when a service tag is defined in DD_TAGS' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'service:service-name-from-tag') do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => 'service:service-name-from-tag') do
           example.run
         end
       end
@@ -758,7 +758,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'and defined via DD_SERVICE' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'service-name-from-dd-service') do
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service') do
             example.run
           end
         end
@@ -787,7 +787,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when no service name is configured' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => nil) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => nil) do
           example.run
         end
       end
@@ -797,7 +797,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when a service name is configured' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SERVICE => 'test_service_name') do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'test_service_name') do
           example.run
         end
       end
@@ -811,9 +811,9 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#site' do
     subject(:site) { settings.site }
 
-    context "when #{Datadog::Ext::Environment::ENV_SITE}" do
+    context "when #{Datadog::Core::Environment::Ext::ENV_SITE}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_SITE => site_env) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SITE => site_env) do
           example.run
         end
       end
@@ -847,9 +847,9 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#tags' do
     subject(:tags) { settings.tags }
 
-    context "when #{Datadog::Ext::Environment::ENV_TAGS}" do
+    context "when #{Datadog::Core::Environment::Ext::ENV_TAGS}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => env_tags) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => env_tags) do
           example.run
         end
       end
@@ -1328,9 +1328,9 @@ RSpec.describe Datadog::Configuration::Settings do
   describe '#version' do
     subject(:version) { settings.version }
 
-    context "when #{Datadog::Ext::Environment::ENV_VERSION}" do
+    context "when #{Datadog::Core::Environment::Ext::ENV_VERSION}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_VERSION => version) do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_VERSION => version) do
           example.run
         end
       end
@@ -1350,7 +1350,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
     context 'when a version tag is defined in DD_TAGS' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Environment::ENV_TAGS => 'version:version-from-tag') do
+        ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_TAGS => 'version:version-from-tag') do
           example.run
         end
       end
@@ -1361,7 +1361,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       context 'and defined via DD_VERSION' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Environment::ENV_VERSION => 'version-from-dd-version') do
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_VERSION => 'version-from-dd-version') do
             example.run
           end
         end
