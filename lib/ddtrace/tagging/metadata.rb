@@ -17,7 +17,7 @@ module Datadog
       # @see https://github.com/DataDog/datadog-agent/blob/2ae2cdd315bcda53166dd8fa0dedcfc448087b9d/pkg/trace/stats/aggregation.go#L13-L17
       ENSURE_AGENT_TAGS = {
         Ext::DistributedTracing::TAG_ORIGIN => true,
-        Ext::Environment::TAG_VERSION => true,
+        Core::Environment::Ext::TAG_VERSION => true,
         Ext::HTTP::STATUS_CODE => true,
         Ext::NET::TAG_HOSTNAME => true
       }.freeze
