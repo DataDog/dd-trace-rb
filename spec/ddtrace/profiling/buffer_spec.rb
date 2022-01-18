@@ -8,7 +8,7 @@ RSpec.describe Datadog::Profiling::Buffer do
 
   let(:max_size) { 0 }
 
-  it { is_expected.to be_a_kind_of(Datadog::ThreadSafeBuffer) }
+  it { is_expected.to be_a_kind_of(Datadog::Core::Buffer::ThreadSafe) }
 
   describe '#cache' do
     subject(:cache) { buffer.cache(name) }
