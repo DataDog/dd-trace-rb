@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/utils/object_set'
+require 'datadog/core/utils/object_set'
 
-RSpec.describe Datadog::Utils::ObjectSet do
+RSpec.describe Datadog::Core::Utils::ObjectSet do
   subject(:object_set) { described_class.new }
 
   describe '::new' do
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Utils::ObjectSet do
       let(:object) { double('object') }
 
       before do
-        expect_any_instance_of(Datadog::Utils::Sequence)
+        expect_any_instance_of(Datadog::Core::Utils::Sequence)
           .to receive(:next)
           .and_return(next_id)
       end
@@ -75,7 +75,7 @@ RSpec.describe Datadog::Utils::ObjectSet do
         # Fetch same args to cache object
         object_set.fetch(*args) { original_object }
 
-        expect_any_instance_of(Datadog::Utils::Sequence)
+        expect_any_instance_of(Datadog::Core::Utils::Sequence)
           .to_not receive(:next)
       end
 

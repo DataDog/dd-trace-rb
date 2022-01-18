@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require 'ddtrace/ext/errors'
-require 'ddtrace/utils'
+require 'datadog/core/utils'
 require 'ddtrace/tagging'
 
 module Datadog
@@ -81,9 +81,9 @@ module Datadog
       @resource = resource
       @type = type
 
-      @id = id || Datadog::Utils.next_id
+      @id = id || Datadog::Core::Utils.next_id
       @parent_id = parent_id || 0
-      @trace_id = trace_id || Datadog::Utils.next_id
+      @trace_id = trace_id || Datadog::Core::Utils.next_id
 
       @meta = meta || {}
       @metrics = metrics || {}

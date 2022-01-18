@@ -6,7 +6,7 @@ require 'ddtrace/profiling/pprof/message_set'
 RSpec.describe Datadog::Profiling::Pprof::MessageSet do
   subject(:message_set) { described_class.new }
 
-  it { is_expected.to be_a_kind_of(Datadog::Utils::ObjectSet) }
+  it { is_expected.to be_a_kind_of(Datadog::Core::Utils::ObjectSet) }
 
   describe '#messages' do
     subject(:messages) { message_set.messages }

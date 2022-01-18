@@ -5,7 +5,7 @@ require 'ddtrace/contrib/rails/middlewares'
 require 'ddtrace/contrib/rails/log_injection'
 require 'ddtrace/contrib/rack/middlewares'
 require 'ddtrace/contrib/semantic_logger/patcher'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   module Contrib
@@ -14,8 +14,8 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
-        BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
-        AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
+        BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
+        AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
         module_function
 

@@ -1,8 +1,8 @@
 # typed: false
 require 'securerandom'
-require 'ddtrace/utils/compression'
+require 'datadog/core/utils/compression'
 
-RSpec.describe Datadog::Utils::Compression do
+RSpec.describe Datadog::Core::Utils::Compression do
   describe '::gzip' do
     subject(:gzip) { described_class.gzip(unzipped) }
 

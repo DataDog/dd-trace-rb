@@ -3,8 +3,8 @@
 require 'ddtrace/profiling/native_extension'
 require 'ddtrace/profiling/backtrace_location'
 require 'ddtrace/profiling/events/stack'
-require 'ddtrace/utils/only_once'
-require 'ddtrace/utils/time'
+require 'datadog/core/utils/only_once'
+require 'datadog/core/utils/time'
 require 'ddtrace/worker'
 require 'ddtrace/workers/polling'
 
@@ -89,7 +89,7 @@ module Datadog
         end
 
         def collect_and_wait
-          run_time = Datadog::Utils::Time.measure do
+          run_time = Datadog::Core::Utils::Time.measure do
             collect_events
           end
 
@@ -289,7 +289,7 @@ module Datadog
         end
 
         def get_current_wall_time_timestamp_ns
-          Datadog::Utils::Time.get_time(:nanosecond)
+          Datadog::Core::Utils::Time.get_time(:nanosecond)
         end
       end
     end

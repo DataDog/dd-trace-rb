@@ -7,7 +7,7 @@ require 'ddtrace/transport/io'
 require 'ddtrace/encoding'
 require 'ddtrace/workers'
 require 'ddtrace/diagnostics/environment_logger'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   # Processor that sends traces and metadata to the agent

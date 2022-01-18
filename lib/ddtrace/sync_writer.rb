@@ -1,7 +1,7 @@
 # typed: true
 require 'ddtrace/pipeline'
 require 'ddtrace/runtime/metrics'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 require 'ddtrace/writer'
 
 module Datadog

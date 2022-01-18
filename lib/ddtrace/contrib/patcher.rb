@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   module Contrib
@@ -62,7 +62,7 @@ module Datadog
 
         def patch_only_once
           # NOTE: This is not thread-safe
-          @patch_only_once ||= Datadog::Utils::OnlyOnce.new
+          @patch_only_once ||= Datadog::Core::Utils::OnlyOnce.new
         end
       end
     end
