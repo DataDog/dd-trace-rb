@@ -1,13 +1,13 @@
 # typed: true
 require 'datadog/core/utils/string_table'
 require 'datadog/core/utils/object_set'
-require 'ddtrace/buffer'
+require 'datadog/core/buffer/thread_safe'
 
 module Datadog
   module Profiling
     # Profiling buffer that stores profiling events. The buffer has a maximum size and when
     # the buffer is full, a random event is discarded. This class is thread-safe.
-    class Buffer < Datadog::ThreadSafeBuffer
+    class Buffer < Datadog::Core::Buffer::ThreadSafe
       def initialize(*args)
         super
         @caches = {}
