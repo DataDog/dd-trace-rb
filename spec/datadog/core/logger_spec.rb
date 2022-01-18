@@ -1,15 +1,15 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/logger'
+require 'datadog/core/logger'
 
-RSpec.describe Datadog::Logger do
+RSpec.describe Datadog::Core::Logger do
   describe '::new' do
     subject(:logger) { described_class.new($stdout) }
 
     it { is_expected.to be_a_kind_of(::Logger) }
     it { expect(logger.level).to be ::Logger::INFO }
-    it { expect(logger.progname).to eq(Datadog::Logger::PREFIX) }
+    it { expect(logger.progname).to eq(Datadog::Core::Logger::PREFIX) }
   end
 
   describe 'output' do

@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/logger'
+require 'datadog/core/logger'
 require 'ddtrace/transport/http'
 
 require 'ddtrace/event'

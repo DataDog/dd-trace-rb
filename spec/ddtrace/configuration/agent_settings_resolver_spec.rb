@@ -14,7 +14,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
   end
   let(:environment) { {} }
   let(:ddtrace_settings) { Datadog::Configuration::Settings.new }
-  let(:logger) { instance_double(Datadog::Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
 
   let(:settings) do
     {
