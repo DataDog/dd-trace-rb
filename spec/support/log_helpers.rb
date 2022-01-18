@@ -58,7 +58,7 @@ module LogHelpers
     before do
       @default_logger = Datadog.logger
       Datadog.configure do |c|
-        c.logger.instance = Datadog::Logger.new(log_buffer)
+        c.logger.instance = Datadog::Core::Logger.new(log_buffer)
         c.logger.level = ::Logger::WARN
       end
     end

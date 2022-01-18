@@ -20,7 +20,7 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe '::new' do
-    let(:logger) { instance_double(Datadog::Logger) }
+    let(:logger) { instance_double(Datadog::Core::Logger) }
     let(:tracer) { instance_double(Datadog::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Workers::RuntimeMetrics) }
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Configuration::Components do
     subject(:build_logger) { described_class.build_logger(settings) }
 
     context 'given an instance' do
-      let(:instance) { instance_double(Datadog::Logger) }
+      let(:instance) { instance_double(Datadog::Core::Logger) }
 
       before do
         expect(settings.logger).to receive(:instance)
@@ -124,18 +124,18 @@ RSpec.describe Datadog::Configuration::Components do
       end
 
       it 'uses the logger instance' do
-        expect(Datadog::Logger).to_not receive(:new)
+        expect(Datadog::Core::Logger).to_not receive(:new)
         is_expected.to be(instance)
       end
     end
 
     context 'given settings' do
       shared_examples_for 'new logger' do
-        let(:logger) { instance_double(Datadog::Logger) }
+        let(:logger) { instance_double(Datadog::Core::Logger) }
         let(:level) { settings.logger.level }
 
         before do
-          expect(Datadog::Logger).to receive(:new)
+          expect(Datadog::Core::Logger).to receive(:new)
             .with($stdout)
             .and_return(logger)
 

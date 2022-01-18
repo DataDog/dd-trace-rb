@@ -27,7 +27,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
     end
 
     let(:response) { instance_double(Datadog::Transport::Response, ok?: true) }
-    let(:tracer_logger) { instance_double(Datadog::Logger) }
+    let(:tracer_logger) { instance_double(Datadog::Core::Logger) }
 
     before do
       allow(Datadog).to receive(:logger).and_return(tracer_logger)

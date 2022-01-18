@@ -1,7 +1,7 @@
 # typed: false
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/diagnostics/health'
-require 'ddtrace/logger'
+require 'datadog/core/logger'
 require 'ddtrace/profiling'
 require 'ddtrace/runtime/metrics'
 require 'ddtrace/tracer'
@@ -25,7 +25,7 @@ module Datadog
         end
 
         def build_logger(settings)
-          logger = settings.logger.instance || Datadog::Logger.new($stdout)
+          logger = settings.logger.instance || Datadog::Core::Logger.new($stdout)
           logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
 
           logger

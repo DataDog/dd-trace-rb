@@ -190,7 +190,7 @@ RSpec.describe Datadog::SpanOperation do
           let(:on_error) { 'not a proc' }
 
           it 'fallbacks to default error handler and log a debug message' do
-            expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
+            expect_any_instance_of(Datadog::Core::Logger).to receive(:debug).at_least(:once)
             expect do
               span_op.measure(&block)
             end.to raise_error(error)
