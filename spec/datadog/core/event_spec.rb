@@ -2,9 +2,9 @@
 require 'spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/event'
+require 'datadog/core/event'
 
-RSpec.describe Datadog::Event do
+RSpec.describe Datadog::Core::Event do
   subject(:event) { described_class.new(name) }
 
   let(:name) { :test_event }

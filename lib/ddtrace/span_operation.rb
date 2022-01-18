@@ -314,7 +314,7 @@ module Datadog
 
     # Callback behavior
     class Events
-      include Datadog::Events
+      include Datadog::Core::Events
 
       DEFAULT_ON_ERROR = proc { |span_op, error| span_op.set_error(error) unless span_op.nil? }
 
@@ -335,28 +335,28 @@ module Datadog
       end
 
       # Triggered when the span is finished, regardless of error.
-      class AfterFinish < Datadog::Event
+      class AfterFinish < Datadog::Core::Event
         def initialize
           super(:after_finish)
         end
       end
 
       # Triggered when the span is stopped, regardless of error.
-      class AfterStop < Datadog::Event
+      class AfterStop < Datadog::Core::Event
         def initialize
           super(:after_stop)
         end
       end
 
       # Triggered just before the span is started.
-      class BeforeStart < Datadog::Event
+      class BeforeStart < Datadog::Core::Event
         def initialize
           super(:before_start)
         end
       end
 
       # Triggered when the span raises an error during measurement.
-      class OnError < Datadog::Event
+      class OnError < Datadog::Core::Event
         def initialize
           super(:on_error)
         end
