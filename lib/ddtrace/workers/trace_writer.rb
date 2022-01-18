@@ -1,8 +1,8 @@
 # typed: false
+require 'datadog/core/event'
 require 'datadog/core/logger'
-require 'ddtrace/transport/http'
 
-require 'ddtrace/event'
+require 'ddtrace/transport/http'
 require 'ddtrace/worker'
 require 'ddtrace/workers/polling'
 require 'ddtrace/workers/queue'
@@ -60,7 +60,7 @@ module Datadog
       end
 
       # Flush completed event for worker
-      class FlushCompleted < Event
+      class FlushCompleted < Datadog::Core::Event
         def initialize
           super(:flush_completed)
         end

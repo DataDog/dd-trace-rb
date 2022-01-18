@@ -171,7 +171,7 @@ module Datadog
 
       # Triggered after the writer sends traces through the transport.
       # Provides the Writer instance and transport response list to the callback.
-      class AfterSend < Datadog::Event
+      class AfterSend < Datadog::Core::Event
         def initialize
           super(:after_send)
         end

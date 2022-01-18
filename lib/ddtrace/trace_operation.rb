@@ -1,8 +1,8 @@
 require 'ddtrace/ext/priority'
 
 require 'datadog/core/environment/identity'
+require 'datadog/core/event'
 
-require 'ddtrace/event'
 require 'ddtrace/span_operation'
 require 'ddtrace/trace_segment'
 require 'ddtrace/trace_digest'
@@ -205,7 +205,7 @@ module Datadog
 
     # Callback behavior
     class Events
-      include Datadog::Events
+      include Datadog::Core::Events
 
       attr_reader \
         :span_before_start,
@@ -219,21 +219,21 @@ module Datadog
       end
 
       # Triggered before a span starts.
-      class SpanBeforeStart < Datadog::Event
+      class SpanBeforeStart < Datadog::Core::Event
         def initialize
           super(:span_before_start)
         end
       end
 
       # Triggered when a span finishes, regardless of error.
-      class SpanFinished < Datadog::Event
+      class SpanFinished < Datadog::Core::Event
         def initialize
           super(:span_finished)
         end
       end
 
       # Triggered when the trace finishes, regardless of error.
-      class TraceFinished < Datadog::Event
+      class TraceFinished < Datadog::Core::Event
         def initialize
           super(:trace_finished)
         end

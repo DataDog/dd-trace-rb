@@ -956,19 +956,19 @@ RSpec.describe Datadog::SpanOperation::Events do
 
   describe '#after_finish' do
     subject(:after_finish) { events.after_finish }
-    it { is_expected.to be_a_kind_of(Datadog::Event) }
+    it { is_expected.to be_a_kind_of(Datadog::Core::Event) }
     it { expect(after_finish.name).to be(:after_finish) }
   end
 
   describe '#before_start' do
     subject(:before_start) { events.before_start }
-    it { is_expected.to be_a_kind_of(Datadog::Event) }
+    it { is_expected.to be_a_kind_of(Datadog::Core::Event) }
     it { expect(before_start.name).to be(:before_start) }
   end
 
   describe '#on_error' do
     subject(:on_error) { events.on_error }
-    it { is_expected.to be_a_kind_of(Datadog::Event) }
+    it { is_expected.to be_a_kind_of(Datadog::Core::Event) }
     it { expect(on_error.name).to be(:on_error) }
   end
 end

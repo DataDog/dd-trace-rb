@@ -4,11 +4,11 @@ require 'pathname'
 
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/ext'
+require 'datadog/core/event'
 
 require 'ddtrace/context_provider'
 require 'ddtrace/context'
 require 'ddtrace/correlation'
-require 'ddtrace/event'
 require 'datadog/core/logger'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
@@ -236,7 +236,7 @@ module Datadog
     end
 
     # Triggered whenever a trace is completed
-    class TraceCompleted < Datadog::Event
+    class TraceCompleted < Datadog::Core::Event
       def initialize
         super(:trace_completed)
       end
