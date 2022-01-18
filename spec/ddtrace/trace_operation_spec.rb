@@ -82,7 +82,7 @@ RSpec.describe Datadog::TraceOperation do
 
       context ':id' do
         subject(:options) { { id: id } }
-        let(:id) { Datadog::Utils.next_id }
+        let(:id) { Datadog::Core::Utils.next_id }
 
         it { expect(trace_op.id).to eq(id) }
       end
@@ -110,7 +110,7 @@ RSpec.describe Datadog::TraceOperation do
 
       context ':parent_span_id' do
         subject(:options) { { parent_span_id: parent_span_id } }
-        let(:parent_span_id) { Datadog::Utils.next_id }
+        let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
         it { expect(trace_op.parent_span_id).to eq(parent_span_id) }
       end
@@ -1431,7 +1431,7 @@ RSpec.describe Datadog::TraceOperation do
 
         context 'but :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
-          let(:parent_span_id) { Datadog::Utils.next_id }
+          let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
           it { expect(digest.span_id).to eq(parent_span_id) }
         end
@@ -1478,7 +1478,7 @@ RSpec.describe Datadog::TraceOperation do
 
         context 'and :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
-          let(:parent_span_id) { Datadog::Utils.next_id }
+          let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
           it { expect(digest.span_id).to eq(@parent.id) }
         end
@@ -1622,7 +1622,7 @@ RSpec.describe Datadog::TraceOperation do
 
         context 'and :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
-          let(:parent_span_id) { Datadog::Utils.next_id }
+          let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
           it { expect(digest.span_id).to be nil }
         end
@@ -1675,7 +1675,7 @@ RSpec.describe Datadog::TraceOperation do
 
         context 'but :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
-          let(:parent_span_id) { Datadog::Utils.next_id }
+          let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
           it { expect(new_trace_op.parent_span_id).to eq(parent_span_id) }
         end
@@ -1723,7 +1723,7 @@ RSpec.describe Datadog::TraceOperation do
 
         context 'and :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
-          let(:parent_span_id) { Datadog::Utils.next_id }
+          let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
           it { expect(new_trace_op.parent_span_id).to eq(@parent.id) }
         end
@@ -1867,7 +1867,7 @@ RSpec.describe Datadog::TraceOperation do
 
         context 'and :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
-          let(:parent_span_id) { Datadog::Utils.next_id }
+          let(:parent_span_id) { Datadog::Core::Utils.next_id }
 
           it { expect(new_trace_op.parent_span_id).to be parent_span_id }
         end

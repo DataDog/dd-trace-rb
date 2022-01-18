@@ -63,7 +63,7 @@ module Datadog
     )
       # Attributes
       @events = events || Events.new
-      @id = id || Utils.next_id
+      @id = id || Core::Utils.next_id
       @max_length = max_length || DEFAULT_MAX_LENGTH
       @parent_span_id = parent_span_id
       @sampled = sampled.nil? ? false : sampled

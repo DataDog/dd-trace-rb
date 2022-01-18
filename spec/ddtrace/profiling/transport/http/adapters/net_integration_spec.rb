@@ -139,7 +139,11 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
           body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
-          code_provenance_data = JSON.parse(Datadog::Utils::Compression.gunzip(body.fetch('data[code_provenance.json]')))
+          code_provenance_data = JSON.parse(
+            Datadog::Core::Utils::Compression.gunzip(
+              body.fetch('data[code_provenance.json]')
+            )
+          )
 
           expect(code_provenance_data)
             .to include('v1' => array_including(hash_including('type' => 'library', 'name' => 'ddtrace')))

@@ -1,7 +1,10 @@
 # typed: false
-require 'concurrent-ruby'
+require 'spec_helper'
 
-RSpec.describe Datadog::Utils do
+require 'concurrent-ruby'
+require 'datadog/core/utils'
+
+RSpec.describe Datadog::Core::Utils do
   describe '.next_id' do
     subject(:next_id) { described_class.next_id }
 
@@ -95,7 +98,7 @@ RSpec.describe Datadog::Utils do
 
       # Other implementations return an ASCII string.
       it 'does not allocate a new empty string', if: nil.to_s.encoding != Encoding::UTF_8 do
-        is_expected.to be(Datadog::Utils::EMPTY_STRING)
+        is_expected.to be(Datadog::Core::Utils::EMPTY_STRING)
       end
     end
 
@@ -103,7 +106,7 @@ RSpec.describe Datadog::Utils do
       let(:str) { "valid\xC2 part".force_encoding(Encoding::ASCII_8BIT) }
 
       it 'return an empty string' do
-        is_expected.to eq(Datadog::Utils::EMPTY_STRING)
+        is_expected.to eq(Datadog::Core::Utils::EMPTY_STRING)
       end
 
       context 'with a placeholder' do

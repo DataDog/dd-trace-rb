@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/utils/forking'
+require 'datadog/core/utils/forking'
 
-RSpec.describe Datadog::Utils::Forking do
+RSpec.describe Datadog::Core::Utils::Forking do
   before do
     skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
   end
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Utils::Forking do
   end
 
   describe 'when extended by a module' do
-    subject(:test_object) { Module.new { extend Datadog::Utils::Forking } }
+    subject(:test_object) { Module.new { extend Datadog::Core::Utils::Forking } }
 
     it_behaves_like 'a Forking type'
   end
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Utils::Forking do
   describe 'when included in a class' do
     subject(:test_object) { test_class.new }
 
-    let(:test_class) { Class.new { include Datadog::Utils::Forking } }
+    let(:test_class) { Class.new { include Datadog::Core::Utils::Forking } }
 
     it_behaves_like 'a Forking type'
   end

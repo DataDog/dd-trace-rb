@@ -5,8 +5,8 @@ require 'set'
 require 'logger'
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/ext'
-require 'ddtrace/utils/only_once'
-require 'ddtrace/utils/time'
+require 'datadog/core/utils/only_once'
+require 'datadog/core/utils/time'
 
 module Datadog
   # Acts as client for sending metrics (via Statsd)
@@ -128,12 +128,12 @@ module Datadog
       return yield unless send_stats?
 
       # Calculate time, send it as a distribution.
-      start = Utils::Time.get_time
+      start = Core::Utils::Time.get_time
       yield
     ensure
       begin
         if send_stats? && !start.nil?
-          finished = Utils::Time.get_time
+          finished = Core::Utils::Time.get_time
           distribution(stat, ((finished - start) * 1000), options)
         end
       rescue StandardError => e
@@ -267,7 +267,7 @@ module Datadog
       )
     end
 
-    IGNORED_STATSD_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    IGNORED_STATSD_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
     private_constant :IGNORED_STATSD_ONLY_ONCE
 
     def ignored_statsd_warning

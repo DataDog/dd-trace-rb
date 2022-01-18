@@ -11,8 +11,8 @@ module Datadog
         def format_command(operation, args)
           placeholder = "#{operation} BLOB (OMITTED)"
           command = [operation, *args].join(' ').strip
-          command = Utils.utf8_encode(command, binary: true, placeholder: placeholder)
-          Utils.truncate(command, Ext::QUANTIZE_MAX_CMD_LENGTH)
+          command = Core::Utils.utf8_encode(command, binary: true, placeholder: placeholder)
+          Core::Utils.truncate(command, Ext::QUANTIZE_MAX_CMD_LENGTH)
         rescue => e
           Datadog.logger.debug("Error sanitizing Dalli operation: #{e}")
           placeholder

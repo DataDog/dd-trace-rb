@@ -85,9 +85,9 @@ module Datadog
     def initialize(type = nil, message = nil, backtrace = nil)
       backtrace = Array(backtrace).join("\n") unless backtrace.is_a?(String)
 
-      @type = Utils.utf8_encode(type)
-      @message = Utils.utf8_encode(message)
-      @backtrace = Utils.utf8_encode(backtrace)
+      @type = Core::Utils.utf8_encode(type)
+      @message = Core::Utils.utf8_encode(message)
+      @backtrace = Core::Utils.utf8_encode(backtrace)
     end
 
     BlankError = Error.new

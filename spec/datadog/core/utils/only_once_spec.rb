@@ -1,7 +1,7 @@
 # typed: false
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
-RSpec.describe Datadog::Utils::OnlyOnce do
+RSpec.describe Datadog::Core::Utils::OnlyOnce do
   subject(:only_once) { described_class.new }
 
   describe '#run' do

@@ -1,6 +1,6 @@
 # typed: true
 require 'datadog/core/environment/variable_helpers'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   # Contains profiler for generating stack profiles, etc.
@@ -8,7 +8,7 @@ module Datadog
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
 
-    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
     private_constant :SKIPPED_NATIVE_EXTENSION_ONLY_ONCE
 
     def self.supported?

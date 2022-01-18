@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/utils/string_table'
+require 'datadog/core/utils/string_table'
 
-RSpec.describe Datadog::Utils::StringTable do
+RSpec.describe Datadog::Core::Utils::StringTable do
   subject(:string_table) { described_class.new }
 
   describe '#fetch' do

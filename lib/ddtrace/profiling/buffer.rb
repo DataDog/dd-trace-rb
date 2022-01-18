@@ -1,7 +1,7 @@
 # typed: true
+require 'datadog/core/utils/string_table'
+require 'datadog/core/utils/object_set'
 require 'ddtrace/buffer'
-require 'ddtrace/utils/string_table'
-require 'ddtrace/utils/object_set'
 
 module Datadog
   module Profiling
@@ -11,12 +11,12 @@ module Datadog
       def initialize(*args)
         super
         @caches = {}
-        @string_table = Utils::StringTable.new
+        @string_table = Core::Utils::StringTable.new
       end
 
       def cache(cache_name)
         synchronize do
-          @caches[cache_name] ||= Utils::ObjectSet.new
+          @caches[cache_name] ||= Core::Utils::ObjectSet.new
         end
       end
 
@@ -33,7 +33,7 @@ module Datadog
 
         # Clear caches
         @caches = {}
-        @string_table = Utils::StringTable.new
+        @string_table = Core::Utils::StringTable.new
 
         items
       end

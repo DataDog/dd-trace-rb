@@ -4,7 +4,7 @@
 require 'ddtrace/profiling/flush'
 require 'ddtrace/profiling/pprof/message_set'
 require 'ddtrace/profiling/pprof/string_table'
-require 'ddtrace/utils/time'
+require 'datadog/core/utils/time'
 
 module Datadog
   module Profiling
@@ -38,7 +38,7 @@ module Datadog
         # The locations hash maps unique BacktraceLocation instances to their corresponding pprof Location objects;
         # there's a 1:1 correspondence, since BacktraceLocations were already deduped
         def initialize_locations_hash
-          sequence = Utils::Sequence.new(1)
+          sequence = Core::Utils::Sequence.new(1)
           Hash.new do |locations_hash, backtrace_location|
             locations_hash[backtrace_location] = build_location(sequence.next, backtrace_location)
           end
@@ -49,8 +49,8 @@ module Datadog
         end
 
         def build_profile(start:, finish:)
-          start_ns = Datadog::Utils::Time.as_utc_epoch_ns(start)
-          finish_ns = Datadog::Utils::Time.as_utc_epoch_ns(finish)
+          start_ns = Datadog::Core::Utils::Time.as_utc_epoch_ns(start)
+          finish_ns = Datadog::Core::Utils::Time.as_utc_epoch_ns(finish)
 
           Perftools::Profiles::Profile.new(
             sample_type: @sample_types.messages,

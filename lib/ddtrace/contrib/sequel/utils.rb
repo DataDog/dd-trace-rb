@@ -18,7 +18,7 @@ module Datadog
               # otherwise all database adapters will be 'jdbc'.
               database_type(database)
             else
-              Datadog::Utils::Database.normalize_vendor(scheme)
+              Datadog::Core::Utils::Database.normalize_vendor(scheme)
             end
           end
 
@@ -26,7 +26,7 @@ module Datadog
           #
           # e.g. database:mysql (adapter:mysql2), database:postgres (adapter:jdbc)
           def database_type(database)
-            Datadog::Utils::Database.normalize_vendor(database.database_type.to_s)
+            Datadog::Core::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
 
           def parse_opts(sql, opts, db_opts, dataset = nil)

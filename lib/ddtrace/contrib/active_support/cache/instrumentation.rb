@@ -59,7 +59,7 @@ module Datadog
               end
 
               normalized_key = ::ActiveSupport::Cache.expand_cache_key(payload.fetch(:key))
-              cache_key = Datadog::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+              cache_key = Datadog::Core::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
               span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
 
               span.set_error(payload[:exception]) if payload[:exception]
@@ -85,7 +85,7 @@ module Datadog
               normalized_keys = payload.fetch(:keys, []).map do |key|
                 ::ActiveSupport::Cache.expand_cache_key(key)
               end
-              cache_keys = Datadog::Utils.truncate(normalized_keys, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+              cache_keys = Datadog::Core::Utils.truncate(normalized_keys, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
               span.set_tag(Ext::TAG_CACHE_KEY_MULTI, cache_keys)
 
               span.set_error(payload[:exception]) if payload[:exception]

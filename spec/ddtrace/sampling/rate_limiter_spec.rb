@@ -10,7 +10,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
   let(:max_tokens) { 10 }
 
   before do
-    allow(Datadog::Utils::Time).to receive(:get_time).and_return(0)
+    allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
   end
 
   describe '#initialize' do
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
     context 'after 1 second' do
       before do
-        allow(Datadog::Utils::Time).to receive(:get_time).and_return(0, 1)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0, 1)
       end
 
       it 'does not exceed maximum allowance' do
@@ -57,7 +57,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
 
       context 'after 1 second' do
         before do
-          allow(Datadog::Utils::Time).to receive(:get_time).and_return(1)
+          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(1)
         end
 
         context 'with message the same size of or smaller than replenished tokens' do
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
         let(:size) { 0 } # No-op message, only to force token refilling
 
         before do
-          allow(Datadog::Utils::Time).to receive(:get_time).and_return(10)
+          allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(10)
         end
 
         it 'catches up the lost time' do
@@ -135,7 +135,7 @@ RSpec.describe Datadog::Sampling::TokenBucket do
       before do
         # get time is called multiple times so we increment it on each call
         # to simulate passage of time
-        allow(Datadog::Utils::Time).to receive(:get_time).and_return(0, 2, 4, 6, 8, 10)
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0, 2, 4, 6, 8, 10)
       end
 
       context 'after 2 buckets' do
