@@ -165,15 +165,15 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
   after { writer.stop(true, 0) }
 
-  it { expect(writer).to be_a_kind_of(Datadog::Workers::Queue) }
-  it { expect(writer).to be_a_kind_of(Datadog::Workers::Polling) }
+  it { expect(writer).to be_a_kind_of(Datadog::Core::Workers::Queue) }
+  it { expect(writer).to be_a_kind_of(Datadog::Core::Workers::Polling) }
 
   describe '#initialize' do
     context 'defaults' do
       it do
         is_expected.to have_attributes(
           enabled?: true,
-          fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
+          fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
           buffer: kind_of(Datadog::TraceBuffer)
         )
       end
@@ -204,22 +204,22 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
     context 'given :fork_policy' do
       let(:options) { { fork_policy: fork_policy } }
 
-      context "as #{Datadog::Workers::Async::Thread::FORK_POLICY_STOP}" do
-        let(:fork_policy) { Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
+      context "as #{Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP}" do
+        let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP }
 
-        it { expect(writer.fork_policy).to be Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
+        it { expect(writer.fork_policy).to be Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP }
       end
 
       context "as #{described_class::FORK_POLICY_ASYNC}" do
         let(:fork_policy) { described_class::FORK_POLICY_ASYNC }
 
-        it { expect(writer.fork_policy).to be Datadog::Workers::Async::Thread::FORK_POLICY_RESTART }
+        it { expect(writer.fork_policy).to be Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART }
       end
 
       context "as #{described_class::FORK_POLICY_SYNC}" do
         let(:fork_policy) { described_class::FORK_POLICY_SYNC }
 
-        it { expect(writer.fork_policy).to be Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
+        it { expect(writer.fork_policy).to be Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP }
       end
     end
 
@@ -494,7 +494,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
       it do
         is_expected.to be value
-        expect(writer.fork_policy).to eq(Datadog::Workers::Async::Thread::FORK_POLICY_RESTART)
+        expect(writer.fork_policy).to eq(Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART)
       end
     end
 
@@ -503,7 +503,7 @@ RSpec.describe Datadog::Workers::AsyncTraceWriter do
 
       it do
         is_expected.to be value
-        expect(writer.fork_policy).to eq(Datadog::Workers::Async::Thread::FORK_POLICY_STOP)
+        expect(writer.fork_policy).to eq(Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP)
       end
     end
   end

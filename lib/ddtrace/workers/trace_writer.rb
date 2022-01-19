@@ -1,16 +1,17 @@
 # typed: false
 require 'datadog/core/logger'
-require 'ddtrace/transport/http'
+
+require 'datadog/core/worker'
+require 'datadog/core/workers/polling'
+require 'datadog/core/workers/queue'
 
 require 'ddtrace/event'
-require 'ddtrace/worker'
-require 'ddtrace/workers/polling'
-require 'ddtrace/workers/queue'
+require 'ddtrace/transport/http'
 
 module Datadog
   module Workers
     # Writes traces to transport synchronously
-    class TraceWriter < Worker
+    class TraceWriter < Core::Worker
       attr_reader \
         :transport
 
@@ -70,8 +71,8 @@ module Datadog
     # Writes traces to transport asynchronously,
     # using a thread & buffer.
     class AsyncTraceWriter < TraceWriter
-      include Workers::Queue
-      include Workers::Polling
+      include Core::Workers::Queue
+      include Core::Workers::Polling
 
       DEFAULT_BUFFER_MAX_SIZE = 1000
       FORK_POLICY_ASYNC = :async
@@ -141,14 +142,14 @@ module Datadog
       def fork_policy=(policy)
         # Translate to Workers::Async::Thread policy
         thread_fork_policy = case policy
-                             when Workers::Async::Thread::FORK_POLICY_STOP
+                             when Core::Workers::Async::Thread::FORK_POLICY_STOP
                                policy
                              when FORK_POLICY_SYNC
                                # Stop the async thread because the writer
                                # will bypass and run synchronously.
-                               Workers::Async::Thread::FORK_POLICY_STOP
+                               Core::Workers::Async::Thread::FORK_POLICY_STOP
                              else
-                               Workers::Async::Thread::FORK_POLICY_RESTART
+                               Core::Workers::Async::Thread::FORK_POLICY_RESTART
                              end
 
         # Update thread fork policy

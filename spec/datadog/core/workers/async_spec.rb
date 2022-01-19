@@ -1,15 +1,15 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/worker'
-require 'ddtrace/workers/async'
+require 'datadog/core/worker'
+require 'datadog/core/workers/async'
 
-RSpec.describe Datadog::Workers::Async::Thread do
+RSpec.describe Datadog::Core::Workers::Async::Thread do
   context 'when included into a worker' do
     subject(:worker) { worker_class.new(&task) }
 
     let(:worker_class) do
-      Class.new(Datadog::Worker) { include Datadog::Workers::Async::Thread }
+      Class.new(Datadog::Core::Worker) { include Datadog::Core::Workers::Async::Thread }
     end
 
     let(:task) { proc { |*args| worker_spy.perform(*args) } }
@@ -474,8 +474,8 @@ RSpec.describe Datadog::Workers::Async::Thread do
           skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
         end
 
-        class AsyncSpecThreadNaming < Datadog::Worker
-          include Datadog::Workers::Async::Thread
+        class AsyncSpecThreadNaming < Datadog::Core::Worker
+          include Datadog::Core::Workers::Async::Thread
         end
 
         let(:worker_class) { AsyncSpecThreadNaming }

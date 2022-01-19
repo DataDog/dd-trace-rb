@@ -44,7 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     it 'with default settings' do
       is_expected.to have_attributes(
         enabled?: true,
-        fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
+        fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
         ignore_thread: nil,
         loop_base_interval: described_class::MIN_INTERVAL,
         max_frames: options.fetch(:max_frames),
