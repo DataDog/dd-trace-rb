@@ -38,8 +38,6 @@ module Datadog
                 query = values[2]
                 cookies = values[3]
                 body = values[4]
-                Datadog.logger.debug { "headers: #{headers}" }
-                Datadog.logger.debug { "headers_no_cookie: #{headers_no_cookies}" }
 
                 waf_args = {
                   'server.request.cookies' => cookies,
