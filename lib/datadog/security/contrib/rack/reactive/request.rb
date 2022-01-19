@@ -12,7 +12,7 @@ module Datadog
                 op.publish('request.headers', Rack::Request.headers(request))
                 op.publish('request.uri.raw', Rack::Request.url(request))
                 op.publish('request.cookies', Rack::Request.cookies(request))
-                op.publish('request.body.raw', Rack::Request.body(request))
+                # op.publish('request.body.raw', Rack::Request.body(request))
                 # TODO: op.publish('request.path_params', { k: v }) # route params only?
                 # TODO: op.publish('request.path', request.script_name + request.path) # unused for now
 
@@ -26,7 +26,7 @@ module Datadog
                 'request.uri.raw',
                 'request.query',
                 'request.cookies',
-                'request.body.raw',
+                # 'request.body.raw',
                 # TODO: 'request.path_params',
               ]
 
@@ -37,11 +37,11 @@ module Datadog
                 uri_raw = values[1]
                 query = values[2]
                 cookies = values[3]
-                body = values[4]
+                # body = values[4]
 
                 waf_args = {
                   'server.request.cookies' => cookies,
-                  'server.request.body.raw' => body,
+                  # 'server.request.body.raw' => body,
                   'server.request.query' => query,
                   'server.request.uri.raw' => uri_raw,
                   'server.request.headers' => headers,
