@@ -307,7 +307,6 @@ RSpec/ScatteredSetup:
     - 'spec/ddtrace/contrib/rails/railtie_spec.rb'
     - 'spec/ddtrace/contrib/rails/redis_cache_spec.rb'
     - 'spec/ddtrace/contrib/redis/miniapp_spec.rb'
-    - 'spec/ddtrace/diagnostics/environment_logger_spec.rb'
     - 'spec/ddtrace/opentracer/rack_propagator_spec.rb'
     - 'spec/ddtrace/opentracer/span_spec.rb'
     - 'spec/ddtrace/opentracer/text_map_propagator_spec.rb'

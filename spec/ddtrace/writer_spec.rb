@@ -68,7 +68,7 @@ RSpec.describe Datadog::Writer do
 
           allow(transport).to receive(:stats).and_return(transport_stats)
 
-          allow(Datadog::Diagnostics::EnvironmentLogger).to receive(:log!)
+          allow(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:log!)
         end
 
         shared_examples 'after_send events' do
