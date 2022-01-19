@@ -50,6 +50,7 @@ module Datadog
                              @rules << SimpleRule.new(sample_rate: default_sample_rate)
                              nil
                            else
+                             # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
                              RateByServiceSampler.new(1.0, env: -> { Datadog::Tracing.send(:tracer).tags[:env] })
                            end
       end
