@@ -1,7 +1,7 @@
 # typed: false
 require 'forwardable'
 
-require 'ddtrace/runtime/metrics'
+require 'datadog/core/runtime/metrics'
 
 require 'ddtrace/worker'
 require 'ddtrace/workers/polling'
@@ -21,7 +21,7 @@ module Datadog
         :metrics
 
       def initialize(options = {})
-        @metrics = options.fetch(:metrics) { Runtime::Metrics.new }
+        @metrics = options.fetch(:metrics) { Core::Runtime::Metrics.new }
 
         # Workers::Async::Thread settings
         self.fork_policy = options.fetch(:fork_policy, Workers::Async::Thread::FORK_POLICY_STOP)
@@ -39,9 +39,9 @@ module Datadog
         true
       end
 
-      def associate_with_trace(*args)
+      def register_service(*args)
         # Start the worker
-        metrics.associate_with_trace(*args).tap { perform }
+        metrics.register_service(*args).tap { perform }
       end
 
       # TODO: `close_metrics` is only needed because
@@ -56,10 +56,6 @@ module Datadog
         @metrics.close if close_metrics
         result
       end
-
-      def_delegators \
-        :metrics,
-        :register_service
     end
   end
 end

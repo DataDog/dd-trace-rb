@@ -3,12 +3,12 @@ require 'ddtrace'
 Datadog.configure do |c|
   c.service = 'acme-rails-five'
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')
+  c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 end
 
 if Datadog::DemoEnv.feature?('tracing')
   Datadog::Tracing.configure do |c|
     c.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
-    c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
     c.instrument :rails
     c.instrument :redis, service_name: 'acme-redis'
