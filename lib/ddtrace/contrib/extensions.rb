@@ -143,6 +143,10 @@ module Datadog
             end
           end
 
+          # TODO: Deprecate in the next major version, as `instrument` better describes
+          # TODO: what `c.instrument` does internally in the tracer.
+          alias_method :use, :instrument
+
           # @!visibility private
           def integrations_pending_activation
             @integrations_pending_activation ||= Set.new
