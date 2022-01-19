@@ -152,10 +152,12 @@ RSpec.describe Datadog::Writer do
       describe '#write' do
         subject(:write) { writer.write(trace) }
 
-        let(:trace) { instance_double(Datadog::TraceSegment) }
+        let(:trace) { instance_double(Datadog::TraceSegment, service: service, empty?: empty?) }
+        let(:service) { 'my-service' }
+        let(:empty?) { true }
 
         before do
-          allow(Datadog::Tracing.configuration.runtime_metrics)
+          allow(Datadog.configuration.runtime_metrics)
             .to receive(:enabled).and_return(false)
         end
 
@@ -168,24 +170,24 @@ RSpec.describe Datadog::Writer do
               .to receive(:enqueue_trace)
               .with(trace)
 
-            allow(Datadog::Tracing.configuration.runtime_metrics)
+            allow(Datadog.configuration.runtime_metrics)
               .to receive(:enabled)
               .and_return(true)
           end
 
           context 'and the trace is not empty' do
-            let(:root_span) { instance_double(Datadog::Span) }
+            let(:empty?) { false }
 
             before do
               allow(trace).to receive(:empty?).and_return(false)
-              allow(Datadog.runtime_metrics).to receive(:associate_with_trace)
+              allow(Datadog::Runtime::Metrics).to receive(:associate_trace)
             end
 
             it 'associates the root span with runtime_metrics' do
               write
 
-              expect(Datadog.runtime_metrics)
-                .to have_received(:associate_with_trace)
+              expect(Datadog::Runtime::Metrics)
+                .to have_received(:associate_trace)
                 .with(trace)
             end
           end

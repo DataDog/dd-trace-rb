@@ -32,6 +32,7 @@ module Datadog
           :env,
           :env=,
           :logger,
+          :runtime_metrics,
           :service,
           :service_without_fallback,
           :service=,
@@ -62,7 +63,6 @@ module Datadog
           :reduce_log_verbosity,
           :report_hostname,
           :report_hostname=,
-          :runtime_metrics,
           :sampling,
           :test_mode,
           :tracer

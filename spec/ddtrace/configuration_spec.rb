@@ -172,12 +172,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(old_statsd).to receive(:close).once
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
               c.diagnostics.health_metrics.statsd = old_statsd
             end
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = new_statsd
               c.diagnostics.health_metrics.statsd = new_statsd
             end
@@ -197,12 +197,12 @@ RSpec.describe Datadog::Configuration do
             # Since its being reused, it should not be closed.
             expect(old_statsd).to_not receive(:close)
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
               c.diagnostics.health_metrics.statsd = old_statsd
             end
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = new_statsd
             end
           end
@@ -219,12 +219,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(statsd).to_not receive(:close)
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(statsd).to_not receive(:close)
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
@@ -333,13 +333,13 @@ RSpec.describe Datadog::Configuration do
       context 'when reconfigured multiple times' do
         context 'with runtime metrics active' do
           before do
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.enabled = true
             end
 
             @old_runtime_metrics = test_class.runtime_metrics
 
-            test_class.send(:internal_configure) do |c|
+            test_class.configure do |c|
               c.runtime_metrics.enabled = true
             end
           end

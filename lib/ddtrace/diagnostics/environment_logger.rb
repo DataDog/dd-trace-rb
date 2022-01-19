@@ -172,7 +172,7 @@ module Datadog
 
       # @return [Boolean, nil] runtime metrics enabled in configuration
       def runtime_metrics_enabled
-        Datadog::Tracing.configuration.runtime_metrics.enabled
+        Datadog.configuration.runtime_metrics.enabled
       end
 
       # Concatenated list of integrations activated, with their gem version.

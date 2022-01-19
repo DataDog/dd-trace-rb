@@ -1,4 +1,5 @@
 require 'forwardable'
+require 'datadog/core/runtime/ext'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/priority'
 require 'ddtrace/ext/sampling'
@@ -71,14 +72,14 @@ module Datadog
     {
       agent_sample_rate: Ext::Sampling::TAG_AGENT_RATE,
       hostname: Ext::NET::TAG_HOSTNAME,
-      lang: Ext::Runtime::TAG_LANG,
+      lang: Core::Runtime::Ext::TAG_LANG,
       name: TAG_NAME,
       origin: Ext::DistributedTracing::TAG_ORIGIN,
-      process_id: Ext::Runtime::TAG_PID,
+      process_id: Core::Runtime::Ext::TAG_PID,
       rate_limiter_rate: Ext::Sampling::TAG_RATE_LIMITER_RATE,
       resource: TAG_RESOURCE,
       rule_sample_rate: Ext::Sampling::TAG_RULE_SAMPLE_RATE,
-      runtime_id: Ext::Runtime::TAG_ID,
+      runtime_id: Core::Runtime::Ext::TAG_ID,
       sample_rate: Ext::Sampling::TAG_SAMPLE_RATE,
       sampling_priority: Ext::DistributedTracing::TAG_SAMPLING_PRIORITY,
       service: TAG_SERVICE
