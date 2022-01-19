@@ -1,15 +1,15 @@
 # typed: true
 require 'datadog/core/utils/time'
 
-require 'ddtrace/worker'
-require 'ddtrace/workers/polling'
+require 'datadog/core/worker'
+require 'datadog/core/workers/polling'
 
 module Datadog
   module Profiling
     # Periodically (every DEFAULT_INTERVAL_SECONDS) takes data from the `Recorder` and pushes them to all configured
     # `Exporter`s. Runs on its own background thread.
-    class Scheduler < Worker
-      include Workers::Polling
+    class Scheduler < Core::Worker
+      include Core::Workers::Polling
 
       DEFAULT_INTERVAL_SECONDS = 60
       MINIMUM_INTERVAL_SECONDS = 0
@@ -30,7 +30,7 @@ module Datadog
       def initialize(
         recorder,
         exporters,
-        fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
+        fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
         interval: DEFAULT_INTERVAL_SECONDS,
         enabled: true
       )

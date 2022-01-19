@@ -1,15 +1,15 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/worker'
-require 'ddtrace/workers/polling'
+require 'datadog/core/worker'
+require 'datadog/core/workers/polling'
 
-RSpec.describe Datadog::Workers::Polling do
+RSpec.describe Datadog::Core::Workers::Polling do
   context 'when included into a worker' do
     subject(:worker) { worker_class.new }
 
     let(:worker_class) do
-      Class.new(Datadog::Worker) { include Datadog::Workers::Polling }
+      Class.new(Datadog::Core::Worker) { include Datadog::Core::Workers::Polling }
     end
 
     describe '#perform' do

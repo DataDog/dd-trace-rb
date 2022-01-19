@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
       is_expected.to have_attributes(
         enabled?: true,
         exporters: exporters,
-        fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_RESTART,
+        fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
         loop_base_interval: described_class.const_get(:DEFAULT_INTERVAL_SECONDS),
         recorder: recorder
       )

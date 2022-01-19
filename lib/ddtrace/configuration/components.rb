@@ -7,7 +7,7 @@ require 'ddtrace/runtime/metrics'
 require 'ddtrace/tracer'
 require 'ddtrace/trace_flush'
 require 'ddtrace/sync_writer'
-require 'ddtrace/workers/runtime_metrics'
+require 'datadog/core/workers/runtime_metrics'
 
 module Datadog
   module Configuration
@@ -46,7 +46,7 @@ module Datadog
             metrics: build_runtime_metrics(settings)
           )
 
-          Datadog::Workers::RuntimeMetrics.new(options)
+          Datadog::Core::Workers::RuntimeMetrics.new(options)
         end
 
         def build_tracer(settings, agent_settings)
