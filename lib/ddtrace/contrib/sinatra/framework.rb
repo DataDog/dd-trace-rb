@@ -8,11 +8,11 @@ module Datadog
       module Framework
         # Configure Rack from Sinatra, but only if Rack has not been configured manually beforehand
         def self.setup
+          return if Datadog.configuration.instrumented_integrations.key?(:rack)
+
           Datadog.configure do |datadog_config|
             sinatra_config = config_with_defaults(datadog_config)
-            unless Datadog.configuration.instrumented_integrations.key?(:rack)
-              activate_rack!(datadog_config, sinatra_config)
-            end
+            activate_rack!(datadog_config, sinatra_config)
           end
         end
 
