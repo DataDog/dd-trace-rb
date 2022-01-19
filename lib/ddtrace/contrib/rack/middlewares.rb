@@ -201,6 +201,9 @@ module Datadog
           # unless it has been already set by the underlying framework
           request_span.status = 1 if status.to_s.start_with?('5') && request_span.status.zero?
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
 
         private
 
