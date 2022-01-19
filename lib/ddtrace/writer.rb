@@ -5,7 +5,7 @@ require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
 require 'ddtrace/workers'
-require 'ddtrace/diagnostics/environment_logger'
+require 'datadog/core/diagnostics/environment_logger'
 require 'ddtrace/runtime/metrics'
 require 'datadog/core/utils/only_once'
 
