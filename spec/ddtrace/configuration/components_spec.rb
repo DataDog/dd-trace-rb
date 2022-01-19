@@ -23,7 +23,7 @@ RSpec.describe Datadog::Configuration::Components do
     let(:logger) { instance_double(Datadog::Core::Logger) }
     let(:tracer) { instance_double(Datadog::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
-    let(:runtime_metrics) { instance_double(Datadog::Workers::RuntimeMetrics) }
+    let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics) }
 
     before do
@@ -252,7 +252,7 @@ RSpec.describe Datadog::Configuration::Components do
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics worker' do
-        let(:runtime_metrics_worker) { instance_double(Datadog::Workers::RuntimeMetrics) }
+        let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
         let(:default_options) do
           {
@@ -267,7 +267,7 @@ RSpec.describe Datadog::Configuration::Components do
             .with(settings)
             .and_return(runtime_metrics)
 
-          expect(Datadog::Workers::RuntimeMetrics).to receive(:new)
+          expect(Datadog::Core::Workers::RuntimeMetrics).to receive(:new)
             .with(default_options.merge(options))
             .and_return(runtime_metrics_worker)
         end
@@ -1122,7 +1122,7 @@ RSpec.describe Datadog::Configuration::Components do
         let(:replacement) { instance_double(described_class) }
         let(:tracer) { instance_double(Datadog::Tracer) }
         let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
-        let(:runtime_metrics_worker) { instance_double(Datadog::Workers::RuntimeMetrics, metrics: runtime_metrics) }
+        let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }

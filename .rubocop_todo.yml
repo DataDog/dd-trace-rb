@@ -20,7 +20,7 @@ Lint/ConstantDefinitionInBlock:
   Exclude:
     - 'spec/ddtrace/benchmark/support/benchmark_helper.rb'
     - 'spec/ddtrace/contrib/rails/rack_spec.rb'
-    - 'spec/ddtrace/workers/async_spec.rb'
+    - 'spec/datadog/core/workers/async_spec.rb'
 
 # Offense count: 2
 # Configuration parameters: IgnoreLiteralBranches, IgnoreConstantBranches.
@@ -68,7 +68,7 @@ Lint/MissingCopEnableDirective:
     - 'lib/ddtrace/ext/ci.rb'
     - 'lib/ddtrace/span.rb'
     - 'lib/ddtrace/tracer.rb'
-    - 'lib/ddtrace/workers/async.rb'
+    - 'lib/datadog/core/workers/async.rb'
     - 'spec/ddtrace/contrib/elasticsearch/quantize_spec.rb'
     - 'spec/ddtrace/contrib/http/request_spec.rb'
     - 'spec/ddtrace/contrib/mongodb/client_spec.rb'
@@ -106,7 +106,7 @@ Lint/MissingSuper:
     - 'lib/ddtrace/transport/http/env.rb'
     - 'lib/ddtrace/transport/http/traces.rb'
     - 'lib/ddtrace/transport/traces.rb'
-    - 'lib/ddtrace/workers/runtime_metrics.rb'
+    - 'lib/datadog/core/workers/runtime_metrics.rb'
     - 'lib/ddtrace/workers/trace_writer.rb'
     - 'spec/support/faux_transport.rb'
     - 'spec/support/spy_transport.rb'
@@ -196,7 +196,7 @@ RSpec/LeakyConstantDeclaration:
   Exclude:
     - 'spec/ddtrace/benchmark/support/benchmark_helper.rb'
     - 'spec/ddtrace/contrib/rails/rack_spec.rb'
-    - 'spec/ddtrace/workers/async_spec.rb'
+    - 'spec/datadog/core/workers/async_spec.rb'
 
 # Offense count: 37
 RSpec/MissingExampleGroupArgument:
@@ -312,7 +312,7 @@ RSpec/ScatteredSetup:
     - 'spec/ddtrace/opentracer/span_spec.rb'
     - 'spec/ddtrace/opentracer/text_map_propagator_spec.rb'
     - 'spec/ddtrace/tracer_spec.rb'
-    - 'spec/ddtrace/workers/loop_spec.rb'
+    - 'spec/datadog/core/workers/loop_spec.rb'
 
 # Offense count: 2
 RSpec/UnspecifiedException:
@@ -411,11 +411,11 @@ RSpec/VerifiedDoubles:
     - 'spec/datadog/core/utils/object_set_spec.rb'
     - 'spec/datadog/core/utils/string_table_spec.rb'
     - 'spec/ddtrace/worker_spec.rb'
-    - 'spec/ddtrace/workers/async_spec.rb'
-    - 'spec/ddtrace/workers/loop_spec.rb'
-    - 'spec/ddtrace/workers/polling_spec.rb'
-    - 'spec/ddtrace/workers/queue_spec.rb'
-    - 'spec/ddtrace/workers/runtime_metrics_spec.rb'
+    - 'spec/datadog/core/workers/async_spec.rb'
+    - 'spec/datadog/core/workers/loop_spec.rb'
+    - 'spec/datadog/core/workers/polling_spec.rb'
+    - 'spec/datadog/core/workers/queue_spec.rb'
+    - 'spec/datadog/core/workers/runtime_metrics_spec.rb'
     - 'spec/ddtrace/workers/trace_writer_spec.rb'
     - 'spec/ddtrace/workers_integration_spec.rb'
     - 'spec/ddtrace/writer_spec.rb'
