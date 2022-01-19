@@ -5,6 +5,7 @@ require 'ddtrace/configuration/base'
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'datadog/core/environment/ext'
+require 'datadog/core/runtime/ext'
 require 'ddtrace/ext/profiling'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/ext/test'
@@ -300,14 +301,14 @@ module Datadog
 
       # [Runtime Metrics](https://docs.datadoghq.com/tracing/runtime_metrics/)
       # are StatsD metrics collected by the tracer to gain additional insights into an application's performance.
-      # @configure_with {Datadog::Tracing}
+      # @configure_with {Datadog}
       # @public_api
       settings :runtime_metrics do
         # Enable runtime metrics.
         # @default `DD_RUNTIME_METRICS_ENABLED` environment variable, otherwise `false`
         # @return [Boolean]
         option :enabled do |o|
-          o.default { env_to_bool(Ext::Runtime::Metrics::ENV_ENABLED, false) }
+          o.default { env_to_bool(Core::Runtime::Ext::Metrics::ENV_ENABLED, false) }
           o.lazy
         end
 

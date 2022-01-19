@@ -3,7 +3,6 @@ require 'time'
 
 require 'datadog/core/environment/identity'
 require 'ddtrace/ext/errors'
-require 'ddtrace/ext/runtime'
 
 require 'ddtrace/span'
 require 'ddtrace/tagging'

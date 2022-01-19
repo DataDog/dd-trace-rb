@@ -617,9 +617,9 @@ RSpec.describe Datadog::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.runtime_metrics.enabled }
 
-      context "when #{Datadog::Ext::Runtime::Metrics::ENV_ENABLED}" do
+      context "when #{Datadog::Core::Runtime::Ext::Metrics::ENV_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Runtime::Metrics::ENV_ENABLED => environment) do
+          ClimateControl.modify(Datadog::Core::Runtime::Ext::Metrics::ENV_ENABLED => environment) do
             example.run
           end
         end

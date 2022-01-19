@@ -92,12 +92,12 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           expect(root_span).to have_metadata(
             Datadog::Ext::Sampling::TAG_AGENT_RATE => nil,
             Datadog::Ext::NET::TAG_HOSTNAME => nil,
-            Datadog::Ext::Runtime::TAG_LANG => nil,
+            Datadog::Core::Runtime::Ext::TAG_LANG => nil,
             Datadog::Ext::DistributedTracing::TAG_ORIGIN => nil,
-            Datadog::Ext::Runtime::TAG_PID => nil,
+            Datadog::Core::Runtime::Ext::TAG_PID => nil,
             Datadog::Ext::Sampling::TAG_RATE_LIMITER_RATE => nil,
             Datadog::Ext::Sampling::TAG_RULE_SAMPLE_RATE => nil,
-            Datadog::Ext::Runtime::TAG_ID => nil,
+            Datadog::Core::Runtime::Ext::TAG_ID => nil,
             Datadog::Ext::Sampling::TAG_SAMPLE_RATE => nil,
             Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY => nil
           )
@@ -109,12 +109,12 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           expect(root_span).to have_metadata(
             Datadog::Ext::Sampling::TAG_AGENT_RATE => agent_sample_rate,
             Datadog::Ext::NET::TAG_HOSTNAME => hostname,
-            Datadog::Ext::Runtime::TAG_LANG => lang,
+            Datadog::Core::Runtime::Ext::TAG_LANG => lang,
             Datadog::Ext::DistributedTracing::TAG_ORIGIN => origin,
-            Datadog::Ext::Runtime::TAG_PID => process_id,
+            Datadog::Core::Runtime::Ext::TAG_PID => process_id,
             Datadog::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
             Datadog::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
-            Datadog::Ext::Runtime::TAG_ID => runtime_id,
+            Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
             Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY => sampling_priority
           )
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
               .and_return('a-peer-service')
           end
 
-          it { expect(root_span).to have_metadata(Datadog::Ext::Runtime::TAG_LANG => nil) }
+          it { expect(root_span).to have_metadata(Datadog::Core::Runtime::Ext::TAG_LANG => nil) }
         end
       end
 
