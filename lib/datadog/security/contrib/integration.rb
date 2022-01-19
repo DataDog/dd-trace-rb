@@ -23,7 +23,6 @@ module Datadog
         end
 
         def self.register(integration, name, options)
-          puts "registering #{integration.inspect} as #{name.inspect} with #{options.inspect}"
           registry[name] = RegisteredIntegration.new(name, integration, options)
         end
 
