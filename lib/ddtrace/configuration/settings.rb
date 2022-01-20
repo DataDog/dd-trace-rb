@@ -59,7 +59,7 @@ module Datadog
         settings :tracer do
           # Trace agent port.
           # @configure_with {Datadog::Tracing}
-          # @default `DD_AGENT_HOST` environment variable, otherwise `8126`
+          # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
           # @return [String,nil]
           option :port
         end
