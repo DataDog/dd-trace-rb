@@ -67,6 +67,10 @@ module Datadog
           end
         end
 
+        def inspect_middlewares(app)
+          Datadog.logger.debug { 'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
+        end
+
         def add_logger(app)
           should_warn = true
           # check if lograge key exists
@@ -106,6 +110,7 @@ module Datadog
             # Finish configuring the tracer after the application is initialized.
             # We need to wait for some things, like application name, middleware stack, etc.
             setup_tracer
+            inspect_middlewares(app)
           end
         end
 

@@ -56,6 +56,10 @@ module Datadog
             app.middleware.insert_before(0, Datadog::Security::Contrib::Rack::RequestMiddleware)
           end
 
+          def inspect_middlewares(app)
+            Datadog.logger.debug { 'Rails middlewares: ' << app.middleware.map(&:inspect).inspect }
+          end
+
           def patch_after_intialize
             ::ActiveSupport.on_load(:after_initialize) do
               Datadog::Security::Contrib::Rails::Patcher.after_intialize(self)
@@ -67,6 +71,7 @@ module Datadog
               # Finish configuring the tracer after the application is initialized.
               # We need to wait for some things, like application name, middleware stack, etc.
               setup_security
+              inspect_middlewares(app)
             end
           end
 
