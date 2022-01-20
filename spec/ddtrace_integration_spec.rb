@@ -15,11 +15,11 @@ RSpec.describe 'ddtrace integration' do
     subject(:shutdown) { Datadog.shutdown! }
 
     let(:start_tracer) do
-      Datadog.tracer.trace('test.op') {}
+      Datadog::Tracing.trace('test.op') {}
     end
 
     def wait_for_tracer_sent
-      try_wait_until { Datadog.tracer.writer.transport.stats.success > 0 }
+      try_wait_until { Datadog::Tracing.send(:tracer).writer.transport.stats.success > 0 }
     end
 
     context 'for threads' do
@@ -92,13 +92,13 @@ RSpec.describe 'ddtrace integration' do
 
     context 'calling public apis' do
       it 'does not error on tracing' do
-        span_op = Datadog.tracer.trace('test')
+        span_op = Datadog::Tracing.trace('test')
 
         expect(span_op.finish).to be_truthy
       end
 
       it 'does not error on tracing with block' do
-        value = Datadog.tracer.trace('test') do |span_op|
+        value = Datadog::Tracing.trace('test') do |span_op|
           expect(span_op).to be_a(Datadog::SpanOperation)
           :return
         end
@@ -111,7 +111,7 @@ RSpec.describe 'ddtrace integration' do
       end
 
       it 'does not error on configuration access' do
-        expect(Datadog.configuration.runtime_metrics.enabled).to be(true).or be(false)
+        expect(Datadog::Tracing.configuration.runtime_metrics.enabled).to be(true).or be(false)
       end
 
       it 'does not error on reporting health metrics' do

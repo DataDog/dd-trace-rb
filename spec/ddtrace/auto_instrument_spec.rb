@@ -25,7 +25,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
     require 'ddtrace/auto_instrument'
   end
 
-  after { Datadog.registry[:sinatra].reset_configuration! }
+  after { Datadog::Tracing.registry[:sinatra].reset_configuration! }
 
   shared_context 'ActiveRecord database' do
     let(:application_record_class) do

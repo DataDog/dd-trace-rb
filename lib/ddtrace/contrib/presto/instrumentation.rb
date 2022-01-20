@@ -18,7 +18,7 @@ module Datadog
           # Instance methods for Presto::Client
           module InstanceMethods
             def run(query)
-              tracer.trace(Ext::SPAN_QUERY, **span_options) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
                   decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
@@ -33,7 +33,7 @@ module Datadog
             end
 
             def query(query, &blk)
-              tracer.trace(Ext::SPAN_QUERY, **span_options) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
                   decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
@@ -48,7 +48,7 @@ module Datadog
             end
 
             def kill(query_id)
-              tracer.trace(Ext::SPAN_KILL, **span_options) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_KILL, **span_options) do |span|
                 begin
                   decorate!(span, Ext::TAG_OPERATION_KILL)
                   span.resource = Ext::SPAN_KILL
@@ -66,7 +66,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog.configuration[:presto]
+              Datadog::Tracing.configuration[:presto]
             end
 
             def span_options
@@ -75,10 +75,6 @@ module Datadog
                 app: Ext::TAG_COMPONENT,
                 app_type: Datadog::Ext::AppTypes::DB
               }
-            end
-
-            def tracer
-              Datadog.tracer
             end
 
             def decorate!(span, operation)

@@ -20,13 +20,13 @@ RSpec.describe 'Sinatra instrumentation with ActiveRecord' do
   let(:options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :sinatra, options
-      c.use :active_record, options
+    Datadog::Tracing.configure do |c|
+      c.instrument :sinatra, options
+      c.instrument :active_record, options
     end
   end
 
-  after { Datadog.registry[:sinatra].reset_configuration! }
+  after { Datadog::Tracing.registry[:sinatra].reset_configuration! }
 
   shared_context 'ActiveRecord database' do
     let(:application_record_class) do

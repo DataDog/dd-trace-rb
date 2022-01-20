@@ -28,7 +28,7 @@ module Datadog
 
           def process(span, event, _id, payload)
             config = Utils.connection_config(payload[:connection], payload[:connection_id])
-            settings = Datadog.configuration[:active_record, config]
+            settings = Datadog::Tracing.configuration[:active_record, config]
             adapter_name = Datadog::Utils::Database.normalize_vendor(config[:adapter])
             service_name = if settings.service_name != Datadog::Utils::Database::VENDOR_DEFAULT
                              settings.service_name

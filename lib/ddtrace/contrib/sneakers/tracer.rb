@@ -20,7 +20,7 @@ module Datadog
             on_error: configuration[:error_handler]
           }
 
-          tracer.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+          Datadog::Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
             request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
@@ -44,12 +44,8 @@ module Datadog
 
         private
 
-        def tracer
-          Datadog.tracer
-        end
-
         def configuration
-          Datadog.configuration[:sneakers]
+          Datadog::Tracing.configuration[:sneakers]
         end
       end
     end

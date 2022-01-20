@@ -46,13 +46,13 @@ module Datadog
             resource = "#{api_view} #{request_method} #{path}"
 
             # Store the beginning of a trace
-            span = tracer.trace(
+            span = Datadog::Tracing.trace(
               Ext::SPAN_ENDPOINT_RUN,
               service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
               resource: resource
             )
-            trace = tracer.active_trace
+            trace = Datadog::Tracing.active_trace
 
             # Set the trace resource
             trace.resource = span.resource
@@ -72,8 +72,8 @@ module Datadog
 
             return unless enabled?
 
-            trace = tracer.active_trace
-            span = tracer.active_span
+            trace = Datadog::Tracing.active_trace
+            span = Datadog::Tracing.active_span
             return unless trace && span
 
             begin
@@ -115,7 +115,7 @@ module Datadog
             return unless enabled?
 
             # Store the beginning of a trace
-            span = tracer.trace(
+            span = Datadog::Tracing.trace(
               Ext::SPAN_ENDPOINT_RENDER,
               service: service_name,
               span_type: Datadog::Ext::HTTP::TEMPLATE
@@ -136,7 +136,7 @@ module Datadog
 
             return unless enabled?
 
-            span = tracer.active_span
+            span = Datadog::Tracing.active_span
             return unless span
 
             # catch thrown exceptions
@@ -162,7 +162,7 @@ module Datadog
             type = payload[:type]
             return if (!filters || filters.empty?) || !type || zero_length
 
-            span = tracer.trace(
+            span = Datadog::Tracing.trace(
               Ext::SPAN_ENDPOINT_RUN_FILTERS,
               service: service_name,
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
@@ -212,10 +212,6 @@ module Datadog
             parts.join('/').prepend('/')
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def service_name
             datadog_configuration[:service_name]
           end
@@ -242,7 +238,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:grape]
+            Datadog::Tracing.configuration[:grape]
           end
         end
       end

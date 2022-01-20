@@ -9,10 +9,14 @@ module Datadog
       # DelayedJob plugin that instruments invoke_job hook
       class Plugin < Delayed::Plugin
         def self.instrument_invoke(job, &block)
-          return yield(job) unless tracer && tracer.enabled
+          return yield(job) unless Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
-                                      on_error: configuration[:error_handler]) do |span|
+          Datadog::Tracing.trace(
+            Ext::SPAN_JOB,
+            service: configuration[:service_name],
+            resource: job_name(job),
+            on_error: configuration[:error_handler]
+          ) do |span|
             set_sample_rate(span)
 
             # Measure service stats
@@ -32,9 +36,13 @@ module Datadog
         end
 
         def self.instrument_enqueue(job, &block)
-          return yield(job) unless tracer && tracer.enabled
+          return yield(job) unless Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_ENQUEUE, service: configuration[:client_service_name], resource: job_name(job)) do |span|
+          Datadog::Tracing.trace(
+            Ext::SPAN_ENQUEUE,
+            service: configuration[:client_service_name],
+            resource: job_name(job)
+          ) do |span|
             set_sample_rate(span)
 
             # Measure service stats
@@ -54,15 +62,11 @@ module Datadog
         def self.flush(worker, &block)
           yield worker
 
-          tracer.shutdown! if tracer && tracer.enabled
+          Datadog::Tracing.shutdown! if Datadog::Tracing.enabled?
         end
 
         def self.configuration
-          Datadog.configuration[:delayed_job]
-        end
-
-        def self.tracer
-          Datadog.tracer
+          Datadog::Tracing.configuration[:delayed_job]
         end
 
         def self.job_name(job)

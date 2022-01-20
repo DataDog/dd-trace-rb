@@ -52,7 +52,7 @@ module Datadog
           module InstanceMethods
             def datadog_pin
               @datadog_pin ||= begin
-                service = Datadog.configuration[:mongo, seed][:service_name]
+                service = Datadog::Tracing.configuration[:mongo, seed][:service_name]
 
                 Datadog::Pin.new(
                   service,

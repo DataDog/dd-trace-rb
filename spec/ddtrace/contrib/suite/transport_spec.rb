@@ -23,16 +23,16 @@ require 'ddtrace'
 RSpec.describe 'transport with integrations' do
   describe 'when sending traces' do
     before do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         # Activate all outbound integrations...
         # Although the transport by default only uses Net/HTTP
         # its possible for other adapters to be used instead.
-        c.use :ethon
-        c.use :excon
-        c.use :faraday
-        c.use :grpc
-        c.use :http
-        c.use :rest_client
+        c.instrument :ethon
+        c.instrument :excon
+        c.instrument :faraday
+        c.instrument :grpc
+        c.instrument :http
+        c.instrument :rest_client
       end
 
       # Requests may produce an error (because the transport cannot connect)

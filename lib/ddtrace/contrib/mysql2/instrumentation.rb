@@ -18,7 +18,7 @@ module Datadog
         # Mysql2::Client patch instance methods
         module InstanceMethods
           def query(sql, options = {})
-            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
               span.resource = sql
               span.service = datadog_pin.service
               span.span_type = Datadog::Ext::SQL::TYPE
@@ -42,7 +42,7 @@ module Datadog
 
           def datadog_pin
             @datadog_pin ||= Datadog::Pin.new(
-              Datadog.configuration[:mysql2][:service_name],
+              datadog_configuration[:service_name],
               app: Ext::TAG_COMPONENT,
               app_type: Datadog::Ext::AppTypes::DB,
             )
@@ -51,7 +51,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog.configuration[:mysql2]
+            Datadog::Tracing.configuration[:mysql2]
           end
 
           def analytics_enabled?

@@ -47,8 +47,8 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :httprb, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :httprb, configuration_options
     end
 
     # LibFFI native thread
@@ -61,9 +61,9 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:httprb].reset_configuration!
+    Datadog::Tracing.registry[:httprb].reset_configuration!
     example.run
-    Datadog.registry[:httprb].reset_configuration!
+    Datadog::Tracing.registry[:httprb].reset_configuration!
   end
 
   describe 'instrumented request' do
@@ -257,13 +257,13 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
           context 'and the host matches a specific configuration' do
             before do
-              Datadog.configure do |c|
-                c.use :httprb, describes: /localhost/ do |httprb|
+              Datadog::Tracing.configure do |c|
+                c.instrument :httprb, describes: /localhost/ do |httprb|
                   httprb.service_name = 'bar'
                   httprb.split_by_domain = false
                 end
 
-                c.use :httprb, describes: /random/ do |httprb|
+                c.instrument :httprb, describes: /random/ do |httprb|
                   httprb.service_name = 'barz'
                   httprb.split_by_domain = false
                 end

@@ -19,7 +19,7 @@ module Datadog
           def execute(&block)
             uri = URI.parse(url)
 
-            return super(&block) unless Datadog.tracer.enabled
+            return super(&block) unless Datadog::Tracing.enabled?
 
             datadog_trace_request(uri) do |_span, trace|
               Datadog::HTTPPropagator.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
@@ -48,11 +48,13 @@ module Datadog
           end
 
           def datadog_trace_request(uri)
-            span = Datadog.tracer.trace(Ext::SPAN_REQUEST,
-                                        service: datadog_configuration[:service_name],
-                                        span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND)
+            span = Datadog::Tracing.trace(
+              Ext::SPAN_REQUEST,
+              service: datadog_configuration[:service_name],
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+            )
 
-            trace = Datadog.tracer.active_trace
+            trace = Datadog::Tracing.active_trace
 
             datadog_tag_request(uri, span)
 
@@ -79,7 +81,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog.configuration[:rest_client]
+            Datadog::Tracing.configuration[:rest_client]
           end
 
           def analytics_enabled?

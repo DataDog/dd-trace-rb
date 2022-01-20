@@ -11,12 +11,12 @@ module Datadog
         # Instance methods for configuration
         module InstanceMethods
           def log(log, message = nil, progname = nil, &block)
-            return super unless Datadog.configuration[:semantic_logger].enabled
+            return super unless Datadog::Tracing.configuration[:semantic_logger].enabled
 
             original_named_tags = log.named_tags || {}
 
             # Retrieves trace information for current thread
-            correlation = Datadog.tracer.active_correlation
+            correlation = Datadog::Tracing.correlation
             # merge original lambda with datadog context
 
             datadog_trace_log_hash = {

@@ -26,6 +26,62 @@ module Datadog
         protobuf_failed_to_load?
     end
 
+    # Apply configuration changes to `Datadog::Profiling`. An example of a {.configure} call:
+    # ```
+    # Datadog::Profiling.configure do |c|
+    #   c.profiling.enabled = true
+    # end
+    # ```
+    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # available environment variables for configuration.
+    #
+    # Only permits access to profiling configuration settings; others will raise an error.
+    # If you wish to configure a global setting, use `Datadog.configure`` instead.
+    # If you wish to configure a setting for a specific Datadog component (e.g. Tracing),
+    # use the corresponding `Datadog::COMPONENT.configure` method instead.
+    #
+    # Because many configuration changes require restarting internal components,
+    # invoking {.configure} is the only safe way to change `ddtrace` configuration.
+    #
+    # Successive calls to {.configure} maintain the previous configuration values:
+    # configuration is additive between {.configure} calls.
+    #
+    # The yielded configuration `c` comes pre-populated from environment variables, if
+    # any are applicable.
+    #
+    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # available environment variables for configuration.
+    #
+    # Will raise errors if invalid setting is accessed.
+    #
+    # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+    # @return [void]
+    # @public_api
+    def self.configure
+      # Wrap block with profiling option validation
+      wrapped_block = proc do |c|
+        yield(Datadog::Configuration::ValidationProxy::Profiling.new(c))
+      end
+
+      # Configure application normally
+      Datadog.send(:internal_configure, &wrapped_block)
+    end
+
+    # Current profiler configuration.
+    #
+    # Access to non-profiling configuration will raise an error.
+    #
+    # To modify the configuration, use {.configure}.
+    #
+    # @return [Datadog::Configuration::Settings]
+    # @!attribute [r] configuration
+    # @public_api
+    def self.configuration
+      Datadog::Configuration::ValidationProxy::Profiling.new(
+        Datadog.send(:internal_configuration)
+      )
+    end
+
     private_class_method def self.ruby_engine_unsupported?
       'JRuby is not supported' if RUBY_ENGINE == 'jruby'
     end

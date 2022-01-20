@@ -8,7 +8,7 @@ module Datadog
           base.class_eval do
             around_perform do |_, block|
               if logger.respond_to?(:tagged)
-                logger.tagged(Datadog.tracer.active_correlation.to_log_format, &block)
+                logger.tagged(Datadog::Tracing.log_correlation, &block)
               else
                 block.call
               end

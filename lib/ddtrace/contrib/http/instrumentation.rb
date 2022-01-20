@@ -40,9 +40,9 @@ module Datadog
             pin = datadog_pin(request_options)
             return super(req, body, &block) unless pin
 
-            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req, Datadog.tracer)
+            return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req)
 
-            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+            Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
                 # even though service_name might already be in request_options,
                 # we need to capture the name from the pin since it could be
@@ -52,7 +52,7 @@ module Datadog
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if Datadog.tracer.enabled && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
+                if Datadog::Tracing.enabled? && !Datadog::Contrib::HTTP.should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(trace, req)
                 end
 
@@ -116,7 +116,7 @@ module Datadog
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate(request_options))
           end
 
-          def datadog_pin(config = Datadog.configuration[:http])
+          def datadog_pin(config = Datadog::Tracing.configuration[:http])
             service = config[:service_name]
 
             @datadog_pin ||= Datadog::Pin.new(
@@ -141,7 +141,7 @@ module Datadog
           end
 
           def default_datadog_pin
-            config = Datadog.configuration[:http]
+            config = Datadog::Tracing.configuration[:http]
             service = config[:service_name]
             @default_datadog_pin ||= Datadog::Pin.new(
               service,
@@ -161,7 +161,7 @@ module Datadog
           end
 
           def datadog_configuration(host = :default)
-            Datadog.configuration[:http, host]
+            Datadog::Tracing.configuration[:http, host]
           end
 
           def analytics_enabled?(request_options)

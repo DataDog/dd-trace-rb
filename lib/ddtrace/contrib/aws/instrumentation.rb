@@ -17,7 +17,7 @@ module Datadog
       # Generates Spans for all interactions with AWS
       class Handler < Seahorse::Client::Handler
         def call(context)
-          tracer.trace(Ext::SPAN_COMMAND) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_COMMAND) do |span|
             @handler.call(context).tap do
               annotate!(span, ParsedContext.new(context))
             end
@@ -53,12 +53,8 @@ module Datadog
           span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, context.safely(:status_code))
         end
 
-        def tracer
-          Datadog.tracer
-        end
-
         def configuration
-          Datadog.configuration[:aws]
+          Datadog::Tracing.configuration[:aws]
         end
       end
 

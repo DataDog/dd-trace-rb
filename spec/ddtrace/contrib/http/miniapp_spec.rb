@@ -20,7 +20,7 @@ RSpec.describe 'net/http miniapp tests' do
   let(:client) { Net::HTTP.new(host, port) }
 
   before do
-    Datadog.configure { |c| c.use :http }
+    Datadog::Tracing.configure { |c| c.instrument :http }
   end
 
   context 'when performing a trace around HTTP calls' do

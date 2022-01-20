@@ -16,16 +16,16 @@ RSpec.describe 'Dalli instrumentation' do
 
   # Enable the test tracer
   before do
-    Datadog.configure do |c|
-      c.use :dalli, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :dalli, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:dalli].reset_configuration!
+    Datadog::Tracing.registry[:dalli].reset_configuration!
     example.run
-    Datadog.registry[:dalli].reset_configuration!
+    Datadog::Tracing.registry[:dalli].reset_configuration!
   end
 
   describe 'when a client calls #set' do
@@ -64,8 +64,8 @@ RSpec.describe 'Dalli instrumentation' do
     let(:service_name) { 'multiplex-service' }
 
     before do
-      Datadog.configure do |c|
-        c.use :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
+      Datadog::Tracing.configure do |c|
+        c.instrument :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
       end
     end
 

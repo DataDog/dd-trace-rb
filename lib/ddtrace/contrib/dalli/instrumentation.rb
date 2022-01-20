@@ -17,7 +17,7 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def request(op, *args)
-            tracer.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
+            Datadog::Tracing.trace(Datadog::Contrib::Dalli::Ext::SPAN_COMMAND) do |span|
               span.resource = op.to_s.upcase
               span.service = datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Dalli::Ext::SPAN_TYPE_COMMAND
@@ -45,12 +45,8 @@ module Datadog
 
           private
 
-          def tracer
-            Datadog.tracer
-          end
-
           def datadog_configuration
-            Datadog.configuration[:dalli, "#{hostname}:#{port}"] || Datadog.configuration[:dalli]
+            Datadog::Tracing.configuration[:dalli, "#{hostname}:#{port}"]
           end
         end
       end

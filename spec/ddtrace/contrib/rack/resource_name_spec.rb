@@ -18,17 +18,17 @@ RSpec.describe 'Rack integration with other middleware' do
 
   before do
     # Undo the Rack middleware name patch
-    Datadog.registry[:rack].patcher::PATCHERS.each do |patcher|
+    Datadog::Tracing.registry[:rack].patcher::PATCHERS.each do |patcher|
       remove_patch!(patcher)
     end
 
-    Datadog.configure do |c|
-      c.use :rack, rack_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rack, rack_options
     end
   end
 
   after do
-    Datadog.registry[:rack].reset_configuration!
+    Datadog::Tracing.registry[:rack].reset_configuration!
   end
 
   shared_context 'app with middleware' do

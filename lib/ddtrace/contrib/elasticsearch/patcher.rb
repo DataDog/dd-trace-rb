@@ -40,7 +40,7 @@ module Datadog
             end
 
             def initialize(*args, &block)
-              service = Datadog.configuration[:elasticsearch][:service_name]
+              service = Datadog::Tracing.configuration[:elasticsearch][:service_name]
 
               pin = Datadog::Pin.new(
                 service,
@@ -66,7 +66,7 @@ module Datadog
 
               url = full_url.path
               response = nil
-              Datadog.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
+              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
@@ -115,7 +115,7 @@ module Datadog
             end
 
             def datadog_configuration
-              Datadog.configuration[:elasticsearch]
+              Datadog::Tracing.configuration[:elasticsearch]
             end
           end
         end

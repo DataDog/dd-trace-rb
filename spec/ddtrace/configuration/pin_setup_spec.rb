@@ -42,8 +42,8 @@ RSpec.describe Datadog::Configuration::PinSetup do
     end
   end
 
-  describe 'Datadog#configure' do
-    before { Datadog.configure_onto(target, service_name: :foo, extra: :bar) }
+  describe 'Datadog::Tracing#configure' do
+    before { Datadog::Tracing.configure_onto(target, service_name: :foo, extra: :bar) }
 
     it do
       expect(target.datadog_pin.service).to eq(:foo)

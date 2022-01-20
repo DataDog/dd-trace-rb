@@ -46,7 +46,7 @@ RSpec.describe Datadog::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration)
+              .with(test_class.configuration.send(:settings))
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Configuration do
             # New components should startup
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration)
+              .with(test_class.configuration.send(:settings))
 
             expect(new_components).to_not have_received(:shutdown!)
           end
@@ -172,12 +172,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(old_statsd).to receive(:close).once
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = old_statsd
               c.diagnostics.health_metrics.statsd = old_statsd
             end
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = new_statsd
               c.diagnostics.health_metrics.statsd = new_statsd
             end
@@ -197,12 +197,12 @@ RSpec.describe Datadog::Configuration do
             # Since its being reused, it should not be closed.
             expect(old_statsd).to_not receive(:close)
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = old_statsd
               c.diagnostics.health_metrics.statsd = old_statsd
             end
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = new_statsd
             end
           end
@@ -219,12 +219,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(statsd).to_not receive(:close)
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(statsd).to_not receive(:close)
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.statsd = statsd
               c.diagnostics.health_metrics.statsd = statsd
             end
@@ -263,12 +263,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(old_tracer).to receive(:shutdown!)
 
-            test_class.configure { |c| c.tracer.instance = old_tracer }
-            test_class.configure { |c| c.tracer.instance = new_tracer }
+            test_class.send(:internal_configure) { |c| c.tracer.instance = old_tracer }
+            test_class.send(:internal_configure) { |c| c.tracer.instance = new_tracer }
           end
 
           it 'replaces the old tracer and shuts it down' do
-            expect(test_class.tracer).to be new_tracer
+            expect(test_class.send(:components).tracer).to be new_tracer
           end
         end
 
@@ -278,12 +278,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(tracer).to_not receive(:shutdown!)
 
-            test_class.configure { |c| c.tracer.instance = tracer }
-            test_class.configure { |c| c.tracer.instance = tracer }
+            test_class.send(:internal_configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:internal_configure) { |c| c.tracer.instance = tracer }
           end
 
           it 'reuses the same tracer' do
-            expect(test_class.tracer).to be tracer
+            expect(test_class.send(:components).tracer).to be tracer
           end
         end
 
@@ -293,12 +293,12 @@ RSpec.describe Datadog::Configuration do
           before do
             expect(tracer).to_not receive(:shutdown!)
 
-            test_class.configure { |c| c.tracer.instance = tracer }
-            test_class.configure { |_c| }
+            test_class.send(:internal_configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:internal_configure) { |_c| }
           end
 
           it 'reuses the same tracer' do
-            expect(test_class.tracer).to be tracer
+            expect(test_class.send(:components).tracer).to be tracer
           end
         end
       end
@@ -312,7 +312,7 @@ RSpec.describe Datadog::Configuration do
 
           context 'and profiling is enabled' do
             before do
-              allow(test_class.configuration.profiling)
+              allow(test_class.send(:internal_configuration).profiling)
                 .to receive(:enabled)
                 .and_return(true)
 
@@ -333,13 +333,13 @@ RSpec.describe Datadog::Configuration do
       context 'when reconfigured multiple times' do
         context 'with runtime metrics active' do
           before do
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.enabled = true
             end
 
             @old_runtime_metrics = test_class.runtime_metrics
 
-            test_class.configure do |c|
+            test_class.send(:internal_configure) do |c|
               c.runtime_metrics.enabled = true
             end
           end
@@ -354,26 +354,6 @@ RSpec.describe Datadog::Configuration do
             expect(test_class.runtime_metrics.running?).to be false
           end
         end
-      end
-    end
-
-    describe '#configure_onto' do
-      subject(:configure) { test_class.configure_onto(object, **options) }
-
-      let(:object) { double('object') }
-      let(:options) { {} }
-
-      let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
-
-      it 'attaches a pin to the object' do
-        expect(Datadog::Configuration::PinSetup)
-          .to receive(:new)
-          .with(object, **options)
-          .and_return(pin_setup)
-
-        expect(pin_setup).to receive(:call)
-
-        configure
       end
     end
 
@@ -428,13 +408,6 @@ RSpec.describe Datadog::Configuration do
       it { expect(runtime_metrics.running?).to be false }
     end
 
-    describe '#tracer' do
-      subject(:tracer) { test_class.tracer }
-
-      it { is_expected.to be_a_kind_of(Datadog::Tracer) }
-      it { expect(tracer.trace_flush).to be_a_kind_of(Datadog::TraceFlush::Finished) }
-    end
-
     describe '#shutdown!' do
       subject(:shutdown!) { test_class.shutdown! }
 
@@ -475,11 +448,11 @@ RSpec.describe Datadog::Configuration do
         let(:custom_value) { 777 }
 
         before do
-          test_class.configuration.sampling.rate_limit = custom_value
+          test_class.send(:internal_configuration).sampling.rate_limit = custom_value
         end
 
         it 'resets the configuration' do
-          expect { reset! }.to change { test_class.configuration.sampling.rate_limit }
+          expect { reset! }.to change { test_class.send(:internal_configuration).sampling.rate_limit }
             .from(custom_value).to(default_value)
         end
       end

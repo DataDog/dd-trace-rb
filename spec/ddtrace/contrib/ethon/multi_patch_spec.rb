@@ -12,16 +12,16 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :ethon, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :ethon, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:ethon].reset_configuration!
+    Datadog::Tracing.registry[:ethon].reset_configuration!
     example.run
-    Datadog.registry[:ethon].reset_configuration!
+    Datadog::Tracing.registry[:ethon].reset_configuration!
   end
 
   describe '#add' do

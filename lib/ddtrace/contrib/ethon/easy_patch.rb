@@ -22,7 +22,7 @@ module Datadog
 
           def http_request(url, action_name, options = {})
             load_datadog_configuration_for(url)
-            return super unless tracer_enabled?
+            return super unless Datadog::Tracing.enabled?
 
             # It's tricky to get HTTP method from libcurl
             @datadog_method = action_name.to_s.upcase
@@ -37,14 +37,14 @@ module Datadog
 
           def perform
             load_datadog_configuration_for(url)
-            return super unless tracer_enabled?
+            return super unless Datadog::Tracing.enabled?
 
             datadog_before_request
             super
           end
 
           def complete
-            return super unless tracer_enabled?
+            return super unless Datadog::Tracing.enabled?
 
             begin
               response_options = mirror.options
@@ -90,13 +90,13 @@ module Datadog
             load_datadog_configuration_for(url)
 
             trace_options = continue_from ? { continue_from: continue_from } : {}
-            @datadog_span = Datadog.tracer.trace(
+            @datadog_span = Datadog::Tracing.trace(
               Ext::SPAN_REQUEST,
               service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
               **trace_options
             )
-            datadog_trace = Datadog.tracer.active_trace
+            datadog_trace = Datadog::Tracing.active_trace
 
             datadog_tag_request
 
@@ -151,11 +151,7 @@ module Datadog
           end
 
           def load_datadog_configuration_for(host = :default)
-            @datadog_configuration = Datadog.configuration[:ethon, host]
-          end
-
-          def tracer_enabled?
-            Datadog.tracer.enabled
+            @datadog_configuration = Datadog::Tracing.configuration[:ethon, host]
           end
 
           def analytics_enabled?

@@ -42,7 +42,7 @@ module Datadog
             opts = Utils.parse_opts(sql, options, db.opts, self)
             response = nil
 
-            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
               span.service = datadog_pin.service
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE

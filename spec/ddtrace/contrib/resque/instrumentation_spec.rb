@@ -41,16 +41,16 @@ RSpec.describe 'Resque instrumentation' do
     ::Resque::Failure.clear
 
     # Patch Resque
-    Datadog.configure do |c|
-      c.use :resque, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :resque, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:resque].reset_configuration!
+    Datadog::Tracing.registry[:resque].reset_configuration!
     example.run
-    Datadog.registry[:resque].reset_configuration!
+    Datadog::Tracing.registry[:resque].reset_configuration!
   end
 
   shared_examples 'job execution tracing' do
@@ -163,8 +163,8 @@ RSpec.describe 'Resque instrumentation' do
           expect(tracer.active_span.parent_id).to eq(0)
         end
 
-        # On completion of the fork, `Datadog.tracer.shutdown!` will be invoked.
-        expect(tracer).to receive(:shutdown!)
+        # On completion of the fork, `Datadog::Tracing.shutdown!` will be invoked.
+        expect(Datadog::Tracing).to receive(:shutdown!)
 
         tracer.trace('main.process') do
           perform_job(job_class)

@@ -22,8 +22,8 @@ RSpec.describe 'ActionCable patcher' do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :action_cable, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :action_cable, configuration_options
     end
 
     raise_on_rails_deprecation!
@@ -31,9 +31,9 @@ RSpec.describe 'ActionCable patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:action_cable].reset_configuration!
+    Datadog::Tracing.registry[:action_cable].reset_configuration!
     example.run
-    Datadog.registry[:action_cable].reset_configuration!
+    Datadog::Tracing.registry[:action_cable].reset_configuration!
   end
 
   context 'with server' do

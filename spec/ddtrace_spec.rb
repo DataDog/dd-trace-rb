@@ -6,28 +6,22 @@ RSpec.describe Datadog do
     subject(:datadog) { described_class }
 
     describe 'behavior' do
-      describe '#tracer' do
-        subject { datadog.tracer }
-
-        it { is_expected.to be_an_instance_of(Datadog::Tracer) }
-      end
-
-      describe '#registry' do
-        subject { datadog.registry }
-
-        it { is_expected.to be_an_instance_of(Datadog::Contrib::Registry) }
-      end
-
       describe '#configuration' do
-        subject { datadog.configuration }
+        subject(:configuration) { datadog.configuration }
 
-        it { is_expected.to be_an_instance_of(Datadog::Configuration::Settings) }
+        it do
+          is_expected.to be_an_instance_of(Datadog::Configuration::ValidationProxy::Global)
+          expect(configuration.send(:settings)).to be_an_instance_of(Datadog::Configuration::Settings)
+        end
       end
 
       describe '#configure' do
         let(:configuration) { datadog.configuration }
 
-        it { expect { |b| datadog.configure(&b) }.to yield_with_args(configuration) }
+        it do
+          expect { |b| datadog.configure(&b) }
+            .to yield_with_args(kind_of(Datadog::Configuration::ValidationProxy::Global))
+        end
       end
     end
   end

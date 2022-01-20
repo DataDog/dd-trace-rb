@@ -11,7 +11,7 @@ RSpec.describe 'Tracer integration tests' do
       skip unless ENV['TEST_DATADOG_INTEGRATION']
     end
 
-    let(:tracer) { Datadog.tracer }
+    let(:tracer) { Datadog::Tracing.send(:tracer) }
   end
 
   shared_examples 'flushed trace' do
@@ -103,7 +103,7 @@ RSpec.describe 'Tracer integration tests' do
         # @see https://support.circleci.com/hc/en-us/articles/360007324514-How-can-I-use-Docker-volume-mounting-on-CircleCI-
         skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
 
-        Datadog.configure do |c|
+        Datadog::Tracing.configure do |c|
           c.tracer.transport_options = proc { |t|
             t.adapter :unix, ENV['TEST_DDAGENT_UNIX_SOCKET']
           }
@@ -145,13 +145,13 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     before do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.sampler = sampler if sampler
       end
     end
 
     after do
-      Datadog.configuration.sampling.reset!
+      Datadog::Tracing.configuration.sampling.reset!
     end
 
     shared_examples 'priority sampled' do |sampling_priority|
@@ -301,7 +301,7 @@ RSpec.describe 'Tracer integration tests' do
 
         # Fork the process
         fork_id = fork do
-          allow(Datadog.tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
+          allow(tracer).to receive(:shutdown!).and_wrap_original do |m, *args|
             m.call(*args).tap { write.write(graceful_signal) }
           end
 
@@ -371,8 +371,6 @@ RSpec.describe 'Tracer integration tests' do
   describe 'sampling priority integration' do
     include_context 'agent-based test'
 
-    # Expect default tracer & tracer instance to both have priority sampling.
-    it { expect(Datadog.tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
     it { expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler) }
 
     it do
@@ -403,7 +401,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:out) { instance_double(IO) } # Dummy output so we don't pollute STDOUT
 
     before do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.writer = writer
       end
 
@@ -423,7 +421,7 @@ RSpec.describe 'Tracer integration tests' do
 
     # Reset the writer
     after do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.reset!
       end
     end
@@ -457,7 +455,7 @@ RSpec.describe 'Tracer integration tests' do
     let(:transport) { Datadog::Transport::HTTP.default }
 
     before do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.priority_sampling = true
         c.tracer.writer = writer
       end
@@ -497,20 +495,20 @@ RSpec.describe 'Tracer integration tests' do
 
   describe 'tracer transport' do
     subject(:configure) do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.hostname = hostname
         c.tracer.port = port
         c.tracer.priority_sampling = true
       end
     end
 
-    let(:tracer) { Datadog.tracer }
+    let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:hostname) { double('hostname') }
     let(:port) { 34567 }
 
     context 'when :transport_options' do
       before do
-        Datadog.configure do |c|
+        Datadog::Tracing.configure do |c|
           c.tracer.transport_options = transport_options
         end
       end

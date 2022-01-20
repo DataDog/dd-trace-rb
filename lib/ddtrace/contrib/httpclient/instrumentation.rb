@@ -27,13 +27,13 @@ module Datadog
 
             return super unless pin
 
-            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+            Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
                 request_options[:service_name] = pin.service_name
                 span.service = service_name(host, request_options)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                if Datadog.tracer.enabled && !should_skip_distributed_tracing?(pin)
+                if Datadog::Tracing.enabled? && !should_skip_distributed_tracing?(pin)
                   Datadog::HTTPPropagator.inject!(trace, req.header)
                 end
 
@@ -89,7 +89,7 @@ module Datadog
             span.set_error(error)
           end
 
-          def datadog_pin(config = Datadog.configuration[:httprb])
+          def datadog_pin(config = Datadog::Tracing.configuration[:httprb])
             service = config[:service_name]
 
             @datadog_pin ||= Datadog::Pin.new(
@@ -106,7 +106,7 @@ module Datadog
           end
 
           def default_datadog_pin
-            config = Datadog.configuration[:httpclient]
+            config = Datadog::Tracing.configuration[:httpclient]
             service = config[:service_name]
 
             @default_datadog_pin ||= Datadog::Pin.new(
@@ -117,7 +117,7 @@ module Datadog
           end
 
           def datadog_configuration(host = :default)
-            Datadog.configuration[:httpclient, host]
+            Datadog::Tracing.configuration[:httpclient, host]
           end
 
           def analytics_enabled?(request_options)
@@ -131,7 +131,7 @@ module Datadog
           def should_skip_distributed_tracing?(pin)
             return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
 
-            !Datadog.configuration[:httpclient][:distributed_tracing]
+            !Datadog::Tracing.configuration[:httpclient][:distributed_tracing]
           end
 
           def set_analytics_sample_rate(span, request_options)

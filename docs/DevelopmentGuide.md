@@ -246,7 +246,7 @@ Datadog::Transport::HTTP::Builder::REGISTRY.set(CustomAdapter, :custom)
 Then pass an adapter instance to the tracer configuration:
 
 ```ruby
-Datadog.configure do |c|
+Datadog::Tracing.configure do |c|
   c.tracer.transport_options = proc { |t|
     # By name
     t.adapter :custom

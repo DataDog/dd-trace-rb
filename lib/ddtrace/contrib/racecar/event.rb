@@ -27,12 +27,8 @@ module Datadog
             { service: configuration[:service_name] }
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def configuration
-            Datadog.configuration[:racecar]
+            Datadog::Tracing.configuration[:racecar]
           end
 
           def process(span, event, _id, payload)
@@ -68,9 +64,9 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless tracer.active_span
+            return unless Datadog::Tracing.active_span
 
-            tracer.provider.context = Context.new
+            Datadog::Tracing.send(:tracer).provider.context = Context.new
           end
         end
       end

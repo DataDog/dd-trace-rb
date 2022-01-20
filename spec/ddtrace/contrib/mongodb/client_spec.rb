@@ -24,17 +24,17 @@ RSpec.describe 'Mongo::Client instrumentation' do
     # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
-    Datadog.configure do |c|
-      c.use :mongo, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :mongo, configuration_options
     end
   end
 
   around do |example|
     without_warnings do
       # Reset before and after each example; don't allow global state to linger.
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Tracing.registry[:mongo].reset_configuration!
       example.run
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Tracing.registry[:mongo].reset_configuration!
       client.database.drop if drop_database?
       client.close
     end
@@ -52,7 +52,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     context 'with a different service name' do
       let(:service) { 'mongodb-primary' }
 
-      before { Datadog.configure_onto(client, service_name: service) }
+      before { Datadog::Tracing.configure_onto(client, service_name: service) }
 
       subject { client[collection].insert_one(name: 'FKA Twigs') }
 
@@ -74,12 +74,12 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:secondary_host) { 'localhost' }
 
       before do
-        Datadog.configure do |c|
-          c.use :mongo, describes: /#{host}/ do |mongo|
+        Datadog::Tracing.configure do |c|
+          c.instrument :mongo, describes: /#{host}/ do |mongo|
             mongo.service_name = primary_service
           end
 
-          c.use :mongo, describes: /#{secondary_host}/ do |mongo|
+          c.instrument :mongo, describes: /#{secondary_host}/ do |mongo|
             mongo.service_name = secondary_service
           end
         end
@@ -103,9 +103,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
-            Datadog.registry[:mongo].reset_configuration!
+            Datadog::Tracing.registry[:mongo].reset_configuration!
             example.run
-            Datadog.registry[:mongo].reset_configuration!
+            Datadog::Tracing.registry[:mongo].reset_configuration!
             secondary_client.database.drop if drop_database?
             secondary_client.close
           end

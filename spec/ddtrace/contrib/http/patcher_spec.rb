@@ -16,9 +16,9 @@ RSpec.describe 'net/http patcher' do
 
     stub_request(:any, host)
 
-    Datadog.configuration[:http].reset!
-    Datadog.configure do |c|
-      c.use :http
+    Datadog::Tracing.configuration[:http].reset!
+    Datadog::Tracing.configure do |c|
+      c.instrument :http
     end
   end
 
@@ -39,12 +39,16 @@ RSpec.describe 'net/http patcher' do
     let(:new_service_name) { 'new_service_name' }
 
     before do
-      Datadog.configure do |c|
-        c.use :http, service_name: new_service_name
+      Datadog::Tracing.configure do |c|
+        c.instrument :http, service_name: new_service_name
       end
     end
 
-    after { Datadog.configure { |c| c.use :http, service_name: Datadog::Contrib::HTTP::Ext::DEFAULT_PEER_SERVICE_NAME } }
+    after do
+      Datadog::Tracing.configure do |c|
+        c.instrument :http, service_name: Datadog::Contrib::HTTP::Ext::DEFAULT_PEER_SERVICE_NAME
+      end
+    end
 
     subject { Net::HTTP.get(host, '/') }
 

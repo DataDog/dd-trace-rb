@@ -12,14 +12,12 @@ module Datadog
           module_function
 
           def start_trace_cache(payload)
-            tracer = Datadog.tracer
-
             # In most of the cases Rails ``fetch()`` and ``read()`` calls are nested.
             # This check ensures that two reads are not nested since they don't provide
             # interesting details.
             # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
             # to avoid any kind of issue.
-            current_span = tracer.active_span
+            current_span = Datadog::Tracing.active_span
             return if current_span.try(:name) == Ext::SPAN_CACHE &&
                       (
                         payload[:action] == Ext::RESOURCE_CACHE_GET &&
@@ -31,9 +29,9 @@ module Datadog
             tracing_context = payload.fetch(:tracing_context)
 
             # create a new ``Span`` and add it to the tracing context
-            service = Datadog.configuration[:active_support][:cache_service]
+            service = Datadog::Tracing.configuration[:active_support][:cache_service]
             type = Ext::SPAN_TYPE_CACHE
-            span = tracer.trace(Ext::SPAN_CACHE, service: service, span_type: type)
+            span = Datadog::Tracing.trace(Ext::SPAN_CACHE, service: service, span_type: type)
             span.resource = payload.fetch(:action)
 
             span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)

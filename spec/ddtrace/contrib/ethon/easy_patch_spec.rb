@@ -13,16 +13,16 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
   let(:easy) { EthonSupport.ethon_easy_new }
 
   before do
-    Datadog.configure do |c|
-      c.use :ethon, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :ethon, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:ethon].reset_configuration!
+    Datadog::Tracing.registry[:ethon].reset_configuration!
     example.run
-    Datadog.registry[:ethon].reset_configuration!
+    Datadog::Tracing.registry[:ethon].reset_configuration!
   end
 
   describe '#http_request' do
@@ -68,13 +68,13 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       context 'and the host matches a specific configuration' do
         before do
-          Datadog.configure do |c|
-            c.use :ethon, describes: /example\.com/ do |ethon|
+          Datadog::Tracing.configure do |c|
+            c.instrument :ethon, describes: /example\.com/ do |ethon|
               ethon.service_name = 'baz'
               ethon.split_by_domain = false
             end
 
-            c.use :ethon, describes: /badexample\.com/ do |ethon|
+            c.instrument :ethon, describes: /badexample\.com/ do |ethon|
               ethon.service_name = 'baz_bad'
               ethon.split_by_domain = false
             end

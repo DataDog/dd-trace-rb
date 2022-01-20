@@ -19,7 +19,7 @@ module Datadog
         module InstanceMethods
           def add(easy)
             handles = super
-            return handles if handles.nil? || !tracer_enabled?
+            return handles unless handles && Datadog::Tracing.enabled?
 
             if datadog_multi_performing?
               # Start Easy span in case Multi is already performing
@@ -29,14 +29,14 @@ module Datadog
           end
 
           def perform
-            if tracer_enabled?
+            if Datadog::Tracing.enabled?
               easy_handles.each do |easy|
                 easy.datadog_before_request(continue_from: datadog_multi_trace_digest) unless easy.datadog_span_started?
               end
             end
             super
           ensure
-            if tracer_enabled? && datadog_multi_performing?
+            if Datadog::Tracing.enabled? && datadog_multi_performing?
               @datadog_multi_span.finish
               @datadog_multi_span = nil
               @datadog_multi_trace_digest = nil
@@ -58,11 +58,11 @@ module Datadog
           def datadog_multi_span
             return @datadog_multi_span if datadog_multi_performing?
 
-            @datadog_multi_span = Datadog.tracer.trace(
+            @datadog_multi_span = Datadog::Tracing.trace(
               Ext::SPAN_MULTI_REQUEST,
               service: datadog_configuration[:service_name]
             )
-            @datadog_multi_trace_digest = Datadog.tracer.active_trace.to_digest
+            @datadog_multi_trace_digest = Datadog::Tracing.active_trace.to_digest
 
             @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
             @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_MULTI_REQUEST)
@@ -77,11 +77,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:ethon]
-          end
-
-          def tracer_enabled?
-            Datadog.tracer.enabled
+            Datadog::Tracing.configuration[:ethon]
           end
 
           def analytics_enabled?

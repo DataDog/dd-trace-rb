@@ -15,8 +15,8 @@ RSpec.describe 'Mongo crash regression #1235' do
     # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
-    Datadog.configure do |c|
-      c.use :mongo
+    Datadog::Tracing.configure do |c|
+      c.instrument :mongo
     end
   end
 

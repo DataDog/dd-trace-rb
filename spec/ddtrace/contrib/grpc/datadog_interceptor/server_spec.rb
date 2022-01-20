@@ -12,16 +12,16 @@ RSpec.describe 'tracing on the server connection' do
   let(:configuration_options) { { service_name: 'rspec' } }
 
   before do
-    Datadog.configure do |c|
-      c.use :grpc, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :grpc, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:grpc].reset_configuration!
+    Datadog::Tracing.registry[:grpc].reset_configuration!
     example.run
-    Datadog.registry[:grpc].reset_configuration!
+    Datadog::Tracing.registry[:grpc].reset_configuration!
   end
 
   shared_examples 'span data contents' do

@@ -11,12 +11,12 @@ module Datadog
         # Instance methods for configuration
         module InstanceMethods
           def custom_options(event)
-            return super unless Datadog.configuration[:lograge].enabled
+            return super unless Datadog::Tracing.configuration[:lograge].enabled
 
             original_custom_options = super(event)
 
             # Retrieves trace information for current thread
-            correlation = Datadog.tracer.active_correlation
+            correlation = Datadog::Tracing.correlation
             # merge original lambda with datadog context
 
             datadog_trace_log_hash = {

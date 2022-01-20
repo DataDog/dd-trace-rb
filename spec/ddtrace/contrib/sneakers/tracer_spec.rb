@@ -36,17 +36,17 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
     allow(queue).to receive(:opts).and_return({})
     allow(queue).to receive(:exchange).and_return(exchange)
     Sneakers.configure(daemonize: true, log: '/tmp/sneakers.log')
-    Datadog.configure do |c|
-      c.use :sneakers, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :sneakers, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:sneakers].reset_configuration!
+    Datadog::Tracing.registry[:sneakers].reset_configuration!
     Sneakers.clear!
     example.run
-    Datadog.registry[:sneakers].reset_configuration!
+    Datadog::Tracing.registry[:sneakers].reset_configuration!
     Sneakers.clear!
   end
 

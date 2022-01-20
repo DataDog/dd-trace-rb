@@ -12,7 +12,7 @@ module Datadog
         end
 
         def call(worker_instance, queue, sqs_msg, body)
-          Datadog.tracer.trace(
+          Datadog::Tracing.trace(
             Ext::SPAN_JOB,
             service: @shoryuken_service,
             span_type: Datadog::Ext::AppTypes::WORKER,
@@ -50,7 +50,7 @@ module Datadog
         end
 
         def configuration
-          Datadog.configuration[:shoryuken]
+          Datadog::Tracing.configuration[:shoryuken]
         end
       end
     end

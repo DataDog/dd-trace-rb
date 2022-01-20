@@ -27,9 +27,9 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   before do
-    Datadog.configuration[:rails].reset_options!
-    Datadog.configure do |c|
-      c.use :rails
+    Datadog::Tracing.configuration[:rails].reset_options!
+    Datadog::Tracing.configure do |c|
+      c.instrument :rails
       c.log_injection = log_injection
     end
 
@@ -37,8 +37,8 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   after do
-    Datadog.configuration[:rails].reset_options!
-    Datadog.configuration[:semantic_logger].reset_options!
+    Datadog::Tracing.configuration[:rails].reset_options!
+    Datadog::Tracing.configuration[:semantic_logger].reset_options!
   end
 
   context 'with log injection enabled', if: Rails.version >= '4.0' do
@@ -56,12 +56,14 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       before do
         Datadog.configure do |c|
-          c.use :rails
-          c.log_injection = log_injection
-
           c.env = test_env
           c.version = test_version
           c.service = test_service
+        end
+
+        Datadog::Tracing.configure do |c|
+          c.instrument :rails
+          c.log_injection = log_injection
         end
 
         allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
@@ -120,7 +122,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     let(:test_service) { 'test-service' }
 
     before do
-      Datadog.configuration[:semantic_logger].enabled = false
+      Datadog::Tracing.configuration[:semantic_logger].enabled = false
     end
 
     context 'with Semantic Logger' do
@@ -130,12 +132,14 @@ RSpec.describe 'Rails Log Auto Injection' do
 
       before do
         Datadog.configure do |c|
-          c.use :rails
-          c.log_injection = log_injection
-
           c.env = test_env
           c.version = test_version
           c.service = test_service
+        end
+
+        Datadog::Tracing.configure do |c|
+          c.instrument :rails
+          c.log_injection = log_injection
         end
 
         allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)

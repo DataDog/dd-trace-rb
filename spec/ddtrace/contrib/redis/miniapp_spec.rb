@@ -11,10 +11,10 @@ RSpec.describe 'Redis mini app test' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   before do
-    Datadog.configure { |c| c.use :redis }
+    Datadog::Tracing.configure { |c| c.instrument :redis }
 
     # Configure client instance with custom options
-    Datadog.configure_onto(client, service_name: 'test-service')
+    Datadog::Tracing.configure_onto(client, service_name: 'test-service')
   end
 
   let(:client) do

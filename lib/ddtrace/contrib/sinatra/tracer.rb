@@ -26,7 +26,7 @@ module Datadog
             # DEV: env['sinatra.route'] already exists with very similar information,
             # DEV: but doesn't account for our `resource_script_names` logic.
             #
-            @datadog_route = if Datadog.configuration[:sinatra][:resource_script_names]
+            @datadog_route = if Datadog::Tracing.configuration[:sinatra][:resource_script_names]
                                "#{request.script_name}#{action}"
                              else
                                action
@@ -40,7 +40,7 @@ module Datadog
           app.use TracerMiddleware, app_instance: app
 
           app.after do
-            next unless Datadog.tracer.enabled
+            next unless Datadog::Tracing.enabled?
 
             span = Sinatra::Env.datadog_span(env, app)
 
@@ -80,10 +80,9 @@ module Datadog
           private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
 
           def render(engine, data, *)
-            tracer = Datadog.tracer
-            return super unless tracer.enabled
+            return super unless Datadog::Tracing.enabled?
 
-            tracer.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
               span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
 
@@ -102,13 +101,11 @@ module Datadog
 
           # Invoked when a matching route is found.
           # This method yields directly to user code.
-          # rubocop:disable Metrics/MethodLength
           def route_eval
-            configuration = Datadog.configuration[:sinatra]
-            tracer = Datadog.tracer
-            return super unless tracer.enabled
+            configuration = Datadog::Tracing.configuration[:sinatra]
+            return super unless Datadog::Tracing.enabled?
 
-            tracer.trace(
+            Datadog::Tracing.trace(
               Ext::SPAN_ROUTE,
               service: configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
@@ -148,7 +145,6 @@ module Datadog
               super
             end
           end
-          # rubocop:enable Metrics/MethodLength
         end
       end
     end

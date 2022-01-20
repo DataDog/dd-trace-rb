@@ -28,22 +28,22 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:rake].reset!
+    Datadog::Tracing.configuration[:rake].reset!
 
     # Patch Rake
-    Datadog.configure do |c|
-      c.use :rake, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rake, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rake].reset_configuration!
+    Datadog::Tracing.registry[:rake].reset_configuration!
     example.run
-    Datadog.registry[:rake].reset_configuration!
+    Datadog::Tracing.registry[:rake].reset_configuration!
 
     # We don't want instrumentation enabled during the rest of the test suite...
-    Datadog.configure { |c| c.use :rake, enabled: false }
+    Datadog::Tracing.configure { |c| c.instrument :rake, enabled: false }
   end
 
   def reset_task!(task_name)

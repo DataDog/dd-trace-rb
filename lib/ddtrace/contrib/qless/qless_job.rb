@@ -9,9 +9,9 @@ module Datadog
       # Uses Qless job hooks to create traces
       module QlessJob
         def around_perform(job)
-          return super unless datadog_configuration && tracer
+          return super unless datadog_configuration && Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = job.klass_name
             span.span_type = Datadog::Ext::AppTypes::WORKER
             span.set_tag(Ext::TAG_JOB_ID, job.jid)
@@ -46,7 +46,7 @@ module Datadog
         end
 
         def after_fork
-          configuration = Datadog.configuration[:qless]
+          configuration = Datadog::Tracing.configuration[:qless]
           return if configuration.nil?
 
           # Add a pin, marking the job as forked.
@@ -64,12 +64,8 @@ module Datadog
           { service: datadog_configuration[:service_name] }
         end
 
-        def tracer
-          Datadog.tracer
-        end
-
         def datadog_configuration
-          Datadog.configuration[:qless]
+          Datadog::Tracing.configuration[:qless]
         end
       end
     end

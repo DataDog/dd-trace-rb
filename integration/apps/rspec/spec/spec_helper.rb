@@ -1,9 +1,12 @@
 require 'datadog/ci'
 
 # Enable CI tracing
-Datadog.configure do |c|
+Datadog::Tracing.configure do |c|
+  c.instrument :rspec
+end
+
+Datadog::CI.configure do |c|
   c.ci_mode.enabled = true
-  c.use :rspec
 end
 
 RSpec.configure do |config|

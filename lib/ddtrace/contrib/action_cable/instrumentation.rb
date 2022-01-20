@@ -10,7 +10,7 @@ module Datadog
         # This module overrides the current Rack resource name to provide a meaningful name.
         module ActionCableConnection
           def on_open
-            Datadog.tracer.trace(Ext::SPAN_ON_OPEN) do |span, trace|
+            Datadog::Tracing.trace(Ext::SPAN_ON_OPEN) do |span, trace|
               begin
                 span.resource = "#{self.class}#on_open"
                 span.span_type = Datadog::Ext::AppTypes::WEB
@@ -55,9 +55,9 @@ module Datadog
           # Instrumentation for Channel hooks.
           class Tracer
             def self.trace(channel, hook)
-              configuration = Datadog.configuration[:action_cable]
+              configuration = Datadog::Tracing.configuration[:action_cable]
 
-              Datadog.tracer.trace("action_cable.#{hook}") do |span|
+              Datadog::Tracing.trace("action_cable.#{hook}") do |span|
                 span.service = configuration[:service_name] if configuration[:service_name]
                 span.resource = "#{channel.class}##{hook}"
                 span.span_type = Datadog::Ext::AppTypes::WEB

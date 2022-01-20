@@ -23,12 +23,8 @@ module Datadog
             { service: configuration[:service_name] }
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def configuration
-            Datadog.configuration[:kafka]
+            Datadog::Tracing.configuration[:kafka]
           end
 
           def process(span, _event, _id, payload)

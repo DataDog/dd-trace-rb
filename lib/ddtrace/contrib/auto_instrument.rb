@@ -35,11 +35,11 @@ module Datadog
           integrations << integration.name
         end
 
-        Datadog.configure do |c|
+        Datadog::Tracing.configure do |c|
           c.reduce_log_verbosity
           # This will activate auto-instrumentation for Rails
           integrations.each do |integration_name|
-            c.use integration_name
+            c.instrument integration_name
           end
         end
       end

@@ -31,7 +31,7 @@ module Datadog
             o.lazy
             o.on_set do |value|
               # Update ActionPack analytics too
-              Datadog.configuration[:action_pack][:analytics_enabled] = value
+              Datadog::Tracing.configuration[:action_pack][:analytics_enabled] = value
             end
           end
 
@@ -40,7 +40,7 @@ module Datadog
             o.lazy
             o.on_set do |value|
               # Update ActionPack analytics too
-              Datadog.configuration[:action_pack][:analytics_sample_rate] = value
+              Datadog::Tracing.configuration[:action_pack][:analytics_sample_rate] = value
             end
           end
 
@@ -48,7 +48,7 @@ module Datadog
           option :exception_controller do |o|
             o.on_set do |value|
               # Update ActionPack exception controller too
-              Datadog.configuration[:action_pack][:exception_controller] = value
+              Datadog::Tracing.configuration[:action_pack][:exception_controller] = value
             end
           end
 
@@ -58,35 +58,7 @@ module Datadog
             o.default 'views/'
             o.on_set do |value|
               # Update ActionView template base path too
-              Datadog.configuration[:action_view][:template_base_path] = value
-            end
-          end
-
-          DEPRECATION_WARN_ONLY_ONCE_TRUE = Datadog::Utils::OnlyOnce.new
-          DEPRECATION_WARN_ONLY_ONCE_FALSE = Datadog::Utils::OnlyOnce.new
-
-          option :log_injection do |o|
-            o.delegate_to { Datadog.configuration.log_injection }
-            o.lazy
-            o.on_set do |value|
-              if value
-                DEPRECATION_WARN_ONLY_ONCE_TRUE.run do
-                  Datadog.logger.warn(
-                    "log_injection is now a global option that defaults to `true`\n" \
-                    "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.use :rails, log_injection: ...`.'
-                  )
-                end
-              else
-                DEPRECATION_WARN_ONLY_ONCE_FALSE.run do
-                  Datadog.logger.warn(
-                    "log_injection is now a global option that defaults to `true`\n" \
-                     "and can't be configured on per-integration basis.\n" \
-                    'Please remove the `log_injection` setting from `c.use :rails, log_injection: ...` and use ' \
-                    "`Datadog.configure { |c| c.log_injection = false }` if you wish to disable it.\n"
-                  )
-                end
-              end
+              Datadog::Tracing.configuration[:action_view][:template_base_path] = value
             end
           end
         end

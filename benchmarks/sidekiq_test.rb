@@ -102,21 +102,20 @@ class Worker
   end
 end
 
-if Datadog.respond_to?(:configure)
-  Datadog.configure do |d|
-    d.use :rails, enabled: true, tags: { 'tag' => 'value' }
-    d.use :http
-    d.use :sidekiq, service_name: 'service'
-    d.use :redis
-    d.use :dalli
-    d.use :resque, workers: [Worker]
 
-    processor = Datadog::Pipeline::SpanProcessor.new do |span|
-      true if span.service == 'B'
-    end
+Datadog::Tracing.configure do |d|
+  d.instrument :rails, enabled: true, tags: { 'tag' => 'value' }
+  d.instrument :http
+  d.instrument :sidekiq, service_name: 'service'
+  d.instrument :redis
+  d.instrument :dalli
+  d.instrument :resque, workers: [Worker]
 
-    Datadog::Pipeline.before_flush(processor)
+  processor = Datadog::Pipeline::SpanProcessor.new do |span|
+    true if span.service == 'B'
   end
+
+  Datadog::Tracing.before_flush(processor)
 end
 
 def current_memory

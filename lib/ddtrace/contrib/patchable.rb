@@ -92,7 +92,7 @@ module Datadog
 
         # Can the patch for this integration be applied automatically?
         # For example: test integrations should only be applied
-        # by the user explicitly setting `c.use :rspec`
+        # by the user explicitly setting `c.instrument :rspec`
         # and rails sub-modules are auto-instrumented by enabling rails
         # so auto-instrumenting them on their own will cause changes in
         # service naming behavior

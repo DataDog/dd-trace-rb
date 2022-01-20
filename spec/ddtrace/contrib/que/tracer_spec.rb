@@ -27,17 +27,17 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :que, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :que, configuration_options
     end
 
     Que::Job.run_synchronously = true
   end
 
   around do |example|
-    Datadog.registry[:que].reset_configuration!
+    Datadog::Tracing.registry[:que].reset_configuration!
     example.run
-    Datadog.registry[:que].reset_configuration!
+    Datadog::Tracing.registry[:que].reset_configuration!
   end
 
   describe '#call' do

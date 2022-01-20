@@ -22,7 +22,7 @@ module Datadog
               resource: format_resource(keywords[:method])
             }
 
-            tracer.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
+            Datadog::Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
               annotate!(trace, span, keywords[:metadata], keywords[:call])
 
               yield

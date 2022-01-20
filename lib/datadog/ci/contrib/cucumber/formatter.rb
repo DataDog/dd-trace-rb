@@ -30,7 +30,6 @@ module Datadog
 
           def on_test_case_started(event)
             @current_feature_span = CI::Test.trace(
-              tracer,
               configuration[:operation_name],
               {
                 span_options: {
@@ -66,7 +65,7 @@ module Datadog
               resource: event.test_step.to_s,
               span_type: Ext::STEP_SPAN_TYPE
             }
-            @current_step_span = tracer.trace(Ext::STEP_SPAN_TYPE, **trace_options)
+            @current_step_span = Datadog::Tracing.trace(Ext::STEP_SPAN_TYPE, **trace_options)
           end
 
           def on_test_step_finished(event)
@@ -86,11 +85,7 @@ module Datadog
           private
 
           def configuration
-            Datadog.configuration[:cucumber]
-          end
-
-          def tracer
-            Datadog.tracer
+            Datadog::Tracing.configuration[:cucumber]
           end
         end
       end
