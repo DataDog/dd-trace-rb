@@ -1,11 +1,11 @@
 # typed: false
-require 'ddtrace/encoding'
+require 'datadog/core/encoding'
 require 'ddtrace/transport/http'
 
 shared_context 'Datadog::Transport::HTTP::Client spy' do
   let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
 
-  let(:spy_encoder) { Datadog::Encoding::JSONEncoder }
+  let(:spy_encoder) { Datadog::Core::Encoding::JSONEncoder }
   let(:spy_sent) { { 200 => {}, 500 => {} } }
   let(:spy_error_mode) { false }
   let(:spy_dump) { Marshal.load(Marshal.dump(spy_sent)) }
@@ -39,7 +39,7 @@ class SpyTransport < Datadog::Transport::HTTP::Client
     @helper_sent = { 200 => {}, 500 => {} }
     @helper_mutex = Mutex.new
     @helper_error_mode = false
-    @helper_encoder = Datadog::Encoding::JSONEncoder # easiest to inspect
+    @helper_encoder = Datadog::Core::Encoding::JSONEncoder # easiest to inspect
   end
 
   def send_traces(data)

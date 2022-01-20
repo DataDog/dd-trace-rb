@@ -62,7 +62,7 @@ end
 
 RSpec.describe Datadog::Transport::Traces::Chunker do
   let(:chunker) { described_class.new(encoder, max_size: max_size) }
-  let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
+  let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
   let(:trace_encoder) { Datadog::Transport::Traces::Encoder }
   let(:max_size) { 10 }
 
@@ -133,8 +133,8 @@ RSpec.describe Datadog::Transport::Traces::Transport do
 
     let(:api_v1) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
     let(:api_v2) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
-    let(:encoder_v1) { instance_double(Datadog::Encoding::Encoder, content_type: 'text/plain') }
-    let(:encoder_v2) { instance_double(Datadog::Encoding::Encoder, content_type: 'text/csv') }
+    let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/plain') }
+    let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/csv') }
   end
 
   describe '#initialize' do

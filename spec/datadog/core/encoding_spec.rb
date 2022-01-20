@@ -2,13 +2,13 @@
 require 'spec_helper'
 require 'spec/support/language_helpers'
 
-require 'ddtrace/encoding'
+require 'datadog/core/encoding'
 
-RSpec.describe Datadog::Encoding do
+RSpec.describe Datadog::Core::Encoding do
   let(:obj) { [{ 'foo' => 'bar' }] }
 
   context 'Msgpack encoding' do
-    let(:encoder) { Datadog::Encoding::MsgpackEncoder }
+    let(:encoder) { Datadog::Core::Encoding::MsgpackEncoder }
 
     subject(:deserialized) { MessagePack.unpack(encoded) }
 
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Encoding do
   end
 
   context 'JSON encoding' do
-    let(:encoder) { Datadog::Encoding::JSONEncoder }
+    let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
 
     subject(:deserialized) { JSON.parse(encoded) }
 

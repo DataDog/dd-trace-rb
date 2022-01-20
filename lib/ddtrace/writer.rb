@@ -4,7 +4,6 @@ require 'json'
 require 'ddtrace/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
-require 'ddtrace/encoding'
 require 'ddtrace/workers'
 require 'ddtrace/diagnostics/environment_logger'
 
