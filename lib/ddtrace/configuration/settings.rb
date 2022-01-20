@@ -558,10 +558,17 @@ module Datadog
         # @return [Object,nil]
         option :sampler
 
-        # A custom {Hash} with keyword options to be passed to the initializer of
-        # the tracer writer class.
+        # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
+        #
+        # @overload transport_options
+        #   A custom {Hash} with keyword options to be passed to the initializer of
+        #   the tracer writer class.
+        # @overload transport_options
+        #   A {Proc} that configures a custom tracer transport.
+        #   @yield Receives a {Datadog::Transport::HTTP} that can be modified with custom adapters and settings.
+        #   @yieldparam [Datadog::Transport::HTTP] t transport to be configured.
         # @default `{}`
-        # @return [Hash,nil]
+        # @return [Hash,Proc,nil]
         option :transport_options, default: ->(_i) { {} }, lazy: true
 
         # A custom writer instance.
