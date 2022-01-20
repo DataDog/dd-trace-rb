@@ -27,8 +27,8 @@ module Datadog
           end
         end
 
-        def should_skip_distributed_tracing?(pin)
-          return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
+        def should_skip_distributed_tracing?(client_config)
+          return !client_config[:distributed_tracing] if client_config && client_config.options.key?(:distributed_tracing)
 
           !Datadog::Tracing.configuration[:http][:distributed_tracing]
         end

@@ -31,6 +31,8 @@ module Datadog
 
         # rubocop:disable Metrics/MethodLength
         # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/CyclomaticComplexity
+        # rubocop:disable Metrics/PerceivedComplexity
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
@@ -41,13 +43,8 @@ module Datadog
 
             def initialize(*args, &block)
               service = Datadog::Tracing.configuration[:elasticsearch][:service_name]
+              Datadog::Tracing.configure_onto(self, service_name: service)
 
-              pin = Datadog::Pin.new(
-                service,
-                app: Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT,
-                app_type: Datadog::Ext::AppTypes::DB,
-              )
-              pin.onto(self)
               initialize_without_datadog(*args, &block)
             end
 
@@ -55,8 +52,9 @@ module Datadog
             remove_method :perform_request
 
             def perform_request(*args)
-              pin = Datadog::Pin.get_from(self)
-              return perform_request_without_datadog(*args) unless pin
+              client_config = Datadog::Tracing.configuration_for(self)
+              service = datadog_configuration[:service_name]
+              service = client_config[:service_name] if client_config && client_config[:service_name]
 
               method = args[0]
               path = args[1]
@@ -66,7 +64,8 @@ module Datadog
 
               url = full_url.path
               response = nil
-              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
+
+              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
@@ -119,6 +118,8 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
       end
     end
   end

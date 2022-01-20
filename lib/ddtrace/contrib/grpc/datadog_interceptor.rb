@@ -10,8 +10,6 @@ module Datadog
       module DatadogInterceptor
         # :nodoc:
         class Base < ::GRPC::Interceptor
-          attr_accessor :datadog_pin
-
           def initialize(options = {})
             add_datadog_pin! { |c| yield(c) if block_given? }
           end
@@ -35,14 +33,11 @@ module Datadog
           private
 
           def add_datadog_pin!
-            Pin.new(
-              service_name,
-              app: Ext::TAG_COMPONENT,
-              app_type: Datadog::Ext::AppTypes::WEB,
-            ).tap do |pin|
-              yield(pin) if block_given?
-              pin.onto(self)
-            end
+            pin = Datadog::Tracing.configure_onto(self, service_name: service_name)
+
+            yield(pin) if block_given?
+
+            pin
           end
 
           def datadog_configuration
@@ -50,7 +45,8 @@ module Datadog
           end
 
           def service_name
-            (datadog_pin && datadog_pin.service_name) || datadog_configuration[:service_name]
+            datadog_pin = Datadog::Tracing.configuration_for(self)
+            (datadog_pin && datadog_pin[:service_name]) || datadog_configuration[:service_name]
           end
 
           def analytics_enabled?

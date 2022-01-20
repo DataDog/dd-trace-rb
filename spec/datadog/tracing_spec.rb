@@ -171,15 +171,13 @@ RSpec.describe Datadog::Tracing do
     let(:object) { double('object') }
     let(:options) { {} }
 
-    let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
+    let(:pin) { instance_double(Datadog::Pin) }
 
     it 'attaches a pin to the object' do
-      expect(Datadog::Configuration::PinSetup)
-        .to receive(:new)
+      expect(Datadog::Pin)
+        .to receive(:set_on)
         .with(object, **options)
-        .and_return(pin_setup)
-
-      expect(pin_setup).to receive(:call)
+        .and_return(pin)
 
       configure_onto
     end

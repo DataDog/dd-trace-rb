@@ -19,15 +19,18 @@ module Datadog
         module InstanceMethods
           def query(sql, options = {})
             Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
+              client_config = Datadog::Tracing.configuration_for(self)
+              service = (client_config && client_config[:service_name]) || datadog_configuration[:service_name]
+
               span.resource = sql
-              span.service = datadog_pin.service
+              span.service = service
               span.span_type = Datadog::Ext::SQL::TYPE
 
               span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
               # Tag as an external peer service
-              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, service)
               span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, query_options[:host])
 
               # Set analytics sample rate
@@ -38,14 +41,6 @@ module Datadog
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, query_options[:port])
               super(sql, options)
             end
-          end
-
-          def datadog_pin
-            @datadog_pin ||= Datadog::Pin.new(
-              datadog_configuration[:service_name],
-              app: Ext::TAG_COMPONENT,
-              app_type: Datadog::Ext::AppTypes::DB,
-            )
           end
 
           private

@@ -207,7 +207,7 @@ RSpec.describe 'net/http requests' do
 
       before do
         stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
-        Datadog::Pin.get_from(client).service = service_name
+        Datadog::Tracing.configure_onto(client, service_name: service_name)
       end
 
       let(:path) { '/my/path' }

@@ -11,15 +11,18 @@ module Datadog
       # system available in the Mongo driver.
       class MongoCommandSubscriber
         def started(event)
-          pin = Datadog::Pin.get_from(event.address)
-          return unless pin && pin.enabled?
+          client_config = Datadog::Tracing.configuration_for(event.address)
+          service = (client_config && client_config[:service_name]) \
+                    || Datadog::Tracing.configuration[:mongo, event.address.seed][:service_name]
+
+          return unless Datadog::Tracing.enabled?
 
           # start a trace and store it in the current thread; using the `operation_id`
           # is safe since it's a unique id used to link events together. Also only one
           # thread is involved in this execution so thread-local storage should be safe. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
-          span = Datadog::Tracing.trace(Ext::SPAN_COMMAND, service: pin.service, span_type: Ext::SPAN_TYPE_COMMAND)
+          span = Datadog::Tracing.trace(Ext::SPAN_COMMAND, service: service, span_type: Ext::SPAN_TYPE_COMMAND)
           set_span(event, span)
 
           # build a quantized Query using the Parser module

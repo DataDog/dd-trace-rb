@@ -15,12 +15,11 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def call(*args, &block)
-            pin = Datadog::Pin.get_from(self)
-            return super unless pin
+            client_config = Datadog::Tracing.configuration_for(self)
 
             response = nil
             Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              span.service = pin.service
+              span.service = (client_config && client_config[:service_name]) || datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               span.resource = get_command(args)
               Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
@@ -32,12 +31,11 @@ module Datadog
           end
 
           def call_pipeline(*args, &block)
-            pin = Datadog::Pin.get_from(self)
-            return super unless pin
+            client_config = Datadog::Tracing.configuration_for(self)
 
             response = nil
             Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              span.service = pin.service
+              span.service = (client_config && client_config[:service_name]) || datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               commands = get_pipeline_commands(args)
               span.resource = commands.join("\n")
@@ -48,17 +46,6 @@ module Datadog
             end
 
             response
-          end
-
-          def datadog_pin
-            @datadog_pin ||= begin
-              pin = Datadog::Pin.new(
-                datadog_configuration[:service_name],
-                app: Ext::TAG_COMPONENT,
-                app_type: Datadog::Ext::AppTypes::DB,
-              )
-              pin.onto(self)
-            end
           end
 
           private
