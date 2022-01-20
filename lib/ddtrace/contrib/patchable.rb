@@ -49,7 +49,7 @@ module Datadog
         # Is this instrumentation compatible with the available target? (e.g. minimum version met?)
         # @return [Boolean] is the available target compatible with this instrumentation?
         def compatible?
-          available? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(VERSION::MINIMUM_RUBY_VERSION)
+          available?
         end
 
         # Can the patch for this integration be applied?

@@ -57,17 +57,7 @@ RSpec.describe Datadog::Contrib::Patchable do
           context 'is true' do
             before { allow(patchable_class).to receive(:available?).and_return(true) }
 
-            context 'and the Ruby version' do
-              context 'is below the minimum' do
-                before { stub_const('RUBY_VERSION', '1.9.3') }
-
-                it { is_expected.to be false }
-              end
-
-              context 'is meets the minimum' do
-                it { is_expected.to be true }
-              end
-            end
+            it { is_expected.to be true }
           end
         end
       end
