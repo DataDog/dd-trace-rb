@@ -566,11 +566,17 @@ module Datadog
 
         # A custom writer instance.
         # The object must respect the {Datadog::Writer} interface.
+        #
+        # This option is recommended for internal use only.
+        #
         # @default `nil`
         # @return [Object,nil]
         option :writer
 
         # A custom {Hash} with keyword options to be passed to {Datadog::Writer#initialize}.
+        #
+        # This option is recommended for internal use only.
+        #
         # @default `{}`
         # @return [Hash,nil]
         option :writer_options, default: ->(_i) { {} }, lazy: true
