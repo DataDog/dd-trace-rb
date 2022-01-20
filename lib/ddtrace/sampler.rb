@@ -3,7 +3,7 @@ require 'forwardable'
 
 require 'ddtrace/ext/priority'
 require 'ddtrace/ext/sampling'
-require 'ddtrace/diagnostics/health'
+require 'datadog/core/diagnostics/health'
 
 module Datadog
   # Interface for client-side trace sampling.
