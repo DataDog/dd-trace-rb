@@ -1,5 +1,10 @@
 # typed: false
-RSpec.describe Datadog::Error do
+require 'spec_helper'
+
+require 'benchmark'
+require 'datadog/core/error'
+
+RSpec.describe Datadog::Core::Error do
   context 'with default values' do
     let(:error) { described_class.new }
 
