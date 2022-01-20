@@ -1,6 +1,7 @@
 # typed: false
 require 'spec_helper'
 
+require 'datadog/core/encoding'
 require 'ddtrace/transport/io/traces'
 
 RSpec.describe Datadog::Transport::IO::Traces::Response do
@@ -34,7 +35,7 @@ RSpec.describe Datadog::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
 
   let(:out) { instance_double(IO) }
-  let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
+  let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
 
   describe '#send_traces' do
     context 'given traces' do
@@ -99,7 +100,7 @@ RSpec.describe Datadog::Transport::IO::Traces::Encoder do
     end
 
     let(:trace_encoder) { Class.new { include Datadog::Transport::IO::Traces::Encoder }.new }
-    let(:encoder) { Datadog::Encoding::JSONEncoder }
+    let(:encoder) { Datadog::Core::Encoding::JSONEncoder }
 
     describe '.encode_traces' do
       subject(:encode_traces) { trace_encoder.encode_traces(encoder, traces) }

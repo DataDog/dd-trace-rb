@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/encoding'
+require 'datadog/core/encoding'
 require 'ddtrace/transport/io/client'
 require 'ddtrace/transport/io/traces'
 
@@ -19,7 +19,7 @@ module Datadog
       def default(options = {})
         new(
           options.fetch(:out, $stdout),
-          options.fetch(:encoder, Encoding::JSONEncoder)
+          options.fetch(:encoder, Core::Encoding::JSONEncoder)
         )
       end
     end

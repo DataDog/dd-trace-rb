@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling::Transport::Parcel do
   describe '#encode_with' do
     subject(:encode_with) { parcel.encode_with(encoder) }
 
-    let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
+    let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
     let(:encoded_data) { double('encoded data') }
 
     before do

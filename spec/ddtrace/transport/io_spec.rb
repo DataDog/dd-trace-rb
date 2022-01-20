@@ -8,7 +8,7 @@ RSpec.describe Datadog::Transport::IO do
     subject(:new_io) { described_class.new(out, encoder) }
 
     let(:out) { instance_double(IO) }
-    let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
+    let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
     let(:client) { instance_double(Datadog::Transport::IO::Client) }
 
     before do
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Transport::IO do
 
       before do
         expect(Datadog::Transport::IO::Client).to receive(:new)
-          .with($stdout, Datadog::Encoding::JSONEncoder)
+          .with($stdout, Datadog::Core::Encoding::JSONEncoder)
           .and_return(client)
       end
 
@@ -40,7 +40,7 @@ RSpec.describe Datadog::Transport::IO do
 
       let(:options) { { out: out, encoder: encoder } }
       let(:out) { instance_double(IO) }
-      let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
+      let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
 
       before do
         expect(Datadog::Transport::IO::Client).to receive(:new)
