@@ -89,7 +89,7 @@ module Datadog
         # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
         # @return [Boolean]
         option :debug do |o|
-          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG, false) }
+          o.default { env_to_bool(Core::Diagnostics::Ext::DD_TRACE_DEBUG, false) }
           o.lazy
           o.on_set do |enabled|
             # Enable rich debug print statements.
@@ -100,7 +100,7 @@ module Datadog
 
         # Internal {Datadog::Statsd} metrics collection.
         #
-        # The list of metrics collected can be found in {Datadog::Ext::Diagnostics::Health::Metrics}.
+        # The list of metrics collected can be found in {Datadog::Core::Diagnostics::Ext::Health::Metrics}.
         # @public_api
         settings :health_metrics do
           # Enable health metrics collection.
@@ -108,7 +108,7 @@ module Datadog
           # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED, false) }
+            o.default { env_to_bool(Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED, false) }
             o.lazy
           end
 
@@ -134,7 +134,7 @@ module Datadog
           # @return [Boolean,nil]
           option :enabled do |o|
             # Defaults to nil as we want to know when the default value is being used
-            o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_STARTUP_LOGS, nil) }
+            o.default { env_to_bool(Core::Diagnostics::Ext::DD_TRACE_STARTUP_LOGS, nil) }
             o.lazy
           end
         end
@@ -493,7 +493,7 @@ module Datadog
         # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
         # @return [Boolean]
         option :enabled do |o|
-          o.default { env_to_bool(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED, true) }
+          o.default { env_to_bool(Core::Diagnostics::Ext::DD_TRACE_ENABLED, true) }
           o.lazy
         end
 

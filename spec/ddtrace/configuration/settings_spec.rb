@@ -89,9 +89,9 @@ RSpec.describe Datadog::Configuration::Settings do
 
       it { is_expected.to be false }
 
-      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_DEBUG}" do
+      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_DEBUG => environment) do
+          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_DEBUG => environment) do
             example.run
           end
         end
@@ -146,9 +146,9 @@ RSpec.describe Datadog::Configuration::Settings do
       describe '#enabled' do
         subject(:enabled) { settings.diagnostics.health_metrics.enabled }
 
-        context "when #{Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED}" do
+        context "when #{Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED}" do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Diagnostics::Health::Metrics::ENV_ENABLED => environment) do
+            ClimateControl.modify(Datadog::Core::Diagnostics::Ext::Health::Metrics::ENV_ENABLED => environment) do
               example.run
             end
           end
@@ -1104,9 +1104,9 @@ RSpec.describe Datadog::Configuration::Settings do
 
       it { is_expected.to be true }
 
-      context "when #{Datadog::Ext::Diagnostics::DD_TRACE_ENABLED}" do
+      context "when #{Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Diagnostics::DD_TRACE_ENABLED => enable) do
+          ClimateControl.modify(Datadog::Core::Diagnostics::Ext::DD_TRACE_ENABLED => enable) do
             example.run
           end
         end

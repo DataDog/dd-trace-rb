@@ -24,7 +24,7 @@ RSpec.describe Datadog::Configuration::Components do
     let(:tracer) { instance_double(Datadog::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
-    let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics) }
+    let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
 
     before do
       expect(described_class).to receive(:build_logger)
@@ -62,12 +62,12 @@ RSpec.describe Datadog::Configuration::Components do
 
     context 'given settings' do
       shared_examples_for 'new health metrics' do
-        let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics) }
+        let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
         let(:default_options) { { enabled: settings.diagnostics.health_metrics.enabled } }
         let(:options) { {} }
 
         before do
-          expect(Datadog::Diagnostics::Health::Metrics).to receive(:new)
+          expect(Datadog::Core::Diagnostics::Health::Metrics).to receive(:new)
             .with(default_options.merge(options))
             .and_return(health_metrics)
         end
@@ -1104,7 +1104,7 @@ RSpec.describe Datadog::Configuration::Components do
         let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
         let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
-        let(:health_metrics) { instance_double(Datadog::Diagnostics::Health::Metrics, statsd: statsd) }
+        let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
 
         before do
