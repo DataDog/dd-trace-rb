@@ -64,7 +64,7 @@ module Datadog
           option :port
         end
 
-        # TODO: add declarative statsd configuration. Currently on environment variable configuration is possible.
+        # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
         # Statsd configuration for agent access.
         # @configure_with {Datadog::Statsd}
         # @public_api
