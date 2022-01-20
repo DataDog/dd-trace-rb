@@ -8,11 +8,7 @@ module Datadog
     @mutex = Mutex.new
     @processors = []
 
-    # {.before_flush} allows application to alter or filter out traces before they are flushed.
-    # If both `processors` and `processor_block` are provided, both are added to the internal
-    # processors list, with `processor_block` being added after `processors`.
-    #
-    # @see file:docs/GettingStarted.md#processing-pipeline Processing Pipeline
+    # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
     #
     # @overload before_flush(*processors)
     #   @param [Array<Datadog::Pipeline::SpanProcessor>] processors a list of processors that can modify
