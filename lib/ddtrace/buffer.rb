@@ -3,7 +3,7 @@ require 'datadog/core/environment/ext'
 require 'datadog/core/buffer/thread_safe'
 require 'datadog/core/buffer/cruby'
 
-require 'ddtrace/diagnostics/health'
+require 'datadog/core/diagnostics/health'
 
 module Datadog
   # Health metrics for trace buffers.

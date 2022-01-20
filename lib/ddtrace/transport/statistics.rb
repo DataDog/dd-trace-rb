@@ -1,6 +1,6 @@
 # typed: true
 require 'datadog/core/metrics/metric'
-require 'ddtrace/diagnostics/health'
+require 'datadog/core/diagnostics/health'
 
 module Datadog
   module Transport

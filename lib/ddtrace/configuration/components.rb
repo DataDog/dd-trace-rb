@@ -1,6 +1,6 @@
 # typed: false
 require 'ddtrace/configuration/agent_settings_resolver'
-require 'ddtrace/diagnostics/health'
+require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
 require 'ddtrace/profiling'
 require 'ddtrace/runtime/metrics'
@@ -21,7 +21,7 @@ module Datadog
           options = { enabled: settings.enabled }
           options[:statsd] = settings.statsd unless settings.statsd.nil?
 
-          Datadog::Diagnostics::Health::Metrics.new(**options)
+          Datadog::Core::Diagnostics::Health::Metrics.new(**options)
         end
 
         def build_logger(settings)
