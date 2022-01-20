@@ -113,8 +113,8 @@ module Datadog
 
         @configured_hostname = pick_from(
           DetectedConfiguration.new(
-            friendly_name: "'c.tracer.hostname'",
-            value: settings.tracer.hostname
+            friendly_name: "'c.agent.host'",
+            value: settings.agent.host
           ),
           DetectedConfiguration.new(
             friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
@@ -138,13 +138,13 @@ module Datadog
 
         parsed_settings_tracer_port =
           try_parsing_as_integer(
-            friendly_name: '"c.tracer.port"',
-            value: settings.tracer.port,
+            friendly_name: '"c.agent.tracer.port"',
+            value: settings.agent.tracer.port,
           )
 
         @configured_port = pick_from(
           DetectedConfiguration.new(
-            friendly_name: '"c.tracer.port"',
+            friendly_name: '"c.agent.tracer.port"',
             value: parsed_settings_tracer_port,
           ),
           DetectedConfiguration.new(

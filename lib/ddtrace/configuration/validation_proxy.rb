@@ -26,6 +26,7 @@ module Datadog
       # Forwards global configuration settings
       class Global < self
         FORWARDED_METHODS = [
+          :agent,
           :api_key,
           :api_key=,
           :diagnostics,
@@ -53,6 +54,7 @@ module Datadog
       # Forwards tracing configuration settings
       class Tracing < self
         FORWARDED_METHODS = [
+          :agent,
           :analytics,
           :distributed_tracing,
           :instrument,

@@ -1885,6 +1885,7 @@ To change the default behavior of the Datadog tracer, you can provide custom opt
 
 # Global settings are set here:
 Datadog.configure do |c|
+  c.agent.host = 'custom-agent-host'
   # To enable debug mode
   c.diagnostics.debug = true
 end
@@ -1892,8 +1893,7 @@ end
 # Tracer settings are set here:
 Datadog::Tracing.configure do |c|
   c.tracer.enabled = true
-  c.tracer.hostname = 'my-agent'
-  c.tracer.port = 8126
+  c.agent.tracer.port = 8126
 
   # Ensure all traces are ingested by Datadog
   c.sampling.default_rate = 1.0 # Recommended
@@ -1912,10 +1912,10 @@ end
 Available options are:
 
  - `enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
- - `hostname`: set the hostname of the trace agent.
+ - `agent.host`: set the hostname of the trace agent.
  - `instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
  - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
- - `port`: set the port the trace agent is listening on.
+ - `agent.tracer.port`: set the port the trace agent is listening on.
  - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
  - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.

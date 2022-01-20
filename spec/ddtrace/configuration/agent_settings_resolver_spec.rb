@@ -71,9 +71,9 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom hostname is specified via code using "tracer.hostname ="' do
+    context 'when a custom hostname is specified via code using "agent.host ="' do
       before do
-        ddtrace_settings.tracer.hostname = 'custom-hostname'
+        ddtrace_settings.agent.host = 'custom-hostname'
       end
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
@@ -145,9 +145,9 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom port is specified via code using "tracer.port = "' do
+    context 'when a custom port is specified via code using "agent.tracer.port = "' do
       before do
-        ddtrace_settings.tracer.port = 1234
+        ddtrace_settings.agent.tracer.port = 1234
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
@@ -192,7 +192,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
       context 'when the port is specified as a string instead of a number' do
         before do
-          ddtrace_settings.tracer.port = '1234'
+          ddtrace_settings.agent.tracer.port = '1234'
         end
 
         it 'contacts the agent using the http adapter, using the custom port' do
@@ -202,7 +202,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
       context 'when the port is an invalid string value' do
         before do
-          ddtrace_settings.tracer.port = 'kaboom'
+          ddtrace_settings.agent.tracer.port = 'kaboom'
 
           allow(logger).to receive(:warn)
         end
@@ -220,7 +220,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
 
       context 'when the port is an invalid object' do
         before do
-          ddtrace_settings.tracer.port = Object.new
+          ddtrace_settings.agent.tracer.port = Object.new
 
           allow(logger).to receive(:warn)
         end
