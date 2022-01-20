@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/encoding'
+require 'datadog/core/encoding'
 
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/spec'
@@ -22,14 +22,14 @@ module Datadog
             V4 => Spec.new do |s|
               s.traces = Traces::API::Endpoint.new(
                 '/v0.4/traces'.freeze,
-                Encoding::MsgpackEncoder,
+                Core::Encoding::MsgpackEncoder,
                 service_rates: true
               )
             end,
             V3 => Spec.new do |s|
               s.traces = Traces::API::Endpoint.new(
                 '/v0.3/traces'.freeze,
-                Encoding::MsgpackEncoder
+                Core::Encoding::MsgpackEncoder
               )
             end,
           ].with_fallbacks(V4 => V3)

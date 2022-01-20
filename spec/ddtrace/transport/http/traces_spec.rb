@@ -125,7 +125,7 @@ RSpec.describe Datadog::Transport::HTTP::Traces::API::Endpoint do
   subject(:endpoint) { described_class.new(path, encoder, options) }
 
   let(:path) { double('path') }
-  let(:encoder) { instance_double(Datadog::Encoding::Encoder, content_type: content_type) }
+  let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder, content_type: content_type) }
   let(:content_type) { 'application/test-type' }
   let(:options) { {} }
 
