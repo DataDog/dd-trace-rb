@@ -545,16 +545,35 @@ module Datadog
 
         # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
         option :port
-        option :priority_sampling # TODO: Deprecate
+
+        # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
+        # Datadog intelligent retention filter}.
+        # @default `true`
+        # @return [Boolean,nil]
+        option :priority_sampling
 
         # A custom sampler instance.
         # The object must respect the {Datadog::Sampler} interface.
         # @default `nil`
         # @return [Object,nil]
         option :sampler
-        option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
-        option :writer # TODO: Deprecate
-        option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
+
+        # A custom {Hash} with keyword options to be passed to the initializer of
+        # the tracer writer class.
+        # @default `{}`
+        # @return [Hash,nil]
+        option :transport_options, default: ->(_i) { {} }, lazy: true
+
+        # A custom writer instance.
+        # The object must respect the {Datadog::Writer} interface.
+        # @default `nil`
+        # @return [Object,nil]
+        option :writer
+
+        # A custom {Hash} with keyword options to be passed to {Datadog::Writer#initialize}.
+        # @default `{}`
+        # @return [Hash,nil]
+        option :writer_options, default: ->(_i) { {} }, lazy: true
       end
 
       # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
