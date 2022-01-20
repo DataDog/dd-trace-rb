@@ -30,9 +30,7 @@ RSpec.describe Datadog::SpanOperation do
   end
 
   shared_context 'callbacks' do
-    # rubocop:disable RSpec/VerifiedDoubles
     let(:callback_spy) { spy('callback spy') }
-    # rubocop:enable RSpec/VerifiedDoubles
 
     before do
       events = span_op.send(:events)
@@ -348,9 +346,7 @@ RSpec.describe Datadog::SpanOperation do
     end
 
     let(:return_value) { SecureRandom.uuid }
-    # rubocop:disable RSpec/VerifiedDoubles
     let(:block_spy) { spy('block') }
-    # rubocop:enable RSpec/VerifiedDoubles
 
     shared_context 'a StandardError' do
       let(:error) { error_class.new }

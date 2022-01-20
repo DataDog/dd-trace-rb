@@ -36,7 +36,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
     let(:options) { { agent_settings: agent_settings } }
 
     let(:agent_settings) do
-      Datadog::Configuration::AgentSettingsResolver::AgentSettings.new(
+      Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
         adapter: adapter,
         hostname: hostname,
         port: port,

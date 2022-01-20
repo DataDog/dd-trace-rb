@@ -45,10 +45,8 @@ RSpec.describe Datadog::CI::Test do
       subject(:trace) { described_class.trace(span_name, options, &block) }
       let(:span_op) { Datadog::SpanOperation.new(span_name) }
       let(:block) { proc { |s| block_spy.call(s) } }
-      # rubocop:disable RSpec/VerifiedDoubles
       let(:block_result) { double('result') }
       let(:block_spy) { spy('block') }
-      # rubocop:enable RSpec/VerifiedDoubles
 
       before do
         allow(block_spy).to receive(:call).and_return(block_result)

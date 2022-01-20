@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'
 require 'ddtrace/transport/http/api/instance'
@@ -36,7 +36,7 @@ module Datadog
 
         def adapter(config, *args, **kwargs)
           @default_adapter = case config
-                             when Configuration::AgentSettingsResolver::AgentSettings
+                             when Core::Configuration::AgentSettingsResolver::AgentSettings
                                registry_klass = REGISTRY.get(config.adapter)
                                raise UnknownAdapterError, config.adapter if registry_klass.nil?
 

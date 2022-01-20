@@ -66,7 +66,7 @@ module Datadog
         private
 
         def forked?
-          Datadog::Tracing.configuration_for(::Resque, :forked) == true
+          Datadog.configuration_for(::Resque, :forked) == true
         end
 
         def span_options
@@ -87,7 +87,7 @@ Resque.after_fork do
 
   # Add a pin, marking the job as forked.
   # Used to trigger shutdown in forks for performance reasons.
-  Datadog::Tracing.configure_onto(::Resque, forked: true)
+  Datadog.configure_onto(::Resque, forked: true)
 
   # Clean the state so no CoW happens
   # TODO: Remove this. Should be obsolete with new context management.

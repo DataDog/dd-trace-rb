@@ -2,20 +2,21 @@
 require 'spec_helper'
 
 require 'datadog/statsd'
-require 'ddtrace/configuration'
+require 'datadog/core/configuration'
+require 'datadog/core/pin'
 
-RSpec.describe Datadog::Configuration do
+RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
 
   context 'when extended by a class' do
-    subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Configuration }) }
+    subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Core::Configuration }) }
 
     describe '#configure' do
       subject(:configure) { test_class.configure {} }
 
       context 'when Settings are configured' do
         before do
-          allow(Datadog::Configuration::Components).to receive(:new)
+          allow(Datadog::Core::Configuration::Components).to receive(:new)
             .and_wrap_original do |m, *args|
             new_components = m.call(*args)
             allow(new_components).to receive(:shutdown!)
@@ -55,7 +56,7 @@ RSpec.describe Datadog::Configuration do
 
         context 'and components have not been initialized' do
           it do
-            expect_any_instance_of(Datadog::Configuration::Components)
+            expect_any_instance_of(Datadog::Core::Configuration::Components)
               .to_not receive(:shutdown!)
 
             configure
@@ -357,6 +358,56 @@ RSpec.describe Datadog::Configuration do
       end
     end
 
+    describe '#configure_onto' do
+      subject(:configure_onto) { test_class.configure_onto(object, **options) }
+
+      let(:object) { Object.new }
+      let(:options) { {} }
+
+      it 'attaches a pin to the object' do
+        expect(Datadog::Core::Pin)
+          .to receive(:set_on)
+          .with(object, **options)
+
+        configure_onto
+      end
+    end
+
+    describe '#configuration_for' do
+      subject(:configuration_for) { test_class.configuration_for(object, option_name) }
+
+      let(:object) { double('object') }
+      let(:option_name) { :a_setting }
+
+      context 'when the object has not been configured' do
+        it { is_expected.to be nil }
+      end
+
+      context 'when the object has been configured' do
+        let(:options) { {} }
+
+        before { test_class.configure_onto(object, **options) }
+
+        context 'but no option is provided' do
+          let(:option_name) { nil }
+          it { is_expected.to be_a_kind_of(Datadog::Core::Pin) }
+        end
+
+        context 'but an option is provided' do
+          context 'and it has not been set' do
+            it { is_expected.to be nil }
+          end
+
+          context 'and it has been set' do
+            let(:option_value) { :a_value }
+            let(:options) { { option_name => option_value } }
+
+            it { is_expected.to be option_value }
+          end
+        end
+      end
+    end
+
     describe '#health_metrics' do
       subject(:health_metrics) { test_class.health_metrics }
 
@@ -387,10 +438,10 @@ RSpec.describe Datadog::Configuration do
           old_logger = test_class.logger
           logger_during_component_replacement = nil
 
-          allow(Datadog::Configuration::Components).to receive(:new) do
+          allow(Datadog::Core::Configuration::Components).to receive(:new) do
             # simulate getting the logger during reinitialization
             logger_during_component_replacement = test_class.logger
-            instance_double(Datadog::Configuration::Components, startup!: nil)
+            instance_double(Datadog::Core::Configuration::Components, startup!: nil)
           end
 
           test_class.configure {}

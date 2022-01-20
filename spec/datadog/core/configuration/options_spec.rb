@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Configuration::Options do
+RSpec.describe Datadog::Core::Configuration::Options do
   describe 'implemented' do
     subject(:options_class) do
       Class.new.tap do |klass|
@@ -16,7 +16,7 @@ RSpec.describe Datadog::Configuration::Options do
         subject(:options) { options_class.options }
 
         context 'for a class directly implementing Options' do
-          it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinitionSet) }
+          it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinitionSet) }
         end
 
         context 'on class inheriting from a class implementing Options' do
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Configuration::Options do
           context 'which defines some options' do
             before { parent_class.send(:option, :foo) }
 
-            it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinitionSet) }
+            it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinitionSet) }
             it { is_expected.to_not be(parent_class.options) }
             it { is_expected.to include(:foo) }
           end
@@ -45,7 +45,7 @@ RSpec.describe Datadog::Configuration::Options do
         let(:block) { proc {} }
 
         it 'creates an option definition' do
-          is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+          is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition)
           expect(options_class.options).to include(name)
           expect(options_class.new).to respond_to(name)
           expect(options_class.new).to respond_to("#{name}=")
@@ -54,7 +54,7 @@ RSpec.describe Datadog::Configuration::Options do
         context 'when given a block' do
           it 'invokes it with a builder' do
             expect { |b| options_class.send(:option, name, meta, &b) }.to yield_with_args(
-              kind_of(Datadog::Configuration::OptionDefinition::Builder)
+              kind_of(Datadog::Core::Configuration::OptionDefinition::Builder)
             )
           end
 
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Configuration::Options do
               end
 
               it 'does not define default helpers' do
-                is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+                is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition)
                 expect(options_class.options).to include(name)
                 expect(options_class.new).to_not respond_to(name)
                 expect(options_class.new).to_not respond_to("#{name}=")
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Configuration::Options do
               end
 
               it 'defines an additional helper' do
-                is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition)
+                is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition)
                 expect(options_class.options).to include(name)
                 expect(options_class.new).to respond_to(name)
                 expect(options_class.new).to respond_to("#{name}=")
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Configuration::Options do
       describe '#options' do
         subject(:options) { options_object.options }
 
-        it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionSet) }
+        it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionSet) }
       end
 
       describe '#set_option' do

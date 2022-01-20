@@ -2,12 +2,12 @@
 require 'spec_helper'
 
 require 'datadog/statsd'
-require 'ddtrace/configuration/components'
+require 'datadog/core/configuration/components'
 
-RSpec.describe Datadog::Configuration::Components do
+RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
-  let(:settings) { Datadog::Configuration::Settings.new }
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
 
@@ -32,11 +32,11 @@ RSpec.describe Datadog::Configuration::Components do
         .and_return(logger)
 
       expect(described_class).to receive(:build_tracer)
-        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings))
+        .with(settings, instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings))
         .and_return(tracer)
 
       expect(described_class).to receive(:build_profiler)
-        .with(settings, instance_of(Datadog::Configuration::AgentSettingsResolver::AgentSettings), tracer)
+        .with(settings, instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings), tracer)
         .and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -157,6 +157,8 @@ RSpec.describe Datadog::Configuration::Components do
             .to receive(:level)
             .and_return(level)
         end
+
+        it_behaves_like 'new logger'
       end
 
       context 'with debug: true' do
@@ -310,7 +312,7 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
     subject(:build_tracer) { described_class.build_tracer(settings, agent_settings) }
 
@@ -374,7 +376,10 @@ RSpec.describe Datadog::Configuration::Components do
         it 'subscribes to writer events' do
           expect(writer.events.after_send).to receive(:subscribe).with(:record_environment_information) do |&block|
             expect(block)
-              .to be(Datadog::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
+              .to be(
+                Datadog::Core::Configuration::Components
+                  .singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+              )
           end
 
           build_tracer
@@ -765,7 +770,7 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe 'writer event callbacks' do
-    describe Datadog::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
+    describe Datadog::Core::Configuration::Components.singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK do
       subject(:call) { described_class.call(writer, responses) }
       let(:writer) { double('writer') }
       let(:responses) { [double('response')] }
@@ -824,7 +829,7 @@ RSpec.describe Datadog::Configuration::Components do
   end
 
   describe '::build_profiler' do
-    let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:profiler) { build_profiler }
     let(:tracer) { instance_double(Datadog::Tracer) }
 

@@ -32,7 +32,7 @@ module Datadog
     #   c.profiling.enabled = true
     # end
     # ```
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
     # available environment variables for configuration.
     #
     # Only permits access to profiling configuration settings; others will raise an error.
@@ -49,18 +49,18 @@ module Datadog
     # The yielded configuration `c` comes pre-populated from environment variables, if
     # any are applicable.
     #
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
     # available environment variables for configuration.
     #
     # Will raise errors if invalid setting is accessed.
     #
-    # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+    # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
     # @return [void]
     # @public_api
     def self.configure
       # Wrap block with profiling option validation
       wrapped_block = proc do |c|
-        yield(Datadog::Configuration::ValidationProxy::Profiling.new(c))
+        yield(Datadog::Core::Configuration::ValidationProxy::Profiling.new(c))
       end
 
       # Configure application normally
@@ -73,11 +73,11 @@ module Datadog
     #
     # To modify the configuration, use {.configure}.
     #
-    # @return [Datadog::Configuration::Settings]
+    # @return [Datadog::Core::Configuration::Settings]
     # @!attribute [r] configuration
     # @public_api
     def self.configuration
-      Datadog::Configuration::ValidationProxy::Profiling.new(
+      Datadog::Core::Configuration::ValidationProxy::Profiling.new(
         Datadog.send(:internal_configuration)
       )
     end

@@ -17,7 +17,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
   end
 
-  let(:settings) { Datadog::Configuration::Settings.new }
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
 
   shared_context 'HTTP server' do
     # HTTP
@@ -140,7 +140,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         )
       end
 
-      let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings) }
+      let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
 
       it_behaves_like 'profile HTTP request' do
         it 'is formatted for the agent' do
@@ -160,7 +160,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
       let(:client) do
         Datadog::Profiling::Transport::HTTP.default(
           profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-          agent_settings: double('agent_settings which should not be used'), # rubocop:disable RSpec/VerifiedDoubles
+          agent_settings: double('agent_settings which should not be used'),
           api_key: api_key,
           site: hostname,
           agentless_allowed: true

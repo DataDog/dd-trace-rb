@@ -52,7 +52,7 @@ module Datadog
           # Add a pin, marking the job as forked.
           # Used to trigger shutdown in forks for performance reasons.
           # Cleanup happens in the TracerCleaner class
-          Datadog::Tracing.configure_onto(::Qless, forked: true)
+          Datadog.configure_onto(::Qless, forked: true)
         end
 
         private
