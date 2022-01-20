@@ -15,13 +15,21 @@ module Datadog
             # TODO: move to integration? (may be too early)
             require_libddwaf
 
+            libddwaf_spec = Gem.loaded_specs['libddwaf']
+            libddwaf_platform = libddwaf_spec ? libddwaf_spec.platform.to_s : 'unknown'
+            ruby_platforms = Gem.platforms.map(&:to_s)
+
             if libddwaf_required?
+              Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
               Datadog::Security::WAF.logger = Datadog.logger if Datadog.logger.debug?
               @waf = Datadog::Security::WAF::Handle.new(waf_rules)
 
               # TODO: check is too low level
               # TODO: use proper exception
               raise if @waf.handle_obj.null?
+            else
+              Datadog.logger.warn { "libddwaf is missing components. installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}" }
+              Datadog.logger.warn { 'AppSec is disabled' }
             end
           end
 
@@ -76,6 +84,7 @@ module Datadog
             require 'libddwaf'
           rescue LoadError => e
             Datadog.logger.warn { "LoadError: libddwaf failed to load: #{e.message}. Try adding `gem 'libddwaf'` to your Gemfile" }
+            Datadog.logger.warn { 'Appsec is disabled' }
           end
         end
       end
