@@ -573,16 +573,47 @@ module Datadog
           option :min_spans_threshold, default: 500
         end
 
-        option :priority_sampling # TODO: Deprecate
+        # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
+        # Datadog intelligent retention filter}.
+        # @default `true`
+        # @return [Boolean,nil]
+        option :priority_sampling
 
         # A custom sampler instance.
         # The object must respect the {Datadog::Sampler} interface.
         # @default `nil`
         # @return [Object,nil]
         option :sampler
-        option :transport_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
-        option :writer # TODO: Deprecate
-        option :writer_options, default: ->(_i) { {} }, lazy: true # TODO: Deprecate
+
+        # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
+        #
+        # @overload transport_options
+        #   A custom {Hash} with keyword options to be passed to the initializer of
+        #   the tracer writer class.
+        # @overload transport_options
+        #   A {Proc} that configures a custom tracer transport.
+        #   @yield Receives a {Datadog::Transport::HTTP} that can be modified with custom adapters and settings.
+        #   @yieldparam [Datadog::Transport::HTTP] t transport to be configured.
+        # @default `{}`
+        # @return [Hash,Proc,nil]
+        option :transport_options, default: ->(_i) { {} }, lazy: true
+
+        # A custom writer instance.
+        # The object must respect the {Datadog::Writer} interface.
+        #
+        # This option is recommended for internal use only.
+        #
+        # @default `nil`
+        # @return [Object,nil]
+        option :writer
+
+        # A custom {Hash} with keyword options to be passed to {Datadog::Writer#initialize}.
+        #
+        # This option is recommended for internal use only.
+        #
+        # @default `{}`
+        # @return [Hash,nil]
+        option :writer_options, default: ->(_i) { {} }, lazy: true
       end
 
       # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
