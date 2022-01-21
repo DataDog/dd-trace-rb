@@ -2,6 +2,7 @@
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
+require 'ddtrace/contrib/grpc/configuration/settings'
 
 module Datadog
   module Contrib
@@ -11,7 +12,12 @@ module Datadog
         # :nodoc:
         class Base < ::GRPC::Interceptor
           def initialize(options = {})
-            add_datadog_pin! { |c| yield(c) if block_given? }
+            return unless block_given?
+
+            # Set custom configuration on the interceptor if block is given
+            pin_adapter = PinAdapter.new
+            yield(pin_adapter)
+            Datadog::Tracing.configure_onto(self, **pin_adapter.options)
           end
 
           def request_response(**keywords, &block)
@@ -32,14 +38,6 @@ module Datadog
 
           private
 
-          def add_datadog_pin!
-            pin = Datadog::Tracing.configure_onto(self, service_name: service_name)
-
-            yield(pin) if block_given?
-
-            pin
-          end
-
           def datadog_configuration
             Datadog::Tracing.configuration[:grpc]
           end
@@ -58,6 +56,39 @@ module Datadog
 
           def error_handler
             datadog_configuration[:error_handler]
+          end
+
+          # Allows interceptors to define settings using methods instead of `[]`
+          class PinAdapter
+            OPTIONS = Configuration::Settings.instance_methods(false).freeze
+
+            attr_reader :options
+
+            def initialize
+              @options = {}
+            end
+
+            def self.add_setter!(option)
+              define_method(option) do |value|
+                @options[option.to_s[0...-1].to_sym] = value
+              end
+            end
+
+            def self.add_getter!(option)
+              define_method(option) do
+                return @options[option] if @options.key?(option)
+
+                Datadog::Tracing.configuration[:grpc][option]
+              end
+            end
+
+            OPTIONS.each do |option|
+              if option.to_s[-1] == '='
+                add_setter!(option)
+              else
+                add_getter!(option)
+              end
+            end
           end
         end
 

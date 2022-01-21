@@ -39,15 +39,6 @@ module Datadog
       @options[name] = value
     end
 
-    def method_missing(method_name, *args, &block)
-      return send(:[]=, method_name.to_s[0...-1].to_sym, *args) if method_name.to_s[-1] == SETTER_METHOD.freeze
-      return send(:[], method_name) if options.key?(method_name)
-
-      super
-    end
-
-    def respond_to_missing?(method_name, include_private = false)
-      method_name.to_s[-1] == SETTER_METHOD.freeze || options.key?(method_name) || super
     end
 
     # rubocop:disable Style/TrivialAccessors
