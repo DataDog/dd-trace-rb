@@ -5,9 +5,6 @@ module Datadog
   # This is useful if you wanted to, say, trace two different
   # database clusters.
   class Pin
-    SETTER_METHOD = '='.freeze
-    OPTIONS_SEPARATOR = ', '.freeze
-
     def self.get_from(obj)
       return nil unless obj.respond_to? :datadog_pin
 
@@ -25,8 +22,6 @@ module Datadog
       pin
     end
 
-    attr_accessor :options
-
     def initialize(**options)
       @options = options
     end
@@ -39,6 +34,8 @@ module Datadog
       @options[name] = value
     end
 
+    def key?(name)
+      @options.key?
     end
 
     # rubocop:disable Style/TrivialAccessors
@@ -64,8 +61,12 @@ module Datadog
     # rubocop:enable Style/TrivialAccessors
 
     def to_s
-      pretty_options = options.to_a.map { |k, v| "#{k}:#{v}" }.join(OPTIONS_SEPARATOR)
+      pretty_options = options.to_a.map { |k, v| "#{k}:#{v}" }.join(', ')
       "Pin(#{pretty_options})"
     end
+
+    private
+
+    attr_accessor :options
   end
 end

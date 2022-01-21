@@ -128,6 +128,21 @@ RSpec.describe Datadog::Pin do
     end
   end
 
+  describe '#key?' do
+    subject(:key?) { pin.key?(key) }
+    let(:key) { :a_setting }
+
+    context 'when setting is not set' do
+      it { is_expected.to be false }
+    end
+
+    context 'when setting is set' do
+      before { pin[key] = :a_value }
+
+      it { is_expected.to be true }
+    end
+  end
+
   describe '#onto' do
     subject(:onto) { pin.onto(target) }
     let(:returned_pin) { described_class.get_from(target) }
