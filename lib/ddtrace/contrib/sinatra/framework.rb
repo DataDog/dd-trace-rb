@@ -8,9 +8,9 @@ module Datadog
       module Framework
         # Configure Rack from Sinatra, but only if Rack has not been configured manually beforehand
         def self.setup
-          return if Datadog.configuration.instrumented_integrations.key?(:rack)
+          return if Datadog::Tracing.configuration.instrumented_integrations.key?(:rack)
 
-          Datadog.configure do |datadog_config|
+          Datadog::Tracing.configure do |datadog_config|
             sinatra_config = config_with_defaults(datadog_config)
             activate_rack!(datadog_config, sinatra_config)
           end
@@ -22,7 +22,7 @@ module Datadog
 
         # Apply relevant configuration from Sinatra to Rack
         def self.activate_rack!(datadog_config, sinatra_config)
-          datadog_config.use(
+          datadog_config.instrument(
             :rack,
             service_name: sinatra_config[:service_name],
             distributed_tracing: sinatra_config[:distributed_tracing],
