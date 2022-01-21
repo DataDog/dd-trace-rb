@@ -213,6 +213,7 @@ RSpec.describe Datadog::Tracer do
           it 'records span flushing to logger' do
             subject
             expect(Datadog.logger).to have_lazy_debug_logged('Writing 1 span')
+            expect(Datadog.logger).to have_lazy_debug_logged('Name: span.name')
           end
         end
 

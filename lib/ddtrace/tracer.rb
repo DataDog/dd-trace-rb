@@ -425,12 +425,7 @@ module Datadog
       return unless trace && @writer
 
       if Datadog.configuration.diagnostics.debug
-        Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})" }
-
-        if Datadog.logger.debug?
-          str = String.new('')
-          PP.pp(trace.spans, str)
-        end
+        Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
       end
 
       @writer.write(trace)
