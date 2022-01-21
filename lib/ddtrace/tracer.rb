@@ -213,7 +213,9 @@ module Datadog
     # @yield Optional block where this {#continue_trace!} `digest` scope is active.
     #   If no block, the `digest` remains active after {#continue_trace!} returns.
     def continue_trace!(digest, key = nil, &block)
-      return unless digest && digest.is_a?(TraceDigest)
+      # Only accept {TraceDigest} as a digest.
+      # Otherwise, create a new execution context.
+      digest = nil unless digest.is_a?(TraceDigest)
 
       trace = start_trace(continue_from: digest)
       call_context(key).activate!(trace, &block)
