@@ -34,18 +34,6 @@ module Datadog
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
-            alias_method :initialize_without_datadog, :initialize
-            Datadog::Utils.without_warnings do
-              remove_method :initialize
-            end
-
-            def initialize(*args, &block)
-              service = Datadog::Tracing.configuration[:elasticsearch][:service_name]
-              Datadog::Tracing.configure_onto(self, service_name: service)
-
-              initialize_without_datadog(*args, &block)
-            end
-
             alias_method :perform_request_without_datadog, :perform_request
             remove_method :perform_request
 

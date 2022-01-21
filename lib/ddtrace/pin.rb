@@ -35,7 +35,7 @@ module Datadog
     end
 
     def key?(name)
-      @options.key?
+      @options.key?(name)
     end
 
     # rubocop:disable Style/TrivialAccessors

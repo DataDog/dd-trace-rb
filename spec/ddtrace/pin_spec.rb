@@ -115,8 +115,7 @@ RSpec.describe Datadog::Pin do
         {
           app: double('app'),
           app_type: double('app_type'),
-          config: double('config'),
-          tags: double('tags'),
+          tags: double('tags')
         }
       end
 
@@ -124,6 +123,45 @@ RSpec.describe Datadog::Pin do
         expect(pin[:app]).to eq(options[:app])
         expect(pin[:app_type]).to eq(options[:app_type])
         expect(pin[:tags]).to eq(options[:tags])
+      end
+    end
+  end
+
+  describe '#[]' do
+    subject(:get) { pin[key] }
+    let(:key) { :a_setting }
+
+    context 'when setting is not set' do
+      it { is_expected.to be nil }
+    end
+
+    context 'when setting is set' do
+      let(:value) { :a_value }
+
+      before { pin[key] = value }
+
+      it { is_expected.to be value }
+    end
+  end
+
+  describe '#[]=' do
+    subject(:set) { pin[key] = value }
+    let(:key) { :a_setting }
+    let(:value) { :a_value }
+
+    context 'when setting is not set' do
+      it do
+        set
+        expect(pin[key]).to be value
+      end
+    end
+
+    context 'when setting is set' do
+      before { pin[key] = :old_value }
+
+      it do
+        set
+        expect(pin[key]).to be value
       end
     end
   end

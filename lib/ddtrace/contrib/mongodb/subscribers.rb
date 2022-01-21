@@ -11,10 +11,10 @@ module Datadog
       # system available in the Mongo driver.
       class MongoCommandSubscriber
         def started(event)
+          return unless Datadog::Tracing.enabled?
+
           service = Datadog::Tracing.configuration_for(event.address, :service_name) \
                     || Datadog::Tracing.configuration[:mongo, event.address.seed][:service_name]
-
-          return unless Datadog::Tracing.enabled?
 
           # start a trace and store it in the current thread; using the `operation_id`
           # is safe since it's a unique id used to link events together. Also only one
