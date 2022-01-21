@@ -23,17 +23,14 @@ module Datadog
           def do_get_block(req, proxy, conn, &block)
             host = req.header.request_uri.host
             request_options = datadog_configuration(host)
-            pin = datadog_pin(request_options)
-
-            return super unless pin
+            client_config = Datadog::Tracing.configuration_for(self)
 
             Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
-                request_options[:service_name] = pin.service_name
-                span.service = service_name(host, request_options)
+                span.service = service_name(host, request_options, client_config)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                if Datadog::Tracing.enabled? && !should_skip_distributed_tracing?(pin)
+                if Datadog::Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
                   Datadog::HTTPPropagator.inject!(trace, req.header)
                 end
 
@@ -89,33 +86,6 @@ module Datadog
             span.set_error(error)
           end
 
-          def datadog_pin(config = Datadog::Tracing.configuration[:httprb])
-            service = config[:service_name]
-
-            @datadog_pin ||= Datadog::Pin.new(
-              service,
-              app: Ext::TAG_COMPONENT,
-              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-            )
-
-            if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
-              @datadog_pin.service = service
-            end
-
-            @datadog_pin
-          end
-
-          def default_datadog_pin
-            config = Datadog::Tracing.configuration[:httpclient]
-            service = config[:service_name]
-
-            @default_datadog_pin ||= Datadog::Pin.new(
-              service,
-              app: Ext::TAG_COMPONENT,
-              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-            )
-          end
-
           def datadog_configuration(host = :default)
             Datadog::Tracing.configuration[:httpclient, host]
           end
@@ -128,8 +98,8 @@ module Datadog
             Datadog.logger
           end
 
-          def should_skip_distributed_tracing?(pin)
-            return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
+          def should_skip_distributed_tracing?(client_config)
+            return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
             !Datadog::Tracing.configuration[:httpclient][:distributed_tracing]
           end

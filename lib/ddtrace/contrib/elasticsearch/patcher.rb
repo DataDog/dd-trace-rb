@@ -34,29 +34,11 @@ module Datadog
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
-            alias_method :initialize_without_datadog, :initialize
-            Datadog::Utils.without_warnings do
-              remove_method :initialize
-            end
-
-            def initialize(*args, &block)
-              service = Datadog::Tracing.configuration[:elasticsearch][:service_name]
-
-              pin = Datadog::Pin.new(
-                service,
-                app: Datadog::Contrib::Elasticsearch::Ext::TAG_COMPONENT,
-                app_type: Datadog::Ext::AppTypes::DB,
-              )
-              pin.onto(self)
-              initialize_without_datadog(*args, &block)
-            end
-
             alias_method :perform_request_without_datadog, :perform_request
             remove_method :perform_request
 
             def perform_request(*args)
-              pin = Datadog::Pin.get_from(self)
-              return perform_request_without_datadog(*args) unless pin
+              service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               method = args[0]
               path = args[1]
@@ -66,7 +48,8 @@ module Datadog
 
               url = full_url.path
               response = nil
-              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: pin.service) do |span|
+
+              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection

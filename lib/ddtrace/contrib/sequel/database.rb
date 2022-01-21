@@ -22,7 +22,9 @@ module Datadog
             response = nil
 
             Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
-              span.service = datadog_pin.service
+              span.service =  Datadog::Tracing.configuration_for(self, :service_name) \
+                              || Datadog::Tracing.configuration[:sequel][:service_name] \
+                              || adapter_name
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
               Utils.set_common_tags(span, self)
@@ -30,14 +32,6 @@ module Datadog
               response = super(sql, options)
             end
             response
-          end
-
-          def datadog_pin
-            @pin ||= Datadog::Pin.new(
-              Datadog::Tracing.configuration[:sequel][:service_name] || adapter_name,
-              app: Ext::TAG_COMPONENT,
-              app_type: Datadog::Ext::AppTypes::DB,
-            )
           end
 
           private

@@ -1,9 +1,7 @@
-# typed: true
-require 'ddtrace/utils/only_once'
+# typed: false
 
 module Datadog
-  # A {Datadog::Pin} (a.k.a Patch INfo) is a small class which is used to
-  # set tracing metadata on a particular traced object.
+  # A {Datadog::Pin} sets metadata on a particular object.
   # This is useful if you wanted to, say, trace two different
   # database clusters.
   class Pin
@@ -13,24 +11,31 @@ module Datadog
       obj.datadog_pin
     end
 
-    attr_accessor :app, :app_type, :config, :name, :service_name, :tags, :writer
+    def self.set_on(obj, **options)
+      if (pin = get_from(obj))
+        options.each { |k, v| pin[k] = v }
+      else
+        pin = new(**options)
+        pin.onto(obj)
+      end
 
-    # TODO: remove aliases and leave `service` when we rename Datadog::Contrib::Configuration::Settings#service_name
-    # to Datadog::Contrib::Configuration::Settings#service
-    alias service= service_name=
-    alias service service_name
-
-    def initialize(service_name, app: nil, app_type: nil, config: nil, tags: nil)
-      @service_name = service_name
-      @app = app
-      @app_type = app_type
-      @config = config
-      @tags = tags
-      @name = nil # this would rarely be overridden as it's really span-specific
+      pin
     end
 
-    def enabled?
-      Datadog::Tracing.enabled?
+    def initialize(**options)
+      @options = options
+    end
+
+    def [](name)
+      @options[name]
+    end
+
+    def []=(name, value)
+      @options[name] = value
+    end
+
+    def key?(name)
+      @options.key?(name)
     end
 
     # rubocop:disable Style/TrivialAccessors
@@ -53,9 +58,15 @@ module Datadog
 
       obj.datadog_pin = self
     end
+    # rubocop:enable Style/TrivialAccessors
 
     def to_s
-      "Pin(service:#{service},app:#{app},app_type:#{app_type},name:#{name})"
+      pretty_options = options.to_a.map { |k, v| "#{k}:#{v}" }.join(', ')
+      "Pin(#{pretty_options})"
     end
+
+    private
+
+    attr_accessor :options
   end
 end

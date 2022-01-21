@@ -66,7 +66,6 @@ Lint/MissingCopEnableDirective:
     - 'lib/ddtrace/contrib/sinatra/tracer_middleware.rb'
     - 'lib/ddtrace/contrib/sucker_punch/instrumentation.rb'
     - 'lib/ddtrace/ext/ci.rb'
-    - 'lib/ddtrace/pin.rb'
     - 'lib/ddtrace/span.rb'
     - 'lib/ddtrace/tracer.rb'
     - 'lib/ddtrace/workers/async.rb'

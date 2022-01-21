@@ -78,10 +78,8 @@ module Datadog
             end
 
             def __with_instrumentation(name)
-              pin = Datadog::Pin.get_from(::SuckerPunch)
-
-              Datadog::Tracing.trace(name, service: pin.service) do |span|
-                span.span_type = pin.app_type
+              Datadog::Tracing.trace(name, service: datadog_configuration[:service_name]) do |span|
+                span.span_type = Datadog::Ext::AppTypes::WORKER
 
                 span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
 

@@ -25,7 +25,7 @@ module Datadog
               return unless cluster.respond_to? :addresses
               return unless cluster.addresses.respond_to? :first
 
-              Datadog::Pin.get_from(cluster.addresses.first)
+              Datadog::Tracing.configuration_for(cluster.addresses.first)
             end
 
             def datadog_pin=(pin)
@@ -38,28 +38,6 @@ module Datadog
               # when executing a Command and it is attached to the Monitoring
               # Event instance.
               cluster.addresses.each { |x| pin.onto(x) }
-            end
-          end
-        end
-
-        # Instrumentation for Mongo::Address
-        module Address
-          def self.included(base)
-            base.include(InstanceMethods)
-          end
-
-          # Instance methods for Mongo::Address
-          module InstanceMethods
-            def datadog_pin
-              @datadog_pin ||= begin
-                service = Datadog::Tracing.configuration[:mongo, seed][:service_name]
-
-                Datadog::Pin.new(
-                  service,
-                  app: Datadog::Contrib::MongoDB::Ext::TAG_COMPONENT,
-                  app_type: Datadog::Ext::AppTypes::DB,
-                )
-              end
             end
           end
         end
