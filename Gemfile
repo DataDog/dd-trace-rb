@@ -90,3 +90,6 @@ if RUBY_VERSION >= '2.4.0' && !Gem.win_platform?
   gem 'sorbet', '= 0.5.9120'
   gem 'spoom', '~> 1.1'
 end
+
+# Workaround for 1.4.3 being broken on Java 8, see https://github.com/msgpack/msgpack-ruby/issues/239
+gem 'msgpack', '< 1.4.3' if RUBY_PLATFORM == 'java'
