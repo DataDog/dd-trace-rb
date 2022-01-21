@@ -37,7 +37,7 @@ module Datadog
           version >= MINIMUM_SERVER_INTERNAL_TRACING_VERSION
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 

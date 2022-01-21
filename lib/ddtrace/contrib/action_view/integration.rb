@@ -41,7 +41,7 @@ module Datadog
           !Datadog::Contrib::Rails::Utils.railtie_supported?
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 

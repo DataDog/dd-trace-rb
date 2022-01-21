@@ -30,7 +30,7 @@ module Datadog
           !defined?(::Net::HTTP).nil?
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 
