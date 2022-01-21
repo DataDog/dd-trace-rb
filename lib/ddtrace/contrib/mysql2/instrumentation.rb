@@ -19,8 +19,7 @@ module Datadog
         module InstanceMethods
           def query(sql, options = {})
             Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
-              client_config = Datadog::Tracing.configuration_for(self)
-              service = (client_config && client_config[:service_name]) || datadog_configuration[:service_name]
+              service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               span.resource = sql
               span.service = service

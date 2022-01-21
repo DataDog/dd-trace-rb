@@ -45,8 +45,7 @@ module Datadog
           end
 
           def service_name
-            datadog_pin = Datadog::Tracing.configuration_for(self)
-            (datadog_pin && datadog_pin[:service_name]) || datadog_configuration[:service_name]
+            Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
           end
 
           def analytics_enabled?

@@ -22,8 +22,7 @@ module Datadog
             response = nil
 
             Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
-              db_config = Datadog::Tracing.configuration_for(self)
-              span.service =  (db_config && db_config[:service_name]) \
+              span.service =  Datadog::Tracing.configuration_for(self, :service_name) \
                               || Datadog::Tracing.configuration[:sequel][:service_name] \
                               || adapter_name
               span.resource = opts[:query]

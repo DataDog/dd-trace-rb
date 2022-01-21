@@ -66,10 +66,7 @@ module Datadog
         private
 
         def forked?
-          config = Datadog::Tracing.configuration_for(::Resque)
-          return false unless config
-
-          config[:forked] == true
+          Datadog::Tracing.configuration_for(::Resque, :forked) == true
         end
 
         def span_options

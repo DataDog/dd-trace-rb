@@ -31,8 +31,6 @@ module Datadog
 
         # rubocop:disable Metrics/MethodLength
         # rubocop:disable Metrics/AbcSize
-        # rubocop:disable Metrics/CyclomaticComplexity
-        # rubocop:disable Metrics/PerceivedComplexity
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
@@ -52,9 +50,7 @@ module Datadog
             remove_method :perform_request
 
             def perform_request(*args)
-              client_config = Datadog::Tracing.configuration_for(self)
-              service = datadog_configuration[:service_name]
-              service = client_config[:service_name] if client_config && client_config[:service_name]
+              service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               method = args[0]
               path = args[1]
@@ -118,8 +114,6 @@ module Datadog
             end
           end
         end
-        # rubocop:enable Metrics/CyclomaticComplexity
-        # rubocop:enable Metrics/PerceivedComplexity
       end
     end
   end

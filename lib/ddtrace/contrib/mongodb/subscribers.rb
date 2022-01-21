@@ -11,8 +11,7 @@ module Datadog
       # system available in the Mongo driver.
       class MongoCommandSubscriber
         def started(event)
-          client_config = Datadog::Tracing.configuration_for(event.address)
-          service = (client_config && client_config[:service_name]) \
+          service = Datadog::Tracing.configuration_for(event.address, :service_name) \
                     || Datadog::Tracing.configuration[:mongo, event.address.seed][:service_name]
 
           return unless Datadog::Tracing.enabled?

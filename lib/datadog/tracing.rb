@@ -143,9 +143,13 @@ module Datadog
       # ```
       #
       # @param [Object] target the object to receive configuration options
+      # @param [Object] option an option to retrieve from the object configuration
       # @public_api
-      def configuration_for(target)
-        Pin.get_from(target)
+      def configuration_for(target, option = nil)
+        pin = Pin.get_from(target)
+        return pin unless option
+
+        pin[option] if pin
       end
 
       # (see Datadog::Tracer#active_trace)

@@ -32,10 +32,6 @@ module Datadog
             trace_execute(proc { super(sql, options, &block) }, sql, options, &block)
           end
 
-          def database_config
-            Datadog::Tracing.configuration_for(db)
-          end
-
           private
 
           def trace_execute(super_method, sql, options, &block)
@@ -43,8 +39,7 @@ module Datadog
             response = nil
 
             Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
-              db_config = database_config
-              span.service =  (db_config && db_config[:service_name]) \
+              span.service =  Datadog::Tracing.configuration_for(db, :service_name) \
                               || Datadog::Tracing.configuration[:sequel][:service_name] \
                               || adapter_name
               span.resource = opts[:query]

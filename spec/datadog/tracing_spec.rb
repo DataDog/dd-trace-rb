@@ -193,6 +193,41 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
+  describe '.configuration_for' do
+    subject(:configuration_for) { described_class.configuration_for(object, option_name) }
+
+    let(:object) { double('object') }
+    let(:option_name) { :a_setting }
+
+    context 'when the object has not been configured' do
+      it { is_expected.to be nil }
+    end
+
+    context 'when the object has been configured' do
+      let(:options) { {} }
+
+      before { described_class.configure_onto(object, **options) }
+
+      context 'but no option is provided' do
+        let(:option_name) { nil }
+        it { is_expected.to be_a_kind_of(Datadog::Pin) }
+      end
+
+      context 'but an option is provided' do
+        context 'and it has not been set' do
+          it { is_expected.to be nil }
+        end
+
+        context 'and it has been set' do
+          let(:option_value) { :a_value }
+          let(:options) { { option_name => option_value } }
+
+          it { is_expected.to be option_value }
+        end
+      end
+    end
+  end
+
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
     it 'delegates to the tracer' do

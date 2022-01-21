@@ -15,11 +15,9 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def call(*args, &block)
-            client_config = Datadog::Tracing.configuration_for(self)
-
             response = nil
             Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              span.service = (client_config && client_config[:service_name]) || datadog_configuration[:service_name]
+              span.service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               span.resource = get_command(args)
               Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
@@ -31,11 +29,9 @@ module Datadog
           end
 
           def call_pipeline(*args, &block)
-            client_config = Datadog::Tracing.configuration_for(self)
-
             response = nil
             Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              span.service = (client_config && client_config[:service_name]) || datadog_configuration[:service_name]
+              span.service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               commands = get_pipeline_commands(args)
               span.resource = commands.join("\n")
