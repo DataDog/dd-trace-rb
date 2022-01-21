@@ -729,6 +729,26 @@ RSpec.describe Datadog::Tracer do
           )
         end
       end
+
+      context 'and a block' do
+        it do
+          expect { |b| tracer.continue_trace!(digest, &b) }
+            .to yield_control
+        end
+
+        it 'restores the original active trace afterwards' do
+          tracer.continue_trace!(digest)
+          original_trace = tracer.active_trace
+          expect(original_trace).to be_a_kind_of(Datadog::TraceOperation)
+
+          tracer.continue_trace!(digest) do
+            expect(tracer.active_trace).to be_a_kind_of(Datadog::TraceOperation)
+            expect(tracer.active_trace).to_not be original_trace
+          end
+
+          expect(tracer.active_trace).to be original_trace
+        end
+      end
     end
 
     context 'given a TraceDigest' do
