@@ -1,6 +1,6 @@
 # typed: false
 require 'spec_helper'
-require 'ddtrace/profiling'
+require 'datadog/profiling'
 
 RSpec.describe Datadog::Profiling do
   extend ConfigurationHelpers

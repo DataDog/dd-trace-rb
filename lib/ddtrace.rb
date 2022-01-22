@@ -35,5 +35,5 @@ module Datadog
 end
 
 # Load other products (must follow tracing)
-require 'ddtrace/profiling'
+require 'datadog/profiling'
 require 'datadog/ci'
