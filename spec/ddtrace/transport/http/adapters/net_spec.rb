@@ -139,10 +139,10 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
 
         context 'and a form with fields' do
           let(:form) { { 'id' => '1234', 'type' => 'Test' } }
-          let(:multipart_post) { instance_double(Datadog::Vendor::Net::HTTP::Post::Multipart) }
+          let(:multipart_post) { instance_double(Datadog::Core::Vendor::Net::HTTP::Post::Multipart) }
 
           it 'makes a multipart POST and produces a response' do
-            expect(Datadog::Vendor::Net::HTTP::Post::Multipart)
+            expect(Datadog::Core::Vendor::Net::HTTP::Post::Multipart)
               .to receive(:new)
               .with(env.path, env.form, env.headers)
               .and_return(multipart_post)

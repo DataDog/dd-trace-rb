@@ -1,6 +1,6 @@
 # typed: true
 require 'ddtrace/transport/response'
-require 'ddtrace/vendor/multipart-post/net/http/post/multipart'
+require 'datadog/core/vendor/multipart-post/net/http/post/multipart'
 
 module Datadog
   module Transport
@@ -60,7 +60,7 @@ module Datadog
               post = ::Net::HTTP::Post.new(env.path, env.headers)
               post.body = env.body
             else
-              post = ::Datadog::Vendor::Net::HTTP::Post::Multipart.new(
+              post = ::Datadog::Core::Vendor::Net::HTTP::Post::Multipart.new(
                 env.path,
                 env.form,
                 env.headers

@@ -58,7 +58,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
 
         expect(env.form).to include(
           'version' => '3',
-          'data[rubyprofile.pprof]' => kind_of(Datadog::Vendor::Multipart::Post::UploadIO),
+          'data[rubyprofile.pprof]' => kind_of(Datadog::Core::Vendor::Multipart::Post::UploadIO),
           'start' => flush.start.utc.iso8601,
           'end' => flush.finish.utc.iso8601,
           'family' => flush.language,
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
           call
 
           expect(env.form)
-            .to include('data[code_provenance.json]' => kind_of(Datadog::Vendor::Multipart::Post::UploadIO))
+            .to include('data[code_provenance.json]' => kind_of(Datadog::Core::Vendor::Multipart::Post::UploadIO))
         end
       end
     end

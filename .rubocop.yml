@@ -18,6 +18,7 @@ AllCops:
     - 'Appraisals'
     - '*.gemspec'
     - 'lib/ddtrace/**/vendor/**/*.rb'
+    - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
     - 'lib/ddtrace/profiling/pprof/pprof_pb.rb'
