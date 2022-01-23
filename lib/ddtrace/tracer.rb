@@ -217,8 +217,16 @@ module Datadog
       # Otherwise, create a new execution context.
       digest = nil unless digest.is_a?(TraceDigest)
 
+      # Start a new trace from the digest
+      context = call_context(key)
+      original_trace = active_trace(key)
       trace = start_trace(continue_from: digest)
-      call_context(key).activate!(trace, &block)
+
+      # If block hasn't been given; we need to manually deactivate
+      # this trace. Subscribe to the trace finished event to do this.
+      subscribe_trace_deactivation!(context, trace, original_trace) unless block
+
+      context.activate!(trace, &block)
     end
 
     # @!visibility private
@@ -390,17 +398,23 @@ module Datadog
       # Get the original trace to restore
       original_trace = context.active_trace
 
-      # Setup the deactivation callback but don't override this event if it's set.
-      # (The original event should reactivate the original trace correctly.)
-      unless trace.send(:events).trace_finished.subscriptions[:tracer_deactivate_trace]
-        trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
-          context.activate!(original_trace)
-        end
-      end
+      # Setup the deactivation callback
+      subscribe_trace_deactivation!(context, trace, original_trace)
 
       # Activate the trace
       # Skip this, if it would have no effect.
       context.activate!(trace) unless trace == original_trace
+    end
+
+    # Reactivate the original trace when trace completes
+    def subscribe_trace_deactivation!(context, trace, original_trace)
+      # Don't override this event if it's set.
+      # The original event should reactivate the original trace correctly.
+      return if trace.send(:events).trace_finished.subscriptions[:tracer_deactivate_trace]
+
+      trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
+        context.activate!(original_trace)
+      end
     end
 
     # Sample a span, tagging the trace as appropriate.

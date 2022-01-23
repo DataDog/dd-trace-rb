@@ -729,6 +729,8 @@ RSpec.describe Datadog::Tracer do
             trace_id: a_kind_of(Integer)
           )
         end
+
+        expect(tracer.active_trace).to be nil
       end
 
       context 'and a block' do
@@ -776,12 +778,16 @@ RSpec.describe Datadog::Tracer do
             trace_id: digest.trace_id
           )
         end
+
+        expect(tracer.active_trace).to be nil
       end
 
       it 'is consumed by the next trace and isn\'t reused' do
         tracer.trace('first') do |span, trace|
           # Should consume the continuation
         end
+
+        expect(tracer.active_trace).to be nil
 
         tracer.trace('second') do |span, trace|
           expect(trace).to have_attributes(
@@ -792,6 +798,8 @@ RSpec.describe Datadog::Tracer do
           expect(span.trace_id).to_not eq(digest.trace_id)
           expect(span.parent_id).to eq(0)
         end
+
+        expect(tracer.active_trace).to be nil
       end
 
       context 'and a block' do
