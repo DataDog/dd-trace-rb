@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (0.54.1)
-      debase-ruby_core_source (= 0.10.13)
+    ddtrace (1.0.0.dev)
+      debase-ruby_core_source (<= 0.10.14)
       msgpack
 
 GEM
@@ -1234,7 +1234,7 @@ GEM
       cucumber-cucumber-expressions (~> 12.1, >= 12.1.2)
       cucumber-messages (~> 17.0, >= 17.0.1)
     dalli (2.7.11)
-    debase-ruby_core_source (0.10.13)
+    debase-ruby_core_source (0.10.14)
     debug_inspector (1.1.0)
     delayed_job (4.1.9)
       activesupport (>= 3.0, < 6.2)
@@ -1312,6 +1312,8 @@ GEM
     i18n (1.8.10)
       concurrent-ruby (~> 1.0)
     jmespath (1.4.0)
+    json-schema (2.8.1)
+      addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.0)
     lograge (0.11.2)
@@ -1434,7 +1436,7 @@ GEM
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.10.0)
     rspec-support (3.10.2)
-    rspec_junit_formatter (0.4.1)
+    rspec_junit_formatter (0.5.1)
       rspec-core (>= 2, < 4, != 2.12.0)
     rspec_n (1.4.0)
       colorize (~> 0.8.0)
@@ -1560,6 +1562,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
+  json-schema
   lograge (~> 0.11)
   makara
   memory_profiler (~> 0.9)
@@ -1586,7 +1589,7 @@ DEPENDENCIES
   rest-client
   rspec (>= 3.0.0)
   rspec-collection_matchers (~> 1.1)
-  rspec_junit_formatter (>= 0.4.1)
+  rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
   rubocop (~> 1.10)
   rubocop-performance (~> 1.9)
