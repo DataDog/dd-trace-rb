@@ -1,4 +1,8 @@
 --dir
 .
+--ignore=/.git
 --ignore=/integration
 --ignore=/yard
+--ignore=/lib
+--ignore=/spec
+--ignore=/benchmarks
