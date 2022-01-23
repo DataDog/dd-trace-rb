@@ -390,16 +390,17 @@ module Datadog
       # Get the original trace to restore
       original_trace = context.active_trace
 
-      # Skip this, if it would have no effect.
-      return if original_trace == trace
-
-      # Setup the deactivation callback
-      trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
-        context.activate!(original_trace)
+      # Setup the deactivation callback but don't override this event if it's set.
+      # (The original event should reactivate the original trace correctly.)
+      unless trace.send(:events).trace_finished.subscriptions[:tracer_deactivate_trace]
+        trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
+          context.activate!(original_trace)
+        end
       end
 
       # Activate the trace
-      context.activate!(trace)
+      # Skip this, if it would have no effect.
+      context.activate!(trace) unless trace == original_trace
     end
 
     # Sample a span, tagging the trace as appropriate.
