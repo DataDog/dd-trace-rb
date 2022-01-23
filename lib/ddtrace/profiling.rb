@@ -185,6 +185,7 @@ module Datadog
       return false unless supported?
 
       require 'ddtrace/profiling/ext/forking'
+      require 'ddtrace/profiling/collectors/code_provenance'
       require 'ddtrace/profiling/collectors/stack'
       require 'ddtrace/profiling/exporter'
       require 'ddtrace/profiling/recorder'

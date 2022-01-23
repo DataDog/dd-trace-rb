@@ -93,6 +93,7 @@ RSpec.describe 'profiling integration test' do
       Datadog::Profiling::Recorder.new(
         [Datadog::Profiling::Events::StackSample],
         100000,
+        code_provenance_collector: nil,
         last_flush_time: Time.now.utc - 5
       )
     end

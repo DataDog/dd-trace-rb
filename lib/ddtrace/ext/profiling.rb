@@ -46,6 +46,9 @@ module Datadog
 
           FORM_FIELD_PPROF_DATA = 'data[rubyprofile.pprof]'.freeze
           PPROF_DEFAULT_FILENAME = 'rubyprofile.pprof.gz'.freeze
+
+          FORM_FIELD_CODE_PROVENANCE_DATA = 'data[code_provenance.json]'.freeze
+          CODE_PROVENANCE_FILENAME = 'code_provenance.json.gz'.freeze
         end
       end
     end

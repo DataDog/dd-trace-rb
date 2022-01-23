@@ -3,12 +3,16 @@ require 'spec_helper'
 
 require 'ddtrace/profiling/recorder'
 require 'ddtrace/profiling/event'
+require 'ddtrace/profiling/collectors/code_provenance'
 
 RSpec.describe Datadog::Profiling::Recorder do
-  subject(:recorder) { described_class.new(event_classes, max_size) }
+  subject(:recorder) do
+    described_class.new(event_classes, max_size, code_provenance_collector: code_provenance_collector)
+  end
 
   let(:event_classes) { [] }
   let(:max_size) { 0 }
+  let(:code_provenance_collector) { nil }
 
   shared_context 'test buffer' do
     let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
@@ -110,6 +114,9 @@ RSpec.describe Datadog::Profiling::Recorder do
 
   describe '#flush' do
     include_context 'test buffer'
+
+    let(:events) { [] }
+
     subject(:flush) { recorder.flush }
 
     before { allow(buffer).to receive(:pop).and_return(events) }
@@ -145,8 +152,6 @@ RSpec.describe Datadog::Profiling::Recorder do
       end
 
       context 'whose buffer returns no events' do
-        let(:events) { [] }
-
         it { is_expected.to be_a_kind_of(Datadog::Profiling::Flush) }
         it { expect(flush.event_groups).to be_empty }
       end
@@ -154,14 +159,33 @@ RSpec.describe Datadog::Profiling::Recorder do
       context 'called back to back' do
         subject(:flush) { Array.new(3) { recorder.flush } }
 
-        let(:events) { [] }
-
         it 'has its start and end times line up' do
           expect(flush[0].start).to be < flush[0].finish
           expect(flush[0].finish).to eq(flush[1].start)
           expect(flush[1].finish).to eq(flush[2].start)
           expect(flush[2].start).to be < flush[2].finish
         end
+      end
+    end
+
+    context 'when code_provenance_collector is nil' do
+      let(:code_provenance_collector) { nil }
+
+      it 'returns a flush without code_provenance' do
+        expect(flush.code_provenance).to be nil
+      end
+    end
+
+    context 'when code_provenance_collector is available' do
+      let(:code_provenance_collector) do
+        collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance)
+        allow(collector).to receive(:refresh).and_return(collector)
+        collector
+      end
+      let(:code_provenance) { double('code_provenance') } # rubocop:disable RSpec/VerifiedDoubles
+
+      it 'returns a flush with code_provenance' do
+        expect(flush.code_provenance).to be code_provenance
       end
     end
   end
