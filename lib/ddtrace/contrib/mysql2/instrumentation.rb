@@ -18,7 +18,7 @@ module Datadog
         # Mysql2::Client patch instance methods
         module InstanceMethods
           def query(sql, options = {})
-            service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+            service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
             Datadog::Tracing.trace(Ext::SPAN_QUERY, service: service) do |span|
               span.resource = sql

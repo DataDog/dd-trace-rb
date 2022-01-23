@@ -22,7 +22,6 @@ module Datadog
         def patch
           require 'uri'
           require 'json'
-          require 'ddtrace/pin'
           require 'ddtrace/contrib/elasticsearch/quantize'
 
           patch_elasticsearch_transport_client
@@ -37,7 +36,7 @@ module Datadog
             remove_method :perform_request
 
             def perform_request(*args)
-              service = Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               method = args[0]
               path = args[1]

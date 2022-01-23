@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/configuration/base'
+require 'datadog/core/configuration/base'
 require 'datadog/core/utils/only_once'
 
 module Datadog
@@ -8,7 +8,7 @@ module Datadog
       # Common settings for all integrations
       # @public_api
       class Settings
-        include Datadog::Configuration::Base
+        include Datadog::Core::Configuration::Base
 
         DEPRECATION_WARN_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
 

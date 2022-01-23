@@ -2,7 +2,6 @@ require 'spec_helper'
 
 require 'datadog/statsd'
 
-# rubocop:disable RSpec/VerifiedDoubles
 # All the doubles in this file are simple pass through values.
 # There's no value in making them verifying doubles.
 RSpec.describe Datadog::Tracing do
@@ -146,7 +145,7 @@ RSpec.describe Datadog::Tracing do
     context 'validation' do
       it 'wraps the configuration object with a proxy' do
         described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Configuration::ValidationProxy::Tracing)
+          expect(c).to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
         end
       end
 
@@ -165,66 +164,13 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
-  describe '.configure_onto' do
-    subject(:configure_onto) { described_class.configure_onto(object, **options) }
-
-    let(:object) { double('object') }
-    let(:options) { {} }
-
-    let(:pin) { instance_double(Datadog::Pin) }
-
-    it 'attaches a pin to the object' do
-      expect(Datadog::Pin)
-        .to receive(:set_on)
-        .with(object, **options)
-        .and_return(pin)
-
-      configure_onto
-    end
-  end
-
   describe '.configuration' do
     subject(:configuration) { described_class.configuration }
     it 'returns the global configuration' do
       expect(configuration)
-        .to be_a_kind_of(Datadog::Configuration::ValidationProxy::Tracing)
+        .to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
 
       expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
-    end
-  end
-
-  describe '.configuration_for' do
-    subject(:configuration_for) { described_class.configuration_for(object, option_name) }
-
-    let(:object) { double('object') }
-    let(:option_name) { :a_setting }
-
-    context 'when the object has not been configured' do
-      it { is_expected.to be nil }
-    end
-
-    context 'when the object has been configured' do
-      let(:options) { {} }
-
-      before { described_class.configure_onto(object, **options) }
-
-      context 'but no option is provided' do
-        let(:option_name) { nil }
-        it { is_expected.to be_a_kind_of(Datadog::Pin) }
-      end
-
-      context 'but an option is provided' do
-        context 'and it has not been set' do
-          it { is_expected.to be nil }
-        end
-
-        context 'and it has been set' do
-          let(:option_value) { :a_value }
-          let(:options) { { option_name => option_value } }
-
-          it { is_expected.to be option_value }
-        end
-      end
     end
   end
 
@@ -254,4 +200,3 @@ RSpec.describe Datadog::Tracing do
     end
   end
 end
-# rubocop:enable RSpec/VerifiedDoubles

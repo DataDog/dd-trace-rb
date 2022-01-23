@@ -15,7 +15,7 @@ module Datadog
         private
 
         def forked?
-          Datadog::Tracing.configuration_for(::Qless, :forked) == true
+          Datadog.configuration_for(::Qless, :forked) == true
         end
 
         def datadog_configuration

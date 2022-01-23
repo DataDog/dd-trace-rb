@@ -13,7 +13,7 @@ RSpec.describe Datadog::Core::Workers::IntervalLoop do
     end
 
     let(:task) { proc { |*args| worker_spy.perform(*args) } }
-    let(:worker_spy) { double('worker spy') } # rubocop:disable RSpec/VerifiedDoubles
+    let(:worker_spy) { double('worker spy') }
 
     before do
       allow(worker_spy).to receive(:perform)

@@ -3,13 +3,13 @@ require 'datadog/ci/spec_helper'
 require 'datadog/ci/configuration/components'
 
 RSpec.describe Datadog::CI::Configuration::Components do
-  context 'when used to extend Datadog::Configuration::Components' do
+  context 'when used to extend Datadog::Core::Configuration::Components' do
     subject(:components) do
       # When 'datadog/ci' is required, it automatically extends Components.
-      components = if Datadog::Configuration::Components <= described_class
-                     Datadog::Configuration::Components.new(settings)
+      components = if Datadog::Core::Configuration::Components <= described_class
+                     Datadog::Core::Configuration::Components.new(settings)
                    else
-                     components_class = Datadog::Configuration::Components.dup
+                     components_class = Datadog::Core::Configuration::Components.dup
                      components_class.prepend(described_class)
                      components_class.new(settings)
                    end
@@ -19,10 +19,10 @@ RSpec.describe Datadog::CI::Configuration::Components do
 
     let(:settings) do
       # When 'datadog/ci' is required, it automatically extends Settings.
-      if Datadog::Configuration::Settings <= Datadog::CI::Configuration::Settings
-        Datadog::Configuration::Settings.new
+      if Datadog::Core::Configuration::Settings <= Datadog::CI::Configuration::Settings
+        Datadog::Core::Configuration::Settings.new
       else
-        Datadog::Configuration::Settings.new.tap do |settings|
+        Datadog::Core::Configuration::Settings.new.tap do |settings|
           settings.extend(Datadog::CI::Configuration::Settings)
         end
       end

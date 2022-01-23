@@ -299,6 +299,10 @@ RSpec/NestedGroups:
 RSpec/MessageSpies:
   Enabled: false
 
+# Enforces use of `instance_double` over `double`
+RSpec/VerifiedDoubles:
+  Enabled: false
+
 # Enforces example line count limit.
 RSpec/ExampleLength:
   Enabled: false

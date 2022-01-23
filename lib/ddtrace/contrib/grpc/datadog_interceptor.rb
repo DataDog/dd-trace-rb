@@ -17,7 +17,7 @@ module Datadog
             # Set custom configuration on the interceptor if block is given
             pin_adapter = PinAdapter.new
             yield(pin_adapter)
-            Datadog::Tracing.configure_onto(self, **pin_adapter.options)
+            Datadog.configure_onto(self, **pin_adapter.options)
           end
 
           def request_response(**keywords, &block)
@@ -43,7 +43,7 @@ module Datadog
           end
 
           def service_name
-            Datadog::Tracing.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+            Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
           end
 
           def analytics_enabled?

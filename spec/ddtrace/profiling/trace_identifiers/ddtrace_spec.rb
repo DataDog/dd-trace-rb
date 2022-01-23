@@ -98,7 +98,7 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
     end
 
     context 'when tracer does not support #call_context' do
-      let(:tracer) { double('empty tracer') } # rubocop:disable RSpec/VerifiedDoubles
+      let(:tracer) { double('empty tracer') }
 
       it do
         expect(trace_identifiers_for).to be nil
