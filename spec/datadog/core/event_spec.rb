@@ -59,9 +59,7 @@ RSpec.describe Datadog::Core::Event do
 
     context 'when given a key and block' do
       let(:block) { proc { |*args| block_spy.call(*args) } }
-      # rubocop:disable RSpec/VerifiedDoubles
       let(:block_spy) { spy('block spy') }
-      # rubocop:enable RSpec/VerifiedDoubles
 
       context 'and a subscription does not exist' do
         it 'adds a new subscription' do

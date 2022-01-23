@@ -77,7 +77,7 @@ YARD::Parser::SourceParser.after_parse_list do
 end
 
 #
-# Generates modules for DSL categories created by {Datadog::Configuration::Base::ClassMethods#settings}.
+# Generates modules for DSL categories created by {Datadog::Core::Configuration::Base::ClassMethods#settings}.
 # `#settings` are groups that can contain multiple `#option`s or nested `#settings.`
 #
 class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
@@ -126,7 +126,7 @@ class DatadogConfigurationSettingsHandler < YARD::Handlers::Ruby::Base
 end
 
 #
-# Generates attributes for DSL options created by {Datadog::Configuration::Options::ClassMethods#option}.
+# Generates attributes for DSL options created by {Datadog::Core::Configuration::Options::ClassMethods#option}.
 # `#option`s are read/write configurable attributes.
 #
 class DatadogConfigurationOptionHandler < YARD::Handlers::Ruby::Base

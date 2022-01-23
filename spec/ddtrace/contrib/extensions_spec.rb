@@ -47,7 +47,7 @@ RSpec.describe Datadog::Contrib::Extensions do
       end
     end
 
-    describe Datadog::Configuration::Settings do
+    describe Datadog::Core::Configuration::Settings do
       include_context 'registry with integration'
 
       subject(:settings) { described_class.new }

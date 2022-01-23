@@ -30,13 +30,13 @@ RSpec.describe Datadog::Transport::HTTP do
 
   describe '.default' do
     subject(:default) { described_class.default }
-    let(:env_agent_settings) { Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS }
+    let(:env_agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS }
 
     # This test changes based on the environment tests are running. We have other
     # tests around each specific environment scenario, while this one specifically
     # ensures that we are matching the default environment settings.
     #
-    # TODO: we should deprecate the use of Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS
+    # TODO: we should deprecate the use of Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS
     # and thus remove this test scenario.
     it 'returns a transport with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:deprecated_for_removal_transport_configuration_options) { nil }
 
       let(:agent_settings) do
-        Datadog::Configuration::AgentSettingsResolver::AgentSettings.new(
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
           adapter: adapter,
           ssl: ssl,
           hostname: hostname,
@@ -256,8 +256,8 @@ RSpec.describe Datadog::Transport::HTTP do
 
     before do
       stub_const(
-        'Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
+        'Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
+        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
       )
     end
 
@@ -279,8 +279,8 @@ RSpec.describe Datadog::Transport::HTTP do
 
     before do
       stub_const(
-        'Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
+        'Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
+        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
       )
     end
 

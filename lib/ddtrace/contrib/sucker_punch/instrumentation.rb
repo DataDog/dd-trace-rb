@@ -80,9 +80,7 @@ module Datadog
             def __with_instrumentation(name)
               Datadog::Tracing.trace(name, service: datadog_configuration[:service_name]) do |span|
                 span.span_type = Datadog::Ext::AppTypes::WORKER
-
                 span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-
                 span.set_tag(Ext::TAG_QUEUE, to_s)
                 yield span
               end

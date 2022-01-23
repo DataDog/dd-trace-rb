@@ -3,12 +3,12 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Configuration::Option do
+RSpec.describe Datadog::Core::Configuration::Option do
   subject(:option) { described_class.new(definition, context) }
 
   let(:definition) do
     instance_double(
-      Datadog::Configuration::OptionDefinition,
+      Datadog::Core::Configuration::OptionDefinition,
       default: default,
       delegate_to: delegate,
       lazy: lazy,

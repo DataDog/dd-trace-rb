@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Configuration::OptionDefinition do
+RSpec.describe Datadog::Core::Configuration::OptionDefinition do
   subject(:definition) { described_class.new(name, meta, &block) }
 
   let(:name) { :enabled }
@@ -141,10 +141,10 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
     subject(:build) { definition.build(context) }
 
     let(:context) { double('context') }
-    let(:option) { instance_double(Datadog::Configuration::Option) }
+    let(:option) { instance_double(Datadog::Core::Configuration::Option) }
 
     before do
-      expect(Datadog::Configuration::Option).to receive(:new)
+      expect(Datadog::Core::Configuration::Option).to receive(:new)
         .with(definition, context)
         .and_return(option)
     end
@@ -153,7 +153,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition do
   end
 end
 
-RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
+RSpec.describe Datadog::Core::Configuration::OptionDefinition::Builder do
   subject(:builder) { described_class.new(name, initialize_options, &initialize_block) }
 
   let(:name) { :enabled }
@@ -172,7 +172,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
         context 'where #to_definition' do
           subject(:definition) { builder.to_definition }
 
-          it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition) }
+          it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition) }
 
           it 'generates an OptionDefinition with defaults' do
             is_expected.to have_attributes(
@@ -183,7 +183,7 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
               name: name,
               on_set: nil,
               resetter: nil,
-              setter: Datadog::Configuration::OptionDefinition::IDENTITY
+              setter: Datadog::Core::Configuration::OptionDefinition::IDENTITY
             )
           end
         end
@@ -419,10 +419,10 @@ RSpec.describe Datadog::Configuration::OptionDefinition::Builder do
   describe '#to_definition' do
     subject(:definition) { builder.to_definition }
 
-    let(:option_definition) { instance_double(Datadog::Configuration::OptionDefinition) }
+    let(:option_definition) { instance_double(Datadog::Core::Configuration::OptionDefinition) }
 
     before do
-      expect(Datadog::Configuration::OptionDefinition).to receive(:new)
+      expect(Datadog::Core::Configuration::OptionDefinition).to receive(:new)
         .with(name, builder.meta)
         .and_return(option_definition)
     end

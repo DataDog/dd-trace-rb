@@ -23,7 +23,7 @@ module Datadog
           def do_get_block(req, proxy, conn, &block)
             host = req.header.request_uri.host
             request_options = datadog_configuration(host)
-            client_config = Datadog::Tracing.configuration_for(self)
+            client_config = Datadog.configuration_for(self)
 
             Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin

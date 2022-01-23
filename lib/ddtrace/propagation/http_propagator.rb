@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/configuration'
+require 'datadog/core/configuration'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/priority'
 require 'ddtrace/distributed_tracing/headers/b3'

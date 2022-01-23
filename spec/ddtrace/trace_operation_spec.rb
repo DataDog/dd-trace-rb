@@ -805,9 +805,7 @@ RSpec.describe Datadog::TraceOperation do
         context 'as Datadog::SpanOperation::Events' do
           it_behaves_like 'a span with default events' do
             let(:on_error) { proc { |*args| callback_spy.call(*args) } }
-            # rubocop:disable RSpec/VerifiedDoubles
             let(:callback_spy) { spy('callback spy') }
-            # rubocop:enable RSpec/VerifiedDoubles
 
             context 'when #on_error is published' do
               let(:event_args) do
@@ -1067,9 +1065,7 @@ RSpec.describe Datadog::TraceOperation do
       context 'is full' do
         let(:options) { { max_length: 2 } }
         let(:block) { proc { |*args| block_spy.call(*args) } }
-        # rubocop:disable RSpec/VerifiedDoubles
         let(:block_spy) { spy('block spy') }
-        # rubocop:enable RSpec/VerifiedDoubles
 
         before do
           allow(block_spy).to receive(:call)
@@ -1100,9 +1096,7 @@ RSpec.describe Datadog::TraceOperation do
       context 'is finished' do
         let(:options) { { max_length: 2 } }
         let(:block) { proc { |*args| block_spy.call(*args) } }
-        # rubocop:disable RSpec/VerifiedDoubles
         let(:block_spy) { spy('block spy') }
-        # rubocop:enable RSpec/VerifiedDoubles
 
         before do
           allow(block_spy).to receive(:call)
@@ -1175,9 +1169,7 @@ RSpec.describe Datadog::TraceOperation do
           let(:parent_span) { trace_op.build_span('parent').start.finish }
 
           let(:block) { proc { |*args| block_spy.call(*args) } }
-          # rubocop:disable RSpec/VerifiedDoubles
           let(:block_spy) { spy('block spy') }
-          # rubocop:enable RSpec/VerifiedDoubles
 
           before do
             allow(block_spy).to receive(:call)

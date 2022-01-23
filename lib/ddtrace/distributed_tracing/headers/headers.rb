@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/configuration'
+require 'datadog/core/configuration'
 require 'ddtrace/span'
 require 'ddtrace/ext/distributed'
 

@@ -1,5 +1,4 @@
 # typed: false
-require 'ddtrace/pin'
 require 'ddtrace/ext/app_types'
 
 require 'ddtrace/contrib/active_record/integration'
