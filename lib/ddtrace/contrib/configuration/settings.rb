@@ -1,6 +1,6 @@
 # typed: false
 require 'ddtrace/configuration/base'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   module Contrib
@@ -10,7 +10,7 @@ module Datadog
       class Settings
         include Datadog::Configuration::Base
 
-        DEPRECATION_WARN_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+        DEPRECATION_WARN_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
 
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0

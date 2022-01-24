@@ -1,6 +1,6 @@
 # typed: true
+require 'datadog/core/utils/compression'
 require 'ddtrace/ext/profiling'
-require 'ddtrace/utils/compression'
 require 'ddtrace/vendor/multipart-post/multipart/post/composite_read_io'
 
 require 'ddtrace/transport/http/api/endpoint'
@@ -81,7 +81,7 @@ module Datadog
             def build_pprof(flush)
               pprof = encoder.encode(flush)
 
-              gzipped_pprof_data = Datadog::Utils::Compression.gzip(pprof.data)
+              gzipped_pprof_data = Datadog::Core::Utils::Compression.gzip(pprof.data)
 
               Datadog::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_pprof_data),
@@ -91,7 +91,7 @@ module Datadog
             end
 
             def build_code_provenance(flush)
-              gzipped_code_provenance = Datadog::Utils::Compression.gzip(flush.code_provenance)
+              gzipped_code_provenance = Datadog::Core::Utils::Compression.gzip(flush.code_provenance)
 
               Datadog::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_code_provenance),

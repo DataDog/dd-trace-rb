@@ -15,7 +15,6 @@ require 'ddtrace/sampling'
 require 'ddtrace/span_operation'
 require 'ddtrace/trace_flush'
 require 'ddtrace/trace_operation'
-require 'ddtrace/utils/only_once'
 require 'ddtrace/writer'
 
 module Datadog

@@ -68,7 +68,7 @@ module Datadog
                              call.instance_variable_get(:@wrapped).peer
                            end
 
-            Utils.extract_host_port(peer_address)
+            Core::Utils.extract_host_port(peer_address)
           rescue => e
             Datadog.logger.debug { "Could not parse host:port from #{call}: #{e}" }
             nil

@@ -15,8 +15,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:options) { { max_frames: 50, trace_identifiers_helper: trace_identifiers_helper } }
 
   let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
-  let(:string_table) { Datadog::Utils::StringTable.new }
-  let(:backtrace_location_cache) { Datadog::Utils::ObjectSet.new }
+  let(:string_table) { Datadog::Core::Utils::StringTable.new }
+  let(:backtrace_location_cache) { Datadog::Core::Utils::ObjectSet.new }
   let(:trace_identifiers_helper) do
     instance_double(Datadog::Profiling::TraceIdentifiers::Helper, trace_identifiers_for: nil)
   end
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         .with(collect_time)
         .and_return(updated_wait_time)
 
-      allow(Datadog::Utils::Time).to receive(:measure) do |&block|
+      allow(Datadog::Core::Utils::Time).to receive(:measure) do |&block|
         block.call
         collect_time
       end

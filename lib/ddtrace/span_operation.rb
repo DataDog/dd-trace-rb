@@ -7,7 +7,7 @@ require 'ddtrace/ext/runtime'
 
 require 'ddtrace/span'
 require 'ddtrace/tagging'
-require 'ddtrace/utils'
+require 'datadog/core/utils'
 
 module Datadog
   # Represents the act of taking a span measurement.
@@ -60,9 +60,9 @@ module Datadog
       @resource = resource
       @type = type
 
-      @id = Utils.next_id
+      @id = Core::Utils.next_id
       @parent_id = parent_id || 0
-      @trace_id = trace_id || Utils.next_id
+      @trace_id = trace_id || Core::Utils.next_id
 
       @status = 0
 
@@ -163,7 +163,7 @@ module Datadog
       events.before_start.publish(self)
 
       # Start the span
-      @start_time = start_time || Utils::Time.now.utc
+      @start_time = start_time || Core::Utils::Time.now.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 
       self
@@ -181,7 +181,7 @@ module Datadog
 
       set_metric('allocations', allocations)
 
-      now = Utils::Time.now.utc
+      now = Core::Utils::Time.now.utc
 
       # Provide a default start_time if unset.
       # Using `now` here causes duration to be 0; this is expected
@@ -442,7 +442,7 @@ module Datadog
     end
 
     def duration_marker
-      Utils::Time.get_time
+      Core::Utils::Time.get_time
     end
 
     # Used for serialization

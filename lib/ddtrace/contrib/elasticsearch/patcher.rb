@@ -5,7 +5,6 @@ require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/elasticsearch/ext'
-require 'ddtrace/utils'
 
 module Datadog
   module Contrib

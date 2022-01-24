@@ -1,11 +1,11 @@
 # typed: true
-require 'ddtrace/utils/object_set'
+require 'datadog/core/utils/object_set'
 
 module Datadog
   module Profiling
     module Pprof
       # Acts as a unique dictionary of protobuf messages
-      class MessageSet < Utils::ObjectSet
+      class MessageSet < Core::Utils::ObjectSet
         def messages
           objects
         end

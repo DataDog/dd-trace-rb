@@ -1081,7 +1081,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       it 'delegates to Time.now' do
         expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
+        expect(Datadog::Core::Utils::Time.now).to be(time_now)
       end
     end
 
@@ -1090,7 +1090,7 @@ RSpec.describe Datadog::Configuration::Settings do
 
       it 'returns the provided time' do
         expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
+        expect(Datadog::Core::Utils::Time.now).to be(time_now)
       end
     end
 
@@ -1103,12 +1103,12 @@ RSpec.describe Datadog::Configuration::Settings do
 
       it 'returns the provided time' do
         expect(settings.time_now_provider.call).to be(time_now)
-        expect(Datadog::Utils::Time.now).to be(time_now)
+        expect(Datadog::Core::Utils::Time.now).to be(time_now)
 
         settings.reset!
 
         expect(settings.time_now_provider.call).to be(original_time_now)
-        expect(Datadog::Utils::Time.now).to be(original_time_now)
+        expect(Datadog::Core::Utils::Time.now).to be(original_time_now)
       end
     end
   end

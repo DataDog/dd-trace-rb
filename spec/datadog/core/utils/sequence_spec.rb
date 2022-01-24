@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/utils/sequence'
+require 'datadog/core/utils/sequence'
 
-RSpec.describe Datadog::Utils::Sequence do
+RSpec.describe Datadog::Core::Utils::Sequence do
   describe '#next' do
     context 'for a sequence' do
       context 'with default settings' do
