@@ -184,7 +184,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'replaces the old Statsd and closes it' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be new_statsd
+            expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be new_statsd
             expect(test_class.health_metrics.statsd).to be new_statsd
           end
         end
@@ -208,7 +208,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'uses new and old Statsd but does not close the old Statsd' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be new_statsd
+            expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be new_statsd
             expect(test_class.health_metrics.statsd).to be old_statsd
           end
         end
@@ -231,7 +231,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'reuses the same Statsd' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be statsd
+            expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be statsd
           end
         end
 
@@ -250,7 +250,7 @@ RSpec.describe Datadog::Configuration do
           end
 
           it 'reuses the same Statsd' do
-            expect(test_class.runtime_metrics.metrics.statsd).to be statsd
+            expect(test_class.send(:components).runtime_metrics.metrics.statsd).to be statsd
           end
         end
       end
@@ -337,7 +337,7 @@ RSpec.describe Datadog::Configuration do
               c.runtime_metrics.enabled = true
             end
 
-            @old_runtime_metrics = test_class.runtime_metrics
+            @old_runtime_metrics = test_class.send(:components).runtime_metrics
 
             test_class.configure do |c|
               c.runtime_metrics.enabled = true
@@ -348,10 +348,10 @@ RSpec.describe Datadog::Configuration do
             expect(@old_runtime_metrics.enabled?).to be false
             expect(@old_runtime_metrics.running?).to be false
 
-            expect(test_class.runtime_metrics).to_not be @old_runtime_metrics
+            expect(test_class.send(:components).runtime_metrics).to_not be @old_runtime_metrics
 
-            expect(test_class.runtime_metrics.enabled?).to be true
-            expect(test_class.runtime_metrics.running?).to be false
+            expect(test_class.send(:components).runtime_metrics.enabled?).to be true
+            expect(test_class.send(:components).runtime_metrics.running?).to be false
           end
         end
       end
@@ -401,7 +401,7 @@ RSpec.describe Datadog::Configuration do
     end
 
     describe '#runtime_metrics' do
-      subject(:runtime_metrics) { test_class.runtime_metrics }
+      subject(:runtime_metrics) { test_class.send(:components).runtime_metrics }
 
       it { is_expected.to be_a_kind_of(Datadog::Workers::RuntimeMetrics) }
       it { expect(runtime_metrics.enabled?).to be false }

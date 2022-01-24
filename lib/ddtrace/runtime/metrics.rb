@@ -9,7 +9,7 @@ module Datadog
         return unless trace && !trace.empty?
 
         # Register service as associated with metrics
-        Datadog.runtime_metrics.register_service(trace.service) unless trace.service.nil?
+        Datadog.send(:components).runtime_metrics.register_service(trace.service) unless trace.service.nil?
       end
     end
   end
