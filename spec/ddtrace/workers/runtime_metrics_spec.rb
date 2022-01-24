@@ -7,12 +7,17 @@ require 'ddtrace/workers/runtime_metrics'
 RSpec.describe Datadog::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(options) }
 
-  let(:metrics) { instance_double(Datadog::Runtime::Metrics, close: nil) }
+  let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
   let(:options) { { metrics: metrics, enabled: true } }
 
   before { allow(metrics).to receive(:flush) }
 
-  after { worker.stop(true, 5) }
+  after { worker.stop(true, 1) }
+
+  shared_context 'short default flush interval' do
+    let(:default_flush_interval) { 0.1 }
+    before { stub_const('Datadog::Workers::RuntimeMetrics::DEFAULT_FLUSH_INTERVAL', default_flush_interval) }
+  end
 
   describe '#initialize' do
     it { expect(worker).to be_a_kind_of(Datadog::Workers::Polling) }
@@ -186,21 +191,21 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
     end
   end
 
-  describe '#associate_with_trace' do
-    subject(:associate_with_trace) { worker.associate_with_trace(span) }
+  describe '#register_service' do
+    subject(:register_service) { worker.register_service(service) }
 
-    let(:span) { instance_double(Datadog::TraceSegment) }
+    let(:service) { instance_double(String) }
 
     before do
-      allow(worker.metrics).to receive(:associate_with_trace)
+      allow(worker.metrics).to receive(:register_service)
       allow(worker).to receive(:perform)
     end
 
     it 'forwards to #metrics' do
-      associate_with_trace
+      register_service
 
-      expect(worker.metrics).to have_received(:associate_with_trace)
-        .with(span)
+      expect(worker.metrics).to have_received(:register_service)
+        .with(service)
       expect(worker).to have_received(:perform)
     end
   end
@@ -255,6 +260,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
       let(:service) { double('service') }
 
       before { allow(worker.metrics).to receive(:register_service) }
+      after { worker.stop(true) }
 
       it 'forwards to #metrics' do
         register_service
@@ -266,15 +272,17 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   describe 'integration tests', :integration do
     describe 'interval' do
+      include_context 'short default flush interval'
+
       after { worker.stop }
 
-      it 'produces metrics every 10 seconds' do
+      it 'produces metrics every interval' do
         worker.perform
 
-        sleep 10.1
+        sleep(default_flush_interval + 0.1)
 
         # Metrics are produced once right away
-        # and again after 10 seconds.
+        # and again after an interval.
         expect(metrics).to have_received(:flush).twice
       end
     end

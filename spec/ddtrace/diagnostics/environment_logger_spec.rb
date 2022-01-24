@@ -198,9 +198,9 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       end
 
       context 'with runtime metrics enabled' do
-        before { Datadog::Tracing.configure { |c| c.runtime_metrics.enabled = true } }
+        before { Datadog.configure { |c| c.runtime_metrics.enabled = true } }
 
-        after { Datadog::Tracing.configuration.runtime_metrics.reset! }
+        after { Datadog.configuration.runtime_metrics.reset! }
 
         it { is_expected.to include runtime_metrics_enabled: true }
       end

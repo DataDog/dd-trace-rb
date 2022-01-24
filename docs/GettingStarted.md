@@ -2411,7 +2411,7 @@ To configure runtime metrics, add the following configuration:
 require 'datadog/statsd'
 require 'ddtrace'
 
-Datadog::Tracing.configure do |c|
+Datadog.configure do |c|
   # To enable runtime metrics collection, set `true`. Defaults to `false`
   # You can also set DD_RUNTIME_METRICS_ENABLED=true to configure this.
   c.runtime_metrics.enabled = true

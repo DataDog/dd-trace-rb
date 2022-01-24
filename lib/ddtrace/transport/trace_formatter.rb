@@ -2,6 +2,7 @@ require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/socket'
+require 'datadog/core/runtime/ext'
 
 require 'ddtrace/trace_segment'
 
@@ -80,7 +81,7 @@ module Datadog
         return if trace.lang.nil? || root_span.get_tag(Ext::Metadata::TAG_PEER_SERVICE)
 
         root_span.set_tag(
-          Ext::Runtime::TAG_LANG,
+          Core::Runtime::Ext::TAG_LANG,
           trace.lang
         )
       end
@@ -98,7 +99,7 @@ module Datadog
         return unless trace.process_id
 
         root_span.set_tag(
-          Ext::Runtime::TAG_PID,
+          Core::Runtime::Ext::TAG_PID,
           trace.process_id
         )
       end
@@ -125,7 +126,7 @@ module Datadog
         return unless trace.runtime_id
 
         root_span.set_tag(
-          Ext::Runtime::TAG_ID,
+          Core::Runtime::Ext::TAG_ID,
           trace.runtime_id
         )
       end

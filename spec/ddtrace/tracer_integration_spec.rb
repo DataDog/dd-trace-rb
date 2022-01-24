@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracer do
   end
 
   def lang_tag(span)
-    span.get_tag(Datadog::Ext::Runtime::TAG_LANG)
+    span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)
   end
 
   describe 'manual tracing' do
