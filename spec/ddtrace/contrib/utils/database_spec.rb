@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'datadog/core/utils/database'
+require 'ddtrace/contrib/utils/database'
 
-RSpec.describe Datadog::Core::Utils::Database do
+RSpec.describe Datadog::Contrib::Utils::Database do
   describe '#normalize_vendor' do
     subject(:result) { described_class.normalize_vendor(value) }
 

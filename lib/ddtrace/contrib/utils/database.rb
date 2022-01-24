@@ -1,6 +1,6 @@
 # typed: true
 module Datadog
-  module Core
+  module Contrib
     module Utils
       # Common database-related utility functions.
       module Database

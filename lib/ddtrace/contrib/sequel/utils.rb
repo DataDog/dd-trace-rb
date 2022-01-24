@@ -1,5 +1,6 @@
 # typed: true
 require 'ddtrace/ext/metadata'
+require 'ddtrace/contrib/utils/database'
 
 module Datadog
   module Contrib
@@ -18,7 +19,7 @@ module Datadog
               # otherwise all database adapters will be 'jdbc'.
               database_type(database)
             else
-              Datadog::Core::Utils::Database.normalize_vendor(scheme)
+              Contrib::Utils::Database.normalize_vendor(scheme)
             end
           end
 
@@ -26,7 +27,7 @@ module Datadog
           #
           # e.g. database:mysql (adapter:mysql2), database:postgres (adapter:jdbc)
           def database_type(database)
-            Datadog::Core::Utils::Database.normalize_vendor(database.database_type.to_s)
+            Contrib::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
 
           def parse_opts(sql, opts, db_opts, dataset = nil)

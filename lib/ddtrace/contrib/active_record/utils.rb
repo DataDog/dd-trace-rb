@@ -1,5 +1,6 @@
 # typed: false
 require 'datadog/core/environment/ext'
+require 'ddtrace/contrib/utils/database'
 
 module Datadog
   module Contrib
@@ -9,7 +10,7 @@ module Datadog
         EMPTY_CONFIG = {}.freeze
 
         def self.adapter_name
-          Datadog::Core::Utils::Database.normalize_vendor(connection_config[:adapter])
+          Contrib::Utils::Database.normalize_vendor(connection_config[:adapter])
         end
 
         def self.database_name
