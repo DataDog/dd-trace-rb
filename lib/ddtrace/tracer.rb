@@ -3,7 +3,7 @@ require 'logger'
 require 'pathname'
 
 require 'datadog/core/environment/identity'
-require 'ddtrace/ext/environment'
+require 'datadog/core/environment/ext'
 
 require 'ddtrace/context_provider'
 require 'ddtrace/context'
@@ -49,7 +49,7 @@ module Datadog
     def initialize(
       trace_flush: Datadog::TraceFlush::Finished.new,
       context_provider: Datadog::DefaultContextProvider.new,
-      default_service: Datadog::Ext::Environment::FALLBACK_SERVICE_NAME,
+      default_service: Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME,
       enabled: true,
       sampler: PrioritySampler.new(base_sampler: Datadog::AllSampler.new, post_sampler: Sampling::RuleSampler.new),
       tags: {},

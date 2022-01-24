@@ -33,7 +33,7 @@ RSpec.describe Datadog::OpenTelemetry::Span do
         before { set_tag }
 
         it { expect(span.get_tag(tag_name)).to eq tag_value }
-        it { expect(span.get_tag(Datadog::Ext::Environment::TAG_VERSION)).to eq tag_value }
+        it { expect(span.get_tag(Datadog::Core::Environment::Ext::TAG_VERSION)).to eq tag_value }
       end
 
       context 'when given an arbitrary tag' do

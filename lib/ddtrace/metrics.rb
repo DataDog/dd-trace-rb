@@ -4,7 +4,7 @@ require 'ddtrace/ext/metrics'
 require 'set'
 require 'logger'
 require 'datadog/core/environment/identity'
-require 'ddtrace/ext/environment'
+require 'datadog/core/environment/ext'
 require 'ddtrace/utils/only_once'
 require 'ddtrace/utils/time'
 
@@ -187,10 +187,10 @@ module Datadog
           options[:tags] = options[:tags].dup
 
           env = Datadog.configuration.env
-          options[:tags] << "#{Datadog::Ext::Environment::TAG_ENV}:#{env}" unless env.nil?
+          options[:tags] << "#{Datadog::Core::Environment::Ext::TAG_ENV}:#{env}" unless env.nil?
 
           version = Datadog.configuration.version
-          options[:tags] << "#{Datadog::Ext::Environment::TAG_VERSION}:#{version}" unless version.nil?
+          options[:tags] << "#{Datadog::Core::Environment::Ext::TAG_VERSION}:#{version}" unless version.nil?
         end
       end
     end

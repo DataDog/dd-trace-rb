@@ -4,7 +4,7 @@ require 'ddtrace/configuration/base'
 
 require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/environment'
+require 'datadog/core/environment/ext'
 require 'ddtrace/ext/profiling'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/ext/test'
@@ -67,7 +67,7 @@ module Datadog
       # @default `DD_API_KEY` environment variable, otherwise `nil`
       # @return [String,nil]
       option :api_key do |o|
-        o.default { ENV.fetch(Ext::Environment::ENV_API_KEY, nil) }
+        o.default { ENV.fetch(Core::Environment::Ext::ENV_API_KEY, nil) }
         o.lazy
       end
 
@@ -197,7 +197,7 @@ module Datadog
       # @configure_with {Datadog}
       option :env do |o|
         # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-        o.default { ENV.fetch(Ext::Environment::ENV_ENVIRONMENT, nil) }
+        o.default { ENV.fetch(Core::Environment::Ext::ENV_ENVIRONMENT, nil) }
         o.lazy
       end
 
@@ -356,7 +356,7 @@ module Datadog
       # @configure_with {Datadog}
       option :service do |o|
         # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-        o.default { ENV.fetch(Ext::Environment::ENV_SERVICE, Ext::Environment::FALLBACK_SERVICE_NAME) }
+        o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
         o.lazy
 
         # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
@@ -364,7 +364,7 @@ module Datadog
         # nice_service_name = Datadog.configuration.service_without_fallback || nice_service_name_default
         o.helper(:service_without_fallback) do
           service_name = service
-          service_name unless service_name.equal?(Ext::Environment::FALLBACK_SERVICE_NAME)
+          service_name unless service_name.equal?(Core::Environment::Ext::FALLBACK_SERVICE_NAME)
         end
       end
 
@@ -380,7 +380,7 @@ module Datadog
       # @return [String,nil]
       # @configure_with {Datadog}
       option :site do |o|
-        o.default { ENV.fetch(Ext::Environment::ENV_SITE, nil) }
+        o.default { ENV.fetch(Core::Environment::Ext::ENV_SITE, nil) }
         o.lazy
       end
 
@@ -396,14 +396,14 @@ module Datadog
           tags = {}
 
           # Parse tags from environment
-          env_to_list(Ext::Environment::ENV_TAGS).each do |tag|
+          env_to_list(Core::Environment::Ext::ENV_TAGS).each do |tag|
             pair = tag.split(':')
             tags[pair.first] = pair.last if pair.length == 2
           end
 
           # Override tags if defined
-          tags[Ext::Environment::TAG_ENV] = env unless env.nil?
-          tags[Ext::Environment::TAG_VERSION] = version unless version.nil?
+          tags[Core::Environment::Ext::TAG_ENV] = env unless env.nil?
+          tags[Core::Environment::Ext::TAG_VERSION] = version unless version.nil?
 
           tags
         end
@@ -413,15 +413,16 @@ module Datadog
           string_tags = new_value.collect { |k, v| [k.to_s, v] }.to_h
 
           # Cross-populate tag values with other settings
-
-          self.env = string_tags[Ext::Environment::TAG_ENV] if env.nil? && string_tags.key?(Ext::Environment::TAG_ENV)
-
-          if version.nil? && string_tags.key?(Ext::Environment::TAG_VERSION)
-            self.version = string_tags[Ext::Environment::TAG_VERSION]
+          if env.nil? && string_tags.key?(Core::Environment::Ext::TAG_ENV)
+            self.env = string_tags[Core::Environment::Ext::TAG_ENV]
           end
 
-          if service_without_fallback.nil? && string_tags.key?(Ext::Environment::TAG_SERVICE)
-            self.service = string_tags[Ext::Environment::TAG_SERVICE]
+          if version.nil? && string_tags.key?(Core::Environment::Ext::TAG_VERSION)
+            self.version = string_tags[Core::Environment::Ext::TAG_VERSION]
+          end
+
+          if service_without_fallback.nil? && string_tags.key?(Core::Environment::Ext::TAG_SERVICE)
+            self.service = string_tags[Core::Environment::Ext::TAG_SERVICE]
           end
 
           # Merge with previous tags
@@ -600,7 +601,7 @@ module Datadog
       # @configure_with {Datadog}
       option :version do |o|
         # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-        o.default { ENV.fetch(Ext::Environment::ENV_VERSION, nil) }
+        o.default { ENV.fetch(Core::Environment::Ext::ENV_VERSION, nil) }
         o.lazy
       end
     end

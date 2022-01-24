@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/environment'
+require 'datadog/core/environment/ext'
 
 module Datadog
   module OpenTelemetry
@@ -22,7 +22,7 @@ module Datadog
           if defined?(super)
             # Set original tag and Datadog version tag
             super
-            super(Datadog::Ext::Environment::TAG_VERSION, value)
+            super(Datadog::Core::Environment::Ext::TAG_VERSION, value)
           end
         else
           # Otherwise, set the tag normally.
