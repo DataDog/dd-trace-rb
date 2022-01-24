@@ -116,8 +116,8 @@ RSpec.describe Datadog::Configuration do
 
       context 'when the logger' do
         context 'is replaced' do
-          let(:old_logger) { Datadog::Logger.new($stdout) }
-          let(:new_logger) { Datadog::Logger.new($stdout) }
+          let(:old_logger) { Datadog::Core::Logger.new($stdout) }
+          let(:new_logger) { Datadog::Core::Logger.new($stdout) }
 
           before do
             # Expect old loggers to NOT be closed, as closing
@@ -134,7 +134,7 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'is reused' do
-          let(:logger) { Datadog::Logger.new($stdout) }
+          let(:logger) { Datadog::Core::Logger.new($stdout) }
 
           before do
             expect(logger).to_not receive(:close)
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Configuration do
         end
 
         context 'is not changed' do
-          let(:logger) { Datadog::Logger.new($stdout) }
+          let(:logger) { Datadog::Core::Logger.new($stdout) }
 
           before do
             expect(logger).to_not receive(:close)
@@ -366,7 +366,7 @@ RSpec.describe Datadog::Configuration do
     describe '#logger' do
       subject(:logger) { test_class.logger }
 
-      it { is_expected.to be_a_kind_of(Datadog::Logger) }
+      it { is_expected.to be_a_kind_of(Datadog::Core::Logger) }
       it { expect(logger.level).to be default_log_level }
 
       context 'when components are not initialized' do

@@ -252,7 +252,7 @@ RSpec.describe Datadog::Transport::HTTP do
   describe '.default_hostname' do
     subject(:default_hostname) { described_class.default_hostname(logger: logger) }
 
-    let(:logger) { instance_double(Datadog::Logger, warn: nil) }
+    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
 
     before do
       stub_const(
@@ -275,7 +275,7 @@ RSpec.describe Datadog::Transport::HTTP do
   describe '.default_port' do
     subject(:default_port) { described_class.default_port(logger: logger) }
 
-    let(:logger) { instance_double(Datadog::Logger, warn: nil) }
+    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
 
     before do
       stub_const(
@@ -298,7 +298,7 @@ RSpec.describe Datadog::Transport::HTTP do
   describe '.default_url' do
     subject(:default_url) { described_class.default_url(logger: logger) }
 
-    let(:logger) { instance_double(Datadog::Logger, warn: nil) }
+    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
 
     it { is_expected.to be nil }
 

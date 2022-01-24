@@ -217,7 +217,7 @@ module Datadog
       # Use default logger without initializing components.
       # This enables logging during initialization, otherwise we'd run into deadlocks.
       @temp_logger ||= begin
-        logger = configuration.logger.instance || Datadog::Logger.new($stdout)
+        logger = configuration.logger.instance || Datadog::Core::Logger.new($stdout)
         logger.level = configuration.diagnostics.debug ? ::Logger::DEBUG : configuration.logger.level
         logger
       end
