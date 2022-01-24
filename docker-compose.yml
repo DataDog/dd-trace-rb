@@ -308,7 +308,7 @@ services:
       - bundle-jruby-9.2.0.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.2-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_20_1
     command: /bin/bash
     depends_on:
       - ddagent

@@ -499,7 +499,8 @@ job_configuration:
   - &config-jruby-9_2-latest # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2-latest'
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_20_1
+    resource_class_to_use: medium+
   # TruffleRuby
   - &config-truffleruby-21_0_0
     <<: *filters_all_branches_and_tags

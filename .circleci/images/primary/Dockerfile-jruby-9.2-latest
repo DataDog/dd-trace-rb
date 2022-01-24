@@ -1,5 +1,5 @@
-# https://hub.docker.com/layers/jruby/library/jruby/9.2.18-jre8/images/sha256-8dd56d26850fbba5c558fe195f98f2cc765d82e91ace601e3fc2273c1f9c95b5
-FROM jruby@sha256:8dd56d26850fbba5c558fe195f98f2cc765d82e91ace601e3fc2273c1f9c95b5
+# https://hub.docker.com/layers/jruby/library/jruby/9.2.20.1-jdk8/images/sha256-d270305f8ddb6625b6651947234eb69685d17bb0511c0964936ebece6af450f5
+FROM jruby@sha256:d270305f8ddb6625b6651947234eb69685d17bb0511c0964936ebece6af450f5
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
