@@ -398,7 +398,7 @@ RSpec.describe 'Sinatra instrumentation' do
     context 'when the tracer is disabled' do
       subject(:response) { get '/' }
 
-      let(:tracer) { get_test_tracer(enabled: false) }
+      let(:tracer) { new_tracer(enabled: false) }
 
       it do
         is_expected.to be_ok

@@ -12,8 +12,6 @@ RSpec.describe Datadog::HTTPPropagator do
     without_warnings { Datadog::Tracing.configuration.reset! }
   end
 
-  let(:tracer) { get_test_tracer }
-
   describe '::inject!' do
     let(:env) { { 'something' => 'alien' } }
 
