@@ -1,4 +1,4 @@
-require 'datadog/core/quantization/hash'
+require 'ddtrace/contrib/utils/quantization/hash'
 
 # typed: true
 module Datadog
@@ -40,7 +40,7 @@ module Datadog
           # Parse each statement and quantize them.
           statements.collect do |string|
             reserialize_json(string, options[:placeholder]) do |obj|
-              Core::Quantization::Hash.format(obj, options)
+              Contrib::Utils::Quantization::Hash.format(obj, options)
             end
           end.join("\n")
         end
