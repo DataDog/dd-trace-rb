@@ -564,7 +564,7 @@ RSpec.describe 'Sinatra instrumentation' do
         let(:span) { top_span }
         let(:rack_span) { top_rack_span }
 
-        include_examples 'sinatra examples' #
+        include_examples 'sinatra examples'
         include_examples 'header tags'
         include_examples 'distributed tracing'
       end
