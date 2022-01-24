@@ -14,7 +14,7 @@ if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |p
   end
 end
 
-require 'ddtrace/encoding'
+require 'datadog/core/encoding'
 require 'ddtrace/tracer'
 require 'ddtrace/span'
 

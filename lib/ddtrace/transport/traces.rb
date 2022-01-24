@@ -46,7 +46,7 @@ module Datadog
         #
         # Single traces larger than +max_size+ will be discarded.
         #
-        # @param encoder [Datadog::Encoding::Encoder]
+        # @param encoder [Datadog::Core::Encoding::Encoder]
         # @param max_size [String] maximum acceptable payload size
         def initialize(encoder, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
           @encoder = encoder
@@ -89,7 +89,7 @@ module Datadog
         end
       end
 
-      # Encodes traces using {Datadog::Encoding::Encoder} instances.
+      # Encodes traces using {Datadog::Core::Encoding::Encoder} instances.
       module Encoder
         module_function
 

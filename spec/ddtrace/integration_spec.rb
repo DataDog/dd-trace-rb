@@ -1,6 +1,7 @@
 # typed: ignore
 require 'spec_helper'
 
+require 'datadog/core/encoding'
 require 'ddtrace'
 require 'ddtrace/tracer'
 require 'datadog/statsd'
@@ -407,7 +408,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify Transport::IO is configured
       expect(tracer.writer.transport).to be_a_kind_of(Datadog::Transport::IO::Client)
-      expect(tracer.writer.transport.encoder).to be(Datadog::Encoding::JSONEncoder)
+      expect(tracer.writer.transport.encoder).to be(Datadog::Core::Encoding::JSONEncoder)
 
       # Verify sampling is configured properly
       expect(tracer.sampler).to be_a_kind_of(Datadog::PrioritySampler)
