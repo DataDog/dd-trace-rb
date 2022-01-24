@@ -1,0 +1,23 @@
+# typed: true
+module Datadog
+  module Core
+    module Transport
+      # Data transfer object for generic data
+      # @abstract
+      module Parcel
+        include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+
+        attr_reader \
+          :data
+
+        def initialize(data)
+          @data = data
+        end
+
+        def encode_with(encoder)
+          raise NotImplementedError
+        end
+      end
+    end
+  end
+end

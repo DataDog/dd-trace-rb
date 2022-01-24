@@ -1,9 +1,9 @@
 # typed: false
 require 'json'
 
+require 'datadog/core/transport/http/response'
+require 'datadog/core/transport/http/api/endpoint'
 require 'ddtrace/transport/traces'
-require 'ddtrace/transport/http/response'
-require 'ddtrace/transport/http/api/endpoint'
 
 module Datadog
   module Transport
@@ -12,8 +12,8 @@ module Datadog
       module Traces
         # Response from HTTP transport for traces
         class Response
-          include HTTP::Response
-          include Datadog::Transport::Traces::Response
+          include Core::HTTP::Response
+          include Transport::Traces::Response
 
           def initialize(http_response, options = {})
             super(http_response)
@@ -89,7 +89,7 @@ module Datadog
           end
 
           # Endpoint for submitting trace data
-          class Endpoint < HTTP::API::Endpoint
+          class Endpoint < Core::HTTP::API::Endpoint
             HEADER_CONTENT_TYPE = 'Content-Type'.freeze
             HEADER_TRACE_COUNT = 'X-Datadog-Trace-Count'.freeze
             SERVICE_RATE_KEY = 'rate_by_service'.freeze
@@ -134,7 +134,7 @@ module Datadog
         end
 
         # Add traces behavior to transport components
-        HTTP::Client.include(Traces::Client)
+        # TODO: Move these into API::
         HTTP::API::Spec.include(Traces::API::Spec)
         HTTP::API::Instance.include(Traces::API::Instance)
       end

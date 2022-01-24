@@ -1,8 +1,7 @@
 # typed: false
 require 'datadog/core/encoding'
-
-require 'ddtrace/transport/http/api/map'
-require 'ddtrace/transport/http/api/spec'
+require 'datadog/core/transport/http/api/map'
+require 'datadog/core/transport/http/api/spec'
 
 require 'ddtrace/transport/http/traces'
 
@@ -18,15 +17,15 @@ module Datadog
         module_function
 
         def defaults
-          Map[
-            V4 => Spec.new do |s|
+          Core::Transport::HTTP::API::Map[
+            V4 => Core::Transport::HTTP::API::Spec.new do |s|
               s.traces = Traces::API::Endpoint.new(
                 '/v0.4/traces'.freeze,
                 Core::Encoding::MsgpackEncoder,
                 service_rates: true
               )
             end,
-            V3 => Spec.new do |s|
+            V3 => Core::Transport::HTTP::API::Spec.new do |s|
               s.traces = Traces::API::Endpoint.new(
                 '/v0.3/traces'.freeze,
                 Core::Encoding::MsgpackEncoder

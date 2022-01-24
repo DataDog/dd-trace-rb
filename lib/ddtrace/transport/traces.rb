@@ -1,7 +1,8 @@
 # typed: true
 require 'datadog/core/chunker'
-require 'ddtrace/transport/parcel'
-require 'ddtrace/transport/request'
+require 'datadog/core/transport/parcel'
+require 'datadog/core/transport/request'
+
 require 'ddtrace/transport/serializable_trace'
 require 'ddtrace/transport/trace_formatter'
 
@@ -10,7 +11,7 @@ module Datadog
     module Traces
       # Data transfer object for encoded traces
       class EncodedParcel
-        include Datadog::Transport::Parcel
+        include Core::Transport::Parcel
 
         attr_reader :trace_count
 
@@ -25,7 +26,7 @@ module Datadog
       end
 
       # Traces request
-      class Request < Datadog::Transport::Request
+      class Request < Core::Transport::Request
       end
 
       # Traces response
@@ -67,7 +68,7 @@ module Datadog
                              traces.map { |t| encode_one(t) }.reject(&:nil?)
                            end
 
-          Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
+          Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
             [encoder.join(chunk), chunk.size]
           end
         end
@@ -122,7 +123,7 @@ module Datadog
 
         def send_traces(traces)
           encoder = current_api.encoder
-          chunker = Datadog::Transport::Traces::Chunker.new(encoder)
+          chunker = Traces::Chunker.new(encoder)
 
           responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
             request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
@@ -181,7 +182,7 @@ module Datadog
           raise UnknownApiVersionError, api_id unless apis.key?(api_id)
 
           @current_api_id = api_id
-          @client = HTTP::Client.new(current_api)
+          @client = Core::HTTP::Client.new(current_api)
         end
 
         # Raised when configured with an unknown API version

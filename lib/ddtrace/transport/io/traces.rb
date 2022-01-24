@@ -1,8 +1,8 @@
 # typed: false
-require 'ddtrace/transport/traces'
+require 'datadog/core/transport/io/response'
+require 'datadog/core/transport/io/client'
 
-require 'ddtrace/transport/io/response'
-require 'ddtrace/transport/io/client'
+require 'ddtrace/transport/traces'
 
 module Datadog
   module Transport
@@ -10,7 +10,7 @@ module Datadog
       # IO transport behavior for traces
       module Traces
         # Response from HTTP transport for traces
-        class Response < IO::Response
+        class Response < Core::IO::Response
           include Transport::Traces::Response
 
           def initialize(result, trace_count = 1)
@@ -80,7 +80,7 @@ module Datadog
 
         # Transfer object for list of traces
         class Parcel
-          include Transport::Parcel
+          include Core::Transport::Parcel
           include Encoder
 
           def count
@@ -91,9 +91,6 @@ module Datadog
             encode_traces(encoder, data)
           end
         end
-
-        # Add traces behavior to transport components
-        IO::Client.include(Traces::Client)
       end
     end
   end
