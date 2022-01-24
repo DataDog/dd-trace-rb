@@ -33,7 +33,7 @@ module Datadog
           super && !ENV.key?(Ext::ENV_DISABLE)
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 

@@ -16,54 +16,35 @@ module Datadog
 
       # Configurable instance behavior for integrations
       module InstanceMethods
-        # Provides a new configuration instance for this integration.
-        #
-        # This method normally needs to be overridden for each integration
-        # as their settings, defaults and environment variables are
-        # specific for each integration.
-        #
-        # DEV(1.0): Rename to `new_configuration`, make it protected.
-        # DEV(1.0):
-        # DEV(1.0): This method always provides a new instance of the configuration object for
-        # DEV(1.0): the current integration, not the currently effective default configuration.
-        # DEV(1.0): This is a misnomer of its function.
-        # DEV(1.0):
-        # DEV(1.0): Unfortunately, change this would be a breaking change for all custom integrations,
-        # DEV(1.0): thus we have to be very intentional with the right time to make this change.
-        # DEV(1.0): Currently marking this for a 1.0 milestone.
-        def default_configuration
-          Configuration::Settings.new
-        end
-
         # Get matching configuration by matcher.
         # If no match, returns the default configuration instance.
         def configuration(matcher = :default)
-          return default_configuration_instance if matcher == :default
+          return default_configuration if matcher == :default
 
-          resolver.get(matcher) || default_configuration_instance
+          resolver.get(matcher) || default_configuration
         end
 
         # Resolves the matching configuration for integration-specific value.
         # If no match, returns the default configuration instance.
         def resolve(value)
-          return default_configuration_instance if value == :default
+          return default_configuration if value == :default
 
-          resolver.resolve(value) || default_configuration_instance
+          resolver.resolve(value) || default_configuration
         end
 
         # Returns all registered matchers and their respective configurations.
         def configurations
-          resolver.configurations.merge(default: default_configuration_instance)
+          resolver.configurations.merge(default: default_configuration)
         end
 
         # Create or update configuration associated with `matcher` with
         # the provided `options` and `&block`.
         def configure(matcher = :default, options = {}, &block)
           config = if matcher == :default
-                     default_configuration_instance
+                     default_configuration
                    else
                      # Get or add the configuration
-                     resolver.get(matcher) || resolver.add(matcher, default_configuration)
+                     resolver.get(matcher) || resolver.add(matcher, new_configuration)
                    end
 
           # Apply the settings
@@ -77,12 +58,27 @@ module Datadog
           @default_configuration = nil
         end
 
+        # Returns the integration-specific configuration object.
+        #
+        # If one does not exist, invoke {.new_configuration} a memoize
+        # its value.
+        #
+        # @return [Datadog::Contrib::Configuration::Settings] the memoized integration-specific settings object
+        def default_configuration
+          @default_configuration ||= new_configuration
+        end
+
         protected
 
-        # DEV(1.0): Rename to `default_configuration`, make it public.
-        # DEV(1.0): See comment on `default_configuration` for more information.
-        def default_configuration_instance
-          @default_configuration ||= default_configuration
+        # Returns a new configuration object for this integration.
+        #
+        # This method normally needs to be overridden for each integration
+        # as their settings, defaults and environment variables are
+        # specific for each integration.
+        #
+        # @return [Datadog::Contrib::Configuration::Settings] a new, integration-specific settings object
+        def new_configuration
+          Configuration::Settings.new
         end
 
         # Overridable configuration resolver.
