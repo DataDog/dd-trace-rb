@@ -1,13 +1,16 @@
 # typed: false
+require 'date'
+
+require 'datadog/core/environment/variable_helpers'
+
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
 require 'ddtrace/ext/metadata'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/utils/quantization/http'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
-require 'datadog/core/environment/variable_helpers'
-require 'date'
 
 module Datadog
   module Contrib
@@ -158,7 +161,7 @@ module Datadog
 
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
             options = configuration[:quantize]
-            request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
+            request_span.set_tag(Datadog::Ext::HTTP::URL, Contrib::Utils::Quantization::HTTP.url(url, options))
           end
 
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
