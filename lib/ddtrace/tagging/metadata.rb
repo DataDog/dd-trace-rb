@@ -1,3 +1,4 @@
+require 'datadog/core/error'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
@@ -91,7 +92,7 @@ module Datadog
 
       # Mark the span with the given error.
       def set_error(e)
-        e = Error.build_from(e)
+        e = Core::Error.build_from(e)
 
         set_tag(Ext::Errors::TYPE, e.type) unless e.type.empty?
         set_tag(Ext::Errors::MSG, e.message) unless e.message.empty?
