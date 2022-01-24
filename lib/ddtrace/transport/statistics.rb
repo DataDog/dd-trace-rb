@@ -1,4 +1,5 @@
 # typed: true
+require 'datadog/core/metrics/metric'
 require 'ddtrace/diagnostics/health'
 
 module Datadog
@@ -28,8 +29,8 @@ module Datadog
 
       def metrics_for_response(response)
         {}.tap do |metrics|
-          metrics[:api_errors] = Metrics::Metric.new(:api_errors, nil, 1) if response.internal_error?
-          metrics[:api_responses] = Metrics::Metric.new(:api_responses, nil, 1) unless response.internal_error?
+          metrics[:api_errors] = Core::Metrics::Metric.new(:api_errors, nil, 1) if response.internal_error?
+          metrics[:api_responses] = Core::Metrics::Metric.new(:api_responses, nil, 1) unless response.internal_error?
         end
       end
 
@@ -44,7 +45,7 @@ module Datadog
       end
 
       def metrics_for_exception(_exception)
-        { api_errors: Metrics::Metric.new(:api_errors, nil, 1) }
+        { api_errors: Core::Metrics::Metric.new(:api_errors, nil, 1) }
       end
 
       # Stat counts

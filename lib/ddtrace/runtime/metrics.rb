@@ -1,7 +1,7 @@
 # typed: true
 require 'ddtrace/ext/runtime'
 
-require 'ddtrace/metrics'
+require 'datadog/core/metrics/client'
 require 'datadog/core/environment/class_count'
 require 'datadog/core/environment/gc'
 require 'datadog/core/environment/thread_count'
@@ -10,7 +10,7 @@ require 'datadog/core/environment/vm_cache'
 module Datadog
   module Runtime
     # For generating runtime metrics
-    class Metrics < Datadog::Metrics
+    class Metrics < Datadog::Core::Metrics::Client
       def initialize(**options)
         super
 

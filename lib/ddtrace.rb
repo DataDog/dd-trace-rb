@@ -11,7 +11,7 @@ require 'ddtrace/pin'
 require 'ddtrace/tracer'
 require 'ddtrace/pipeline'
 require 'ddtrace/configuration'
-require 'ddtrace/metrics'
+require 'datadog/core/metrics/client'
 require 'ddtrace/auto_instrument_base'
 require 'ddtrace/profiling'
 
