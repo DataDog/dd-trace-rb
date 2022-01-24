@@ -98,7 +98,6 @@ module Datadog
           raise e
         ensure
           env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
-          env[:datadog_rack_request_span] = env[Ext::RACK_ENV_REQUEST_SPAN]
 
           if request_span
             # Rack is a really low level interface and it doesn't provide any
