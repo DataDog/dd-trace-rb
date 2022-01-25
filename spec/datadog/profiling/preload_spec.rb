@@ -6,7 +6,7 @@ RSpec.describe 'Profiling preloading' do
   subject(:preload) { load 'datadog/profiling/preload.rb' }
 
   it 'starts the profiler' do
-    profiler = instance_double(Datadog::Profiler)
+    profiler = instance_double(Datadog::Profiling::Profiler)
 
     expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
     expect(profiler).to receive(:start)

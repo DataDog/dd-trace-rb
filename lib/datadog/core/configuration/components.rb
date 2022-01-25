@@ -225,7 +225,7 @@ module Datadog
             exporters = build_profiler_exporters(settings, agent_settings)
             scheduler = build_profiler_scheduler(settings, recorder, exporters)
 
-            Datadog::Profiler.new(collectors, scheduler)
+            Datadog::Profiling::Profiler.new(collectors, scheduler)
           end
 
           private

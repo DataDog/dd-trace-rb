@@ -173,7 +173,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       end
 
       it 'sets up an at_fork hook that restarts the profiler' do
-        profiler = instance_double(Datadog::Profiler)
+        profiler = instance_double(Datadog::Profiling::Profiler)
 
         expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
         expect(profiler).to receive(:start)

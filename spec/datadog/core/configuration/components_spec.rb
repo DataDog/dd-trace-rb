@@ -22,7 +22,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe '::new' do
     let(:logger) { instance_double(Datadog::Core::Logger) }
     let(:tracer) { instance_double(Datadog::Tracer) }
-    let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
+    let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
 
@@ -1126,7 +1126,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       shared_context 'replacement' do
         let(:replacement) { instance_double(described_class) }
         let(:tracer) { instance_double(Datadog::Tracer) }
-        let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiler) : nil }
+        let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
         let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
