@@ -337,8 +337,6 @@ RSpec.describe 'Tracer integration tests' do
 
   describe 'sampling priority metrics' do
     # Sampling priority is enabled by default
-    let(:tracer) { get_test_tracer }
-
     context 'when #sampling_priority is set on a child span' do
       before do
         tracer.trace('parent span') do |_parent_span, _parent_trace|
@@ -356,8 +354,6 @@ RSpec.describe 'Tracer integration tests' do
 
   describe 'origin tag' do
     # Sampling priority is enabled by default
-    let(:tracer) { get_test_tracer }
-
     context 'when #sampling_priority is set on a parent span' do
       before do
         tracer.trace('parent span') do |_span, trace|
