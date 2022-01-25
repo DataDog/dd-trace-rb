@@ -6,8 +6,10 @@
 #++
 
 module Datadog
-  module Vendor
-    module Multipart
+  module Core
+    module Vendor
+      module Multipart
+      end
     end
   end
 end

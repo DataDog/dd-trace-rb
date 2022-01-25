@@ -1,7 +1,7 @@
 # typed: true
 require 'datadog/core/utils/compression'
 require 'ddtrace/ext/profiling'
-require 'ddtrace/vendor/multipart-post/multipart/post/composite_read_io'
+require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
 
 require 'ddtrace/transport/http/api/endpoint'
 require 'ddtrace/profiling/transport/http/response'
@@ -83,7 +83,7 @@ module Datadog
 
               gzipped_pprof_data = Datadog::Core::Utils::Compression.gzip(pprof.data)
 
-              Datadog::Vendor::Multipart::Post::UploadIO.new(
+              Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_pprof_data),
                 HEADER_CONTENT_TYPE_OCTET_STREAM,
                 PPROF_DEFAULT_FILENAME
@@ -93,7 +93,7 @@ module Datadog
             def build_code_provenance(flush)
               gzipped_code_provenance = Datadog::Core::Utils::Compression.gzip(flush.code_provenance)
 
-              Datadog::Vendor::Multipart::Post::UploadIO.new(
+              Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_code_provenance),
                 HEADER_CONTENT_TYPE_OCTET_STREAM,
                 CODE_PROVENANCE_FILENAME,
