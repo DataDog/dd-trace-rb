@@ -36,7 +36,7 @@ module Datadog
           def request(req, body = nil, &block)
             host, = host_and_port(req)
             request_options = datadog_configuration(host)
-            client_config = Datadog::Tracing.configuration_for(self)
+            client_config = Datadog.configuration_for(self)
 
             return super(req, body, &block) if Datadog::Contrib::HTTP.should_skip_tracing?(req)
 

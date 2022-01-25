@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/configuration'
+require 'datadog/core/configuration'
 require 'ddtrace/span'
 require 'ddtrace/ext/priority'
 

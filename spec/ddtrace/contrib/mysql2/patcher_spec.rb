@@ -54,7 +54,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         let(:service_override) { 'mysql-override' }
 
         before do
-          Datadog::Tracing.configure_onto(client, service_name: service_override)
+          Datadog.configure_onto(client, service_name: service_override)
           client.query('SELECT 1')
         end
 

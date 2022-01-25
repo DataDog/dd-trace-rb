@@ -11,11 +11,11 @@ module Datadog
     #
     # To modify the configuration, use {.configure}.
     #
-    # @return [Datadog::Configuration::Settings]
+    # @return [Datadog::Core::Configuration::Settings]
     # @!attribute [r] configuration
     # @public_api
     def configuration
-      Datadog::Configuration::ValidationProxy::CI.new(
+      Datadog::Core::Configuration::ValidationProxy::CI.new(
         Datadog.send(:internal_configuration)
       )
     end
@@ -26,7 +26,7 @@ module Datadog
     #   c.ci_mode.enabled = true
     # end
     # ```
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
     # available environment variables for configuration.
     #
     # Only permits access to CI configuration settings; others will raise an error.
@@ -43,18 +43,18 @@ module Datadog
     # The yielded configuration `c` comes pre-populated from environment variables, if
     # any are applicable.
     #
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
     # available environment variables for configuration.
     #
     # Will raise errors if invalid setting is accessed.
     #
-    # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+    # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
     # @return [void]
     # @public_api
     def configure
       # Wrap block with trace option validation
       wrapped_block = proc do |c|
-        yield(Datadog::Configuration::ValidationProxy::CI.new(c))
+        yield(Datadog::Core::Configuration::ValidationProxy::CI.new(c))
       end
 
       # Configure application normally

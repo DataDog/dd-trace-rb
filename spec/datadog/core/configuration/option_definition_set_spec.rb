@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Configuration::OptionDefinitionSet do
+RSpec.describe Datadog::Core::Configuration::OptionDefinitionSet do
   subject(:set) { described_class.new }
 
   it { is_expected.to be_a_kind_of(Hash) }
@@ -11,17 +11,17 @@ RSpec.describe Datadog::Configuration::OptionDefinitionSet do
   shared_context 'dependent option set' do
     before do
       set[:foo] = instance_double(
-        Datadog::Configuration::OptionDefinition,
+        Datadog::Core::Configuration::OptionDefinition,
         depends_on: [:bar]
       )
 
       set[:bar] = instance_double(
-        Datadog::Configuration::OptionDefinition,
+        Datadog::Core::Configuration::OptionDefinition,
         depends_on: [:baz]
       )
 
       set[:baz] = instance_double(
-        Datadog::Configuration::OptionDefinition,
+        Datadog::Core::Configuration::OptionDefinition,
         depends_on: []
       )
     end
@@ -31,10 +31,10 @@ RSpec.describe Datadog::Configuration::OptionDefinitionSet do
     subject(:dependency_order) { set.dependency_order }
 
     context 'when invoked' do
-      let(:resolver) { instance_double(Datadog::Configuration::DependencyResolver) }
+      let(:resolver) { instance_double(Datadog::Core::Configuration::DependencyResolver) }
 
       it do
-        expect(Datadog::Configuration::DependencyResolver).to receive(:new)
+        expect(Datadog::Core::Configuration::DependencyResolver).to receive(:new)
           .with(a_kind_of(Hash))
           .and_return(resolver)
         expect(resolver).to receive(:call)

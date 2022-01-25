@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Configuration::Base do
+RSpec.describe Datadog::Core::Configuration::Base do
   describe 'implemented' do
     subject(:base_class) do
       Class.new.tap do |klass|
@@ -24,10 +24,10 @@ RSpec.describe Datadog::Configuration::Base do
 
             before { settings }
 
-            it { is_expected.to be_a_kind_of(Datadog::Configuration::OptionDefinition) }
+            it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::OptionDefinition) }
 
             describe 'when instantiated' do
-              subject(:option) { Datadog::Configuration::Option.new(definition, self) }
+              subject(:option) { Datadog::Core::Configuration::Option.new(definition, self) }
 
               it { expect(option.default_value).to be_a_kind_of(described_class) }
               it { expect(option.default_value.option_defined?(:enabled)).to be true }

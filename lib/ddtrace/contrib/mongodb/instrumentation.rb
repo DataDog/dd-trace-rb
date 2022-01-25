@@ -1,5 +1,4 @@
 # typed: false
-require 'ddtrace/pin'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/mongodb/ext'
@@ -25,7 +24,7 @@ module Datadog
               return unless cluster.respond_to? :addresses
               return unless cluster.addresses.respond_to? :first
 
-              Datadog::Tracing.configuration_for(cluster.addresses.first)
+              Datadog.configuration_for(cluster.addresses.first)
             end
 
             def datadog_pin=(pin)

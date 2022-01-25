@@ -24,7 +24,7 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
       transport
     end
 
-    let(:settings) { Datadog::Configuration::Settings.new }
+    let(:settings) { Datadog::Core::Configuration::Settings.new }
 
     describe '#send_profiling_flush' do
       subject(:response) { transport.send_profiling_flush(flush) }
@@ -41,7 +41,11 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
       end
 
       context 'agent' do
-        let(:options) { { agent_settings: Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS } }
+        let(:options) do
+          {
+            agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS
+          }
+        end
 
         it_behaves_like 'a successful profile flush'
       end
@@ -53,7 +57,7 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
 
         let(:options) do
           {
-            agent_settings: double('agent_settings which should not be used'), # rubocop:disable RSpec/VerifiedDoubles
+            agent_settings: double('agent_settings which should not be used'),
             site: 'datadoghq.com',
             api_key: ENV['DD_API_KEY'] || 'Invalid API key',
             agentless_allowed: true

@@ -1,8 +1,9 @@
 # typed: false
+require 'ddtrace'
 require 'ddtrace/opentracer'
 require 'datadog/statsd'
 
-RSpec.describe 'ddtrace integration' do
+RSpec.describe 'Datadog integration' do
   context 'graceful shutdown', :integration do
     before do
       # TODO: This test is flaky, and the flakiness affects JRuby really often.

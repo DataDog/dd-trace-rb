@@ -3,9 +3,9 @@ require 'spec_helper'
 require 'securerandom'
 
 require 'ddtrace'
-require 'ddtrace/configuration/settings'
+require 'datadog/core/configuration/settings'
 
-RSpec.describe Datadog::Configuration::Settings do
+RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
 
   let(:options) { {} }
@@ -1095,11 +1095,12 @@ RSpec.describe Datadog::Configuration::Settings do
     end
 
     context 'then reset' do
-      before { set_time_now_provider }
-
       let(:original_time_now) { double('original time') }
 
-      before { allow(Time).to receive(:now).and_return(original_time_now) }
+      before do
+        set_time_now_provider
+        allow(Time).to receive(:now).and_return(original_time_now)
+      end
 
       it 'returns the provided time' do
         expect(settings.time_now_provider.call).to be(time_now)

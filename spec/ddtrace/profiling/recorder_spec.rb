@@ -182,7 +182,7 @@ RSpec.describe Datadog::Profiling::Recorder do
         allow(collector).to receive(:refresh).and_return(collector)
         collector
       end
-      let(:code_provenance) { double('code_provenance') } # rubocop:disable RSpec/VerifiedDoubles
+      let(:code_provenance) { double('code_provenance') }
 
       it 'returns a flush with code_provenance' do
         expect(flush.code_provenance).to be code_provenance

@@ -1,7 +1,7 @@
 # typed: true
 require 'json'
 
-require 'ddtrace/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
 require 'ddtrace/workers'

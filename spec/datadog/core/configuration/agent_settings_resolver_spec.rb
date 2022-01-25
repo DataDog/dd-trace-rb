@@ -1,8 +1,8 @@
 # typed: false
-require 'ddtrace/configuration/agent_settings_resolver'
-require 'ddtrace/configuration/settings'
+require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/settings'
 
-RSpec.describe Datadog::Configuration::AgentSettingsResolver do
+RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   around { |example| ClimateControl.modify(default_environment.merge(environment)) { example.run } }
 
   let(:default_environment) do
@@ -13,7 +13,7 @@ RSpec.describe Datadog::Configuration::AgentSettingsResolver do
     }
   end
   let(:environment) { {} }
-  let(:ddtrace_settings) { Datadog::Configuration::Settings.new }
+  let(:ddtrace_settings) { Datadog::Core::Configuration::Settings.new }
   let(:logger) { instance_double(Datadog::Core::Logger) }
 
   let(:settings) do

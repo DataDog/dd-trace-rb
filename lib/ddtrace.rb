@@ -1,32 +1,28 @@
 # typed: strict
-# During development, we load `ddtrace` by through `ddtrace.gemspec`,
-# which in turn eager loads 'ddtrace/version'.
+# TODO: This file currently acts as the root for
+#       all Datadog products in this package.
 #
-# Users load this gem by requiring this file.
-# We need to ensure that any files loaded in our gemspec are also loaded here.
-require 'ddtrace/version'
+#       We want 'ddtrace' to only be concerned with loading
+#       tracing. 'datadog' should load all features instead.
+#
+#       Until we can introduce this package/loader, load all
+#       Datadog features here for now, to preserve loading
+#       behavior. Later remove this when 'datadog' loads 'ddtrace'.
+require 'datadog/core'
 
+# Load tracing
 require 'datadog/tracing'
-require 'ddtrace/pin'
-require 'ddtrace/tracer'
-require 'ddtrace/pipeline'
-require 'ddtrace/configuration'
-require 'datadog/core/metrics/client'
-require 'ddtrace/auto_instrument_base'
-require 'ddtrace/profiling'
-
 require 'datadog/contrib'
 require 'ddtrace/contrib/auto_instrument'
 require 'ddtrace/contrib/extensions'
-require 'ddtrace/contrib/utils/quantization/hash'
-require 'ddtrace/contrib/utils/quantization/http'
-
 require 'ddtrace/opentelemetry/extensions'
+require 'ddtrace/tracer'
+require 'ddtrace/pipeline'
+require 'ddtrace/auto_instrument_base'
 
 # Global namespace that includes all Datadog functionality.
 # @public_api
 module Datadog
-  extend Configuration
   extend AutoInstrumentBase
 
   # Load built-in Datadog integrations
@@ -36,15 +32,8 @@ module Datadog
 
   # Load and extend OpenTelemetry compatibility by default
   extend OpenTelemetry::Extensions
-
-  # Add shutdown hook:
-  # Ensures the tracer has an opportunity to flush traces
-  # and cleanup before terminating the process.
-  at_exit do
-    if Interrupt === $! # rubocop:disable Style/SpecialGlobalVars is process terminating due to a ctrl+c or similar?
-      Datadog.send(:handle_interrupt_shutdown!)
-    else
-      Datadog.shutdown!
-    end
-  end
 end
+
+# Load other products (must follow tracing)
+require 'ddtrace/profiling'
+require 'datadog/ci'

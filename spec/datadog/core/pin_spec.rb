@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog/core/pin'
 
-RSpec.describe Datadog::Pin do
+RSpec.describe Datadog::Core::Pin do
   subject(:pin) { described_class.new(**options) }
   let(:options) { {} }
   let(:target) { Object.new }

@@ -13,7 +13,7 @@ module Datadog
         def started(event)
           return unless Datadog::Tracing.enabled?
 
-          service = Datadog::Tracing.configuration_for(event.address, :service_name) \
+          service = Datadog.configuration_for(event.address, :service_name) \
                     || Datadog::Tracing.configuration[:mongo, event.address.seed][:service_name]
 
           # start a trace and store it in the current thread; using the `operation_id`
