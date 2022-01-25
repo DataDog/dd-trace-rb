@@ -845,7 +845,15 @@ elsif ruby_version?('2.5')
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
-    gem 'ethon'
+    # Workaround bundle of JRuby/ethon issues:
+    # * ethon 0.15.0 is incompatible with most JRuby 9.2 versions (fixed in 9.2.20.0),
+    #   see https://github.com/typhoeus/ethon/issues/205
+    # * we test with 9.2.18.0 because ethon is completely broken on JRuby 9.2.19.0+ WHEN RUN on a Java 8 VM,
+    #   see https://github.com/jruby/jruby/issues/7033
+    #
+    # Thus let's keep our JRuby testing on 9.2.18.0 with Java 8, and avoid pulling in newer ethon versions until
+    # either the upstream issues are fixed OR we end up moving to Java 11.
+    gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
