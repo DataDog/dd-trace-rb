@@ -1,9 +1,9 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/worker'
+require 'datadog/core/worker'
 
-RSpec.describe Datadog::Worker do
+RSpec.describe Datadog::Core::Worker do
   subject(:worker) { described_class.new(&block) }
 
   let(:block) { proc {} }
@@ -27,7 +27,7 @@ RSpec.describe Datadog::Worker do
     end
 
     context 'when a task has been set' do
-      let(:result) { double('result') }
+      let(:result) { rand }
 
       before { allow(block).to receive(:call).and_return(result) }
 

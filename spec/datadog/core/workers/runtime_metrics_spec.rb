@@ -2,9 +2,9 @@
 require 'spec_helper'
 
 require 'ddtrace'
-require 'ddtrace/workers/runtime_metrics'
+require 'datadog/core/workers/runtime_metrics'
 
-RSpec.describe Datadog::Workers::RuntimeMetrics do
+RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
   subject(:worker) { described_class.new(options) }
 
   let(:metrics) { instance_double(Datadog::Core::Runtime::Metrics, close: nil) }
@@ -14,13 +14,8 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   after { worker.stop(true, 1) }
 
-  shared_context 'short default flush interval' do
-    let(:default_flush_interval) { 0.1 }
-    before { stub_const('Datadog::Workers::RuntimeMetrics::DEFAULT_FLUSH_INTERVAL', default_flush_interval) }
-  end
-
   describe '#initialize' do
-    it { expect(worker).to be_a_kind_of(Datadog::Workers::Polling) }
+    it { expect(worker).to be_a_kind_of(Datadog::Core::Workers::Polling) }
 
     context 'by default' do
       subject(:worker) { described_class.new }
@@ -81,7 +76,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
           running?: true,
           started?: true,
           forked?: false,
-          fork_policy: Datadog::Workers::Async::Thread::FORK_POLICY_STOP,
+          fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP,
           result: nil
         )
       end
@@ -272,14 +267,21 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
 
   describe 'integration tests', :integration do
     describe 'interval' do
-      include_context 'short default flush interval'
+      let(:default_flush_interval) { 0.5 }
+
+      before do
+        stub_const(
+          'Datadog::Core::Workers::RuntimeMetrics::DEFAULT_FLUSH_INTERVAL',
+          default_flush_interval
+        )
+      end
 
       after { worker.stop }
 
       it 'produces metrics every interval' do
         worker.perform
 
-        sleep(default_flush_interval + 0.1)
+        sleep(default_flush_interval + 0.2)
 
         # Metrics are produced once right away
         # and again after an interval.
@@ -304,7 +306,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
         after { worker.stop }
 
         context 'with FORK_POLICY_STOP fork policy' do
-          let(:fork_policy) { Datadog::Workers::Async::Thread::FORK_POLICY_STOP }
+          let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_STOP }
 
           it 'does not produce metrics' do
             # Start worker in main process
@@ -326,7 +328,7 @@ RSpec.describe Datadog::Workers::RuntimeMetrics do
         end
 
         context 'with FORK_POLICY_RESTART fork policy' do
-          let(:fork_policy) { Datadog::Workers::Async::Thread::FORK_POLICY_RESTART }
+          let(:fork_policy) { Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART }
 
           it 'continues producing metrics' do
             # Start worker
