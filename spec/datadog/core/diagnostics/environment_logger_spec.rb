@@ -1,17 +1,17 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/diagnostics/environment_logger'
+require 'datadog/core/diagnostics/environment_logger'
 
-RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
+RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
-
-  before { allow(DateTime).to receive(:now).and_return(DateTime.new(2020)) }
 
   # Reading DD_AGENT_HOST allows this to work in CI
   let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
 
   before do
+    allow(DateTime).to receive(:now).and_return(DateTime.new(2020))
+
     # Resets "only-once" execution pattern of `log!`
     env_logger.instance_variable_set(:@executed, nil)
 
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
     end
 
     it 'with a default tracer settings' do
-      expect(logger).to have_received(:info).with start_with('DATADOG TRACER CONFIGURATION') do |msg|
+      expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION') do |msg|
         json = JSON.parse(msg.partition('-')[2].strip)
         expect(json).to match(
           'agent_url' => start_with("http://#{agent_hostname}:8126?timeout="),
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
       let(:response) { Datadog::Transport::InternalErrorResponse.new(ZeroDivisionError.new('msg')) }
 
       it do
-        expect(logger).to have_received(:warn).with start_with('DATADOG TRACER DIAGNOSTIC') do |msg|
+        expect(logger).to have_received(:warn).with start_with('DATADOG DIAGNOSTIC') do |msg|
           error_line = msg.partition('-')[2].strip
           error = error_line.partition(':')[2].strip
 
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
     context 'with error collecting information' do
       before do
         allow(tracer_logger).to receive(:warn)
-        expect_any_instance_of(Datadog::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
+        expect_any_instance_of(Datadog::Core::Diagnostics::EnvironmentCollector).to receive(:collect!).and_raise
       end
 
       it 'rescues error and logs exception' do
@@ -119,7 +119,7 @@ RSpec.describe Datadog::Diagnostics::EnvironmentLogger do
     end
   end
 
-  describe Datadog::Diagnostics::EnvironmentCollector do
+  describe Datadog::Core::Diagnostics::EnvironmentCollector do
     describe '#collect!' do
       subject(:collect!) { collector.collect!([response]) }
 
