@@ -360,7 +360,7 @@ RSpec.describe Datadog::Configuration do
     describe '#health_metrics' do
       subject(:health_metrics) { test_class.health_metrics }
 
-      it { is_expected.to be_a_kind_of(Datadog::Diagnostics::Health::Metrics) }
+      it { is_expected.to be_a_kind_of(Datadog::Core::Diagnostics::Health::Metrics) }
     end
 
     describe '#logger' do
