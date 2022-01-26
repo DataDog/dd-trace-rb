@@ -1,5 +1,0 @@
-module Datadog
-  module Configuration
-    def tracer: () -> Datadog::Tracer
-  end
-end

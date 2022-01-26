@@ -1,3 +1,0 @@
-module Datadog
-  extend Configuration
-end
