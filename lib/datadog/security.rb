@@ -1,5 +1,4 @@
 require 'datadog/security/configuration'
-require 'datadog/security/writer'
 
 module Datadog
   # Namespace for Datadog Security instrumentation
