@@ -1,3 +1,4 @@
+require 'datadog/core/error'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/errors'
 require 'ddtrace/ext/http'
@@ -17,7 +18,7 @@ module Datadog
       # @see https://github.com/DataDog/datadog-agent/blob/2ae2cdd315bcda53166dd8fa0dedcfc448087b9d/pkg/trace/stats/aggregation.go#L13-L17
       ENSURE_AGENT_TAGS = {
         Ext::DistributedTracing::TAG_ORIGIN => true,
-        Ext::Environment::TAG_VERSION => true,
+        Core::Environment::Ext::TAG_VERSION => true,
         Ext::HTTP::STATUS_CODE => true,
         Ext::NET::TAG_HOSTNAME => true
       }.freeze
@@ -91,7 +92,7 @@ module Datadog
 
       # Mark the span with the given error.
       def set_error(e)
-        e = Error.build_from(e)
+        e = Core::Error.build_from(e)
 
         set_tag(Ext::Errors::TYPE, e.type) unless e.type.empty?
         set_tag(Ext::Errors::MSG, e.message) unless e.message.empty?

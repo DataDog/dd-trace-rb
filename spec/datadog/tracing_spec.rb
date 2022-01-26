@@ -2,7 +2,6 @@ require 'spec_helper'
 
 require 'datadog/statsd'
 
-# rubocop:disable RSpec/VerifiedDoubles
 # All the doubles in this file are simple pass through values.
 # There's no value in making them verifying doubles.
 RSpec.describe Datadog::Tracing do
@@ -146,7 +145,7 @@ RSpec.describe Datadog::Tracing do
     context 'validation' do
       it 'wraps the configuration object with a proxy' do
         described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Configuration::ValidationProxy::Tracing)
+          expect(c).to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
         end
       end
 
@@ -165,31 +164,11 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
-  describe '.configure_onto' do
-    subject(:configure_onto) { described_class.configure_onto(object, **options) }
-
-    let(:object) { double('object') }
-    let(:options) { {} }
-
-    let(:pin_setup) { instance_double(Datadog::Configuration::PinSetup) }
-
-    it 'attaches a pin to the object' do
-      expect(Datadog::Configuration::PinSetup)
-        .to receive(:new)
-        .with(object, **options)
-        .and_return(pin_setup)
-
-      expect(pin_setup).to receive(:call)
-
-      configure_onto
-    end
-  end
-
   describe '.configuration' do
     subject(:configuration) { described_class.configuration }
     it 'returns the global configuration' do
       expect(configuration)
-        .to be_a_kind_of(Datadog::Configuration::ValidationProxy::Tracing)
+        .to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
 
       expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
     end
@@ -221,4 +200,3 @@ RSpec.describe Datadog::Tracing do
     end
   end
 end
-# rubocop:enable RSpec/VerifiedDoubles

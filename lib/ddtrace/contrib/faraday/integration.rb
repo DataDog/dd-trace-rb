@@ -28,7 +28,7 @@ module Datadog
           super && version >= MINIMUM_VERSION
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 

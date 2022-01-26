@@ -1,9 +1,9 @@
 # typed: true
+require 'datadog/core/chunker'
 require 'ddtrace/transport/parcel'
 require 'ddtrace/transport/request'
 require 'ddtrace/transport/serializable_trace'
 require 'ddtrace/transport/trace_formatter'
-require 'ddtrace/chunker'
 
 module Datadog
   module Transport
@@ -46,7 +46,7 @@ module Datadog
         #
         # Single traces larger than +max_size+ will be discarded.
         #
-        # @param encoder [Datadog::Encoding::Encoder]
+        # @param encoder [Datadog::Core::Encoding::Encoder]
         # @param max_size [String] maximum acceptable payload size
         def initialize(encoder, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
           @encoder = encoder
@@ -67,7 +67,7 @@ module Datadog
                              traces.map { |t| encode_one(t) }.reject(&:nil?)
                            end
 
-          Datadog::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
+          Datadog::Core::Chunker.chunk_by_size(encoded_traces, max_size).map do |chunk|
             [encoder.join(chunk), chunk.size]
           end
         end
@@ -89,7 +89,7 @@ module Datadog
         end
       end
 
-      # Encodes traces using {Datadog::Encoding::Encoder} instances.
+      # Encodes traces using {Datadog::Core::Encoding::Encoder} instances.
       module Encoder
         module_function
 

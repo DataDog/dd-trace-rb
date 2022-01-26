@@ -58,7 +58,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
 
         expect(env.form).to include(
           'version' => '3',
-          'data[rubyprofile.pprof]' => kind_of(Datadog::Vendor::Multipart::Post::UploadIO),
+          'data[rubyprofile.pprof]' => kind_of(Datadog::Core::Vendor::Multipart::Post::UploadIO),
           'start' => flush.start.utc.iso8601,
           'end' => flush.finish.utc.iso8601,
           'family' => flush.language,
@@ -79,6 +79,21 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
 
     context 'by default' do
       it_behaves_like 'profile request'
+    end
+
+    context 'when code provenance data is available' do
+      it_behaves_like 'profile request' do
+        let(:code_provenance) { 'code_provenance_json' }
+
+        let(:flush) { get_test_profiling_flush(code_provenance: code_provenance) }
+
+        it 'includes code provenance data in the form' do
+          call
+
+          expect(env.form)
+            .to include('data[code_provenance.json]' => kind_of(Datadog::Core::Vendor::Multipart::Post::UploadIO))
+        end
+      end
     end
 
     context 'when additional tags are provided' do

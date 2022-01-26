@@ -1,3 +1,5 @@
+require 'ddtrace/contrib/utils/quantization/hash'
+
 # typed: true
 module Datadog
   module Contrib
@@ -16,21 +18,24 @@ module Datadog
       # returns a formatted and normalized query
       def query_builder(command_name, database_name, command)
         # always exclude the command name
-        options = Quantization::Hash.merge_options(quantization_options, exclude: [command_name.to_s])
+        options = Contrib::Utils::Quantization::Hash.merge_options(quantization_options, exclude: [command_name.to_s])
 
         # quantized statements keys are strings to avoid leaking Symbols in older Rubies
         # as Symbols are not GC'ed in Rubies prior to 2.2
-        base_info = Quantization::Hash.format({
-                                                'operation' => command_name,
-                                                'database' => database_name,
-                                                'collection' => command.values.first
-                                              }, options)
+        base_info = Contrib::Utils::Quantization::Hash.format(
+          {
+            'operation' => command_name,
+            'database' => database_name,
+            'collection' => command.values.first
+          },
+          options
+        )
 
-        base_info.merge(Quantization::Hash.format(command, options))
+        base_info.merge(Contrib::Utils::Quantization::Hash.format(command, options))
       end
 
       def quantization_options
-        Datadog::Quantization::Hash.merge_options(DEFAULT_OPTIONS, configuration[:quantize])
+        Contrib::Utils::Quantization::Hash.merge_options(DEFAULT_OPTIONS, configuration[:quantize])
       end
 
       def configuration

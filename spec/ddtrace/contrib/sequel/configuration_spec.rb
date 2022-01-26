@@ -72,7 +72,7 @@ RSpec.describe 'Sequel configuration' do
 
         before do
           Datadog::Tracing.configure { |c| c.instrument :sequel }
-          Datadog::Tracing.configure_onto(sequel, service_name: service_name)
+          Datadog.configure_onto(sequel, service_name: service_name)
           Datadog::Tracing.configure { |c| c.instrument :sequel }
           perform_query!
         end

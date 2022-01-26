@@ -28,7 +28,10 @@ module Datadog
 
       # Builds a new Transport::HTTP::Client with default settings
       # Pass a block to override any settings.
-      def default(agent_settings: Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS, **options)
+      def default(
+        agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS,
+        **options
+      )
         new do |transport|
           transport.adapter(agent_settings)
           transport.headers default_headers
@@ -82,7 +85,7 @@ module Datadog
           'be removed on a future ddtrace release.'
         )
 
-        Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname
+        Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.hostname
       end
 
       def default_port(logger: Datadog.logger)
@@ -91,7 +94,7 @@ module Datadog
           'be removed on a future ddtrace release.'
         )
 
-        Datadog::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port
+        Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS.port
       end
 
       def default_url(logger: Datadog.logger)

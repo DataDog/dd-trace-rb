@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [0.54.2] - 2022-01-18
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.54.2
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.54.1...v0.54.2
+
+### Changed
+
+- Bump `debase-ruby_core_source` dependency version; also allow older versions to be used ([#1798][], [#1829][])
+- Profiler: Reduce impact of reporting data in multi-process applications ([#1807][])
+- Profiler: Update API used to report data to backend ([#1820][])
+
+### Fixed
+
+- Gracefully handle installation on environments where Ruby JIT seems to be available but is actually broken ([#1801][])
+
 ## [0.54.1] - 2021-11-30
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.54.1
@@ -2682,6 +2698,11 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1771]: https://github.com/DataDog/dd-trace-rb/issues/1771
 [#1774]: https://github.com/DataDog/dd-trace-rb/issues/1774
 [#1776]: https://github.com/DataDog/dd-trace-rb/issues/1776
+[#1798]: https://github.com/DataDog/dd-trace-rb/issues/1798
+[#1801]: https://github.com/DataDog/dd-trace-rb/issues/1801
+[#1807]: https://github.com/DataDog/dd-trace-rb/issues/1807
+[#1820]: https://github.com/DataDog/dd-trace-rb/issues/1820
+[#1829]: https://github.com/DataDog/dd-trace-rb/issues/1829
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

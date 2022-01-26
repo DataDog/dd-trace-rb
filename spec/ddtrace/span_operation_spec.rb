@@ -30,9 +30,7 @@ RSpec.describe Datadog::SpanOperation do
   end
 
   shared_context 'callbacks' do
-    # rubocop:disable RSpec/VerifiedDoubles
     let(:callback_spy) { spy('callback spy') }
-    # rubocop:enable RSpec/VerifiedDoubles
 
     before do
       events = span_op.send(:events)
@@ -190,7 +188,7 @@ RSpec.describe Datadog::SpanOperation do
           let(:on_error) { 'not a proc' }
 
           it 'fallbacks to default error handler and log a debug message' do
-            expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
+            expect_any_instance_of(Datadog::Core::Logger).to receive(:debug).at_least(:once)
             expect do
               span_op.measure(&block)
             end.to raise_error(error)
@@ -317,7 +315,7 @@ RSpec.describe Datadog::SpanOperation do
         end
 
         context 'that is an Integer' do
-          let(:trace_id) { Datadog::Utils.next_id }
+          let(:trace_id) { Datadog::Core::Utils.next_id }
           it { is_expected.to have_attributes(trace_id: trace_id) }
         end
       end
@@ -348,9 +346,7 @@ RSpec.describe Datadog::SpanOperation do
     end
 
     let(:return_value) { SecureRandom.uuid }
-    # rubocop:disable RSpec/VerifiedDoubles
     let(:block_spy) { spy('block') }
-    # rubocop:enable RSpec/VerifiedDoubles
 
     shared_context 'a StandardError' do
       let(:error) { error_class.new }
@@ -524,7 +520,7 @@ RSpec.describe Datadog::SpanOperation do
 
     context 'given a Time' do
       subject(:start) { span_op.start(start_time) }
-      let(:start_time) { Datadog::Utils::Time.now.utc }
+      let(:start_time) { Datadog::Core::Utils::Time.now.utc }
 
       it { expect { start }.to change { span_op.start_time }.from(nil).to(start_time) }
       # Because span is still running, duration is unavailable.
@@ -657,7 +653,7 @@ RSpec.describe Datadog::SpanOperation do
       subject(:stop) { span_op.stop(end_time) }
 
       it_behaves_like 'stopped span' do
-        let(:end_time) { Datadog::Utils::Time.now.utc }
+        let(:end_time) { Datadog::Core::Utils::Time.now.utc }
       end
     end
   end
@@ -723,7 +719,7 @@ RSpec.describe Datadog::SpanOperation do
       subject(:finish) { span_op.finish(end_time) }
 
       it_behaves_like 'finished span' do
-        let(:end_time) { Datadog::Utils::Time.now.utc }
+        let(:end_time) { Datadog::Core::Utils::Time.now.utc }
         before { span_op.start }
       end
     end
@@ -784,7 +780,7 @@ RSpec.describe Datadog::SpanOperation do
         # We set the same time no matter what.
         # If duration is greater than zero but start_time == end_time, we can
         # be sure we're using the monotonic time.
-        allow(Datadog::Utils::Time).to receive(:now)
+        allow(Datadog::Core::Utils::Time).to receive(:now)
           .and_return(static_time)
       end
 

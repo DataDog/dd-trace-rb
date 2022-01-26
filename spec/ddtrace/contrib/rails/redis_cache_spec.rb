@@ -48,7 +48,7 @@ MESSAGE
 
   before do
     Datadog::Tracing.configure { |c| c.instrument :redis }
-    Datadog::Tracing.configure_onto(client_from_driver(driver))
+    Datadog.configure_onto(client_from_driver(driver))
   end
 
   let(:driver) do

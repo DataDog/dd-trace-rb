@@ -2,7 +2,8 @@
 require 'forwardable'
 require 'set'
 require 'datadog/contrib'
-require 'ddtrace/configuration/settings'
+require 'datadog/core/configuration/settings'
+require 'datadog/core/configuration/validation_proxy'
 
 module Datadog
   module Contrib
@@ -18,8 +19,8 @@ module Datadog
       def self.extend!
         Datadog::Tracing.singleton_class.prepend Helpers
         Datadog::Tracing.singleton_class.prepend Configuration
-        Datadog::Configuration::Settings.include Configuration::Settings
-        Datadog::Configuration::ValidationProxy::Tracing.include Configuration::ValidationProxy
+        Datadog::Core::Configuration::Settings.include Configuration::Settings
+        Datadog::Core::Configuration::ValidationProxy::Tracing.include Configuration::ValidationProxy
       end
 
       # Helper methods for Datadog module.
@@ -91,7 +92,7 @@ module Datadog
           configuration
         end
 
-        # Extensions for Datadog::Configuration::Settings
+        # Extensions for Datadog::Core::Configuration::Settings
         # @public_api
         module Settings
           InvalidIntegrationError = Class.new(StandardError)

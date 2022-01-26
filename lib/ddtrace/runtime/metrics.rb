@@ -1,126 +1,15 @@
 # typed: true
-require 'ddtrace/ext/runtime'
-
-require 'ddtrace/metrics'
-require 'datadog/core/environment/class_count'
-require 'datadog/core/environment/gc'
-require 'datadog/core/environment/thread_count'
-require 'datadog/core/environment/vm_cache'
+require 'datadog/core/runtime/metrics'
 
 module Datadog
   module Runtime
-    # For generating runtime metrics
-    class Metrics < Datadog::Metrics
-      def initialize(**options)
-        super
-
-        # Initialize service list
-        @services = Set.new(options.fetch(:services, []))
-        @service_tags = nil
-        compile_service_tags!
-      end
-
-      def associate_with_trace(trace)
-        return if !enabled? || trace.nil?
+    # Decorates runtime metrics feature
+    module Metrics
+      def self.associate_trace(trace)
+        return unless trace && !trace.empty?
 
         # Register service as associated with metrics
-        register_service(trace.service) unless trace.service.nil?
-      end
-
-      # Associate service with runtime metrics
-      def register_service(service)
-        return if !enabled? || service.nil?
-
-        service = service.to_s
-
-        unless @services.include?(service)
-          # Add service to list and update services tag
-          services << service
-
-          # Recompile the service tags
-          compile_service_tags!
-        end
-      end
-
-      # Flush all runtime metrics to Statsd client
-      def flush
-        return unless enabled?
-
-        try_flush do
-          if Core::Environment::ClassCount.available?
-            gauge(Ext::Runtime::Metrics::METRIC_CLASS_COUNT, Core::Environment::ClassCount.value)
-          end
-        end
-
-        try_flush do
-          if Core::Environment::ThreadCount.available?
-            gauge(Ext::Runtime::Metrics::METRIC_THREAD_COUNT, Core::Environment::ThreadCount.value)
-          end
-        end
-
-        try_flush { gc_metrics.each { |metric, value| gauge(metric, value) } if Core::Environment::GC.available? }
-
-        try_flush do
-          if Core::Environment::VMCache.available?
-            gauge(Ext::Runtime::Metrics::METRIC_GLOBAL_CONSTANT_STATE, Core::Environment::VMCache.global_constant_state)
-
-            # global_method_state is not available since Ruby >= 3.0,
-            # as method caching was moved to a per-class basis.
-            global_method_state = Core::Environment::VMCache.global_method_state
-            gauge(Ext::Runtime::Metrics::METRIC_GLOBAL_METHOD_STATE, global_method_state) if global_method_state
-          end
-        end
-      end
-
-      def gc_metrics
-        Core::Environment::GC.stat.flat_map do |k, v|
-          nested_gc_metric(Ext::Runtime::Metrics::METRIC_GC_PREFIX, k, v)
-        end.to_h
-      end
-
-      def try_flush
-        yield
-      rescue StandardError => e
-        Datadog.logger.error("Error while sending runtime metric. Cause: #{e.message}")
-      end
-
-      def default_metric_options
-        # Return dupes, so that the constant isn't modified,
-        # and defaults are unfrozen for mutation in Statsd.
-        super.tap do |options|
-          options[:tags] = options[:tags].dup
-
-          # Add services dynamically because they might change during runtime.
-          options[:tags].concat(service_tags) unless service_tags.nil?
-        end
-      end
-
-      private
-
-      attr_reader \
-        :service_tags,
-        :services
-
-      def compile_service_tags!
-        @service_tags = services.to_a.collect do |service|
-          "#{Ext::Runtime::Metrics::TAG_SERVICE}:#{service}".freeze
-        end
-      end
-
-      def nested_gc_metric(prefix, k, v)
-        path = "#{prefix}.#{k}"
-
-        if v.is_a?(Hash)
-          v.flat_map do |key, value|
-            nested_gc_metric(path, key, value)
-          end
-        else
-          [[to_metric_name(path), v]]
-        end
-      end
-
-      def to_metric_name(str)
-        str.downcase.gsub(/[-\s]/, '_')
+        Datadog.send(:components).runtime_metrics.register_service(trace.service) unless trace.service.nil?
       end
     end
   end

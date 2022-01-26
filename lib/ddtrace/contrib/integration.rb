@@ -22,7 +22,7 @@ module Datadog
     #       defined?(::BillingApi::Client) # Check if the target for instrumentation is present.
     #     end
     #
-    #     def default_configuration
+    #     def new_configuration
     #       Settings.new
     #     end
     #

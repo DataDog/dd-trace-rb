@@ -1,6 +1,6 @@
 # typed: true
 require 'datadog/core/environment/variable_helpers'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 module Datadog
   # Contains profiler for generating stack profiles, etc.
@@ -8,7 +8,7 @@ module Datadog
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
 
-    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
     private_constant :SKIPPED_NATIVE_EXTENSION_ONLY_ONCE
 
     def self.supported?
@@ -32,7 +32,7 @@ module Datadog
     #   c.profiling.enabled = true
     # end
     # ```
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
     # available environment variables for configuration.
     #
     # Only permits access to profiling configuration settings; others will raise an error.
@@ -49,18 +49,18 @@ module Datadog
     # The yielded configuration `c` comes pre-populated from environment variables, if
     # any are applicable.
     #
-    # See {Datadog::Configuration::Settings} for all available options, defaults, and
+    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
     # available environment variables for configuration.
     #
     # Will raise errors if invalid setting is accessed.
     #
-    # @yieldparam [Datadog::Configuration::Settings] c the mutable configuration object
+    # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
     # @return [void]
     # @public_api
     def self.configure
       # Wrap block with profiling option validation
       wrapped_block = proc do |c|
-        yield(Datadog::Configuration::ValidationProxy::Profiling.new(c))
+        yield(Datadog::Core::Configuration::ValidationProxy::Profiling.new(c))
       end
 
       # Configure application normally
@@ -73,11 +73,11 @@ module Datadog
     #
     # To modify the configuration, use {.configure}.
     #
-    # @return [Datadog::Configuration::Settings]
+    # @return [Datadog::Core::Configuration::Settings]
     # @!attribute [r] configuration
     # @public_api
     def self.configuration
-      Datadog::Configuration::ValidationProxy::Profiling.new(
+      Datadog::Core::Configuration::ValidationProxy::Profiling.new(
         Datadog.send(:internal_configuration)
       )
     end
@@ -185,6 +185,7 @@ module Datadog
       return false unless supported?
 
       require 'ddtrace/profiling/ext/forking'
+      require 'ddtrace/profiling/collectors/code_provenance'
       require 'ddtrace/profiling/collectors/stack'
       require 'ddtrace/profiling/exporter'
       require 'ddtrace/profiling/recorder'

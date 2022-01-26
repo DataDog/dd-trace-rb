@@ -18,6 +18,7 @@ AllCops:
     - 'Appraisals'
     - '*.gemspec'
     - 'lib/ddtrace/**/vendor/**/*.rb'
+    - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
     - 'lib/ddtrace/profiling/pprof/pprof_pb.rb'
@@ -297,6 +298,10 @@ RSpec/NestedGroups:
 
 # Enforces `receive` vs `have_received` expectation pattern.
 RSpec/MessageSpies:
+  Enabled: false
+
+# Enforces use of `instance_double` over `double`
+RSpec/VerifiedDoubles:
   Enabled: false
 
 # Enforces example line count limit.

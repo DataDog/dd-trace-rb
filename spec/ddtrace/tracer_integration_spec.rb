@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracer do
   end
 
   def lang_tag(span)
-    span.get_tag(Datadog::Ext::Runtime::TAG_LANG)
+    span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)
   end
 
   describe 'manual tracing' do
@@ -199,6 +199,42 @@ RSpec.describe Datadog::Tracer do
           resource: 'inventory',
           service: tracer.default_service
         )
+      end
+    end
+
+    context 'that continues from another trace' do
+      context 'without a block' do
+        before do
+          tracer.continue_trace!(digest)
+          tracer.trace('my.job').finish
+        end
+
+        context 'with state' do
+          let(:digest) do
+            Datadog::TraceDigest.new(
+              span_id: Datadog::Core::Utils.next_id,
+              trace_id: Datadog::Core::Utils.next_id,
+              trace_origin: 'synthetics',
+              trace_sampling_priority: Datadog::Ext::Priority::USER_KEEP
+            )
+          end
+
+          it 'clears the active trace after finishing' do
+            expect(spans).to have(1).item
+            expect(span.name).to eq('my.job')
+            expect(tracer.active_trace).to be nil
+          end
+        end
+
+        context 'without state' do
+          let(:digest) { nil }
+
+          it 'clears the active trace after finishing' do
+            expect(spans).to have(1).item
+            expect(span.name).to eq('my.job')
+            expect(tracer.active_trace).to be nil
+          end
+        end
       end
     end
   end

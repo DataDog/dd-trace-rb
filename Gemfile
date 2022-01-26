@@ -11,6 +11,7 @@ gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
+gem 'json-schema'
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
@@ -90,3 +91,6 @@ if RUBY_VERSION >= '2.4.0' && !Gem.win_platform?
   gem 'sorbet', '= 0.5.9120'
   gem 'spoom', '~> 1.1'
 end
+
+# Workaround for 1.4.3 being broken on Java 8, see https://github.com/msgpack/msgpack-ruby/issues/239
+gem 'msgpack', '< 1.4.3' if RUBY_PLATFORM == 'java'

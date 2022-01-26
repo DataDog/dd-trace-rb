@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 require 'ddtrace/profiling'
 require 'ddtrace/profiling/ext/forking'
 
@@ -8,7 +8,7 @@ module Datadog
     module Tasks
       # Takes care of loading our extensions/monkey patches to handle fork() and validating if CPU-time profiling is usable
       class Setup
-        ACTIVATE_EXTENSIONS_ONLY_ONCE = Datadog::Utils::OnlyOnce.new
+        ACTIVATE_EXTENSIONS_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
 
         def run
           ACTIVATE_EXTENSIONS_ONLY_ONCE.run do

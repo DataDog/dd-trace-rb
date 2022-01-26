@@ -1,7 +1,7 @@
 # typed: true
+require 'datadog/core/utils/compression'
 require 'ddtrace/ext/profiling'
-require 'ddtrace/utils/compression'
-require 'ddtrace/vendor/multipart-post/multipart/post/composite_read_io'
+require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
 
 require 'ddtrace/transport/http/api/endpoint'
 require 'ddtrace/profiling/transport/http/response'
@@ -72,18 +72,31 @@ module Datadog
               form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_ENV}:#{flush.env}" unless flush.env.nil?
               form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_VERSION}:#{flush.version}" unless flush.version.nil?
 
+              # May not be available/enabled
+              form[FORM_FIELD_CODE_PROVENANCE_DATA] = build_code_provenance(flush) if flush.code_provenance
+
               form
             end
 
             def build_pprof(flush)
               pprof = encoder.encode(flush)
 
-              gzipped_pprof_data = Datadog::Utils::Compression.gzip(pprof.data)
+              gzipped_pprof_data = Datadog::Core::Utils::Compression.gzip(pprof.data)
 
-              Datadog::Vendor::Multipart::Post::UploadIO.new(
+              Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_pprof_data),
                 HEADER_CONTENT_TYPE_OCTET_STREAM,
                 PPROF_DEFAULT_FILENAME
+              )
+            end
+
+            def build_code_provenance(flush)
+              gzipped_code_provenance = Datadog::Core::Utils::Compression.gzip(flush.code_provenance)
+
+              Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
+                StringIO.new(gzipped_code_provenance),
+                HEADER_CONTENT_TYPE_OCTET_STREAM,
+                CODE_PROVENANCE_FILENAME,
               )
             end
           end

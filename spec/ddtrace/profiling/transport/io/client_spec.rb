@@ -8,7 +8,7 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
   subject(:client) { described_class.new(out, encoder) }
 
   let(:out) { instance_double(IO) }
-  let(:encoder) { instance_double(Datadog::Encoding::Encoder) }
+  let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
 
   describe '#send_profiling_flush' do
     subject(:send_profiling_flush) { client.send_profiling_flush(flush) }

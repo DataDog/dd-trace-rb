@@ -37,11 +37,6 @@ RSpec.describe 'Redis test' do
       end
     end
 
-    let(:pin) { Datadog::Pin.get_from(client) }
-
-    it { expect(pin).to_not be nil }
-    it { expect(pin.app_type).to eq('db') }
-
     shared_context 'password-protected Redis server' do
       let(:redis) { Redis.new(host: host, port: port, driver: driver, password: password) }
       let(:password) { 'foobar' }

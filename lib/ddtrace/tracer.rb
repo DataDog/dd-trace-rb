@@ -3,19 +3,18 @@ require 'logger'
 require 'pathname'
 
 require 'datadog/core/environment/identity'
-require 'ddtrace/ext/environment'
+require 'datadog/core/environment/ext'
 
 require 'ddtrace/context_provider'
 require 'ddtrace/context'
 require 'ddtrace/correlation'
 require 'ddtrace/event'
-require 'ddtrace/logger'
+require 'datadog/core/logger'
 require 'ddtrace/sampler'
 require 'ddtrace/sampling'
 require 'ddtrace/span_operation'
 require 'ddtrace/trace_flush'
 require 'ddtrace/trace_operation'
-require 'ddtrace/utils/only_once'
 require 'ddtrace/writer'
 
 module Datadog
@@ -49,7 +48,7 @@ module Datadog
     def initialize(
       trace_flush: Datadog::TraceFlush::Finished.new,
       context_provider: Datadog::DefaultContextProvider.new,
-      default_service: Datadog::Ext::Environment::FALLBACK_SERVICE_NAME,
+      default_service: Datadog::Core::Environment::Ext::FALLBACK_SERVICE_NAME,
       enabled: true,
       sampler: PrioritySampler.new(base_sampler: Datadog::AllSampler.new, post_sampler: Sampling::RuleSampler.new),
       tags: {},
@@ -213,10 +212,20 @@ module Datadog
     # @yield Optional block where this {#continue_trace!} `digest` scope is active.
     #   If no block, the `digest` remains active after {#continue_trace!} returns.
     def continue_trace!(digest, key = nil, &block)
-      return unless digest && digest.is_a?(TraceDigest)
+      # Only accept {TraceDigest} as a digest.
+      # Otherwise, create a new execution context.
+      digest = nil unless digest.is_a?(TraceDigest)
 
+      # Start a new trace from the digest
+      context = call_context(key)
+      original_trace = active_trace(key)
       trace = start_trace(continue_from: digest)
-      call_context(key).activate!(trace, &block)
+
+      # If block hasn't been given; we need to manually deactivate
+      # this trace. Subscribe to the trace finished event to do this.
+      subscribe_trace_deactivation!(context, trace, original_trace) unless block
+
+      context.activate!(trace, &block)
     end
 
     # @!visibility private
@@ -388,16 +397,23 @@ module Datadog
       # Get the original trace to restore
       original_trace = context.active_trace
 
-      # Skip this, if it would have no effect.
-      return if original_trace == trace
-
       # Setup the deactivation callback
+      subscribe_trace_deactivation!(context, trace, original_trace)
+
+      # Activate the trace
+      # Skip this, if it would have no effect.
+      context.activate!(trace) unless trace == original_trace
+    end
+
+    # Reactivate the original trace when trace completes
+    def subscribe_trace_deactivation!(context, trace, original_trace)
+      # Don't override this event if it's set.
+      # The original event should reactivate the original trace correctly.
+      return if trace.send(:events).trace_finished.subscriptions[:tracer_deactivate_trace]
+
       trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
         context.activate!(original_trace)
       end
-
-      # Activate the trace
-      context.activate!(trace)
     end
 
     # Sample a span, tagging the trace as appropriate.
@@ -425,12 +441,7 @@ module Datadog
       return unless trace && @writer
 
       if Datadog.configuration.diagnostics.debug
-        Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})" }
-
-        if Datadog.logger.debug?
-          str = String.new('')
-          PP.pp(trace.spans, str)
-        end
+        Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
       end
 
       @writer.write(trace)

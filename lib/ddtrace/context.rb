@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/utils/forking'
+require 'datadog/core/utils/forking'
 
 module Datadog
   # {Datadog::Context} is used to keep track of a hierarchy of spans for the current
@@ -13,7 +13,7 @@ module Datadog
   # generates the job itself. On the other hand, if it's part of the same
   # {Datadog::Context}, it will be related to the original trace.
   class Context
-    include Datadog::Utils::Forking
+    include Datadog::Core::Utils::Forking
 
     attr_reader \
       :active_trace

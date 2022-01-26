@@ -17,7 +17,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
   end
 
-  let(:settings) { Datadog::Configuration::Settings.new }
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
 
   shared_context 'HTTP server' do
     # HTTP
@@ -125,6 +125,30 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           expect(tags).to include(/host:#{container_id}/)
         end
       end
+
+      context 'when code provenance data is available' do
+        let(:flush) do
+          get_test_profiling_flush(
+            code_provenance: Datadog::Profiling::Collectors::CodeProvenance.new.refresh.generate_json
+          )
+        end
+
+        it 'sends profiles with code provenance data successfully' do
+          client.send_profiling_flush(flush)
+
+          boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+          body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+          code_provenance_data = JSON.parse(
+            Datadog::Core::Utils::Compression.gunzip(
+              body.fetch('data[code_provenance.json]')
+            )
+          )
+
+          expect(code_provenance_data)
+            .to include('v1' => array_including(hash_including('type' => 'library', 'name' => 'ddtrace')))
+        end
+      end
     end
 
     context 'via agent' do
@@ -140,7 +164,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
         )
       end
 
-      let(:agent_settings) { Datadog::Configuration::AgentSettingsResolver.call(settings) }
+      let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
 
       it_behaves_like 'profile HTTP request' do
         it 'is formatted for the agent' do
@@ -160,7 +184,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
       let(:client) do
         Datadog::Profiling::Transport::HTTP.default(
           profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-          agent_settings: double('agent_settings which should not be used'), # rubocop:disable RSpec/VerifiedDoubles
+          agent_settings: double('agent_settings which should not be used'),
           api_key: api_key,
           site: hostname,
           agentless_allowed: true

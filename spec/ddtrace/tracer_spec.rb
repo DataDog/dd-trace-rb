@@ -213,6 +213,7 @@ RSpec.describe Datadog::Tracer do
           it 'records span flushing to logger' do
             subject
             expect(Datadog.logger).to have_lazy_debug_logged('Writing 1 span')
+            expect(Datadog.logger).to have_lazy_debug_logged('Name: span.name')
           end
         end
 
@@ -495,7 +496,7 @@ RSpec.describe Datadog::Tracer do
             let(:not_a_proc_block) { 'not a proc' }
 
             it 'fallbacks to default error handler and log a debug message' do
-              expect_any_instance_of(Datadog::Logger).to receive(:debug).at_least(:once)
+              expect_any_instance_of(Datadog::Core::Logger).to receive(:debug).at_least(:once)
               expect do
                 tracer.trace(name, on_error: not_a_proc_block, &block)
               end.to raise_error(error)
@@ -728,14 +729,36 @@ RSpec.describe Datadog::Tracer do
             trace_id: a_kind_of(Integer)
           )
         end
+
+        expect(tracer.active_trace).to be nil
+      end
+
+      context 'and a block' do
+        it do
+          expect { |b| tracer.continue_trace!(digest, &b) }
+            .to yield_control
+        end
+
+        it 'restores the original active trace afterwards' do
+          tracer.continue_trace!(digest)
+          original_trace = tracer.active_trace
+          expect(original_trace).to be_a_kind_of(Datadog::TraceOperation)
+
+          tracer.continue_trace!(digest) do
+            expect(tracer.active_trace).to be_a_kind_of(Datadog::TraceOperation)
+            expect(tracer.active_trace).to_not be original_trace
+          end
+
+          expect(tracer.active_trace).to be original_trace
+        end
       end
     end
 
     context 'given a TraceDigest' do
       let(:digest) do
         Datadog::TraceDigest.new(
-          span_id: Datadog::Utils.next_id,
-          trace_id: Datadog::Utils.next_id,
+          span_id: Datadog::Core::Utils.next_id,
+          trace_id: Datadog::Core::Utils.next_id,
           trace_origin: 'synthetics',
           trace_sampling_priority: Datadog::Ext::Priority::USER_KEEP
         )
@@ -755,12 +778,16 @@ RSpec.describe Datadog::Tracer do
             trace_id: digest.trace_id
           )
         end
+
+        expect(tracer.active_trace).to be nil
       end
 
       it 'is consumed by the next trace and isn\'t reused' do
         tracer.trace('first') do |span, trace|
           # Should consume the continuation
         end
+
+        expect(tracer.active_trace).to be nil
 
         tracer.trace('second') do |span, trace|
           expect(trace).to have_attributes(
@@ -771,6 +798,8 @@ RSpec.describe Datadog::Tracer do
           expect(span.trace_id).to_not eq(digest.trace_id)
           expect(span.parent_id).to eq(0)
         end
+
+        expect(tracer.active_trace).to be nil
       end
 
       context 'and a block' do

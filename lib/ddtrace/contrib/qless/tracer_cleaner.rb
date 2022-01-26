@@ -15,10 +15,7 @@ module Datadog
         private
 
         def forked?
-          pin = Datadog::Pin.get_from(::Qless)
-          return false unless pin
-
-          pin.config[:forked] == true
+          Datadog.configuration_for(::Qless, :forked) == true
         end
 
         def datadog_configuration

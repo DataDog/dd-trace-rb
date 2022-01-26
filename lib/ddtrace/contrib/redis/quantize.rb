@@ -28,8 +28,8 @@ module Datadog
 
         def format_arg(arg)
           str = arg.is_a?(Symbol) ? arg.to_s.upcase : arg.to_s
-          str = Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
-          Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
+          str = Core::Utils.utf8_encode(str, binary: true, placeholder: PLACEHOLDER)
+          Core::Utils.truncate(str, VALUE_MAX_LEN, TOO_LONG_MARK)
         rescue => e
           Datadog.logger.debug("non formattable Redis arg #{str}: #{e}")
           PLACEHOLDER
@@ -40,7 +40,7 @@ module Datadog
           return 'AUTH ?' if auth_command?(command_args)
 
           cmd = command_args.map { |x| format_arg(x) }.join(' ')
-          Utils.truncate(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
+          Core::Utils.truncate(cmd, CMD_MAX_LEN, TOO_LONG_MARK)
         end
 
         def get_verb(command_args)

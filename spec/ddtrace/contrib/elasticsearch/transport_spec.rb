@@ -133,9 +133,9 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
   end
 
-  describe 'client Datadog::Pin' do
+  describe 'client configuration override' do
     context 'when #service is overridden' do
-      before { Datadog::Pin.get_from(client).service = service_name }
+      before { Datadog.configure_onto(client, service_name: service_name) }
 
       let(:service_name) { 'bar' }
 

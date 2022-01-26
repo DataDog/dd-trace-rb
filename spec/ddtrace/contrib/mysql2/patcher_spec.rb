@@ -39,16 +39,6 @@ RSpec.describe 'Mysql2::Client patcher' do
     Datadog::Tracing.registry[:mysql2].reset_configuration!
   end
 
-  context 'pin' do
-    subject(:pin) { client.datadog_pin }
-
-    it 'has the correct attributes' do
-      expect(pin.service).to eq(service_name)
-      expect(pin.app).to eq('mysql2')
-      expect(pin.app_type).to eq('db')
-    end
-  end
-
   describe 'tracing' do
     describe '#query' do
       context 'when the tracer is disabled' do
@@ -57,6 +47,21 @@ RSpec.describe 'Mysql2::Client patcher' do
         it 'does not write spans' do
           client.query('SELECT 1')
           expect(spans).to be_empty
+        end
+      end
+
+      context 'when the client is configured directly' do
+        let(:service_override) { 'mysql-override' }
+
+        before do
+          Datadog.configure_onto(client, service_name: service_override)
+          client.query('SELECT 1')
+        end
+
+        it 'produces a trace with service override' do
+          expect(spans.count).to eq(1)
+          expect(span.service).to eq(service_override)
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq(service_override)
         end
       end
 

@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/contrib/utils/quantization/hash'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rake/ext'
 
@@ -72,7 +73,7 @@ module Datadog
 
           def quantize_args(args)
             quantize_options = configuration[:quantize][:args]
-            Datadog::Quantization::Hash.format(args, quantize_options)
+            Contrib::Utils::Quantization::Hash.format(args, quantize_options)
           end
 
           def enabled?

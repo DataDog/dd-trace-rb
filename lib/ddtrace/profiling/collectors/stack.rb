@@ -1,12 +1,12 @@
-# typed: true
+# typed: false
 
 require 'ddtrace/profiling/native_extension'
 require 'ddtrace/profiling/backtrace_location'
 require 'ddtrace/profiling/events/stack'
-require 'ddtrace/utils/only_once'
-require 'ddtrace/utils/time'
-require 'ddtrace/worker'
-require 'ddtrace/workers/polling'
+require 'datadog/core/utils/only_once'
+require 'datadog/core/utils/time'
+require 'datadog/core/worker'
+require 'datadog/core/workers/polling'
 
 module Datadog
   module Profiling
@@ -14,8 +14,8 @@ module Datadog
       # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
       # Runs on its own background thread.
       #
-      class Stack < Worker # rubocop:disable Metrics/ClassLength
-        include Workers::Polling
+      class Stack < Core::Worker # rubocop:disable Metrics/ClassLength
+        include Core::Workers::Polling
 
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0
         MIN_INTERVAL = 0.01
@@ -46,7 +46,7 @@ module Datadog
           max_threads_sampled: DEFAULT_MAX_THREADS_SAMPLED,
           thread_api: Thread,
           cpu_time_provider: Datadog::Profiling::NativeExtension,
-          fork_policy: Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
+          fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
           interval: MIN_INTERVAL,
           enabled: true
         )
@@ -89,7 +89,7 @@ module Datadog
         end
 
         def collect_and_wait
-          run_time = Datadog::Utils::Time.measure do
+          run_time = Datadog::Core::Utils::Time.measure do
             collect_events
           end
 
@@ -289,7 +289,7 @@ module Datadog
         end
 
         def get_current_wall_time_timestamp_ns
-          Datadog::Utils::Time.get_time(:nanosecond)
+          Datadog::Core::Utils::Time.get_time(:nanosecond)
         end
       end
     end

@@ -52,7 +52,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     context 'with a different service name' do
       let(:service) { 'mongodb-primary' }
 
-      before { Datadog::Tracing.configure_onto(client, service_name: service) }
+      before { Datadog.configure_onto(client, service_name: service) }
 
       subject { client[collection].insert_one(name: 'FKA Twigs') }
 
@@ -71,6 +71,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:primary_service) { 'mongodb-primary' }
       let(:secondary_service) { 'mongodb-secondary' }
       let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
+      # TODO: This tests doesn't work if TEST_MONGODB_HOST is set to anything other than 127.0.0.1
+      #       We should fix this... maybe do a more clever IP resolve or something?
       let(:secondary_host) { 'localhost' }
 
       before do

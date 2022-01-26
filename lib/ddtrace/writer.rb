@@ -1,13 +1,12 @@
 # typed: true
 require 'json'
 
-require 'ddtrace/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
-require 'ddtrace/encoding'
 require 'ddtrace/workers'
-require 'ddtrace/diagnostics/environment_logger'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/diagnostics/environment_logger'
+require 'ddtrace/runtime/metrics'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
@@ -139,9 +138,7 @@ module Datadog
       # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
       #       instead of working through the trace writer.
       # Associate trace with runtime metrics
-      if Datadog::Tracing.configuration.runtime_metrics.enabled && !trace.empty?
-        Datadog.runtime_metrics.associate_with_trace(trace)
-      end
+      Datadog::Runtime::Metrics.associate_trace(trace)
 
       worker_local = @worker
 
