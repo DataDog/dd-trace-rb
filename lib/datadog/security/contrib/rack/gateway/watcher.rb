@@ -18,16 +18,16 @@ module Datadog
                 waf_context = request.env['datadog.waf.context']
 
                 Security::Reactive::Operation.new('rack.request') do |op|
-                  if defined?(Datadog::Tracer) && Datadog.respond_to?(:tracer) && (tracer = Datadog.tracer)
-                    root_span = tracer.active_root_span
-                    active_span = tracer.active_span
+                  if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+                    active_trace = Datadog::Tracing.active_trace
+                    root_span = active_trace.instance_eval { @root_span }
+                    active_span = Datadog::Tracing.active_span
 
-                    Datadog.logger.debug { "root span: #{root_span.span_id}" } if root_span
                     Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
 
-                    if root_span
-                      root_span.set_tag('_dd.appsec.enabled', 1)
-                      root_span.set_tag('_dd.runtime_family', 'ruby')
+                    if active_span
+                      active_span.set_tag('_dd.appsec.enabled', 1)
+                      active_span.set_tag('_dd.runtime_family', 'ruby')
                     end
                   end
 
@@ -35,7 +35,7 @@ module Datadog
                     record = [:block, :monitor].include?(action)
                     if record
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, root_span: root_span, span: active_span, request: request, action: action }
+                      event =  { waf_result: result, trace: active_trace, root_span: root_span, span: active_span, request: request, action: action }
                     end
                   end
 
@@ -60,16 +60,16 @@ module Datadog
                 waf_context = response.instance_eval { @waf_context }
 
                 Security::Reactive::Operation.new('rack.response') do |op|
-                  if defined?(Datadog::Tracer) && Datadog.respond_to?(:tracer) && (tracer = Datadog.tracer)
-                    root_span = tracer.active_root_span
-                    active_span = tracer.active_span
+                  if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+                    active_trace = Datadog::Tracing.active_trace
+                    root_span = active_trace.instance_eval { @root_span }
+                    active_span = Datadog::Tracing.active_span
 
-                    Datadog.logger.debug { "root span: #{root_span.span_id}" } if root_span
                     Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
 
-                    if root_span
-                      root_span.set_tag('_dd.appsec.enabled', 1)
-                      root_span.set_tag('_dd.runtime_family', 'ruby')
+                    if active_span
+                      active_span.set_tag('_dd.appsec.enabled', 1)
+                      active_span.set_tag('_dd.runtime_family', 'ruby')
                     end
                   end
 
@@ -77,7 +77,7 @@ module Datadog
                     record = [:block, :monitor].include?(action)
                     if record
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, root_span: root_span, span: active_span, response: response, action: action }
+                      event =  { waf_result: result, trace: active_trace, root_span: root_span, span: active_span, response: response, action: action }
                     end
                   end
 

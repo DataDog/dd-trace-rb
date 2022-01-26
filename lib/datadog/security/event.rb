@@ -57,10 +57,11 @@ module Datadog
           # prepare and gather tags to apply
           tags = event_group.each_with_object({}) do |event, tags|
             span = event[:span]
+            trace = event[:trace]
 
             if span
               span.set_tag('appsec.event', 'true')
-              span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
+              trace.keep!  # span.set_tag(Datadog::Ext::ManualTracing::TAG_KEEP, true)
             end
 
             request = event[:request]

@@ -7,9 +7,7 @@ module Datadog
           def self.setup
             Datadog::Security.configure do |datadog_config|
               rails_config = config_with_defaults(datadog_config)
-              unless Datadog.configuration.instrumented_integrations.key?(:rack)
-                activate_rack!(datadog_config, rails_config)
-              end
+              activate_rack!(datadog_config, rails_config)
             end
           end
 

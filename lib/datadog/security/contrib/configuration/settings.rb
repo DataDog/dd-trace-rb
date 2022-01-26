@@ -1,4 +1,4 @@
-require 'ddtrace/configuration/base'
+require 'datadog/core/configuration/base'
 
 module Datadog
   module Security
@@ -6,7 +6,7 @@ module Datadog
       module Configuration
         # Common settings for all integrations
         class Settings
-          include Datadog::Configuration::Base
+          include Datadog::Core::Configuration::Base
 
           option :enabled, default: true
           option :service_name

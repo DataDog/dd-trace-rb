@@ -1,6 +1,6 @@
 # typed: ignore
 
-require 'ddtrace/utils/only_once'
+require 'datadog/core/utils/only_once'
 
 require 'datadog/security/contrib/patcher'
 require 'datadog/security/contrib/rails/integration'
@@ -15,8 +15,8 @@ module Datadog
         module Patcher
           include Datadog::Security::Contrib::Patcher
 
-          BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
-          AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Utils::OnlyOnce.new }
+          BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
+          AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
           module_function
 
@@ -46,7 +46,7 @@ module Datadog
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
-              add_middleware(app) if Datadog.configuration[:rails][:middleware]
+              add_middleware(app) if Datadog::Tracing.configuration[:rails][:middleware]
             end
           end
 
