@@ -28,7 +28,7 @@ module Datadog
 
           super.tap do
             ONLY_ONCE_PER_APP[self].run do
-              Datadog::Contrib::Sinatra::Framework.add_middleware(builder)
+              Datadog::Contrib::Sinatra::Framework.add_middleware(Datadog::Contrib::Rack::TraceMiddleware, builder)
               Datadog::Contrib::Sinatra::Framework.inspect_middlewares(builder)
             end
           end

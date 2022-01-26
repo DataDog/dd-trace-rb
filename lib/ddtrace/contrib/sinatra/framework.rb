@@ -28,8 +28,8 @@ module Datadog
         end
 
         # Add Rack middleware at the top of the stack
-        def self.add_middleware(builder, *args, &block)
-          insert_middleware(builder, Datadog::Contrib::Rack::TraceMiddleware, args, block) do |proc_, use|
+        def self.add_middleware(middleware, builder, *args, &block)
+          insert_middleware(builder, middleware, args, block) do |proc_, use|
             use.insert(0, proc_)
           end
         end
