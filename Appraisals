@@ -297,7 +297,7 @@ elsif ruby_version?('2.2')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0'
+    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
     gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
     gem 'hiredis'
     gem 'http'
@@ -495,7 +495,7 @@ elsif ruby_version?('2.3')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0'
+    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
     gem 'grpc'
     gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
     gem 'hiredis'
@@ -613,7 +613,7 @@ elsif ruby_version?('2.4')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0'
+    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
     gem 'grpc'
     gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
     gem 'hiredis'
@@ -845,11 +845,19 @@ elsif ruby_version?('2.5')
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
-    gem 'ethon'
+    # Workaround bundle of JRuby/ethon issues:
+    # * ethon 0.15.0 is incompatible with most JRuby 9.2 versions (fixed in 9.2.20.0),
+    #   see https://github.com/typhoeus/ethon/issues/205
+    # * we test with 9.2.18.0 because ethon is completely broken on JRuby 9.2.19.0+ WHEN RUN on a Java 8 VM,
+    #   see https://github.com/jruby/jruby/issues/7033
+    #
+    # Thus let's keep our JRuby testing on 9.2.18.0 with Java 8, and avoid pulling in newer ethon versions until
+    # either the upstream issues are fixed OR we end up moving to Java 11.
+    gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0'
+    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
     gem 'grpc', platform: :ruby
     gem 'hiredis'
     gem 'http'
@@ -1055,7 +1063,7 @@ elsif ruby_version?('2.6')
       gem 'excon'
       gem 'faraday'
       gem 'grape'
-      gem 'graphql', '>= 1.12.0'
+      gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
@@ -1257,7 +1265,7 @@ elsif ruby_version?('2.7')
       gem 'ethon'
       gem 'excon'
       gem 'grape'
-      gem 'graphql', '>= 1.12.0'
+      gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
@@ -1370,7 +1378,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'ethon'
     gem 'excon'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0'
+    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
     gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
     gem 'hiredis'
     gem 'http'
