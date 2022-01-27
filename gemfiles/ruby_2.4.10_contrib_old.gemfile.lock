@@ -27,7 +27,6 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.10)
-    dalli (2.7.11)
     debase-ruby_core_source (0.10.14)
     debug_inspector (1.1.0)
     diff-lcs (1.4.4)
@@ -135,7 +134,6 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  dalli (< 3.0.0)
   ddtrace!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   faraday (= 0.17)
