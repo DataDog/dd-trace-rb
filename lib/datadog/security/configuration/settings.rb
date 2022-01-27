@@ -9,7 +9,7 @@ module Datadog
         end
 
         def merge(dsl)
-          dsl.uses.each do |use|
+          dsl.instruments.each do |use|
             name, _options = use
             registered_integration = Datadog::Security::Contrib::Integration.registry[name]
             @integrations << registered_integration

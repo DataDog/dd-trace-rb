@@ -17,7 +17,7 @@ module Datadog
 
           Datadog::Security.configure do |c|
             integrations.each do |integration_name|
-              c.use integration_name
+              c.instrument integration_name
             end
           end
         end

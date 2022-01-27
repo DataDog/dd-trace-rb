@@ -13,17 +13,17 @@ module Datadog
       # Configuration DSL implementation
       class DSL
         def initialize
-          @uses = []
+          @instruments = []
         end
 
-        def use(name, options = {})
-          @uses << [name, options]
+        def instrument(name, options = {})
+          @instruments << [name, options]
         end
 
-        attr_reader :uses
+        attr_reader :instruments
 
         def [](key)
-          found = @uses.find { |k, _| k == key }
+          found = @instruments.find { |k, _| k == key }
 
           found.last if found
         end
