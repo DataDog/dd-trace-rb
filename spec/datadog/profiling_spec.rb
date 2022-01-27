@@ -53,8 +53,11 @@ RSpec.describe Datadog::Profiling do
     end
 
     context 'with the profiler instance available' do
-      let(:result) { double }
-      it { is_expected.to be(true) }
+      let(:result) { instance_double(Datadog::Profiling::Profiler) }
+      it 'starts the profiler instance' do
+        expect(result).to receive(:start)
+        is_expected.to be(true)
+      end
     end
 
     context 'with the profiler instance not available' do

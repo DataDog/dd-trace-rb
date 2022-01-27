@@ -89,9 +89,13 @@ module Datadog
     # @return [Boolean] `true` if the profiler has successfully started, otherwise `false`.
     # @public_api
     def self.start_if_enabled
-      # Getting the profiler instance triggers start as a side-effect;
+      # If the profiler was not previously touched, getting the profiler instance triggers start as a side-effect
       # otherwise we get nil
-      !!Datadog.send(:components).profiler
+      profiler = Datadog.send(:components).profiler
+      # ...but we still try to start it BECAUSE if the process forks, the profiler will exist but may
+      # not yet have been started in the fork
+      profiler.start if profiler
+      !!profiler
     end
 
     private_class_method def self.ruby_engine_unsupported?
