@@ -850,7 +850,7 @@ elsif ruby_version?('2.5')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli', '< 3.0.0'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -905,6 +905,7 @@ elsif ruby_version?('2.5')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
