@@ -37,6 +37,28 @@ module Datadog
             end
           end
 
+          # Add Rack middleware before another in the stack
+          def self.add_middleware_before(before, middleware, builder, *args, &block)
+            index = middlewares(builder).index(before)
+
+            raise "middleware #{before} not found" unless index
+
+            insert_middleware(builder, middleware, args, block) do |proc_, use|
+              use.insert(index, proc_)
+            end
+          end
+
+          # Add Rack middleware after another in the the stack
+          def self.add_middleware_after(after, middleware, builder, *args, &block)
+            index = middlewares(builder).index(after)
+
+            raise "middleware #{after} not found" unless index
+
+            insert_middleware(builder, middleware, args, block) do |proc_, use|
+              use.insert(index + 1, proc_)
+            end
+          end
+
           # Wrap the middleware class instantiation in a proc, like Sinatra does internally
           # The `middleware` local variable name in the proc is important for introspection
           # (see Framework#middlewares)
@@ -58,6 +80,10 @@ module Datadog
 
               yield(wrapped, use)
             end
+          end
+
+          def self.include_middleware?(middleware, builder)
+            middlewares(builder).include?(middleware)
           end
 
           # Introspect middlewares from a builder

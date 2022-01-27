@@ -7,6 +7,8 @@ require 'datadog/security/contrib/rails/integration'
 require 'datadog/security/contrib/rails/framework'
 require 'datadog/security/contrib/rack/request_middleware'
 
+require 'ddtrace/contrib/rack/middlewares'
+
 module Datadog
   module Security
     module Contrib
@@ -52,8 +54,25 @@ module Datadog
 
           def add_middleware(app)
             # Add trace middleware
-            # TODO: ensure it is inserted after Datadog::Contrib::Rack::TracerMiddleware
-            app.middleware.insert_before(0, Datadog::Security::Contrib::Rack::RequestMiddleware)
+            if include_middleware?(Datadog::Contrib::Rack::TraceMiddleware, app)
+              app.middleware.insert_after(Datadog::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware)
+            else
+              app.middleware.insert_before(0, Datadog::Security::Contrib::Rack::RequestMiddleware)
+            end
+          end
+
+          def include_middleware?(middleware, app)
+            found = false
+
+            # find tracer middleware reference in Rails::Configuration::MiddlewareStackProxy
+            app.middleware.instance_variable_get(:@operations).each do |operation|
+              # we can't introspect the actual operation not being a delete but it's unlikely
+              if operation.binding.local_variable_get(:args).include?(middleware)
+                found = true
+              end
+            end
+
+            found
           end
 
           def inspect_middlewares(app)
