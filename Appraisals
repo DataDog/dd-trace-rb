@@ -9,6 +9,15 @@ def ruby_version?(version)
     Gem::Version.new(RUBY_VERSION) < Gem::Version.new(full_version).bump
 end
 
+alias original_appraise appraise
+
+def appraise(group, &block)
+  # Specify the environment variable APPRAISAL_GROUP to load only a specific appraisal group.
+  if ENV['APPRAISAL_GROUP'].nil? || ENV['APPRAISAL_GROUP'] == group
+    original_appraise(group, &block)
+  end
+end
+
 def self.gem_cucumber(version)
   appraise "cucumber#{version}" do
     gem 'cucumber', ">=#{version}.0.0", "<#{version + 1}.0.0"
@@ -101,7 +110,7 @@ if ruby_version?('2.1')
     gem 'activerecord-mysql-adapter'
     gem 'aws-sdk', '~> 2.0'
     gem 'concurrent-ruby'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -287,7 +296,7 @@ elsif ruby_version?('2.2')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -487,7 +496,7 @@ elsif ruby_version?('2.3')
     gem 'activerecord', '< 5.1.5'
     gem 'aws-sdk'
     gem 'concurrent-ruby'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -605,7 +614,7 @@ elsif ruby_version?('2.4')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli'
+    gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -841,7 +850,7 @@ elsif ruby_version?('2.5')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -896,6 +905,7 @@ elsif ruby_version?('2.5')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do
@@ -1055,7 +1065,7 @@ elsif ruby_version?('2.6')
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber'
-      gem 'dalli'
+      gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
@@ -1098,6 +1108,7 @@ elsif ruby_version?('2.6')
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+      gem 'dalli', '< 3.0.0'
     end
 
     appraise 'core-old' do
@@ -1173,7 +1184,7 @@ elsif ruby_version?('2.7')
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
-    end    
+    end
 
     appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
@@ -1258,7 +1269,7 @@ elsif ruby_version?('2.7')
       gem 'aws-sdk'
       gem 'concurrent-ruby'
       gem 'cucumber'
-      gem 'dalli'
+      gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
       gem 'elasticsearch-transport'
@@ -1300,6 +1311,7 @@ elsif ruby_version?('2.7')
 
     appraise 'contrib-old' do
       gem 'faraday', '0.17'
+      gem 'dalli', '< 3.0.0'
     end
 
     appraise 'core-old' do
@@ -1371,7 +1383,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'aws-sdk'
     gem 'concurrent-ruby'
     gem 'cucumber'
-    gem 'dalli'
+    gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch-transport'
@@ -1410,6 +1422,10 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'typhoeus'
     gem 'que', '>= 1.0.0.beta2'
     gem 'net-smtp'
+  end
+
+  appraise 'contrib-old' do
+    gem 'dalli', '< 3.0.0'
   end
 
   appraise 'core-old' do

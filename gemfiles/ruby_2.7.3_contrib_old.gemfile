@@ -37,5 +37,6 @@ gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "sorbet", "= 0.5.9120"
 gem "spoom", "~> 1.1"
 gem "faraday", "0.17"
+gem "dalli", "< 3.0.0"
 
 gemspec path: "../"
