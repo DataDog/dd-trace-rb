@@ -16,6 +16,8 @@ module Datadog
 
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/CyclomaticComplexity
+        # rubocop:disable Metrics/PerceivedComplexity
         def call(env)
           # Set the trace context (e.g. distributed tracing)
           if configuration[:distributed_tracing] && Datadog::Tracing.active_trace.nil?
@@ -55,6 +57,13 @@ module Datadog
               # resource; if no resource was set, let's use a fallback
               span.resource = env['REQUEST_METHOD'] if span.resource.nil?
 
+              rack_request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+
+              # This propagates the Sinatra resource to the Rack span,
+              # since the latter is unaware of what the resource might be
+              # and would fallback to a generic resource name when unset
+              rack_request_span.resource ||= span.resource if rack_request_span
+
               if response
                 if (status = response[0])
                   sinatra_response = ::Sinatra::Response.new([], status) # Build object to use status code helpers
@@ -78,6 +87,10 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
 
         private
 
