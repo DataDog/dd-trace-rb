@@ -6,7 +6,7 @@ module Datadog
       class Help
         def run
           puts %(
-  Usage: ddtrace [command] [arguments]
+  Usage: ddtracerb [command] [arguments]
     exec [command]: Executes command with tracing & profiling preloaded.
     help:           Prints this help message.
           )
