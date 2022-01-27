@@ -9,28 +9,30 @@ def ruby_version?(version)
     Gem::Version.new(RUBY_VERSION) < Gem::Version.new(full_version).bump
 end
 
-def add_appraise(group, &block)
+alias original_appraise appraise
+
+def appraise(group, &block)
   # Specify the environment variable APPRAISAL_GROUP to load only a specific appraisal group.
   if ENV['APPRAISAL_GROUP'].nil? || ENV['APPRAISAL_GROUP'] == group
-    appraise(group, &block)
+    original_appraise(group, &block)
   end
 end
 
 def self.gem_cucumber(version)
-  add_appraise "cucumber#{version}" do
+  appraise "cucumber#{version}" do
     gem 'cucumber', ">=#{version}.0.0", "<#{version + 1}.0.0"
   end
 end
 
 if ruby_version?('2.1')
-  add_appraise 'rails30-postgres' do
+  appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
     gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails30-postgres-sidekiq' do
+  appraise 'rails30-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
     gem 'pg', '0.15.1'
@@ -38,7 +40,7 @@ if ruby_version?('2.1')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-mysql2' do
+  appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'mysql2', '0.3.21'
@@ -48,14 +50,14 @@ if ruby_version?('2.1')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
   end
 
-  add_appraise 'rails32-postgres' do
+  appraise 'rails32-postgres' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-postgres-redis' do
+  appraise 'rails32-postgres-redis' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
@@ -64,7 +66,7 @@ if ruby_version?('2.1')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-postgres-sidekiq' do
+  appraise 'rails32-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
@@ -72,28 +74,28 @@ if ruby_version?('2.1')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails4-mysql2' do
+  appraise 'rails4-mysql2' do
     gem 'rails', '4.2.11.1'
     gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-postgres' do
+  appraise 'rails4-postgres' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-semantic-logger' do
+  appraise 'rails4-semantic-logger' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
-  add_appraise 'rails4-postgres-redis' do
+  appraise 'rails4-postgres-redis' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'redis-rails'
@@ -102,7 +104,7 @@ if ruby_version?('2.1')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'contrib' do
+  appraise 'contrib' do
     gem 'active_model_serializers', '~> 0.9.0'
     gem 'activerecord', '3.2.22.5'
     gem 'activerecord-mysql-adapter'
@@ -142,19 +144,19 @@ if ruby_version?('2.1')
     gem 'typhoeus'
   end
 
-  add_appraise 'core-old' do
+  appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.2')
-  add_appraise 'rails30-postgres' do
+  appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
     gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails30-postgres-sidekiq' do
+  appraise 'rails30-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
     gem 'pg', '0.15.1'
@@ -162,7 +164,7 @@ elsif ruby_version?('2.2')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-mysql2' do
+  appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'mysql2', '0.3.21'
@@ -171,14 +173,14 @@ elsif ruby_version?('2.2')
     gem 'sqlite3', '~> 1.3.5'
   end
 
-  add_appraise 'rails32-postgres' do
+  appraise 'rails32-postgres' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-postgres-redis' do
+  appraise 'rails32-postgres-redis' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
@@ -187,7 +189,7 @@ elsif ruby_version?('2.2')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-postgres-sidekiq' do
+  appraise 'rails32-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
@@ -195,28 +197,28 @@ elsif ruby_version?('2.2')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails4-mysql2' do
+  appraise 'rails4-mysql2' do
     gem 'rails', '4.2.11.1'
     gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-postgres' do
+  appraise 'rails4-postgres' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-semantic-logger' do
+  appraise 'rails4-semantic-logger' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
-  add_appraise 'rails4-postgres-redis' do
+  appraise 'rails4-postgres-redis' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'redis-rails'
@@ -225,7 +227,7 @@ elsif ruby_version?('2.2')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-postgres-sidekiq' do
+  appraise 'rails4-postgres-sidekiq' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sidekiq'
@@ -234,7 +236,7 @@ elsif ruby_version?('2.2')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-mysql2' do
+  appraise 'rails5-mysql2' do
     gem 'rails', '5.2.3'
     gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
@@ -242,7 +244,7 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
-  add_appraise 'rails5-postgres' do
+  appraise 'rails5-postgres' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
@@ -250,7 +252,7 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
-  add_appraise 'rails5-postgres-redis' do
+  appraise 'rails5-postgres-redis' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
@@ -259,7 +261,7 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
-  add_appraise 'rails5-postgres-redis-activesupport' do
+  appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
@@ -269,7 +271,7 @@ elsif ruby_version?('2.2')
     gem 'redis-rails'
   end
 
-  add_appraise 'rails5-postgres-sidekiq' do
+  appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
     gem 'sidekiq'
@@ -279,7 +281,7 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
-  add_appraise 'rails5-semantic-logger' do
+  appraise 'rails5-semantic-logger' do
     gem 'rails', '5.2.3'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
@@ -287,7 +289,7 @@ elsif ruby_version?('2.2')
     gem 'mimemagic', '0.3.9' # Pinned until https://github.com/mimemagicrb/mimemagic/issues/142 is resolved.
   end
 
-  add_appraise 'contrib' do
+  appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
@@ -335,19 +337,19 @@ elsif ruby_version?('2.2')
     gem 'que', '>= 1.0.0.beta2'
   end
 
-  add_appraise 'core-old' do
+  appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.3')
-  add_appraise 'rails30-postgres' do
+  appraise 'rails30-postgres' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
     gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails30-postgres-sidekiq' do
+  appraise 'rails30-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.0.20'
     gem 'pg', '0.15.1'
@@ -355,7 +357,7 @@ elsif ruby_version?('2.3')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-mysql2' do
+  appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'mysql2', '0.3.21'
@@ -364,14 +366,14 @@ elsif ruby_version?('2.3')
     gem 'sqlite3', '~> 1.3.5'
   end
 
-  add_appraise 'rails32-postgres' do
+  appraise 'rails32-postgres' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-postgres-redis' do
+  appraise 'rails32-postgres-redis' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
@@ -380,7 +382,7 @@ elsif ruby_version?('2.3')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails32-postgres-sidekiq' do
+  appraise 'rails32-postgres-sidekiq' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
     gem 'pg', '0.15.1'
@@ -388,28 +390,28 @@ elsif ruby_version?('2.3')
     gem 'rack-cache', '1.7.1'
   end
 
-  add_appraise 'rails4-mysql2' do
+  appraise 'rails4-mysql2' do
     gem 'rails', '4.2.11.1'
     gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-postgres' do
+  appraise 'rails4-postgres' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-semantic-logger' do
+  appraise 'rails4-semantic-logger' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
-  add_appraise 'rails4-postgres-redis' do
+  appraise 'rails4-postgres-redis' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'redis-rails'
@@ -418,7 +420,7 @@ elsif ruby_version?('2.3')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails4-postgres-sidekiq' do
+  appraise 'rails4-postgres-sidekiq' do
     gem 'rails', '4.2.11.1'
     gem 'pg', '< 1.0'
     gem 'sidekiq'
@@ -427,21 +429,21 @@ elsif ruby_version?('2.3')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-mysql2' do
+  appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-postgres' do
+  appraise 'rails5-postgres' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-postgres-redis' do
+  appraise 'rails5-postgres-redis' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
@@ -449,14 +451,14 @@ elsif ruby_version?('2.3')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-semantic-logger' do
+  appraise 'rails5-semantic-logger' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
-  add_appraise 'rails5-postgres-redis-activesupport' do
+  appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
@@ -466,7 +468,7 @@ elsif ruby_version?('2.3')
     gem 'redis-store', '> 1.6.0'
   end
 
-  add_appraise 'rails5-postgres-sidekiq' do
+  appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'sidekiq'
@@ -475,19 +477,19 @@ elsif ruby_version?('2.3')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'resque2-redis3' do
+  appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
     gem 'resque', '>= 2.0'
   end
 
-  add_appraise 'resque2-redis4' do
+  appraise 'resque2-redis4' do
     gem 'redis', '>= 4.0'
     gem 'resque', '>= 2.0'
   end
 
   (3..4).each { |v| gem_cucumber(v) }
 
-  add_appraise 'contrib' do
+  appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
@@ -536,37 +538,37 @@ elsif ruby_version?('2.3')
     gem 'que', '>= 1.0.0.beta2'
   end
 
-  add_appraise 'contrib-old' do
+  appraise 'contrib-old' do
     gem 'faraday', '0.17'
   end
 
-  add_appraise 'core-old' do
+  appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.4')
-  add_appraise 'rails5-mysql2' do
+  appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-postgres' do
+  appraise 'rails5-postgres' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-semantic-logger' do
+  appraise 'rails5-semantic-logger' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'sprockets', '< 4'
     gem 'rails_semantic_logger', '~> 4.0'
   end
 
-  add_appraise 'rails5-postgres-redis' do
+  appraise 'rails5-postgres-redis' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
@@ -574,7 +576,7 @@ elsif ruby_version?('2.4')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'rails5-postgres-redis-activesupport' do
+  appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'redis', '>= 4.0.1'
@@ -583,7 +585,7 @@ elsif ruby_version?('2.4')
     gem 'redis-rails'
   end
 
-  add_appraise 'rails5-postgres-sidekiq' do
+  appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0'
     gem 'sidekiq'
@@ -592,19 +594,19 @@ elsif ruby_version?('2.4')
     gem 'lograge', '~> 0.11'
   end
 
-  add_appraise 'resque2-redis3' do
+  appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
     gem 'resque', '>= 2.0'
   end
 
-  add_appraise 'resque2-redis4' do
+  appraise 'resque2-redis4' do
     gem 'redis', '>= 4.0'
     gem 'resque', '>= 2.0'
   end
 
   (3..4).each { |v| gem_cucumber(v) }
 
-  add_appraise 'contrib' do
+  appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
@@ -654,16 +656,16 @@ elsif ruby_version?('2.4')
     gem 'que', '>= 1.0.0.beta2'
   end
 
-  add_appraise 'contrib-old' do
+  appraise 'contrib-old' do
     gem 'faraday', '0.17'
   end
 
-  add_appraise 'core-old' do
+  appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.5')
-  add_appraise 'rails5-mysql2' do
+  appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', platform: :jruby
@@ -672,7 +674,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails5-postgres' do
+  appraise 'rails5-postgres' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
@@ -681,7 +683,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails5-semantic-logger' do
+  appraise 'rails5-semantic-logger' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
@@ -690,7 +692,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails5-postgres-redis' do
+  appraise 'rails5-postgres-redis' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
@@ -700,7 +702,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails5-postgres-redis-activesupport' do
+  appraise 'rails5-postgres-redis-activesupport' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
@@ -711,7 +713,7 @@ elsif ruby_version?('2.5')
     gem 'redis-rails'
   end
 
-  add_appraise 'rails5-postgres-sidekiq' do
+  appraise 'rails5-postgres-sidekiq' do
     gem 'rails', '~> 5.2.1'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
@@ -722,7 +724,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails6-mysql2' do
+  appraise 'rails6-mysql2' do
     gem 'rails', '~> 6.0.0'
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60', platform: :jruby # try remove >= 60
@@ -731,7 +733,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails6-postgres' do
+  appraise 'rails6-postgres' do
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
@@ -740,7 +742,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails6-semantic-logger' do
+  appraise 'rails6-semantic-logger' do
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
@@ -749,7 +751,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails6-postgres-redis' do
+  appraise 'rails6-postgres-redis' do
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
@@ -759,7 +761,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails6-postgres-redis-activesupport' do
+  appraise 'rails6-postgres-redis-activesupport' do
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
@@ -770,7 +772,7 @@ elsif ruby_version?('2.5')
     gem 'redis-rails'
   end
 
-  add_appraise 'rails6-postgres-sidekiq' do
+  appraise 'rails6-postgres-sidekiq' do
     gem 'rails', '~> 6.0.0'
     gem 'pg', '< 1.0', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60', platform: :jruby
@@ -781,7 +783,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails61-mysql2' do
+  appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 61', platform: :jruby
@@ -790,7 +792,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails61-postgres' do
+  appraise 'rails61-postgres' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
@@ -799,7 +801,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails61-postgres-redis' do
+  appraise 'rails61-postgres-redis' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
@@ -809,7 +811,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails61-postgres-sidekiq' do
+  appraise 'rails61-postgres-sidekiq' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
@@ -819,7 +821,7 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'rails61-semantic-logger' do
+  appraise 'rails61-semantic-logger' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
@@ -828,19 +830,19 @@ elsif ruby_version?('2.5')
     gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   end
 
-  add_appraise 'resque2-redis3' do
+  appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
     gem 'resque', '>= 2.0'
   end
 
-  add_appraise 'resque2-redis4' do
+  appraise 'resque2-redis4' do
     gem 'redis', '>= 4.0'
     gem 'resque', '>= 2.0'
   end
 
   (3..5).each { |v| gem_cucumber(v) }
 
-  add_appraise 'contrib' do
+  appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
@@ -901,38 +903,38 @@ elsif ruby_version?('2.5')
     gem 'que', '>= 1.0.0.beta2'
   end
 
-  add_appraise 'contrib-old' do
+  appraise 'contrib-old' do
     gem 'faraday', '0.17'
   end
 
-  add_appraise 'core-old' do
+  appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.6')
   if RUBY_PLATFORM != 'java'
-    add_appraise 'rails5-mysql2' do
+    appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails5-postgres' do
+    appraise 'rails5-postgres' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails5-semantic-logger' do
+    appraise 'rails5-semantic-logger' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
 
-    add_appraise 'rails5-postgres-redis' do
+    appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis', '>= 4.0.1'
@@ -940,7 +942,7 @@ elsif ruby_version?('2.6')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails5-postgres-redis-activesupport' do
+    appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis', '>= 4.0.1'
@@ -949,7 +951,7 @@ elsif ruby_version?('2.6')
       gem 'redis-rails'
     end
 
-    add_appraise 'rails5-postgres-sidekiq' do
+    appraise 'rails5-postgres-sidekiq' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
@@ -958,28 +960,28 @@ elsif ruby_version?('2.6')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-mysql2' do
+    appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-postgres' do
+    appraise 'rails6-postgres' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-semantic-logger' do
+    appraise 'rails6-semantic-logger' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
 
-    add_appraise 'rails6-postgres-redis' do
+    appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis', '>= 4.0.1'
@@ -987,7 +989,7 @@ elsif ruby_version?('2.6')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-postgres-redis-activesupport' do
+    appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis', '>= 4.0.1'
@@ -996,7 +998,7 @@ elsif ruby_version?('2.6')
       gem 'redis-rails'
     end
 
-    add_appraise 'rails6-postgres-sidekiq' do
+    appraise 'rails6-postgres-sidekiq' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
@@ -1005,21 +1007,21 @@ elsif ruby_version?('2.6')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-mysql2' do
+    appraise 'rails61-mysql2' do
       gem 'rails', '~> 6.1.0'
       gem 'mysql2', '~> 0.5', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-postgres' do
+    appraise 'rails61-postgres' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-postgres-redis' do
+    appraise 'rails61-postgres-redis' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'redis', '>= 4.2.5'
@@ -1027,7 +1029,7 @@ elsif ruby_version?('2.6')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-postgres-sidekiq' do
+    appraise 'rails61-postgres-sidekiq' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sidekiq', '>= 6.1.2'
@@ -1035,26 +1037,26 @@ elsif ruby_version?('2.6')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-semantic-logger' do
+    appraise 'rails61-semantic-logger' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
 
-    add_appraise 'resque2-redis3' do
+    appraise 'resque2-redis3' do
       gem 'redis', '< 4.0'
       gem 'resque', '>= 2.0'
     end
 
-    add_appraise 'resque2-redis4' do
+    appraise 'resque2-redis4' do
       gem 'redis', '>= 4.0'
       gem 'resque', '>= 2.0'
     end
 
     (3..5).each { |v| gem_cucumber(v) }
 
-    add_appraise 'contrib' do
+    appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
@@ -1103,40 +1105,40 @@ elsif ruby_version?('2.6')
       gem 'que', '>= 1.0.0.beta2'
     end
 
-    add_appraise 'contrib-old' do
+    appraise 'contrib-old' do
       gem 'faraday', '0.17'
       gem 'dalli', '< 3.0.0'
     end
 
-    add_appraise 'core-old' do
+    appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.7')
   if RUBY_PLATFORM != 'java'
-    add_appraise 'rails5-mysql2' do
+    appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails5-postgres' do
+    appraise 'rails5-postgres' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails5-semantic-logger' do
+    appraise 'rails5-semantic-logger' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
 
-    add_appraise 'rails5-postgres-redis' do
+    appraise 'rails5-postgres-redis' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis'
@@ -1144,7 +1146,7 @@ elsif ruby_version?('2.7')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails5-postgres-redis-activesupport' do
+    appraise 'rails5-postgres-redis-activesupport' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis'
@@ -1153,7 +1155,7 @@ elsif ruby_version?('2.7')
       gem 'redis-rails'
     end
 
-    add_appraise 'rails5-postgres-sidekiq' do
+    appraise 'rails5-postgres-sidekiq' do
       gem 'rails', '~> 5.2.1'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
@@ -1162,28 +1164,28 @@ elsif ruby_version?('2.7')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-mysql2' do
+    appraise 'rails6-mysql2' do
       gem 'rails', '~> 6.0.0'
       gem 'mysql2', '< 1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-postgres' do
+    appraise 'rails6-postgres' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-semantic-logger' do
+    appraise 'rails6-semantic-logger' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
 
-    add_appraise 'rails6-postgres-redis' do
+    appraise 'rails6-postgres-redis' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis'
@@ -1191,7 +1193,7 @@ elsif ruby_version?('2.7')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails6-postgres-redis-activesupport' do
+    appraise 'rails6-postgres-redis-activesupport' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'redis'
@@ -1200,7 +1202,7 @@ elsif ruby_version?('2.7')
       gem 'redis-rails'
     end
 
-    add_appraise 'rails6-postgres-sidekiq' do
+    appraise 'rails6-postgres-sidekiq' do
       gem 'rails', '~> 6.0.0'
       gem 'pg', '< 1.0', platform: :ruby
       gem 'sidekiq'
@@ -1209,21 +1211,21 @@ elsif ruby_version?('2.7')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-mysql2' do
+    appraise 'rails61-mysql2' do
       gem 'rails', '~> 6.1.0'
       gem 'mysql2', '~> 0.5', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-postgres' do
+    appraise 'rails61-postgres' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-postgres-redis' do
+    appraise 'rails61-postgres-redis' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'redis', '>= 4.2.5'
@@ -1231,7 +1233,7 @@ elsif ruby_version?('2.7')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-postgres-sidekiq' do
+    appraise 'rails61-postgres-sidekiq' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sidekiq', '>= 6.1.2'
@@ -1239,26 +1241,26 @@ elsif ruby_version?('2.7')
       gem 'lograge', '~> 0.11'
     end
 
-    add_appraise 'rails61-semantic-logger' do
+    appraise 'rails61-semantic-logger' do
       gem 'rails', '~> 6.1.0'
       gem 'pg', '>= 1.1', platform: :ruby
       gem 'sprockets', '< 4'
       gem 'rails_semantic_logger', '~> 4.0'
     end
 
-    add_appraise 'resque2-redis3' do
+    appraise 'resque2-redis3' do
       gem 'redis', '< 4.0'
       gem 'resque', '>= 2.0'
     end
 
-    add_appraise 'resque2-redis4' do
+    appraise 'resque2-redis4' do
       gem 'redis', '>= 4.0'
       gem 'resque', '>= 2.0'
     end
 
     (3..5).each { |v| gem_cucumber(v) }
 
-    add_appraise 'contrib' do
+    appraise 'contrib' do
       gem 'actionpack'
       gem 'actionview'
       gem 'active_model_serializers', '>= 0.10.0'
@@ -1306,18 +1308,18 @@ elsif ruby_version?('2.7')
       gem 'que', '>= 1.0.0.beta2'
     end
 
-    add_appraise 'contrib-old' do
+    appraise 'contrib-old' do
       gem 'faraday', '0.17'
       gem 'dalli', '< 3.0.0'
     end
 
-    add_appraise 'core-old' do
+    appraise 'core-old' do
       gem 'dogstatsd-ruby', '~> 4'
     end
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('3.0') || ruby_version?('3.1')
-  add_appraise 'rails61-mysql2' do
+  appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
     gem 'mysql2', '~> 0.5', platform: :ruby
     gem 'sprockets', '< 4'
@@ -1325,7 +1327,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
-  add_appraise 'rails61-postgres' do
+  appraise 'rails61-postgres' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
@@ -1333,7 +1335,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
-  add_appraise 'rails61-postgres-redis' do
+  appraise 'rails61-postgres-redis' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'redis', '>= 4.2.5'
@@ -1342,7 +1344,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
-  add_appraise 'rails61-postgres-sidekiq' do
+  appraise 'rails61-postgres-sidekiq' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sidekiq', '>= 6.1.2'
@@ -1352,7 +1354,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
-  add_appraise 'rails61-semantic-logger' do
+  appraise 'rails61-semantic-logger' do
     gem 'rails', '~> 6.1.0'
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'sprockets', '< 4'
@@ -1360,19 +1362,19 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
-  add_appraise 'resque2-redis3' do
+  appraise 'resque2-redis3' do
     gem 'redis', '< 4.0'
     gem 'resque', '>= 2.0'
   end
 
-  add_appraise 'resque2-redis4' do
+  appraise 'resque2-redis4' do
     gem 'redis', '>= 4.0'
     gem 'resque', '>= 2.0'
   end
 
   (3..5).each { |v| gem_cucumber(v) }
 
-  add_appraise 'contrib' do
+  appraise 'contrib' do
     gem 'actionpack'
     gem 'actionview'
     gem 'active_model_serializers', '>= 0.10.0'
@@ -1421,11 +1423,11 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'net-smtp'
   end
 
-  add_appraise 'contrib-old' do
+  appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
   end
 
-  add_appraise 'core-old' do
+  appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
 end
