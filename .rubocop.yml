@@ -21,7 +21,7 @@ AllCops:
     - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
-    - 'lib/ddtrace/profiling/pprof/pprof_pb.rb'
+    - 'lib/datadog/profiling/pprof/pprof_pb.rb'
   NewCops: disable # Don't allow new cops to be enabled implicitly.
 
 # 80 characters is a nice goal, but not worth currently changing in existing

@@ -23,10 +23,10 @@ class ProfilerSampleLoopBenchmark
     end
 
     # Stop background threads
-    Datadog.profiler.shutdown!
+    Datadog.shutdown!
 
     # Call collection directly
-    @stack_collector = Datadog.profiler.collectors.first
+    @stack_collector = Datadog.send(:components).profiler.collectors.first
     @recorder = @stack_collector.recorder
   end
 
