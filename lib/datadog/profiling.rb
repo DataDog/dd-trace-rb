@@ -82,6 +82,18 @@ module Datadog
       )
     end
 
+    # Starts the profiler, if the profiler is supported by in
+    # this runtime environment and if the profiler has been enabled
+    # in configuration.
+    #
+    # @return [Boolean] `true` if the profiler has successfully started, otherwise `false`.
+    # @public_api
+    def self.start_if_enabled
+      # Getting the profiler instance triggers start as a side-effect;
+      # otherwise we get nil
+      !!Datadog.send(:components).profiler
+    end
+
     private_class_method def self.ruby_engine_unsupported?
       'JRuby is not supported' if RUBY_ENGINE == 'jruby'
     end

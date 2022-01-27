@@ -112,22 +112,7 @@ RSpec.describe 'Profiler startup' do
   end
 
   it 'starts the profiler' do
-    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
-
-    profiler = instance_double('Datadog::Profiling::Profiler')
-
-    expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
-    expect(profiler).to receive(:start)
-
+    expect(Datadog::Profiling).to receive(:start_if_enabled)
     auto_instrument
-  end
-
-  context 'when the profiler is not available' do
-    it 'does not raise any error' do
-      expect(Datadog).to receive(:profiler).and_return(nil)
-
-      auto_instrument
-    end
   end
 end

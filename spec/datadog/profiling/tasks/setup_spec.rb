@@ -151,7 +151,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     context 'when Process#at_fork is available' do
       before do
         allow(Process).to receive(:respond_to?).with(:at_fork).and_return(true)
-        allow(Datadog).to receive(:profiler)
+        allow(Datadog::Profiling).to receive(:start_if_enabled)
 
         without_partial_double_verification do
           allow(Process).to receive(:at_fork)
@@ -173,17 +173,14 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       end
 
       it 'sets up an at_fork hook that restarts the profiler' do
-        profiler = instance_double(Datadog::Profiling::Profiler)
-
-        expect(Datadog).to receive(:profiler).and_return(profiler).at_least(:once)
-        expect(profiler).to receive(:start)
+        expect(Datadog::Profiling).to receive(:start_if_enabled)
 
         at_fork_hook.call
       end
 
       context 'when there is an issue starting the profiler' do
         before do
-          expect(Datadog).to receive(:profiler).and_raise('Dummy exception')
+          expect(Datadog::Profiling).to receive(:start_if_enabled).and_raise('Dummy exception')
           allow(Datadog.logger).to receive(:warn) # Silence logging during tests
         end
 

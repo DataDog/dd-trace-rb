@@ -5,6 +5,64 @@ require 'datadog/profiling'
 RSpec.describe Datadog::Profiling do
   extend ConfigurationHelpers
 
+  describe '.configure' do
+    subject(:configure) { described_class.configure(&block) }
+    let(:block) { proc {} }
+
+    it 'delegates to the global configuration' do
+      expect(Datadog).to receive(:internal_configure) { |&b| expect(b).to be_a_kind_of(Proc) }
+      configure
+    end
+
+    context 'validation' do
+      it 'wraps the configuration object with a proxy' do
+        described_class.configure do |c|
+          expect(c).to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Profiling)
+        end
+      end
+
+      it 'allows profiling options' do
+        described_class.configure do |c|
+          expect(c).to respond_to(:profiling)
+        end
+      end
+
+      it 'raises errors for non-profiling options' do
+        described_class.configure do |c|
+          expect(c).to_not respond_to(:tracer)
+        end
+      end
+    end
+  end
+
+  describe '.configuration' do
+    subject(:configuration) { described_class.configuration }
+    it 'returns the global configuration' do
+      expect(configuration)
+        .to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Profiling)
+
+      expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
+    end
+  end
+
+  describe '.start_if_enabled' do
+    subject(:start_if_enabled) { described_class.start_if_enabled }
+
+    before do
+      allow(Datadog.send(:components)).to receive(:profiler).and_return(result)
+    end
+
+    context 'with the profiler instance available' do
+      let(:result) { double }
+      it { is_expected.to be(true) }
+    end
+
+    context 'with the profiler instance not available' do
+      let(:result) { nil }
+      it { is_expected.to be(false) }
+    end
+  end
+
   describe '::supported?' do
     subject(:supported?) { described_class.supported? }
 

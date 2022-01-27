@@ -325,7 +325,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             it 'starts the profiler' do
               configure
-              expect(test_class.profiler).to have_received(:start)
+              expect(test_class.send(:components).profiler).to have_received(:start)
             end
           end
         end

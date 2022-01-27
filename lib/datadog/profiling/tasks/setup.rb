@@ -61,7 +61,7 @@ module Datadog
                 Thread.current.send(:update_native_ids) if Thread.current.respond_to?(:update_native_ids, true)
 
                 # Restart profiler, if enabled
-                Datadog.profiler.start if Datadog.profiler
+                Datadog::Profiling.start_if_enabled
               rescue StandardError => e
                 Datadog.logger.warn do
                   "Error during post-fork hooks. Cause: #{e.message} Location: #{Array(e.backtrace).first}"

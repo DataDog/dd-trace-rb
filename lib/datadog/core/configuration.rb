@@ -153,8 +153,7 @@ module Datadog
 
       def_delegators \
         :components,
-        :health_metrics,
-        :profiler
+        :health_metrics
 
       def logger
         # avoid initializing components if they didn't already exist

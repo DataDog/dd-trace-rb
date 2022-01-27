@@ -1,4 +1,4 @@
 # typed: strict
 require 'ddtrace'
 
-Datadog.profiler.start if Datadog.profiler
+Datadog::Profiling.start_if_enabled

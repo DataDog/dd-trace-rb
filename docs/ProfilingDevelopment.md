@@ -34,8 +34,8 @@ Components below live inside <../lib/datadog/profiling>:
 When started via `ddtracerb exec` (together with `DD_PROFILING_ENABLED=true`), initialization goes through the following
 flow:
 
-1. <../lib/datadog/profiling/preload.rb> triggers the creation of the `Datadog.profiler` instance by calling the method
-2. `Datadog.profiler` is handled by `Datadog::Configuration`, which triggers the configuration of `ddtrace` components
+1. <../lib/datadog/profiling/preload.rb> triggers the creation of the profiler instance by calling the method `Datadog::Profiling.start_if_enabled`
+2. The profiler instance is handled by `Datadog::Configuration`, which triggers the configuration of `ddtrace` components
    in `#build_components`
 3. Inside `Datadog::Components`, the `build_profiler` method triggers the execution of the `Tasks::Setup`
 4. The `Setup` task activates our extensions
