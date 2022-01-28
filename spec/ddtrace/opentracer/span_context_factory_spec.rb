@@ -1,19 +1,20 @@
 # typed: false
 require 'spec_helper'
 
+require 'datadog/tracing/context'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::SpanContextFactory do
   describe 'class methods' do
     describe '#build' do
-      context 'given Datadog::Context' do
+      context 'given Datadog::Tracing::Context' do
         subject(:span_context) do
           described_class.build(
             datadog_context: datadog_context
           )
         end
 
-        let(:datadog_context) { instance_double(Datadog::Context) }
+        let(:datadog_context) { instance_double(Datadog::Tracing::Context) }
 
         it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
 
@@ -69,7 +70,7 @@ RSpec.describe Datadog::OpenTracer::SpanContextFactory do
             baggage: original_baggage
           )
         end
-        let(:original_datadog_context) { instance_double(Datadog::Context) }
+        let(:original_datadog_context) { instance_double(Datadog::Tracing::Context) }
         let(:original_baggage) { {} }
 
         it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }

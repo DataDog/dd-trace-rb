@@ -6,9 +6,11 @@ require 'spec/ddtrace/contrib/rails/support/deprecation'
 
 require 'active_support/all'
 require 'active_model_serializers'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace'
 require 'ddtrace/contrib/active_model_serializers/patcher'
-require 'ddtrace/ext/http'
 
 RSpec.describe 'ActiveModelSerializers patcher' do
   include_context 'AMS serializer'
@@ -86,11 +88,11 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.name).to eq(name)
             expect(span.resource).to eq(serializer)
             expect(span.service).to eq(tracer.default_service)
-            expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
+            expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(adapter)
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_model_serializers')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_model_serializers')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(operation_name)
           end
         end
@@ -109,11 +111,11 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.name).to eq(name)
             expect(span.resource).to eq(serializer)
             expect(span.service).to eq(tracer.default_service)
-            expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
+            expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to eq(test_obj.class.to_s)
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_model_serializers')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_model_serializers')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(operation_name)
           end
         end
@@ -128,11 +130,11 @@ RSpec.describe 'ActiveModelSerializers patcher' do
             expect(span.name).to eq(name)
             expect(span.resource).to eq(serializer)
             expect(span.service).to eq(tracer.default_service)
-            expect(span.span_type).to eq(Datadog::Ext::HTTP::TEMPLATE)
+            expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE)
             expect(span.get_tag('active_model_serializers.serializer')).to eq(serializer)
             expect(span.get_tag('active_model_serializers.adapter')).to be_nil
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_model_serializers')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_model_serializers')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq(operation_name)
           end
         end

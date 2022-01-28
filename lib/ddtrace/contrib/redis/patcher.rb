@@ -2,6 +2,7 @@
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/redis/ext'
 require 'ddtrace/contrib/redis/configuration/resolver'
+require 'ddtrace/contrib/redis/integration'
 
 module Datadog
   module Contrib
@@ -20,7 +21,6 @@ module Datadog
         def patch
           # do not require these by default, but only when actually patching
           require 'redis'
-          require 'ddtrace/ext/app_types'
           require 'ddtrace/contrib/redis/tags'
           require 'ddtrace/contrib/redis/quantize'
           require 'ddtrace/contrib/redis/instrumentation'

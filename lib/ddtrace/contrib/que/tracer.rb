@@ -11,15 +11,15 @@ module Datadog
         def call(job)
           trace_options = {
             service: configuration[:service_name],
-            span_type: Datadog::Ext::AppTypes::WORKER,
+            span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
             on_error: configuration[:error_handler]
           }
 
-          Datadog::Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+          Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
             request_span.resource = job.class.name.to_s
 
-            request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+            request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
             request_span.set_tag(Ext::TAG_JOB_QUEUE, job.que_attrs[:queue])
             request_span.set_tag(Ext::TAG_JOB_ID, job.que_attrs[:id])
@@ -50,7 +50,7 @@ module Datadog
         end
 
         def configuration
-          Datadog::Tracing.configuration[:que]
+          Tracing.configuration[:que]
         end
       end
     end

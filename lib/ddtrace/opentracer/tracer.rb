@@ -1,5 +1,8 @@
 # typed: false
-require 'ddtrace/tracer'
+require 'time'
+
+require 'datadog/tracing/context'
+require 'datadog/tracing/tracer'
 
 module Datadog
   module OpenTracer
@@ -16,7 +19,7 @@ module Datadog
       # (see Datadog::Tracer#initialize)
       def initialize(**options)
         super()
-        @datadog_tracer = Datadog::Tracer.new(**options)
+        @datadog_tracer = Datadog::Tracing::Tracer.new(**options)
       end
 
       # @return [ScopeManager] the current ScopeManager.
@@ -133,7 +136,7 @@ module Datadog
         parent_span_context = inherited_span_context(child_of, ignore_active_scope: ignore_active_scope)
 
         # Retrieve Datadog::Context from parent SpanContext.
-        datadog_context = parent_span_context.nil? ? Datadog::Context.new : parent_span_context.datadog_context
+        datadog_context = parent_span_context.nil? ? Datadog::Tracing::Context.new : parent_span_context.datadog_context
 
         # Build the new Datadog span
         datadog_span = datadog_tracer.trace(

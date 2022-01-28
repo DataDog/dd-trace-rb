@@ -73,7 +73,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           spans.each do |span|
             if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /endpoint')
-              expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/endpoint')
+              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
               next
             end
@@ -94,7 +94,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           spans.each do |span|
             if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /endpoint')
-              expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/endpoint')
+              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
               next
             end
@@ -119,7 +119,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           spans.each do |span|
             if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /one/endpoint')
-              expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/endpoint')
+              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
               next
             end
@@ -140,7 +140,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           spans.each do |span|
             if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /two/endpoint')
-              expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/endpoint')
+              expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
               next
             end

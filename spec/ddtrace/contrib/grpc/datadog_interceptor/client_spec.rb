@@ -49,14 +49,14 @@ RSpec.describe 'tracing on the client connection' do
       default_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.first
       expect(span.service).to eq 'rspec'
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('rspec')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq('rspec')
 
       clear_traces!
 
       configured_client_interceptor.request_response(**keywords) {}
       span = fetch_spans.last
       expect(span.service).to eq 'cepsr'
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('cepsr')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq('cepsr')
     end
   end
 
@@ -69,8 +69,8 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.get_tag('some')).to eq 'datum' }
 
     it 'has component and operation tags' do
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('grpc')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('client')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grpc')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('client')
     end
 
     it_behaves_like 'analytics for integration' do

@@ -1,15 +1,19 @@
 # typed: false
 require 'spec_helper'
 
+require 'msgpack'
+
+require 'datadog/tracing/span'
+require 'datadog/tracing/trace_segment'
 require 'ddtrace/transport/serializable_trace'
 
 RSpec.describe Datadog::Transport::SerializableTrace do
   subject(:serializable_trace) { described_class.new(trace) }
 
-  let(:trace) { Datadog::TraceSegment.new(spans) }
+  let(:trace) { Datadog::Tracing::TraceSegment.new(spans) }
   let(:spans) do
     Array.new(3) do |i|
-      span = Datadog::Span.new(
+      span = Datadog::Tracing::Span.new(
         'job.work',
         resource: 'generate_report',
         service: 'jobs-worker',

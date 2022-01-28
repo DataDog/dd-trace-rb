@@ -1,5 +1,5 @@
 require_relative 'boot'
-require 'ddtrace/runtime/metrics'
+require 'datadog/tracing/runtime/metrics'
 
 # require "rails"
 # Pick the frameworks you want:

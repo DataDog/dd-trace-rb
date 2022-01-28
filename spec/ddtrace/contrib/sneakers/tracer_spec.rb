@@ -84,8 +84,8 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       expect(span.name).to eq(Datadog::Contrib::Sneakers::Ext::SPAN_JOB)
       expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_ROUTING_KEY)).to eq(routing_key)
       expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sneakers')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sneakers')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
     end
 
     context 'when the tag_body is true' do

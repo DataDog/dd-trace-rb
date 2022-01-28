@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/active_model_serializers/ext'
 require 'ddtrace/contrib/active_model_serializers/event'
 
@@ -29,7 +29,7 @@ module Datadog
           end
 
           def process(span, _event, _id, payload)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
 
             set_common_tags(span, payload)
           rescue StandardError => e

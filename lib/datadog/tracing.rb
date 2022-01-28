@@ -1,5 +1,7 @@
+require 'datadog/core'
 require 'datadog/core/configuration/validation_proxy'
-require 'ddtrace/pipeline'
+
+require 'datadog/tracing/pipeline'
 
 module Datadog
   # Datadog APM tracing public API.
@@ -10,13 +12,13 @@ module Datadog
   # @public_api
   module Tracing
     class << self
-      # (see Datadog::Tracer#trace)
+      # (see Datadog::Tracing::Tracer#trace)
       # @public_api
       def trace(name, continue_from: nil, **span_options, &block)
         tracer.trace(name, continue_from: continue_from, **span_options, &block)
       end
 
-      # (see Datadog::Tracer#continue_trace!)
+      # (see Datadog:::Tracing::Tracer#continue_trace!)
       # @public_api
       def continue_trace!(digest, &block)
         tracer.continue_trace!(digest, &block)
@@ -44,7 +46,7 @@ module Datadog
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        Datadog::Core::Configuration::ValidationProxy::Tracing.new(
+        Core::Configuration::ValidationProxy::Tracing.new(
           Datadog.send(:internal_configuration)
         )
       end
@@ -93,7 +95,7 @@ module Datadog
         Datadog.send(:internal_configure, &wrapped_block)
       end
 
-      # (see Datadog::Tracer#active_trace)
+      # (see Datadog::Tracing::Tracer#active_trace)
       # @public_api
       def active_trace
         current_tracer = tracer
@@ -102,7 +104,7 @@ module Datadog
         current_tracer.active_trace
       end
 
-      # (see Datadog::Tracer#active_span)
+      # (see Datadog:::Tracing::Tracer#active_span)
       # @public_api
       def active_span
         current_tracer = tracer
@@ -111,7 +113,7 @@ module Datadog
         current_tracer.active_span
       end
 
-      # (see Datadog::TraceSegment#keep!)
+      # (see Datadog:::Tracing::TraceSegment#keep!)
       # If no trace is active, no action is taken.
       # @public_api
       def keep!
@@ -119,7 +121,7 @@ module Datadog
         active_trace.keep! if trace
       end
 
-      # (see Datadog::TraceSegment#reject!)
+      # (see Datadog:::Tracing::TraceSegment#reject!)
       # If no trace is active, no action is taken.
       # @public_api
       def reject!
@@ -127,7 +129,7 @@ module Datadog
         active_trace.reject! if trace
       end
 
-      # (see Datadog::Tracer#active_correlation)
+      # (see Datadog:::Tracing::Tracer#active_correlation)
       # @public_api
       def correlation
         current_tracer = tracer
@@ -170,9 +172,9 @@ module Datadog
         current_tracer.shutdown!
       end
 
-      # (see Datadog::Pipeline.before_flush)
+      # (see Datadog:::Tracing::Pipeline.before_flush)
       def before_flush(*processors, &processor_block)
-        Datadog::Pipeline.before_flush(*processors, &processor_block)
+        Pipeline.before_flush(*processors, &processor_block)
       end
 
       # Is the tracer collecting telemetry data in this process?

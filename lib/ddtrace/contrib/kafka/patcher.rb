@@ -1,8 +1,8 @@
 # typed: true
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/kafka/ext'
 require 'ddtrace/contrib/kafka/events'
+require 'ddtrace/contrib/kafka/integration'
 
 module Datadog
   module Contrib

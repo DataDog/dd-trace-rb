@@ -1,8 +1,9 @@
 # typed: true
-require 'ddtrace/contrib/analytics'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/active_support/notifications/event'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/racecar/ext'
-require 'ddtrace/ext/metadata'
 
 module Datadog
   module Contrib
@@ -28,17 +29,17 @@ module Datadog
           end
 
           def configuration
-            Datadog::Tracing.configuration[:racecar]
+            Tracing.configuration[:racecar]
           end
 
           def process(span, event, _id, payload)
             span.service = configuration[:service_name]
             span.resource = payload[:consumer_class]
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -64,9 +65,9 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless Datadog::Tracing.active_span
+            return unless Tracing.active_span
 
-            Datadog::Tracing.send(:tracer).provider.context = Context.new
+            Tracing.send(:tracer).provider.context = Context.new
           end
         end
       end

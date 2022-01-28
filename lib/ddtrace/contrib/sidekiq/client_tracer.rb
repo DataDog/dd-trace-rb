@@ -1,6 +1,9 @@
 # typed: true
-require 'ddtrace/contrib/sidekiq/tracing'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/sidekiq/ext'
+require 'ddtrace/contrib/sidekiq/tracing'
 
 module Datadog
   module Contrib
@@ -21,8 +24,8 @@ module Datadog
           Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span|
             span.resource = resource
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PUSH)
+            span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PUSH)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

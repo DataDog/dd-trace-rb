@@ -1,23 +1,11 @@
-# typed: strict
-# TODO: This file currently acts as the root for
-#       all Datadog products in this package.
-#
-#       We want 'ddtrace' to only be concerned with loading
-#       tracing. 'datadog' should load all features instead.
-#
-#       Until we can introduce this package/loader, load all
-#       Datadog features here for now, to preserve loading
-#       behavior. Later remove this when 'datadog' loads 'ddtrace'.
-require 'datadog/core'
-
 # Load tracing
 require 'datadog/tracing'
+
+# Load tracing extensions
 require 'datadog/contrib'
 require 'ddtrace/contrib/auto_instrument'
 require 'ddtrace/contrib/extensions'
 require 'ddtrace/opentelemetry/extensions'
-require 'ddtrace/tracer'
-require 'ddtrace/pipeline'
 require 'ddtrace/auto_instrument_base'
 
 # Global namespace that includes all Datadog functionality.

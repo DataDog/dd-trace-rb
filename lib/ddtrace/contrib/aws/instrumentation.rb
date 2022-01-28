@@ -1,8 +1,8 @@
 # typed: ignore
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/aws/ext'
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/metadata'
 
 module Datadog
   module Contrib
@@ -17,7 +17,7 @@ module Datadog
       # Generates Spans for all interactions with AWS
       class Handler < Seahorse::Client::Handler
         def call(context)
-          Datadog::Tracing.trace(Ext::SPAN_COMMAND) do |span|
+          Tracing.trace(Ext::SPAN_COMMAND) do |span|
             @handler.call(context).tap do
               annotate!(span, ParsedContext.new(context))
             end
@@ -28,16 +28,16 @@ module Datadog
 
         def annotate!(span, context)
           span.service = configuration[:service_name]
-          span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+          span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
 
-          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
+          span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
-          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, context.safely(:host))
+          span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -49,12 +49,12 @@ module Datadog
           span.set_tag(Ext::TAG_REGION, context.safely(:region))
           span.set_tag(Ext::TAG_PATH, context.safely(:path))
           span.set_tag(Ext::TAG_HOST, context.safely(:host))
-          span.set_tag(Datadog::Ext::HTTP::METHOD, context.safely(:http_method))
-          span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, context.safely(:status_code))
+          span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, context.safely(:http_method))
+          span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
         end
 
         def configuration
-          Datadog::Tracing.configuration[:aws]
+          Tracing.configuration[:aws]
         end
       end
 

@@ -1,5 +1,5 @@
 # typed: ignore
-require 'ddtrace/ext/app_types'
+require 'datadog/tracing'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 require 'ddtrace/contrib/grpc/configuration/settings'
@@ -39,7 +39,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:grpc]
+            Tracing.configuration[:grpc]
           end
 
           def service_name
@@ -78,7 +78,7 @@ module Datadog
               define_method(option) do
                 return @options[option] if @options.key?(option)
 
-                Datadog::Tracing.configuration[:grpc][option]
+                Tracing.configuration[:grpc][option]
               end
             end
 

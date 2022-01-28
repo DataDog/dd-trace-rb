@@ -30,8 +30,8 @@ RSpec.describe 'ClientTracerTest' do
     expect(span.status).to eq(0)
     expect(span).to be_root_span
     expect(span.get_metric('_dd.measured')).to be_nil
-    expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sidekiq')
-    expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('push')
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('push')
   end
 
   context 'with nested trace' do

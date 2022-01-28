@@ -1,7 +1,8 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog/tracing'
+require 'datadog/tracing/tracer'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::GlobalTracer do
@@ -9,7 +10,7 @@ RSpec.describe Datadog::OpenTracer::GlobalTracer do
     describe '#global_tracer=' do
       subject(:global_tracer) { OpenTracing.global_tracer = tracer }
 
-      after { Datadog::Tracing.configuration.tracer.instance = Datadog::Tracer.new }
+      after { Datadog::Tracing.configuration.tracer.instance = Datadog::Tracing::Tracer.new }
 
       context 'when given a Datadog::OpenTracer::Tracer' do
         let(:tracer) { Datadog::OpenTracer::Tracer.new }

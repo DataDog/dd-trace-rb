@@ -1,11 +1,10 @@
 # typed: false
-require 'ddtrace/version'
-
-require 'ddtrace/contrib/integration'
-require 'ddtrace/contrib/http/configuration/settings'
 require 'ddtrace/contrib/configuration/resolvers/pattern_resolver'
-require 'ddtrace/contrib/http/patcher'
 require 'ddtrace/contrib/http/circuit_breaker'
+require 'ddtrace/contrib/http/configuration/settings'
+require 'ddtrace/contrib/http/patcher'
+require 'ddtrace/contrib/integration'
+require 'ddtrace/version'
 
 module Datadog
   module Contrib

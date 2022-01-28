@@ -1,10 +1,10 @@
 # typed: false
-require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/metadata'
-require 'ddtrace/ext/net'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/elasticsearch/ext'
+require 'ddtrace/contrib/integration'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib
@@ -47,7 +47,7 @@ module Datadog
               url = full_url.path
               response = nil
 
-              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
+              Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
@@ -55,16 +55,16 @@ module Datadog
 
                   span.span_type = Datadog::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
-                  span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                  span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
                   # load JSON for the following fields unless they're already strings
                   params = JSON.generate(params) if params && !params.is_a?(String)
                   body = JSON.generate(body) if body && !body.is_a?(String)
 
                   # Tag as an external peer service
-                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
-                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host) if host
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                   # Set analytics sample rate
                   if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
@@ -79,8 +79,8 @@ module Datadog
                     quantized_body = Datadog::Contrib::Elasticsearch::Quantize.format_body(body, quantize_options)
                     span.set_tag(Datadog::Contrib::Elasticsearch::Ext::TAG_BODY, quantized_body)
                   end
-                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host) if host
-                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, port) if port
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host) if host
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port) if port
 
                   quantized_url = Datadog::Contrib::Elasticsearch::Quantize.format_url(url)
                   span.resource = "#{method} #{quantized_url}"
@@ -89,14 +89,14 @@ module Datadog
                 ensure
                   # the call is still executed
                   response = perform_request_without_datadog(*args)
-                  span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
+                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
                 end
               end
               response
             end
 
             def datadog_configuration
-              Datadog::Tracing.configuration[:elasticsearch]
+              Tracing.configuration[:elasticsearch]
             end
           end
         end

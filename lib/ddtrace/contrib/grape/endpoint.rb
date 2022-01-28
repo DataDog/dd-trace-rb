@@ -1,6 +1,7 @@
 # typed: false
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/errors'
+require 'datadog/core'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rack/ext'
 
@@ -46,19 +47,19 @@ module Datadog
             resource = "#{api_view} #{request_method} #{path}"
 
             # Store the beginning of a trace
-            span = Datadog::Tracing.trace(
+            span = Tracing.trace(
               Ext::SPAN_ENDPOINT_RUN,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
               resource: resource
             )
-            trace = Datadog::Tracing.active_trace
+            trace = Tracing.active_trace
 
             # Set the trace resource
             trace.resource = span.resource
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
 
             Thread.current[KEY_RUN] = true
           rescue StandardError => e
@@ -72,8 +73,8 @@ module Datadog
 
             return unless enabled?
 
-            trace = Datadog::Tracing.active_trace
-            span = Datadog::Tracing.active_span
+            trace = Tracing.active_trace
+            span = Tracing.active_span
             return unless trace && span
 
             begin
@@ -100,8 +101,8 @@ module Datadog
               span.set_tag(Ext::TAG_ROUTE_PATH, path)
               span.set_tag(Ext::TAG_ROUTE_METHOD, request_method)
 
-              span.set_tag(Datadog::Ext::HTTP::METHOD, request_method)
-              span.set_tag(Datadog::Ext::HTTP::URL, path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, path)
             ensure
               span.start(start)
               span.finish(finish)
@@ -115,14 +116,14 @@ module Datadog
             return unless enabled?
 
             # Store the beginning of a trace
-            span = Datadog::Tracing.trace(
+            span = Tracing.trace(
               Ext::SPAN_ENDPOINT_RENDER,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TEMPLATE
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
             )
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RENDER)
 
             Thread.current[KEY_RENDER] = true
           rescue StandardError => e
@@ -136,7 +137,7 @@ module Datadog
 
             return unless enabled?
 
-            span = Datadog::Tracing.active_span
+            span = Tracing.active_span
             return unless span
 
             # catch thrown exceptions
@@ -162,16 +163,16 @@ module Datadog
             type = payload[:type]
             return if (!filters || filters.empty?) || !type || zero_length
 
-            span = Datadog::Tracing.trace(
+            span = Tracing.trace(
               Ext::SPAN_ENDPOINT_RUN_FILTERS,
               service: service_name,
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
               start_time: start
             )
 
             begin
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN_FILTERS)
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -238,7 +239,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:grape]
+            Tracing.configuration[:grape]
           end
         end
       end

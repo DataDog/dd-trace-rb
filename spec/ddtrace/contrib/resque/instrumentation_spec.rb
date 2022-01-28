@@ -1,12 +1,15 @@
 # typed: ignore
-require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/contrib/analytics_examples'
-
 LogHelpers.without_warnings do
   require 'resque'
 end
 
-require 'ddtrace'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/span_operation'
+require 'ddtrace/contrib/resque/ext'
+
+require 'ddtrace/contrib/support/spec_helper'
+require 'ddtrace/contrib/analytics_examples'
 
 RSpec.shared_context 'Resque job' do
   def perform_job(klass, *args)
@@ -62,11 +65,11 @@ RSpec.describe 'Resque instrumentation' do
         expect(Resque::Failure.count).to eq(0)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
-        expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
         expect(span.service).to eq(tracer.default_service)
         expect(span).to_not have_error
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('resque')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('resque')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -108,13 +111,13 @@ RSpec.describe 'Resque instrumentation' do
         expect(Resque::Failure.all['error']).to eq(error_message)
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
-        expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
         expect(span.service).to eq(tracer.default_service)
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('resque')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('resque')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
       end
 
       context 'with custom error handler' do
@@ -159,7 +162,7 @@ RSpec.describe 'Resque instrumentation' do
     context 'trace context' do
       before do
         expect(job_class).to receive(:perform) do
-          expect(tracer.active_span).to be_a_kind_of(Datadog::SpanOperation)
+          expect(tracer.active_span).to be_a_kind_of(Datadog::Tracing::SpanOperation)
           expect(tracer.active_span.parent_id).to eq(0)
         end
 

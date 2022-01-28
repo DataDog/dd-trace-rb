@@ -1,4 +1,5 @@
 # typed: false
+require 'datadog/tracing/span_operation'
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/grpc/ext'
 
@@ -25,7 +26,7 @@ module Datadog
           end
 
           option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
-          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
+          option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end
     end

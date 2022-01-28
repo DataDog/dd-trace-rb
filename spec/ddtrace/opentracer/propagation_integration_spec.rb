@@ -1,6 +1,7 @@
 # typed: ignore
 require 'spec_helper'
 
+require 'datadog/tracing/span'
 require 'ddtrace/opentracer'
 
 RSpec.describe 'OpenTracer context propagation' do
@@ -86,8 +87,8 @@ RSpec.describe 'OpenTracer context propagation' do
           )
         end
 
-        let(:trace_id) { Datadog::Span::EXTERNAL_MAX_ID - 1 }
-        let(:parent_id) { Datadog::Span::EXTERNAL_MAX_ID - 2 }
+        let(:trace_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1 }
+        let(:parent_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 2 }
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 
@@ -233,8 +234,8 @@ RSpec.describe 'OpenTracer context propagation' do
           )
         end
 
-        let(:trace_id) { Datadog::Span::EXTERNAL_MAX_ID - 1 }
-        let(:parent_id) { Datadog::Span::EXTERNAL_MAX_ID - 2 }
+        let(:trace_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1 }
+        let(:parent_id) { Datadog::Tracing::Span::EXTERNAL_MAX_ID - 2 }
         let(:sampling_priority) { 2 }
         let(:origin) { 'synthetics' }
 

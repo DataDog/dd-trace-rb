@@ -12,14 +12,14 @@ module Datadog
         end
 
         def call(worker_instance, queue, sqs_msg, body)
-          Datadog::Tracing.trace(
+          Tracing.trace(
             Ext::SPAN_JOB,
             service: @shoryuken_service,
-            span_type: Datadog::Ext::AppTypes::WORKER,
+            span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
             on_error: @error_handler
           ) do |span|
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -50,7 +50,7 @@ module Datadog
         end
 
         def configuration
-          Datadog::Tracing.configuration[:shoryuken]
+          Tracing.configuration[:shoryuken]
         end
       end
     end

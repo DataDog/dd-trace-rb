@@ -187,7 +187,7 @@ RSpec.describe Datadog::Tracing do
     let(:processors) { [double('processor')] }
     let(:block) { -> {} }
     it 'delegates to the global pipeline' do
-      expect(Datadog::Pipeline).to receive(:before_flush).with(*processors) { |&b| expect(b).to be(block) }
+      expect(Datadog::Tracing::Pipeline).to receive(:before_flush).with(*processors) { |&b| expect(b).to be(block) }
       before_flush
     end
   end

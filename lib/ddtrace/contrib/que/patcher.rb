@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+require 'ddtrace/contrib/que/integration'
 require 'ddtrace/contrib/que/tracer'
 
 module Datadog
@@ -8,7 +9,7 @@ module Datadog
     module Que
       # Patcher enables patching of 'que' module.
       module Patcher
-        include Datadog::Contrib::Patcher
+        include Contrib::Patcher
 
         module_function
 

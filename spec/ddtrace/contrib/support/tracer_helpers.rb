@@ -1,7 +1,8 @@
 # typed: false
-require 'ddtrace/tracer'
-require 'ddtrace/span'
 require 'support/faux_writer'
+
+require 'datadog/tracing/tracer'
+require 'datadog/tracing/span'
 
 module Contrib
   # Contrib-specific tracer helpers.
@@ -66,7 +67,7 @@ module Contrib
       config.before do
         # DEV `*_any_instance_of` has concurrency issues when running with parallelism (e.g. JRuby).
         # DEV Single object `allow` and `expect` work as intended with parallelism.
-        allow(Datadog::Tracer).to receive(:new).and_wrap_original do |method, *args, &block|
+        allow(Datadog::Tracing::Tracer).to receive(:new).and_wrap_original do |method, *args, &block|
           instance = method.call(*args, &block)
 
           # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
@@ -100,7 +101,7 @@ module Contrib
     # Useful for integration testing.
     def use_real_tracer!
       @use_real_tracer = true
-      allow(Datadog::Tracer).to receive(:new).and_call_original
+      allow(Datadog::Tracing::Tracer).to receive(:new).and_call_original
     end
   end
 end

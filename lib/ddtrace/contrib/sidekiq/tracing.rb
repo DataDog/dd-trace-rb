@@ -1,8 +1,8 @@
 # typed: true
-require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/sidekiq/ext'
-
 require 'yaml'
+
+require 'datadog/core'
+require 'ddtrace/contrib/sidekiq/ext'
 
 module Datadog
   module Contrib

@@ -56,7 +56,7 @@ module Datadog
 
         # DEV: JRuby responds to {ObjectSpace._id2ref}, despite raising an error
         # DEV: when invoked. Thus, we have to explicitly check for Ruby runtime.
-        if Datadog::Core::Environment::Ext::RUBY_ENGINE != 'jruby'
+        if Core::Environment::Ext::RUBY_ENGINE != 'jruby'
           # CRuby has access to {ObjectSpace._id2ref}, which allows for
           # direct look up of the connection object.
           def self.connection_from_id(connection_id)

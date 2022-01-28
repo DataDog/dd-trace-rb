@@ -1,10 +1,9 @@
 # typed: true
 require 'datadog/core/utils/compression'
-require 'datadog/profiling/ext'
 require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
-
-require 'ddtrace/transport/http/api/endpoint'
+require 'datadog/profiling/ext'
 require 'datadog/profiling/transport/http/response'
+require 'ddtrace/transport/http/api/endpoint'
 
 module Datadog
   module Profiling
@@ -13,7 +12,7 @@ module Datadog
         module API
           # Datadog API endpoint for profiling
           class Endpoint < Datadog::Transport::HTTP::API::Endpoint
-            include Datadog::Profiling::Ext::Transport::HTTP
+            include Profiling::Ext::Transport::HTTP
 
             # These tags are read from the flush object (see below) directly and so we ignore any extra copies that
             # may come in the tags hash to avoid duplicates.
@@ -81,9 +80,9 @@ module Datadog
             def build_pprof(flush)
               pprof = encoder.encode(flush)
 
-              gzipped_pprof_data = Datadog::Core::Utils::Compression.gzip(pprof.data)
+              gzipped_pprof_data = Core::Utils::Compression.gzip(pprof.data)
 
-              Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
+              Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_pprof_data),
                 HEADER_CONTENT_TYPE_OCTET_STREAM,
                 PPROF_DEFAULT_FILENAME
@@ -91,9 +90,9 @@ module Datadog
             end
 
             def build_code_provenance(flush)
-              gzipped_code_provenance = Datadog::Core::Utils::Compression.gzip(flush.code_provenance)
+              gzipped_code_provenance = Core::Utils::Compression.gzip(flush.code_provenance)
 
-              Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
+              Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_code_provenance),
                 HEADER_CONTENT_TYPE_OCTET_STREAM,
                 CODE_PROVENANCE_FILENAME,

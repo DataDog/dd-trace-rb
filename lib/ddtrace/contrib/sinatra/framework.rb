@@ -1,3 +1,5 @@
+require 'datadog/tracing'
+
 module Datadog
   module Contrib
     # Instrument Sinatra.
@@ -8,7 +10,7 @@ module Datadog
       module Framework
         # Configure Rack from Sinatra, but only if Rack has not been configured manually beforehand
         def self.setup
-          Datadog::Tracing.configure do |datadog_config|
+          Tracing.configure do |datadog_config|
             sinatra_config = config_with_defaults(datadog_config)
             activate_rack!(datadog_config, sinatra_config)
           end

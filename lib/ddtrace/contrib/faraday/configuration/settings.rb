@@ -1,6 +1,5 @@
 # typed: false
 require 'ddtrace/contrib/configuration/settings'
-require 'ddtrace/ext/http'
 require 'ddtrace/contrib/faraday/ext'
 
 module Datadog
@@ -11,7 +10,7 @@ module Datadog
         # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_ERROR_HANDLER = lambda do |env|
-            Datadog::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
+            Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
           end
 
           option :enabled do |o|

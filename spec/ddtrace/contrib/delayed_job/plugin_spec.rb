@@ -69,7 +69,7 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
     subject(:job_run) { Delayed::Job.enqueue(sample_job_object.new, job_params) }
 
     it 'creates a span' do
-      expect { job_run }.to change { fetch_spans }.to all(be_instance_of(Datadog::Span))
+      expect { job_run }.to change { fetch_spans }.to all(be_instance_of(Datadog::Tracing::Span))
     end
 
     context 'when the job looks like Active Job' do
@@ -168,8 +168,11 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
 
       it 'has invoke components and operation tags' do
-        span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
-        span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_JOB)
       end
     end
 
@@ -192,8 +195,11 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       end
 
       it 'has enqueue components and operation tags' do
-        span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
-        span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
       end
     end
   end

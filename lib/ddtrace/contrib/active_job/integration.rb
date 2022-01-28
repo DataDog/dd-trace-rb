@@ -1,7 +1,7 @@
 # typed: false
-require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/active_job/configuration/settings'
 require 'ddtrace/contrib/active_job/patcher'
+require 'ddtrace/contrib/integration'
 require 'ddtrace/contrib/rails/utils'
 
 module Datadog
@@ -31,7 +31,7 @@ module Datadog
         # enabled by rails integration so should only auto instrument
         # if detected that it is being used without rails
         def auto_instrument?
-          !Datadog::Contrib::Rails::Utils.railtie_supported?
+          !Contrib::Rails::Utils.railtie_supported?
         end
 
         def new_configuration

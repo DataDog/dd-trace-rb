@@ -1,8 +1,7 @@
 # typed: false
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/metadata'
-require 'ddtrace/propagation/http_propagator'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/http'
 require 'ddtrace/contrib/ethon/ext'
 
 module Datadog
@@ -19,7 +18,7 @@ module Datadog
         module InstanceMethods
           def add(easy)
             handles = super
-            return handles unless handles && Datadog::Tracing.enabled?
+            return handles unless handles && Tracing.enabled?
 
             if datadog_multi_performing?
               # Start Easy span in case Multi is already performing
@@ -29,14 +28,14 @@ module Datadog
           end
 
           def perform
-            if Datadog::Tracing.enabled?
+            if Tracing.enabled?
               easy_handles.each do |easy|
                 easy.datadog_before_request(continue_from: datadog_multi_trace_digest) unless easy.datadog_span_started?
               end
             end
             super
           ensure
-            if Datadog::Tracing.enabled? && datadog_multi_performing?
+            if Tracing.enabled? && datadog_multi_performing?
               @datadog_multi_span.finish
               @datadog_multi_span = nil
               @datadog_multi_trace_digest = nil
@@ -58,17 +57,17 @@ module Datadog
           def datadog_multi_span
             return @datadog_multi_span if datadog_multi_performing?
 
-            @datadog_multi_span = Datadog::Tracing.trace(
+            @datadog_multi_span = Tracing.trace(
               Ext::SPAN_MULTI_REQUEST,
               service: datadog_configuration[:service_name]
             )
-            @datadog_multi_trace_digest = Datadog::Tracing.active_trace.to_digest
+            @datadog_multi_trace_digest = Tracing.active_trace.to_digest
 
-            @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_MULTI_REQUEST)
+            @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_MULTI_REQUEST)
 
             # Tag as an external peer service
-            @datadog_multi_span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, @datadog_multi_span.service)
+            @datadog_multi_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, @datadog_multi_span.service)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(@datadog_multi_span, analytics_sample_rate) if analytics_enabled?
@@ -77,7 +76,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:ethon]
+            Tracing.configuration[:ethon]
           end
 
           def analytics_enabled?

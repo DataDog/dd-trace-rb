@@ -1,6 +1,7 @@
 # typed: false
 require 'spec_helper'
 
+require 'datadog/tracing/context'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::SpanContext do
@@ -8,7 +9,7 @@ RSpec.describe Datadog::OpenTracer::SpanContext do
     context 'given a Datadog::Context' do
       subject(:span_context) { described_class.new(datadog_context: datadog_context) }
 
-      let(:datadog_context) { instance_double(Datadog::Context) }
+      let(:datadog_context) { instance_double(Datadog::Tracing::Context) }
 
       it do
         is_expected.to have_attributes(

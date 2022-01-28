@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/utils/database'
 
 module Datadog
@@ -49,16 +49,16 @@ module Datadog
           end
 
           def set_common_tags(span, db)
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
             # TODO: Extract host for Sequel with JDBC. The easiest way seem to be through
             # TODO: the database URI. Unfortunately, JDBC URIs do not work with `URI.parse`.
             # host, _port = extract_host_port_from_uri(db.uri)
-            # span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host)
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, db.opts[:host]) if db.opts[:host]
+            # span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, db.opts[:host]) if db.opts[:host]
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -67,7 +67,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:sequel]
+            Tracing.configuration[:sequel]
           end
 
           def analytics_enabled?

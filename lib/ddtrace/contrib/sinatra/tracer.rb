@@ -1,14 +1,14 @@
 # typed: false
 require 'sinatra/base'
 
-require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/errors'
-require 'ddtrace/ext/http'
-require 'ddtrace/propagation/http_propagator'
 require 'datadog/core/utils/only_once'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/http'
+require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/sinatra/env'
 require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/tracer_middleware'
-require 'ddtrace/contrib/sinatra/env'
 
 module Datadog
   module Contrib
@@ -26,7 +26,7 @@ module Datadog
             # DEV: env['sinatra.route'] already exists with very similar information,
             # DEV: but doesn't account for our `resource_script_names` logic.
             #
-            @datadog_route = if Datadog::Tracing.configuration[:sinatra][:resource_script_names]
+            @datadog_route = if Tracing.configuration[:sinatra][:resource_script_names]
                                "#{request.script_name}#{action}"
                              else
                                action
@@ -40,7 +40,7 @@ module Datadog
           app.use TracerMiddleware, app_instance: app
 
           app.after do
-            next unless Datadog::Tracing.enabled?
+            next unless Tracing.enabled?
 
             span = Sinatra::Env.datadog_span(env, app)
 
@@ -76,15 +76,15 @@ module Datadog
 
         # Method overrides for Sinatra::Base
         module Base
-          MISSING_REQUEST_SPAN_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+          MISSING_REQUEST_SPAN_ONLY_ONCE = Core::Utils::OnlyOnce.new
           private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
 
           def render(engine, data, *)
-            return super unless Datadog::Tracing.enabled?
+            return super unless Tracing.enabled?
 
-            Datadog::Tracing.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Datadog::Ext::HTTP::TEMPLATE) do |span|
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
+            Tracing.trace(Ext::SPAN_RENDER_TEMPLATE, span_type: Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE) do |span|
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
 
               span.set_tag(Ext::TAG_TEMPLATE_ENGINE, engine)
 
@@ -102,21 +102,21 @@ module Datadog
           # Invoked when a matching route is found.
           # This method yields directly to user code.
           def route_eval
-            configuration = Datadog::Tracing.configuration[:sinatra]
-            return super unless Datadog::Tracing.enabled?
+            configuration = Tracing.configuration[:sinatra]
+            return super unless Tracing.enabled?
 
-            Datadog::Tracing.trace(
+            Tracing.trace(
               Ext::SPAN_ROUTE,
               service: configuration[:service_name],
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
               resource: "#{request.request_method} #{@datadog_route}",
             ) do |span, trace|
               span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
               span.set_tag(Ext::TAG_ROUTE_PATH, @datadog_route)
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ROUTE)
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ROUTE)
 
               trace.resource = span.resource
 

@@ -149,8 +149,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag('mongodb.collection')).to eq(collection_value)
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port)
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('mongodb')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mongodb')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
       end
 
       it_behaves_like 'analytics for integration' do

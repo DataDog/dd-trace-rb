@@ -81,10 +81,10 @@ RSpec.describe 'Rack integration configuration' do
         expect(queue_span.service).to eq(web_service_name)
         expect(queue_span.start_time.to_i).to eq(queue_time)
         expect(queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
-        expect(queue_span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq(web_service_name)
-        expect(queue_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        expect(queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(web_service_name)
+        expect(queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq('rack')
-        expect(queue_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(queue_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('queue')
 
         expect(rack_span.name).to eq('rack.request')
@@ -95,9 +95,9 @@ RSpec.describe 'Rack integration configuration' do
         expect(rack_span.get_tag('http.status_code')).to eq('200')
         expect(rack_span.get_tag('http.url')).to eq('/')
         expect(rack_span.status).to eq(0)
-        expect(rack_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq('rack')
-        expect(rack_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('request')
 
         expect(queue_span.span_id).to eq(rack_span.parent_id)
@@ -118,9 +118,9 @@ RSpec.describe 'Rack integration configuration' do
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('http.url')).to eq('/')
         expect(span.status).to eq(0)
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq('rack')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('request')
 
         expect(span.parent_id).to eq(0)

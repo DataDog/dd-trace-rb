@@ -1,9 +1,9 @@
 # typed: false
-require 'ddtrace/ext/metadata'
-require 'ddtrace/ext/net'
-require 'ddtrace/contrib/analytics'
-require 'ddtrace/contrib/active_record/ext'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/active_record/event'
+require 'ddtrace/contrib/active_record/ext'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/utils/database'
 
 module Datadog
@@ -29,7 +29,7 @@ module Datadog
 
           def process(span, event, _id, payload)
             config = Utils.connection_config(payload[:connection], payload[:connection_id])
-            settings = Datadog::Tracing.configuration[:active_record, config]
+            settings = Tracing.configuration[:active_record, config]
             adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])
             service_name = if settings.service_name != Contrib::Utils::Database::VENDOR_DEFAULT
                              settings.service_name
@@ -40,15 +40,15 @@ module Datadog
             span.name = "#{adapter_name}.query"
             span.service = service_name
             span.resource = payload.fetch(:sql)
-            span.span_type = Datadog::Ext::SQL::TYPE
+            span.span_type = Tracing::Metadata::Ext::SQL::TYPE
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_SQL)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SQL)
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
             # TODO: Populate hostname for JDBC connections
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, config[:host]) if config[:host]
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, config[:host]) if config[:host]
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -63,8 +63,8 @@ module Datadog
             span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
             span.set_tag(Ext::TAG_DB_NAME, config[:database])
             span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
-            span.set_tag(Datadog::Ext::NET::TARGET_HOST, config[:host]) if config[:host]
-            span.set_tag(Datadog::Ext::NET::TARGET_PORT, config[:port]) if config[:port]
+            span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
+            span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
           rescue StandardError => e
             Datadog.logger.debug(e.message)
           end

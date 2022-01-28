@@ -24,11 +24,11 @@ module Datadog
           end
 
           def configuration
-            Datadog::Tracing.configuration[:kafka]
+            Tracing.configuration[:kafka]
           end
 
           def process(span, _event, _id, payload)
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             span.set_tag(Ext::TAG_CLIENT, payload[:client_id])
 

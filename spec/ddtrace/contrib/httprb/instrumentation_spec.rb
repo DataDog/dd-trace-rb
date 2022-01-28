@@ -1,13 +1,17 @@
 # typed: ignore
+require 'http'
+require 'json'
+require 'stringio'
+require 'webrick'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/trace_digest'
+require 'ddtrace/contrib/httprb/instrumentation'
+
+require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/contrib/analytics_examples'
-require 'ddtrace'
-require 'ddtrace/contrib/httprb/instrumentation'
-require 'http'
-require 'webrick'
-require 'json'
-
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
@@ -79,7 +83,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
     shared_examples_for 'instrumented request' do
       it 'creates a span' do
-        expect { response }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
+        expect { response }.to change { fetch_spans.first }.to be_instance_of(Datadog::Tracing::Span)
       end
 
       it 'returns response' do
@@ -93,23 +97,23 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           before { response }
 
           it 'has tag with target host' do
-            expect(span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq(host)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           end
 
           it 'has tag with target port' do
-            expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port)
           end
 
           it 'has tag with target method' do
-            expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('POST')
           end
 
           it 'has tag with target url path' do
-            expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(path)
           end
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(code.to_s)
           end
 
           it 'is http type' do
@@ -125,8 +129,8 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           end
 
           it 'has correct component and operation tags' do
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('httprb')
-            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('httprb')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
           end
 
           it_behaves_like 'a peer service span' do
@@ -146,7 +150,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           before { response }
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(code.to_s)
           end
 
           it 'has error set' do
@@ -170,7 +174,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           before { response }
 
           it 'has tag with status code' do
-            expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(code.to_s)
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(code.to_s)
           end
 
           it 'has error set' do
@@ -216,7 +220,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
             before do
               tracer.continue_trace!(
-                Datadog::TraceDigest.new(
+                Datadog::Tracing::TraceDigest.new(
                   trace_sampling_priority: sampling_priority
                 )
               )
@@ -233,7 +237,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
           before do
             tracer.continue_trace!(
-              Datadog::TraceDigest.new(
+              Datadog::Tracing::TraceDigest.new(
                 trace_sampling_priority: sampling_priority
               )
             )

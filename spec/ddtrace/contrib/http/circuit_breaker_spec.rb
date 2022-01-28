@@ -3,6 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/contrib/http/circuit_breaker'
+require 'ddtrace/transport/ext'
 
 RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
   subject(:circuit_breaker) { circuit_breaker_class.new }
@@ -37,7 +38,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
     end
 
     context 'when the request has an active HTTP request span' do
-      let(:active_span) { instance_double(Datadog::Span, name: Datadog::Contrib::HTTP::Ext::SPAN_REQUEST) }
+      let(:active_span) { instance_double(Datadog::Tracing::Span, name: Datadog::Contrib::HTTP::Ext::SPAN_REQUEST) }
 
       before do
         allow(circuit_breaker).to receive(:datadog_http_request?)
@@ -55,10 +56,10 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
     subject(:datadog_http_request?) { circuit_breaker.datadog_http_request?(request) }
 
     context 'given an HTTP request' do
-      context "when the #{Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION} header" do
+      context "when the #{Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION} header" do
         context 'is present' do
           let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
-          let(:headers) { { Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING } }
+          let(:headers) { { Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING } }
 
           it { is_expected.to be true }
         end

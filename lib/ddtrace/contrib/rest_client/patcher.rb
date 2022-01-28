@@ -1,4 +1,7 @@
 # typed: true
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/rest_client/integration'
+
 module Datadog
   module Contrib
     module RestClient
@@ -14,7 +17,6 @@ module Datadog
         end
 
         def patch
-          require 'ddtrace/ext/app_types'
           require 'ddtrace/contrib/rest_client/request_patch'
 
           ::RestClient::Request.include(RequestPatch)

@@ -1,14 +1,16 @@
 # typed: false
 # frozen_string_literal: true
 
+require 'datadog/tracing/span_operation'
 require 'ddtrace/contrib/configuration/settings'
+require 'ddtrace/contrib/que/ext'
 
 module Datadog
   module Contrib
     module Que
       module Configuration
         # Default settings for the Que integration
-        class Settings < Datadog::Contrib::Configuration::Settings
+        class Settings < Contrib::Configuration::Settings
           option :service_name
           option :distributed_tracing, default: true
 
@@ -36,7 +38,7 @@ module Datadog
             o.default { env_to_bool(Ext::ENV_TAG_DATA_ENABLED, false) }
             o.lazy
           end
-          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
+          option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end
     end

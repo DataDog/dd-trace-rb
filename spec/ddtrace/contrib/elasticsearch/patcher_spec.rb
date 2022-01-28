@@ -33,7 +33,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
     subject(:request) { client.perform_request 'GET', '_cluster/health' }
 
     it 'creates a span' do
-      expect { request }.to change { fetch_spans.first }.to Datadog::Span
+      expect { request }.to change { fetch_spans.first }.to Datadog::Tracing::Span
     end
 
     context 'inside a span' do
@@ -70,11 +70,11 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('query')
       }
 
@@ -96,11 +96,11 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('query')
       }
 
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
     subject(:request) { client.perform_request 'PUT', "#{index_name}/#{document_type}/#{document_id}", {}, document_body }
 
     it 'creates a span' do
-      expect { request }.to change { fetch_spans.first }.to Datadog::Span
+      expect { request }.to change { fetch_spans.first }.to Datadog::Tracing::Span
     end
 
     describe 'index request span' do
@@ -153,11 +153,11 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
 
       it {
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('query')
       }
 

@@ -1,7 +1,8 @@
 # typed: false
-require 'ddtrace/ext/metadata'
-require 'ddtrace/contrib/analytics'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/action_cable/event'
+require 'ddtrace/contrib/action_cable/ext'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -28,7 +29,7 @@ module Datadog
 
           def span_type
             # Starts a broadcast of messages over WebSockets
-            Datadog::Ext::AppTypes::WEB
+            Tracing::Metadata::Ext::AppTypes::TYPE_WEB
           end
 
           def process(span, _event, _id, payload)
@@ -44,8 +45,8 @@ module Datadog
             span.set_tag(Ext::TAG_CHANNEL, channel)
             span.set_tag(Ext::TAG_BROADCAST_CODER, payload[:coder])
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_BROADCAST)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_BROADCAST)
           end
         end
       end

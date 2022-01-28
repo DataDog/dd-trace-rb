@@ -1,4 +1,5 @@
 # typed: false
+require 'datadog/tracing/span_operation'
 require 'ddtrace/contrib/configuration/settings'
 require 'ddtrace/contrib/delayed_job/ext'
 
@@ -26,7 +27,7 @@ module Datadog
 
           option :service_name
           option :client_service_name
-          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
+          option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end
     end

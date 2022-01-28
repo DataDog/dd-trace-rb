@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/action_mailer/ext'
 require 'ddtrace/contrib/action_mailer/event'
 
@@ -25,7 +25,7 @@ module Datadog
 
           def span_type
             # deliver.action_mailer sends emails
-            Datadog::Ext::AppTypes::WORKER
+            Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
           end
 
           def process(span, event, _id, payload)
@@ -35,7 +35,7 @@ module Datadog
             span.set_tag(Ext::TAG_MAILER, payload[:mailer])
             span.set_tag(Ext::TAG_MSG_ID, payload[:message_id])
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
 
             # Since email date can contain PII we disable by default
             # Some of these fields can be either strings or arrays, so we try to normalize

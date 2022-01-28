@@ -1,12 +1,14 @@
 # typed: ignore
-require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace'
+require 'json'
+require 'stringio'
+require 'typhoeus'
+require 'webrick'
+
+require 'datadog/tracing/trace_digest'
 require 'ddtrace/contrib/ethon/easy_patch'
 require 'ddtrace/contrib/ethon/multi_patch'
-require 'typhoeus'
-require 'stringio'
-require 'webrick'
 require 'ddtrace/contrib/ethon/shared_examples'
+require 'ddtrace/contrib/support/spec_helper'
 
 require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
 
@@ -45,7 +47,7 @@ RSpec.describe 'Ethon integration tests' do
 
           before do
             tracer.continue_trace!(
-              Datadog::TraceDigest.new(
+              Datadog::Tracing::TraceDigest.new(
                 trace_sampling_priority: sampling_priority
               )
             )

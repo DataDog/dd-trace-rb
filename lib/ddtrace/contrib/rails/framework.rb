@@ -1,18 +1,16 @@
 # typed: false
-require 'ddtrace/ext/app_types'
-
-require 'ddtrace/contrib/active_record/integration'
-require 'ddtrace/contrib/active_support/integration'
+require 'datadog/tracing'
 require 'ddtrace/contrib/action_cable/integration'
 require 'ddtrace/contrib/action_mailer/integration'
 require 'ddtrace/contrib/action_pack/integration'
 require 'ddtrace/contrib/action_view/integration'
+require 'ddtrace/contrib/active_record/integration'
+require 'ddtrace/contrib/active_support/integration'
 require 'ddtrace/contrib/grape/endpoint'
 require 'ddtrace/contrib/lograge/integration'
-require 'ddtrace/contrib/semantic_logger/integration'
-
 require 'ddtrace/contrib/rails/ext'
 require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/contrib/semantic_logger/integration'
 
 module Datadog
   module Contrib
@@ -39,14 +37,14 @@ module Datadog
             # By default, default service would be guessed from the script
             # being executed, but here we know better, get it from Rails config.
             # Don't set this if service has been explicitly provided by the user.
-            rails_service_name = Datadog::Tracing.configuration[:rails][:service_name] \
+            rails_service_name = Tracing.configuration[:rails][:service_name] \
                                    || Datadog.configuration.service_without_fallback \
                                    || Utils.app_name
 
             datadog_config.service ||= rails_service_name
           end
 
-          Datadog::Tracing.configure do |trace_config|
+          Tracing.configure do |trace_config|
             rails_config = trace_config[:rails]
 
             activate_rack!(trace_config, rails_config)

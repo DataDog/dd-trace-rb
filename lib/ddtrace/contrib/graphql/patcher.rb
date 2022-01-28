@@ -1,4 +1,7 @@
 # typed: false
+require 'datadog/tracing'
+require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/graphql/integration'
 require 'ddtrace/contrib/patcher'
 
 module Datadog
@@ -17,8 +20,6 @@ module Datadog
         def patch
           return if get_option(:schemas).nil?
 
-          require 'ddtrace/ext/app_types'
-          require 'ddtrace/ext/http'
           get_option(:schemas).each { |s| patch_schema!(s) }
         end
 
@@ -53,7 +54,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog::Tracing.configuration[:graphql].get_option(option)
+          Tracing.configuration[:graphql].get_option(option)
         end
       end
     end

@@ -1,8 +1,8 @@
 # typed: true
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/racecar/ext'
 require 'ddtrace/contrib/racecar/events'
+require 'ddtrace/contrib/racecar/integration'
 
 module Datadog
   module Contrib

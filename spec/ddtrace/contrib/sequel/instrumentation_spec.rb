@@ -69,8 +69,8 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.status).to eq(0)
           expect(span.parent_id).to eq(0)
 
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sequel')
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('query')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sequel')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('query')
         end
 
         it_behaves_like 'analytics for integration' do
@@ -166,8 +166,8 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
           expect(span.status).to eq(0)
 
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sequel')
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('query')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sequel')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('query')
 
           # We then match `query` and `trace_id` for the statements under test.
           # Skip for internal Sequel queries.

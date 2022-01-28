@@ -28,7 +28,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:action_pack]
+            Tracing.configuration[:action_pack]
           end
         end
       end

@@ -90,7 +90,6 @@ module Datadog
             )
           end
 
-          # rubocop:disable Layout/LineLength
           def connection_resolver
             @resolver ||= if defined?(::ActiveRecord::Base.configurations.resolve)
                             ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
@@ -99,12 +98,11 @@ module Datadog
                               active_record_configuration
                             )
                           else
-                            ::Datadog::Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
+                            Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
                               active_record_configuration
                             )
                           end
           end
-          # rubocop:enable Layout/LineLength
 
           def resolve_connection_key(key)
             result = connection_resolver.resolve(key)

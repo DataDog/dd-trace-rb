@@ -1,5 +1,6 @@
 # typed: true
-require 'ddtrace/ext/http'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/active_model_serializers/ext'
@@ -22,11 +23,11 @@ module Datadog
           end
 
           def configuration
-            Datadog::Tracing.configuration[:active_model_serializers]
+            Tracing.configuration[:active_model_serializers]
           end
 
           def set_common_tags(span, payload)
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -41,7 +42,7 @@ module Datadog
             span.resource = res
             span.set_tag(Ext::TAG_SERIALIZER, res)
 
-            span.span_type = Datadog::Ext::HTTP::TEMPLATE
+            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
             # Will be nil in 0.9
             span.set_tag(Ext::TAG_ADAPTER, payload[:adapter].class) unless payload[:adapter].nil?

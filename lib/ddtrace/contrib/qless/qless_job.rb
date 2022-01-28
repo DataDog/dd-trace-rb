@@ -1,7 +1,9 @@
 # typed: false
-require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/analytics'
 require 'qless'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -9,11 +11,11 @@ module Datadog
       # Uses Qless job hooks to create traces
       module QlessJob
         def around_perform(job)
-          return super unless datadog_configuration && Datadog::Tracing.enabled?
+          return super unless datadog_configuration && Tracing.enabled?
 
-          Datadog::Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
+          Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = job.klass_name
-            span.span_type = Datadog::Ext::AppTypes::WORKER
+            span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
             span.set_tag(Ext::TAG_JOB_ID, job.jid)
             span.set_tag(Ext::TAG_JOB_QUEUE, job.queue_name)
 
@@ -30,8 +32,8 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_DATA, formatted_data)
             end
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
@@ -46,7 +48,7 @@ module Datadog
         end
 
         def after_fork
-          configuration = Datadog::Tracing.configuration[:qless]
+          configuration = Tracing.configuration[:qless]
           return if configuration.nil?
 
           # Add a pin, marking the job as forked.
@@ -62,7 +64,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog::Tracing.configuration[:qless]
+          Tracing.configuration[:qless]
         end
       end
     end

@@ -1,8 +1,9 @@
 # typed: true
-require 'ddtrace/ext/http'
+require 'datadog/core'
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/action_view/events'
 require 'ddtrace/contrib/action_view/ext'
+require 'ddtrace/contrib/action_view/integration'
 require 'ddtrace/contrib/action_view/instrumentation/partial_renderer'
 require 'ddtrace/contrib/action_view/instrumentation/template_renderer'
 require 'ddtrace/contrib/action_view/utils'

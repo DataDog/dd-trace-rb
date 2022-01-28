@@ -1,8 +1,10 @@
 # typed: false
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/metadata'
-require 'ddtrace/propagation/http_propagator'
+require 'uri'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/http'
+require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rest_client/ext'
 
 module Datadog
@@ -19,10 +21,10 @@ module Datadog
           def execute(&block)
             uri = URI.parse(url)
 
-            return super(&block) unless Datadog::Tracing.enabled?
+            return super(&block) unless Tracing.enabled?
 
             datadog_trace_request(uri) do |_span, trace|
-              Datadog::HTTPPropagator.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
+              Tracing::Propagation::HTTP.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
 
               super(&block)
             end
@@ -31,41 +33,43 @@ module Datadog
           def datadog_tag_request(uri, span)
             span.resource = method.to_s.upcase
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, uri.host)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-            span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
-            span.set_tag(Datadog::Ext::HTTP::METHOD, method.to_s.upcase)
-            span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
-            span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, method.to_s.upcase)
+            span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
+            span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
           end
 
           def datadog_trace_request(uri)
-            span = Datadog::Tracing.trace(
+            span = Tracing.trace(
               Ext::SPAN_REQUEST,
               service: datadog_configuration[:service_name],
-              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             )
 
-            trace = Datadog::Tracing.active_trace
+            trace = Tracing.active_trace
 
             datadog_tag_request(uri, span)
 
             yield(span, trace).tap do |response|
               # Verify return value is a response
               # If so, add additional tags.
-              span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.code) if response.is_a?(::RestClient::Response)
+              if response.is_a?(::RestClient::Response)
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.code)
+              end
             end
           rescue ::RestClient::ExceptionWithResponse => e
-            span.set_error(e) if Datadog::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, e.http_code)
+            span.set_error(e) if Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(e.http_code)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, e.http_code)
 
             raise e
             # rubocop:disable Lint/RescueException
@@ -81,7 +85,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:rest_client]
+            Tracing.configuration[:rest_client]
           end
 
           def analytics_enabled?

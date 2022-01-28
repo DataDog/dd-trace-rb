@@ -1,10 +1,8 @@
 # typed: false
-require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/distributed'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/http'
 require 'ddtrace/contrib/analytics'
-require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/http_annotation_helper'
 
 module Datadog
@@ -18,20 +16,20 @@ module Datadog
 
         # Instance methods for configuration
         module InstanceMethods
-          include Datadog::Contrib::HttpAnnotationHelper
+          include Contrib::HttpAnnotationHelper
 
           def do_get_block(req, proxy, conn, &block)
             host = req.header.request_uri.host
             request_options = datadog_configuration(host)
             client_config = Datadog.configuration_for(self)
 
-            Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+            Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
                 span.service = service_name(host, request_options, client_config)
-                span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+                span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                if Datadog::Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
-                  Datadog::HTTPPropagator.inject!(trace, req.header)
+                if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
+                  Tracing::Propagation::HTTP.inject!(trace, req.header)
                 end
 
                 # Add additional request specific tags to the span.
@@ -52,21 +50,21 @@ module Datadog
           private
 
           def annotate_span_with_request!(span, req, req_options)
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
             http_method = req.header.request_method.upcase
             uri = req.header.request_uri
 
             span.resource = http_method
-            span.set_tag(Datadog::Ext::HTTP::METHOD, http_method)
-            span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
-            span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
-            span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, http_method)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, uri.path)
+            span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, uri.host)
+            span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, uri.port)
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, uri.host)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, uri.host)
 
             set_analytics_sample_rate(span, req_options)
           end
@@ -74,7 +72,7 @@ module Datadog
           def annotate_span_with_response!(span, response)
             return unless response && response.status
 
-            span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response.status)
+            span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
 
             case response.status.to_i
             when 400...599
@@ -87,7 +85,7 @@ module Datadog
           end
 
           def datadog_configuration(host = :default)
-            Datadog::Tracing.configuration[:httpclient, host]
+            Tracing.configuration[:httpclient, host]
           end
 
           def analytics_enabled?(request_options)
@@ -101,7 +99,7 @@ module Datadog
           def should_skip_distributed_tracing?(client_config)
             return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
-            !Datadog::Tracing.configuration[:httpclient][:distributed_tracing]
+            !Tracing.configuration[:httpclient][:distributed_tracing]
           end
 
           def set_analytics_sample_rate(span, request_options)

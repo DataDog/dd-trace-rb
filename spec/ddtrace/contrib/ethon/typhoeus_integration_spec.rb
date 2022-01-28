@@ -60,8 +60,8 @@ RSpec.describe Datadog::Contrib::Ethon do
     end
 
     describe 'created spans' do
-      let(:span_get) { spans.find { |span| span.get_tag(Datadog::Ext::HTTP::METHOD) == 'GET' } }
-      let(:span_post) { spans.find { |span| span.get_tag(Datadog::Ext::HTTP::METHOD) == 'POST' } }
+      let(:span_get) { spans.find { |span| span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD) == 'GET' } }
+      let(:span_post) { spans.find { |span| span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD) == 'POST' } }
       let(:span_parent) { spans.find { |span| span.name == 'ethon.multi.request' } }
 
       before { request }

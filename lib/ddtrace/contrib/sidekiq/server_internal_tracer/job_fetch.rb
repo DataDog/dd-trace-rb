@@ -12,10 +12,10 @@ module Datadog
             configuration = Datadog::Tracing.configuration[:sidekiq]
 
             Datadog::Tracing.trace(Ext::SPAN_JOB_FETCH, service: configuration[:service_name]) do |span|
-              span.span_type = Datadog::Ext::AppTypes::WORKER
+              span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB_FETCH)
+              span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB_FETCH)
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

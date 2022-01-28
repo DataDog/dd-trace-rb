@@ -1,6 +1,8 @@
 # typed: ignore
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing'
+require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/grpc'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 
@@ -16,7 +18,7 @@ module Datadog
         class Server < Base
           def trace(keywords)
             options = {
-              span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
+              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
               service: service_name, # TODO: Remove server-side service name configuration
               resource: format_resource(keywords[:method]),
               on_error: error_handler
@@ -25,7 +27,7 @@ module Datadog
 
             set_distributed_context!(metadata)
 
-            Datadog::Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
+            Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
               annotate!(span, metadata)
 
               yield
@@ -35,7 +37,7 @@ module Datadog
           private
 
           def set_distributed_context!(metadata)
-            Datadog::Tracing.continue_trace!(Datadog::GRPCPropagator.extract(metadata))
+            Tracing.continue_trace!(Tracing::Propagation::GRPC.extract(metadata))
           rescue StandardError => e
             Datadog.logger.debug(
               "unable to propagate GRPC metadata to context: #{e}"
@@ -49,8 +51,8 @@ module Datadog
               span.set_tag(header, value)
             end
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_SERVICE)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SERVICE)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -62,9 +64,9 @@ module Datadog
           end
 
           def reserved_headers
-            [Datadog::Ext::DistributedTracing::GRPC_METADATA_TRACE_ID,
-             Datadog::Ext::DistributedTracing::GRPC_METADATA_PARENT_ID,
-             Datadog::Ext::DistributedTracing::GRPC_METADATA_SAMPLING_PRIORITY]
+            [Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID,
+             Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID,
+             Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY]
           end
 
           def format_resource(proto_method)

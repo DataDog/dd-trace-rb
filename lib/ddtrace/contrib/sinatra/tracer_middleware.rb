@@ -1,7 +1,10 @@
 # typed: false
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
-require 'ddtrace/contrib/sinatra/ext'
+require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/sinatra/env'
+require 'ddtrace/contrib/sinatra/ext'
 require 'ddtrace/contrib/sinatra/headers'
 
 module Datadog
@@ -20,15 +23,15 @@ module Datadog
         # rubocop:disable Metrics/PerceivedComplexity
         def call(env)
           # Set the trace context (e.g. distributed tracing)
-          if configuration[:distributed_tracing] && Datadog::Tracing.active_trace.nil?
-            original_trace = HTTPPropagator.extract(env)
-            Datadog::Tracing.continue_trace!(original_trace)
+          if configuration[:distributed_tracing] && Tracing.active_trace.nil?
+            original_trace = Propagation::HTTP.extract(env)
+            Tracing.continue_trace!(original_trace)
           end
 
-          Datadog::Tracing.trace(
+          Tracing.trace(
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
+            span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
           ) do |span|
             begin
               # this is kept nil until we set a correct one (either in the route or with a fallback in the ensure below)
@@ -43,12 +46,12 @@ module Datadog
                 span.set_tag(name, value) if span.get_tag(name).nil?
               end
 
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
               request = ::Sinatra::Request.new(env)
-              span.set_tag(Datadog::Ext::HTTP::URL, request.path)
-              span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, request.path)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request.request_method)
               span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name) if request.script_name && !request.script_name.empty?
 
               span.set_tag(Ext::TAG_APP_NAME, @app_instance.settings.name)
@@ -57,7 +60,7 @@ module Datadog
               # resource; if no resource was set, let's use a fallback
               span.resource = env['REQUEST_METHOD'] if span.resource.nil?
 
-              rack_request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+              rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
 
               # This propagates the Sinatra resource to the Rack span,
               # since the latter is unaware of what the resource might be
@@ -68,7 +71,7 @@ module Datadog
                 if (status = response[0])
                   sinatra_response = ::Sinatra::Response.new([], status) # Build object to use status code helpers
 
-                  span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, sinatra_response.status)
+                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, sinatra_response.status)
                   span.set_error(env['sinatra.error']) if sinatra_response.server_error?
                 end
 
@@ -103,7 +106,7 @@ module Datadog
         end
 
         def configuration
-          Datadog::Tracing.configuration[:sinatra]
+          Tracing.configuration[:sinatra]
         end
 
         def header_to_rack_header(name)

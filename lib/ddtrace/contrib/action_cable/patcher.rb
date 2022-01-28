@@ -1,6 +1,5 @@
 # typed: true
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/action_cable/ext'
 require 'ddtrace/contrib/action_cable/events'
 require 'ddtrace/contrib/action_cable/instrumentation'

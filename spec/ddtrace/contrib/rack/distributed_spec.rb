@@ -1,8 +1,10 @@
 # typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
-require 'rack/test'
 
+require 'rack/test'
 require 'rack'
+
+require 'datadog/tracing/sampling/ext'
 require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 
@@ -36,14 +38,14 @@ RSpec.describe 'Rack integration distributed tracing' do
   shared_context 'distributed tracing headers' do
     let(:trace_id) { 8694058539399423136 }
     let(:parent_id) { 3605612475141592985 }
-    let(:sampling_priority) { Datadog::Ext::Priority::AUTO_KEEP }
+    let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
     let(:origin) { 'synthetics' }
 
     before do
-      header Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID, trace_id
-      header Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID, parent_id
-      header Datadog::Ext::DistributedTracing::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority
-      header Datadog::Ext::DistributedTracing::HTTP_HEADER_ORIGIN, origin
+      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID, trace_id
+      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID, parent_id
+      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority
+      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN, origin
     end
   end
 

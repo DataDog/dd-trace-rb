@@ -1,6 +1,6 @@
 # typed: false
-require 'ddtrace/ext/metadata'
-require 'ddtrace/ext/net'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/action_view/ext'
 require 'ddtrace/contrib/action_view/event'
@@ -27,10 +27,10 @@ module Datadog
 
           def process(span, _event, _id, payload)
             span.service = configuration[:service_name] if configuration[:service_name]
-            span.span_type = Datadog::Ext::HTTP::TEMPLATE
+            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_PARTIAL)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_PARTIAL)
 
             if (template_name = Utils.normalize_template_name(payload[:identifier]))
               span.resource = template_name

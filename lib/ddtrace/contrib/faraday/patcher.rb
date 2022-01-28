@@ -1,9 +1,9 @@
 # typed: false
-require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
-require 'ddtrace/contrib/faraday/ext'
 require 'ddtrace/contrib/faraday/connection'
+require 'ddtrace/contrib/faraday/ext'
+require 'ddtrace/contrib/faraday/integration'
 require 'ddtrace/contrib/faraday/rack_builder'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib

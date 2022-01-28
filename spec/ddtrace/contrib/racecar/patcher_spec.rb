@@ -47,8 +47,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
           expect(span).to_not have_error
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('racecar')
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('consume')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('racecar')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('consume')
         end
       end
     end
@@ -122,8 +122,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.offset')).to eq(offset)
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to_not have_error
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('racecar')
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('message')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('racecar')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('message')
         end
       end
     end
@@ -204,8 +204,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.first_offset')).to eq(offset)
           expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span).to_not have_error
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('racecar')
-          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('batch')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('racecar')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('batch')
         end
       end
     end

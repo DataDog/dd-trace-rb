@@ -1,7 +1,6 @@
 # typed: true
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/sql'
-require 'ddtrace/ext/app_types'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/presto/ext'
 
 module Datadog
@@ -18,11 +17,11 @@ module Datadog
           # Instance methods for Presto::Client
           module InstanceMethods
             def run(query)
-              Datadog::Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
+              Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
                   decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
-                  span.span_type = Datadog::Ext::SQL::TYPE
+                  span.span_type = Tracing::Metadata::Ext::SQL::TYPE
                   span.set_tag(Ext::TAG_QUERY_ASYNC, false)
                 rescue StandardError => e
                   Datadog.logger.debug("error preparing span for presto: #{e}")
@@ -33,11 +32,11 @@ module Datadog
             end
 
             def query(query, &blk)
-              Datadog::Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
+              Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
                   decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
-                  span.span_type = Datadog::Ext::SQL::TYPE
+                  span.span_type = Tracing::Metadata::Ext::SQL::TYPE
                   span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
                 rescue StandardError => e
                   Datadog.logger.debug("error preparing span for presto: #{e}")
@@ -48,11 +47,11 @@ module Datadog
             end
 
             def kill(query_id)
-              Datadog::Tracing.trace(Ext::SPAN_KILL, **span_options) do |span|
+              Tracing.trace(Ext::SPAN_KILL, **span_options) do |span|
                 begin
                   decorate!(span, Ext::TAG_OPERATION_KILL)
                   span.resource = Ext::SPAN_KILL
-                  span.span_type = Datadog::Ext::AppTypes::DB
+                  span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_DB
                   # ^ not an SQL type span, since there's no SQL query
                   span.set_tag(Ext::TAG_QUERY_ID, query_id)
                 rescue StandardError => e
@@ -66,31 +65,31 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog::Tracing.configuration[:presto]
+              Tracing.configuration[:presto]
             end
 
             def span_options
               {
                 service: datadog_configuration[:service_name],
                 app: Ext::TAG_COMPONENT,
-                app_type: Datadog::Ext::AppTypes::DB
+                app_type: Tracing::Metadata::Ext::AppTypes::TYPE_DB
               }
             end
 
             def decorate!(span, operation)
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, operation)
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, operation)
 
               if (host_port = @options[:server])
                 host, port = Core::Utils.extract_host_port(host_port)
                 if host && port
-                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host)
-                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, port)
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host)
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
 
-                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host)
                 else
-                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host_port)
-                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host_port)
+                  span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host_port)
+                  span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host_port)
                 end
               end
 
@@ -103,7 +102,7 @@ module Datadog
               set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
 
               # Tag as an external peer service
-              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

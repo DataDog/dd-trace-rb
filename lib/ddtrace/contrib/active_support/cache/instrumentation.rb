@@ -1,5 +1,6 @@
 # typed: false
-require 'ddtrace/ext/metadata'
+require 'datadog/core/utils'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/active_support/ext'
 
 module Datadog
@@ -17,7 +18,7 @@ module Datadog
             # interesting details.
             # NOTE: the ``finish_trace_cache()`` is fired but it already has a safe-guard
             # to avoid any kind of issue.
-            current_span = Datadog::Tracing.active_span
+            current_span = Tracing.active_span
             return if current_span.try(:name) == Ext::SPAN_CACHE &&
                       (
                         payload[:action] == Ext::RESOURCE_CACHE_GET &&
@@ -29,16 +30,16 @@ module Datadog
             tracing_context = payload.fetch(:tracing_context)
 
             # create a new ``Span`` and add it to the tracing context
-            service = Datadog::Tracing.configuration[:active_support][:cache_service]
+            service = Tracing.configuration[:active_support][:cache_service]
             type = Ext::SPAN_TYPE_CACHE
-            span = Datadog::Tracing.trace(Ext::SPAN_CACHE, service: service, span_type: type)
+            span = Tracing.trace(Ext::SPAN_CACHE, service: service, span_type: type)
             span.resource = payload.fetch(:action)
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CACHE)
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, service)
+            span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, service)
 
             tracing_context[:dd_cache_span] = span
           rescue StandardError => e
@@ -59,7 +60,7 @@ module Datadog
               end
 
               normalized_key = ::ActiveSupport::Cache.expand_cache_key(payload.fetch(:key))
-              cache_key = Datadog::Core::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+              cache_key = Core::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
               span.set_tag(Ext::TAG_CACHE_KEY, cache_key)
 
               span.set_error(payload[:exception]) if payload[:exception]
@@ -85,7 +86,7 @@ module Datadog
               normalized_keys = payload.fetch(:keys, []).map do |key|
                 ::ActiveSupport::Cache.expand_cache_key(key)
               end
-              cache_keys = Datadog::Core::Utils.truncate(normalized_keys, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
+              cache_keys = Core::Utils.truncate(normalized_keys, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
               span.set_tag(Ext::TAG_CACHE_KEY_MULTI, cache_keys)
 
               span.set_error(payload[:exception]) if payload[:exception]

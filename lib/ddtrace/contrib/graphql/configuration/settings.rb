@@ -1,6 +1,5 @@
 # typed: false
 require 'ddtrace/contrib/configuration/settings'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/graphql/ext'
 
 module Datadog

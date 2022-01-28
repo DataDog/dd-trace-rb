@@ -1,13 +1,17 @@
 # typed: true
-require 'ddtrace/propagation/http_propagator'
+require 'datadog/tracing/context'
+require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/propagation/http'
+require 'datadog/tracing/trace_operation'
+require 'ddtrace/opentracer/propagator'
 
 module Datadog
   module OpenTracer
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
     module RackPropagator
       extend Propagator
-      extend Datadog::Ext::DistributedTracing
-      include Datadog::Ext::DistributedTracing
+      extend Tracing::Distributed::Headers::Ext
+      include Tracing::Distributed::Headers::Ext
 
       BAGGAGE_PREFIX = 'ot-baggage-'.freeze
       BAGGAGE_PREFIX_FORMATTED = 'HTTP_OT_BAGGAGE_'.freeze
@@ -21,7 +25,7 @@ module Datadog
           active_trace = span_context.datadog_context.active_trace
 
           # Inject Datadog trace properties
-          Datadog::HTTPPropagator.inject!(active_trace, carrier)
+          Tracing::Propagation::HTTP.inject!(active_trace, carrier)
 
           # Inject baggage
           span_context.baggage.each do |key, value|
@@ -37,8 +41,8 @@ module Datadog
         # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
         def extract(carrier)
           # First extract & build a Datadog context
-          datadog_context = Datadog::Context.new(
-            trace: digest_to_trace(Datadog::HTTPPropagator.extract(carrier))
+          datadog_context = Datadog::Tracing::Context.new(
+            trace: digest_to_trace(Tracing::Propagation::HTTP.extract(carrier))
           )
 
           # Then extract any other baggage
@@ -55,7 +59,7 @@ module Datadog
         def digest_to_trace(digest)
           return unless digest
 
-          Datadog::TraceOperation.new(
+          Datadog::Tracing::TraceOperation.new(
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,

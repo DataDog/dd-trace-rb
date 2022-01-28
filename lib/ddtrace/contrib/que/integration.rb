@@ -11,7 +11,7 @@ module Datadog
     module Que
       # Description of Que integration
       class Integration
-        include Datadog::Contrib::Integration
+        include Contrib::Integration
 
         MINIMUM_VERSION = Gem::Version.new('1.0.0.beta2')
 
