@@ -182,14 +182,15 @@ RSpec.describe Datadog::Tagging::Metadata do
     end
 
     context 'given a string tag that is not in UTF-8' do
-      let(:key) { 'key' }
-      let(:value) { 'legacy'.encode(Encoding::ASCII) }
+      let(:key) { 'key'.encode(Encoding::ASCII) }
+      let(:value) { 'value'.encode(Encoding::ASCII) }
+      let(:meta) { test_object.send(:meta) }
 
       it 'converts tag value to UTF-8' do
         set_tag
 
-        expect(test_object.send(:meta)[key]).to eq(value)
-        expect(test_object.send(:meta)[key].encoding).to eq(Encoding::UTF_8)
+        expect(meta.keys.first).to eq(key) & have_attributes(encoding: Encoding::UTF_8)
+        expect(meta[key]).to eq(value) & have_attributes(encoding: Encoding::UTF_8)
       end
     end
   end
