@@ -1134,7 +1134,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#tracer' do
       describe '#port' do
-        subject(:port) { settings.agent.apm.port }
+        subject(:port) { settings.agent.port }
 
         it { is_expected.to be nil }
       end
@@ -1143,8 +1143,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         let(:port) { 1234 }
 
         it 'updates the #port setting' do
-          expect { settings.agent.apm.port = port }
-            .to change { settings.agent.apm.port }
+          expect { settings.agent.port = port }
+            .to change { settings.agent.port }
             .from(nil)
             .to(port)
         end

@@ -145,9 +145,9 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
-    context 'when a custom port is specified via code using "agent.apm.port = "' do
+    context 'when a custom port is specified via code using "agent.port = "' do
       before do
-        ddtrace_settings.agent.apm.port = 1234
+        ddtrace_settings.agent.port = 1234
       end
 
       it 'contacts the agent using the http adapter, using the custom port' do
@@ -192,7 +192,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       context 'when the port is specified as a string instead of a number' do
         before do
-          ddtrace_settings.agent.apm.port = '1234'
+          ddtrace_settings.agent.port = '1234'
         end
 
         it 'contacts the agent using the http adapter, using the custom port' do
@@ -202,7 +202,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       context 'when the port is an invalid string value' do
         before do
-          ddtrace_settings.agent.apm.port = 'kaboom'
+          ddtrace_settings.agent.port = 'kaboom'
 
           allow(logger).to receive(:warn)
         end
@@ -220,7 +220,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       context 'when the port is an invalid object' do
         before do
-          ddtrace_settings.agent.apm.port = Object.new
+          ddtrace_settings.agent.port = Object.new
 
           allow(logger).to receive(:warn)
         end

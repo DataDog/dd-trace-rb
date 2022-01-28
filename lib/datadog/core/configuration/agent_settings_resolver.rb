@@ -139,13 +139,13 @@ module Datadog
 
           parsed_settings_tracer_port =
             try_parsing_as_integer(
-              friendly_name: '"c.agent.apm.port"',
-              value: settings.agent.apm.port,
+              friendly_name: '"c.agent.port"',
+              value: settings.agent.port,
             )
 
           @configured_port = pick_from(
             DetectedConfiguration.new(
-              friendly_name: '"c.agent.apm.port"',
+              friendly_name: '"c.agent.port"',
               value: parsed_settings_tracer_port,
             ),
             DetectedConfiguration.new(

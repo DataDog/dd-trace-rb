@@ -154,7 +154,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
     context 'via agent' do
       before do
         settings.agent.host = hostname
-        settings.agent.apm.port = port
+        settings.agent.port = port
       end
 
       let(:client) do

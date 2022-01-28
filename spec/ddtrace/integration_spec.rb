@@ -494,7 +494,7 @@ RSpec.describe 'Tracer integration tests' do
     subject(:configure) do
       Datadog::Tracing.configure do |c|
         c.agent.host = hostname
-        c.agent.apm.port = port
+        c.agent.port = port
         c.tracer.priority_sampling = true
       end
     end

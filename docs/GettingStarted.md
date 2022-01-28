@@ -1886,7 +1886,7 @@ To change the default behavior of the Datadog tracer, you can provide custom opt
 # Global settings are set here:
 Datadog.configure do |c|
   c.agent.host = 'custom-agent-host'
-  c.agent.apm.port = 8126
+  c.agent.port = 8126
   # To enable debug mode
   c.diagnostics.debug = true
 end
@@ -1915,7 +1915,7 @@ Available options are:
  - `agent.host`: set the hostname of the trace agent.
  - `instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
  - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
- - `agent.apm.port`: set the TCP port the APM agent is listening on.
+ - `agent.port`: set the APM TCP port the Datadog Agent listening on.
  - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
  - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
  - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.

@@ -51,25 +51,22 @@ module Datadog
         # @configure_with {Datadog}
         # @public_api
         settings :agent do
+          # Agent hostname or IP.
           # @configure_with {Datadog}
           # @default `DD_AGENT_HOST` environment variable, otherwise `127.0.0.1`
           # @return [String,nil]
           option :host
 
-          # Configuration for APM agent access.
-          # @configure_with {Datadog::Tracing}
-          # @public_api
-          settings :apm do
-            # Agent APM TCP port.
-            # @configure_with {Datadog::Tracing}
-            # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
-            # @return [String,nil]
-            option :port
-          end
+          # Agent APM TCP port.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @configure_with {Datadog}
+          # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
+          # @return [String,nil]
+          option :port
 
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
-          # @configure_with {Datadog::Statsd}
+          # @configure_with {Datadog}
           # @public_api
           # settings :statsd do
           #   # Agent Statsd UDP port.
