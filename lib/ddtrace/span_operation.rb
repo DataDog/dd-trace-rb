@@ -23,22 +23,16 @@ module Datadog
     attr_reader \
       :end_time,
       :id,
+      :name,
       :parent_id,
       :resource,
+      :service,
       :start_time,
-      :trace_id
+      :trace_id,
+      :type
 
     attr_accessor \
-      :name,
-      :service,
-      :type,
       :status
-
-    # For backwards compatiblity
-    # TODO: Deprecate and remove these.
-    alias :span_id :id
-    alias :span_type :type
-    alias :span_type= :type=
 
     def initialize(
       name,
@@ -53,17 +47,15 @@ module Datadog
       trace_id: nil,
       type: nil
     )
-      # Set span attributes
-      @name = name
-      @service = service
-      @type = type
-
       # Ensure dynamically created strings are UTF-8 encoded.
       #
       # All strings created in Ruby land are UTF-8. The only sources of non-UTF-8 string are:
       # * Strings explicitly encoded as non-UTF-8.
       # * Some natively created string, although most natively created strings are UTF-8.
-      @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow resource to be explicitly set to nil
+      self.name = name
+      self.service = service
+      self.type = type
+      self.resource = resource
 
       @id = Core::Utils.next_id
       @parent_id = parent_id || 0
@@ -106,10 +98,34 @@ module Datadog
       start(start_time) if start_time
     end
 
-    # Resource string.
-    # This string will be converted to UTF-8 encoding if in a different encoding.
+    # Operation name.
+    # @!attribute [rw] name
+    # @return [String]
+    def name=(name)
+      raise ArgumentError, "SpanOperation name can't be nil" unless name
+
+      @name = Core::Utils.utf8_encode(name)
+    end
+
+    # Span type.
+    # @!attribute [rw] type
+    # @return [String
+    def type=(type)
+      @type = type.nil? ? nil : Core::Utils.utf8_encode(type) # Allow this to be explicitly set to nil
+    end
+
+    # Service name.
+    # @!attribute [rw] service
+    # @return [String
+    def service=(service)
+      @service = service.nil? ? nil : Core::Utils.utf8_encode(service) # Allow this to be explicitly set to nil
+    end
+
+    # Span resource.
+    # @!attribute [rw] resource
+    # @return [String
     def resource=(resource)
-      @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow resource to be explicitly set to nil
+      @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
     end
 
     def measure
@@ -481,6 +497,12 @@ module Datadog
         GC.stat(:total_allocated_objects)
       end
     end
+
+    # For backwards compatibility
+    # TODO: Deprecate and remove these in 2.0.
+    alias :span_id :id
+    alias :span_type :type
+    alias :span_type= :type=
   end
   # rubocop:enable Metrics/ClassLength
 end
