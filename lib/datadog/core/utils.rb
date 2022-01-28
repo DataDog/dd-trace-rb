@@ -57,11 +57,16 @@ module Datadog
 
       # Ensure `str` is a valid UTF-8, ready to be
       # sent through the tracer transport.
+      #
+      # @param [String,#to_s] str object to be converted to a UTF-8 string
+      # @param [Boolean] binary whether to expect binary data in the `str` parameter
+      # @param [String] placeholder string to be returned when encoding fails
+      # @return a UTF-8 string version of `str`
       # @!visibility private
-      def self.utf8_encode(str, options = {})
+      def self.utf8_encode(str, binary: false, placeholder: EMPTY_STRING)
         str = str.to_s
 
-        if options[:binary]
+        if binary
           # This option is useful for "gracefully" displaying binary data that
           # often contains text such as marshalled objects
           str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
@@ -77,7 +82,7 @@ module Datadog
       rescue => e
         Datadog.logger.debug("Error encoding string in UTF-8: #{e}")
 
-        options.fetch(:placeholder, EMPTY_STRING)
+        placeholder
       end
 
       # @!visibility private

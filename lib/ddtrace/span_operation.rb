@@ -24,12 +24,12 @@ module Datadog
       :end_time,
       :id,
       :parent_id,
+      :resource,
       :start_time,
       :trace_id
 
     attr_accessor \
       :name,
-      :resource,
       :service,
       :type,
       :status
@@ -56,8 +56,14 @@ module Datadog
       # Set span attributes
       @name = name
       @service = service
-      @resource = resource
       @type = type
+
+      # Ensure dynamically created strings are UTF-8 encoded.
+      #
+      # All strings created in Ruby land are UTF-8. The only sources of non-UTF-8 string are:
+      # * Strings explicitly encoded as non-UTF-8.
+      # * Some natively created string, although most natively created strings are UTF-8.
+      @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow resource to be explicitly set to nil
 
       @id = Core::Utils.next_id
       @parent_id = parent_id || 0
@@ -98,6 +104,12 @@ module Datadog
 
       # Start the span with start time, if given.
       start(start_time) if start_time
+    end
+
+    # Resource string.
+    # This string will be converted to UTF-8 encoding if in a different encoding.
+    def resource=(resource)
+      @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow resource to be explicitly set to nil
     end
 
     def measure

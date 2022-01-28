@@ -235,8 +235,14 @@ RSpec.describe Datadog::SpanOperation do
         end
 
         context 'that is a String' do
-          let(:resource) { instance_double(String) }
+          let(:resource) { String.new }
           it { is_expected.to have_attributes(resource: resource) }
+        end
+
+        context 'that is a non-UTF-8 string' do
+          let(:resource) { 'legacy'.encode(Encoding::ASCII) }
+          it { is_expected.to have_attributes(resource: resource) }
+          it { expect(span_op.resource.encoding).to eq(Encoding::UTF_8) }
         end
       end
 
@@ -334,6 +340,16 @@ RSpec.describe Datadog::SpanOperation do
           it { is_expected.to have_attributes(type: type) }
         end
       end
+    end
+  end
+
+  describe '#resource=' do
+    subject!(:resource=) { span_op.resource = resource }
+
+    context 'with a string that is not in UTF-8' do
+      let(:resource) { 'legacy'.encode(Encoding::ASCII) }
+      it { expect(span_op.resource).to eq(resource) }
+      it { expect(span_op.resource.encoding).to eq(Encoding::UTF_8) }
     end
   end
 
