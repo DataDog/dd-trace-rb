@@ -6,7 +6,7 @@ require 'ddtrace/ext/analytics'
 require 'ddtrace/ext/distributed'
 require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
-require 'ddtrace/ext/profiling'
+require 'datadog/profiling/ext'
 require 'ddtrace/ext/sampling'
 require 'ddtrace/ext/test'
 
@@ -281,7 +281,7 @@ module Datadog
           # @default `DD_PROFILING_ENABLED` environment variable, otherwise `false`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Ext::Profiling::ENV_ENABLED, false) }
+            o.default { env_to_bool(Profiling::Ext::ENV_ENABLED, false) }
             o.lazy
           end
 
@@ -300,7 +300,7 @@ module Datadog
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
             option :max_frames do |o|
-              o.default { env_to_int(Ext::Profiling::ENV_MAX_FRAMES, 400) }
+              o.default { env_to_int(Profiling::Ext::ENV_MAX_FRAMES, 400) }
               o.lazy
             end
 
@@ -313,7 +313,7 @@ module Datadog
                 # @default `DD_PROFILING_ENDPOINT_COLLECTION_ENABLED` environment variable, otherwise `true`
                 # @return [Boolean]
                 option :enabled do |o|
-                  o.default { env_to_bool(Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED, true) }
+                  o.default { env_to_bool(Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED, true) }
                   o.lazy
                 end
               end
@@ -328,7 +328,7 @@ module Datadog
           settings :upload do
             option :timeout_seconds do |o|
               o.setter { |value| value.nil? ? 30.0 : value.to_f }
-              o.default { env_to_float(Ext::Profiling::ENV_UPLOAD_TIMEOUT, 30.0) }
+              o.default { env_to_float(Profiling::Ext::ENV_UPLOAD_TIMEOUT, 30.0) }
               o.lazy
             end
           end

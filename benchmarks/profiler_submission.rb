@@ -37,10 +37,10 @@ class ProfilerSubmission
     end
 
     # Stop background threads
-    Datadog.profiler.shutdown!
+    Datadog.shutdown!
 
     # Call exporter directly
-    @exporter = Datadog.profiler.scheduler.exporters.first
+    @exporter = Datadog.send(:components).profiler.scheduler.exporters.first
     @flush = Marshal.load(
       Zlib::GzipReader.new(File.open(ENV['FLUSH_DUMP_FILE'] || 'benchmarks/data/profiler-submission-marshal.gz'))
     )

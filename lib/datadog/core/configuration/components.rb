@@ -2,7 +2,7 @@
 require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
-require 'ddtrace/profiling'
+require 'datadog/profiling'
 require 'datadog/core/runtime/metrics'
 require 'ddtrace/tracer'
 require 'ddtrace/trace_flush'
@@ -225,7 +225,7 @@ module Datadog
             exporters = build_profiler_exporters(settings, agent_settings)
             scheduler = build_profiler_scheduler(settings, recorder, exporters)
 
-            Datadog::Profiler.new(collectors, scheduler)
+            Datadog::Profiling::Profiler.new(collectors, scheduler)
           end
 
           private

@@ -6,7 +6,7 @@ For a more practical view of getting started with development of `ddtrace`, see 
 
 ## Profiling components high-level view
 
-Components below live inside <../lib/ddtrace/profiling>:
+Components below live inside <../lib/datadog/profiling>:
 
 * `Collectors::Stack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
@@ -15,9 +15,9 @@ Components below live inside <../lib/ddtrace/profiling>:
 * `Events::Stack`, `Events::StackSample`: Entity classes used to represent stacks.
 * `Ext::Forking`: Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
   profiling abilities after the VM forks (such as re-instrumenting the main thread, and restarting profiler threads).
-* `Pprof::*` (in <../lib/ddtrace/profiling/pprof>): Converts samples captured in the `Recorder` into the pprof format.
+* `Pprof::*` (in <../lib/datadog/profiling/pprof>): Converts samples captured in the `Recorder` into the pprof format.
 * `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle fork().
-* `Transport::*` (in <../lib/ddtrace/profiling/transport>): Implements transmission of profiling payloads to the Datadog agent
+* `Transport::*` (in <../lib/datadog/profiling/transport>): Implements transmission of profiling payloads to the Datadog agent
   or backend.
 * `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
 * `BacktraceLocation`: Entity class used to represent an entry in a stack trace.
@@ -34,8 +34,8 @@ Components below live inside <../lib/ddtrace/profiling>:
 When started via `ddtracerb exec` (together with `DD_PROFILING_ENABLED=true`), initialization goes through the following
 flow:
 
-1. <../lib/ddtrace/profiling/preload.rb> triggers the creation of the `Datadog.profiler` instance by calling the method
-2. `Datadog.profiler` is handled by `Datadog::Configuration`, which triggers the configuration of `ddtrace` components
+1. <../lib/datadog/profiling/preload.rb> triggers the creation of the profiler instance by calling the method `Datadog::Profiling.start_if_enabled`
+2. The profiler instance is handled by `Datadog::Configuration`, which triggers the configuration of `ddtrace` components
    in `#build_components`
 3. Inside `Datadog::Components`, the `build_profiler` method triggers the execution of the `Tasks::Setup`
 4. The `Setup` task activates our extensions

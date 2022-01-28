@@ -398,9 +398,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.profiling.enabled }
 
-      context "when #{Datadog::Ext::Profiling::ENV_ENABLED}" do
+      context "when #{Datadog::Profiling::Ext::ENV_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Profiling::ENV_ENABLED => environment) do
+          ClimateControl.modify(Datadog::Profiling::Ext::ENV_ENABLED => environment) do
             example.run
           end
         end
@@ -466,9 +466,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#max_frames' do
         subject(:max_frames) { settings.profiling.advanced.max_frames }
 
-        context "when #{Datadog::Ext::Profiling::ENV_MAX_FRAMES}" do
+        context "when #{Datadog::Profiling::Ext::ENV_MAX_FRAMES}" do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Profiling::ENV_MAX_FRAMES => environment) do
+            ClimateControl.modify(Datadog::Profiling::Ext::ENV_MAX_FRAMES => environment) do
               example.run
             end
           end
@@ -501,9 +501,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           describe '#enabled' do
             subject(:enabled) { settings.profiling.advanced.endpoint.collection.enabled }
 
-            context "when #{Datadog::Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED}" do
+            context "when #{Datadog::Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED}" do
               around do |example|
-                ClimateControl.modify(Datadog::Ext::Profiling::ENV_ENDPOINT_COLLECTION_ENABLED => environment) do
+                ClimateControl.modify(Datadog::Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED => environment) do
                   example.run
                 end
               end
@@ -555,9 +555,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#timeout_seconds' do
         subject(:timeout_seconds) { settings.profiling.upload.timeout_seconds }
 
-        context "when #{Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT}" do
+        context "when #{Datadog::Profiling::Ext::ENV_UPLOAD_TIMEOUT}" do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Profiling::ENV_UPLOAD_TIMEOUT => environment) do
+            ClimateControl.modify(Datadog::Profiling::Ext::ENV_UPLOAD_TIMEOUT => environment) do
               example.run
             end
           end
