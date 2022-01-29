@@ -12,20 +12,40 @@ module Datadog
 
       # Configuration DSL implementation
       class DSL
+        Instrument = Struct.new(:name, :options)
         def initialize
           @instruments = []
+          @options = {}
         end
 
         def instrument(name, options = {})
-          @instruments << [name, options]
+          @instruments << Instrument.new(name, options)
+        end
+
+        def enabled(value)
+          options[:enabled] = value
+        end
+
+        def ruleset(value)
+          options[:ruleset] = value
+        end
+
+        # in microseconds
+        def waf_timeout(value)
+          options[:waf_timeout] = value
+        end
+
+        def waf_debug(value)
+          options[:waf_debug] = value
         end
 
         attr_reader :instruments
+        attr_reader :options
 
         def [](key)
-          found = @instruments.find { |k, _| k == key }
+          found = @instruments.find { |e| e.name == key }
 
-          found.last if found
+          found.options if found
         end
       end
 
@@ -35,6 +55,7 @@ module Datadog
           dsl = DSL.new
           yield dsl
           settings.merge(dsl)
+          settings
         end
 
         def settings

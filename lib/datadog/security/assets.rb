@@ -6,8 +6,8 @@ module Datadog
     module Assets
       module_function
 
-      def waf_rules
-        @waf_rules ||= read('waf_rules.json')
+      def recommended_waf_rules
+        @recommended_waf_rules ||= read('waf_rules/recommended.json')
       end
 
       def blocked

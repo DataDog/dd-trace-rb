@@ -32,7 +32,8 @@ module Datadog
                 # TODO: raise a proper exception
                 raise if waf_context.context_obj.null?
 
-                action, result = waf_context.run(waf_args)
+                waf_timeout = Datadog::Security.settings.waf_timeout
+                action, result = waf_context.run(waf_args, waf_timeout)
 
                 # TODO: encapsulate return array in a type
                 case action

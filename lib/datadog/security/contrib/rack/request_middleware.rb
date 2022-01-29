@@ -21,7 +21,7 @@ module Datadog
 
             if libddwaf_required?
               Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
-              Datadog::Security::WAF.logger = Datadog.logger if Datadog.logger.debug?
+              Datadog::Security::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::Security.settings.waf_debug
               @waf = Datadog::Security::WAF::Handle.new(waf_rules)
 
               # TODO: check is too low level
@@ -34,7 +34,18 @@ module Datadog
           end
 
           def waf_rules
-            @waf_rules ||= JSON.parse(Datadog::Security::Assets.waf_rules)
+            ruleset_setting = Datadog::Security.settings.ruleset
+            case ruleset_setting
+            when :recommended
+              @waf_rules ||= JSON.parse(Datadog::Security::Assets.recommended_waf_rules)
+            when String
+              filename = ruleset_setting
+              ruleset = File.read(filename)
+              @waf_rules ||= JSON.parse(ruleset)
+            else
+              # TODO: use a proper exception class
+              raise "unsupported value for :ruleset: #{ruleset_setting.inspect}"
+            end
           end
 
           def call(env)
