@@ -9,6 +9,7 @@ module Datadog
           ruleset: :recommended,
           waf_timeout: 5_000, # us
           waf_debug: false,
+          trace_rate_limit: 100, # traces/s
         }
 
         ENVS = {
@@ -16,6 +17,7 @@ module Datadog
           'DD_APPSEC_RULESET' => [:ruleset, -> (v) { v.to_s }],
           'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, -> (v) { v.to_i }],
           'DD_APPSEC_WAF_DEBUG' => [:waf_debug, -> (v) { ['1', 'true'].include?((v || '').downcase) }],
+          'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, -> (v) { v.to_i }],
         }
 
         Integration = Struct.new(:integration, :options)
@@ -39,6 +41,10 @@ module Datadog
 
         def waf_debug
           @options[:waf_debug]
+        end
+
+        def trace_rate_limit
+          @options[:trace_rate_limit]
         end
 
         def merge(dsl)

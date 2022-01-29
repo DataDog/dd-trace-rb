@@ -39,6 +39,10 @@ module Datadog
           options[:waf_debug] = value
         end
 
+        def trace_rate_limit(value)
+          options[:trace_rate_limit] = value
+        end
+
         attr_reader :instruments
         attr_reader :options
 

@@ -1,5 +1,6 @@
 require 'datadog/security/contrib/rack/request'
 require 'datadog/security/contrib/rack/response'
+require 'datadog/security/rate_limiter'
 
 module Datadog
   module Security
@@ -33,7 +34,9 @@ module Datadog
       ].map!(&:downcase)
 
       def self.record(*events)
-        record_via_span(*events)
+        Datadog::Security::RateLimiter.limit(:traces) do
+          record_via_span(*events)
+        end
       end
 
       def self.record_via_span(*events)
