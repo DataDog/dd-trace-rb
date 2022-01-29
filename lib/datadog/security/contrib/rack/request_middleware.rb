@@ -23,10 +23,6 @@ module Datadog
               Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
               Datadog::Security::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::Security.settings.waf_debug
               @waf = Datadog::Security::WAF::Handle.new(waf_rules)
-
-              # TODO: check is too low level
-              # TODO: use proper exception
-              raise if @waf.handle_obj.null?
             else
               Datadog.logger.warn { "libddwaf is missing components. installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}" }
               Datadog.logger.warn { 'AppSec is disabled' }
@@ -54,9 +50,6 @@ module Datadog
             # TODO: handle exceptions, except for @app.call
 
             context = Datadog::Security::WAF::Context.new(@waf)
-            # TODO: check is too low level
-            # TODO: use proper exception
-            raise if context.context_obj.null?
 
             env['datadog.waf.context'] = context
             request = ::Rack::Request.new(env)

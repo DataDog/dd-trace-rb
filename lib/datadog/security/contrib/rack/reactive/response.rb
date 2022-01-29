@@ -28,10 +28,6 @@ module Datadog
                   'server.response.status' => response_status.to_s,
                 }
 
-                # TODO: this check is too low level
-                # TODO: raise a proper exception
-                raise if waf_context.context_obj.null?
-
                 waf_timeout = Datadog::Security.settings.waf_timeout
                 action, result = waf_context.run(waf_args, waf_timeout)
 
