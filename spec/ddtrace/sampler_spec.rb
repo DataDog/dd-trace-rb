@@ -421,4 +421,24 @@ RSpec.describe Datadog::PrioritySampler do
       end
     end
   end
+
+  describe '#update' do
+    subject(:update) { sampler.update(rate_by_service) }
+    let(:rate_by_service) { double }
+
+    context 'with a RateByServiceSampler' do
+      let(:post_sampler) { Datadog::RateByServiceSampler.new }
+      it 'forwards to post_sampler' do
+        expect(post_sampler).to receive(:update).with(rate_by_service)
+        update
+      end
+    end
+
+    context 'with a sampler that does not support #update' do
+      let(:post_sampler) { Object.new }
+      it 'does not attempt to forward call' do
+        expect { update }.to_not raise_error
+      end
+    end
+  end
 end

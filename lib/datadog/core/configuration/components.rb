@@ -244,7 +244,8 @@ module Datadog
 
           def build_test_mode_sampler
             # Do not sample any spans for tests; all must be preserved.
-            Datadog::AllSampler.new
+            # Set priority sampler to ensure the agent doesn't drop any traces.
+            PrioritySampler.new(base_sampler: AllSampler.new, post_sampler: AllSampler.new)
           end
 
           def build_test_mode_writer(settings, agent_settings)
