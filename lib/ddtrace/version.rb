@@ -1,5 +1,5 @@
 # typed: true
-module Datadog
+module DDTrace
   module VERSION
     MAJOR = 1
     MINOR = 0

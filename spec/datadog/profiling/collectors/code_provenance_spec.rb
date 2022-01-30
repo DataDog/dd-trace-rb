@@ -22,7 +22,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         have_attributes(
           type: 'library',
           name: 'ddtrace',
-          version: Datadog::VERSION::STRING,
+          version: DDTrace::VERSION::STRING,
           path: start_with('/'),
         ),
         have_attributes(
@@ -174,7 +174,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         hash_including(
           'name' => 'ddtrace',
           'type' => 'library',
-          'version' => Datadog::VERSION::STRING,
+          'version' => DDTrace::VERSION::STRING,
           'paths' => include(start_with('/')),
         ),
         hash_including(

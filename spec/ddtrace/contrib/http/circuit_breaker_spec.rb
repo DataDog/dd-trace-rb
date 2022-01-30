@@ -59,7 +59,7 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
       context "when the #{Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION} header" do
         context 'is present' do
           let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
-          let(:headers) { { Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING } }
+          let(:headers) { { Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => DDTrace::VERSION::STRING } }
 
           it { is_expected.to be true }
         end

@@ -70,7 +70,7 @@ module Datadog
 
         # @return [String] ddtrace version
         def version
-          VERSION::STRING
+          DDTrace::VERSION::STRING
         end
 
         # @return [String] "ruby"
