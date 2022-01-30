@@ -1,6 +1,5 @@
 require 'datadog/core'
-require 'datadog/core/configuration/validation_proxy'
-
+require 'datadog/tracing/configuration/validation_proxy'
 require 'datadog/tracing/pipeline'
 
 module Datadog
@@ -46,7 +45,7 @@ module Datadog
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        Core::Configuration::ValidationProxy::Tracing.new(
+        Configuration::ValidationProxy.new(
           Datadog.send(:internal_configuration)
         )
       end
@@ -88,7 +87,7 @@ module Datadog
       def configure
         # Wrap block with trace option validation
         wrapped_block = proc do |c|
-          yield(Datadog::Core::Configuration::ValidationProxy::Tracing.new(c))
+          yield(Configuration::ValidationProxy.new(c))
         end
 
         # Configure application normally

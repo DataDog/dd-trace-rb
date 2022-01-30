@@ -1,8 +1,7 @@
 # typed: false
 require 'datadog/core'
-require 'datadog/core/configuration/validation_proxy'
-
 require 'datadog/tracing'
+require 'datadog/ci/configuration/validation_proxy'
 
 module Datadog
   # Namespace for Datadog CI instrumentation:
@@ -18,7 +17,7 @@ module Datadog
     # @!attribute [r] configuration
     # @public_api
     def configuration
-      Core::Configuration::ValidationProxy::CI.new(
+      Configuration::ValidationProxy.new(
         Datadog.send(:internal_configuration)
       )
     end
@@ -57,7 +56,7 @@ module Datadog
     def configure
       # Wrap block with trace option validation
       wrapped_block = proc do |c|
-        yield(Core::Configuration::ValidationProxy::CI.new(c))
+        yield(Configuration::ValidationProxy.new(c))
       end
 
       # Configure application normally

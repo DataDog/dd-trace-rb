@@ -145,7 +145,7 @@ RSpec.describe Datadog::Tracing do
     context 'validation' do
       it 'wraps the configuration object with a proxy' do
         described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
+          expect(c).to be_a_kind_of(Datadog::Tracing::Configuration::ValidationProxy)
         end
       end
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing do
     subject(:configuration) { described_class.configuration }
     it 'returns the global configuration' do
       expect(configuration)
-        .to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
+        .to be_a_kind_of(Datadog::Tracing::Configuration::ValidationProxy)
 
       expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
     end

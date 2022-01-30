@@ -3,7 +3,7 @@ require 'forwardable'
 require 'set'
 require 'datadog/contrib'
 require 'datadog/core/configuration/settings'
-require 'datadog/core/configuration/validation_proxy'
+require 'datadog/tracing/configuration/validation_proxy'
 
 module Datadog
   module Contrib
@@ -20,7 +20,7 @@ module Datadog
         Tracing.singleton_class.prepend Helpers
         Tracing.singleton_class.prepend Configuration
         Core::Configuration::Settings.include Configuration::Settings
-        Core::Configuration::ValidationProxy::Tracing.include Configuration::ValidationProxy
+        Tracing::Configuration::ValidationProxy.include Configuration::ValidationProxy
       end
 
       # Helper methods for Datadog module.
