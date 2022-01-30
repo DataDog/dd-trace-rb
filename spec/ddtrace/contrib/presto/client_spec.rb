@@ -215,8 +215,8 @@ RSpec.describe 'Presto::Client instrumentation' do
 
     shared_examples_for 'a sampled trace' do
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Presto::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Presto::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', false
@@ -315,7 +315,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       it_behaves_like 'a sampled trace'
 
       it 'has a kill resource' do
-        expect(span.resource).to eq(Datadog::Contrib::Presto::Ext::SPAN_KILL)
+        expect(span.resource).to eq(Datadog::Tracing::Contrib::Presto::Ext::SPAN_KILL)
       end
 
       it 'has a query_id tag' do

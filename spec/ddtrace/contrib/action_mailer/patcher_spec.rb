@@ -20,7 +20,7 @@ RSpec.describe 'ActionMailer patcher' do
   let(:configuration_options) { {} }
 
   before do
-    if Datadog::Contrib::ActionMailer::Integration.compatible?
+    if Datadog::Tracing::Contrib::ActionMailer::Integration.compatible?
       Datadog::Tracing.configure do |c|
         c.instrument :action_mailer, configuration_options
       end
@@ -44,11 +44,11 @@ RSpec.describe 'ActionMailer patcher' do
     end
 
     let(:span) do
-      spans.find { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_PROCESS }
+      spans.find { |s| s.name == Datadog::Tracing::Contrib::ActionMailer::Ext::SPAN_PROCESS }
     end
 
     let(:deliver_span) do
-      spans.find { |s| s.name == Datadog::Contrib::ActionMailer::Ext::SPAN_DELIVER }
+      spans.find { |s| s.name == Datadog::Tracing::Contrib::ActionMailer::Ext::SPAN_DELIVER }
     end
 
     before do
@@ -86,8 +86,8 @@ RSpec.describe 'ActionMailer patcher' do
 
       it_behaves_like 'analytics for integration' do
         before { UserMailer.test_mail(1).deliver_now }
-        let(:analytics_enabled_var) { Datadog::Contrib::ActionMailer::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::ActionMailer::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActionMailer::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActionMailer::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', true

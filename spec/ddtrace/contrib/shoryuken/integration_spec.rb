@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/shoryuken/integration'
 
-RSpec.describe Datadog::Contrib::Shoryuken::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:shoryuken) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Shoryuken::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Shoryuken::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Shoryuken::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Shoryuken::Patcher }
   end
 end

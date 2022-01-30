@@ -14,7 +14,7 @@ require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'spec/support/thread_helpers'
 
-RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
+RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
   before(:all) do
     # TODO: Consolidate mock webserver code
     @log_buffer = StringIO.new # set to $stderr to debug
@@ -138,8 +138,8 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
           end
 
           it_behaves_like 'analytics for integration' do
-            let(:analytics_enabled_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }
-            let(:analytics_sample_rate_var) { Datadog::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+            let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_ENABLED }
+            let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Httprb::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
         end
 
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Contrib::Httprb::Instrumentation do
 
           it do
             http_response
-            expect(span.name).to eq(Datadog::Contrib::Httprb::Ext::SPAN_REQUEST)
+            expect(span.name).to eq(Datadog::Tracing::Contrib::Httprb::Ext::SPAN_REQUEST)
             expect(span.service).to eq(host)
             expect(span.resource).to eq('POST')
           end

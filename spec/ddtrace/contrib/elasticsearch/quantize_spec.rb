@@ -5,7 +5,7 @@ require 'elasticsearch-transport'
 require 'ddtrace'
 require 'ddtrace/contrib/elasticsearch/quantize'
 
-RSpec.describe Datadog::Contrib::Elasticsearch::Quantize do
+RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
   describe '#format_url' do
     shared_examples_for 'a quantized URL' do |url, expected_url|
       subject(:quantized_url) { described_class.format_url(url) }

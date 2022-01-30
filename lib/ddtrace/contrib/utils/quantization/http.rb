@@ -3,92 +3,94 @@ require 'uri'
 require 'set'
 
 module Datadog
-  module Contrib
-    module Utils
-      module Quantization
-        # Quantization for HTTP resources
-        module HTTP
-          include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
+  module Tracing
+    module Contrib
+      module Utils
+        module Quantization
+          # Quantization for HTTP resources
+          module HTTP
+            include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
 
-          PLACEHOLDER = '?'.freeze
+            PLACEHOLDER = '?'.freeze
 
-          module_function
+            module_function
 
-          def url(url, options = {})
-            url!(url, options)
-          rescue StandardError
-            options[:placeholder] || PLACEHOLDER
-          end
+            def url(url, options = {})
+              url!(url, options)
+            rescue StandardError
+              options[:placeholder] || PLACEHOLDER
+            end
 
-          def url!(url, options = {})
-            options ||= {}
+            def url!(url, options = {})
+              options ||= {}
 
-            URI.parse(url).tap do |uri|
-              # Format the query string
-              if uri.query
-                query = query(uri.query, options[:query])
-                uri.query = (!query.nil? && query.empty? ? nil : query)
-              end
+              URI.parse(url).tap do |uri|
+                # Format the query string
+                if uri.query
+                  query = query(uri.query, options[:query])
+                  uri.query = (!query.nil? && query.empty? ? nil : query)
+                end
 
-              # Remove any URI framents
-              uri.fragment = nil unless options[:fragment] == :show
-            end.to_s
-          end
+                # Remove any URI framents
+                uri.fragment = nil unless options[:fragment] == :show
+              end.to_s
+            end
 
-          def query(query, options = {})
-            query!(query, options)
-          rescue StandardError
-            options[:placeholder] || PLACEHOLDER
-          end
+            def query(query, options = {})
+              query!(query, options)
+            rescue StandardError
+              options[:placeholder] || PLACEHOLDER
+            end
 
-          def query!(query, options = {})
-            options ||= {}
-            options[:show] = options[:show] || []
-            options[:exclude] = options[:exclude] || []
+            def query!(query, options = {})
+              options ||= {}
+              options[:show] = options[:show] || []
+              options[:exclude] = options[:exclude] || []
 
-            # Short circuit if query string is meant to exclude everything
-            # or if the query string is meant to include everything
-            return '' if options[:exclude] == :all
-            return query if options[:show] == :all
+              # Short circuit if query string is meant to exclude everything
+              # or if the query string is meant to include everything
+              return '' if options[:exclude] == :all
+              return query if options[:show] == :all
 
-            collect_query(query, uniq: true) do |key, value|
-              if options[:exclude].include?(key)
-                [nil, nil]
-              else
-                value = options[:show].include?(key) ? value : nil
-                [key, value]
+              collect_query(query, uniq: true) do |key, value|
+                if options[:exclude].include?(key)
+                  [nil, nil]
+                else
+                  value = options[:show].include?(key) ? value : nil
+                  [key, value]
+                end
               end
             end
+
+            # Iterate over each key value pair, yielding to the block given.
+            # Accepts :uniq option, which keeps uniq copies of keys without values.
+            # e.g. Reduces "foo&bar=bar&bar=bar&foo" to "foo&bar=bar&bar=bar"
+            def collect_query(query, options = {})
+              return query unless block_given?
+
+              uniq = options[:uniq].nil? ? false : options[:uniq]
+              keys = Set.new
+
+              delims = query.scan(/(^|&|;)/).flatten
+              query.split(/[&;]/).collect.with_index do |pairs, i|
+                key, value = pairs.split('=', 2)
+                key, value = yield(key, value, delims[i])
+                if uniq && keys.include?(key)
+                  ''
+                elsif key && value
+                  "#{delims[i]}#{key}=#{value}"
+                elsif key
+                  "#{delims[i]}#{key}".tap { keys << key }
+                # rubocop:disable Lint/DuplicateBranch
+                else
+                  ''
+                end
+                # rubocop:enable Lint/DuplicateBranch
+              end.join.sub(/^[&;]/, '')
+            end
+
+            private_class_method :collect_query
           end
-
-          # Iterate over each key value pair, yielding to the block given.
-          # Accepts :uniq option, which keeps uniq copies of keys without values.
-          # e.g. Reduces "foo&bar=bar&bar=bar&foo" to "foo&bar=bar&bar=bar"
-          def collect_query(query, options = {})
-            return query unless block_given?
-
-            uniq = options[:uniq].nil? ? false : options[:uniq]
-            keys = Set.new
-
-            delims = query.scan(/(^|&|;)/).flatten
-            query.split(/[&;]/).collect.with_index do |pairs, i|
-              key, value = pairs.split('=', 2)
-              key, value = yield(key, value, delims[i])
-              if uniq && keys.include?(key)
-                ''
-              elsif key && value
-                "#{delims[i]}#{key}=#{value}"
-              elsif key
-                "#{delims[i]}#{key}".tap { keys << key }
-              # rubocop:disable Lint/DuplicateBranch
-              else
-                ''
-              end
-              # rubocop:enable Lint/DuplicateBranch
-            end.join.sub(/^[&;]/, '')
-          end
-
-          private_class_method :collect_query
         end
       end
     end

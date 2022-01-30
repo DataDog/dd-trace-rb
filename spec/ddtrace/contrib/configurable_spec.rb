@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Configurable do
+RSpec.describe Datadog::Tracing::Contrib::Configurable do
   describe 'implemented' do
     subject(:configurable_class) do
       Class.new.tap do |klass|
@@ -17,7 +17,7 @@ RSpec.describe Datadog::Contrib::Configurable do
       describe '#default_configuration' do
         subject(:default_configuration) { configurable_object.default_configuration }
 
-        it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
+        it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings) }
 
         it 'defaults to being enabled' do
           expect(default_configuration[:enabled]).to be true
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Contrib::Configurable do
         context 'when no key is provided' do
           subject(:configuration) { configurable_object.configuration }
 
-          it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
+          it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings) }
           it { is_expected.to be(configurable_object.configurations[:default]) }
         end
 
@@ -58,12 +58,12 @@ RSpec.describe Datadog::Contrib::Configurable do
           context 'and the configuration exists' do
             before { configurable_object.configure(:foo, service_name: 'bar') }
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings) }
             it { is_expected.to be(configurable_object.configurations[:foo]) }
           end
 
           context 'but the configuration doesn\'t exist' do
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings) }
             it { is_expected.to be(configurable_object.configurations[:default]) }
           end
         end
@@ -73,7 +73,7 @@ RSpec.describe Datadog::Contrib::Configurable do
         subject(:configurations) { configurable_object.configurations }
 
         context 'when nothing has been explicitly configured' do
-          it { is_expected.to include(default: a_kind_of(Datadog::Contrib::Configuration::Settings)) }
+          it { is_expected.to include(default: a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)) }
         end
 
         context 'when a configuration has been added' do
@@ -81,8 +81,8 @@ RSpec.describe Datadog::Contrib::Configurable do
 
           it do
             is_expected.to include(
-              default: a_kind_of(Datadog::Contrib::Configuration::Settings),
-              foo: a_kind_of(Datadog::Contrib::Configuration::Settings)
+              default: a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings),
+              foo: a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
             )
           end
         end

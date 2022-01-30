@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/semantic_logger/integration'
 
-RSpec.describe Datadog::Contrib::SemanticLogger::Integration do
+RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:semantic_logger) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::SemanticLogger::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::SemanticLogger::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::SemanticLogger::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::SemanticLogger::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::SemanticLogger::Patcher }
   end
 end

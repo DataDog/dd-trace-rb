@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/sidekiq/integration'
 
-RSpec.describe Datadog::Contrib::Sidekiq::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:sidekiq) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Sidekiq::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Sidekiq::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Sidekiq::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Sidekiq::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Sidekiq::Patcher }
   end
 end

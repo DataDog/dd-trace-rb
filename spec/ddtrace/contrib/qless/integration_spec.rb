@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace/contrib/qless/integration'
 
-RSpec.describe Datadog::Contrib::Qless::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Qless::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:qless) }
@@ -62,12 +62,12 @@ RSpec.describe Datadog::Contrib::Qless::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Qless::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Qless::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Qless::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Qless::Patcher }
   end
 end

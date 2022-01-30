@@ -10,7 +10,7 @@ require 'ddtrace/contrib/rails/rails_helper'
 # raise 'Redis cannot be loaded for a realistic Rails test' if defined? Redis
 RSpec.describe 'Rails Redis cache' do
   before(:all) do
-    expect(Datadog::Contrib::ActiveSupport::Cache::Patcher.patched?).to(
+    expect(Datadog::Tracing::Contrib::ActiveSupport::Cache::Patcher.patched?).to(
       be_falsey, <<MESSAGE)
       ActiveSupport::Cache has already been patched.
       This suite tests the behaviour of dd-trace-rb when patching with Redis enabled.

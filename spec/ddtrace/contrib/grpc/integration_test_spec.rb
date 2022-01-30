@@ -15,7 +15,7 @@ RSpec.describe 'gRPC integration test' do
 
   context 'multiple client configurations' do
     let(:configured_interceptor) do
-      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+      Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
         c.service_name = 'awesome sauce'
       end
     end

@@ -10,7 +10,7 @@ module Datadog
       module Cucumber
         # Description of Cucumber integration
         class Integration
-          include Datadog::Contrib::Integration
+          include Datadog::Tracing::Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('3.0.0')
 

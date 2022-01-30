@@ -46,8 +46,8 @@ RSpec.describe 'Qless instrumentation' do
       end
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::Qless::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Qless::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Qless::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Qless::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', true
@@ -96,7 +96,7 @@ RSpec.describe 'Qless instrumentation' do
 
     describe 'patching for workers' do
       it 'adds the instrumentation module' do
-        expect(worker.singleton_class.included_modules).to include(Datadog::Contrib::Qless::QlessJob)
+        expect(worker.singleton_class.included_modules).to include(Datadog::Tracing::Contrib::Qless::QlessJob)
       end
     end
   end

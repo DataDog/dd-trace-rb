@@ -8,7 +8,7 @@ require 'ddtrace/contrib/analytics_examples'
 
 require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
 
-RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
+RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
   let(:configuration_options) { {} }
   let(:easy) { EthonSupport.ethon_easy_new }
 
@@ -61,7 +61,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it do
         subject
-        expect(span_op.name).to eq(Datadog::Contrib::Ethon::Ext::SPAN_REQUEST)
+        expect(span_op.name).to eq(Datadog::Tracing::Contrib::Ethon::Ext::SPAN_REQUEST)
         expect(span_op.service).to eq('example.com')
         expect(span_op.resource).to eq('N/A')
       end
@@ -103,8 +103,8 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       let(:span) { span_op }
       before { subject }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', false do

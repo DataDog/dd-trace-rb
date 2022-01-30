@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Configuration::Settings do
+RSpec.describe Datadog::Tracing::Contrib::Configuration::Settings do
   subject(:settings) { described_class.new }
 
   it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::Base) }

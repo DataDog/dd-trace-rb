@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/grape/integration'
 
-RSpec.describe Datadog::Contrib::Grape::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Grape::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:grape) }
@@ -92,12 +92,12 @@ RSpec.describe Datadog::Contrib::Grape::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Grape::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Grape::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Grape::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Grape::Patcher }
   end
 end

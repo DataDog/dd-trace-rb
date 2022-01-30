@@ -23,7 +23,7 @@ RSpec.describe 'Rack integration tests' do
       app_routes = routes
 
       Rack::Builder.new do
-        use Datadog::Contrib::Rack::TraceMiddleware
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         instance_eval(&app_routes)
       end.to_app
     end
@@ -356,7 +356,7 @@ RSpec.describe 'Rack integration tests' do
               run(proc do |env|
                 # This should be considered a web framework that can alter
                 # the request span after routing / controller processing
-                request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+                request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
                 request_span.resource = 'GET /app/'
                 request_span.set_tag('http.method', 'GET_V2')
                 request_span.set_tag('http.status_code', 201)
@@ -412,7 +412,7 @@ RSpec.describe 'Rack integration tests' do
                 run(proc do |env|
                   # this should be considered a web framework that can alter
                   # the request span after routing / controller processing
-                  request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+                  request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
                   request_span.status = 1
                   request_span.set_tag('error.stack', 'Handled exception')
 
@@ -452,7 +452,7 @@ RSpec.describe 'Rack integration tests' do
                 run(proc do |env|
                   # this should be considered a web framework that can alter
                   # the request span after routing / controller processing
-                  request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+                  request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
                   request_span.set_tag('error.stack', 'Handled exception')
 
                   [500, { 'Content-Type' => 'text/html' }, ['OK']]

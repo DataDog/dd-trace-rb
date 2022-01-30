@@ -39,19 +39,19 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     let(:test_obj) { TestModel.new(name: 'test object') }
     let(:serializer) { 'TestModelSerializer' }
     let(:adapter) { 'ActiveModelSerializers::Adapter::Attributes' }
-    let(:event) { Datadog::Contrib::ActiveModelSerializers::Patcher.send(:event_name) }
+    let(:event) { Datadog::Tracing::Contrib::ActiveModelSerializers::Patcher.send(:event_name) }
     let(:name) do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
-        Datadog::Contrib::ActiveModelSerializers::Events::Render.span_name
+        Datadog::Tracing::Contrib::ActiveModelSerializers::Events::Render.span_name
       else
-        Datadog::Contrib::ActiveModelSerializers::Events::Serialize.span_name
+        Datadog::Tracing::Contrib::ActiveModelSerializers::Events::Serialize.span_name
       end
     end
     let(:operation_name) do
       if ActiveModelSerializersHelpers.ams_0_10_or_newer?
-        Datadog::Contrib::ActiveModelSerializers::Ext::TAG_OPERATION_RENDER
+        Datadog::Tracing::Contrib::ActiveModelSerializers::Ext::TAG_OPERATION_RENDER
       else
-        Datadog::Contrib::ActiveModelSerializers::Ext::TAG_OPERATION_SERIALIZE
+        Datadog::Tracing::Contrib::ActiveModelSerializers::Ext::TAG_OPERATION_SERIALIZE
       end
     end
 
@@ -64,8 +64,13 @@ RSpec.describe 'ActiveModelSerializers patcher' do
         subject(:render) { ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash }
 
         it_behaves_like 'analytics for integration' do
-          let(:analytics_enabled_var) { Datadog::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) do
+            Datadog::Tracing::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_ENABLED
+          end
+
+          let(:analytics_sample_rate_var) do
+            Datadog::Tracing::Contrib::ActiveModelSerializers::Ext::ENV_ANALYTICS_SAMPLE_RATE
+          end
 
           let(:span) do
             render

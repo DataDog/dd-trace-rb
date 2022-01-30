@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'que'
 
-RSpec.describe Datadog::Contrib::Que::Patcher do
+RSpec.describe Datadog::Tracing::Contrib::Que::Patcher do
   describe '.patch' do
     subject!(:patch) { described_class.patch }
 
@@ -13,6 +13,6 @@ RSpec.describe Datadog::Contrib::Que::Patcher do
       described_class.patch
     end
 
-    it { expect(middlewares).to include(Datadog::Contrib::Que::Tracer) }
+    it { expect(middlewares).to include(Datadog::Tracing::Contrib::Que::Tracer) }
   end
 end

@@ -867,7 +867,7 @@ If you use multiple connections with Excon, you can give each of them different 
 # Wrap the Datadog tracing middleware around the default middleware stack
 Excon.new(
   'http://example.com',
-  middlewares: Datadog::Contrib::Excon::Middleware.with(options).around_default_stack
+  middlewares: Datadog::Tracing::Contrib::Excon::Middleware.with(options).around_default_stack
 )
 
 # Insert the middleware into a custom middleware stack.
@@ -876,7 +876,7 @@ Excon.new(
   'http://example.com',
   middlewares: [
     Excon::Middleware::ResponseParser,
-    Datadog::Contrib::Excon::Middleware.with(options),
+    Datadog::Tracing::Contrib::Excon::Middleware.with(options),
     Excon::Middleware::Idempotent
   ]
 )
@@ -1057,7 +1057,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 In situations where you have multiple clients calling multiple distinct services, you may pass the Datadog interceptor directly, like so
 
 ```ruby
-configured_interceptor = Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+configured_interceptor = Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
   c.service_name = "Alternate"
 end
 
@@ -1386,7 +1386,7 @@ Datadog::Tracing.configure do |c|
   c.instrument :rack, options
 end
 
-use Datadog::Contrib::Rack::TraceMiddleware
+use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
 app = proc do |env|
   [ 200, {'Content-Type' => 'text/plain'}, ['OK'] ]
@@ -1807,7 +1807,7 @@ Datadog::Tracing.configure do |c|
 end
 
 class NestedApp < Sinatra::Base
-  register Datadog::Contrib::Sinatra::Tracer
+  register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   get '/nested' do
     'Hello from nested app!'
@@ -1815,7 +1815,7 @@ class NestedApp < Sinatra::Base
 end
 
 class App < Sinatra::Base
-  register Datadog::Contrib::Sinatra::Tracer
+  register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   use NestedApp
 
@@ -1825,7 +1825,7 @@ class App < Sinatra::Base
 end
 ```
 
-Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
+Ensure you register `Datadog::Tracing::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
 
 #### Instrumentation options
 

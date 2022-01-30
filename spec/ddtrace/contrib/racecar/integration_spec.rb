@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/racecar/integration'
 
-RSpec.describe Datadog::Contrib::Racecar::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Racecar::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:racecar) }
@@ -92,12 +92,12 @@ RSpec.describe Datadog::Contrib::Racecar::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Racecar::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Racecar::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Racecar::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Racecar::Patcher }
   end
 end

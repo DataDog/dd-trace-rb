@@ -5,7 +5,7 @@ require 'rack'
 require 'ddtrace'
 require 'ddtrace/contrib/rack/middlewares'
 
-RSpec.describe Datadog::Contrib::Rack::TraceMiddleware do
+RSpec.describe Datadog::Tracing::Contrib::Rack::TraceMiddleware do
   subject(:middleware) { described_class.new(app) }
 
   let(:app) { instance_double(Rack::Builder) }

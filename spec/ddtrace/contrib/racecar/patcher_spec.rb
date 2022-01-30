@@ -33,7 +33,7 @@ RSpec.describe 'Racecar patcher' do
     let(:payload) { { consumer_class: consumer } }
 
     let(:span) do
-      spans.find { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_CONSUME }
+      spans.find { |s| s.name == Datadog::Tracing::Contrib::Racecar::Ext::SPAN_CONSUME }
     end
 
     context 'that doesn\'t raise an error' do
@@ -80,8 +80,8 @@ RSpec.describe 'Racecar patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('main_loop.racecar', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -104,7 +104,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:span) do
-      spans.find { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_MESSAGE }
+      spans.find { |s| s.name == Datadog::Tracing::Contrib::Racecar::Ext::SPAN_MESSAGE }
     end
 
     context 'that doesn\'t raise an error' do
@@ -159,8 +159,8 @@ RSpec.describe 'Racecar patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_message.racecar', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -185,7 +185,7 @@ RSpec.describe 'Racecar patcher' do
     end
 
     let(:span) do
-      spans.find { |s| s.name == Datadog::Contrib::Racecar::Ext::SPAN_BATCH }
+      spans.find { |s| s.name == Datadog::Tracing::Contrib::Racecar::Ext::SPAN_BATCH }
     end
 
     context 'that doesn\'t raise an error' do
@@ -241,8 +241,8 @@ RSpec.describe 'Racecar patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_batch.racecar', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Racecar::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Racecar::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do

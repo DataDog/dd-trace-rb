@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require_relative 'delayed_job_active_record'
 
-RSpec.describe Datadog::Contrib::DelayedJob::Patcher, :delayed_job_active_record do
+RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Patcher, :delayed_job_active_record do
   describe '.patch' do
     let(:worker_plugins) { [] }
     let!(:delayed_worker_class) { class_double('Delayed::Worker', plugins: worker_plugins).as_stubbed_const }

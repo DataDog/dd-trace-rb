@@ -7,7 +7,7 @@ require 'grpc'
 require 'ddtrace'
 
 RSpec.describe 'tracing on the server connection' do
-  subject(:server) { Datadog::Contrib::GRPC::DatadogInterceptor::Server.new }
+  subject(:server) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new }
 
   let(:configuration_options) { { service_name: 'rspec' } }
 
@@ -38,8 +38,8 @@ RSpec.describe 'tracing on the server connection' do
     end
 
     it_behaves_like 'analytics for integration' do
-      let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'a non-peer service span'

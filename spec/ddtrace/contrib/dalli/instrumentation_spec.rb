@@ -35,8 +35,8 @@ RSpec.describe 'Dalli instrumentation' do
     end
 
     it_behaves_like 'analytics for integration' do
-      let(:analytics_enabled_var) { Datadog::Contrib::Dalli::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Dalli::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Dalli::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Dalli::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', false

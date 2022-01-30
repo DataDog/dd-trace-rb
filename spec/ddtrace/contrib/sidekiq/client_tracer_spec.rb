@@ -13,7 +13,7 @@ RSpec.describe 'ClientTracerTest' do
     Sidekiq.configure_client do |config|
       config.client_middleware.clear
       config.client_middleware do |chain|
-        chain.add(Datadog::Contrib::Sidekiq::ClientTracer)
+        chain.add(Datadog::Tracing::Contrib::Sidekiq::ClientTracer)
       end
     end
 

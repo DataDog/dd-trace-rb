@@ -129,7 +129,7 @@ RSpec.describe Datadog::Tracing do
   describe '.registry' do
     subject(:registry) { described_class.registry }
     it 'returns the global registry' do
-      expect(registry).to eq(Datadog::Contrib::REGISTRY)
+      expect(registry).to eq(Datadog::Tracing::Contrib::REGISTRY)
     end
   end
 

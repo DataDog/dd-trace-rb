@@ -6,20 +6,22 @@ require 'ddtrace/contrib/sneakers/integration'
 require 'ddtrace/contrib/sneakers/tracer'
 
 module Datadog
-  module Contrib
-    module Sneakers
-      # Patcher enables patching of 'sneakers' module.
-      module Patcher
-        include Contrib::Patcher
+  module Tracing
+    module Contrib
+      module Sneakers
+        # Patcher enables patching of 'sneakers' module.
+        module Patcher
+          include Contrib::Patcher
 
-        module_function
+          module_function
 
-        def target_version
-          Integration.version
-        end
+          def target_version
+            Integration.version
+          end
 
-        def patch
-          ::Sneakers.middleware.use(Sneakers::Tracer, nil)
+          def patch
+            ::Sneakers.middleware.use(Sneakers::Tracer, nil)
+          end
         end
       end
     end

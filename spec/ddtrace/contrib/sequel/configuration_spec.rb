@@ -9,7 +9,7 @@ require 'ddtrace/contrib/sequel/patcher'
 
 RSpec.describe 'Sequel configuration' do
   before do
-    skip unless Datadog::Contrib::Sequel::Integration.compatible?
+    skip unless Datadog::Tracing::Contrib::Sequel::Integration.compatible?
   end
 
   let(:span) { spans.first }

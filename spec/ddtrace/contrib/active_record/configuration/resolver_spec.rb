@@ -4,7 +4,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'active_record'
 require 'ddtrace/contrib/active_record/configuration/resolver'
 
-RSpec.describe Datadog::Contrib::ActiveRecord::Configuration::Resolver do
+RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver do
   subject(:resolver) { described_class.new(configuration) }
 
   let(:configuration) { nil }

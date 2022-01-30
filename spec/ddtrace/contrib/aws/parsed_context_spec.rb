@@ -4,7 +4,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'aws-sdk'
 require 'ddtrace/contrib/aws/parsed_context'
 
-RSpec.describe Datadog::Contrib::Aws::ParsedContext do
+RSpec.describe Datadog::Tracing::Contrib::Aws::ParsedContext do
   subject(:parsed_context) { described_class.new(context) }
 
   let(:context) { client.list_buckets.context }

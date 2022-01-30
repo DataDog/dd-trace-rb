@@ -71,7 +71,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           is_expected.to be_ok
           expect(spans).to have(3).items
           spans.each do |span|
-            if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
+            if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /endpoint')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
@@ -79,8 +79,8 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
             end
 
             expect(span.resource).to eq('GET /endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/one')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/endpoint')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/one')
           end
         end
       end
@@ -92,7 +92,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           is_expected.to be_ok
           expect(spans).to have(3).items
           spans.each do |span|
-            if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
+            if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /endpoint')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
@@ -100,8 +100,8 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
             end
 
             expect(span.resource).to eq('GET /endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/two')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/endpoint')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/two')
           end
         end
       end
@@ -117,7 +117,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           is_expected.to be_ok
           expect(spans).to have(3).items
           spans.each do |span|
-            if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
+            if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /one/endpoint')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
@@ -125,8 +125,8 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
             end
 
             expect(span.resource).to eq('GET /one/endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/one/endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/one')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/one/endpoint')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/one')
           end
         end
       end
@@ -138,7 +138,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
           is_expected.to be_ok
           expect(spans).to have(3).items
           spans.each do |span|
-            if span.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST
+            if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST
               expect(span.resource).to eq('GET /two/endpoint')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/endpoint')
 
@@ -146,8 +146,8 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
             end
 
             expect(span.resource).to eq('GET /two/endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/two/endpoint')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/two')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/two/endpoint')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to eq('/two')
           end
         end
       end

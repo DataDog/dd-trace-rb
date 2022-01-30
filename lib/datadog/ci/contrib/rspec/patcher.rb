@@ -9,7 +9,7 @@ module Datadog
       module RSpec
         # Patcher enables patching of 'rspec' module.
         module Patcher
-          include Datadog::Contrib::Patcher
+          include Datadog::Tracing::Contrib::Patcher
 
           module_function
 

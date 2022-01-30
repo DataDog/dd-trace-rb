@@ -4,7 +4,7 @@ require 'ddtrace'
 
 require 'ddtrace/contrib/active_support/notifications/subscriber'
 
-RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
+RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber do
   describe 'implemented' do
     subject(:test_class) do
       Class.new.tap do |klass|
@@ -96,15 +96,16 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
             let(:block) { proc {} }
 
             before do
-              expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
+              expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
                 .with(span_name, options)
                 .and_call_original
 
-              expect_any_instance_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:subscribe)
+              expect_any_instance_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription)
+                .to receive(:subscribe)
                 .with(pattern)
             end
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription) }
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
 
@@ -116,12 +117,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscriber do
             let(:block) { proc {} }
 
             before do
-              expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
+              expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
                 .with(span_name, options)
                 .and_call_original
             end
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription) }
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
         end

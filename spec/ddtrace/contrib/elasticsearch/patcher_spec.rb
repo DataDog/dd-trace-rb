@@ -6,7 +6,7 @@ require 'ddtrace/contrib/integration_examples'
 require 'ddtrace'
 require 'elasticsearch-transport'
 
-RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
+RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
   let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
   let(:server) { "http://#{host}:#{port}" }
@@ -138,8 +138,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       before { request }
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::Elasticsearch::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Elasticsearch::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Elasticsearch::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Elasticsearch::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', false

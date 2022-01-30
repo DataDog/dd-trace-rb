@@ -37,7 +37,7 @@ RSpec.describe 'Rack integration with other middleware' do
       bottom_mw = bottom_middleware
 
       Rack::Builder.new do
-        use Datadog::Contrib::Rack::TraceMiddleware
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         use auth_mw
         run bottom_mw.new
       end.to_app

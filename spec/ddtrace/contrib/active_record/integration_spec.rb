@@ -4,7 +4,7 @@ require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/active_record/integration'
 
-RSpec.describe Datadog::Contrib::ActiveRecord::Integration do
+RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:active_record) }
@@ -67,18 +67,18 @@ RSpec.describe Datadog::Contrib::ActiveRecord::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveRecord::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveRecord::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::ActiveRecord::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::ActiveRecord::Patcher }
   end
 
   describe '#resolver' do
     subject(:resolver) { integration.resolver }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveRecord::Configuration::Resolver) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver) }
   end
 end

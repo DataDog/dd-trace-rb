@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/sinatra/integration'
 
-RSpec.describe Datadog::Contrib::Sinatra::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Sinatra::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:sinatra) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Sinatra::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Sinatra::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Sinatra::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Sinatra::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Sinatra::Patcher }
   end
 end

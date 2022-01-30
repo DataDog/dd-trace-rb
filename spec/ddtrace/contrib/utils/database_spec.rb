@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace/contrib/utils/database'
 
-RSpec.describe Datadog::Contrib::Utils::Database do
+RSpec.describe Datadog::Tracing::Contrib::Utils::Database do
   describe '#normalize_vendor' do
     subject(:result) { described_class.normalize_vendor(value) }
 

@@ -74,21 +74,21 @@ RSpec.shared_context 'Rails test application' do
 
   let(:tracer_options) { {} }
 
-  let(:app_name) { Datadog::Contrib::Rails::Utils.app_name }
+  let(:app_name) { Datadog::Tracing::Contrib::Rails::Utils.app_name }
 
   def adapter_name
-    Datadog::Contrib::ActiveRecord::Utils.adapter_name
+    Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_name
   end
 
   def adapter_host
-    Datadog::Contrib::ActiveRecord::Utils.adapter_host
+    Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_host
   end
 
   def adapter_port
-    Datadog::Contrib::ActiveRecord::Utils.adapter_port
+    Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_port
   end
 
   def database_name
-    Datadog::Contrib::ActiveRecord::Utils.database_name
+    Datadog::Tracing::Contrib::ActiveRecord::Utils.database_name
   end
 end

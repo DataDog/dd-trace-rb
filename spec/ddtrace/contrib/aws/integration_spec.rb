@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/aws/integration'
 
-RSpec.describe Datadog::Contrib::Aws::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Aws::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:aws) }
@@ -73,12 +73,12 @@ RSpec.describe Datadog::Contrib::Aws::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Aws::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Aws::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Aws::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Aws::Patcher }
   end
 end

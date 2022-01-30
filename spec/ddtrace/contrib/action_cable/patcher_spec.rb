@@ -18,7 +18,7 @@ rescue LoadError
 end
 
 RSpec.describe 'ActionCable patcher' do
-  before { skip('ActionCable not supported') unless Datadog::Contrib::ActionCable::Integration.compatible? }
+  before { skip('ActionCable not supported') unless Datadog::Tracing::Contrib::ActionCable::Integration.compatible? }
 
   let(:configuration_options) { {} }
   let(:span) do
@@ -71,14 +71,22 @@ RSpec.describe 'ActionCable patcher' do
       end
 
       it_behaves_like 'analytics for integration' do
-        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Broadcast::EVENT_NAME) }
+        before do
+          ActiveSupport::Notifications.instrument(
+            Datadog::Tracing::Contrib::ActionCable::Events::Broadcast::EVENT_NAME
+          )
+        end
 
-        let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', false do
-        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Broadcast::EVENT_NAME) }
+        before do
+          ActiveSupport::Notifications.instrument(
+            Datadog::Tracing::Contrib::ActionCable::Events::Broadcast::EVENT_NAME
+          )
+        end
       end
     end
   end
@@ -160,14 +168,22 @@ RSpec.describe 'ActionCable patcher' do
       end
 
       it_behaves_like 'analytics for integration' do
-        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
+        before do
+          ActiveSupport::Notifications.instrument(
+            Datadog::Tracing::Contrib::ActionCable::Events::PerformAction::EVENT_NAME
+          )
+        end
 
-        let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', true do
-        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::PerformAction::EVENT_NAME) }
+        before do
+          ActiveSupport::Notifications.instrument(
+            Datadog::Tracing::Contrib::ActionCable::Events::PerformAction::EVENT_NAME
+          )
+        end
       end
 
       context 'with a leaking context' do
@@ -211,14 +227,22 @@ RSpec.describe 'ActionCable patcher' do
       end
 
       it_behaves_like 'analytics for integration' do
-        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
+        before do
+          ActiveSupport::Notifications.instrument(
+            Datadog::Tracing::Contrib::ActionCable::Events::Transmit::EVENT_NAME
+          )
+        end
 
-        let(:analytics_enabled_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::ActionCable::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::ActionCable::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', false do
-        before { ActiveSupport::Notifications.instrument(Datadog::Contrib::ActionCable::Events::Transmit::EVENT_NAME) }
+        before do
+          ActiveSupport::Notifications.instrument(
+            Datadog::Tracing::Contrib::ActionCable::Events::Transmit::EVENT_NAME
+          )
+        end
       end
     end
   end

@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/lograge/integration'
 
-RSpec.describe Datadog::Contrib::Lograge::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Lograge::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:lograge) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::Lograge::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Lograge::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Lograge::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Lograge::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Lograge::Patcher }
   end
 end

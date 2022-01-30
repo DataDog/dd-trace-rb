@@ -211,7 +211,7 @@ RSpec.describe 'Rails cache' do
 
       it do
         expect(::ActiveSupport::Cache::Store.ancestors).not_to(
-          include(::Datadog::Contrib::ActiveSupport::Cache::Instrumentation::WriteMulti)
+          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::WriteMulti)
         )
       end
 
@@ -328,7 +328,7 @@ RSpec.describe 'Rails cache' do
 
       it do
         expect(::ActiveSupport::Cache::Store.ancestors).not_to(
-          include(::Datadog::Contrib::ActiveSupport::Cache::Instrumentation::FetchMulti)
+          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::FetchMulti)
         )
       end
 
@@ -340,7 +340,7 @@ RSpec.describe 'Rails cache' do
 
   context 'with very large cache key' do
     it 'truncates key too large' do
-      max_key_size = Datadog::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
+      max_key_size = Datadog::Tracing::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
       large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
       cache.write(large_key, 'foobar')
 

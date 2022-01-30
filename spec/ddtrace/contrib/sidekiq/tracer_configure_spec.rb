@@ -14,7 +14,7 @@ RSpec.describe 'Tracer configuration' do
     before do
       Sidekiq::Testing.server_middleware do |chain|
         chain.add(
-          Datadog::Contrib::Sidekiq::ServerTracer,
+          Datadog::Tracing::Contrib::Sidekiq::ServerTracer,
           service_name: 'my-service',
           error_handler: error_handler
         )

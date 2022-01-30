@@ -5,20 +5,22 @@ require 'ddtrace/contrib/dalli/integration'
 require 'ddtrace/contrib/patcher'
 
 module Datadog
-  module Contrib
-    module Dalli
-      # Patcher enables patching of 'dalli' module.
-      module Patcher
-        include Contrib::Patcher
+  module Tracing
+    module Contrib
+      module Dalli
+        # Patcher enables patching of 'dalli' module.
+        module Patcher
+          include Contrib::Patcher
 
-        module_function
+          module_function
 
-        def target_version
-          Integration.version
-        end
+          def target_version
+            Integration.version
+          end
 
-        def patch
-          ::Dalli::Server.include(Instrumentation)
+          def patch
+            ::Dalli::Server.include(Instrumentation)
+          end
         end
       end
     end

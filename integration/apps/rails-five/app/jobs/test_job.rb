@@ -2,7 +2,7 @@ require 'ddtrace/contrib/resque/resque_job'
 
 module Jobs
   class Test
-    extend Datadog::Contrib::Resque::ResqueJob
+    extend Datadog::Tracing::Contrib::Resque::ResqueJob
     @queue = :default
 
     def self.perform(params)

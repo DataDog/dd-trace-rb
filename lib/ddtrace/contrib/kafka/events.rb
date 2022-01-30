@@ -10,34 +10,36 @@ require 'ddtrace/contrib/kafka/events/produce_operation/send_messages'
 require 'ddtrace/contrib/kafka/events/producer/deliver_messages'
 
 module Datadog
-  module Contrib
-    module Kafka
-      # Defines collection of instrumented Kafka events
-      module Events
-        ALL = [
-          Events::Connection::Request,
-          Events::Consumer::ProcessBatch,
-          Events::Consumer::ProcessMessage,
-          Events::ConsumerGroup::Heartbeat,
-          Events::ConsumerGroup::JoinGroup,
-          Events::ConsumerGroup::LeaveGroup,
-          Events::ConsumerGroup::SyncGroup,
-          Events::ProduceOperation::SendMessages,
-          Events::Producer::DeliverMessages
-        ].freeze
+  module Tracing
+    module Contrib
+      module Kafka
+        # Defines collection of instrumented Kafka events
+        module Events
+          ALL = [
+            Events::Connection::Request,
+            Events::Consumer::ProcessBatch,
+            Events::Consumer::ProcessMessage,
+            Events::ConsumerGroup::Heartbeat,
+            Events::ConsumerGroup::JoinGroup,
+            Events::ConsumerGroup::LeaveGroup,
+            Events::ConsumerGroup::SyncGroup,
+            Events::ProduceOperation::SendMessages,
+            Events::Producer::DeliverMessages
+          ].freeze
 
-        module_function
+          module_function
 
-        def all
-          self::ALL
-        end
+          def all
+            self::ALL
+          end
 
-        def subscriptions
-          all.collect(&:subscriptions).collect(&:to_a).flatten
-        end
+          def subscriptions
+            all.collect(&:subscriptions).collect(&:to_a).flatten
+          end
 
-        def subscribe!
-          all.each(&:subscribe!)
+          def subscribe!
+            all.each(&:subscribe!)
+          end
         end
       end
     end

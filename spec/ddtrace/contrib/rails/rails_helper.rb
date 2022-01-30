@@ -13,7 +13,7 @@ logger = Logger.new($stdout)
 logger.level = Logger::INFO
 
 # Rails settings
-adapter = Datadog::Contrib::Rails::Test::Database.load_adapter!
+adapter = Datadog::Tracing::Contrib::Rails::Test::Database.load_adapter!
 ENV['RAILS_ENV'] = 'test'
 ENV['DATABASE_URL'] = adapter
 

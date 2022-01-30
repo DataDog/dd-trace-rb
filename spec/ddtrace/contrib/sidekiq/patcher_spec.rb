@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require_relative 'support/helper'
 
-RSpec.describe Datadog::Contrib::Sidekiq::Patcher do
+RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Patcher do
   before do
     # Sidekiq 3.x unfortunately doesn't let us access server_middleware unless
     # actually a server, so we just have to skip them.
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Contrib::Sidekiq::Patcher do
     let(:server) { false }
 
     it 'correctly patches' do
-      expect(Sidekiq.client_middleware.entries.map(&:klass)).to eq([Datadog::Contrib::Sidekiq::ClientTracer])
+      expect(Sidekiq.client_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ClientTracer])
       expect(Sidekiq.server_middleware.entries.map(&:klass)).to eq([])
     end
   end
@@ -42,8 +42,8 @@ RSpec.describe Datadog::Contrib::Sidekiq::Patcher do
     let(:server) { true }
 
     it 'correctly patches' do
-      expect(Sidekiq.client_middleware.entries.map(&:klass)).to eq([Datadog::Contrib::Sidekiq::ClientTracer])
-      expect(Sidekiq.server_middleware.entries.map(&:klass)).to eq([Datadog::Contrib::Sidekiq::ServerTracer])
+      expect(Sidekiq.client_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ClientTracer])
+      expect(Sidekiq.server_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ServerTracer])
     end
   end
 end

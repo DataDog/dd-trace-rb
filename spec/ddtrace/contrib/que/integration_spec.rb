@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/que/integration'
 
-RSpec.describe Datadog::Contrib::Que::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Que::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:que) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::Que::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Que::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Que::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Que::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Que::Patcher }
   end
 end

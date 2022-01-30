@@ -154,8 +154,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
       end
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::MongoDB::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'a peer service span' do
@@ -486,7 +486,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         subject(:failed_event) { subscriber.failed(event) }
 
         let(:event) { instance_double(Mongo::Monitoring::Event::CommandFailed, request_id: double('request_id')) }
-        let(:subscriber) { Datadog::Contrib::MongoDB::MongoCommandSubscriber.new }
+        let(:subscriber) { Datadog::Tracing::Contrib::MongoDB::MongoCommandSubscriber.new }
 
         # Clear the thread variable out, as if #started has never run.
         before { Thread.current[:datadog_mongo_span] = nil }

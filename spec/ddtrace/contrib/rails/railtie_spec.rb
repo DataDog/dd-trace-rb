@@ -48,8 +48,8 @@ RSpec.describe 'Rails Railtie' do
     context 'set to true' do
       let(:rails_options) { super().merge(middleware: true) }
 
-      it { expect(app).to have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware).once }
-      it { expect(app).to have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware).once }
+      it { expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rack::TraceMiddleware).once }
+      it { expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rails::ExceptionMiddleware).once }
     end
 
     context 'set to false' do
@@ -57,15 +57,15 @@ RSpec.describe 'Rails Railtie' do
 
       after { Datadog::Tracing.configuration[:rails][:middleware] = true }
 
-      it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware) }
-      it { expect(app).to_not have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware) }
+      it { expect(app).to_not have_kind_of_middleware(Datadog::Tracing::Contrib::Rack::TraceMiddleware) }
+      it { expect(app).to_not have_kind_of_middleware(Datadog::Tracing::Contrib::Rails::ExceptionMiddleware) }
     end
   end
 
   describe 'when load hooks run twice' do
     subject! do
       # Set expectations
-      expect(Datadog::Contrib::Rails::Patcher).to receive(:add_middleware)
+      expect(Datadog::Tracing::Contrib::Rails::Patcher).to receive(:add_middleware)
         .with(a_kind_of(Rails::Application))
         .once
         .and_call_original
@@ -81,8 +81,8 @@ RSpec.describe 'Rails Railtie' do
     end
 
     it 'only includes the middleware once' do
-      expect(app).to have_kind_of_middleware(Datadog::Contrib::Rack::TraceMiddleware).once
-      expect(app).to have_kind_of_middleware(Datadog::Contrib::Rails::ExceptionMiddleware).once
+      expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rack::TraceMiddleware).once
+      expect(app).to have_kind_of_middleware(Datadog::Tracing::Contrib::Rails::ExceptionMiddleware).once
     end
   end
 end

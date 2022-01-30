@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/graphql/integration'
 
-RSpec.describe Datadog::Contrib::GraphQL::Integration do
+RSpec.describe Datadog::Tracing::Contrib::GraphQL::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:graphql) }
@@ -80,12 +80,12 @@ RSpec.describe Datadog::Contrib::GraphQL::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::GraphQL::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::GraphQL::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::GraphQL::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::GraphQL::Patcher }
   end
 end

@@ -7,7 +7,7 @@ require 'grpc'
 require 'ddtrace'
 
 RSpec.describe 'tracing on the client connection' do
-  subject(:client) { Datadog::Contrib::GRPC::DatadogInterceptor::Client.new }
+  subject(:client) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new }
 
   let(:configuration_options) { { service_name: 'rspec' } }
   let(:peer) { "#{host}:#{port}" }
@@ -36,11 +36,11 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     let(:default_client_interceptor) do
-      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new
+      Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new
     end
 
     let(:configured_client_interceptor) do
-      Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+      Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
         c.service_name = 'cepsr'
       end
     end
@@ -74,8 +74,8 @@ RSpec.describe 'tracing on the client connection' do
     end
 
     it_behaves_like 'analytics for integration' do
-      let(:analytics_enabled_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::GRPC::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::GRPC::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'a peer service span' do

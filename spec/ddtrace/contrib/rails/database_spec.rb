@@ -73,7 +73,7 @@ RSpec.describe 'Rails database' do
     end
 
     context 'with instantiation support' do
-      before { skip unless Datadog::Contrib::ActiveRecord::Events::Instantiation.supported? }
+      before { skip unless Datadog::Tracing::Contrib::ActiveRecord::Events::Instantiation.supported? }
 
       subject! { Article.all.entries }
 

@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace/contrib/utils/quantization/http'
 
-RSpec.describe Datadog::Contrib::Utils::Quantization::HTTP do
+RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
   describe '#url' do
     subject(:result) { described_class.url(url, options) }
 

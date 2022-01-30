@@ -12,7 +12,7 @@ RSpec.describe 'Server tracer' do
   before do
     Sidekiq::Testing.server_middleware.clear
     Sidekiq::Testing.server_middleware do |chain|
-      chain.add(Datadog::Contrib::Sidekiq::ServerTracer)
+      chain.add(Datadog::Tracing::Contrib::Sidekiq::ServerTracer)
     end
 
     Sidekiq::Extensions.enable_delay! if Sidekiq::VERSION > '5.0.0'

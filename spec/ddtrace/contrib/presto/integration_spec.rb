@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/presto/integration'
 
-RSpec.describe Datadog::Contrib::Presto::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Presto::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:presto) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Presto::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Presto::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Presto::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Presto::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Presto::Patcher }
   end
 end

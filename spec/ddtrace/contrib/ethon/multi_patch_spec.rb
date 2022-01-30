@@ -8,7 +8,7 @@ require 'ddtrace/contrib/analytics_examples'
 
 require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
 
-RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
+RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
   let(:configuration_options) { {} }
 
   before do
@@ -105,8 +105,8 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
           before { subject }
 
           let(:span) { multi_span }
-          let(:analytics_enabled_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Ethon::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
       end
 

@@ -7,7 +7,7 @@ require 'net/http'
 RSpec.describe 'net/http patcher' do
   let(:host) { 'example.com' }
   let(:request_span) do
-    spans.find { |span| span.name == Datadog::Contrib::HTTP::Ext::SPAN_REQUEST }
+    spans.find { |span| span.name == Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST }
   end
 
   before do
@@ -46,7 +46,7 @@ RSpec.describe 'net/http patcher' do
 
     after do
       Datadog::Tracing.configure do |c|
-        c.instrument :http, service_name: Datadog::Contrib::HTTP::Ext::DEFAULT_PEER_SERVICE_NAME
+        c.instrument :http, service_name: Datadog::Tracing::Contrib::HTTP::Ext::DEFAULT_PEER_SERVICE_NAME
       end
     end
 

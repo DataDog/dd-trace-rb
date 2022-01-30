@@ -93,9 +93,9 @@ RSpec.describe 'Sinatra instrumentation' do
     sort.call(spans)
   end
 
-  let(:span) { sorted_spans.reverse.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST } }
-  let(:route_span) { sorted_spans.find { |x| x.name == Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE } }
-  let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST } }
+  let(:span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_REQUEST } }
+  let(:route_span) { sorted_spans.find { |x| x.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_ROUTE } }
+  let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
 
   before do
     Datadog::Tracing.configure do |c|
@@ -138,8 +138,8 @@ RSpec.describe 'Sinatra instrumentation' do
           it_behaves_like 'analytics for integration', ignore_global_flag: false do
             before { is_expected.to be_ok }
 
-            let(:analytics_enabled_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_ENABLED }
-            let(:analytics_sample_rate_var) { Datadog::Contrib::Sinatra::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+            let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Sinatra::Ext::ENV_ANALYTICS_ENABLED }
+            let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sinatra::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
           it_behaves_like 'measured span for integration', true do
@@ -149,7 +149,7 @@ RSpec.describe 'Sinatra instrumentation' do
           context 'which sets X-Request-Id on the response' do
             it do
               subject
-              skip('not matching app span') unless span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)
+              skip('not matching app span') unless span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)
               expect(span.get_tag('http.response.headers.x_request_id')).to eq('test id')
             end
           end
@@ -168,7 +168,7 @@ RSpec.describe 'Sinatra instrumentation' do
         context 'and a request to a wildcard route is made' do
           subject(:response) { get '/wildcard/1/2/3' }
 
-          let(:matching_app?) { span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name }
+          let(:matching_app?) { span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name }
 
           context 'with matching app' do
             before do
@@ -181,7 +181,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
               expect(span.resource).to eq('GET /wildcard/*')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/wildcard/1/2/3')
-              expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/wildcard/*')
+              expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/wildcard/*')
             end
           end
 
@@ -232,7 +232,7 @@ RSpec.describe 'Sinatra instrumentation' do
             subject(:span) { template_parent_span }
 
             it do
-              expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
+              expect(span.name).to eq(Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('msg')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sinatra')
@@ -247,7 +247,7 @@ RSpec.describe 'Sinatra instrumentation' do
             subject(:span) { template_child_span }
 
             it do
-              expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
+              expect(span.name).to eq(Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('layout')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sinatra')
@@ -285,7 +285,7 @@ RSpec.describe 'Sinatra instrumentation' do
             subject(:span) { template_parent_span }
 
             it do
-              expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
+              expect(span.name).to eq(Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to be nil
               expect(span.parent_id).to eq(route_span.span_id)
@@ -301,7 +301,7 @@ RSpec.describe 'Sinatra instrumentation' do
             subject(:span) { template_child_span }
 
             it do
-              expect(span.name).to eq(Datadog::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
+              expect(span.name).to eq(Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_RENDER_TEMPLATE)
               expect(span.resource).to eq('sinatra.render_template')
               expect(span.get_tag('sinatra.template_name')).to eq('layout')
               expect(span.parent_id).to eq(template_parent_span.span_id)
@@ -361,8 +361,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.resource).to eq('GET /not_a_route')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/not_a_route')
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
-            expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/not_a_route')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/not_a_route')
             expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
             expect(span.parent_id).to be(rack_span.span_id)
@@ -524,7 +524,7 @@ RSpec.describe 'Sinatra instrumentation' do
     let(:sinatra_app) do
       mount_nested_app = self.mount_nested_app
       stub_const('NestedApp', Class.new(Sinatra::Base) do
-        register Datadog::Contrib::Sinatra::Tracer
+        register Datadog::Tracing::Contrib::Sinatra::Tracer
 
         get '/nested' do
           headers['X-Request-ID'] = 'test id'
@@ -534,7 +534,7 @@ RSpec.describe 'Sinatra instrumentation' do
 
       sinatra_routes = self.sinatra_routes
       stub_const('App', Class.new(Sinatra::Base) do
-        register Datadog::Contrib::Sinatra::Tracer
+        register Datadog::Tracing::Contrib::Sinatra::Tracer
         use NestedApp if mount_nested_app
 
         instance_exec(&sinatra_routes)
@@ -550,16 +550,24 @@ RSpec.describe 'Sinatra instrumentation' do
     context 'with nested app' do
       let(:mount_nested_app) { true }
       let(:top_span) do
-        spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name }
+        spans.find do |x|
+          x.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME) == top_app_name
+        end
       end
       let(:top_rack_span) do
-        spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x.span_id == top_span.parent_id }
+        spans.find do |x|
+          x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST && x.span_id == top_span.parent_id
+        end
       end
       let(:nested_span) do
-        spans.find { |x| x.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME) == nested_app_name }
+        spans.find do |x|
+          x.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME) == nested_app_name
+        end
       end
       let(:nested_rack_span) do
-        spans.find { |x| x.name == Datadog::Contrib::Rack::Ext::SPAN_REQUEST && x.span_id == nested_span.parent_id }
+        spans.find do |x|
+          x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST && x.span_id == nested_span.parent_id
+        end
       end
       let(:nested_app_name) { 'NestedApp' }
 
@@ -616,7 +624,7 @@ RSpec.describe 'Sinatra instrumentation' do
       end
     end
 
-    context 'when modular app does not register the Datadog::Contrib::Sinatra::Tracer middleware' do
+    context 'when modular app does not register the Datadog::Tracing::Contrib::Sinatra::Tracer middleware' do
       include_context 'tracer logging'
 
       let(:sinatra_app) do
@@ -629,7 +637,7 @@ RSpec.describe 'Sinatra instrumentation' do
       subject(:response) { get url }
 
       before do
-        Datadog::Contrib::Sinatra::Tracer::Base
+        Datadog::Tracing::Contrib::Sinatra::Tracer::Base
           .const_get('MISSING_REQUEST_SPAN_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
       end
 
@@ -653,18 +661,18 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(http_method) if opts[:http_tags]
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(url) if opts[:http_tags]
       expect(span.get_tag('http.response.headers.content_type')).to eq('text/html;charset=utf-8') if opts[:http_tags]
-      expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
-      expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url) if app_name == self.app_name
-      expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url) if app_name == self.app_name
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
       expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sinatra')
 
       case span.name
-      when Datadog::Contrib::Sinatra::Ext::SPAN_REQUEST
+      when Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_REQUEST
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('request')
-      when Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE
+      when Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_ROUTE
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('route')
       else
@@ -684,8 +692,8 @@ RSpec.describe 'Sinatra instrumentation' do
     match(notify_expectation_failures: true) do |span|
       expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq(resource)
-      expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
-      expect(span.get_tag(Datadog::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
       expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
       expect(span.parent_id).to be(opts[:parent].span_id) if opts[:parent]

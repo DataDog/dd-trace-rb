@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/configuration/resolver'
 
-RSpec.describe Datadog::Contrib::Configuration::Resolver do
+RSpec.describe Datadog::Tracing::Contrib::Configuration::Resolver do
   subject(:resolver) { described_class.new }
 
   let(:config) { double('config') }

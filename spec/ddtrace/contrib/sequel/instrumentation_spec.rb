@@ -25,7 +25,7 @@ RSpec.describe 'Sequel instrumentation' do
   end
 
   before do
-    skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
+    skip('Sequel not compatible.') unless Datadog::Tracing::Contrib::Sequel::Integration.compatible?
 
     # Patch Sequel
     Datadog::Tracing.configure do |c|
@@ -74,8 +74,8 @@ RSpec.describe 'Sequel instrumentation' do
         end
 
         it_behaves_like 'analytics for integration' do
-          let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
@@ -184,8 +184,8 @@ RSpec.describe 'Sequel instrumentation' do
       it_behaves_like 'analytics for integration' do
         # Check one of the command spans at random
         let(:span) { spans[2..5].sample }
-        let(:analytics_enabled_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', false do

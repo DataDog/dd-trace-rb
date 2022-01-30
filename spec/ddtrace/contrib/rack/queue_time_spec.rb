@@ -5,7 +5,7 @@ require 'rack'
 require 'ddtrace'
 require 'ddtrace/contrib/rack/request_queue'
 
-RSpec.describe Datadog::Contrib::Rack::QueueTime do
+RSpec.describe Datadog::Tracing::Contrib::Rack::QueueTime do
   describe '#get_request_start' do
     subject(:request_start) { described_class.get_request_start(env) }
 

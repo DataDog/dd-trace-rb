@@ -12,7 +12,7 @@ require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
-RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
+RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
 
   before do
@@ -90,8 +90,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
           end
 
           it_behaves_like 'analytics for integration' do
-            let(:analytics_enabled_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_ENABLED }
-            let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+            let(:analytics_enabled_var) { Datadog::Tracing::Contrib::RestClient::Ext::ENV_ANALYTICS_ENABLED }
+            let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
           it 'has correct component and operation tags' do

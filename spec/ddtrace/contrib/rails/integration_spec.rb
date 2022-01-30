@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/rails/integration'
 
-RSpec.describe Datadog::Contrib::Rails::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Rails::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:rails) }
@@ -69,10 +69,10 @@ RSpec.describe Datadog::Contrib::Rails::Integration do
         allow(described_class).to receive(:compatible?).and_return(true)
       end
 
-      context "and #{Datadog::Contrib::Rails::Ext::ENV_DISABLE}" do
+      context "and #{Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE}" do
         context 'is not set' do
           around do |example|
-            ClimateControl.modify Datadog::Contrib::Rails::Ext::ENV_DISABLE => nil do
+            ClimateControl.modify Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE => nil do
               example.run
             end
           end
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Contrib::Rails::Integration do
 
         context 'is set' do
           around do |example|
-            ClimateControl.modify Datadog::Contrib::Rails::Ext::ENV_DISABLE => '1' do
+            ClimateControl.modify Datadog::Tracing::Contrib::Rails::Ext::ENV_DISABLE => '1' do
               example.run
             end
           end
@@ -102,12 +102,12 @@ RSpec.describe Datadog::Contrib::Rails::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Rails::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Rails::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Rails::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Rails::Patcher }
   end
 end

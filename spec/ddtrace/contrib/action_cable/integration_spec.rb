@@ -4,7 +4,7 @@ require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/action_cable/integration'
 
-RSpec.describe Datadog::Contrib::ActionCable::Integration do
+RSpec.describe Datadog::Tracing::Contrib::ActionCable::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:action_cable) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::ActionCable::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ActionCable::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActionCable::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::ActionCable::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::ActionCable::Patcher }
   end
 end

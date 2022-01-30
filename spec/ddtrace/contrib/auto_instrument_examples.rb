@@ -5,7 +5,7 @@ RSpec.shared_examples 'rails sub-gem auto_instrument?' do
 
     context 'outside of a rails application' do
       before do
-        allow(Datadog::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(false)
+        allow(Datadog::Tracing::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(false)
       end
 
       it { is_expected.to be(true) }
@@ -13,7 +13,7 @@ RSpec.shared_examples 'rails sub-gem auto_instrument?' do
 
     context 'when within a rails application' do
       before do
-        allow(Datadog::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(true)
+        allow(Datadog::Tracing::Contrib::Rails::Utils).to receive(:railtie_supported?).and_return(true)
       end
 
       it { is_expected.to be(false) }

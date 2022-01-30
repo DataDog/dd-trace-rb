@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/sucker_punch/integration'
 
-RSpec.describe Datadog::Contrib::SuckerPunch::Integration do
+RSpec.describe Datadog::Tracing::Contrib::SuckerPunch::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:sucker_punch) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::SuckerPunch::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::SuckerPunch::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::SuckerPunch::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::SuckerPunch::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::SuckerPunch::Patcher }
   end
 end

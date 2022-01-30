@@ -5,21 +5,23 @@ require 'ddtrace/contrib/racecar/events'
 require 'ddtrace/contrib/racecar/integration'
 
 module Datadog
-  module Contrib
-    module Racecar
-      # Patcher enables patching of 'racecar' module.
-      module Patcher
-        include Contrib::Patcher
+  module Tracing
+    module Contrib
+      module Racecar
+        # Patcher enables patching of 'racecar' module.
+        module Patcher
+          include Contrib::Patcher
 
-        module_function
+          module_function
 
-        def target_version
-          Integration.version
-        end
+          def target_version
+            Integration.version
+          end
 
-        def patch
-          # Subscribe to Racecar events
-          Events.subscribe!
+          def patch
+            # Subscribe to Racecar events
+            Events.subscribe!
+          end
         end
       end
     end

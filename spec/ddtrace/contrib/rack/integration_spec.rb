@@ -4,7 +4,7 @@ require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/rack/integration'
 
-RSpec.describe Datadog::Contrib::Rack::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Rack::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:rack) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::Rack::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Rack::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Rack::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Rack::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Rack::Patcher }
   end
 end

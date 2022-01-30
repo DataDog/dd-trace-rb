@@ -7,38 +7,40 @@ require 'ddtrace/contrib/integration'
 require 'ddtrace/version'
 
 module Datadog
-  module Contrib
-    # HTTP integration
-    module HTTP
-      extend CircuitBreaker
+  module Tracing
+    module Contrib
+      # HTTP integration
+      module HTTP
+        extend CircuitBreaker
 
-      # Description of HTTP integration
-      class Integration
-        include Contrib::Integration
+        # Description of HTTP integration
+        class Integration
+          include Contrib::Integration
 
-        MINIMUM_VERSION = DDTrace::VERSION::MINIMUM_RUBY_VERSION
+          MINIMUM_VERSION = DDTrace::VERSION::MINIMUM_RUBY_VERSION
 
-        # @public_api Changing the integration name or integration options can cause breaking changes
-        register_as :http, auto_patch: true
+          # @public_api Changing the integration name or integration options can cause breaking changes
+          register_as :http, auto_patch: true
 
-        def self.version
-          Gem::Version.new(RUBY_VERSION)
-        end
+          def self.version
+            Gem::Version.new(RUBY_VERSION)
+          end
 
-        def self.loaded?
-          !defined?(::Net::HTTP).nil?
-        end
+          def self.loaded?
+            !defined?(::Net::HTTP).nil?
+          end
 
-        def new_configuration
-          Configuration::Settings.new
-        end
+          def new_configuration
+            Configuration::Settings.new
+          end
 
-        def patcher
-          Patcher
-        end
+          def patcher
+            Patcher
+          end
 
-        def resolver
-          @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
+          def resolver
+            @resolver ||= Contrib::Configuration::Resolvers::PatternResolver.new
+          end
         end
       end
     end

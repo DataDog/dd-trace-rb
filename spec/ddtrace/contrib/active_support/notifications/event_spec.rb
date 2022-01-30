@@ -5,7 +5,7 @@ require 'ddtrace'
 require 'active_support/notifications'
 require 'ddtrace/contrib/active_support/notifications/event'
 
-RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
+RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
   describe 'implemented' do
     subject(:test_class) do
       test_event_name = event_name
@@ -31,14 +31,14 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
 
           it do
             expect(ActiveSupport::Notifications).to receive(:subscribe)
-              .with(event_name, be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription))
+              .with(event_name, be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription))
             is_expected.to be true
           end
 
           context 'is called a second time' do
             before do
               allow(ActiveSupport::Notifications).to receive(:subscribe)
-                .with(event_name, be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription))
+                .with(event_name, be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription))
               test_class.subscribe!
             end
 
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
 
         describe '#subscribe' do
           before do
-            expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
+            expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
               .with(test_class.span_name, test_class.span_options)
               .and_call_original
           end
@@ -60,11 +60,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
             subject(:subscription) { test_class.subscribe }
 
             before do
-              expect_any_instance_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:subscribe)
+              expect_any_instance_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription)
+                .to receive(:subscribe)
                 .with(event_name)
             end
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription) }
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
 
@@ -74,11 +75,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
             let(:pattern) { double('pattern') }
 
             before do
-              expect_any_instance_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:subscribe)
+              expect_any_instance_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription)
+                .to receive(:subscribe)
                 .with(pattern)
             end
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription) }
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
         end
@@ -88,12 +90,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
             subject(:subscription) { test_class.subscription }
 
             before do
-              expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
+              expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
                 .with(test_class.span_name, test_class.span_options)
                 .and_call_original
             end
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription) }
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
 
@@ -104,12 +106,12 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Event do
             let(:options) { double('options') }
 
             before do
-              expect(Datadog::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
+              expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
                 .with(span_name, options)
                 .and_call_original
             end
 
-            it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveSupport::Notifications::Subscription) }
+            it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription) }
             it { expect(test_class.subscriptions).to contain_exactly(subscription) }
           end
         end

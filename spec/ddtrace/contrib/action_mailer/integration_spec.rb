@@ -3,7 +3,7 @@
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/action_mailer/integration'
 
-RSpec.describe Datadog::Contrib::ActionMailer::Integration do
+RSpec.describe Datadog::Tracing::Contrib::ActionMailer::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:action_mailer) }
@@ -59,11 +59,11 @@ RSpec.describe Datadog::Contrib::ActionMailer::Integration do
 
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ActionMailer::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActionMailer::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
-    it { is_expected.to be Datadog::Contrib::ActionMailer::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::ActionMailer::Patcher }
   end
 end

@@ -3,11 +3,11 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/patcher'
 
-RSpec.describe Datadog::Contrib::Patcher do
+RSpec.describe Datadog::Tracing::Contrib::Patcher do
   before do
     # DEV Resetting with +.and_call_original+ is currently raising a stack overflow error.
     # DEV This seems like a bug in RSpec that we should investigate further.
-    RSpec::Mocks.space.any_instance_proxy_for(Datadog::Contrib::Patcher::CommonMethods).unstub(:on_patch_error)
+    RSpec::Mocks.space.any_instance_proxy_for(Datadog::Tracing::Contrib::Patcher::CommonMethods).unstub(:on_patch_error)
   end
 
   RSpec::Matchers.define :a_patch_error do |name|
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher does not define .patch' do
           let(:patcher) do
             stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
             end)
           end
 
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is not defined' do
             let(:patcher) do
               stub_const('TestPatcher', Class.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   :patched
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is defined' do
             let(:patcher) do
               stub_const('TestPatcher', Class.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   :patched
@@ -81,7 +81,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is not defined' do
             let(:patcher) do
               stub_const('TestPatcher', Class.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   raise StandardError, 'Patch error!'
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is defined' do
             let(:patcher) do
               stub_const('TestPatcher', Class.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   raise StandardError, 'Patch error!'
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher does not define .patch' do
           let(:patcher) do
             stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
             end)
           end
 
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher defines .patch' do
           let(:patcher) do
             stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
 
               def self.patch
                 :patched
@@ -181,7 +181,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
         context 'and .target_version is not defined' do
           let(:patcher) do
-            stub_const('TestPatcher', Class.new { include Datadog::Contrib::Patcher })
+            stub_const('TestPatcher', Class.new { include Datadog::Tracing::Contrib::Patcher })
           end
 
           it 'handles the error' do
@@ -196,7 +196,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'and .target_version is defined' do
           let(:patcher) do
             stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
 
               def self.target_version
                 Gem::Version.new(1.0)
@@ -220,7 +220,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
       let(:patcher_class) do
         stub_const('TestPatcher', Class.new do
-          include Datadog::Contrib::Patcher
+          include Datadog::Tracing::Contrib::Patcher
         end)
       end
 
@@ -234,7 +234,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher defines #patch' do
           let(:patcher_class) do
             stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
 
               def patch
                 :patched
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
         context 'and .target_version is not defined' do
           let(:patcher_class) do
-            stub_const('TestPatcher', Class.new { include Datadog::Contrib::Patcher })
+            stub_const('TestPatcher', Class.new { include Datadog::Tracing::Contrib::Patcher })
           end
 
           it 'handles the error' do
@@ -274,7 +274,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'and .target_version is defined' do
           let(:patcher_class) do
             stub_const('TestPatcher', Class.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
 
               def target_version
                 Gem::Version.new(1.0)
@@ -304,7 +304,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher does not define .patch' do
           let(:patcher) do
             stub_const('TestPatcher', Module.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
             end)
           end
 
@@ -315,7 +315,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is not defined' do
             let(:patcher) do
               stub_const('TestPatcher', Module.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   :patched
@@ -333,7 +333,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is defined' do
             let(:patcher) do
               stub_const('TestPatcher', Module.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   :patched
@@ -361,7 +361,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is not defined' do
             let(:patcher) do
               stub_const('TestPatcher', Module.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   raise StandardError, 'Patch error!'
@@ -381,7 +381,7 @@ RSpec.describe Datadog::Contrib::Patcher do
           context 'and .target_version is defined' do
             let(:patcher) do
               stub_const('TestPatcher', Module.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   raise StandardError, 'Patch error!'
@@ -410,7 +410,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher does not define .patch' do
           let(:patcher) do
             stub_const('TestPatcher', Module.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
             end)
           end
 
@@ -428,7 +428,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'when patcher defines .patch' do
           let(:patcher) do
             stub_const('TestPatcher', Module.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
 
               def self.patch
                 :patched
@@ -461,7 +461,7 @@ RSpec.describe Datadog::Contrib::Patcher do
 
         context 'and .target_version is not defined' do
           let(:patcher) do
-            stub_const('TestPatcher', Module.new { include Datadog::Contrib::Patcher })
+            stub_const('TestPatcher', Module.new { include Datadog::Tracing::Contrib::Patcher })
           end
 
           it 'handles the error' do
@@ -476,7 +476,7 @@ RSpec.describe Datadog::Contrib::Patcher do
         context 'and .target_version is defined' do
           let(:patcher) do
             stub_const('TestPatcher', Module.new do
-              include Datadog::Contrib::Patcher
+              include Datadog::Tracing::Contrib::Patcher
 
               def self.target_version
                 Gem::Version.new(1.0)

@@ -3,21 +3,21 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Extensions do
+RSpec.describe Datadog::Tracing::Contrib::Extensions do
   shared_context 'registry with integration' do
-    let(:registry) { Datadog::Contrib::Registry.new }
+    let(:registry) { Datadog::Tracing::Contrib::Registry.new }
     let(:integration_name) { :example }
     let(:integration) { integration_class.new(integration_name) }
     let(:integration_class) do
       Class.new do
-        include Datadog::Contrib::Integration
-        include Datadog::Contrib::Configurable
+        include Datadog::Tracing::Contrib::Integration
+        include Datadog::Tracing::Contrib::Configurable
       end
     end
 
     let(:configurable_module) do
       stub_const('Configurable', Module.new do
-        include Datadog::Contrib::Configurable
+        include Datadog::Tracing::Contrib::Configurable
       end)
     end
 
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Contrib::Extensions do
     describe Datadog::Tracing do
       describe '#configure' do
         include_context 'registry with integration' do
-          before { stub_const('Datadog::Contrib::REGISTRY', registry) }
+          before { stub_const('Datadog::Tracing::Contrib::REGISTRY', registry) }
         end
 
         context 'given a block' do
@@ -52,13 +52,13 @@ RSpec.describe Datadog::Contrib::Extensions do
 
       subject(:settings) { described_class.new }
 
-      before { stub_const('Datadog::Contrib::REGISTRY', registry) }
+      before { stub_const('Datadog::Tracing::Contrib::REGISTRY', registry) }
 
       describe '#[]' do
         context 'when the integration doesn\'t exist' do
           it do
             expect { settings[:foobar] }.to raise_error(
-              Datadog::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
+              Datadog::Tracing::Contrib::Extensions::Configuration::Settings::InvalidIntegrationError
             )
           end
         end
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
           it 'retrieves the described configuration' do
             is_expected.to_not eq(default_settings)
-            is_expected.to be_a(Datadog::Contrib::Configuration::Settings)
+            is_expected.to be_a(Datadog::Tracing::Contrib::Configuration::Settings)
           end
         end
 
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Contrib::Extensions do
           end
         end
 
-        context 'for an integration that includes Datadog::Contrib::Integration' do
+        context 'for an integration that includes Datadog::Tracing::Contrib::Integration' do
           include_context 'registry with integration' do
             let(:integration) do
               integration_class.new(integration_name)
@@ -121,8 +121,8 @@ RSpec.describe Datadog::Contrib::Extensions do
               patcher_module
 
               Class.new do
-                include Datadog::Contrib::Integration
-                include Datadog::Contrib::Configurable
+                include Datadog::Tracing::Contrib::Integration
+                include Datadog::Tracing::Contrib::Configurable
 
                 def self.version
                   Gem::Version.new('0.1')
@@ -136,7 +136,7 @@ RSpec.describe Datadog::Contrib::Extensions do
 
             let(:patcher_module) do
               stub_const('Patcher', Module.new do
-                include Datadog::Contrib::Patcher
+                include Datadog::Tracing::Contrib::Patcher
 
                 def self.patch
                   true
@@ -156,7 +156,7 @@ RSpec.describe Datadog::Contrib::Extensions do
             it do
               expect(integration).to receive(:configure).with(:default, {}).and_call_original
               expect { |b| settings.instrument(integration_name, options, &b) }.to yield_with_args(
-                a_kind_of(Datadog::Contrib::Configuration::Settings)
+                a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
               )
             end
           end

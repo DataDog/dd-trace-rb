@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/rake/integration'
 
-RSpec.describe Datadog::Contrib::Rake::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Rake::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:rake) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Rake::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Rake::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Rake::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Rake::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Rake::Patcher }
   end
 end

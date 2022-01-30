@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/active_model_serializers/integration'
 
-RSpec.describe Datadog::Contrib::ActiveModelSerializers::Integration do
+RSpec.describe Datadog::Tracing::Contrib::ActiveModelSerializers::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:active_model_serializers) }
@@ -92,12 +92,12 @@ RSpec.describe Datadog::Contrib::ActiveModelSerializers::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ActiveModelSerializers::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveModelSerializers::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::ActiveModelSerializers::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::ActiveModelSerializers::Patcher }
   end
 end

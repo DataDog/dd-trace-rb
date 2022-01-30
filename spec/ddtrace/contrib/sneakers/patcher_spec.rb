@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace'
 require 'sneakers'
 
-RSpec.describe Datadog::Contrib::Sneakers::Patcher do
+RSpec.describe Datadog::Tracing::Contrib::Sneakers::Patcher do
   describe '.patch' do
     subject!(:patch) { described_class.patch }
 
@@ -13,6 +13,6 @@ RSpec.describe Datadog::Contrib::Sneakers::Patcher do
       described_class.patch
     end
 
-    it { expect(middlewares).to include(args: nil, class: Datadog::Contrib::Sneakers::Tracer) }
+    it { expect(middlewares).to include(args: nil, class: Datadog::Tracing::Contrib::Sneakers::Tracer) }
   end
 end

@@ -6,7 +6,7 @@ require 'ddtrace'
 
 # TODO: We plan on rewriting much of this instrumentation to bring it up to
 #       present day patterns/conventions. For now, just test a few known cases.
-RSpec.describe Datadog::Contrib::ActionPack::ActionController::Instrumentation do
+RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrumentation do
   describe '::finish_processing' do
     subject(:finish_processing) { described_class.finish_processing(payload) }
 

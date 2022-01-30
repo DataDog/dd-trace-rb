@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/mysql2/integration'
 
-RSpec.describe Datadog::Contrib::Mysql2::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Mysql2::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:mysql2) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Mysql2::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Mysql2::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Mysql2::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Mysql2::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Mysql2::Patcher }
   end
 end

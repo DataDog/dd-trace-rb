@@ -4,7 +4,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/grpc/integration'
 
-RSpec.describe Datadog::Contrib::GRPC::Integration do
+RSpec.describe Datadog::Tracing::Contrib::GRPC::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:grpc) }
@@ -69,12 +69,12 @@ RSpec.describe Datadog::Contrib::GRPC::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::GRPC::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::GRPC::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::GRPC::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::GRPC::Patcher }
   end
 end

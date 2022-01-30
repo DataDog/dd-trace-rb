@@ -68,7 +68,7 @@ RSpec.describe 'ConcurrentRuby integration tests' do
 
     it 'adds FuturePatch to Future ancestors' do
       expect { patch }.to change { ::Concurrent::Future.ancestors.map(&:to_s) }
-        .to include('Datadog::Contrib::ConcurrentRuby::FuturePatch')
+        .to include('Datadog::Tracing::Contrib::ConcurrentRuby::FuturePatch')
     end
   end
 

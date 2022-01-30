@@ -38,7 +38,7 @@ RSpec.describe 'Kafka patcher' do
         response_size: response_size
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_CONNECTION_REQUEST }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONNECTION_REQUEST }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -88,8 +88,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('request.connection.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -115,7 +115,7 @@ RSpec.describe 'Kafka patcher' do
         offset_lag: offset_lag
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_PROCESS_BATCH }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_PROCESS_BATCH }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -173,8 +173,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_batch.consumer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -200,7 +200,7 @@ RSpec.describe 'Kafka patcher' do
         offset_lag: offset_lag
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_PROCESS_MESSAGE }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_PROCESS_MESSAGE }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -258,8 +258,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('process_message.consumer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -282,7 +282,7 @@ RSpec.describe 'Kafka patcher' do
         topic_partitions: topic_partitions
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_CONSUMER_HEARTBEAT }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_HEARTBEAT }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -334,8 +334,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('heartbeat.consumer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -351,7 +351,7 @@ RSpec.describe 'Kafka patcher' do
         group_id: group_id
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_CONSUMER_JOIN_GROUP }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_JOIN_GROUP }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -399,8 +399,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('join_group.consumer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -416,7 +416,7 @@ RSpec.describe 'Kafka patcher' do
         group_id: group_id
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_CONSUMER_LEAVE_GROUP }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_LEAVE_GROUP }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -464,8 +464,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('leave_group.consumer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -481,7 +481,7 @@ RSpec.describe 'Kafka patcher' do
         group_id: group_id
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_CONSUMER_SYNC_GROUP }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_CONSUMER_SYNC_GROUP }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -529,8 +529,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('sync_group.consumer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -548,7 +548,7 @@ RSpec.describe 'Kafka patcher' do
         sent_message_count: sent_message_count
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_SEND_MESSAGES }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_SEND_MESSAGES }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -598,8 +598,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('send_messages.producer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do
@@ -619,7 +619,7 @@ RSpec.describe 'Kafka patcher' do
         delivered_message_count: delivered_message_count
       }
     end
-    let(:span_name) { Datadog::Contrib::Kafka::Ext::SPAN_DELIVER_MESSAGES }
+    let(:span_name) { Datadog::Tracing::Contrib::Kafka::Ext::SPAN_DELIVER_MESSAGES }
 
     context 'that doesn\'t raise an error' do
       it 'is expected to send a span' do
@@ -671,8 +671,8 @@ RSpec.describe 'Kafka patcher' do
     it_behaves_like 'analytics for integration' do
       before { ActiveSupport::Notifications.instrument('deliver_messages.producer.kafka', payload) }
 
-      let(:analytics_enabled_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Kafka::Ext::ENV_ANALYTICS_SAMPLE_RATE }
     end
 
     it_behaves_like 'measured span for integration', true do

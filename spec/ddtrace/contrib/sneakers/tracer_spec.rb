@@ -25,7 +25,7 @@ class FailingMiddlewareWorker
   end
 end
 
-RSpec.describe Datadog::Contrib::Sneakers::Tracer do
+RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
   let(:sneakers_tracer) { described_class.new }
   let(:configuration_options) { {} }
   let(:queue) { double }
@@ -81,9 +81,9 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
       expect(spans).to have(1).items
       expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq('MiddlewareWorker')
-      expect(span.name).to eq(Datadog::Contrib::Sneakers::Ext::SPAN_JOB)
-      expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_ROUTING_KEY)).to eq(routing_key)
-      expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
+      expect(span.name).to eq(Datadog::Tracing::Contrib::Sneakers::Ext::SPAN_JOB)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_ROUTING_KEY)).to eq(routing_key)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sneakers')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
     end
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
 
       it 'sends to body in the trace' do
         call
-        expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to eq('{"foo":"bar"}')
+        expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to eq('{"foo":"bar"}')
       end
     end
 
@@ -102,14 +102,14 @@ RSpec.describe Datadog::Contrib::Sneakers::Tracer do
 
       it 'sends to body in the trace' do
         call
-        expect(span.get_tag(Datadog::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to be_nil
+        expect(span.get_tag(Datadog::Tracing::Contrib::Sneakers::Ext::TAG_JOB_BODY)).to be_nil
       end
     end
 
     it_behaves_like 'analytics for integration' do
       include_context 'Sneakers::Worker'
-      let(:analytics_enabled_var) { Datadog::Contrib::Sneakers::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Sneakers::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Sneakers::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Sneakers::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       before { call }
     end
 

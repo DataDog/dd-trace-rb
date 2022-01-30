@@ -65,8 +65,10 @@ module SidekiqServerExpectations
       at_exit(&expectations)
 
       # NB: This is needed because we want to patch within a forked process.
-      if Datadog::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
-        Datadog::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once).send(:reset_ran_once_state_for_tests)
+      if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
+        Datadog::Tracing::Contrib::Sidekiq::Patcher
+          .instance_variable_get(:@patch_only_once)
+          .send(:reset_ran_once_state_for_tests)
       end
 
       require 'sidekiq/cli'

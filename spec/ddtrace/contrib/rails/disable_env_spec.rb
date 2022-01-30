@@ -7,7 +7,7 @@ require 'ddtrace/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails disabled' do
   before(:all) do
-    expect(Datadog::Contrib::Rails::Patcher.patched?).to(
+    expect(Datadog::Tracing::Contrib::Rails::Patcher.patched?).to(
       be_falsey, <<MESSAGE)
       Rails has already been patched.
       This suite tests the behaviour of dd-trace-rb when patching is disabled for Rails.

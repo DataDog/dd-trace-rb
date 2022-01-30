@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Registry do
+RSpec.describe Datadog::Tracing::Contrib::Registry do
   describe 'instance' do
     subject(:registry) { described_class.new }
 
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Contrib::Registry do
     end
   end
 
-  describe Datadog::Contrib::Registry::Entry do
+  describe Datadog::Tracing::Contrib::Registry::Entry do
     describe 'instance' do
       subject(:entry) { described_class.new(name, klass, auto_patch) }
 

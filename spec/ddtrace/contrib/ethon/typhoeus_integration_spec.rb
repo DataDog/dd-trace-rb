@@ -5,7 +5,7 @@ require 'ddtrace/contrib/ethon/shared_examples'
 require 'ddtrace/contrib/ethon/integration_context'
 require 'spec/ddtrace/contrib/ethon/support/thread_helpers'
 
-RSpec.describe Datadog::Contrib::Ethon do
+RSpec.describe Datadog::Tracing::Contrib::Ethon do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   before(:context) do

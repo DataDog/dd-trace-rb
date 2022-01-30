@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Patchable do
+RSpec.describe Datadog::Tracing::Contrib::Patchable do
   include_context 'tracer logging'
 
   describe 'implemented' do

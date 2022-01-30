@@ -9,7 +9,7 @@ require 'ddtrace'
 require 'ddtrace/contrib/delayed_job/plugin'
 require_relative 'delayed_job_active_record'
 
-RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
+RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
   let(:sample_job_object) do
     stub_const('SampleJob', Class.new do
       def perform; end
@@ -149,8 +149,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       include_context 'delayed_job common tags and resource'
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', true
@@ -169,10 +169,10 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it 'has invoke components and operation tags' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+          .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_COMPONENT)
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_JOB)
+          .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_JOB)
       end
     end
 
@@ -184,8 +184,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
       include_context 'delayed_job common tags and resource'
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it_behaves_like 'measured span for integration', true
@@ -196,10 +196,10 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it 'has enqueue components and operation tags' do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+          .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_COMPONENT)
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq(Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
+          .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
       end
     end
   end

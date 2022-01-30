@@ -12,14 +12,14 @@ RSpec.describe 'Grape instrumentation' do
 
   let(:configuration_options) { {} }
 
-  let(:render_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RENDER } }
-  let(:run_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
-  let(:run_filter_span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN_FILTERS } }
+  let(:render_span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RENDER } }
+  let(:run_span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+  let(:run_filter_span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN_FILTERS } }
   let(:span) { spans.last }
 
   let(:testing_api) do
     # patch Grape before the application
-    Datadog::Contrib::Grape::Patcher.patch
+    Datadog::Tracing::Contrib::Grape::Patcher.patch
 
     stub_const('TestingAPI', Class.new(Grape::API) do
       namespace :base do
@@ -91,7 +91,7 @@ RSpec.describe 'Grape instrumentation' do
 
   let(:rack_testing_api) do
     # patch Grape before the application
-    Datadog::Contrib::Grape::Patcher.patch
+    Datadog::Tracing::Contrib::Grape::Patcher.patch
 
     stub_const('RackTestingAPI', Class.new(Grape::API) do
       desc 'Returns a success message'
@@ -113,7 +113,7 @@ RSpec.describe 'Grape instrumentation' do
 
     # create a custom Rack application with the Rack middleware and a Grape API
     Rack::Builder.new do
-      use Datadog::Contrib::Rack::TraceMiddleware
+      use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       map '/api/' do
         run RackTestingAPI
       end
@@ -150,8 +150,8 @@ RSpec.describe 'Grape instrumentation' do
         end
 
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before { is_expected.to be_ok }
         end
 
@@ -192,8 +192,8 @@ RSpec.describe 'Grape instrumentation' do
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
           before { is_expected.to be_ok }
 
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it 'traces the endpoint body and all before/after filters' do
@@ -352,8 +352,8 @@ RSpec.describe 'Grape instrumentation' do
         end
 
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before do
             expect { subject }.to raise_error(StandardError, 'Ouch!')
           end
@@ -406,8 +406,8 @@ RSpec.describe 'Grape instrumentation' do
         end
 
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before do
             expect { subject }.to raise_error(StandardError, 'Ouch!')
           end
@@ -455,8 +455,8 @@ RSpec.describe 'Grape instrumentation' do
         end
 
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before { is_expected.to be_ok }
         end
 
@@ -488,8 +488,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/widgets')
 
-          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
-          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
+          expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
+          expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
         end
       end
 
@@ -501,8 +501,8 @@ RSpec.describe 'Grape instrumentation' do
         end
 
         it_behaves_like 'analytics for integration', ignore_global_flag: false do
-          let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-          let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           before { expect(response.status).to eq(201) }
         end
 
@@ -534,8 +534,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('POST')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/widgets')
 
-          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
-          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('POST')
+          expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
+          expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('POST')
         end
       end
 
@@ -570,8 +570,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/nested/widgets')
 
-          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/nested/widgets')
-          expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
+          expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/nested/widgets')
+          expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
         end
       end
     end
@@ -604,9 +604,9 @@ RSpec.describe 'Grape instrumentation' do
       it_behaves_like 'analytics for integration', ignore_global_flag: false do
         before { is_expected.to be_ok }
 
-        let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
-        let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
       it 'integrates with the Rack integration' do
@@ -642,8 +642,8 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/success')
 
-        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/success')
-        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
+        expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/success')
+        expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
@@ -664,9 +664,9 @@ RSpec.describe 'Grape instrumentation' do
       end
 
       it_behaves_like 'analytics for integration', ignore_global_flag: false do
-        let(:span) { spans.find { |x| x.name == Datadog::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
-        let(:analytics_enabled_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         before do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
         end
@@ -707,8 +707,8 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/hard_failure')
 
-        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/hard_failure')
-        expect(run_span.get_tag(Datadog::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
+        expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/hard_failure')
+        expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')

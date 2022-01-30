@@ -7,75 +7,77 @@ require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sidekiq/ext'
 
 module Datadog
-  module Contrib
-    module Resque
-      # Automatically configures jobs with {ResqueJob} plugin.
-      module Job
-        def perform
-          job = payload_class
-          job.extend(Contrib::Resque::ResqueJob) unless job.is_a?(Contrib::Resque::ResqueJob)
-        ensure
-          super
-        end
-      end
-
-      # Uses Resque job hooks to create traces
-      module ResqueJob
-        # `around_perform` hooks are executed in alphabetical order.
-        # we use the lowest printable character that allows for an inline
-        # method definition ('0'), alongside our naming prefix for identification.
-        #
-        # We could, in theory, use any character (e.g "\x00"), but this will lead
-        # to unreadable stack traces that contain this method call.
-        #
-        # We could also just use `around_perform` but this might override the user's
-        # own method.
-        def around_perform0_ddtrace(*args)
-          return yield unless datadog_configuration && Tracing.enabled?
-
-          Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
-            span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
-            span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
-
-            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
-
-            # Set analytics sample rate
-            if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-              Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
-            end
-
-            # Measure service stats
-            Contrib::Analytics.set_measured(span)
-
-            yield
+  module Tracing
+    module Contrib
+      module Resque
+        # Automatically configures jobs with {ResqueJob} plugin.
+        module Job
+          def perform
+            job = payload_class
+            job.extend(Contrib::Resque::ResqueJob) unless job.is_a?(Contrib::Resque::ResqueJob)
+          ensure
+            super
           end
         end
 
-        def after_perform_shutdown_tracer(*_)
-          shutdown_tracer_when_forked!
-        end
+        # Uses Resque job hooks to create traces
+        module ResqueJob
+          # `around_perform` hooks are executed in alphabetical order.
+          # we use the lowest printable character that allows for an inline
+          # method definition ('0'), alongside our naming prefix for identification.
+          #
+          # We could, in theory, use any character (e.g "\x00"), but this will lead
+          # to unreadable stack traces that contain this method call.
+          #
+          # We could also just use `around_perform` but this might override the user's
+          # own method.
+          def around_perform0_ddtrace(*args)
+            return yield unless datadog_configuration && Tracing.enabled?
 
-        def on_failure_shutdown_tracer(*_)
-          shutdown_tracer_when_forked!
-        end
+            Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
+              span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
+              span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
-        def shutdown_tracer_when_forked!
-          Tracing.shutdown! if forked?
-        end
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
-        private
+              # Set analytics sample rate
+              if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+                Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+              end
 
-        def forked?
-          Datadog.configuration_for(::Resque, :forked) == true
-        end
+              # Measure service stats
+              Contrib::Analytics.set_measured(span)
 
-        def span_options
-          { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
-        end
+              yield
+            end
+          end
 
-        def datadog_configuration
-          Tracing.configuration[:resque]
+          def after_perform_shutdown_tracer(*_)
+            shutdown_tracer_when_forked!
+          end
+
+          def on_failure_shutdown_tracer(*_)
+            shutdown_tracer_when_forked!
+          end
+
+          def shutdown_tracer_when_forked!
+            Tracing.shutdown! if forked?
+          end
+
+          private
+
+          def forked?
+            Datadog.configuration_for(::Resque, :forked) == true
+          end
+
+          def span_options
+            { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
+          end
+
+          def datadog_configuration
+            Tracing.configuration[:resque]
+          end
         end
       end
     end

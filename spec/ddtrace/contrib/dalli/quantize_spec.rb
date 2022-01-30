@@ -5,7 +5,7 @@ require 'dalli'
 require 'ddtrace'
 require 'ddtrace/contrib/dalli/quantize'
 
-RSpec.describe Datadog::Contrib::Dalli::Quantize do
+RSpec.describe Datadog::Tracing::Contrib::Dalli::Quantize do
   describe '#format_command' do
     subject(:formatted_command) { described_class.format_command(op, args) }
 
@@ -20,7 +20,7 @@ RSpec.describe Datadog::Contrib::Dalli::Quantize do
       let(:op) { :set }
       let(:args) { ['foo', 'A' * 100] }
 
-      it { expect(formatted_command.size).to eq(Datadog::Contrib::Dalli::Ext::QUANTIZE_MAX_CMD_LENGTH) }
+      it { expect(formatted_command.size).to eq(Datadog::Tracing::Contrib::Dalli::Ext::QUANTIZE_MAX_CMD_LENGTH) }
       it { is_expected.to end_with('...') }
       it { is_expected.to eq("set foo #{'A' * 89}...") }
     end

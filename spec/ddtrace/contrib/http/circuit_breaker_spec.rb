@@ -5,10 +5,10 @@ require 'ddtrace'
 require 'ddtrace/contrib/http/circuit_breaker'
 require 'ddtrace/transport/ext'
 
-RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
+RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
   subject(:circuit_breaker) { circuit_breaker_class.new }
 
-  let(:circuit_breaker_class) { Class.new { include Datadog::Contrib::HTTP::CircuitBreaker } }
+  let(:circuit_breaker_class) { Class.new { include Datadog::Tracing::Contrib::HTTP::CircuitBreaker } }
 
   describe '#should_skip_tracing?' do
     subject(:should_skip_tracing?) { circuit_breaker.should_skip_tracing?(request) }
@@ -38,7 +38,12 @@ RSpec.describe Datadog::Contrib::HTTP::CircuitBreaker do
     end
 
     context 'when the request has an active HTTP request span' do
-      let(:active_span) { instance_double(Datadog::Tracing::Span, name: Datadog::Contrib::HTTP::Ext::SPAN_REQUEST) }
+      let(:active_span) do
+        instance_double(
+          Datadog::Tracing::Span,
+          name: Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST
+        )
+      end
 
       before do
         allow(circuit_breaker).to receive(:datadog_http_request?)

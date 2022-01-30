@@ -4,7 +4,7 @@ require 'ddtrace/contrib/auto_instrument_examples'
 
 require 'ddtrace/contrib/action_pack/integration'
 
-RSpec.describe Datadog::Contrib::ActionPack::Integration do
+RSpec.describe Datadog::Tracing::Contrib::ActionPack::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:action_pack) }
@@ -67,12 +67,12 @@ RSpec.describe Datadog::Contrib::ActionPack::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ActionPack::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActionPack::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::ActionPack::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::ActionPack::Patcher }
   end
 end

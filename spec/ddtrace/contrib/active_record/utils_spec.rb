@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/active_record/utils'
 
-RSpec.describe Datadog::Contrib::ActiveRecord::Utils do
+RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Utils do
   describe 'regression: retrieving database without an active connection does not raise an error' do
     before do
       root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')

@@ -40,18 +40,6 @@ Lint/DuplicateRequire:
 Lint/MissingCopEnableDirective:
   Exclude:
     - 'Rakefile'
-    - 'lib/ddtrace/contrib/action_view/instrumentation/template_renderer.rb'
-    - 'lib/ddtrace/contrib/active_support/cache/instrumentation.rb'
-    - 'lib/ddtrace/contrib/aws/services.rb'
-    - 'lib/ddtrace/contrib/elasticsearch/patcher.rb'
-    - 'lib/ddtrace/contrib/excon/middleware.rb'
-    - 'lib/ddtrace/contrib/grape/endpoint.rb'
-    - 'lib/ddtrace/contrib/httprb/instrumentation.rb'
-    - 'lib/ddtrace/contrib/rack/middlewares.rb'
-    - 'lib/ddtrace/contrib/rails/middlewares.rb'
-    - 'lib/ddtrace/contrib/redis/patcher.rb'
-    - 'lib/ddtrace/contrib/sinatra/tracer_middleware.rb'
-    - 'lib/ddtrace/contrib/sucker_punch/instrumentation.rb'
     - 'lib/datadog/core/workers/async.rb'
     - 'spec/ddtrace/contrib/elasticsearch/quantize_spec.rb'
     - 'spec/ddtrace/contrib/http/request_spec.rb'
@@ -69,7 +57,6 @@ Lint/MissingCopEnableDirective:
 # Offense count: 32
 Lint/MissingSuper:
   Exclude:
-    - 'lib/ddtrace/contrib/grpc/datadog_interceptor.rb'
     - 'lib/datadog/opentracer/scope.rb'
     - 'lib/datadog/opentracer/span.rb'
     - 'lib/datadog/opentracer/span_context.rb'
@@ -96,12 +83,6 @@ Lint/StructNewOverride:
   Exclude:
     - 'lib/datadog/profiling/pprof/converter.rb'
 
-# Offense count: 1
-# Configuration parameters: AllowComments.
-Lint/SuppressedException:
-  Exclude:
-    - 'lib/ddtrace/contrib/ethon/easy_patch.rb'
-
 # Offense count: 2
 # Configuration parameters: CheckForMethodsWithNoSideEffects.
 Lint/Void:
@@ -118,15 +99,6 @@ Metrics/CyclomaticComplexity:
 Metrics/PerceivedComplexity:
   Max: 18
 
-# Offense count: 4
-# Configuration parameters: EnforcedStyleForLeadingUnderscores.
-# SupportedStylesForLeadingUnderscores: disallowed, required, optional
-Naming/MemoizedInstanceVariableName:
-  Exclude:
-    - 'lib/ddtrace/contrib/active_record/configuration/resolver.rb'
-    - 'lib/ddtrace/contrib/extensions.rb'
-    - 'lib/ddtrace/contrib/sequel/database.rb'
-
 # Offense count: 6
 # Configuration parameters: EnforcedStyle, CheckMethodNames, CheckSymbols, AllowedIdentifiers.
 # SupportedStyles: snake_case, normalcase, non_integer
@@ -140,7 +112,6 @@ Naming/VariableNumber:
 Performance/MethodObjectAsBlock:
   Exclude:
     - 'lib/datadog/ci/contrib/cucumber/formatter.rb'
-    - 'lib/ddtrace/contrib/delayed_job/plugin.rb'
     - 'lib/datadog/profiling/collectors/stack.rb'
     - 'lib/datadog/profiling/pprof/builder.rb'
     - 'lib/datadog/profiling/pprof/stack_sample.rb'

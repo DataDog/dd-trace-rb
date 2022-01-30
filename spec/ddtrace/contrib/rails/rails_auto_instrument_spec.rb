@@ -1,7 +1,7 @@
 # typed: false
 require 'ddtrace/contrib/rails/rails_helper'
 
-RSpec.describe 'Datadog::Contrib::AutoInstrument' do
+RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument' do
   include_context 'Rails test application'
 
   around do |example|

@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'ddtrace/contrib/httprb/integration'
 
-RSpec.describe Datadog::Contrib::Httprb::Integration do
+RSpec.describe Datadog::Tracing::Contrib::Httprb::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:http) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::Httprb::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::Httprb::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::Httprb::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::Httprb::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::Httprb::Patcher }
   end
 end

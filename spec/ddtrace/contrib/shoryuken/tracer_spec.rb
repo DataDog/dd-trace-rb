@@ -5,7 +5,7 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace'
 require 'shoryuken'
 
-RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
+RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   let(:shoryuken_tracer) { described_class.new }
   let(:configuration_options) { {} }
 
@@ -54,11 +54,11 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
     before do
       expect { call }.to_not raise_error
       expect(spans).to have(1).items
-      expect(span.name).to eq(Datadog::Contrib::Shoryuken::Ext::SPAN_JOB)
+      expect(span.name).to eq(Datadog::Tracing::Contrib::Shoryuken::Ext::SPAN_JOB)
       expect(span.service).to eq(tracer.default_service)
-      expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
-      expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
-      expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
+      expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('shoryuken')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
     end
@@ -66,8 +66,8 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
     it_behaves_like 'analytics for integration' do
       include_context 'Shoryuken::Worker'
       let(:body) { {} }
-      let(:analytics_enabled_var) { Datadog::Contrib::Shoryuken::Ext::ENV_ANALYTICS_ENABLED }
-      let(:analytics_sample_rate_var) { Datadog::Contrib::Shoryuken::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Shoryuken::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Shoryuken::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       before { call }
     end
 
@@ -102,7 +102,7 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       let(:configuration_options) { { tag_body: true } }
 
       it 'includes the body in the span' do
-        expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
+        expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to eq(body)
       end
     end
 
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       let(:configuration_options) { { tag_body: false } }
 
       it 'does not include the message body in the span' do
-        expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
+        expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_BODY)).to be_nil
       end
     end
   end
@@ -140,12 +140,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
         # TODO: These expectations do not work because Shoryuken doesn't run middleware in tests
         #       https://github.com/phstc/shoryuken/issues/541
         # expect(spans).to have(1).items
-        # expect(span.name).to eq(Datadog::Contrib::Shoryuken::Ext::SPAN_JOB)
+        # expect(span.name).to eq(Datadog::Tracing::Contrib::Shoryuken::Ext::SPAN_JOB)
         # TODO: Stub OpenStruct mock SQS message created by InlineExecutor with data
         #       https://github.com/phstc/shoryuken/blob/master/lib/shoryuken/worker/inline_executor.rb#L9
-        # expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
-        # expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
-        # expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes)
+        # expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
+        # expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
+        # expect(span.get_tag(Datadog::Tracing::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes)
       end
     end
   end

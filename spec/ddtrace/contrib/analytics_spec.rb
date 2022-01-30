@@ -6,7 +6,7 @@ require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/span'
 require 'ddtrace/contrib/analytics'
 
-RSpec.describe Datadog::Contrib::Analytics do
+RSpec.describe Datadog::Tracing::Contrib::Analytics do
   describe '::enabled?' do
     context 'when flag is not provided' do
       subject(:enabled?) { described_class.enabled? }

@@ -5,7 +5,7 @@ require 'redis'
 require 'hiredis'
 require 'ddtrace/contrib/redis/quantize'
 
-RSpec.describe Datadog::Contrib::Redis::Quantize do
+RSpec.describe Datadog::Tracing::Contrib::Redis::Quantize do
   describe '#format_arg' do
     subject(:output) { described_class.format_arg(arg) }
 

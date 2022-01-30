@@ -8,11 +8,11 @@ module Datadog
   class Railtie < Rails::Railtie
     # Add the trace middleware to the application stack
     initializer 'datadog.before_intialize' do |app|
-      Contrib::Rails::Patcher.before_intialize(app)
+      Tracing::Contrib::Rails::Patcher.before_intialize(app)
     end
 
     config.after_initialize do
-      Contrib::Rails::Patcher.after_intialize(self)
+      Tracing::Contrib::Rails::Patcher.after_intialize(self)
     end
   end
 end

@@ -60,8 +60,8 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'analytics for integration' do
-        let(:analytics_enabled_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_ENABLED }
-        let(:analytics_sample_rate_var) { Datadog::Contrib::HTTP::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::HTTP::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::HTTP::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         before { response }
       end
 
@@ -100,9 +100,9 @@ RSpec.describe 'net/http requests' do
       end
 
       context 'when configured with #after_request hook' do
-        before { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
+        before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
 
-        after { Datadog::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
+        after { Datadog::Tracing::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
 
         context 'which defines each parameter' do
           let(:callback) do
@@ -236,7 +236,7 @@ RSpec.describe 'net/http requests' do
 
     it do
       response
-      expect(span.name).to eq(Datadog::Contrib::HTTP::Ext::SPAN_REQUEST)
+      expect(span.name).to eq(Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST)
       expect(span.service).to eq(host)
       expect(span.resource).to eq('GET')
     end

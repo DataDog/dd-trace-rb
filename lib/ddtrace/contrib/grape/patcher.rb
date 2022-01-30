@@ -6,24 +6,26 @@ require 'ddtrace/contrib/grape/integration'
 require 'ddtrace/contrib/patcher'
 
 module Datadog
-  module Contrib
-    module Grape
-      # Patcher enables patching of 'grape' module.
-      module Patcher
-        include Contrib::Patcher
+  module Tracing
+    module Contrib
+      module Grape
+        # Patcher enables patching of 'grape' module.
+        module Patcher
+          include Contrib::Patcher
 
-        module_function
+          module_function
 
-        def target_version
-          Integration.version
-        end
+          def target_version
+            Integration.version
+          end
 
-        def patch
-          # Patch endpoints
-          ::Grape::Endpoint.include(Instrumentation)
+          def patch
+            # Patch endpoints
+            ::Grape::Endpoint.include(Instrumentation)
 
-          # Subscribe to ActiveSupport events
-          Endpoint.subscribe
+            # Subscribe to ActiveSupport events
+            Endpoint.subscribe
+          end
         end
       end
     end

@@ -82,7 +82,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('enqueue')
 
-      if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(span.get_tag('active_job.job.priority')).to eq(-10)
       end
     end
@@ -103,7 +103,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('enqueue_at')
 
-      if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(span.get_tag('active_job.job.priority')).to eq(-10)
       end
     end
@@ -122,13 +122,13 @@ RSpec.describe 'ActiveJob' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('perform')
 
-      if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(span.get_tag('active_job.job.priority')).to eq(-10)
       end
     end
 
     it 'instruments active_job.enqueue_retry and active_job.retry_stopped' do
-      unless Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('6.0')
+      unless Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('6.0')
         skip('ActiveSupport instrumentation for Retry introduced in Rails 6')
       end
 
@@ -149,7 +149,7 @@ RSpec.describe 'ActiveJob' do
       # Rails 6 introduced "jitter" so the wait will not be exactly the set(wait: 2) value
       expect(enqueue_retry_span.get_tag('active_job.job.retry_wait')).to be_within(1).of(2)
 
-      if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(enqueue_retry_span.get_tag('active_job.job.priority')).to eq(-10)
       end
 
@@ -165,13 +165,13 @@ RSpec.describe 'ActiveJob' do
       expect(retry_stopped_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('retry_stopped')
 
-      if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(retry_stopped_span.get_tag('active_job.job.priority')).to eq(-10)
       end
     end
 
     it 'instruments discard' do
-      unless Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('6.0')
+      unless Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('6.0')
         skip('ActiveSupport instrumentation for Discard introduced in Rails 6')
       end
 
@@ -189,7 +189,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('discard')
 
-      if Datadog::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
         expect(span.get_tag('active_job.job.priority')).to eq(-10)
       end
     end

@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace'
 
-RSpec.describe Datadog::Contrib::Registerable do
+RSpec.describe Datadog::Tracing::Contrib::Registerable do
   describe 'implemented' do
     subject(:registerable_class) do
       Class.new.tap do |klass|
@@ -21,7 +21,7 @@ RSpec.describe Datadog::Contrib::Registerable do
         context 'when a registry' do
           context 'is provided' do
             let(:options) { { registry: registry } }
-            let(:registry) { instance_double(Datadog::Contrib::Registry) }
+            let(:registry) { instance_double(Datadog::Tracing::Contrib::Registry) }
 
             it do
               expect(registry).to receive(:add)

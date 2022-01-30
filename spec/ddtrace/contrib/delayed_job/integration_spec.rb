@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/delayed_job/integration'
 
-RSpec.describe Datadog::Contrib::DelayedJob::Integration do
+RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:delayed_job) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::DelayedJob::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::DelayedJob::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::DelayedJob::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::DelayedJob::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::DelayedJob::Patcher }
   end
 end

@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/rest_client/integration'
 
-RSpec.describe Datadog::Contrib::RestClient::Integration do
+RSpec.describe Datadog::Tracing::Contrib::RestClient::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:rest_client) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::RestClient::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::RestClient::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::RestClient::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::RestClient::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::RestClient::Patcher }
   end
 end

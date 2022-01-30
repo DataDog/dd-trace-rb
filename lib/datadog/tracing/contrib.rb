@@ -2,26 +2,28 @@
 require 'ddtrace/contrib/registry'
 
 module Datadog
-  module Contrib
-    # Registry is a global, declarative repository of all available integrations.
-    #
-    # Integrations should register themselves with the registry as early as
-    # possible as the initial tracer configuration can only activate integrations
-    # if they have already been registered.
-    #
-    # Despite that, integrations *can* be appended to the registry at any point
-    # of the program execution. Newly appended integrations can then be
-    # activated during tracer reconfiguration.
-    #
-    # The registry does not depend on runtime configuration and registered integrations
-    # must execute correctly after successive configuration changes.
-    # The registered integrations themselves can depend on the stateful configuration
-    # of the tracer.
-    #
-    # `Datadog::Tracing.registry` is a helper accessor to this constant, but it's only available
-    # after the tracer has complete initialization. Use `Datadog::Contrib::REGISTRY` instead
-    # of `Datadog::Tracing.registry` when you code might be called during tracer initialization.
-    REGISTRY = Registry.new
+  module Tracing
+    module Contrib
+      # Registry is a global, declarative repository of all available integrations.
+      #
+      # Integrations should register themselves with the registry as early as
+      # possible as the initial tracer configuration can only activate integrations
+      # if they have already been registered.
+      #
+      # Despite that, integrations *can* be appended to the registry at any point
+      # of the program execution. Newly appended integrations can then be
+      # activated during tracer reconfiguration.
+      #
+      # The registry does not depend on runtime configuration and registered integrations
+      # must execute correctly after successive configuration changes.
+      # The registered integrations themselves can depend on the stateful configuration
+      # of the tracer.
+      #
+      # `Datadog::Tracing.registry` is a helper accessor to this constant, but it's only available
+      # after the tracer has complete initialization. Use `Datadog::Tracing::Contrib::REGISTRY` instead
+      # of `Datadog::Tracing.registry` when you code might be called during tracer initialization.
+      REGISTRY = Registry.new
+    end
   end
 end
 

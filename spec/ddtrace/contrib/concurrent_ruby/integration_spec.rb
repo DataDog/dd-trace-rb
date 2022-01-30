@@ -3,7 +3,7 @@ require 'ddtrace/contrib/support/spec_helper'
 
 require 'ddtrace/contrib/concurrent_ruby/integration'
 
-RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
+RSpec.describe Datadog::Tracing::Contrib::ConcurrentRuby::Integration do
   extend ConfigurationHelpers
 
   let(:integration) { described_class.new(:concurrent_ruby) }
@@ -68,12 +68,12 @@ RSpec.describe Datadog::Contrib::ConcurrentRuby::Integration do
   describe '#default_configuration' do
     subject(:default_configuration) { integration.default_configuration }
 
-    it { is_expected.to be_a_kind_of(Datadog::Contrib::ConcurrentRuby::Configuration::Settings) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ConcurrentRuby::Configuration::Settings) }
   end
 
   describe '#patcher' do
     subject(:patcher) { integration.patcher }
 
-    it { is_expected.to be Datadog::Contrib::ConcurrentRuby::Patcher }
+    it { is_expected.to be Datadog::Tracing::Contrib::ConcurrentRuby::Patcher }
   end
 end

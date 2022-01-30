@@ -26,7 +26,7 @@ RSpec.describe 'Rack integration distributed tracing' do
 
     let(:app) do
       Rack::Builder.new do
-        use Datadog::Contrib::Rack::TraceMiddleware
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
         map '/' do
           run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
