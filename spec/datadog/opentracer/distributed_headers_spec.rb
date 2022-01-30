@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/span'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::DistributedHeaders do
   subject(:headers) { described_class.new(carrier) }

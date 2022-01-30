@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/tracer'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::Tracer do
   subject(:tracer) { described_class.new(writer: writer) }

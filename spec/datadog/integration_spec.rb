@@ -1,6 +1,6 @@
 # typed: false
-require 'ddtrace'
-require 'ddtrace/opentracer'
+require 'datadog/tracing'
+require 'datadog/opentracer'
 require 'datadog/statsd'
 
 RSpec.describe 'Datadog integration' do

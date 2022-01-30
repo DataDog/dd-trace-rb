@@ -1,7 +1,7 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::ThreadLocalScopeManager do
   subject(:scope_manager) { described_class.new }

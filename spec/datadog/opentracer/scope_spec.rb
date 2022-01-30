@@ -1,7 +1,7 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::Scope do
   subject(:scope) { described_class.new(manager: manager, span: span) }

@@ -6,7 +6,7 @@ require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/propagation/http'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::RackPropagator do
   describe '#inject' do
