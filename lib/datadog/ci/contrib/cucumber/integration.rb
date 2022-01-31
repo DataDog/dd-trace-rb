@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/contrib/integration'
+require 'datadog/tracing/contrib/integration'
 
 require 'datadog/ci/contrib/cucumber/configuration/settings'
 require 'datadog/ci/contrib/cucumber/patcher'

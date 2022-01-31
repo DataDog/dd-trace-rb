@@ -1,4 +1,4 @@
-require 'ddtrace/contrib/resque/resque_job'
+require 'datadog/tracing/contrib/resque/resque_job'
 
 module Jobs
   class Test

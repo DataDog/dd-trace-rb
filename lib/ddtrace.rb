@@ -3,8 +3,8 @@ require 'datadog/tracing'
 
 # Load tracing extensions
 require 'datadog/tracing/contrib'
-require 'ddtrace/contrib/auto_instrument'
-require 'ddtrace/contrib/extensions'
+require 'datadog/tracing/contrib/auto_instrument'
+require 'datadog/tracing/contrib/extensions'
 require 'datadog/opentelemetry/extensions'
 require 'ddtrace/auto_instrument_base'
 

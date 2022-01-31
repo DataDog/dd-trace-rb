@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-require 'ddtrace/contrib/analytics'
+require 'datadog/tracing/contrib/analytics'
 
 require 'datadog/ci/ext/app_types'
 require 'datadog/ci/ext/test'

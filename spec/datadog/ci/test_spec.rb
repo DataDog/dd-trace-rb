@@ -5,7 +5,7 @@ require 'datadog/ci/test'
 require 'datadog/tracing'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/span_operation'
-require 'ddtrace/contrib/analytics'
+require 'datadog/tracing/contrib/analytics'
 
 RSpec.describe Datadog::CI::Test do
   let(:trace_op) { instance_double(Datadog::Tracing::TraceOperation) }

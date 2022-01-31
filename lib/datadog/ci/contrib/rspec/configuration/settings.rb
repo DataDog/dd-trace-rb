@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/contrib/configuration/settings'
+require 'datadog/tracing/contrib/configuration/settings'
 require 'datadog/ci/contrib/rspec/ext'
 
 module Datadog
