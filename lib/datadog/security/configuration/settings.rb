@@ -4,6 +4,20 @@ module Datadog
       # Configuration settings, acting as an integration registry
       # TODO: as with Configuration, this is a trivial implementation
       class Settings
+        class << self
+          def boolean
+            -> (v) { ['1', 'true'].include?((v || '').downcase) }
+          end
+
+          def string
+            -> (v) { v.to_s }
+          end
+
+          def integer
+            -> (v) { v.to_i }
+          end
+        end
+
         DEFAULTS = {
           enabled: false,
           ruleset: :recommended,
@@ -13,11 +27,11 @@ module Datadog
         }
 
         ENVS = {
-          'DD_APPSEC_ENABLED' => [:enabled, -> (v) { ['1', 'true'].include?((v || '').downcase) }],
-          'DD_APPSEC_RULESET' => [:ruleset, -> (v) { v.to_s }],
-          'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, -> (v) { v.to_i }],
-          'DD_APPSEC_WAF_DEBUG' => [:waf_debug, -> (v) { ['1', 'true'].include?((v || '').downcase) }],
-          'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, -> (v) { v.to_i }],
+          'DD_APPSEC_ENABLED' => [:enabled, Settings.boolean],
+          'DD_APPSEC_RULESET' => [:ruleset, Settings.string],
+          'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, Settings.integer],
+          'DD_APPSEC_WAF_DEBUG' => [:waf_debug, Settings.boolean],
+          'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, Settings.integer],
         }
 
         Integration = Struct.new(:integration, :options)
