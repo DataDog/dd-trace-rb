@@ -16,6 +16,47 @@ module Datadog
           def integer
             -> (v) { v.to_i }
           end
+
+          def duration(base = :ns, type = :integer)
+            lambda do |v|
+              cast = case type
+                     when :integer, Integer
+                       method(:Integer)
+                     when :float, Float
+                       method(:Float)
+                     end
+
+              scale = case base
+                      when :s
+                        1_000_000_000
+                      when :ms
+                        1_000_000
+                      when :us
+                        1000
+                      when :ns
+                        1
+                      end
+
+              case v
+              when /^(\d+)h$/
+                cast.call($1) * 1_000_000_000 * 60 * 60 / scale
+              when /^(\d+)m$/
+                cast.call($1) * 1_000_000_000 * 60 / scale
+              when /^(\d+)s$/
+                cast.call($1) * 1_000_000_000 / scale
+              when /^(\d+)ms$/
+                cast.call($1) * 1_000_000 / scale
+              when /^(\d+)us$/
+                cast.call($1) * 1_000 / scale
+              when /^(\d+)ns$/
+                cast.call($1) / scale
+              when  /^(\d+)$/
+                cast.call($1)
+              else
+                raise ArgumentError, "invalid duration: #{v.inspect}"
+              end
+            end
+          end
         end
 
         DEFAULTS = {
@@ -29,7 +70,7 @@ module Datadog
         ENVS = {
           'DD_APPSEC_ENABLED' => [:enabled, Settings.boolean],
           'DD_APPSEC_RULESET' => [:ruleset, Settings.string],
-          'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, Settings.integer],
+          'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, Settings.duration(:us)],
           'DD_APPSEC_WAF_DEBUG' => [:waf_debug, Settings.boolean],
           'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, Settings.integer],
         }
