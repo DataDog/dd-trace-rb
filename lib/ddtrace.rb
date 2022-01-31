@@ -9,7 +9,7 @@ require 'datadog/opentelemetry/extensions'
 require 'ddtrace/auto_instrument_base'
 
 # Load appsec
-require 'datadog/security/autoload'
+require 'datadog/security/autoload' # TODO: datadog/security?
 
 # Global namespace that includes all Datadog functionality.
 # @public_api

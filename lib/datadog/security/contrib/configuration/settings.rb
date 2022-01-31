@@ -5,6 +5,7 @@ module Datadog
     module Contrib
       module Configuration
         # Common settings for all integrations
+        # TODO: move to datadog/security/configuration or remove?
         class Settings
           include Datadog::Core::Configuration::Base
 

@@ -25,6 +25,7 @@ module Datadog
           finalize
         end
 
+        # TODO: use structs instead of an arg splat
         def subscribe(*addresses, &block)
           reactive.subscribe(*addresses, &block)
         end

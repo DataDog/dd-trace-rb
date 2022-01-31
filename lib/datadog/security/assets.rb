@@ -27,6 +27,8 @@ module Datadog
       end
 
       def dir
+        # Happens only if this file is evaluated standalone, which should not happen
+        # Necessary to make type-checker happy with a non-nilable return value
         __dir__ || raise('Unexpected file eval')
       end
     end

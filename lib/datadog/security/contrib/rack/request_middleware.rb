@@ -35,6 +35,7 @@ module Datadog
             when :recommended
               @waf_rules ||= JSON.parse(Datadog::Security::Assets.recommended_waf_rules)
             when String
+              # TODO: handle file missing
               filename = ruleset_setting
               ruleset = File.read(filename)
               @waf_rules ||= JSON.parse(ruleset)

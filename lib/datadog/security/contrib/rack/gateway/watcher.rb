@@ -18,6 +18,7 @@ module Datadog
                 waf_context = request.env['datadog.waf.context']
 
                 Security::Reactive::Operation.new('rack.request') do |op|
+                  # TODO: factor out
                   if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
                     active_trace = Datadog::Tracing.active_trace
                     root_span = active_trace.instance_eval { @root_span }
@@ -60,6 +61,7 @@ module Datadog
                 waf_context = response.instance_eval { @waf_context }
 
                 Security::Reactive::Operation.new('rack.response') do |op|
+                  # TODO: factor out
                   if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
                     active_trace = Datadog::Tracing.active_trace
                     root_span = active_trace.instance_eval { @root_span }

@@ -18,7 +18,7 @@ module Datadog
             end
           end
 
-          def string
+          def string # TODO: allow symbols
             -> (v) { v.to_s }
           end
 
@@ -127,6 +127,7 @@ module Datadog
 
           # patcher.patch may call configure again, hence merge might be called again so it needs to be reentrant
           dsl.instruments.each do |instrument|
+            # TODO: error handling
             registered_integration = Datadog::Security::Contrib::Integration.registry[instrument.name]
             @integrations << Integration.new(registered_integration, instrument.options)
 

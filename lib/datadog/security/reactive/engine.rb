@@ -8,12 +8,12 @@ module Datadog
       class Engine
         def initialize
           @data = {}
-          @subscribers = AddressHash.new { |h, k| h[k] = [] }
+          @subscribers = AddressHash.new { |h, k| h[k] = [] } # TODO: move to AddressHash initializer
           @children = []
         end
 
         def subscribe(*addresses, &block)
-          @subscribers[addresses.freeze] << Subscriber.new(&block).freeze
+          @subscribers[addresses.freeze] << Subscriber.new(&block).freeze # TODO: move freeze to Subscriber
         end
 
         def publish(address, data)

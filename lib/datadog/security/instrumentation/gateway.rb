@@ -35,7 +35,7 @@ module Datadog
       end
 
       def self.gateway
-        @gateway ||= Gateway.new
+        @gateway ||= Gateway.new # TODO: not thread safe
       end
     end
   end
