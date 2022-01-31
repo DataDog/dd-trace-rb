@@ -57,12 +57,7 @@ RSpec.describe Datadog::Contrib::ActionPack::ActionController::Instrumentation d
           end
         end
 
-        let(:payload) do
-          super().merge(
-            exception: [error.class.name, error.message],
-            exception_object: error
-          )
-        end
+        let(:payload) { { **super(), exception_object: error } }
 
         before do
           expect(Datadog.logger).to_not receive(:error)

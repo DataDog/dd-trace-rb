@@ -130,7 +130,6 @@ module Datadog
                 result
               # rubocop:disable Lint/RescueException
               rescue Exception => e
-                payload[:exception] = [e.class.name, e.message]
                 payload[:exception_object] = e
                 raise e
               end
