@@ -6,7 +6,16 @@ module Datadog
       class Settings
         class << self
           def boolean
-            -> (v) { ['1', 'true'].include?((v || '').downcase) }
+            lambda do |v|
+              case v
+              when /(1|true)/i
+                true
+              when  /(0|false)/i, nil
+                false
+              else
+                raise ArgumentError, "invalid boolean: #{v.inspect}"
+              end
+            end
           end
 
           def string
@@ -14,7 +23,14 @@ module Datadog
           end
 
           def integer
-            -> (v) { v.to_i }
+            lambda do |v|
+              case v
+              when /(\d+)/
+                Integer($1)
+              else
+                raise ArgumentError, "invalid integer: #{v.inspect}"
+              end
+            end
           end
 
           def duration(base = :ns, type = :integer)
