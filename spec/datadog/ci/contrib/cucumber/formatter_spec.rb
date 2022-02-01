@@ -1,11 +1,12 @@
 # typed: ignore
 require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/ext/metadata'
-
-require 'cucumber'
-require 'ddtrace'
-
 require 'datadog/ci/contrib/support/spec_helper'
+
+require 'stringio'
+require 'cucumber'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 
 RSpec.describe 'Cucumber formatter' do
   extend ConfigurationHelpers
@@ -47,12 +48,12 @@ RSpec.describe 'Cucumber formatter' do
 
       expect(scenario_span.resource).to eq('cucumber scenario')
       expect(scenario_span.service).to eq(Datadog::CI::Contrib::Cucumber::Ext::SERVICE_NAME)
-      expect(scenario_span.span_type).to eq(Datadog::CI::Ext::AppTypes::TEST)
+      expect(scenario_span.span_type).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)
       expect(scenario_span.name).to eq(Datadog::CI::Contrib::Cucumber::Ext::OPERATION_NAME)
       expect(step_span.resource).to eq('datadog')
 
       spans.each do |span|
-        expect(span.get_tag(Datadog::Ext::DistributedTracing::TAG_ORIGIN))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN))
           .to eq(Datadog::CI::Ext::Test::CONTEXT_ORIGIN)
       end
     end

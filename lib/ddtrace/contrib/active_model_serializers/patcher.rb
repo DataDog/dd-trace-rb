@@ -1,6 +1,6 @@
 # typed: true
+require 'datadog/tracing'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/active_model_serializers/ext'
 require 'ddtrace/contrib/active_model_serializers/events'
 
@@ -22,7 +22,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog::Tracing.configuration[:active_model_serializers].get_option(option)
+          Tracing.configuration[:active_model_serializers].get_option(option)
         end
       end
     end

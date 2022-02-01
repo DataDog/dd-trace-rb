@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/ext/http'
+require 'datadog/tracing'
 require 'ddtrace/contrib/action_pack/utils'
 
 module Datadog
@@ -23,7 +23,7 @@ module Datadog
         # It's not a problem since we re-raise it afterwards so for example a
         # SignalException::Interrupt would still bubble up.
         rescue Exception => e
-          span = Datadog::Tracing.active_span
+          span = Tracing.active_span
           if !span.nil? && ActionPack::Utils.exception_is_error?(e)
             # Only set error if it's supposed to be flagged as such
             # e.g. we don't want to flag 404s.

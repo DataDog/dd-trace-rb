@@ -14,7 +14,7 @@ module Datadog
         # Class methods for ActionView events.
         module ClassMethods
           def configuration
-            Datadog::Tracing.configuration[:action_view]
+            Tracing.configuration[:action_view]
           end
 
           def record_exception(span, payload)

@@ -1,7 +1,8 @@
 # typed: true
+require 'datadog/tracing'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/sucker_punch/ext'
+require 'ddtrace/contrib/sucker_punch/integration'
 
 module Datadog
   module Contrib
@@ -26,7 +27,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog::Tracing.configuration[:sucker_punch].get_option(option)
+          Tracing.configuration[:sucker_punch].get_option(option)
         end
       end
     end

@@ -1,6 +1,8 @@
 # typed: true
 # frozen_string_literal: true
 
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 
 module Datadog
@@ -16,17 +18,17 @@ module Datadog
         def call(deserialized_msg, delivery_info, metadata, handler)
           trace_options = {
             service: configuration[:service_name],
-            span_type: Datadog::Ext::AppTypes::WORKER,
+            span_type: Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
             on_error: configuration[:error_handler]
           }
 
-          Datadog::Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
-            request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+          Tracing.trace(Ext::SPAN_JOB, **trace_options) do |request_span|
+            request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
             # Set analytics sample rate
-            if Datadog::Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-              Datadog::Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
+            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
             end
 
             # Measure service stats
@@ -45,7 +47,7 @@ module Datadog
         private
 
         def configuration
-          Datadog::Tracing.configuration[:sneakers]
+          Tracing.configuration[:sneakers]
         end
       end
     end

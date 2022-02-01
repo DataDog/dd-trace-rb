@@ -2,15 +2,13 @@
 require 'date'
 
 require 'datadog/core/environment/variable_helpers'
-
-require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/metadata'
-require 'ddtrace/propagation/http_propagator'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/http'
 require 'ddtrace/contrib/analytics'
-require 'ddtrace/contrib/utils/quantization/http'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
+require 'ddtrace/contrib/utils/quantization/http'
 
 module Datadog
   module Contrib
@@ -31,22 +29,22 @@ module Datadog
           return unless configuration[:request_queuing]
 
           # parse the request queue time
-          request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
+          request_start = Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
-          frontend_span = Datadog::Tracing.trace(
+          frontend_span = Tracing.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
-            span_type: Datadog::Ext::HTTP::TYPE_PROXY,
+            span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
             start_time: request_start,
             service: configuration[:web_service_name]
           )
 
           # Tag this span as belonging to Rack
-          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
+          frontend_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          frontend_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
 
           # Set peer service (so its not believed to belong to this app)
-          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, configuration[:web_service_name])
+          frontend_span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, configuration[:web_service_name])
 
           frontend_span
         end
@@ -58,22 +56,22 @@ module Datadog
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
           if configuration[:distributed_tracing] && previous_request_span.nil?
-            trace_digest = HTTPPropagator.extract(env)
-            Datadog::Tracing.continue_trace!(trace_digest)
+            trace_digest = Tracing::Propagation::HTTP.extract(env)
+            Tracing.continue_trace!(trace_digest)
           end
 
           # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
           frontend_span = compute_queue_time(env) if previous_request_span.nil?
 
-          trace_options = { span_type: Datadog::Ext::HTTP::TYPE_INBOUND }
+          trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
           trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = Datadog::Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
+          request_span = Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
           request_span.resource = nil
-          request_trace = Datadog::Tracing.active_trace
+          request_trace = Tracing.active_trace
           env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.
@@ -149,8 +147,8 @@ module Datadog
           # Set trace name if it hasn't been set yet (name == resource)
           trace.resource = request_span.resource if trace.resource == trace.name
 
-          request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-          request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+          request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -160,16 +158,19 @@ module Datadog
           # Measure service stats
           Contrib::Analytics.set_measured(request_span)
 
-          if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
-            request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
+          if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD).nil?
+            request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, env['REQUEST_METHOD'])
           end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
+          if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_URL).nil?
             options = configuration[:quantize]
-            request_span.set_tag(Datadog::Ext::HTTP::URL, Contrib::Utils::Quantization::HTTP.url(url, options))
+            request_span.set_tag(
+              Tracing::Metadata::Ext::HTTP::TAG_URL,
+              Contrib::Utils::Quantization::HTTP.url(url, options)
+            )
           end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
+          if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL).nil?
             request_obj = ::Rack::Request.new(env)
 
             base_url = if request_obj.respond_to?(:base_url)
@@ -179,11 +180,11 @@ module Datadog
                          request_obj.url.chomp(request_obj.fullpath)
                        end
 
-            request_span.set_tag(Datadog::Ext::HTTP::BASE_URL, base_url)
+            request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL, base_url)
           end
 
-          if request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE).nil? && status
-            request_span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, status)
+          if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE).nil? && status
+            request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status)
           end
 
           # Request headers
@@ -207,7 +208,7 @@ module Datadog
         private
 
         def configuration
-          Datadog::Tracing.configuration[:rack]
+          Tracing.configuration[:rack]
         end
 
         def parse_request_headers(env)
@@ -215,7 +216,9 @@ module Datadog
             whitelist = configuration[:headers][:request] || []
             whitelist.each do |header|
               rack_header = header_to_rack_header(header)
-              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
+              if env.key?(rack_header)
+                result[Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
+              end
             end
           end
         end
@@ -225,12 +228,14 @@ module Datadog
             whitelist = configuration[:headers][:response] || []
             whitelist.each do |header|
               if headers.key?(header)
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+                result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
               else
                 # Try a case-insensitive lookup
                 uppercased_header = header.to_s.upcase
                 matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header] if matching_header
+                if matching_header
+                  result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
+                end
               end
             end
           end

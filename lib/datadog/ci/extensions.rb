@@ -10,8 +10,8 @@ module Datadog
     # Extends Datadog tracing with CI features
     module Extensions
       def self.activate!
-        Datadog::Core::Configuration::Settings.extend(CI::Configuration::Settings)
-        Datadog::Core::Configuration::Components.prepend(CI::Configuration::Components)
+        Core::Configuration::Settings.extend(CI::Configuration::Settings)
+        Core::Configuration::Components.prepend(CI::Configuration::Components)
       end
     end
   end

@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/analytics'
+require 'datadog/tracing/metadata/ext'
 
 RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
   around do |example|
@@ -12,13 +12,13 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
   context 'when not configured' do
     context 'and the global flag is not set' do
       it 'is not included in the tags' do
-        expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+        expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
       end
     end
 
     context 'and the global flag is enabled' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+        ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
           example.run
         end
       end
@@ -28,24 +28,24 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
       # These integrations will not expect it to be set, despite the global flag.
       if options[:ignore_global_flag]
         it 'is not included in the tags' do
-          expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+          expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
         end
       else
         it 'is included in the tags' do
-          expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
+          expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0)
         end
       end
     end
 
     context 'and the global flag is disabled' do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+        ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
           example.run
         end
       end
 
       it 'is not included in the tags' do
-        expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
+        expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
       end
     end
   end
@@ -60,7 +60,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
       shared_examples_for 'sample rate value' do
         context 'isn\'t set' do
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
+          it { expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
         end
 
         context 'is set' do
@@ -72,7 +72,10 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
             end
           end
 
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+          it do
+            expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE))
+              .to eq(analytics_sample_rate)
+          end
         end
       end
 
@@ -83,7 +86,9 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true'
+            ) do
               example.run
             end
           end
@@ -93,7 +98,9 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false'
+            ) do
               example.run
             end
           end
@@ -112,7 +119,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
       shared_examples_for 'sample rate value' do
         context 'isn\'t set' do
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+          it { expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
         end
 
         context 'is set' do
@@ -124,7 +131,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
             end
           end
 
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+          it { expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
         end
       end
 
@@ -135,7 +142,9 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly enabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true') do
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'true'
+            ) do
               example.run
             end
           end
@@ -145,7 +154,9 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
         context 'is explicitly disabled' do
           around do |example|
-            ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false') do
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => 'false'
+            ) do
               example.run
             end
           end
@@ -170,14 +181,20 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
       shared_examples_for 'sample rate value' do
         context 'isn\'t set' do
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(1.0) }
+          it do
+            expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE))
+              .to eq(1.0)
+          end
         end
 
         context 'is set' do
           let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
           let(:analytics_sample_rate) { 0.5 }
 
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to eq(analytics_sample_rate) }
+          it do
+            expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE))
+              .to eq(analytics_sample_rate)
+          end
         end
       end
 
@@ -203,14 +220,14 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
 
       shared_examples_for 'sample rate value' do
         context 'isn\'t set' do
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+          it { expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
         end
 
         context 'is set' do
           let(:configuration_options) { super().merge(analytics_sample_rate: analytics_sample_rate) }
           let(:analytics_sample_rate) { 0.5 }
 
-          it { expect(span.get_metric(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
+          it { expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil }
         end
       end
 
@@ -235,12 +252,12 @@ end
 
 RSpec.shared_examples_for 'measured span for integration' do |expect_active = true|
   if expect_active
-    it "sets #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do
-      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to eq 1.0
+    it "sets #{Datadog::Tracing::Metadata::Ext::Analytics::TAG_MEASURED} on the span" do
+      expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_MEASURED)).to eq 1.0
     end
   else
-    it "does not set #{Datadog::Ext::Analytics::TAG_MEASURED} on the span" do
-      expect(span.get_metric(Datadog::Ext::Analytics::TAG_MEASURED)).to be nil
+    it "does not set #{Datadog::Tracing::Metadata::Ext::Analytics::TAG_MEASURED} on the span" do
+      expect(span.get_metric(Datadog::Tracing::Metadata::Ext::Analytics::TAG_MEASURED)).to be nil
     end
   end
 end

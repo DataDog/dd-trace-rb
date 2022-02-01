@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/action_cable/event'
 
@@ -28,7 +28,7 @@ module Datadog
 
           def span_type
             # A request to perform_action comes from a WebSocket connection
-            Datadog::Ext::AppTypes::WEB
+            Tracing::Metadata::Ext::AppTypes::TYPE_WEB
           end
 
           def process(span, _event, _id, payload)
@@ -50,8 +50,8 @@ module Datadog
             span.set_tag(Ext::TAG_CHANNEL_CLASS, channel_class)
             span.set_tag(Ext::TAG_ACTION, action)
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ACTION)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ACTION)
           end
         end
       end

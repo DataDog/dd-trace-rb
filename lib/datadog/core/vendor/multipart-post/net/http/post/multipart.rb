@@ -19,13 +19,13 @@ module Datadog
         class HTTP
           class Put
             class Multipart < ::Net::HTTP::Put
-              include ::Datadog::Core::Vendor::Multipart::Post::Multipartable
+              include Vendor::Multipart::Post::Multipartable
             end
           end
 
           class Post
             class Multipart < ::Net::HTTP::Post
-              include ::Datadog::Core::Vendor::Multipart::Post::Multipartable
+              include Vendor::Multipart::Post::Multipartable
             end
           end
         end

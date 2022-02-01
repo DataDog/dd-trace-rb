@@ -38,11 +38,11 @@ RSpec.describe 'Qless instrumentation' do
         expect(failed_jobs.count).to eq(0)
         expect(span.name).to eq('qless.job')
         expect(span.resource).to eq(job_class.name)
-        expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
         expect(span.service).to eq(tracer.default_service)
         expect(span).to_not have_error
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('qless')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('qless')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -74,13 +74,13 @@ RSpec.describe 'Qless instrumentation' do
         expect(failed_jobs).to eq('TestJob:TestJobFailError' => 1)
         expect(span.name).to eq('qless.job')
         expect(span.resource).to eq(job_class.name)
-        expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER)
         expect(span.service).to eq(tracer.default_service)
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('qless')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('qless')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
       end
     end
   end

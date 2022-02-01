@@ -1,6 +1,7 @@
 # typed: true
-require 'ddtrace/contrib/patcher'
 require 'ddtrace/contrib/grpc/ext'
+require 'ddtrace/contrib/grpc/integration'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib
@@ -17,7 +18,7 @@ module Datadog
         end
 
         def patch
-          require 'ddtrace/propagation/grpc_propagator'
+          require 'datadog/tracing/propagation/grpc'
           require 'ddtrace/contrib/grpc/datadog_interceptor'
           require 'ddtrace/contrib/grpc/intercept_with_datadog'
 
@@ -26,7 +27,7 @@ module Datadog
 
         def prepend_interceptor
           ::GRPC::InterceptionContext
-            .prepend(Datadog::Contrib::GRPC::InterceptWithDatadog)
+            .prepend(InterceptWithDatadog)
         end
       end
     end

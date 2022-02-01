@@ -1,6 +1,8 @@
 # typed: true
 require 'set'
-require 'ddtrace/ext/http'
+
+require 'datadog/core'
+require 'datadog/tracing/metadata/ext'
 
 module Datadog
   module Contrib
@@ -59,10 +61,10 @@ module Datadog
               true
             end
           end
-          filter_error_responses.empty? ? Datadog::Ext::HTTP::ERROR_RANGE.to_a : filter_error_responses
+          filter_error_responses.empty? ? Tracing::Metadata::Ext::HTTP::ERROR_RANGE.to_a : filter_error_responses
         else
           Datadog.logger.debug('No valid config was provided for :error_statuses - falling back to default.')
-          Datadog::Ext::HTTP::ERROR_RANGE.to_a
+          Tracing::Metadata::Ext::HTTP::ERROR_RANGE.to_a
         end
       end
     end

@@ -1,4 +1,7 @@
 # typed: true
+require 'ddtrace/contrib/ethon/integration'
+require 'ddtrace/contrib/patcher'
+
 module Datadog
   module Contrib
     module Ethon
@@ -14,7 +17,6 @@ module Datadog
         end
 
         def patch
-          require 'ddtrace/ext/app_types'
           require 'ddtrace/contrib/ethon/easy_patch'
           require 'ddtrace/contrib/ethon/multi_patch'
 

@@ -1,8 +1,9 @@
 # typed: true
+require 'datadog/tracing'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/rake/ext'
 require 'ddtrace/contrib/rake/instrumentation'
+require 'ddtrace/contrib/rake/integration'
 
 module Datadog
   module Contrib
@@ -23,7 +24,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog::Tracing.configuration[:rake].get_option(option)
+          Tracing.configuration[:rake].get_option(option)
         end
       end
     end

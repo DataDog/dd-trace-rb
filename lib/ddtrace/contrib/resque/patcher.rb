@@ -1,6 +1,6 @@
 # typed: false
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/resque/integration'
 require 'ddtrace/contrib/sidekiq/ext'
 
 module Datadog

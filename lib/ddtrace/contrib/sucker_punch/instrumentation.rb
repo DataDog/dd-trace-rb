@@ -1,5 +1,8 @@
 # typed: false
 require 'sucker_punch'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sucker_punch/ext'
 
@@ -17,20 +20,20 @@ module Datadog
           ::SuckerPunch::Job::ClassMethods.class_eval do
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
-              Datadog::Tracing.send(:tracer).provider.context = Datadog::Context.new
+              Datadog::Tracing.send(:tracer).provider.context = Datadog::Tracing::Context.new
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
 
-                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM)
 
                 # Set analytics sample rate
-                if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
-                  Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
+                if Datadog::Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
+                  Datadog::Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
                 end
 
                 # Measure service stats
-                Contrib::Analytics.set_measured(span)
+                Datadog::Contrib::Analytics.set_measured(span)
 
                 __run_perform_without_datadog(*args)
               end
@@ -44,10 +47,10 @@ module Datadog
               __with_instrumentation(Ext::SPAN_PERFORM_ASYNC) do |span|
                 span.resource = "ENQUEUE #{self}"
 
-                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM_ASYNC)
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM_ASYNC)
 
                 # Measure service stats
-                Contrib::Analytics.set_measured(span)
+                Datadog::Contrib::Analytics.set_measured(span)
 
                 __perform_async(*args)
               end
@@ -59,12 +62,12 @@ module Datadog
               __with_instrumentation(Ext::SPAN_PERFORM_IN) do |span|
                 span.resource = "ENQUEUE #{self}"
 
-                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM_IN)
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM_IN)
 
                 span.set_tag(Ext::TAG_PERFORM_IN, interval)
 
                 # Measure service stats
-                Contrib::Analytics.set_measured(span)
+                Datadog::Contrib::Analytics.set_measured(span)
 
                 __perform_in(interval, *args)
               end
@@ -79,8 +82,8 @@ module Datadog
 
             def __with_instrumentation(name)
               Datadog::Tracing.trace(name, service: datadog_configuration[:service_name]) do |span|
-                span.span_type = Datadog::Ext::AppTypes::WORKER
-                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Ext::TAG_QUEUE, to_s)
                 yield span
               end

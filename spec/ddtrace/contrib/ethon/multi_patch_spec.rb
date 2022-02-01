@@ -80,7 +80,7 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
         before { subject }
 
         it 'creates a parent span' do
-          expect(multi_span).to be_instance_of(Datadog::Span)
+          expect(multi_span).to be_instance_of(Datadog::Tracing::Span)
         end
 
         it 'is named correctly' do
@@ -88,8 +88,8 @@ RSpec.describe Datadog::Contrib::Ethon::MultiPatch do
         end
 
         it 'has component and operation tags' do
-          expect(multi_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('ethon')
-          expect(multi_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('multi.request')
+          expect(multi_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('ethon')
+          expect(multi_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('multi.request')
         end
 
         it 'makes multi span a parent for easy span' do

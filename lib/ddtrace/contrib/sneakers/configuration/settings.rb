@@ -1,6 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
+require 'datadog/tracing/span_operation'
 require 'ddtrace/contrib/configuration/settings'
 
 module Datadog
@@ -8,7 +9,7 @@ module Datadog
     module Sneakers
       module Configuration
         # Default settings for the Shoryuken integration
-        class Settings < Datadog::Contrib::Configuration::Settings
+        class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
             o.lazy
@@ -25,7 +26,7 @@ module Datadog
           end
 
           option :service_name
-          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
+          option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
           option :tag_body, default: false
         end
       end

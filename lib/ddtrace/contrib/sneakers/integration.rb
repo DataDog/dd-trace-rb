@@ -11,7 +11,7 @@ module Datadog
     module Sneakers
       # Description of Sneakers integration
       class Integration
-        include Datadog::Contrib::Integration
+        include Contrib::Integration
 
         MINIMUM_VERSION = Gem::Version.new('2.12.0')
 

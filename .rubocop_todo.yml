@@ -18,7 +18,7 @@ Layout/LineLength:
 # AllowedMethods: enums
 Lint/ConstantDefinitionInBlock:
   Exclude:
-    - 'spec/ddtrace/benchmark/support/benchmark_helper.rb'
+    - 'spec/datadog/tracing/benchmark/support/benchmark_helper.rb'
     - 'spec/ddtrace/contrib/rails/rack_spec.rb'
     - 'spec/datadog/core/workers/async_spec.rb'
 
@@ -26,7 +26,6 @@ Lint/ConstantDefinitionInBlock:
 # Configuration parameters: IgnoreLiteralBranches, IgnoreConstantBranches.
 Lint/DuplicateBranch:
   Exclude:
-    - 'lib/ddtrace/quantization/http.rb'
     - 'test/contrib/rails/test_helper.rb'
 
 # Offense count: 3
@@ -36,23 +35,11 @@ Lint/DuplicateRequire:
     - 'lib/datadog/ci/contrib/rspec/integration.rb'
     - 'spec/ddtrace/contrib/presto/client_spec.rb'
 
-# Offense count: 1
-# Cop supports --auto-correct.
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: runtime_error, standard_error
-Lint/InheritException:
-  Exclude:
-    - 'spec/ddtrace/tracer_spec.rb'
-
 # Offense count: 52
 # Configuration parameters: MaximumRangeSize.
 Lint/MissingCopEnableDirective:
   Exclude:
     - 'Rakefile'
-    - 'lib/ddtrace/analytics.rb'
-    - 'lib/ddtrace/configuration/components.rb'
-    - 'lib/ddtrace/configuration/settings.rb'
-    - 'lib/ddtrace/context.rb'
     - 'lib/ddtrace/contrib/action_view/instrumentation/template_renderer.rb'
     - 'lib/ddtrace/contrib/active_support/cache/instrumentation.rb'
     - 'lib/ddtrace/contrib/aws/services.rb'
@@ -65,9 +52,6 @@ Lint/MissingCopEnableDirective:
     - 'lib/ddtrace/contrib/redis/patcher.rb'
     - 'lib/ddtrace/contrib/sinatra/tracer_middleware.rb'
     - 'lib/ddtrace/contrib/sucker_punch/instrumentation.rb'
-    - 'lib/ddtrace/ext/ci.rb'
-    - 'lib/ddtrace/span.rb'
-    - 'lib/ddtrace/tracer.rb'
     - 'lib/datadog/core/workers/async.rb'
     - 'spec/ddtrace/contrib/elasticsearch/quantize_spec.rb'
     - 'spec/ddtrace/contrib/http/request_spec.rb'
@@ -77,7 +61,6 @@ Lint/MissingCopEnableDirective:
     - 'spec/ddtrace/contrib/qless/support/job.rb'
     - 'spec/ddtrace/contrib/rails/support/database.rb'
     - 'spec/ddtrace/contrib/rails/support/middleware.rb'
-    - 'spec/ddtrace/diagnostics/health_spec.rb'
     - 'spec/support/container_helpers.rb'
     - 'spec/support/tracer_helpers.rb'
     - 'test/contrib/rails/controller_test.rb'
@@ -97,9 +80,6 @@ Lint/MissingSuper:
     - 'lib/datadog/profiling/scheduler.rb'
     - 'lib/datadog/profiling/transport/http/api/instance.rb'
     - 'lib/datadog/profiling/transport/http/api/spec.rb'
-    - 'lib/ddtrace/sampler.rb'
-    - 'lib/ddtrace/sampling/matcher.rb'
-    - 'lib/ddtrace/sampling/rate_limiter.rb'
     - 'lib/ddtrace/transport/http/adapters/net.rb'
     - 'lib/ddtrace/transport/http/adapters/unix_socket.rb'
     - 'lib/ddtrace/transport/http/builder.rb'
@@ -107,7 +87,6 @@ Lint/MissingSuper:
     - 'lib/ddtrace/transport/http/traces.rb'
     - 'lib/ddtrace/transport/traces.rb'
     - 'lib/datadog/core/workers/runtime_metrics.rb'
-    - 'lib/ddtrace/workers/trace_writer.rb'
     - 'spec/support/faux_transport.rb'
     - 'spec/support/spy_transport.rb'
     - 'test/helper.rb'
@@ -144,7 +123,6 @@ Metrics/PerceivedComplexity:
 # SupportedStylesForLeadingUnderscores: disallowed, required, optional
 Naming/MemoizedInstanceVariableName:
   Exclude:
-    - 'lib/ddtrace/configuration.rb'
     - 'lib/ddtrace/contrib/active_record/configuration/resolver.rb'
     - 'lib/ddtrace/contrib/extensions.rb'
     - 'lib/ddtrace/contrib/sequel/database.rb'
@@ -163,7 +141,6 @@ Performance/MethodObjectAsBlock:
   Exclude:
     - 'lib/datadog/ci/contrib/cucumber/formatter.rb'
     - 'lib/ddtrace/contrib/delayed_job/plugin.rb'
-    - 'lib/ddtrace/pipeline.rb'
     - 'lib/datadog/profiling/collectors/stack.rb'
     - 'lib/datadog/profiling/pprof/builder.rb'
     - 'lib/datadog/profiling/pprof/stack_sample.rb'
@@ -173,8 +150,6 @@ Performance/MethodObjectAsBlock:
 # Offense count: 6
 RSpec/EmptyExampleGroup:
   Exclude:
-    - 'spec/ddtrace/buffer_spec.rb'
-    - 'spec/ddtrace/configuration/components_spec.rb'
     - 'spec/datadog/ci/ext/environment_spec.rb'
     - 'spec/ddtrace/opentracer/distributed_headers_spec.rb'
 
@@ -194,29 +169,19 @@ RSpec/IteratedExpectation:
 # Offense count: 3
 RSpec/LeakyConstantDeclaration:
   Exclude:
-    - 'spec/ddtrace/benchmark/support/benchmark_helper.rb'
+    - 'spec/datadog/tracing/benchmark/support/benchmark_helper.rb'
     - 'spec/ddtrace/contrib/rails/rack_spec.rb'
     - 'spec/datadog/core/workers/async_spec.rb'
 
 # Offense count: 37
 RSpec/MissingExampleGroupArgument:
   Exclude:
-    - 'spec/ddtrace/configuration/settings_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/net_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/test_spec.rb'
 
 # Offense count: 18
 RSpec/MultipleDescribes:
   Exclude:
-    - 'spec/ddtrace/analytics_spec.rb'
-    - 'spec/ddtrace/buffer_spec.rb'
-    - 'spec/ddtrace/configuration/option_definition_spec.rb'
-    - 'spec/ddtrace/context_flush_spec.rb'
-    - 'spec/ddtrace/context_provider_spec.rb'
-    - 'spec/ddtrace/forced_tracing_spec.rb'
-    - 'spec/ddtrace/metrics_spec.rb'
-    - 'spec/ddtrace/sampler_spec.rb'
-    - 'spec/ddtrace/sampling/matcher_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/net_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/test_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/unix_socket_spec.rb'
@@ -225,17 +190,12 @@ RSpec/MultipleDescribes:
     - 'spec/ddtrace/transport/response_spec.rb'
     - 'spec/ddtrace/transport/statistics_spec.rb'
     - 'spec/ddtrace/transport/traces_spec.rb'
-    - 'spec/ddtrace/workers/trace_writer_spec.rb'
 
 # Offense count: 143
 # Configuration parameters: IgnoreSharedExamples.
 RSpec/NamedSubject:
   Exclude:
     - 'spec/ddtrace/benchmark/gem_loading_spec.rb'
-    - 'spec/ddtrace/chunker_spec.rb'
-    - 'spec/ddtrace/context_flush_spec.rb'
-    - 'spec/ddtrace/context_provider_spec.rb'
-    - 'spec/ddtrace/context_spec.rb'
     - 'spec/ddtrace/contrib/active_support/notifications/subscription_spec.rb'
     - 'spec/ddtrace/contrib/ethon/easy_patch_spec.rb'
     - 'spec/ddtrace/contrib/ethon/multi_patch_spec.rb'
@@ -251,22 +211,7 @@ RSpec/NamedSubject:
     - 'spec/ddtrace/contrib/patcher_spec.rb'
     - 'spec/ddtrace/contrib/rails/cache_spec.rb'
     - 'spec/ddtrace/contrib/rails/database_spec.rb'
-    - 'spec/ddtrace/pin_spec.rb'
-    - 'spec/ddtrace/pipeline/span_filter_spec.rb'
-    - 'spec/ddtrace/pipeline/span_processor_spec.rb'
-    - 'spec/ddtrace/pipeline_spec.rb'
-    - 'spec/ddtrace/propagation/grpc_propagator_spec.rb'
-    - 'spec/ddtrace/sampling/rate_limiter_spec.rb'
-    - 'spec/ddtrace/sampling/rule_sampler_spec.rb'
-    - 'spec/ddtrace/span_spec.rb'
-    - 'spec/ddtrace/tracer_spec.rb'
     - 'spec/ddtrace/transport/traces_spec.rb'
-
-# Offense count: 4
-RSpec/OverwritingSetup:
-  Exclude:
-    - 'spec/ddtrace/buffer_spec.rb'
-    - 'spec/ddtrace/sampling/rule_spec.rb'
 
 # Offense count: 8
 RSpec/RepeatedDescription:
@@ -286,13 +231,11 @@ RSpec/RepeatedExampleGroupDescription:
     - 'spec/ddtrace/contrib/redis/quantize_spec.rb'
     - 'spec/ddtrace/opentracer/scope_manager_spec.rb'
     - 'spec/ddtrace/opentracer/thread_local_scope_manager_spec.rb'
-    - 'spec/ddtrace/workers/trace_writer_spec.rb'
 
 # Offense count: 53
 RSpec/ScatteredSetup:
   Exclude:
-    - 'spec/ddtrace/benchmark/support/benchmark_helper.rb'
-    - 'spec/ddtrace/configuration/settings_spec.rb'
+    - 'spec/datadog/tracing/benchmark/support/benchmark_helper.rb'
     - 'spec/ddtrace/contrib/action_cable/instrumentation_spec.rb'
     - 'spec/ddtrace/contrib/action_cable/patcher_spec.rb'
     - 'spec/ddtrace/contrib/elasticsearch/transport_spec.rb'
@@ -310,7 +253,6 @@ RSpec/ScatteredSetup:
     - 'spec/ddtrace/opentracer/rack_propagator_spec.rb'
     - 'spec/ddtrace/opentracer/span_spec.rb'
     - 'spec/ddtrace/opentracer/text_map_propagator_spec.rb'
-    - 'spec/ddtrace/tracer_spec.rb'
     - 'spec/datadog/core/workers/loop_spec.rb'
 
 # Offense count: 2
@@ -324,16 +266,6 @@ RSpec/UnspecifiedException:
 RSpec/VerifiedDoubles:
   Exclude:
     - 'spec/datadog/ci/contrib/cucumber/formatter_spec.rb'
-    - 'spec/ddtrace/buffer_spec.rb'
-    - 'spec/ddtrace/configuration/base_spec.rb'
-    - 'spec/ddtrace/configuration/components_spec.rb'
-    - 'spec/ddtrace/configuration/option_definition_spec.rb'
-    - 'spec/ddtrace/configuration/option_spec.rb'
-    - 'spec/ddtrace/configuration/options_spec.rb'
-    - 'spec/ddtrace/configuration/settings_spec.rb'
-    - 'spec/ddtrace/configuration_spec.rb'
-    - 'spec/ddtrace/context_provider_spec.rb'
-    - 'spec/ddtrace/context_spec.rb'
     - 'spec/ddtrace/contrib/action_cable/patcher_spec.rb'
     - 'spec/ddtrace/contrib/active_support/notifications/event_spec.rb'
     - 'spec/ddtrace/contrib/active_support/notifications/subscriber_spec.rb'
@@ -352,17 +284,10 @@ RSpec/VerifiedDoubles:
     - 'spec/ddtrace/contrib/registry_spec.rb'
     - 'spec/ddtrace/contrib/shoryuken/tracer_spec.rb'
     - 'spec/ddtrace/contrib/sneakers/tracer_spec.rb'
-    - 'spec/ddtrace/correlation_spec.rb'
-    - 'spec/ddtrace/environment_spec.rb'
-    - 'spec/ddtrace/forced_tracing_spec.rb'
-    - 'spec/ddtrace/integration_spec.rb'
-    - 'spec/ddtrace/metrics_spec.rb'
     - 'spec/ddtrace/opentracer/global_tracer_spec.rb'
     - 'spec/ddtrace/opentracer/rack_propagator_spec.rb'
     - 'spec/ddtrace/opentracer/text_map_propagator_spec.rb'
     - 'spec/ddtrace/opentracer/tracer_spec.rb'
-    - 'spec/ddtrace/patcher_spec.rb'
-    - 'spec/ddtrace/pin_spec.rb'
     - 'spec/datadog/profiling/backtrace_location_spec.rb'
     - 'spec/datadog/profiling/collectors/stack_spec.rb'
     - 'spec/datadog/profiling/encoding/profile_spec.rb'
@@ -386,10 +311,6 @@ RSpec/VerifiedDoubles:
     - 'spec/datadog/profiling/transport/io/response_spec.rb'
     - 'spec/datadog/profiling/transport/io_spec.rb'
     - 'spec/datadog/profiling/transport/parcel_spec.rb'
-    - 'spec/ddtrace/profiling_spec.rb'
-    - 'spec/ddtrace/runtime/metrics_spec.rb'
-    - 'spec/ddtrace/tasks/exec_spec.rb'
-    - 'spec/ddtrace/tracer_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/net_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/registry_spec.rb'
     - 'spec/ddtrace/transport/http/adapters/test_spec.rb'
@@ -409,15 +330,11 @@ RSpec/VerifiedDoubles:
     - 'spec/ddtrace/transport/traces_spec.rb'
     - 'spec/datadog/core/utils/object_set_spec.rb'
     - 'spec/datadog/core/utils/string_table_spec.rb'
-    - 'spec/ddtrace/worker_spec.rb'
     - 'spec/datadog/core/workers/async_spec.rb'
     - 'spec/datadog/core/workers/loop_spec.rb'
     - 'spec/datadog/core/workers/polling_spec.rb'
     - 'spec/datadog/core/workers/queue_spec.rb'
     - 'spec/datadog/core/workers/runtime_metrics_spec.rb'
-    - 'spec/ddtrace/workers/trace_writer_spec.rb'
-    - 'spec/ddtrace/workers_integration_spec.rb'
-    - 'spec/ddtrace/writer_spec.rb'
     - 'spec/support/statsd_helpers.rb'
 
 # Offense count: 24
@@ -427,8 +344,3 @@ Style/ClassVars:
     - 'spec/ddtrace/contrib/rails/support/rails4.rb'
     - 'spec/ddtrace/contrib/rails/support/rails5.rb'
     - 'spec/ddtrace/contrib/rails/support/rails6.rb'
-
-# Offense count: 1
-Style/MixinUsage:
-  Exclude:
-    - 'test/benchmark_test.rb'

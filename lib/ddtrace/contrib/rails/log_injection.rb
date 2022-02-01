@@ -1,4 +1,6 @@
 # typed: false
+require 'datadog/tracing'
+
 module Datadog
   module Contrib
     # Instrument Rails.
@@ -11,10 +13,10 @@ module Datadog
           # we want to check if the current logger is a tagger logger instance
           # log_tags defaults to nil so we have to set as an array if nothing exists yet
           if (log_tags = app.config.log_tags).nil?
-            app.config.log_tags = [proc { Datadog::Tracing.log_correlation }]
+            app.config.log_tags = [proc { Tracing.log_correlation }]
           # if existing log_tags configuration exists, append to the end of the array
           elsif log_tags.is_a?(Array)
-            app.config.log_tags << proc { Datadog::Tracing.log_correlation }
+            app.config.log_tags << proc { Tracing.log_correlation }
           end
         rescue StandardError => e
           # TODO: can we use Datadog.logger at this point?

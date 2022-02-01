@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/action_mailer/ext'
 require 'ddtrace/contrib/action_mailer/event'
 
@@ -25,7 +25,7 @@ module Datadog
 
           def span_type
             # process.action_mailer processes email and renders partial templates
-            Datadog::Ext::HTTP::TEMPLATE
+            Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
           end
 
           def process(span, event, _id, payload)
@@ -35,7 +35,7 @@ module Datadog
             span.set_tag(Ext::TAG_ACTION, payload[:action])
             span.set_tag(Ext::TAG_MAILER, payload[:mailer])
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PROCESS)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_PROCESS)
           end
         end
       end

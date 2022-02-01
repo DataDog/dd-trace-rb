@@ -1,12 +1,16 @@
 # typed: false
 require 'spec_helper'
 
+require 'time'
+
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/span_operation'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::Span do
   subject(:span) { described_class.new(datadog_span: datadog_span, span_context: span_context) }
 
-  let(:datadog_span) { instance_double(Datadog::SpanOperation) }
+  let(:datadog_span) { instance_double(Datadog::Tracing::SpanOperation) }
   let(:span_context) { instance_double(Datadog::OpenTracer::SpanContext) }
 
   describe '#operation_name=' do
@@ -43,7 +47,7 @@ RSpec.describe Datadog::OpenTracer::Span do
 
       before { expect(datadog_span).to receive(:set_tag).with(key, value) }
 
-      before { expect(datadog_span).to receive(:'status=').with(Datadog::Ext::Errors::STATUS) }
+      before { expect(datadog_span).to receive(:'status=').with(Datadog::Tracing::Metadata::Ext::Errors::STATUS) }
 
       it { is_expected.to be(span) }
     end

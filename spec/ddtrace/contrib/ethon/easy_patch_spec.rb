@@ -53,7 +53,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
     it 'creates a span operation' do
       subject
-      expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::SpanOperation)
+      expect(easy.instance_eval { @datadog_span }).to be_instance_of(Datadog::Tracing::SpanOperation)
     end
 
     context 'when split by domain' do
@@ -124,7 +124,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
     end
 
     it 'creates a span' do
-      expect { subject }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
+      expect { subject }.to change { fetch_spans.first }.to be_instance_of(Datadog::Tracing::Span)
     end
 
     it 'cleans up span operation stored on easy' do
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has tag with status code' do
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
       end
 
       it 'has error set' do
@@ -170,7 +170,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has tag with status code' do
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('404')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('404')
       end
 
       it 'has no error set' do
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
       end
 
       it 'has no status code set' do
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be_nil
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to be_nil
       end
 
       it 'has error set' do
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Contrib::Ethon::EasyPatch do
 
       it 'cleans up @datadog_span' do
         expect { subject }.to change { easy.instance_eval { @datadog_span } }
-          .from(an_instance_of(Datadog::SpanOperation)).to(nil)
+          .from(an_instance_of(Datadog::Tracing::SpanOperation)).to(nil)
       end
     end
   end

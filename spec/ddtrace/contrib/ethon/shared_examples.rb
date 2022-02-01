@@ -1,27 +1,33 @@
 # typed: false
+require 'json'
+
 require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/ethon/integration_context'
 
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/span'
+require 'datadog/tracing/trace_digest'
+
 RSpec.shared_examples_for 'span' do
   it 'has tag with target host' do
-    expect(span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq(host)
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
   end
 
   it 'has tag with target port' do
-    expect(span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(port.to_f)
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_f)
   end
 
   it 'has tag with method' do
-    expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq(method)
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(method)
   end
 
   it 'has tag with URL' do
-    expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(path)
   end
 
   it 'has tag with status code' do
     expected_status = status ? status.to_s : nil
-    expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(expected_status)
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(expected_status)
   end
 
   it 'has resource set up properly' do
@@ -41,11 +47,11 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'has the component tag' do
-    expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('ethon')
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('ethon')
   end
 
   it 'has the operation tag' do
-    expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+    expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
   end
 
   it_behaves_like 'a peer service span' do
@@ -58,7 +64,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
   describe 'instrumented request' do
     it 'creates a span' do
-      expect { request }.to change { fetch_spans.first }.to be_instance_of(Datadog::Span)
+      expect { request }.to change { fetch_spans.first }.to be_instance_of(Datadog::Tracing::Span)
     end
 
     it 'returns response' do
@@ -82,7 +88,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(status.to_s)
         end
 
         it 'has error set' do
@@ -104,7 +110,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has tag with status code' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(status.to_s)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(status.to_s)
         end
 
         it 'has no error set' do
@@ -119,7 +125,7 @@ RSpec.shared_examples_for 'instrumented request' do
         before { request }
 
         it 'has no status code set' do
-          expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be_nil
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to be_nil
         end
 
         it 'has error set' do
@@ -159,7 +165,7 @@ RSpec.shared_examples_for 'instrumented request' do
 
         before do
           tracer.continue_trace!(
-            Datadog::TraceDigest.new(
+            Datadog::Tracing::TraceDigest.new(
               trace_sampling_priority: sampling_priority
             )
           )

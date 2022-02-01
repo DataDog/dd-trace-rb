@@ -15,17 +15,17 @@ module Datadog
       # Creates a new span for a CI test
       def self.trace(span_name, options = {})
         span_options = {
-          span_type: Ext::AppTypes::TEST
+          span_type: Ext::AppTypes::TYPE_TEST
         }.merge(options[:span_options] || {})
 
         if block_given?
-          Datadog::Tracing.trace(span_name, **span_options) do |span, trace|
+          Tracing.trace(span_name, **span_options) do |span, trace|
             set_tags!(trace, span, options)
             yield(span, trace)
           end
         else
-          span = Datadog::Tracing.trace(span_name, **span_options)
-          trace = Datadog::Tracing.active_trace
+          span = Tracing.trace(span_name, **span_options)
+          trace = Tracing.active_trace
           set_tags!(trace, span, options)
           span
         end
@@ -38,7 +38,7 @@ module Datadog
         # Set default tags
         trace.origin = Ext::Test::CONTEXT_ORIGIN if trace
         Datadog::Contrib::Analytics.set_measured(span)
-        span.set_tag(Ext::Test::TAG_SPAN_KIND, Ext::AppTypes::TEST)
+        span.set_tag(Ext::Test::TAG_SPAN_KIND, Ext::AppTypes::TYPE_TEST)
 
         # Set environment tags
         @environment_tags ||= Ext::Environment.tags(ENV)

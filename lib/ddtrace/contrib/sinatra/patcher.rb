@@ -1,19 +1,21 @@
 # typed: true
+require 'datadog/core/utils/only_once'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/contrib/sinatra/framework'
 require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/sinatra/framework'
+require 'ddtrace/contrib/sinatra/integration'
 
 module Datadog
   module Contrib
     module Sinatra
       # Set tracer configuration at a late enough time
       module TracerSetupPatch
-        ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
+        ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
 
         def setup_middleware(*args, &block)
           super.tap do
             ONLY_ONCE_PER_APP[self].run do
-              Datadog::Contrib::Sinatra::Framework.setup
+              Contrib::Sinatra::Framework.setup
             end
           end
         end
@@ -21,15 +23,15 @@ module Datadog
 
       # Hook into builder before the middleware list gets frozen
       module DefaultMiddlewarePatch
-        ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
+        ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
 
         def setup_middleware(*args, &block)
           builder = args.first
 
           super.tap do
             ONLY_ONCE_PER_APP[self].run do
-              Datadog::Contrib::Sinatra::Framework.add_middleware(Datadog::Contrib::Rack::TraceMiddleware, builder)
-              Datadog::Contrib::Sinatra::Framework.inspect_middlewares(builder)
+              Contrib::Sinatra::Framework.add_middleware(Contrib::Rack::TraceMiddleware, builder)
+              Contrib::Sinatra::Framework.inspect_middlewares(builder)
             end
           end
         end
@@ -55,7 +57,7 @@ module Datadog
         end
 
         def register_tracer
-          ::Sinatra.send(:register, Datadog::Contrib::Sinatra::Tracer)
+          ::Sinatra.send(:register, Contrib::Sinatra::Tracer)
           ::Sinatra::Base.prepend(Sinatra::Tracer::Base)
         end
 

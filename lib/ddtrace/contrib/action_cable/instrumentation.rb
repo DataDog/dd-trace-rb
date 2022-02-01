@@ -1,6 +1,9 @@
 # typed: false
 
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'ddtrace/contrib/action_cable/ext'
+require 'ddtrace/contrib/analytics'
 
 module Datadog
   module Contrib
@@ -10,16 +13,16 @@ module Datadog
         # This module overrides the current Rack resource name to provide a meaningful name.
         module ActionCableConnection
           def on_open
-            Datadog::Tracing.trace(Ext::SPAN_ON_OPEN) do |span, trace|
+            Tracing.trace(Ext::SPAN_ON_OPEN) do |span, trace|
               begin
                 span.resource = "#{self.class}#on_open"
-                span.span_type = Datadog::Ext::AppTypes::WEB
+                span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WEB
 
                 span.set_tag(Ext::TAG_ACTION, 'on_open')
                 span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
 
-                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
+                span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
 
                 # Set the resource name of the trace
                 trace.resource = span.resource
@@ -55,12 +58,12 @@ module Datadog
           # Instrumentation for Channel hooks.
           class Tracer
             def self.trace(channel, hook)
-              configuration = Datadog::Tracing.configuration[:action_cable]
+              configuration = Tracing.configuration[:action_cable]
 
-              Datadog::Tracing.trace("action_cable.#{hook}") do |span|
+              Tracing.trace("action_cable.#{hook}") do |span|
                 span.service = configuration[:service_name] if configuration[:service_name]
                 span.resource = "#{channel.class}##{hook}"
-                span.span_type = Datadog::Ext::AppTypes::WEB
+                span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WEB
 
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -72,8 +75,8 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CHANNEL_CLASS, channel.class.to_s)
 
-                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, hook)
+                span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, hook)
 
                 yield
               end

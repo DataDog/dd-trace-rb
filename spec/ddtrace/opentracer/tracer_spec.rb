@@ -1,6 +1,7 @@
 # typed: false
 require 'spec_helper'
 
+require 'datadog/tracing/tracer'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::Tracer do
@@ -20,7 +21,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
       let(:datadog_tracer) { double('datadog_tracer') }
 
       before do
-        expect(Datadog::Tracer).to receive(:new)
+        expect(Datadog::Tracing::Tracer).to receive(:new)
           .with(**options)
           .and_return(datadog_tracer)
       end
@@ -32,7 +33,7 @@ RSpec.describe Datadog::OpenTracer::Tracer do
   describe '#datadog_tracer' do
     subject(:datadog_tracer) { tracer.datadog_tracer }
 
-    it { is_expected.to be_a_kind_of(Datadog::Tracer) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Tracer) }
   end
 
   ### Implemented OpenTracing::Tracer behavior ###

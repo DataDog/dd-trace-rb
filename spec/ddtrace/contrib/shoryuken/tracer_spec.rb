@@ -59,8 +59,8 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('shoryuken')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('shoryuken')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
     end
 
     it_behaves_like 'analytics for integration' do

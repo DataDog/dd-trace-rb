@@ -25,8 +25,8 @@ RSpec.describe 'Server internal tracer' do
       expect(span.span_type).to eq('worker')
       expect(span.resource).to eq('sidekiq.job_fetch')
       expect(span).to_not have_error
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sidekiq')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job_fetch')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job_fetch')
     end
   end
 end

@@ -16,7 +16,10 @@ require 'ddtrace/contrib/support/spec_helper'
   end
 end
 
-require 'ddtrace'
+require 'datadog/tracing'
+require 'datadog/tracing/tracer'
+require 'ddtrace/transport/http'
+require 'ddtrace/transport/io'
 
 # Tests that combine the core library with integrations,
 # whose examples don't belong exclusively to either.
@@ -42,8 +45,8 @@ RSpec.describe 'transport with integrations' do
 
     shared_examples_for 'an uninstrumented transport' do
       before do
-        expect_any_instance_of(Datadog::Tracer).to_not receive(:trace)
-        expect_any_instance_of(Datadog::Tracer).to_not receive(:start_span)
+        expect_any_instance_of(Datadog::Tracing::Tracer).to_not receive(:trace)
+        expect_any_instance_of(Datadog::Tracing::Tracer).to_not receive(:start_span)
       end
 
       describe '#send_traces' do

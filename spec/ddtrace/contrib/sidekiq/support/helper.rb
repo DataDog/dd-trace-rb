@@ -1,8 +1,9 @@
 # typed: ignore
-require 'sidekiq/testing'
-require 'ddtrace'
+require 'datadog/core/utils'
+require 'datadog/tracing'
 require 'ddtrace/contrib/sidekiq/client_tracer'
 require 'ddtrace/contrib/sidekiq/server_tracer'
+require 'sidekiq/testing'
 
 RSpec.shared_context 'Sidekiq testing' do
   include SidekiqTestingConfiguration
@@ -51,6 +52,9 @@ module SidekiqServerExpectations
       # spans created in the forked process, the exit status will be 0 even if our expectations fail.
       # Instead, look at `STDERR`, ignoring warnings.
       fork_expectations: proc do |status:, stdout:, stderr:|
+        stdout = Datadog::Core::Utils.utf8_encode(stdout) if stdout
+        stderr = Datadog::Core::Utils.utf8_encode(stderr) if stderr
+
         expect(status).to be_success, "STDOUT:`#{stdout}` STDERR:`#{stderr}"
 
         non_warning_testing_stderr = stderr.split("\n").reject { |line| line.include?(': warning:') }

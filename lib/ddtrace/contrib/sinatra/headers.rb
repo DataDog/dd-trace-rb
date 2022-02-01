@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/ext/http'
+require 'datadog/tracing/metadata/ext'
 
 module Datadog
   module Contrib
@@ -14,12 +14,14 @@ module Datadog
           {}.tap do |result|
             target_headers.each do |header|
               if headers.key?(header)
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
+                result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[header]
               else
                 # Try a case-insensitive lookup
                 uppercased_header = header.to_s.upcase
                 matching_header = headers.keys.find { |h| h.upcase == uppercased_header }
-                result[Datadog::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header] if matching_header
+                if matching_header
+                  result[Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)] = headers[matching_header]
+                end
               end
             end
           end

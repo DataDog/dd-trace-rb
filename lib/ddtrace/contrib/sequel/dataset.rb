@@ -1,6 +1,6 @@
 # typed: false
-require 'ddtrace/ext/sql'
-require 'ddtrace/ext/app_types'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sequel/ext'
 require 'ddtrace/contrib/sequel/utils'
@@ -38,12 +38,12 @@ module Datadog
             opts = Utils.parse_opts(sql, options, db.opts, self)
             response = nil
 
-            Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
+            Tracing.trace(Ext::SPAN_QUERY) do |span|
               span.service =  Datadog.configuration_for(db, :service_name) \
-                              || Datadog::Tracing.configuration[:sequel][:service_name] \
+                              || Tracing.configuration[:sequel][:service_name] \
                               || adapter_name
               span.resource = opts[:query]
-              span.span_type = Datadog::Ext::SQL::TYPE
+              span.span_type = Tracing::Metadata::Ext::SQL::TYPE
               Utils.set_common_tags(span, db)
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
               span.set_tag(Ext::TAG_PREPARED_NAME, opts[:prepared_name]) if opts[:prepared_name]

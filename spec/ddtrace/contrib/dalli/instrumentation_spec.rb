@@ -51,8 +51,8 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
 
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('dalli')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
     end
 
     it_behaves_like 'a peer service span' do
@@ -85,8 +85,8 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
 
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('dalli')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
       end
 
       it_behaves_like 'a peer service span' do

@@ -46,9 +46,9 @@ module Datadog
     #
     #   module Instrumentation
     #     def api_request!(env)
-    #       Datadog::Tracing.trace('billing.request',
+    #       Tracing.trace('billing.request',
     #                            type: 'http',
-    #                            service: Datadog::Tracing.configuration[:billing_api][:service]) do |span|
+    #                            service: Tracing.configuration[:billing_api][:service]) do |span|
     #         span.resource = env[:route].to_s
     #         span.set_tag('client_id', env[:client][:id])
     #

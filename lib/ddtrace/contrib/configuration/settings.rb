@@ -8,9 +8,9 @@ module Datadog
       # Common settings for all integrations
       # @public_api
       class Settings
-        include Datadog::Core::Configuration::Base
+        include Core::Configuration::Base
 
-        DEPRECATION_WARN_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+        DEPRECATION_WARN_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         option :analytics_enabled, default: false
         option :analytics_sample_rate, default: 1.0

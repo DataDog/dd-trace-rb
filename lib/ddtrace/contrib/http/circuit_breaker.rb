@@ -1,4 +1,7 @@
 # typed: true
+require 'datadog/tracing'
+require 'ddtrace/transport/ext'
+
 module Datadog
   module Contrib
     module HTTP
@@ -10,7 +13,7 @@ module Datadog
 
           # we don't want a "shotgun" effect with two nested traces for one
           # logical get, and request is likely to call itself recursively
-          active = Datadog::Tracing.active_span
+          active = Tracing.active_span
           return true if active && (active.name == Ext::SPAN_REQUEST)
 
           false
@@ -20,7 +23,7 @@ module Datadog
         # TODO: We don't want this kind of soft-check on HTTP requests.
         #       Remove this when transport implements its own "skip tracing" mechanism.
         def datadog_http_request?(request)
-          if request[Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION]
+          if request[Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION]
             true
           else
             false
@@ -30,7 +33,7 @@ module Datadog
         def should_skip_distributed_tracing?(client_config)
           return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
-          !Datadog::Tracing.configuration[:http][:distributed_tracing]
+          !Tracing.configuration[:http][:distributed_tracing]
         end
       end
     end

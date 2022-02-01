@@ -1,13 +1,16 @@
 # typed: true
-require 'ddtrace/ext/distributed'
+require 'datadog/tracing/context'
+require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/trace_operation'
+require 'ddtrace/opentracer/propagator'
 
 module Datadog
   module OpenTracer
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
     module TextMapPropagator
       extend Propagator
-      extend Datadog::Ext::DistributedTracing
-      include Datadog::Ext::DistributedTracing
+      extend Tracing::Distributed::Headers::Ext
+      include Tracing::Distributed::Headers::Ext
 
       BAGGAGE_PREFIX = 'ot-baggage-'.freeze
 
@@ -44,11 +47,11 @@ module Datadog
           headers = DistributedHeaders.new(carrier)
 
           datadog_context = if headers.valid?
-                              Datadog::Context.new(
+                              Datadog::Tracing::Context.new(
                                 trace: headers_to_trace(headers)
                               )
                             else
-                              Datadog::Context.new
+                              Datadog::Tracing::Context.new
                             end
 
           # Then extract any other baggage
@@ -63,7 +66,7 @@ module Datadog
         private
 
         def headers_to_trace(headers)
-          Datadog::TraceOperation.new(
+          Datadog::Tracing::TraceOperation.new(
             id: headers.trace_id,
             parent_span_id: headers.parent_id,
             sampling_priority: headers.sampling_priority,

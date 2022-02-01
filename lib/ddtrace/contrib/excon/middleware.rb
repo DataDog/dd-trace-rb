@@ -1,10 +1,10 @@
 # typed: ignore
 require 'excon'
-require 'ddtrace/ext/http'
-require 'ddtrace/ext/metadata'
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/distributed'
-require 'ddtrace/propagation/http_propagator'
+
+require 'datadog/core'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/propagation/http'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/excon/ext'
 require 'ddtrace/contrib/http_annotation_helper'
@@ -14,10 +14,10 @@ module Datadog
     module Excon
       # Middleware implements an excon-middleware for ddtrace instrumentation
       class Middleware < ::Excon::Middleware::Base
-        include Datadog::Contrib::HttpAnnotationHelper
+        include Contrib::HttpAnnotationHelper
 
         DEFAULT_ERROR_HANDLER = lambda do |response|
-          Datadog::Ext::HTTP::ERROR_RANGE.cover?(response[:status])
+          Tracing::Metadata::Ext::HTTP::ERROR_RANGE.cover?(response[:status])
         end
 
         def initialize(stack, options = {})
@@ -29,8 +29,8 @@ module Datadog
           begin
             unless datum.key?(:datadog_span)
               @options = build_request_options!(datum)
-              span = Datadog::Tracing.trace(Ext::SPAN_REQUEST)
-              trace = Datadog::Tracing.active_trace
+              span = Tracing.trace(Ext::SPAN_REQUEST)
+              trace = Tracing.active_trace
               datum[:datadog_span] = span
               annotate!(span, datum)
               propagate!(trace, span, datum) if distributed_tracing?
@@ -102,7 +102,7 @@ module Datadog
         end
 
         def distributed_tracing?
-          @options[:distributed_tracing] == true && Datadog::Tracing.enabled?
+          @options[:distributed_tracing] == true && Tracing.enabled?
         end
 
         def error_handler
@@ -112,22 +112,22 @@ module Datadog
         def annotate!(span, datum)
           span.resource = datum[:method].to_s.upcase
           span.service = service_name(datum[:host], @options)
-          span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
+          span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+          span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
-          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, datum[:host])
+          span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, datum[:host])
 
           # Set analytics sample rate
           Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-          span.set_tag(Datadog::Ext::HTTP::URL, datum[:path])
-          span.set_tag(Datadog::Ext::HTTP::METHOD, datum[:method].to_s.upcase)
-          span.set_tag(Datadog::Ext::NET::TARGET_HOST, datum[:host])
-          span.set_tag(Datadog::Ext::NET::TARGET_PORT, datum[:port])
+          span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, datum[:path])
+          span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, datum[:method].to_s.upcase)
+          span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, datum[:host])
+          span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, datum[:port])
         end
 
         def handle_response(datum)
@@ -138,7 +138,7 @@ module Datadog
               if datum.key?(:response)
                 response = datum[:response]
                 span.set_error(["Error #{response[:status]}", response[:body]]) if error_handler.call(response)
-                span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, response[:status])
+                span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response[:status])
               end
               span.set_error(datum[:error]) if datum.key?(:error)
               span.finish
@@ -150,7 +150,7 @@ module Datadog
         end
 
         def propagate!(trace, span, datum)
-          Datadog::HTTPPropagator.inject!(trace, datum[:headers])
+          Tracing::Propagation::HTTP.inject!(trace, datum[:headers])
         end
 
         def build_request_options!(datum)
@@ -158,7 +158,7 @@ module Datadog
         end
 
         def datadog_configuration(host = :default)
-          Datadog::Tracing.configuration[:excon, host]
+          Tracing.configuration[:excon, host]
         end
       end
     end

@@ -1,4 +1,6 @@
 # typed: true
+require 'datadog/tracing'
+require 'datadog/tracing/context'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/active_support/notifications/event'
 require 'ddtrace/contrib/action_cable/ext'
@@ -24,7 +26,7 @@ module Datadog
           end
 
           def configuration
-            Datadog::Tracing.configuration[:action_cable]
+            Tracing.configuration[:action_cable]
           end
         end
       end
@@ -56,9 +58,9 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless Datadog::Tracing.active_span
+            return unless Tracing.active_span
 
-            Datadog::Tracing.send(:tracer).provider.context = Context.new
+            Tracing.send(:tracer).provider.context = Tracing::Context.new
           end
         end
       end

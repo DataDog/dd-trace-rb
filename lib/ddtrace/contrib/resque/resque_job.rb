@@ -1,9 +1,10 @@
 # typed: false
-require 'ddtrace/ext/app_types'
-require 'ddtrace/sync_writer'
+require 'resque'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/sidekiq/ext'
-require 'resque'
 
 module Datadog
   module Contrib
@@ -12,7 +13,7 @@ module Datadog
       module Job
         def perform
           job = payload_class
-          job.extend(Datadog::Contrib::Resque::ResqueJob) unless job.is_a?(Datadog::Contrib::Resque::ResqueJob)
+          job.extend(Contrib::Resque::ResqueJob) unless job.is_a?(Contrib::Resque::ResqueJob)
         ensure
           super
         end
@@ -30,14 +31,14 @@ module Datadog
         # We could also just use `around_perform` but this might override the user's
         # own method.
         def around_perform0_ddtrace(*args)
-          return yield unless datadog_configuration && Datadog::Tracing.enabled?
+          return yield unless datadog_configuration && Tracing.enabled?
 
-          Datadog::Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
+          Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
-            span.span_type = Datadog::Ext::AppTypes::WORKER
+            span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
-            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+            span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
@@ -60,7 +61,7 @@ module Datadog
         end
 
         def shutdown_tracer_when_forked!
-          Datadog::Tracing.shutdown! if forked?
+          Tracing.shutdown! if forked?
         end
 
         private
@@ -74,7 +75,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog::Tracing.configuration[:resque]
+          Tracing.configuration[:resque]
         end
       end
     end

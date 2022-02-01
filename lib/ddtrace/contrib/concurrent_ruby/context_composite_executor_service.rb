@@ -17,7 +17,7 @@ module Datadog
 
         # post method runs the task within composited executor - in a different thread
         def post(*args, &task)
-          tracer = Datadog::Tracing.send(:tracer)
+          tracer = Tracing.send(:tracer)
           parent_context = tracer.provider.context
 
           @composited_executor.post(*args) do
@@ -33,7 +33,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog::Tracing.configuration[:concurrent_ruby]
+          Tracing.configuration[:concurrent_ruby]
         end
 
         delegate [:can_overflow?, :serialized?] => :composited_executor

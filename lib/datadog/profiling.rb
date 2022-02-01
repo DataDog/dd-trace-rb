@@ -1,6 +1,8 @@
 # typed: true
+require 'datadog/core'
 require 'datadog/core/environment/variable_helpers'
 require 'datadog/core/utils/only_once'
+require 'datadog/profiling/configuration/validation_proxy'
 
 module Datadog
   # Contains profiler for generating stack profiles, etc.
@@ -8,7 +10,7 @@ module Datadog
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
 
-    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Core::Utils::OnlyOnce.new
     private_constant :SKIPPED_NATIVE_EXTENSION_ONLY_ONCE
 
     def self.supported?
@@ -60,7 +62,7 @@ module Datadog
     def self.configure
       # Wrap block with profiling option validation
       wrapped_block = proc do |c|
-        yield(Datadog::Core::Configuration::ValidationProxy::Profiling.new(c))
+        yield(Configuration::ValidationProxy.new(c))
       end
 
       # Configure application normally
@@ -77,7 +79,7 @@ module Datadog
     # @!attribute [r] configuration
     # @public_api
     def self.configuration
-      Datadog::Core::Configuration::ValidationProxy::Profiling.new(
+      Configuration::ValidationProxy.new(
         Datadog.send(:internal_configuration)
       )
     end
@@ -174,7 +176,7 @@ module Datadog
     end
 
     private_class_method def self.try_loading_native_library
-      if Datadog::Core::Environment::VariableHelpers.env_to_bool('DD_PROFILING_NO_EXTENSION', false)
+      if Core::Environment::VariableHelpers.env_to_bool('DD_PROFILING_NO_EXTENSION', false)
         SKIPPED_NATIVE_EXTENSION_ONLY_ONCE.run do
           Kernel.warn(
             '[DDTRACE] Skipped loading of profiling native extension due to DD_PROFILING_NO_EXTENSION environment ' \
@@ -190,7 +192,7 @@ module Datadog
       begin
         require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
         success =
-          defined?(Datadog::Profiling::NativeExtension) && Datadog::Profiling::NativeExtension.send(:native_working?)
+          defined?(Profiling::NativeExtension) && Profiling::NativeExtension.send(:native_working?)
         [success, nil]
       rescue StandardError, LoadError => e
         [false, e]

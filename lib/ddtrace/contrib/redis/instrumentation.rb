@@ -1,7 +1,10 @@
 # typed: false
+require 'datadog/tracing'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/contrib/redis/ext'
 require 'ddtrace/contrib/redis/configuration/resolver'
+require 'ddtrace/contrib/redis/ext'
+require 'ddtrace/contrib/redis/quantize'
+require 'ddtrace/contrib/redis/tags'
 
 module Datadog
   module Contrib
@@ -16,11 +19,11 @@ module Datadog
         module InstanceMethods
           def call(*args, &block)
             response = nil
-            Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+            Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
               span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-              span.span_type = Datadog::Contrib::Redis::Ext::TYPE
+              span.span_type = Contrib::Redis::Ext::TYPE
               span.resource = get_command(args)
-              Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
+              Contrib::Redis::Tags.set_common_tags(self, span)
 
               response = super
             end
@@ -30,13 +33,13 @@ module Datadog
 
           def call_pipeline(*args, &block)
             response = nil
-            Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+            Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
               span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-              span.span_type = Datadog::Contrib::Redis::Ext::TYPE
+              span.span_type = Contrib::Redis::Ext::TYPE
               commands = get_pipeline_commands(args)
               span.resource = commands.join("\n")
-              span.set_metric Datadog::Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
-              Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
+              span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
+              Contrib::Redis::Tags.set_common_tags(self, span)
 
               response = super
             end
@@ -48,22 +51,22 @@ module Datadog
 
           def get_command(args)
             if datadog_configuration[:command_args]
-              Datadog::Contrib::Redis::Quantize.format_command_args(*args)
+              Contrib::Redis::Quantize.format_command_args(*args)
             else
-              Datadog::Contrib::Redis::Quantize.get_verb(*args)
+              Contrib::Redis::Quantize.get_verb(*args)
             end
           end
 
           def get_pipeline_commands(args)
             if datadog_configuration[:command_args]
-              args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.format_command_args(c) }
+              args[0].commands.map { |c| Contrib::Redis::Quantize.format_command_args(c) }
             else
-              args[0].commands.map { |c| Datadog::Contrib::Redis::Quantize.get_verb(c) }
+              args[0].commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
             end
           end
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:redis, options]
+            Tracing.configuration[:redis, options]
           end
         end
       end

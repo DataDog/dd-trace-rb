@@ -37,7 +37,7 @@ module Datadog
           end
 
           def connection_resolver
-            @connection_resolver ||= ::Datadog::Contrib::Redis::Vendor::Resolver.new
+            @connection_resolver ||= Vendor::Resolver.new
           end
         end
       end

@@ -1,11 +1,12 @@
 # typed: ignore
-require 'ddtrace/contrib/rails/utils'
-require 'ddtrace/contrib/rails/framework'
-require 'ddtrace/contrib/rails/middlewares'
-require 'ddtrace/contrib/rails/log_injection'
-require 'ddtrace/contrib/rack/middlewares'
-require 'ddtrace/contrib/semantic_logger/patcher'
 require 'datadog/core/utils/only_once'
+require 'datadog/tracing'
+require 'ddtrace/contrib/rack/middlewares'
+require 'ddtrace/contrib/rails/framework'
+require 'ddtrace/contrib/rails/log_injection'
+require 'ddtrace/contrib/rails/middlewares'
+require 'ddtrace/contrib/rails/utils'
+require 'ddtrace/contrib/semantic_logger/patcher'
 
 module Datadog
   module Contrib
@@ -14,8 +15,8 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
-        BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
-        AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
+        BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
+        AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
 
         module_function
 
@@ -30,7 +31,7 @@ module Datadog
 
         def patch_before_intialize
           ::ActiveSupport.on_load(:before_initialize) do
-            Datadog::Contrib::Rails::Patcher.before_intialize(self)
+            Contrib::Rails::Patcher.before_intialize(self)
           end
         end
 
@@ -39,15 +40,15 @@ module Datadog
             # Middleware must be added before the application is initialized.
             # Otherwise the middleware stack will be frozen.
             # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
-            add_middleware(app) if Datadog::Tracing.configuration[:rails][:middleware]
-            add_logger(app) if Datadog::Tracing.configuration.log_injection
+            add_middleware(app) if Tracing.configuration[:rails][:middleware]
+            add_logger(app) if Tracing.configuration.log_injection
           end
         end
 
         def add_middleware(app)
           # Add trace middleware at the top of the middleware stack,
           # to ensure we capture the complete execution time.
-          app.middleware.insert_before(0, Datadog::Contrib::Rack::TraceMiddleware)
+          app.middleware.insert_before(0, Contrib::Rack::TraceMiddleware)
 
           # Some Rails middleware can swallow an application error, preventing
           # the error propagation to the encompassing Rack span.
@@ -58,7 +59,7 @@ module Datadog
           # Note: because the middleware stack is push/pop, "before" and "after" are reversed
           # for our use case: we insert ourselves with "after" a middleware to ensure we are
           # able to pop the request "before" it.
-          app.middleware.insert_after(::ActionDispatch::DebugExceptions, Datadog::Contrib::Rails::ExceptionMiddleware)
+          app.middleware.insert_after(::ActionDispatch::DebugExceptions, Contrib::Rails::ExceptionMiddleware)
         end
 
         def add_logger(app)
@@ -82,7 +83,7 @@ module Datadog
              defined?(::ActiveSupport::TaggedLogging) &&
              logger.is_a?(::ActiveSupport::TaggedLogging)
 
-            Datadog::Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
+            Contrib::Rails::LogInjection.add_as_tagged_logging_logger(app)
             should_warn = false
           end
 
@@ -91,7 +92,7 @@ module Datadog
 
         def patch_after_intialize
           ::ActiveSupport.on_load(:after_initialize) do
-            Datadog::Contrib::Rails::Patcher.after_intialize(self)
+            Contrib::Rails::Patcher.after_intialize(self)
           end
         end
 
@@ -105,7 +106,7 @@ module Datadog
 
         # Configure Rails tracing with settings
         def setup_tracer
-          Datadog::Contrib::Rails::Framework.setup
+          Contrib::Rails::Framework.setup
         end
       end
     end

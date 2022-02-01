@@ -1,5 +1,7 @@
 # typed: true
-require 'ddtrace/ext/http'
+require 'time'
+
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/sinatra/ext'
 
 module Datadog
@@ -25,7 +27,9 @@ module Datadog
           {}.tap do |result|
             headers.each do |header|
               rack_header = header_to_rack_header(header)
-              result[Datadog::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header] if env.key?(rack_header)
+              if env.key?(rack_header)
+                result[Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
+              end
             end
           end
         end

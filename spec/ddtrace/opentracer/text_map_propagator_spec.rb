@@ -1,6 +1,8 @@
 # typed: ignore
 require 'spec_helper'
 
+require 'datadog/tracing/context'
+require 'datadog/tracing/trace_operation'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::TextMapPropagator do
@@ -17,13 +19,13 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
 
     let(:datadog_context) do
       instance_double(
-        Datadog::Context,
+        Datadog::Tracing::Context,
         active_trace: datadog_trace
       )
     end
 
     let(:datadog_trace) do
-      Datadog::TraceOperation.new(
+      Datadog::Tracing::TraceOperation.new(
         id: trace_id,
         parent_span_id: span_id,
         sampling_priority: sampling_priority,

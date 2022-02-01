@@ -3,9 +3,11 @@ require 'ddtrace/contrib/integration_examples'
 require 'ddtrace/contrib/support/spec_helper'
 require 'ddtrace/contrib/analytics_examples'
 
-require 'ddtrace'
 require 'faraday'
-require 'ddtrace/ext/distributed'
+
+require 'datadog/tracing'
+require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/metadata/ext'
 
 RSpec.describe 'Faraday middleware' do
   let(:client) do
@@ -53,16 +55,16 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
-      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('200')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/success')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
+      expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
 
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
     end
 
     it_behaves_like 'a peer service span' do
@@ -93,16 +95,16 @@ RSpec.describe 'Faraday middleware' do
         expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
         expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
         expect(request_span.resource).to eq('GET')
-        expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
-        expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
-        expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-        expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
-        expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('200')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/success')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
+        expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
+        expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
         expect(request_span).to_not have_error
 
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('faraday')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
       end
 
       it 'executes without warnings' do
@@ -137,16 +139,16 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('200')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/success')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
-      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('200')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/success')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
+      expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
 
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
     end
 
     it_behaves_like 'a peer service span' do
@@ -161,18 +163,18 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/failure')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq('500')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
-      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('POST')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/failure')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq('500')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
+      expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
       expect(request_span).to have_error_message('Boom!')
 
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
     end
 
     it_behaves_like 'a peer service span' do
@@ -188,18 +190,18 @@ RSpec.describe 'Faraday middleware' do
       expect(request_span.service).to eq(Datadog::Contrib::Faraday::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Faraday::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/error')
-      expect(request_span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to be nil
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_HOST)).to eq('example.com')
-      expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
-      expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/error')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to be nil
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq('example.com')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(80)
+      expect(request_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Faraday::ConnectionFailed')
       expect(request_span).to have_error_message(/Test error/)
 
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('faraday')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('faraday')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
     end
 
     it_behaves_like 'a peer service span' do
@@ -274,16 +276,18 @@ RSpec.describe 'Faraday middleware' do
     let(:headers) { response.env.request_headers }
 
     it do
-      expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID => request_span.trace_id.to_s)
-      expect(headers).to include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID => request_span.span_id.to_s)
+      expect(headers).to include(
+        Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => request_span.trace_id.to_s,
+        Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => request_span.span_id.to_s
+      )
     end
 
     context 'but the tracer is disabled' do
       before { tracer.enabled = false }
 
       it do
-        expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
-        expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
+        expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID)
+        expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID)
         expect(request_span).to be nil
       end
     end
@@ -296,8 +300,8 @@ RSpec.describe 'Faraday middleware' do
     let(:headers) { response.env.request_headers }
 
     it do
-      expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_TRACE_ID)
-      expect(headers).to_not include(Datadog::Ext::DistributedTracing::HTTP_HEADER_PARENT_ID)
+      expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID)
+      expect(headers).to_not include(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID)
     end
   end
 

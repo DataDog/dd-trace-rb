@@ -1,13 +1,13 @@
 # typed: true
-require 'ddtrace/span'
-require 'ddtrace/ext/distributed'
+require 'datadog/tracing/span'
+require 'datadog/tracing/distributed/headers/ext'
 
 module Datadog
   module OpenTracer
     # DistributedHeaders provides easy access and validation to headers
     # @public_api
     class DistributedHeaders
-      include Datadog::Ext::DistributedTracing
+      include Tracing::Distributed::Headers::Ext
 
       def initialize(carrier)
         @carrier = carrier
@@ -48,7 +48,7 @@ module Datadog
 
       def id(header)
         value = @carrier[header].to_i
-        return if value.zero? || value >= Datadog::Span::EXTERNAL_MAX_ID
+        return if value.zero? || value >= Datadog::Tracing::Span::EXTERNAL_MAX_ID
 
         value < 0 ? value + 0x1_0000_0000_0000_0000 : value
       end

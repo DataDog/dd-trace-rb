@@ -1,10 +1,9 @@
 # typed: true
-require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
-
-require 'ddtrace/contrib/grape/ext'
 require 'ddtrace/contrib/grape/endpoint'
+require 'ddtrace/contrib/grape/ext'
 require 'ddtrace/contrib/grape/instrumentation'
+require 'ddtrace/contrib/grape/integration'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib
@@ -24,7 +23,7 @@ module Datadog
           ::Grape::Endpoint.include(Instrumentation)
 
           # Subscribe to ActiveSupport events
-          Datadog::Contrib::Grape::Endpoint.subscribe
+          Endpoint.subscribe
         end
       end
     end

@@ -1,8 +1,8 @@
 # typed: true
-require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/dalli/ext'
 require 'ddtrace/contrib/dalli/instrumentation'
+require 'ddtrace/contrib/dalli/integration'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib

@@ -1,4 +1,5 @@
 # typed: false
+require 'datadog/core'
 require 'datadog/core/utils/only_once'
 
 module Datadog
@@ -62,7 +63,7 @@ module Datadog
 
         def patch_only_once
           # NOTE: This is not thread-safe
-          @patch_only_once ||= Datadog::Core::Utils::OnlyOnce.new
+          @patch_only_once ||= Core::Utils::OnlyOnce.new
         end
       end
     end

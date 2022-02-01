@@ -1,6 +1,7 @@
 # typed: true
+require 'datadog/tracing'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
+require 'ddtrace/contrib/qless/integration'
 
 module Datadog
   module Contrib
@@ -27,7 +28,7 @@ module Datadog
         end
 
         def get_option(option)
-          Datadog::Tracing.configuration[:qless].get_option(option)
+          Tracing.configuration[:qless].get_option(option)
         end
       end
     end

@@ -50,8 +50,8 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
         enqueue
 
         expect(span.service).to eq(tracer.default_service)
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('que')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('que')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_args[:queue])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_args[:priority])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0)
@@ -71,8 +71,8 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
         expect(spans).not_to be_empty
         expect(span.start_time).not_to be_nil
         expect(span.end_time).not_to be_nil
-        expect(span.get_tag(Datadog::Ext::Errors::TYPE)).to eq('StandardError')
-        expect(span.get_tag(Datadog::Ext::Errors::STACK)).not_to be_nil
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq('StandardError')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).not_to be_nil
       end
     end
 

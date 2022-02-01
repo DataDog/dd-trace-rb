@@ -4,9 +4,11 @@ require 'ddtrace/contrib/analytics_examples'
 require 'ddtrace/contrib/integration_examples'
 
 require 'aws-sdk'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace'
 require 'ddtrace/contrib/aws/patcher'
-require 'ddtrace/ext/http'
 
 RSpec.describe 'AWS instrumentation' do
   let(:configuration_options) { {} }
@@ -55,12 +57,12 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
 
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('aws')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
           .to eq('sts.us-stubbed-1.amazonaws.com')
       end
 
@@ -101,12 +103,12 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
 
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('aws')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('command')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
           .to eq('aws')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
           .to eq('s3.us-stubbed-1.amazonaws.com')
       end
 

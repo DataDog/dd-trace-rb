@@ -1,8 +1,6 @@
 # typed: false
-require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/metadata'
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/sql'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/mysql2/ext'
 
@@ -20,23 +18,23 @@ module Datadog
           def query(sql, options = {})
             service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
-            Datadog::Tracing.trace(Ext::SPAN_QUERY, service: service) do |span|
+            Tracing.trace(Ext::SPAN_QUERY, service: service) do |span|
               span.resource = sql
-              span.span_type = Datadog::Ext::SQL::TYPE
+              span.span_type = Tracing::Metadata::Ext::SQL::TYPE
 
-              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
               # Tag as an external peer service
-              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, service)
-              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, query_options[:host])
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, service)
+              span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, query_options[:host])
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
-              span.set_tag(Datadog::Ext::NET::TARGET_HOST, query_options[:host])
-              span.set_tag(Datadog::Ext::NET::TARGET_PORT, query_options[:port])
+              span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
+              span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
               super(sql, options)
             end
           end
@@ -44,7 +42,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog::Tracing.configuration[:mysql2]
+            Tracing.configuration[:mysql2]
           end
 
           def analytics_enabled?

@@ -1,6 +1,4 @@
 # typed: false
-require 'ddtrace/ext/net'
-require 'ddtrace/ext/app_types'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/parsers'
 require 'ddtrace/contrib/mongodb/subscribers'

@@ -1,6 +1,8 @@
 # typed: false
 # frozen_string_literal: true
 
+require 'ddtrace/contrib/patcher'
+require 'ddtrace/contrib/sneakers/integration'
 require 'ddtrace/contrib/sneakers/tracer'
 
 module Datadog
@@ -8,7 +10,7 @@ module Datadog
     module Sneakers
       # Patcher enables patching of 'sneakers' module.
       module Patcher
-        include Datadog::Contrib::Patcher
+        include Contrib::Patcher
 
         module_function
 

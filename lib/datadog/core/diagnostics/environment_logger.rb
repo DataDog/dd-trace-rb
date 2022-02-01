@@ -70,7 +70,7 @@ module Datadog
 
         # @return [String] ddtrace version
         def version
-          VERSION::STRING
+          DDTrace::VERSION::STRING
         end
 
         # @return [String] "ruby"
@@ -92,7 +92,7 @@ module Datadog
 
         # @return [Boolean, nil]
         def enabled
-          Datadog::Tracing.configuration.tracer.enabled
+          Tracing.configuration.tracer.enabled
         end
 
         # @return [String] configured application service name
@@ -108,7 +108,7 @@ module Datadog
         # @return [String] target agent URL for trace flushing
         def agent_url
           # Retrieve the effect agent URL, regardless of how it was configured
-          transport = Datadog::Tracing.send(:tracer).writer.transport
+          transport = Tracing.send(:tracer).writer.transport
           adapter = transport.client.api.adapter
           adapter.url
         end
@@ -130,12 +130,12 @@ module Datadog
 
         # @return [Boolean, nil] analytics enabled in configuration
         def analytics_enabled
-          !!Datadog::Tracing.configuration.analytics.enabled
+          !!Tracing.configuration.analytics.enabled
         end
 
         # @return [Numeric, nil] tracer sample rate configured
         def sample_rate
-          sampler = Datadog::Tracing.configuration.tracer.sampler
+          sampler = Tracing.configuration.tracer.sampler
           return nil unless sampler
 
           sampler.sample_rate(nil) rescue nil
@@ -148,12 +148,12 @@ module Datadog
         #
         # @return [Hash, nil] sample rules configured
         def sampling_rules
-          sampler = Datadog::Tracing.configuration.tracer.sampler
-          return nil unless sampler.is_a?(Datadog::PrioritySampler) &&
-                            sampler.priority_sampler.is_a?(Datadog::Sampling::RuleSampler)
+          sampler = Tracing.configuration.tracer.sampler
+          return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
+                            sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
 
           sampler.priority_sampler.rules.map do |rule|
-            next unless rule.is_a?(Datadog::Sampling::SimpleRule)
+            next unless rule.is_a?(Tracing::Sampling::SimpleRule)
 
             {
               name: rule.matcher.name,
@@ -203,12 +203,12 @@ module Datadog
 
         # @return [Boolean, nil] partial flushing enabled in configuration
         def partial_flushing_enabled
-          !!Datadog::Tracing.configuration.tracer.partial_flush.enabled
+          !!Tracing.configuration.tracer.partial_flush.enabled
         end
 
         # @return [Boolean, nil] priority sampling enabled in configuration
         def priority_sampling_enabled
-          !!Datadog::Tracing.configuration.tracer.priority_sampling
+          !!Tracing.configuration.tracer.priority_sampling
         end
 
         # @return [Boolean, nil] health metrics enabled in configuration
@@ -256,7 +256,7 @@ module Datadog
         private
 
         def instrumented_integrations
-          Datadog::Tracing.configuration.instrumented_integrations
+          Tracing.configuration.instrumented_integrations
         end
 
         # Capture all active integration settings into "integrationName_settingName: value" entries.

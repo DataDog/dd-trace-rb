@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/span'
+require 'datadog/tracing/span_operation'
 require 'ddtrace/opentelemetry/span'
 
 module Datadog
@@ -7,7 +7,7 @@ module Datadog
     # Defines extensions to ddtrace for OpenTelemetry support
     module Extensions
       def self.extended(base)
-        Datadog::SpanOperation.prepend(OpenTelemetry::Span)
+        Datadog::Tracing::SpanOperation.prepend(OpenTelemetry::Span)
       end
     end
   end

@@ -1,6 +1,7 @@
 # typed: false
-require 'ddtrace/contrib/configuration/settings'
+require 'datadog/tracing/span_operation'
 require 'ddtrace/contrib/active_job/ext'
+require 'ddtrace/contrib/configuration/settings'
 
 module Datadog
   module Contrib
@@ -25,7 +26,7 @@ module Datadog
           end
 
           option :service_name
-          option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
+          option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end
     end

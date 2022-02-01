@@ -1,6 +1,11 @@
 # typed: ignore
 require 'spec_helper'
 
+require 'datadog/tracing/context'
+require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/propagation/http'
+require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/trace_operation'
 require 'ddtrace/opentracer'
 
 RSpec.describe Datadog::OpenTracer::RackPropagator do
@@ -17,13 +22,13 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
 
     let(:datadog_context) do
       instance_double(
-        Datadog::Context,
+        Datadog::Tracing::Context,
         active_trace: datadog_trace
       )
     end
 
     let(:datadog_trace) do
-      Datadog::TraceOperation.new(
+      Datadog::Tracing::TraceOperation.new(
         id: trace_id,
         parent_span_id: span_id,
         sampling_priority: sampling_priority,
@@ -43,13 +48,13 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     # Expect carrier to be set with Datadog trace properties
     before do
       expect(carrier).to receive(:[]=)
-        .with(Datadog::HTTPPropagator::HTTP_HEADER_TRACE_ID, trace_id.to_s)
+        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID, trace_id.to_s)
       expect(carrier).to receive(:[]=)
-        .with(Datadog::HTTPPropagator::HTTP_HEADER_PARENT_ID, span_id.to_s)
+        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID, span_id.to_s)
       expect(carrier).to receive(:[]=)
-        .with(Datadog::HTTPPropagator::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
+        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
       expect(carrier).to receive(:[]=)
-        .with(Datadog::HTTPPropagator::HTTP_HEADER_ORIGIN, origin.to_s)
+        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN, origin.to_s)
     end
 
     # Expect carrier to be set with OpenTracing baggage
@@ -70,7 +75,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     let(:items) { {} }
     let(:datadog_trace_digest) do
       instance_double(
-        Datadog::TraceDigest,
+        Datadog::Tracing::TraceDigest,
         span_id: double('span ID'),
         trace_id: double('trace ID'),
         trace_origin: double('origin'),
@@ -79,7 +84,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     end
 
     before do
-      expect(Datadog::HTTPPropagator).to receive(:extract)
+      expect(Datadog::Tracing::Propagation::HTTP).to receive(:extract)
         .with(carrier)
         .and_return(datadog_trace_digest)
 

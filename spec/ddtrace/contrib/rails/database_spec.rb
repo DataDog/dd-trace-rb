@@ -53,13 +53,13 @@ RSpec.describe 'Rails database' do
       expect(span.resource).to include('SELECT COUNT(*) FROM')
       # ensure that the sql.query tag is not set
       expect(span.get_tag('sql.query')).to be_nil
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_record')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('sql')
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
         .to eq(adapter_name)
-      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
         .to eq(adapter_host.to_s)
     end
 
@@ -92,9 +92,9 @@ RSpec.describe 'Rails database' do
         expect(span.resource).to eq('Article')
         expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
         expect(span.get_tag('active_record.instantiation.record_count')).to eq(1)
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
           .to eq('active_record')
-        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('instantiation')
       end
 
@@ -119,9 +119,9 @@ RSpec.describe 'Rails database' do
           expect(instantiation_span.resource).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.class_name')).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.record_count')).to eq(1)
-          expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          expect(instantiation_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq('active_record')
-          expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          expect(instantiation_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('instantiation')
         end
       end

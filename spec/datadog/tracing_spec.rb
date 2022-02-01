@@ -145,7 +145,7 @@ RSpec.describe Datadog::Tracing do
     context 'validation' do
       it 'wraps the configuration object with a proxy' do
         described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
+          expect(c).to be_a_kind_of(Datadog::Tracing::Configuration::ValidationProxy)
         end
       end
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing do
     subject(:configuration) { described_class.configuration }
     it 'returns the global configuration' do
       expect(configuration)
-        .to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Tracing)
+        .to be_a_kind_of(Datadog::Tracing::Configuration::ValidationProxy)
 
       expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
     end
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Tracing do
     let(:processors) { [double('processor')] }
     let(:block) { -> {} }
     it 'delegates to the global pipeline' do
-      expect(Datadog::Pipeline).to receive(:before_flush).with(*processors) { |&b| expect(b).to be(block) }
+      expect(Datadog::Tracing::Pipeline).to receive(:before_flush).with(*processors) { |&b| expect(b).to be(block) }
       before_flush
     end
   end

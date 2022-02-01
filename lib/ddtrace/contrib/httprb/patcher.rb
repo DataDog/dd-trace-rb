@@ -1,7 +1,7 @@
 # typed: true
-require 'ddtrace/contrib/patcher'
-require 'ddtrace/contrib/httprb/instrumentation'
 require 'datadog/core/utils/only_once'
+require 'ddtrace/contrib/httprb/instrumentation'
+require 'ddtrace/contrib/patcher'
 
 module Datadog
   module Contrib
@@ -11,7 +11,7 @@ module Datadog
       module Patcher
         include Contrib::Patcher
 
-        PATCH_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+        PATCH_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         module_function
 

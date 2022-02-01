@@ -3,7 +3,7 @@ require 'forwardable'
 require 'set'
 require 'datadog/contrib'
 require 'datadog/core/configuration/settings'
-require 'datadog/core/configuration/validation_proxy'
+require 'datadog/tracing/configuration/validation_proxy'
 
 module Datadog
   module Contrib
@@ -17,10 +17,10 @@ module Datadog
     # Most of this file should probably live inside the tracer core.
     module Extensions
       def self.extend!
-        Datadog::Tracing.singleton_class.prepend Helpers
-        Datadog::Tracing.singleton_class.prepend Configuration
-        Datadog::Core::Configuration::Settings.include Configuration::Settings
-        Datadog::Core::Configuration::ValidationProxy::Tracing.include Configuration::ValidationProxy
+        Tracing.singleton_class.prepend Helpers
+        Tracing.singleton_class.prepend Configuration
+        Core::Configuration::Settings.include Configuration::Settings
+        Tracing::Configuration::ValidationProxy.include Configuration::ValidationProxy
       end
 
       # Helper methods for Datadog module.
@@ -103,9 +103,9 @@ module Datadog
           # How the matching is performed is integration-specific.
           #
           # @example
-          #   Datadog::Tracing.configuration[:integration_name]
+          #   Tracing.configuration[:integration_name]
           # @example
-          #   Datadog::Tracing.configuration[:integration_name][:sub_configuration]
+          #   Tracing.configuration[:integration_name][:sub_configuration]
           # @param [Symbol] integration_name the integration name
           # @param [Object] key the integration-specific lookup key
           # @return [Datadog::Contrib::Configuration::Settings]

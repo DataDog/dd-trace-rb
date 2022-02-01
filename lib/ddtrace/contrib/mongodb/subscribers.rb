@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/parsers'
-require 'ddtrace/ext/metadata'
+require 'datadog/tracing/metadata/ext'
 
 module Datadog
   module Contrib
@@ -11,29 +11,29 @@ module Datadog
       # system available in the Mongo driver.
       class MongoCommandSubscriber
         def started(event)
-          return unless Datadog::Tracing.enabled?
+          return unless Tracing.enabled?
 
           service = Datadog.configuration_for(event.address, :service_name) \
-                    || Datadog::Tracing.configuration[:mongo, event.address.seed][:service_name]
+                    || Tracing.configuration[:mongo, event.address.seed][:service_name]
 
           # start a trace and store it in the current thread; using the `operation_id`
           # is safe since it's a unique id used to link events together. Also only one
           # thread is involved in this execution so thread-local storage should be safe. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
-          span = Datadog::Tracing.trace(Ext::SPAN_COMMAND, service: service, span_type: Ext::SPAN_TYPE_COMMAND)
+          span = Tracing.trace(Ext::SPAN_COMMAND, service: service, span_type: Ext::SPAN_TYPE_COMMAND)
           set_span(event, span)
 
           # build a quantized Query using the Parser module
           query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
           serialized_query = query.to_s
 
-          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
-          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
+          span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
-          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, event.address.host)
+          span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, event.address.host)
 
           # Set analytics sample rate
           Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -44,8 +44,8 @@ module Datadog
           span.set_tag(Ext::TAG_COLLECTION, query['collection'])
           span.set_tag(Ext::TAG_OPERATION, query['operation'])
           span.set_tag(Ext::TAG_QUERY, serialized_query)
-          span.set_tag(Datadog::Ext::NET::TARGET_HOST, event.address.host)
-          span.set_tag(Datadog::Ext::NET::TARGET_PORT, event.address.port)
+          span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, event.address.host)
+          span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, event.address.port)
 
           # set the resource with the quantized query
           span.resource = serialized_query
@@ -110,7 +110,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog::Tracing.configuration[:mongo]
+          Tracing.configuration[:mongo]
         end
       end
     end

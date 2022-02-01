@@ -1,16 +1,16 @@
 # typed: false
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog/tracing'
 require 'ddtrace/opentelemetry/span'
 
 RSpec.describe Datadog::OpenTelemetry::Span do
   context 'when implemented in Datadog::Span' do
-    before { expect(Datadog::SpanOperation <= described_class).to be true }
+    before { expect(Datadog::Tracing::SpanOperation <= described_class).to be true }
 
-    subject(:span) { Datadog::SpanOperation.new(name) }
+    subject(:span) { Datadog::Tracing::SpanOperation.new(name) }
 
-    let(:tracer) { instance_double(Datadog::Tracer) }
+    let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
     let(:name) { 'opentelemetry.span' }
 
     describe '#set_tag' do

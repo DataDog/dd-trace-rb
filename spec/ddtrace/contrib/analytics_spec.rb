@@ -1,6 +1,9 @@
 # typed: false
 require 'ddtrace/contrib/support/spec_helper'
 
+require 'datadog/tracing/analytics'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/span'
 require 'ddtrace/contrib/analytics'
 
 RSpec.describe Datadog::Contrib::Analytics do
@@ -33,7 +36,7 @@ RSpec.describe Datadog::Contrib::Analytics do
   describe '::set_sample_rate' do
     subject(:set_sample_rate) { described_class.set_sample_rate(span, sample_rate) }
 
-    let(:span) { instance_double(Datadog::Span) }
+    let(:span) { instance_double(Datadog::Tracing::Span) }
 
     context 'when sample rate is nil' do
       let(:sample_rate) { nil }
@@ -50,7 +53,7 @@ RSpec.describe Datadog::Contrib::Analytics do
       it 'sets the tag' do
         expect(span).to receive(:set_metric)
           .with(
-            Datadog::Ext::Analytics::TAG_SAMPLE_RATE,
+            Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE,
             sample_rate
           )
 
@@ -62,16 +65,16 @@ RSpec.describe Datadog::Contrib::Analytics do
   describe '::set_measured' do
     subject(:set_measured) { described_class.set_measured(span) }
 
-    let(:span) { instance_double(Datadog::Span) }
+    let(:span) { instance_double(Datadog::Tracing::Span) }
 
     before do
-      allow(Datadog::Analytics).to receive(:set_measured)
+      allow(Datadog::Tracing::Analytics).to receive(:set_measured)
       set_measured
     end
 
     context 'when only a span is given' do
       it 'sets measured as true' do
-        expect(Datadog::Analytics).to have_received(:set_measured)
+        expect(Datadog::Tracing::Analytics).to have_received(:set_measured)
           .with(span, true)
       end
     end
@@ -82,7 +85,7 @@ RSpec.describe Datadog::Contrib::Analytics do
       let(:value) { double('value') }
 
       it 'sets measured as true' do
-        expect(Datadog::Analytics).to have_received(:set_measured)
+        expect(Datadog::Tracing::Analytics).to have_received(:set_measured)
           .with(span, value)
       end
     end

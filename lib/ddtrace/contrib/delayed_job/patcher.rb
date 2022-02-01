@@ -1,6 +1,6 @@
 # typed: false
+require 'ddtrace/contrib/delayed_job/integration'
 require 'ddtrace/contrib/patcher'
-require 'ddtrace/ext/app_types'
 
 module Datadog
   module Contrib

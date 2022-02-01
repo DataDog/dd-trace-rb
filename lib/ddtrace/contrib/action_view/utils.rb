@@ -16,7 +16,7 @@ module Datadog
         def normalize_template_name(name)
           return if name.nil?
 
-          base_path = Datadog::Tracing.configuration[:action_view][:template_base_path]
+          base_path = Tracing.configuration[:action_view][:template_base_path]
           sections_view = name.split(base_path)
 
           if sections_view.length == 1

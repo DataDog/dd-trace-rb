@@ -19,7 +19,7 @@ module Datadog
 
         def patch
           Events.subscribe!
-          inject_log_correlation if Datadog::Tracing.configuration.log_injection
+          inject_log_correlation if Tracing.configuration.log_injection
         end
 
         def inject_log_correlation
