@@ -1,7 +1,7 @@
 # typed: false
 # frozen_string_literal: true
 
-require 'ddtrace/contrib/analytics'
+require 'datadog/tracing/contrib/analytics'
 
 require 'datadog/ci/ext/app_types'
 require 'datadog/ci/ext/test'
@@ -37,7 +37,7 @@ module Datadog
 
         # Set default tags
         trace.origin = Ext::Test::CONTEXT_ORIGIN if trace
-        Datadog::Contrib::Analytics.set_measured(span)
+        Datadog::Tracing::Contrib::Analytics.set_measured(span)
         span.set_tag(Ext::Test::TAG_SPAN_KIND, Ext::AppTypes::TYPE_TEST)
 
         # Set environment tags

@@ -5,7 +5,7 @@ require 'datadog/ci/test'
 require 'datadog/tracing'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/span_operation'
-require 'ddtrace/contrib/analytics'
+require 'datadog/tracing/contrib/analytics'
 
 RSpec.describe Datadog::CI::Test do
   let(:trace_op) { instance_double(Datadog::Tracing::TraceOperation) }
@@ -18,7 +18,7 @@ RSpec.describe Datadog::CI::Test do
 
   shared_examples_for 'default test span operation tags' do
     it do
-      expect(Datadog::Contrib::Analytics)
+      expect(Datadog::Tracing::Contrib::Analytics)
         .to have_received(:set_measured)
         .with(span_op)
     end
@@ -62,7 +62,7 @@ RSpec.describe Datadog::CI::Test do
             trace_block.call(span_op, trace_op)
           end
 
-        allow(Datadog::Contrib::Analytics).to receive(:set_measured)
+        allow(Datadog::Tracing::Contrib::Analytics).to receive(:set_measured)
 
         trace
       end
@@ -85,7 +85,7 @@ RSpec.describe Datadog::CI::Test do
           )
           .and_return(span_op)
 
-        allow(Datadog::Contrib::Analytics).to receive(:set_measured)
+        allow(Datadog::Tracing::Contrib::Analytics).to receive(:set_measured)
 
         trace
       end
@@ -101,7 +101,7 @@ RSpec.describe Datadog::CI::Test do
     let(:tags) { {} }
 
     before do
-      allow(Datadog::Contrib::Analytics).to receive(:set_measured)
+      allow(Datadog::Tracing::Contrib::Analytics).to receive(:set_measured)
     end
 
     it_behaves_like 'default test span operation tags' do

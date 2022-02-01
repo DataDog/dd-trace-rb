@@ -2,9 +2,9 @@
 require 'datadog/tracing'
 
 # Load tracing extensions
-require 'datadog/contrib'
-require 'ddtrace/contrib/auto_instrument'
-require 'ddtrace/contrib/extensions'
+require 'datadog/tracing/contrib'
+require 'datadog/tracing/contrib/auto_instrument'
+require 'datadog/tracing/contrib/extensions'
 require 'datadog/opentelemetry/extensions'
 require 'ddtrace/auto_instrument_base'
 
@@ -14,9 +14,10 @@ module Datadog
   extend AutoInstrumentBase
 
   # Load built-in Datadog integrations
-  Contrib::Extensions.extend!
+  Tracing::Contrib::Extensions.extend!
+
   # Load Contrib auto instrumentation
-  extend Contrib::AutoInstrument
+  extend Tracing::Contrib::AutoInstrument
 
   # Load and extend OpenTelemetry compatibility by default
   extend OpenTelemetry::Extensions
