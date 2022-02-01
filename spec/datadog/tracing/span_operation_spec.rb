@@ -116,6 +116,49 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     end
 
     context 'given an option' do
+      shared_examples 'a string property' do |nillable: true|
+        let(:options) { { property => value } }
+
+        context 'set to a String' do
+          let(:value) { 'test string' }
+          it { is_expected.to have_attributes(property => value) }
+        end
+
+        context 'set to a non-UTF-8 String' do
+          let(:value) { 'ascii'.encode(Encoding::ASCII) }
+          it { is_expected.to have_attributes(property => value) }
+          it { expect(span_op.public_send(property).encoding).to eq(Encoding::UTF_8) }
+        end
+
+        context 'invoking the public setter' do
+          subject! { span_op.public_send("#{property}=", value) }
+
+          context 'with a string' do
+            let(:value) { 'test string' }
+            it { expect(span_op).to have_attributes(property => value) }
+          end
+
+          context 'with a string that is not in UTF-8' do
+            let(:value) { 'ascii'.encode(Encoding::ASCII) }
+            it { expect(span_op).to have_attributes(property => value) }
+            it { expect(span_op.public_send(property).encoding).to eq(Encoding::UTF_8) }
+          end
+        end
+
+        if nillable
+          context 'set to nil' do
+            let(:value) { nil }
+            # Allow property to be explicitly set to nil
+            it { is_expected.to have_attributes(property => nil) }
+          end
+        else
+          context 'set to nil' do
+            let(:value) { nil }
+            it { expect { subject }.to raise_error(ArgumentError) }
+          end
+        end
+      end
+
       describe ':child_of' do
         let(:options) { { child_of: child_of } }
 
@@ -140,7 +183,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
           context 'and :service is given' do
             let(:options) { { child_of: parent, service: service } }
-            let(:service) { instance_double(String) }
+            let(:service) { String.new }
 
             it_behaves_like 'a child span operation'
 
@@ -206,6 +249,17 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
+      describe ':name' do
+        it_behaves_like 'a string property', nillable: false do
+          let(:property) { :name }
+
+          # :name is not a keyword argument, but positional.
+          # We swap those two here.
+          let(:options) { {} }
+          let(:name) { value }
+        end
+      end
+
       describe ':parent_id' do
         let(:options) { { parent_id: parent_id } }
 
@@ -236,32 +290,14 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':resource' do
-        let(:options) { { resource: resource } }
-
-        context 'that is nil' do
-          let(:resource) { nil }
-          # Allow resource to be explicitly set to nil
-          it { is_expected.to have_attributes(resource: nil) }
-        end
-
-        context 'that is a String' do
-          let(:resource) { instance_double(String) }
-          it { is_expected.to have_attributes(resource: resource) }
+        it_behaves_like 'a string property' do
+          let(:property) { :resource }
         end
       end
 
       describe ':service' do
-        let(:options) { { service: service } }
-        let(:service) { instance_double(String) }
-
-        context 'that is nil' do
-          let(:service) { nil }
-          it { is_expected.to have_attributes(service: nil) }
-        end
-
-        context 'that is a String' do
-          let(:service) { instance_double(String) }
-          it { is_expected.to have_attributes(service: service) }
+        it_behaves_like 'a string property' do
+          let(:property) { :service }
         end
       end
 
@@ -331,19 +367,20 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       describe ':type' do
-        let(:options) { { type: type } }
-        let(:type) { instance_double(String) }
-
-        context 'that is nil' do
-          let(:type) { nil }
-          it { is_expected.to have_attributes(type: nil) }
-        end
-
-        context 'that is a String' do
-          let(:type) { instance_double(String) }
-          it { is_expected.to have_attributes(type: type) }
+        it_behaves_like 'a string property' do
+          let(:property) { :type }
         end
       end
+    end
+  end
+
+  describe '#resource=' do
+    subject!(:resource=) { span_op.resource = resource }
+
+    context 'with a string that is not in UTF-8' do
+      let(:resource) { 'legacy'.encode(Encoding::ASCII) }
+      it { expect(span_op.resource).to eq(resource) }
+      it { expect(span_op.resource.encoding).to eq(Encoding::UTF_8) }
     end
   end
 

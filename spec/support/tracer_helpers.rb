@@ -31,20 +31,14 @@ module TracerHelpers
   end
 
   # Return some test traces
-  def get_test_traces(n)
+  def get_test_traces(n, service: 'test-app', resource: '/traces', type: 'web')
     traces = []
-
-    defaults = {
-      service: 'test-app',
-      resource: '/traces',
-      type: 'web'
-    }
 
     n.times do
       trace_op = Datadog::Tracing::TraceOperation.new
 
-      trace_op.measure('client.testing', **defaults) do
-        trace_op.measure('client.testing', **defaults) do
+      trace_op.measure('client.testing', service: service, resource: resource, type: type) do
+        trace_op.measure('client.testing', service: service, resource: resource, type: type) do
         end
       end
 
