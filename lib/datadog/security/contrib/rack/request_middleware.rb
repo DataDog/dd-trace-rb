@@ -32,8 +32,8 @@ module Datadog
           def waf_rules
             ruleset_setting = Datadog::Security.settings.ruleset
             case ruleset_setting
-            when :recommended
-              @waf_rules ||= JSON.parse(Datadog::Security::Assets.recommended_waf_rules)
+            when :recommended, :risky, :strict
+              @waf_rules ||= JSON.parse(Datadog::Security::Assets.waf_rules(ruleset_setting))
             when String
               # TODO: handle file missing
               filename = ruleset_setting
