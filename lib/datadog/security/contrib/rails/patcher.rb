@@ -7,7 +7,7 @@ require 'datadog/security/contrib/rails/integration'
 require 'datadog/security/contrib/rails/framework'
 require 'datadog/security/contrib/rack/request_middleware'
 
-require 'ddtrace/contrib/rack/middlewares'
+require 'datadog/tracing/contrib/rack/middlewares'
 
 module Datadog
   module Security
@@ -54,8 +54,8 @@ module Datadog
 
           def add_middleware(app)
             # Add trace middleware
-            if include_middleware?(Datadog::Contrib::Rack::TraceMiddleware, app)
-              app.middleware.insert_after(Datadog::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware)
+            if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
+              app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware)
             else
               app.middleware.insert_before(0, Datadog::Security::Contrib::Rack::RequestMiddleware)
             end

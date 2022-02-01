@@ -1,12 +1,12 @@
 # typed: ignore
 
-require 'ddtrace/contrib/rack/middlewares'
+require 'datadog/tracing/contrib/rack/middlewares'
 
 require 'datadog/security/contrib/patcher'
 require 'datadog/security/contrib/sinatra/integration'
 require 'datadog/security/contrib/rack/request_middleware'
 require 'datadog/security/contrib/sinatra/framework'
-require 'ddtrace/contrib/sinatra/framework'
+require 'datadog/tracing/contrib/sinatra/framework'
 
 module Datadog
   module Security
@@ -27,12 +27,12 @@ module Datadog
             builder = args.first
 
             super.tap do
-              if Datadog::Contrib::Sinatra::Framework.include_middleware?(Datadog::Contrib::Rack::TraceMiddleware, builder)
-                Datadog::Contrib::Sinatra::Framework.add_middleware_after(Datadog::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware, builder)
+              if Datadog::Tracing::Contrib::Sinatra::Framework.include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, builder)
+                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware, builder)
               else
-                Datadog::Contrib::Sinatra::Framework.add_middleware(Datadog::Security::Contrib::Rack::RequestMiddleware, builder)
+                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware(Datadog::Security::Contrib::Rack::RequestMiddleware, builder)
               end
-              Datadog::Contrib::Sinatra::Framework.inspect_middlewares(builder)
+              Datadog::Tracing::Contrib::Sinatra::Framework.inspect_middlewares(builder)
             end
           end
         end
