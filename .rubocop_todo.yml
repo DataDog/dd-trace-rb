@@ -70,9 +70,9 @@ Lint/MissingCopEnableDirective:
 Lint/MissingSuper:
   Exclude:
     - 'lib/ddtrace/contrib/grpc/datadog_interceptor.rb'
-    - 'lib/ddtrace/opentracer/scope.rb'
-    - 'lib/ddtrace/opentracer/span.rb'
-    - 'lib/ddtrace/opentracer/span_context.rb'
+    - 'lib/datadog/opentracer/scope.rb'
+    - 'lib/datadog/opentracer/span.rb'
+    - 'lib/datadog/opentracer/span_context.rb'
     - 'lib/datadog/profiling/collectors/stack.rb'
     - 'lib/datadog/profiling/pprof/converter.rb'
     - 'lib/datadog/profiling/pprof/template.rb'
@@ -151,7 +151,7 @@ Performance/MethodObjectAsBlock:
 RSpec/EmptyExampleGroup:
   Exclude:
     - 'spec/datadog/ci/ext/environment_spec.rb'
-    - 'spec/ddtrace/opentracer/distributed_headers_spec.rb'
+    - 'spec/datadog/opentracer/distributed_headers_spec.rb'
 
 # Offense count: 2
 # Cop supports --auto-correct.
@@ -229,8 +229,8 @@ RSpec/RepeatedExampleGroupDescription:
     - 'spec/ddtrace/contrib/elasticsearch/patcher_spec.rb'
     - 'spec/ddtrace/contrib/grape/tracer_spec.rb'
     - 'spec/ddtrace/contrib/redis/quantize_spec.rb'
-    - 'spec/ddtrace/opentracer/scope_manager_spec.rb'
-    - 'spec/ddtrace/opentracer/thread_local_scope_manager_spec.rb'
+    - 'spec/datadog/opentracer/scope_manager_spec.rb'
+    - 'spec/datadog/opentracer/thread_local_scope_manager_spec.rb'
 
 # Offense count: 53
 RSpec/ScatteredSetup:
@@ -250,9 +250,9 @@ RSpec/ScatteredSetup:
     - 'spec/ddtrace/contrib/rails/railtie_spec.rb'
     - 'spec/ddtrace/contrib/rails/redis_cache_spec.rb'
     - 'spec/ddtrace/contrib/redis/miniapp_spec.rb'
-    - 'spec/ddtrace/opentracer/rack_propagator_spec.rb'
-    - 'spec/ddtrace/opentracer/span_spec.rb'
-    - 'spec/ddtrace/opentracer/text_map_propagator_spec.rb'
+    - 'spec/datadog/opentracer/rack_propagator_spec.rb'
+    - 'spec/datadog/opentracer/span_spec.rb'
+    - 'spec/datadog/opentracer/text_map_propagator_spec.rb'
     - 'spec/datadog/core/workers/loop_spec.rb'
 
 # Offense count: 2
@@ -284,10 +284,10 @@ RSpec/VerifiedDoubles:
     - 'spec/ddtrace/contrib/registry_spec.rb'
     - 'spec/ddtrace/contrib/shoryuken/tracer_spec.rb'
     - 'spec/ddtrace/contrib/sneakers/tracer_spec.rb'
-    - 'spec/ddtrace/opentracer/global_tracer_spec.rb'
-    - 'spec/ddtrace/opentracer/rack_propagator_spec.rb'
-    - 'spec/ddtrace/opentracer/text_map_propagator_spec.rb'
-    - 'spec/ddtrace/opentracer/tracer_spec.rb'
+    - 'spec/datadog/opentracer/global_tracer_spec.rb'
+    - 'spec/datadog/opentracer/rack_propagator_spec.rb'
+    - 'spec/datadog/opentracer/text_map_propagator_spec.rb'
+    - 'spec/datadog/opentracer/tracer_spec.rb'
     - 'spec/datadog/profiling/backtrace_location_spec.rb'
     - 'spec/datadog/profiling/collectors/stack_spec.rb'
     - 'spec/datadog/profiling/encoding/profile_spec.rb'

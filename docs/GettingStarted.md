@@ -244,8 +244,8 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
     ```ruby
     require 'opentracing'
-    require 'ddtrace'
-    require 'ddtrace/opentracer'
+    require 'datadog/tracing'
+    require 'datadog/opentracer'
 
     # Activate the Datadog tracer for OpenTracing
     OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new

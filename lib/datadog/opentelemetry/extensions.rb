@@ -1,6 +1,6 @@
 # typed: true
 require 'datadog/tracing/span_operation'
-require 'ddtrace/opentelemetry/span'
+require 'datadog/opentelemetry/span'
 
 module Datadog
   module OpenTelemetry

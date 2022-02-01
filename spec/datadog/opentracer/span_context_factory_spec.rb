@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/context'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::SpanContextFactory do
   describe 'class methods' do

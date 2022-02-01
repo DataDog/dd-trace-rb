@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/span'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe 'OpenTracer context propagation' do
   subject(:tracer) { Datadog::OpenTracer::Tracer.new(writer: FauxWriter.new) }

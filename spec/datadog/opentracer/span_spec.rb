@@ -5,7 +5,7 @@ require 'time'
 
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/span_operation'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::Span do
   subject(:span) { described_class.new(datadog_span: datadog_span, span_context: span_context) }

@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'datadog/tracing'
 require 'datadog/tracing/tracer'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::GlobalTracer do
   context 'when included into OpenTracing' do

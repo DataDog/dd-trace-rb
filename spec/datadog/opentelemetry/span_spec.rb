@@ -2,7 +2,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing'
-require 'ddtrace/opentelemetry/span'
+require 'datadog/opentelemetry/span'
 
 RSpec.describe Datadog::OpenTelemetry::Span do
   context 'when implemented in Datadog::Span' do

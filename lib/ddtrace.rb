@@ -5,7 +5,7 @@ require 'datadog/tracing'
 require 'datadog/contrib'
 require 'ddtrace/contrib/auto_instrument'
 require 'ddtrace/contrib/extensions'
-require 'ddtrace/opentelemetry/extensions'
+require 'datadog/opentelemetry/extensions'
 require 'ddtrace/auto_instrument_base'
 
 # Global namespace that includes all Datadog functionality.

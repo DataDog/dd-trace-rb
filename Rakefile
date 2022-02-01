@@ -29,12 +29,12 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:opentracer) do |t, args|
-    t.pattern = 'spec/ddtrace/opentracer/**/*_spec.rb'
+    t.pattern = 'spec/datadog/opentracer/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:opentelemetry) do |t, args|
-    t.pattern = 'spec/ddtrace/opentelemetry/**/*_spec.rb'
+    t.pattern = 'spec/datadog/opentelemetry/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 

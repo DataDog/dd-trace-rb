@@ -2,7 +2,7 @@
 require 'datadog/tracing/context'
 require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/trace_operation'
-require 'ddtrace/opentracer/propagator'
+require 'datadog/opentracer/propagator'
 
 module Datadog
   module OpenTracer

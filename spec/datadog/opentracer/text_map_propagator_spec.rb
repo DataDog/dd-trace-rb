@@ -3,7 +3,7 @@ require 'spec_helper'
 
 require 'datadog/tracing/context'
 require 'datadog/tracing/trace_operation'
-require 'ddtrace/opentracer'
+require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::TextMapPropagator do
   describe '#inject' do
