@@ -1,8 +1,37 @@
 # typed: false
 require 'spec_helper'
 
-require 'datadog/statsd'
+require 'logger'
+
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/configuration/components'
+require 'datadog/core/diagnostics/environment_logger'
+require 'datadog/core/diagnostics/health'
+require 'datadog/core/logger'
+require 'datadog/core/runtime/metrics'
+require 'datadog/core/workers/runtime_metrics'
+require 'datadog/profiling'
+require 'datadog/profiling/collectors/code_provenance'
+require 'datadog/profiling/collectors/stack'
+require 'datadog/profiling/exporter'
+require 'datadog/profiling/profiler'
+require 'datadog/profiling/recorder'
+require 'datadog/profiling/scheduler'
+require 'datadog/profiling/tasks/setup'
+require 'datadog/profiling/trace_identifiers/helper'
+require 'datadog/profiling/transport/client'
+require 'datadog/profiling/transport/http/api'
+require 'datadog/profiling/transport/http/client'
+require 'datadog/statsd'
+require 'datadog/tracing/flush'
+require 'datadog/tracing/sampling/all_sampler'
+require 'datadog/tracing/sampling/priority_sampler'
+require 'datadog/tracing/sampling/rate_by_service_sampler'
+require 'datadog/tracing/sampling/rule_sampler'
+require 'datadog/tracing/sync_writer'
+require 'datadog/tracing/tracer'
+require 'datadog/tracing/writer'
+require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
@@ -21,7 +50,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
   describe '::new' do
     let(:logger) { instance_double(Datadog::Core::Logger) }
-    let(:tracer) { instance_double(Datadog::Tracer) }
+    let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
@@ -36,7 +65,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(tracer)
 
       expect(described_class).to receive(:build_profiler)
-        .with(settings, instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings), tracer)
+        .with(
+          settings,
+          instance_of(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings),
+          tracer
+        )
         .and_return(profiler)
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -317,7 +350,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     subject(:build_tracer) { described_class.build_tracer(settings, agent_settings) }
 
     context 'given an instance' do
-      let(:instance) { instance_double(Datadog::Tracer) }
+      let(:instance) { instance_double(Datadog::Tracing::Tracer) }
 
       before do
         expect(settings.tracer).to receive(:instance)
@@ -325,28 +358,35 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       it 'uses the tracer instance' do
-        expect(Datadog::Tracer).to_not receive(:new)
+        expect(Datadog::Tracing::Tracer).to_not receive(:new)
         is_expected.to be(instance)
       end
     end
 
     context 'given settings' do
       shared_examples_for 'new tracer' do
-        let(:tracer) { instance_double(Datadog::Tracer) }
-        let(:writer) { Datadog::Writer.new }
-        let(:trace_flush) { be_a(Datadog::TraceFlush::Finished) }
+        let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
+        let(:writer) { Datadog::Tracing::Writer.new }
+        let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
+        let(:sampler) do
+          if defined?(super)
+            super()
+          else
+            lambda do |sampler|
+              expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+              expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
+              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler)
+            end
+          end
+        end
         let(:default_options) do
           {
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             trace_flush: trace_flush,
             tags: settings.tags,
-            sampler: lambda do |sampler|
-              expect(sampler).to be_a(Datadog::PrioritySampler)
-              expect(sampler.pre_sampler).to be_a(Datadog::AllSampler)
-              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
-              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::RateByServiceSampler)
-            end,
+            sampler: sampler,
             writer: writer,
           }
         end
@@ -356,11 +396,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:writer_options) { defined?(super) ? super() : {} }
 
         before do
-          expect(Datadog::Tracer).to receive(:new)
+          expect(Datadog::Tracing::Tracer).to receive(:new)
             .with(tracer_options)
             .and_return(tracer)
 
-          allow(Datadog::Writer).to receive(:new)
+          allow(Datadog::Tracing::Writer).to receive(:new)
             .with(agent_settings: agent_settings, **writer_options)
             .and_return(writer)
         end
@@ -453,7 +493,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it_behaves_like 'new tracer' do
-          let(:options) { { trace_flush: be_a(Datadog::TraceFlush::Partial) } }
+          let(:options) { { trace_flush: be_a(Datadog::Tracing::Flush::Partial) } }
           it_behaves_like 'event publishing writer and priority sampler'
         end
 
@@ -468,7 +508,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           it_behaves_like 'new tracer' do
             let(:options) do
-              { trace_flush: be_a(Datadog::TraceFlush::Partial) &
+              { trace_flush: be_a(Datadog::Tracing::Flush::Partial) &
                 have_attributes(min_spans_for_partial: min_spans_threshold) }
             end
 
@@ -497,7 +537,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             end
 
             context 'that is a priority sampler' do
-              let(:sampler) { Datadog::PrioritySampler.new }
+              let(:sampler) { Datadog::Tracing::Sampling::PrioritySampler.new }
 
               it_behaves_like 'new tracer' do
                 let(:options) { { sampler: sampler } }
@@ -511,9 +551,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
               context 'wraps sampler in a priority sampler' do
                 it_behaves_like 'new tracer' do
                   let(:options) do
-                    { sampler: be_a(Datadog::PrioritySampler) & have_attributes(
+                    { sampler: be_a(Datadog::Tracing::Sampling::PrioritySampler) & have_attributes(
                       pre_sampler: sampler,
-                      priority_sampler: be_a(Datadog::Sampling::RuleSampler)
+                      priority_sampler: be_a(Datadog::Tracing::Sampling::RuleSampler)
                     ) }
                   end
 
@@ -528,7 +568,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           let(:priority_sampling) { false }
 
           it_behaves_like 'new tracer' do
-            let(:options) { { sampler: be_a(Datadog::Sampling::RuleSampler) } }
+            let(:options) { { sampler: be_a(Datadog::Tracing::Sampling::RuleSampler) } }
           end
 
           context 'with :sampler' do
@@ -614,6 +654,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'with :test_mode' do
+        let(:sampler) do
+          lambda do |sampler|
+            expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+            expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+            expect(sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+          end
+        end
+
         context ':enabled' do
           before do
             allow(settings.test_mode)
@@ -623,10 +671,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           context 'set to true' do
             let(:enabled) { true }
-            let(:sync_writer) { Datadog::SyncWriter.new }
+            let(:sync_writer) { Datadog::Tracing::SyncWriter.new }
 
             before do
-              expect(Datadog::SyncWriter)
+              expect(Datadog::Tracing::SyncWriter)
                 .to receive(:new)
                 .with(agent_settings: agent_settings, **writer_options)
                 .and_return(writer)
@@ -645,8 +693,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
-                      sampler: kind_of(Datadog::AllSampler),
-                      writer: kind_of(Datadog::SyncWriter)
+                      writer: kind_of(Datadog::Tracing::SyncWriter)
                     }
                   end
                   let(:writer) { sync_writer }
@@ -656,14 +703,13 @@ RSpec.describe Datadog::Core::Configuration::Components do
               end
 
               context 'is set' do
-                let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
+                let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
 
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
                       trace_flush: trace_flush,
-                      sampler: kind_of(Datadog::AllSampler),
-                      writer: kind_of(Datadog::SyncWriter)
+                      writer: kind_of(Datadog::Tracing::SyncWriter)
                     }
                   end
                   let(:writer) { sync_writer }
@@ -686,7 +732,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
-                      sampler: kind_of(Datadog::AllSampler),
                       writer: writer
                     }
                   end
@@ -715,14 +760,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'with :writer' do
-        let(:writer) { instance_double(Datadog::Writer) }
+        let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
         before do
           allow(settings.tracer)
             .to receive(:writer)
             .and_return(writer)
 
-          expect(Datadog::Writer).to_not receive(:new)
+          expect(Datadog::Tracing::Writer).to_not receive(:new)
         end
 
         it_behaves_like 'new tracer' do
@@ -732,7 +777,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'that publishes events' do
           it_behaves_like 'new tracer' do
             let(:options) { { writer: writer } }
-            let(:writer) { Datadog::Writer.new }
+            let(:writer) { Datadog::Tracing::Writer.new }
             after { writer.stop }
 
             it_behaves_like 'event publishing writer and priority sampler'
@@ -831,7 +876,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe '::build_profiler' do
     let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:profiler) { build_profiler }
-    let(:tracer) { instance_double(Datadog::Tracer) }
+    let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
     subject(:build_profiler) { described_class.build_profiler(settings, agent_settings, tracer) }
 
@@ -1125,7 +1170,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given a replacement' do
       shared_context 'replacement' do
         let(:replacement) { instance_double(described_class) }
-        let(:tracer) { instance_double(Datadog::Tracer) }
+        let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
         let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }

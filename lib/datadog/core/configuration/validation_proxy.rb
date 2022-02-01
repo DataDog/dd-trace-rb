@@ -27,6 +27,7 @@ module Datadog
         # Forwards global configuration settings
         class Global < self
           FORWARDED_METHODS = [
+            :agent,
             :api_key,
             :api_key=,
             :diagnostics,
@@ -45,50 +46,6 @@ module Datadog
             :time_now_provider=,
             :version,
             :version=
-          ].freeze
-
-          def_delegators \
-            :settings,
-            *FORWARDED_METHODS
-        end
-
-        # Forwards tracing configuration settings
-        class Tracing < self
-          FORWARDED_METHODS = [
-            :analytics,
-            :distributed_tracing,
-            :instrument,
-            :instrumented_integrations,
-            :log_injection,
-            :log_injection=,
-            :reduce_log_verbosity,
-            :report_hostname,
-            :report_hostname=,
-            :sampling,
-            :test_mode,
-            :tracer
-          ].freeze
-
-          def_delegators \
-            :settings,
-            *FORWARDED_METHODS
-        end
-
-        # Forwards profiling configuration settings
-        class Profiling < self
-          FORWARDED_METHODS = [
-            :profiling
-          ].freeze
-
-          def_delegators \
-            :settings,
-            *FORWARDED_METHODS
-        end
-
-        # Forwards CI configuration settings
-        class CI < self
-          FORWARDED_METHODS = [
-            :ci_mode
           ].freeze
 
           def_delegators \

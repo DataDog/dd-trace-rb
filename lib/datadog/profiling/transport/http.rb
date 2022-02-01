@@ -1,6 +1,6 @@
 # typed: true
 require 'datadog/core/environment/ext'
-require 'ddtrace/ext/transport'
+require 'ddtrace/transport/ext'
 
 require 'datadog/core/environment/container'
 require 'datadog/core/environment/variable_helpers'
@@ -53,14 +53,14 @@ module Datadog
 
         def self.default_headers
           {
-            Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Core::Environment::Ext::LANG,
-            Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Core::Environment::Ext::LANG_VERSION,
-            Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Core::Environment::Ext::LANG_INTERPRETER,
-            Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Core::Environment::Ext::TRACER_VERSION
+            Datadog::Transport::Ext::HTTP::HEADER_META_LANG => Core::Environment::Ext::LANG,
+            Datadog::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Core::Environment::Ext::LANG_VERSION,
+            Datadog::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER => Core::Environment::Ext::LANG_INTERPRETER,
+            Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Core::Environment::Ext::TRACER_VERSION
           }.tap do |headers|
             # Add container ID, if present.
-            container_id = Datadog::Core::Environment::Container.container_id
-            headers[Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
+            container_id = Core::Environment::Container.container_id
+            headers[Datadog::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
           end
         end
 
@@ -79,32 +79,32 @@ module Datadog
         private_class_method def self.configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)
           apis = API.api_defaults
 
-          site_uri = URI(format(Datadog::Profiling::Ext::Transport::HTTP::URI_TEMPLATE_DD_API, site))
+          site_uri = URI(format(Profiling::Ext::Transport::HTTP::URI_TEMPLATE_DD_API, site))
           hostname = site_uri.host
           port = site_uri.port
 
           transport.adapter(
-            Datadog::Ext::Transport::HTTP::ADAPTER,
+            Datadog::Transport::Ext::HTTP::ADAPTER,
             hostname,
             port,
             timeout: profiling_upload_timeout_seconds,
             ssl: site_uri.scheme == 'https'
           )
           transport.api(API::V1, apis[API::V1], default: true)
-          transport.headers(Datadog::Ext::Transport::HTTP::HEADER_DD_API_KEY => api_key)
+          transport.headers(Datadog::Transport::Ext::HTTP::HEADER_DD_API_KEY => api_key)
         end
 
         private_class_method def self.agentless_allowed?
-          Datadog::Core::Environment::VariableHelpers.env_to_bool(Datadog::Profiling::Ext::ENV_AGENTLESS, false)
+          Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
         end
 
         # Add adapters to registry
         Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net,
-                                                        Datadog::Ext::Transport::HTTP::ADAPTER)
+                                                        Datadog::Transport::Ext::HTTP::ADAPTER)
         Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test,
-                                                        Datadog::Ext::Transport::Test::ADAPTER)
+                                                        Datadog::Transport::Ext::Test::ADAPTER)
         Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket,
-                                                        Datadog::Ext::Transport::UnixSocket::ADAPTER)
+                                                        Datadog::Transport::Ext::UnixSocket::ADAPTER)
       end
     end
   end

@@ -14,12 +14,12 @@ module Datadog
       class StackSample < Converter
         SAMPLE_TYPES = {
           cpu_time_ns: [
-            Datadog::Profiling::Ext::Pprof::VALUE_TYPE_CPU,
-            Datadog::Profiling::Ext::Pprof::VALUE_UNIT_NANOSECONDS
+            Profiling::Ext::Pprof::VALUE_TYPE_CPU,
+            Profiling::Ext::Pprof::VALUE_UNIT_NANOSECONDS
           ],
           wall_time_ns: [
-            Datadog::Profiling::Ext::Pprof::VALUE_TYPE_WALL,
-            Datadog::Profiling::Ext::Pprof::VALUE_UNIT_NANOSECONDS
+            Profiling::Ext::Pprof::VALUE_TYPE_WALL,
+            Profiling::Ext::Pprof::VALUE_UNIT_NANOSECONDS
           ]
         }.freeze
 
@@ -85,7 +85,7 @@ module Datadog
         end
 
         def build_event_values(stack_sample)
-          no_value = Datadog::Profiling::Ext::Pprof::SAMPLE_VALUE_NO_VALUE
+          no_value = Profiling::Ext::Pprof::SAMPLE_VALUE_NO_VALUE
           values = super(stack_sample)
           values[sample_value_index(:cpu_time_ns)] = stack_sample.cpu_time_interval_ns || no_value
           values[sample_value_index(:wall_time_ns)] = stack_sample.wall_time_interval_ns || no_value
@@ -95,7 +95,7 @@ module Datadog
         def build_sample_labels(stack_sample)
           labels = [
             Perftools::Profiles::Label.new(
-              key: builder.string_table.fetch(Datadog::Profiling::Ext::Pprof::LABEL_KEY_THREAD_ID),
+              key: builder.string_table.fetch(Profiling::Ext::Pprof::LABEL_KEY_THREAD_ID),
               str: builder.string_table.fetch(stack_sample.thread_id.to_s)
             )
           ]
@@ -107,12 +107,12 @@ module Datadog
             @processed_with_trace += 1
 
             labels << Perftools::Profiles::Label.new(
-              key: builder.string_table.fetch(Datadog::Profiling::Ext::Pprof::LABEL_KEY_LOCAL_ROOT_SPAN_ID),
+              key: builder.string_table.fetch(Profiling::Ext::Pprof::LABEL_KEY_LOCAL_ROOT_SPAN_ID),
               str: builder.string_table.fetch(root_span_id.to_s)
             )
 
             labels << Perftools::Profiles::Label.new(
-              key: builder.string_table.fetch(Datadog::Profiling::Ext::Pprof::LABEL_KEY_SPAN_ID),
+              key: builder.string_table.fetch(Profiling::Ext::Pprof::LABEL_KEY_SPAN_ID),
               str: builder.string_table.fetch(span_id.to_s)
             )
 
@@ -122,7 +122,7 @@ module Datadog
 
             if trace_resource && !trace_resource.empty?
               labels << Perftools::Profiles::Label.new(
-                key: builder.string_table.fetch(Datadog::Profiling::Ext::Pprof::LABEL_KEY_TRACE_ENDPOINT),
+                key: builder.string_table.fetch(Profiling::Ext::Pprof::LABEL_KEY_TRACE_ENDPOINT),
                 str: builder.string_table.fetch(trace_resource)
               )
             end

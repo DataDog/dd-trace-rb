@@ -1,13 +1,16 @@
 # typed: false
 require 'datadog/core/configuration/agent_settings_resolver'
+require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
-require 'datadog/profiling'
 require 'datadog/core/runtime/metrics'
-require 'ddtrace/tracer'
-require 'ddtrace/trace_flush'
-require 'ddtrace/sync_writer'
 require 'datadog/core/workers/runtime_metrics'
+
+require 'datadog/tracing/tracer'
+require 'datadog/tracing/flush'
+require 'datadog/tracing/sync_writer'
+
+require 'datadog/profiling'
 
 module Datadog
   module Core
@@ -22,11 +25,11 @@ module Datadog
             options = { enabled: settings.enabled }
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 
-            Datadog::Core::Diagnostics::Health::Metrics.new(**options)
+            Core::Diagnostics::Health::Metrics.new(**options)
           end
 
           def build_logger(settings)
-            logger = settings.logger.instance || Datadog::Core::Logger.new($stdout)
+            logger = settings.logger.instance || Core::Logger.new($stdout)
             logger.level = settings.diagnostics.debug ? ::Logger::DEBUG : settings.logger.level
 
             logger
@@ -37,7 +40,7 @@ module Datadog
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
 
-            Datadog::Core::Runtime::Metrics.new(**options)
+            Core::Runtime::Metrics.new(**options)
           end
 
           def build_runtime_metrics_worker(settings)
@@ -47,7 +50,7 @@ module Datadog
               metrics: build_runtime_metrics(settings)
             )
 
-            Datadog::Core::Workers::RuntimeMetrics.new(options)
+            Core::Workers::RuntimeMetrics.new(options)
           end
 
           def build_tracer(settings, agent_settings)
@@ -67,9 +70,9 @@ module Datadog
               writer = build_writer(settings, agent_settings)
             end
 
-            subscribe_to_writer_events!(writer, sampler)
+            subscribe_to_writer_events!(writer, sampler, settings.test_mode.enabled)
 
-            Tracer.new(
+            Tracing::Tracer.new(
               default_service: settings.service,
               enabled: settings.tracer.enabled,
               trace_flush: trace_flush,
@@ -81,9 +84,9 @@ module Datadog
 
           def build_trace_flush(settings)
             if settings.tracer.partial_flush.enabled
-              Datadog::TraceFlush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
+              Tracing::Flush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
             else
-              Datadog::TraceFlush::Finished.new
+              Tracing::Flush::Finished.new
             end
           end
 
@@ -100,14 +103,14 @@ module Datadog
                 ensure_priority_sampling(sampler, settings)
               end
             elsif settings.tracer.priority_sampling == false
-              Sampling::RuleSampler.new(
+              Tracing::Sampling::RuleSampler.new(
                 rate_limit: settings.sampling.rate_limit,
                 default_sample_rate: settings.sampling.default_rate
               )
             else
-              PrioritySampler.new(
-                base_sampler: AllSampler.new,
-                post_sampler: Sampling::RuleSampler.new(
+              Tracing::Sampling::PrioritySampler.new(
+                base_sampler: Tracing::Sampling::AllSampler.new,
+                post_sampler: Tracing::Sampling::RuleSampler.new(
                   rate_limit: settings.sampling.rate_limit,
                   default_sample_rate: settings.sampling.default_rate
                 )
@@ -116,12 +119,12 @@ module Datadog
           end
 
           def ensure_priority_sampling(sampler, settings)
-            if sampler.is_a?(PrioritySampler)
+            if sampler.is_a?(Tracing::Sampling::PrioritySampler)
               sampler
             else
-              PrioritySampler.new(
+              Tracing::Sampling::PrioritySampler.new(
                 base_sampler: sampler,
-                post_sampler: Sampling::RuleSampler.new(
+                post_sampler: Tracing::Sampling::RuleSampler.new(
                   rate_limit: settings.sampling.rate_limit,
                   default_sample_rate: settings.sampling.default_rate
                 )
@@ -139,15 +142,22 @@ module Datadog
               return writer
             end
 
-            Writer.new(agent_settings: agent_settings, **settings.tracer.writer_options)
+            Tracing::Writer.new(agent_settings: agent_settings, **settings.tracer.writer_options)
           end
 
-          def subscribe_to_writer_events!(writer, sampler)
+          def subscribe_to_writer_events!(writer, sampler, test_mode)
             return unless writer.respond_to?(:events) # Check if it's a custom, external writer
 
             writer.events.after_send.subscribe(:record_environment_information, &WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
 
-            return unless sampler.is_a?(Datadog::PrioritySampler)
+            return unless sampler.is_a?(Tracing::Sampling::PrioritySampler)
+
+            # DEV: We need to ignore priority sampling updates coming from the agent in test mode
+            # because test mode wants to *unconditionally* sample all traces.
+            #
+            # This can cause trace metrics to be overestimated, but that's a trade-off we take
+            # here to achieve 100% sampling rate.
+            return if test_mode
 
             writer.events.after_send.subscribe(
               :update_priority_sampler_rates,
@@ -172,9 +182,9 @@ module Datadog
           end
 
           def build_profiler(settings, agent_settings, tracer)
-            return unless Datadog::Profiling.supported? && settings.profiling.enabled
+            return unless Profiling.supported? && settings.profiling.enabled
 
-            unless defined?(Datadog::Profiling::Tasks::Setup)
+            unless defined?(Profiling::Tasks::Setup)
               # In #1545 a user reported a NameError due to this constant being uninitialized
               # I've documented my suspicion on why that happened in
               # https://github.com/DataDog/dd-trace-rb/issues/1545#issuecomment-856049025
@@ -204,11 +214,11 @@ module Datadog
             end
 
             # Load extensions needed to support some of the Profiling features
-            Datadog::Profiling::Tasks::Setup.new.run
+            Profiling::Tasks::Setup.new.run
 
             # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-            trace_identifiers_helper = Datadog::Profiling::TraceIdentifiers::Helper.new(
+            trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
               tracer: tracer,
               endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
             )
@@ -217,7 +227,7 @@ module Datadog
             # Datadog::Profiling::Recorder class for a discussion of this choice.
             if settings.profiling.advanced.code_provenance_enabled
               code_provenance_collector =
-                Datadog::Profiling::Collectors::CodeProvenance.new
+                Profiling::Collectors::CodeProvenance.new
             end
 
             recorder = build_profiler_recorder(settings, code_provenance_collector)
@@ -225,7 +235,7 @@ module Datadog
             exporters = build_profiler_exporters(settings, agent_settings)
             scheduler = build_profiler_scheduler(settings, recorder, exporters)
 
-            Datadog::Profiling::Profiler.new(collectors, scheduler)
+            Profiling::Profiler.new(collectors, scheduler)
           end
 
           private
@@ -244,19 +254,23 @@ module Datadog
 
           def build_test_mode_sampler
             # Do not sample any spans for tests; all must be preserved.
-            Datadog::AllSampler.new
+            # Set priority sampler to ensure the agent doesn't drop any traces.
+            Tracing::Sampling::PrioritySampler.new(
+              base_sampler: Tracing::Sampling::AllSampler.new,
+              post_sampler: Tracing::Sampling::AllSampler.new
+            )
           end
 
           def build_test_mode_writer(settings, agent_settings)
             # Flush traces synchronously, to guarantee they are written.
             writer_options = settings.test_mode.writer_options || {}
-            Datadog::SyncWriter.new(agent_settings: agent_settings, **writer_options)
+            Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
           end
 
           def build_profiler_recorder(settings, code_provenance_collector)
-            event_classes = [Datadog::Profiling::Events::StackSample]
+            event_classes = [Profiling::Events::StackSample]
 
-            Datadog::Profiling::Recorder.new(
+            Profiling::Recorder.new(
               event_classes,
               settings.profiling.advanced.max_events,
               code_provenance_collector: code_provenance_collector
@@ -265,7 +279,7 @@ module Datadog
 
           def build_profiler_collectors(settings, recorder, trace_identifiers_helper)
             [
-              Datadog::Profiling::Collectors::Stack.new(
+              Profiling::Collectors::Stack.new(
                 recorder,
                 trace_identifiers_helper: trace_identifiers_helper,
                 max_frames: settings.profiling.advanced.max_frames
@@ -277,18 +291,18 @@ module Datadog
 
           def build_profiler_exporters(settings, agent_settings)
             transport =
-              settings.profiling.exporter.transport || Datadog::Profiling::Transport::HTTP.default(
+              settings.profiling.exporter.transport || Profiling::Transport::HTTP.default(
                 agent_settings: agent_settings,
                 site: settings.site,
                 api_key: settings.api_key,
                 profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
               )
 
-            [Datadog::Profiling::Exporter.new(transport)]
+            [Profiling::Exporter.new(transport)]
           end
 
           def build_profiler_scheduler(settings, recorder, exporters)
-            Datadog::Profiling::Scheduler.new(recorder, exporters)
+            Profiling::Scheduler.new(recorder, exporters)
           end
         end
 
@@ -326,7 +340,7 @@ module Datadog
               profiler.start
             else
               # Display a warning for users who expected profiling to be enabled
-              unsupported_reason = Datadog::Profiling.unsupported_reason
+              unsupported_reason = Profiling.unsupported_reason
               logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
             end
           else

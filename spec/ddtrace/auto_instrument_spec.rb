@@ -1,5 +1,5 @@
 # typed: ignore
-require 'ddtrace/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/support/spec_helper'
 require 'rack/test'
 
 require 'sinatra/base'
@@ -76,13 +76,13 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
       end
     end
 
-    let(:route_span) { spans.find { |s| s.name == Datadog::Contrib::Sinatra::Ext::SPAN_ROUTE } }
+    let(:route_span) { spans.find { |s| s.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_ROUTE } }
     let(:sqlite_span) { spans.find { |s| s.resource == 'SELECT 42' } }
 
-    let(:adapter_name) { Datadog::Contrib::ActiveRecord::Utils.adapter_name }
-    let(:database_name) { Datadog::Contrib::ActiveRecord::Utils.database_name }
-    let(:adapter_host) { Datadog::Contrib::ActiveRecord::Utils.adapter_host }
-    let(:adapter_port) { Datadog::Contrib::ActiveRecord::Utils.adapter_port }
+    let(:adapter_name) { Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_name }
+    let(:database_name) { Datadog::Tracing::Contrib::ActiveRecord::Utils.database_name }
+    let(:adapter_host) { Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_host }
+    let(:adapter_port) { Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_port }
 
     it 'auto_instruments all relevant gems automatically' do
       is_expected.to be_ok
@@ -95,7 +95,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
       expect(sqlite_span.get_tag('active_record.db.name')).to eq(':memory:')
       expect(sqlite_span.get_tag('out.host')).to eq(adapter_host.to_s) unless adapter_host.nil?
       expect(sqlite_span.get_tag('out.port')).to eq(adapter_port.to_s) unless adapter_port.nil?
-      expect(sqlite_span.span_type).to eq(Datadog::Ext::SQL::TYPE)
+      expect(sqlite_span.span_type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
       expect(sqlite_span).to_not have_error
       expect(sqlite_span.parent_id).to eq(route_span.span_id)
 

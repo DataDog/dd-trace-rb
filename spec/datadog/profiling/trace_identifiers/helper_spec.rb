@@ -9,7 +9,11 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Helper do
   let(:endpoint_collection_enabled) { true }
 
   subject(:trace_identifiers_helper) do
-    described_class.new(tracer: nil, endpoint_collection_enabled: endpoint_collection_enabled, supported_apis: [api1, api2])
+    described_class.new(
+      tracer: nil,
+      endpoint_collection_enabled: endpoint_collection_enabled,
+      supported_apis: [api1, api2]
+    )
   end
 
   describe '::DEFAULT_SUPPORTED_APIS' do
