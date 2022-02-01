@@ -1,4 +1,7 @@
 # typed: false
+
+require 'ddtrace/ext/metadata'
+
 module Datadog
   module Contrib
     module ActionCable
@@ -7,7 +10,7 @@ module Datadog
         # This module overrides the current Rack resource name to provide a meaningful name.
         module ActionCableConnection
           def on_open
-            Datadog.tracer.trace(Ext::SPAN_ON_OPEN) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_ON_OPEN) do |span, trace|
               begin
                 span.resource = "#{self.class}#on_open"
                 span.span_type = Datadog::Ext::AppTypes::WEB
@@ -15,9 +18,11 @@ module Datadog
                 span.set_tag(Ext::TAG_ACTION, 'on_open')
                 span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
 
-                # Set the resource name of the Rack request span
-                rack_request_span = env[Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                rack_request_span.resource = span.resource if rack_request_span
+                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
+
+                # Set the resource name of the trace
+                trace.resource = span.resource
               rescue StandardError => e
                 Datadog.logger.error("Error preparing span for ActionCable::Connection: #{e}")
               end
@@ -50,10 +55,10 @@ module Datadog
           # Instrumentation for Channel hooks.
           class Tracer
             def self.trace(channel, hook)
-              configuration = Datadog.configuration[:action_cable]
+              configuration = Datadog::Tracing.configuration[:action_cable]
 
-              Datadog.tracer.trace("action_cable.#{hook}") do |span|
-                span.service = configuration[:service_name]
+              Datadog::Tracing.trace("action_cable.#{hook}") do |span|
+                span.service = configuration[:service_name] if configuration[:service_name]
                 span.resource = "#{channel.class}##{hook}"
                 span.span_type = Datadog::Ext::AppTypes::WEB
 
@@ -66,6 +71,9 @@ module Datadog
                 Contrib::Analytics.set_measured(span)
 
                 span.set_tag(Ext::TAG_CHANNEL_CLASS, channel.class.to_s)
+
+                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, hook)
 
                 yield
               end

@@ -3,13 +3,13 @@ require 'datadog/ci/spec_helper'
 require 'datadog/ci/configuration/settings'
 
 RSpec.describe Datadog::CI::Configuration::Settings do
-  context 'when used to extend Datadog::Configuration::Settings' do
+  context 'when used to extend Datadog::Core::Configuration::Settings' do
     subject(:settings) do
       # When 'datadog/ci' is required, it automatically extends Settings.
-      if Datadog::Configuration::Settings <= described_class
-        Datadog::Configuration::Settings.new
+      if Datadog::Core::Configuration::Settings <= described_class
+        Datadog::Core::Configuration::Settings.new
       else
-        Datadog::Configuration::Settings.new.tap do |settings|
+        Datadog::Core::Configuration::Settings.new.tap do |settings|
           settings.extend(described_class)
         end
       end

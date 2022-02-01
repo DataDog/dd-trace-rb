@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/integration'
@@ -10,8 +10,8 @@ RSpec.describe 'RSpec hooks' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :rspec, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rspec, configuration_options
     end
   end
 
@@ -109,7 +109,7 @@ RSpec.describe 'RSpec hooks' do
     with_new_rspec_environment do
       RSpec.describe 'some test' do
         it 'foo' do
-          Datadog.tracer.trace('get_time') do
+          Datadog::Tracing.trace('get_time') do
             Time.now
           end
         end

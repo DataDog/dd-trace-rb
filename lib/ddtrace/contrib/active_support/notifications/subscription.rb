@@ -18,10 +18,6 @@ module Datadog
             @callbacks = Callbacks.new
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           # ActiveSupport 3.x calls this
           def call(name, start, finish, id, payload)
             start_span(name, id, payload, start)
@@ -79,7 +75,7 @@ module Datadog
             callbacks.run(name, :before_trace, id, payload, start)
 
             # Start a trace
-            tracer.trace(@span_name, **@options).tap do |span|
+            Datadog::Tracing.trace(@span_name, **@options).tap do |span|
               # Start span if time is provided
               span.start(start) unless start.nil?
               payload[:datadog_span] = span

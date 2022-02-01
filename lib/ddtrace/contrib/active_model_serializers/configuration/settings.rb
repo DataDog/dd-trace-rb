@@ -7,6 +7,7 @@ module Datadog
     module ActiveModelSerializers
       module Configuration
         # Custom settings for the ActiveModelSerializers integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -22,8 +23,6 @@ module Datadog
             o.default { env_to_float(Ext::ENV_ANALYTICS_SAMPLE_RATE, 1.0) }
             o.lazy
           end
-
-          option :service_name, default: Ext::SERVICE_NAME
         end
       end
     end

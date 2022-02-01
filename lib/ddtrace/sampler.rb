@@ -3,25 +3,48 @@ require 'forwardable'
 
 require 'ddtrace/ext/priority'
 require 'ddtrace/ext/sampling'
-require 'ddtrace/diagnostics/health'
+require 'datadog/core/diagnostics/health'
 
 module Datadog
-  # \Sampler performs client-side trace sampling.
+  # Interface for client-side trace sampling.
+  # @abstract
+  # @public_api
   class Sampler
-    def sample?(_trace)
+    # Returns `true` if the provided trace should be kept.
+    # Otherwise, `false`.
+    #
+    # This method *must not* modify the `trace`.
+    #
+    # @param [Datadog::Trace] trace
+    # @return [Boolean] should this trace be kept?
+    def sample?(trace)
       raise NotImplementedError, 'Samplers must implement the #sample? method'
     end
 
-    def sample!(_trace)
+    # Returns `true` if the provided trace should be kept.
+    # Otherwise, `false`.
+    #
+    # This method *may* modify the `trace`, in case changes are necessary based on the
+    # sampling decision.
+    #
+    # @param [Datadog::Trace] trace
+    # @return [Boolean] should this trace be kept?
+    def sample!(trace)
       raise NotImplementedError, 'Samplers must implement the #sample! method'
     end
 
-    def sample_rate(_trace)
+    # The sampling rate, if this sampler has such concept.
+    # Otherwise, `nil`.
+    #
+    # @param [Datadog::Trace] trace
+    # @return [Float,nil] sampling ratio between 0.0 and 1.0 (inclusive), or `nil` if not applicable
+    def sample_rate(trace)
       raise NotImplementedError, 'Samplers must implement the #sample_rate method'
     end
   end
 
-  # \AllSampler samples all the traces.
+  # {Datadog::AllSampler} samples all the traces.
+  # @public_api
   class AllSampler < Sampler
     def sample?(_trace)
       true
@@ -36,15 +59,16 @@ module Datadog
     end
   end
 
-  # \RateSampler is based on a sample rate.
+  # {Datadog::RateSampler} is based on a sample rate.
+  # @public_api
   class RateSampler < Sampler
     KNUTH_FACTOR = 1111111111111111111
 
-    # Initialize a \RateSampler.
+    # Initialize a {Datadog::RateSampler}.
     # This sampler keeps a random subset of the traces. Its main purpose is to
     # reduce the instrumentation footprint.
     #
-    # * +sample_rate+: the sample rate as a \Float between 0.0 and 1.0. 0.0
+    # * +sample_rate+: the sample rate as a {Float} between 0.0 and 1.0. 0.0
     #   means that no trace will be sampled; 1.0 means that all traces will be
     #   sampled.
     def initialize(sample_rate = 1.0)
@@ -77,6 +101,7 @@ module Datadog
   end
 
   # Samples at different rates by key.
+  # @public_api
   class RateByKeySampler < Sampler
     attr_reader \
       :default_key
@@ -160,7 +185,8 @@ module Datadog
     end
   end
 
-  # \RateByServiceSampler samples different services at different rates
+  # {Datadog::RateByServiceSampler} samples different services at different rates
+  # @public_api
   class RateByServiceSampler < RateByKeySampler
     DEFAULT_KEY = 'service:,env:'.freeze
 
@@ -190,7 +216,8 @@ module Datadog
     end
   end
 
-  # \PrioritySampler
+  # {Datadog::PrioritySampler}
+  # @public_api
   class PrioritySampler
     extend Forwardable
 

@@ -1,5 +1,6 @@
 # typed: true
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
+require 'ddtrace/contrib/utils/database'
 
 module Datadog
   module Contrib
@@ -18,7 +19,7 @@ module Datadog
               # otherwise all database adapters will be 'jdbc'.
               database_type(database)
             else
-              Datadog::Utils::Database.normalize_vendor(scheme)
+              Contrib::Utils::Database.normalize_vendor(scheme)
             end
           end
 
@@ -26,7 +27,7 @@ module Datadog
           #
           # e.g. database:mysql (adapter:mysql2), database:postgres (adapter:jdbc)
           def database_type(database)
-            Datadog::Utils::Database.normalize_vendor(database.database_type.to_s)
+            Contrib::Utils::Database.normalize_vendor(database.database_type.to_s)
           end
 
           def parse_opts(sql, opts, db_opts, dataset = nil)
@@ -47,9 +48,17 @@ module Datadog
             }
           end
 
-          def set_common_tags(span)
+          def set_common_tags(span, db)
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            # TODO: Extract host for Sequel with JDBC. The easiest way seem to be through
+            # TODO: the database URI. Unfortunately, JDBC URIs do not work with `URI.parse`.
+            # host, _port = extract_host_port_from_uri(db.uri)
+            # span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, db.opts[:host]) if db.opts[:host]
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -58,7 +67,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog.configuration[:sequel]
+            Datadog::Tracing.configuration[:sequel]
           end
 
           def analytics_enabled?

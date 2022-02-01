@@ -18,19 +18,15 @@ module Datadog
         # Note, they share the same process method and before_trace method.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
-          end
-
-          def tracer
-            Datadog.tracer
+            {}
           end
 
           def configuration
-            Datadog.configuration[:active_model_serializers]
+            Datadog::Tracing.configuration[:active_model_serializers]
           end
 
-          def process(span, event, _id, payload)
-            span.service = configuration[:service_name]
+          def set_common_tags(span, payload)
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

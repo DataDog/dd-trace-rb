@@ -15,12 +15,9 @@ module Datadog
         # InstanceMethods - implementing instrumentation
         module InstanceMethods
           def call(*args, &block)
-            pin = Datadog::Pin.get_from(self)
-            return super unless pin
-
             response = nil
-            Datadog.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              span.service = pin.service
+            Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+              span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               span.resource = get_command(args)
               Datadog::Contrib::Redis::Tags.set_common_tags(self, span)
@@ -32,12 +29,9 @@ module Datadog
           end
 
           def call_pipeline(*args, &block)
-            pin = Datadog::Pin.get_from(self)
-            return super unless pin
-
             response = nil
-            Datadog.tracer.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              span.service = pin.service
+            Datadog::Tracing.trace(Datadog::Contrib::Redis::Ext::SPAN_COMMAND) do |span|
+              span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
               span.span_type = Datadog::Contrib::Redis::Ext::TYPE
               commands = get_pipeline_commands(args)
               span.resource = commands.join("\n")
@@ -48,17 +42,6 @@ module Datadog
             end
 
             response
-          end
-
-          def datadog_pin
-            @datadog_pin ||= begin
-              pin = Datadog::Pin.new(
-                datadog_configuration[:service_name],
-                app: Ext::APP,
-                app_type: Datadog::Ext::AppTypes::DB,
-              )
-              pin.onto(self)
-            end
           end
 
           private
@@ -80,7 +63,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:redis, options]
+            Datadog::Tracing.configuration[:redis, options]
           end
         end
       end

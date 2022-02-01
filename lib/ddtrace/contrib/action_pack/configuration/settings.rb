@@ -7,6 +7,7 @@ module Datadog
     module ActionPack
       module Configuration
         # Custom settings for the ActionPack integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -23,9 +24,8 @@ module Datadog
             o.lazy
           end
 
-          option :controller_service
           option :exception_controller
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
         end
       end
     end

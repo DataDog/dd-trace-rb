@@ -27,17 +27,17 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :que, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :que, configuration_options
     end
 
     Que::Job.run_synchronously = true
   end
 
   around do |example|
-    Datadog.registry[:que].reset_configuration!
+    Datadog::Tracing.registry[:que].reset_configuration!
     example.run
-    Datadog.registry[:que].reset_configuration!
+    Datadog::Tracing.registry[:que].reset_configuration!
   end
 
   describe '#call' do
@@ -49,6 +49,9 @@ RSpec.describe Datadog::Contrib::Que::Tracer do
       it 'captures all generic span information' do
         enqueue
 
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('que')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_args[:queue])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_args[:priority])
         expect(span.get_tag(Datadog::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0)

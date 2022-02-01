@@ -7,6 +7,7 @@ module Datadog
     module Rack
       module Configuration
         # Custom settings for the Rack integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_HEADERS = {
             response: %w[
@@ -37,9 +38,9 @@ module Datadog
           option :quantize, default: {}
           option :request_queuing, default: false
 
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
 
-          option :web_service_name, default: Ext::WEBSERVER_SERVICE_NAME
+          option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME
         end
       end
     end

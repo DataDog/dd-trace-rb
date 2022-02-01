@@ -34,16 +34,16 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :excon, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :excon, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:excon].reset_configuration!
+    Datadog::Tracing.registry[:excon].reset_configuration!
     example.run
-    Datadog.registry[:excon].reset_configuration!
+    Datadog::Tracing.registry[:excon].reset_configuration!
     Excon.stubs.clear
   end
 
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     it do
       expect(request_span).to_not be nil
-      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('GET')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
@@ -98,16 +98,21 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.get_tag(Datadog::Ext::NET::TARGET_PORT)).to eq(80)
       expect(request_span.span_type).to eq(Datadog::Ext::HTTP::TYPE_OUTBOUND)
       expect(request_span).to_not have_error
+
+      expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('excon')
+      expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
   end
 
   context 'when there is a failing request' do
     subject!(:response) { connection.post(path: '/failure') }
 
     it do
-      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::SERVICE_NAME)
+      expect(request_span.service).to eq(Datadog::Contrib::Excon::Ext::DEFAULT_PEER_SERVICE_NAME)
       expect(request_span.name).to eq(Datadog::Contrib::Excon::Ext::SPAN_REQUEST)
       expect(request_span.resource).to eq('POST')
       expect(request_span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('POST')
@@ -119,9 +124,14 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span).to have_error
       expect(request_span).to have_error_type('Error 500')
       expect(request_span).to have_error_message('Boom!')
+
+      expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('excon')
+      expect(request_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
   end
 
   context 'when the path is not found' do
@@ -157,7 +167,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     let(:configuration_options) { super().merge(error_handler: custom_handler) }
     let(:custom_handler) { ->(env) { (400...600).cover?(env[:status]) } }
 
-    after { Datadog.configuration[:excon][:error_handler] = nil }
+    after { Datadog::Tracing.configuration[:excon][:error_handler] = nil }
 
     it { expect(request_span).to have_error }
   end
@@ -167,7 +177,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     let(:configuration_options) { super().merge(split_by_domain: true) }
 
-    after { Datadog.configuration[:excon][:split_by_domain] = false }
+    after { Datadog::Tracing.configuration[:excon][:split_by_domain] = false }
 
     it do
       response
@@ -176,17 +186,19 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
       expect(request_span.resource).to eq('GET')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { 'example.com' }
+    end
 
     context 'and the host matches a specific configuration' do
       before do
-        Datadog.configure do |c|
-          c.use :excon, describes: /example\.com/ do |excon|
+        Datadog::Tracing.configure do |c|
+          c.instrument :excon, describes: /example\.com/ do |excon|
             excon.service_name = 'bar'
             excon.split_by_domain = false
           end
 
-          c.use :excon, describes: /badexample\.com/ do |excon|
+          c.instrument :excon, describes: /badexample\.com/ do |excon|
             excon.service_name = 'bar_bad'
             excon.split_by_domain = false
           end
@@ -227,7 +239,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
   context 'when distributed tracing is disabled' do
     let(:configuration_options) { super().merge(distributed_tracing: false) }
 
-    after { Datadog.configuration[:excon][:distributed_tracing] = true }
+    after { Datadog::Tracing.configuration[:excon][:distributed_tracing] = true }
 
     subject!(:response) do
       expect_any_instance_of(described_class).to receive(:request_call)
@@ -283,11 +295,11 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
     let(:service_name) { 'excon-global' }
 
     before do
-      @old_service_name = Datadog.configuration[:excon][:service_name]
-      Datadog.configure { |c| c.use :excon, service_name: service_name }
+      @old_service_name = Datadog::Tracing.configuration[:excon][:service_name]
+      Datadog::Tracing.configure { |c| c.instrument :excon, service_name: service_name }
     end
 
-    after { Datadog.configure { |c| c.use :excon, service_name: @old_service_name } }
+    after { Datadog::Tracing.configure { |c| c.instrument :excon, service_name: @old_service_name } }
 
     it do
       subject
@@ -296,6 +308,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
     it_behaves_like 'a peer service span' do
       let(:span) { request_span }
+      let(:peer_hostname) { 'example.com' }
     end
   end
 
@@ -315,6 +328,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
       it_behaves_like 'a peer service span' do
         let(:span) { request_span }
+        let(:peer_hostname) { 'example.com' }
       end
     end
 
@@ -326,6 +340,7 @@ RSpec.describe Datadog::Contrib::Excon::Middleware do
 
       it_behaves_like 'a peer service span' do
         let(:span) { request_span }
+        let(:peer_hostname) { 'example.com' }
       end
     end
   end

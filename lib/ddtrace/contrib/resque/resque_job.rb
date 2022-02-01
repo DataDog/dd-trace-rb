@@ -30,11 +30,15 @@ module Datadog
         # We could also just use `around_perform` but this might override the user's
         # own method.
         def around_perform0_ddtrace(*args)
-          return yield unless datadog_configuration && tracer
+          return yield unless datadog_configuration && Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = args.first.is_a?(Hash) && args.first['job_class'] || name
             span.span_type = Datadog::Ext::AppTypes::WORKER
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
@@ -56,28 +60,21 @@ module Datadog
         end
 
         def shutdown_tracer_when_forked!
-          tracer.shutdown! if forked?
+          Datadog::Tracing.shutdown! if forked?
         end
 
         private
 
         def forked?
-          pin = Datadog::Pin.get_from(::Resque)
-          return false unless pin
-
-          pin.config[:forked] == true
+          Datadog.configuration_for(::Resque, :forked) == true
         end
 
         def span_options
           { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
         end
 
-        def tracer
-          Datadog.tracer
-        end
-
         def datadog_configuration
-          Datadog.configuration[:resque]
+          Datadog::Tracing.configuration[:resque]
         end
       end
     end
@@ -85,18 +82,17 @@ module Datadog
 end
 
 Resque.after_fork do
-  configuration = Datadog.configuration[:resque]
+  configuration = Datadog::Tracing.configuration[:resque]
   next if configuration.nil?
 
   # Add a pin, marking the job as forked.
   # Used to trigger shutdown in forks for performance reasons.
-  Datadog::Pin.new(
-    configuration[:service_name],
-    config: { forked: true }
-  ).onto(::Resque)
+  Datadog.configure_onto(::Resque, forked: true)
 
   # Clean the state so no CoW happens
-  tracer = Datadog.tracer
+  # TODO: Remove this. Should be obsolete with new context management.
+  #       But leave this in the interim... should be safe.
+  tracer = Datadog::Tracing.send(:tracer)
   next if tracer.nil?
 
   tracer.provider.context = nil

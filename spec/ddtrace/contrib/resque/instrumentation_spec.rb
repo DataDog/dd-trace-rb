@@ -41,16 +41,16 @@ RSpec.describe 'Resque instrumentation' do
     ::Resque::Failure.clear
 
     # Patch Resque
-    Datadog.configure do |c|
-      c.use :resque, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :resque, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:resque].reset_configuration!
+    Datadog::Tracing.registry[:resque].reset_configuration!
     example.run
-    Datadog.registry[:resque].reset_configuration!
+    Datadog::Tracing.registry[:resque].reset_configuration!
   end
 
   shared_examples 'job execution tracing' do
@@ -63,8 +63,10 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
-        expect(span.service).to eq('resque')
+        expect(span.service).to eq(tracer.default_service)
         expect(span).to_not have_error
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('resque')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -107,10 +109,12 @@ RSpec.describe 'Resque instrumentation' do
         expect(span.name).to eq('resque.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
-        expect(span.service).to eq('resque')
+        expect(span.service).to eq(tracer.default_service)
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('resque')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
       end
 
       context 'with custom error handler' do
@@ -159,8 +163,8 @@ RSpec.describe 'Resque instrumentation' do
           expect(tracer.active_span.parent_id).to eq(0)
         end
 
-        # On completion of the fork, `Datadog.tracer.shutdown!` will be invoked.
-        expect(tracer).to receive(:shutdown!)
+        # On completion of the fork, `Datadog::Tracing.shutdown!` will be invoked.
+        expect(Datadog::Tracing).to receive(:shutdown!)
 
         tracer.trace('main.process') do
           perform_job(job_class)

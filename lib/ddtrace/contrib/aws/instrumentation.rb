@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/aws/ext'
 require 'ddtrace/ext/http'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 module Datadog
   module Contrib
@@ -17,7 +17,7 @@ module Datadog
       # Generates Spans for all interactions with AWS
       class Handler < Seahorse::Client::Handler
         def call(context)
-          tracer.trace(Ext::SPAN_COMMAND) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_COMMAND) do |span|
             @handler.call(context).tap do
               annotate!(span, ParsedContext.new(context))
             end
@@ -32,8 +32,12 @@ module Datadog
           span.name = Ext::SPAN_COMMAND
           span.resource = context.safely(:resource)
 
+          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
+
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, context.safely(:host))
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -49,12 +53,8 @@ module Datadog
           span.set_tag(Datadog::Ext::HTTP::STATUS_CODE, context.safely(:status_code))
         end
 
-        def tracer
-          Datadog.tracer
-        end
-
         def configuration
-          Datadog.configuration[:aws]
+          Datadog::Tracing.configuration[:aws]
         end
       end
 

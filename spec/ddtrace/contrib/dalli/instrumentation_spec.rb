@@ -16,16 +16,16 @@ RSpec.describe 'Dalli instrumentation' do
 
   # Enable the test tracer
   before do
-    Datadog.configure do |c|
-      c.use :dalli, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :dalli, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:dalli].reset_configuration!
+    Datadog::Tracing.registry[:dalli].reset_configuration!
     example.run
-    Datadog.registry[:dalli].reset_configuration!
+    Datadog::Tracing.registry[:dalli].reset_configuration!
   end
 
   describe 'when a client calls #set' do
@@ -50,17 +50,22 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('dalli')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
     end
 
-    it_behaves_like 'a peer service span'
+    it_behaves_like 'a peer service span' do
+      let(:peer_hostname) { test_host }
+    end
   end
 
   describe 'when multiplexed configuration is provided' do
     let(:service_name) { 'multiplex-service' }
 
     before do
-      Datadog.configure do |c|
-        c.use :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
+      Datadog::Tracing.configure do |c|
+        c.instrument :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
       end
     end
 
@@ -79,9 +84,14 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('dalli')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { test_host }
+      end
     end
   end
 end

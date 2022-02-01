@@ -23,16 +23,13 @@ module Datadog
             { service: configuration[:service_name] }
           end
 
-          def tracer
-            Datadog.tracer
-          end
-
           def configuration
-            Datadog.configuration[:kafka]
+            Datadog::Tracing.configuration[:kafka]
           end
 
           def process(span, _event, _id, payload)
-            span.service = configuration[:service_name]
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+
             span.set_tag(Ext::TAG_CLIENT, payload[:client_id])
 
             # Set analytics sample rate

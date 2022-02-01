@@ -5,7 +5,7 @@ require 'ddtrace/trace_segment'
 require 'ddtrace/trace_operation'
 require 'datadog/ci/trace_flush'
 
-RSpec.shared_context 'trace operation' do
+RSpec.shared_context 'CI trace operation' do
   let(:trace_op) do
     instance_double(
       Datadog::TraceOperation,
@@ -24,7 +24,7 @@ RSpec.shared_context 'trace operation' do
   let(:spans) { Array.new(3) { |i| Datadog::Span.new("span #{i}") } }
 end
 
-RSpec.shared_examples_for 'a trace flusher' do
+RSpec.shared_examples_for 'a CI trace flusher' do
   context 'given a finished trace operation' do
     let(:finished) { true }
 
@@ -56,8 +56,8 @@ RSpec.describe Datadog::CI::TraceFlush::Finished do
   describe '#consume' do
     subject(:consume) { trace_flush.consume!(trace_op) }
 
-    include_context 'trace operation'
-    it_behaves_like 'a trace flusher'
+    include_context 'CI trace operation'
+    it_behaves_like 'a CI trace flusher'
   end
 end
 
@@ -69,7 +69,7 @@ RSpec.describe Datadog::CI::TraceFlush::Partial do
   describe '#consume' do
     subject(:consume) { trace_flush.consume!(trace_op) }
 
-    include_context 'trace operation'
-    it_behaves_like 'a trace flusher'
+    include_context 'CI trace operation'
+    it_behaves_like 'a CI trace flusher'
   end
 end

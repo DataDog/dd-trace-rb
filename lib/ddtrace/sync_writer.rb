@@ -1,7 +1,6 @@
 # typed: true
 require 'ddtrace/pipeline'
 require 'ddtrace/runtime/metrics'
-require 'ddtrace/utils/only_once'
 require 'ddtrace/writer'
 
 module Datadog
@@ -11,28 +10,37 @@ module Datadog
   # Note: If you're wondering if this class is used at all, since there are no other references to it on the codebase,
   # the separate `datadog-lambda` uses it as of February 2021:
   # <https://github.com/DataDog/datadog-lambda-rb/blob/c15f0f0916c90123416dc44e7d6800ef4a7cfdbf/lib/datadog/lambda.rb#L38>
+  # @public_api
   class SyncWriter
     attr_reader \
       :events,
       :transport
 
-    def initialize(options = {})
-      @transport = options.fetch(:transport) do
-        transport_options = options.fetch(:transport_options, {})
-        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+    # @param [Datadog::Transport::Traces::Transport] transport a custom transport instance.
+    #   If provided, overrides `transport_options` and `agent_settings`.
+    # @param [Hash<Symbol,Object>] transport_options options for the default transport instance.
+    # @param [Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings] agent_settings agent options for
+    #   the default transport instance.
+    def initialize(transport: nil, transport_options: {}, agent_settings: nil)
+      @transport = transport || begin
+        transport_options[:agent_settings] = agent_settings if agent_settings
         Transport::HTTP.default(**transport_options)
       end
 
       @events = Writer::Events.new
     end
 
+    # Sends traces to the configured transport.
+    #
+    # Traces are flushed immediately.
     def write(trace)
       flush_trace(trace)
     rescue => e
       Datadog.logger.debug(e)
     end
 
-    # Added for interface completeness
+    # Does nothing.
+    # The {SyncWriter} does not need to be stopped as it holds no state.
     def stop
       # No cleanup to do for the SyncWriter
       true

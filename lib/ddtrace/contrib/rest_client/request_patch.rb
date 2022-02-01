@@ -1,7 +1,7 @@
 # typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/rest_client/ext'
 
@@ -19,7 +19,7 @@ module Datadog
           def execute(&block)
             uri = URI.parse(url)
 
-            return super(&block) unless Datadog.tracer.enabled
+            return super(&block) unless Datadog::Tracing.enabled?
 
             datadog_trace_request(uri) do |_span, trace|
               Datadog::HTTPPropagator.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
@@ -31,8 +31,12 @@ module Datadog
           def datadog_tag_request(uri, span)
             span.resource = method.to_s.upcase
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, uri.host)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -44,11 +48,13 @@ module Datadog
           end
 
           def datadog_trace_request(uri)
-            span = Datadog.tracer.trace(Ext::SPAN_REQUEST,
-                                        service: datadog_configuration[:service_name],
-                                        span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND)
+            span = Datadog::Tracing.trace(
+              Ext::SPAN_REQUEST,
+              service: datadog_configuration[:service_name],
+              span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND
+            )
 
-            trace = Datadog.tracer.active_trace
+            trace = Datadog::Tracing.active_trace
 
             datadog_tag_request(uri, span)
 
@@ -75,7 +81,7 @@ module Datadog
           private
 
           def datadog_configuration
-            Datadog.configuration[:rest_client]
+            Datadog::Tracing.configuration[:rest_client]
           end
 
           def analytics_enabled?

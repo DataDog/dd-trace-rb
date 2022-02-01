@@ -15,16 +15,16 @@ RSpec.describe 'Qless instrumentation' do
     delete_all_redis_keys
 
     # Patch Qless
-    Datadog.configure do |c|
-      c.use :qless, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :qless, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:qless].reset_configuration!
+    Datadog::Tracing.registry[:qless].reset_configuration!
     example.run
-    Datadog.registry[:qless].reset_configuration!
+    Datadog::Tracing.registry[:qless].reset_configuration!
   end
 
   shared_examples 'job execution tracing' do
@@ -39,8 +39,10 @@ RSpec.describe 'Qless instrumentation' do
         expect(span.name).to eq('qless.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
-        expect(span.service).to eq('qless')
+        expect(span.service).to eq(tracer.default_service)
         expect(span).to_not have_error
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('qless')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -73,10 +75,12 @@ RSpec.describe 'Qless instrumentation' do
         expect(span.name).to eq('qless.job')
         expect(span.resource).to eq(job_class.name)
         expect(span.span_type).to eq(Datadog::Ext::AppTypes::WORKER)
-        expect(span.service).to eq('qless')
+        expect(span.service).to eq(tracer.default_service)
         expect(span).to have_error_message(error_message)
         expect(span).to have_error
         expect(span).to have_error_type(error_class_name)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('qless')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
       end
     end
   end

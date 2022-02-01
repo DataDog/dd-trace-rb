@@ -7,6 +7,7 @@ module Datadog
     module HTTP
       module Configuration
         # Custom settings for the HTTP integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -24,7 +25,7 @@ module Datadog
           end
 
           option :distributed_tracing, default: true
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
           option :split_by_domain, default: false
         end
       end

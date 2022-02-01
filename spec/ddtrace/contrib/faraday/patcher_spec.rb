@@ -12,8 +12,8 @@ RSpec.describe 'Faraday instrumentation' do
 
   # Enable the test tracer
   before do
-    Datadog.configure do |c|
-      c.use :faraday, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :faraday, configuration_options
     end
   end
 

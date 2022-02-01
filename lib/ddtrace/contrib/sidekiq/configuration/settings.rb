@@ -7,6 +7,7 @@ module Datadog
     module Sidekiq
       module Configuration
         # Custom settings for the Sidekiq integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -28,8 +29,8 @@ module Datadog
             o.lazy
           end
 
-          option :service_name, default: Ext::SERVICE_NAME
-          option :client_service_name, default: Ext::CLIENT_SERVICE_NAME
+          option :service_name
+          option :client_service_name
           option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
         end
       end

@@ -9,10 +9,14 @@ module Datadog
       # DelayedJob plugin that instruments invoke_job hook
       class Plugin < Delayed::Plugin
         def self.instrument_invoke(job, &block)
-          return yield(job) unless tracer && tracer.enabled
+          return yield(job) unless Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_JOB, service: configuration[:service_name], resource: job_name(job),
-                                      on_error: configuration[:error_handler]) do |span|
+          Datadog::Tracing.trace(
+            Ext::SPAN_JOB,
+            service: configuration[:service_name],
+            resource: job_name(job),
+            on_error: configuration[:error_handler]
+          ) do |span|
             set_sample_rate(span)
 
             # Measure service stats
@@ -24,14 +28,21 @@ module Datadog
             span.set_tag(Ext::TAG_ATTEMPTS, job.attempts)
             span.span_type = Datadog::Ext::AppTypes::WORKER
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             yield job
           end
         end
 
         def self.instrument_enqueue(job, &block)
-          return yield(job) unless tracer && tracer.enabled
+          return yield(job) unless Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_ENQUEUE, service: configuration[:client_service_name], resource: job_name(job)) do |span|
+          Datadog::Tracing.trace(
+            Ext::SPAN_ENQUEUE,
+            service: configuration[:client_service_name],
+            resource: job_name(job)
+          ) do |span|
             set_sample_rate(span)
 
             # Measure service stats
@@ -41,6 +52,9 @@ module Datadog
             span.set_tag(Ext::TAG_PRIORITY, job.priority)
             span.span_type = Datadog::Ext::AppTypes::WORKER
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_ENQUEUE)
+
             yield job
           end
         end
@@ -48,15 +62,11 @@ module Datadog
         def self.flush(worker, &block)
           yield worker
 
-          tracer.shutdown! if tracer && tracer.enabled
+          Datadog::Tracing.shutdown! if Datadog::Tracing.enabled?
         end
 
         def self.configuration
-          Datadog.configuration[:delayed_job]
-        end
-
-        def self.tracer
-          Datadog.tracer
+          Datadog::Tracing.configuration[:delayed_job]
         end
 
         def self.job_name(job)

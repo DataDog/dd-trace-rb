@@ -5,8 +5,8 @@ module Datadog
   module Contrib
     module Que
       # Que integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
-        APP = 'que'
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_QUE_ANALYTICS_ENABLED'
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_QUE_ANALYTICS_SAMPLE_RATE'
         ENV_ENABLED = 'DD_TRACE_QUE_ENABLED'
@@ -23,6 +23,8 @@ module Datadog
         TAG_JOB_PRIORITY = 'que.job.priority'
         TAG_JOB_QUEUE = 'que.job.queue'
         TAG_JOB_RUN_AT = 'que.job.run_at'
+        TAG_COMPONENT = 'que'
+        TAG_OPERATION_JOB = 'job'
       end
     end
   end

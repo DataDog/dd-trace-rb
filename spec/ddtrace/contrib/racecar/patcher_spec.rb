@@ -16,16 +16,16 @@ RSpec.describe 'Racecar patcher' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :racecar, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :racecar, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:racecar].reset_configuration!
+    Datadog::Tracing.registry[:racecar].reset_configuration!
     example.run
-    Datadog.registry[:racecar].reset_configuration!
+    Datadog::Tracing.registry[:racecar].reset_configuration!
   end
 
   describe 'for both single and batch message processing' do
@@ -47,6 +47,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.resource).to eq(consumer)
           expect(span.get_tag('kafka.consumer')).to eq(consumer)
           expect(span).to_not have_error
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('racecar')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('consume')
         end
       end
     end
@@ -120,6 +122,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.offset')).to eq(offset)
           expect(span.get_tag('kafka.first_offset')).to be nil
           expect(span).to_not have_error
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('racecar')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('message')
         end
       end
     end
@@ -200,6 +204,8 @@ RSpec.describe 'Racecar patcher' do
           expect(span.get_tag('kafka.first_offset')).to eq(offset)
           expect(span.get_tag('kafka.message_count')).to eq(message_count)
           expect(span).to_not have_error
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('racecar')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('batch')
         end
       end
     end

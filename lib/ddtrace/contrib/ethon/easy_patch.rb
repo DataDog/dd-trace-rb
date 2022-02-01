@@ -1,7 +1,7 @@
 # typed: false
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/ethon/ext'
 require 'ddtrace/contrib/http_annotation_helper'
@@ -22,7 +22,7 @@ module Datadog
 
           def http_request(url, action_name, options = {})
             load_datadog_configuration_for(url)
-            return super unless tracer_enabled?
+            return super unless Datadog::Tracing.enabled?
 
             # It's tricky to get HTTP method from libcurl
             @datadog_method = action_name.to_s.upcase
@@ -37,14 +37,14 @@ module Datadog
 
           def perform
             load_datadog_configuration_for(url)
-            return super unless tracer_enabled?
+            return super unless Datadog::Tracing.enabled?
 
             datadog_before_request
             super
           end
 
           def complete
-            return super unless tracer_enabled?
+            return super unless Datadog::Tracing.enabled?
 
             begin
               response_options = mirror.options
@@ -85,18 +85,18 @@ module Datadog
           # the +parent_span+ parameter with the parent Multi span. This correctly
           # assigns all open Easy spans to the currently executing Multi context.
           #
-          # @param parent_span [Datadog::Span] the Multi span, if executing in a Multi context.
+          # @param [Datadog::Span] continue_from the Multi span, if executing in a Multi context.
           def datadog_before_request(continue_from: nil)
             load_datadog_configuration_for(url)
 
             trace_options = continue_from ? { continue_from: continue_from } : {}
-            @datadog_span = Datadog.tracer.trace(
+            @datadog_span = Datadog::Tracing.trace(
               Ext::SPAN_REQUEST,
               service: uri ? service_name(uri.host, datadog_configuration) : datadog_configuration[:service_name],
               span_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
               **trace_options
             )
-            datadog_trace = Datadog.tracer.active_trace
+            datadog_trace = Datadog::Tracing.active_trace
 
             datadog_tag_request
 
@@ -121,9 +121,12 @@ module Datadog
             method = @datadog_method.to_s if instance_variable_defined?(:@datadog_method) && !@datadog_method.nil?
             span.resource = method
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
             this_uri = uri
             return unless this_uri
@@ -132,6 +135,8 @@ module Datadog
             span.set_tag(Datadog::Ext::HTTP::METHOD, method)
             span.set_tag(Datadog::Ext::NET::TARGET_HOST, this_uri.host)
             span.set_tag(Datadog::Ext::NET::TARGET_PORT, this_uri.port)
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, this_uri.host)
           end
 
           def set_span_error_message(message)
@@ -146,11 +151,7 @@ module Datadog
           end
 
           def load_datadog_configuration_for(host = :default)
-            @datadog_configuration = Datadog.configuration[:ethon, host]
-          end
-
-          def tracer_enabled?
-            Datadog.tracer.enabled
+            @datadog_configuration = Datadog::Tracing.configuration[:ethon, host]
           end
 
           def analytics_enabled?

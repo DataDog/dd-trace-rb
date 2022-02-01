@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/configuration'
+require 'datadog/core/configuration'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/ext/priority'
 require 'ddtrace/distributed_tracing/headers/b3'
@@ -9,6 +9,7 @@ require 'ddtrace/trace_digest'
 
 module Datadog
   # HTTPPropagator helps extracting and injecting HTTP headers.
+  # @public_api
   module HTTPPropagator
     include Ext::DistributedTracing
 
@@ -27,7 +28,7 @@ module Datadog
       digest = digest.to_digest if digest.is_a?(TraceOperation)
 
       # Inject all configured propagation styles
-      ::Datadog.configuration.distributed_tracing.propagation_inject_style.each do |style|
+      ::Datadog::Tracing.configuration.distributed_tracing.propagation_inject_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
         begin
           propagator.inject!(digest, env) unless propagator.nil?
@@ -46,7 +47,7 @@ module Datadog
       trace_digest = nil
       dd_trace_digest = nil
 
-      ::Datadog.configuration.distributed_tracing.propagation_extract_style.each do |style|
+      ::Datadog::Tracing.configuration.distributed_tracing.propagation_extract_style.each do |style|
         propagator = PROPAGATION_STYLES[style]
         next if propagator.nil?
 

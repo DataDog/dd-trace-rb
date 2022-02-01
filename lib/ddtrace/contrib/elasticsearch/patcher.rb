@@ -1,11 +1,10 @@
 # typed: false
 require 'ddtrace/contrib/patcher'
 require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/elasticsearch/ext'
-require 'ddtrace/utils'
 
 module Datadog
   module Contrib
@@ -23,7 +22,6 @@ module Datadog
         def patch
           require 'uri'
           require 'json'
-          require 'ddtrace/pin'
           require 'ddtrace/contrib/elasticsearch/quantize'
 
           patch_elasticsearch_transport_client
@@ -34,29 +32,11 @@ module Datadog
         def patch_elasticsearch_transport_client
           # rubocop:disable Metrics/BlockLength
           ::Elasticsearch::Transport::Client.class_eval do
-            alias_method :initialize_without_datadog, :initialize
-            Datadog::Utils.without_warnings do
-              remove_method :initialize
-            end
-
-            def initialize(*args, &block)
-              service = Datadog.configuration[:elasticsearch][:service_name]
-
-              pin = Datadog::Pin.new(
-                service,
-                app: Datadog::Contrib::Elasticsearch::Ext::APP,
-                app_type: Datadog::Ext::AppTypes::DB,
-              )
-              pin.onto(self)
-              initialize_without_datadog(*args, &block)
-            end
-
             alias_method :perform_request_without_datadog, :perform_request
             remove_method :perform_request
 
             def perform_request(*args)
-              pin = Datadog::Pin.get_from(self)
-              return perform_request_without_datadog(*args) unless pin
+              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
 
               method = args[0]
               path = args[1]
@@ -66,21 +46,25 @@ module Datadog
 
               url = full_url.path
               response = nil
-              Datadog.tracer.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY) do |span|
+
+              Datadog::Tracing.trace(Datadog::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection
                   port = connection.host[:port] if connection
 
-                  span.service = pin.service
                   span.span_type = Datadog::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
+
+                  span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
 
                   # load JSON for the following fields unless they're already strings
                   params = JSON.generate(params) if params && !params.is_a?(String)
                   body = JSON.generate(body) if body && !body.is_a?(String)
 
                   # Tag as an external peer service
-                  span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host) if host
 
                   # Set analytics sample rate
                   if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
@@ -112,7 +96,7 @@ module Datadog
             end
 
             def datadog_configuration
-              Datadog.configuration[:elasticsearch]
+              Datadog::Tracing.configuration[:elasticsearch]
             end
           end
         end

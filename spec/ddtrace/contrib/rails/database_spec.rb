@@ -9,8 +9,9 @@ RSpec.describe 'Rails database' do
   let(:database_service) { adapter_name }
 
   before do
-    Datadog.configure do |c|
-      c.use :rails, database_service: database_service
+    Datadog::Tracing.configure do |c|
+      c.instrument :rails
+      c.instrument :active_record, service_name: database_service
     end
   end
 
@@ -52,6 +53,14 @@ RSpec.describe 'Rails database' do
       expect(span.resource).to include('SELECT COUNT(*) FROM')
       # ensure that the sql.query tag is not set
       expect(span.get_tag('sql.query')).to be_nil
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_record')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('sql')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq(adapter_name)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+        .to eq(adapter_host.to_s)
     end
 
     it_behaves_like 'a peer service span'
@@ -79,10 +88,14 @@ RSpec.describe 'Rails database' do
         expect(span.name).to eq('active_record.instantiation')
         expect(span.span_type).to eq('custom')
         # Because no parent, and doesn't belong to database service
-        expect(span.service).to eq('active_record')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.resource).to eq('Article')
         expect(span.get_tag('active_record.instantiation.class_name')).to eq('Article')
         expect(span.get_tag('active_record.instantiation.record_count')).to eq(1)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('active_record')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('instantiation')
       end
 
       context 'inside parent trace' do
@@ -102,10 +115,14 @@ RSpec.describe 'Rails database' do
 
           expect(instantiation_span.name).to eq('active_record.instantiation')
           expect(instantiation_span.span_type).to eq('custom')
-          expect(instantiation_span.service).to eq(parent_span.service) # Because within parent
+          expect(instantiation_span.service).to eq(tracer.default_service) # Because within parent
           expect(instantiation_span.resource).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.class_name')).to eq('Article')
           expect(instantiation_span.get_tag('active_record.instantiation.record_count')).to eq(1)
+          expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+            .to eq('active_record')
+          expect(instantiation_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq('instantiation')
         end
       end
     end

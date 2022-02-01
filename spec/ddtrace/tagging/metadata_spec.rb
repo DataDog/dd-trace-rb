@@ -87,8 +87,8 @@ RSpec.describe Datadog::Tagging::Metadata do
       end
     end
 
-    context "given #{Datadog::Ext::Environment::TAG_VERSION}" do
-      let(:key) { Datadog::Ext::Environment::TAG_VERSION }
+    context "given #{Datadog::Core::Environment::Ext::TAG_VERSION}" do
+      let(:key) { Datadog::Core::Environment::Ext::TAG_VERSION }
 
       context 'as a numeric value' do
         let(:value) { 3 }

@@ -16,10 +16,10 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Article.count
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:active_record].reset!
+    Datadog::Tracing.configuration[:active_record].reset!
 
-    Datadog.configure do |c|
-      c.use :active_record, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :active_record, configuration_options
     end
 
     raise_on_rails_deprecation!
@@ -27,9 +27,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:active_record].reset_configuration!
+    Datadog::Tracing.registry[:active_record].reset_configuration!
     example.run
-    Datadog.registry[:active_record].reset_configuration!
+    Datadog::Tracing.registry[:active_record].reset_configuration!
   end
 
   context 'when query is made' do
@@ -55,6 +55,13 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
       expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_f)
       expect(span.get_tag('sql.query')).to eq(nil)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('active_record')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('sql')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('mysql2')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME))
+        .to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
     end
 
     context 'and service_name' do
@@ -94,10 +101,10 @@ RSpec.describe 'ActiveRecord instrumentation' do
             Article.count
             clear_traces!
 
-            Datadog.configure do |c|
-              c.use :active_record, service_name: 'bad-no-match'
-              c.use :active_record, describes: { makara_role: primary_role }, service_name: primary_service_name
-              c.use :active_record, describes: { makara_role: secondary_role }, service_name: secondary_service_name
+            Datadog::Tracing.configure do |c|
+              c.instrument :active_record, service_name: 'bad-no-match'
+              c.instrument :active_record, describes: { makara_role: primary_role }, service_name: primary_service_name
+              c.instrument :active_record, describes: { makara_role: secondary_role }, service_name: secondary_service_name
             end
           end
 

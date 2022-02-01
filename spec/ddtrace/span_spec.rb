@@ -1,7 +1,7 @@
 # typed: ignore
 require 'spec_helper'
 require 'ddtrace/span'
-require 'ddtrace/utils'
+require 'datadog/core/utils'
 
 require 'json'
 require 'msgpack'
@@ -219,8 +219,8 @@ RSpec.describe Datadog::Span do
 
     context 'with a stopped span' do
       before do
-        span.start_time = Datadog::Utils::Time.now.utc
-        span.end_time = Datadog::Utils::Time.now.utc
+        span.start_time = Datadog::Core::Utils::Time.now.utc
+        span.end_time = Datadog::Core::Utils::Time.now.utc
       end
 
       it 'includes timing information' do

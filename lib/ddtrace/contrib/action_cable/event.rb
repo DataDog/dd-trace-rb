@@ -16,15 +16,15 @@ module Datadog
         # Class methods for events.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
-          end
-
-          def tracer
-            Datadog.tracer
+            if configuration[:service_name]
+              { service: configuration[:service_name] }
+            else
+              {}
+            end
           end
 
           def configuration
-            Datadog.configuration[:action_cable]
+            Datadog::Tracing.configuration[:action_cable]
           end
         end
       end
@@ -56,9 +56,9 @@ module Datadog
           # could leak into the new trace. This "cleans" current context,
           # preventing such a leak.
           def ensure_clean_context!
-            return unless tracer.active_span
+            return unless Datadog::Tracing.active_span
 
-            tracer.provider.context = Context.new
+            Datadog::Tracing.send(:tracer).provider.context = Context.new
           end
         end
       end

@@ -8,6 +8,7 @@ module Datadog
     module GraphQL
       module Configuration
         # Custom settings for the GraphQL integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -25,7 +26,7 @@ module Datadog
           end
 
           option :schemas
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_nam
         end
       end
     end

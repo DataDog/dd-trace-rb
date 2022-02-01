@@ -16,14 +16,16 @@ module Datadog
 
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/CyclomaticComplexity
+        # rubocop:disable Metrics/PerceivedComplexity
         def call(env)
           # Set the trace context (e.g. distributed tracing)
-          if configuration[:distributed_tracing] && tracer.active_trace.nil?
+          if configuration[:distributed_tracing] && Datadog::Tracing.active_trace.nil?
             original_trace = HTTPPropagator.extract(env)
-            tracer.continue_trace!(original_trace)
+            Datadog::Tracing.continue_trace!(original_trace)
           end
 
-          tracer.trace(
+          Datadog::Tracing.trace(
             Ext::SPAN_REQUEST,
             service: configuration[:service_name],
             span_type: Datadog::Ext::HTTP::TYPE_INBOUND
@@ -41,6 +43,9 @@ module Datadog
                 span.set_tag(name, value) if span.get_tag(name).nil?
               end
 
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
               request = ::Sinatra::Request.new(env)
               span.set_tag(Datadog::Ext::HTTP::URL, request.path)
               span.set_tag(Datadog::Ext::HTTP::METHOD, request.request_method)
@@ -51,6 +56,13 @@ module Datadog
               # If this app handled the request, then Contrib::Sinatra::Tracer OR Contrib::Sinatra::Base set the
               # resource; if no resource was set, let's use a fallback
               span.resource = env['REQUEST_METHOD'] if span.resource.nil?
+
+              rack_request_span = env[Datadog::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+
+              # This propagates the Sinatra resource to the Rack span,
+              # since the latter is unaware of what the resource might be
+              # and would fallback to a generic resource name when unset
+              rack_request_span.resource ||= span.resource if rack_request_span
 
               if response
                 if (status = response[0])
@@ -75,12 +87,12 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
 
         private
-
-        def tracer
-          Datadog.tracer
-        end
 
         def analytics_enabled?
           Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -91,7 +103,7 @@ module Datadog
         end
 
         def configuration
-          Datadog.configuration[:sinatra]
+          Datadog::Tracing.configuration[:sinatra]
         end
 
         def header_to_rack_header(name)

@@ -1,6 +1,6 @@
 # typed: false
 require 'ddtrace/ext/app_types'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/sql'
 require 'ddtrace/contrib/analytics'
@@ -18,13 +18,18 @@ module Datadog
         # Mysql2::Client patch instance methods
         module InstanceMethods
           def query(sql, options = {})
-            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
+            service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+
+            Datadog::Tracing.trace(Ext::SPAN_QUERY, service: service) do |span|
               span.resource = sql
-              span.service = datadog_pin.service
               span.span_type = Datadog::Ext::SQL::TYPE
 
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+
               # Tag as an external peer service
-              span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, service)
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, query_options[:host])
 
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -36,18 +41,10 @@ module Datadog
             end
           end
 
-          def datadog_pin
-            @datadog_pin ||= Datadog::Pin.new(
-              Datadog.configuration[:mysql2][:service_name],
-              app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::DB,
-            )
-          end
-
           private
 
           def datadog_configuration
-            Datadog.configuration[:mysql2]
+            Datadog::Tracing.configuration[:mysql2]
           end
 
           def analytics_enabled?

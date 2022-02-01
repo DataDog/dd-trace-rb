@@ -8,6 +8,7 @@ module Datadog
     module Faraday
       module Configuration
         # Custom settings for the Faraday integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_ERROR_HANDLER = lambda do |env|
             Datadog::Ext::HTTP::ERROR_RANGE.cover?(env[:status])
@@ -30,7 +31,7 @@ module Datadog
 
           option :distributed_tracing, default: true
           option :error_handler, default: DEFAULT_ERROR_HANDLER
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
           option :split_by_domain, default: false
         end
       end

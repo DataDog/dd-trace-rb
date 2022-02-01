@@ -2,7 +2,7 @@
 # frozen_string_literal: true
 
 require 'ddtrace/ext/errors'
-require 'ddtrace/utils'
+require 'datadog/core/utils'
 require 'ddtrace/tagging'
 
 module Datadog
@@ -11,10 +11,11 @@ module Datadog
   # spent on a distributed call on a separate machine, or the time spent in a small component
   # within a larger operation. Spans can be nested within each other, and in those instances
   # will have a parent-child relationship.
+  # @public_api
   class Span
     include Tagging
 
-    # The max value for a \Span identifier.
+    # The max value for a {Datadog::Span} identifier.
     # Span and trace identifiers should be strictly positive and strictly inferior to this limit.
     #
     # Limited to +2<<62-1+ positive integers, as Ruby is able to represent such numbers "inline",
@@ -80,9 +81,9 @@ module Datadog
       @resource = resource
       @type = type
 
-      @id = id || Datadog::Utils.next_id
+      @id = id || Datadog::Core::Utils.next_id
       @parent_id = parent_id || 0
-      @trace_id = trace_id || Datadog::Utils.next_id
+      @trace_id = trace_id || Datadog::Core::Utils.next_id
 
       @meta = meta || {}
       @metrics = metrics || {}

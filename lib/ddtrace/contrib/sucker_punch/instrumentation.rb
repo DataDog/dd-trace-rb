@@ -17,10 +17,12 @@ module Datadog
           ::SuckerPunch::Job::ClassMethods.class_eval do
             alias_method :__run_perform_without_datadog, :__run_perform
             def __run_perform(*args)
-              Datadog.tracer.provider.context = Datadog::Context.new
+              Datadog::Tracing.send(:tracer).provider.context = Datadog::Context.new
 
               __with_instrumentation(Ext::SPAN_PERFORM) do |span|
                 span.resource = "PROCESS #{self}"
+
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM)
 
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
@@ -42,6 +44,8 @@ module Datadog
               __with_instrumentation(Ext::SPAN_PERFORM_ASYNC) do |span|
                 span.resource = "ENQUEUE #{self}"
 
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM_ASYNC)
+
                 # Measure service stats
                 Contrib::Analytics.set_measured(span)
 
@@ -54,6 +58,9 @@ module Datadog
             def perform_in(interval, *args)
               __with_instrumentation(Ext::SPAN_PERFORM_IN) do |span|
                 span.resource = "ENQUEUE #{self}"
+
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_PERFORM_IN)
+
                 span.set_tag(Ext::TAG_PERFORM_IN, interval)
 
                 # Measure service stats
@@ -67,15 +74,13 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog.configuration[:sucker_punch]
+              Datadog::Tracing.configuration[:sucker_punch]
             end
 
             def __with_instrumentation(name)
-              pin = Datadog::Pin.get_from(::SuckerPunch)
-
-              Datadog.tracer.trace(name) do |span|
-                span.service = pin.service
-                span.span_type = pin.app_type
+              Datadog::Tracing.trace(name, service: datadog_configuration[:service_name]) do |span|
+                span.span_type = Datadog::Ext::AppTypes::WORKER
+                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Ext::TAG_QUEUE, to_s)
                 yield span
               end

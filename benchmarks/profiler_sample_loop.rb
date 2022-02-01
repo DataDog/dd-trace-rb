@@ -14,17 +14,19 @@ require_relative 'dogstatsd_reporter'
 
 class ProfilerSampleLoopBenchmark
   def create_profiler
-    Datadog.configure do |c|
-      # c.diagnostics.debug = true
+    Datadog::Profiling.configure do |c|
       c.profiling.enabled = true
+    end
+
+    Datadog::Tracing.configure do |c|
       c.tracer.transport_options = proc { |t| t.adapter :test }
     end
 
     # Stop background threads
-    Datadog.profiler.shutdown!
+    Datadog.shutdown!
 
     # Call collection directly
-    @stack_collector = Datadog.profiler.collectors.first
+    @stack_collector = Datadog.send(:components).profiler.collectors.first
     @recorder = @stack_collector.recorder
   end
 
@@ -42,7 +44,7 @@ class ProfilerSampleLoopBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0.001} : {time: 70, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 70, warmup: 2}
       x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop'))
 
       x.report("stack collector #{ENV['CONFIG']}") do

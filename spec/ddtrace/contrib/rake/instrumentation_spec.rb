@@ -28,22 +28,22 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
     skip('Rake integration incompatible.') unless Datadog::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:rake].reset!
+    Datadog::Tracing.configuration[:rake].reset!
 
     # Patch Rake
-    Datadog.configure do |c|
-      c.use :rake, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rake, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rake].reset_configuration!
+    Datadog::Tracing.registry[:rake].reset_configuration!
     example.run
-    Datadog.registry[:rake].reset_configuration!
+    Datadog::Tracing.registry[:rake].reset_configuration!
 
     # We don't want instrumentation enabled during the rest of the test suite...
-    Datadog.configure { |c| c.use :rake, enabled: false }
+    Datadog::Tracing.configure { |c| c.instrument :rake, enabled: false }
   end
 
   def reset_task!(task_name)
@@ -80,6 +80,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(invoke_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_INVOKE)
           expect(invoke_span.resource).to eq(task_name.to_s)
           expect(invoke_span.parent_id).to eq(0)
+          expect(invoke_span.service).to eq(tracer.default_service)
+          expect(invoke_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rake')
+          expect(invoke_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq('invoke')
         end
 
         it_behaves_like 'analytics for integration' do
@@ -98,6 +102,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
           expect(execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
           expect(execute_span.resource).to eq(task_name.to_s)
           expect(execute_span.parent_id).to eq(invoke_span.span_id)
+          expect(execute_span.service).to eq(tracer.default_service)
+          expect(execute_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rake')
+          expect(execute_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq('execute')
           expect(execute_span.get_tag(Datadog::Ext::Analytics::TAG_SAMPLE_RATE)).to be nil
         end
       end
@@ -306,6 +314,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(invoke_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_INVOKE)
             expect(invoke_span.resource).to eq(task_name.to_s)
             expect(invoke_span.parent_id).to eq(0)
+            expect(invoke_span.service).to eq(tracer.default_service)
+            expect(invoke_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rake')
+            expect(invoke_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq('invoke')
             expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to eq([].to_s)
             expect(invoke_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_INVOKE_ARGS)).to eq(['?'].to_s)
           end
@@ -316,6 +328,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(prerequisite_task_execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(prerequisite_task_execute_span.resource).to eq(prerequisite_task_name.to_s)
             expect(prerequisite_task_execute_span.parent_id).to eq(invoke_span.span_id)
+            expect(prerequisite_task_execute_span.service).to eq(tracer.default_service)
+            expect(prerequisite_task_execute_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rake')
+            expect(prerequisite_task_execute_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq('execute')
             expect(prerequisite_task_execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to be nil
             expect(prerequisite_task_execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_EXECUTE_ARGS)).to eq({}.to_s)
           end
@@ -326,6 +342,10 @@ RSpec.describe Datadog::Contrib::Rake::Instrumentation do
             expect(execute_span.name).to eq(Datadog::Contrib::Rake::Ext::SPAN_EXECUTE)
             expect(execute_span.resource).to eq(task_name.to_s)
             expect(execute_span.parent_id).to eq(invoke_span.span_id)
+            expect(execute_span.service).to eq(tracer.default_service)
+            expect(execute_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rake')
+            expect(execute_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+              .to eq('execute')
             expect(execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_TASK_ARG_NAMES)).to be nil
             expect(execute_span.get_tag(Datadog::Contrib::Rake::Ext::TAG_EXECUTE_ARGS)).to eq({}.to_s)
           end

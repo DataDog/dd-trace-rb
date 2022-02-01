@@ -1,9 +1,10 @@
 # typed: true
-require 'ddtrace/utils/time'
+require 'datadog/core/utils/time'
 
 module Datadog
   module Sampling
     # Checks for rate limiting on a resource.
+    # @public_api
     class RateLimiter
       # Checks if resource of specified size can be
       # conforms with the current limit.
@@ -25,6 +26,7 @@ module Datadog
     # for rate limiting.
     #
     # @see https://en.wikipedia.org/wiki/Token_bucket Token bucket
+    # @public_api
     class TokenBucket < RateLimiter
       attr_reader :rate, :max_tokens
 
@@ -43,7 +45,7 @@ module Datadog
         @prev_total_messages = nil
         @current_window = nil
 
-        @last_refill = Utils::Time.get_time
+        @last_refill = Core::Utils::Time.get_time
       end
 
       # Checks if a message of provided +size+
@@ -96,7 +98,7 @@ module Datadog
       private
 
       def refill_since_last_message
-        now = Utils::Time.get_time
+        now = Core::Utils::Time.get_time
         elapsed = now - @last_refill
 
         # Update the number of available tokens, but ensure we do not exceed the max
@@ -140,7 +142,7 @@ module Datadog
       # the rate limiter must compute it's rate over and updates
       # the total count, and conforming message count if +allowed+
       def update_rate_counts(allowed)
-        now = Utils::Time.get_time
+        now = Core::Utils::Time.get_time
 
         # No tokens have been seen yet, start a new window
         if @current_window.nil?
@@ -160,8 +162,9 @@ module Datadog
       end
     end
 
-    # \RateLimiter that accepts all resources,
+    # {Datadog::Sampling::RateLimiter} that accepts all resources,
     # with no limits.
+    # @public_api
     class UnlimitedLimiter < RateLimiter
       # @return [Boolean] always +true+
       def allow?(_)

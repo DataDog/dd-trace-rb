@@ -14,10 +14,11 @@ module Datadog
   #
   # Supports synchronous code flow *only*. Usage across
   # multiple threads will result in incorrect relationships.
-  # For async support, a \TraceOperation should be employed
+  # For async support, a {Datadog::TraceOperation} should be employed
   # per execution context (e.g. Thread, etc.)
   #
   # rubocop:disable Metrics/ClassLength
+  # @public_api
   class TraceOperation
     DEFAULT_MAX_LENGTH = 100_000
 
@@ -62,7 +63,7 @@ module Datadog
     )
       # Attributes
       @events = events || Events.new
-      @id = id || Utils.next_id
+      @id = id || Core::Utils.next_id
       @max_length = max_length || DEFAULT_MAX_LENGTH
       @parent_span_id = parent_span_id
       @sampled = sampled.nil? ? false : sampled
@@ -337,7 +338,6 @@ module Datadog
       if (parent = @active_span)
         options[:child_of] = parent
         options[:parent_id] = parent.id
-        options[:service] ||= parent.service
       else
         options[:parent_id] = @parent_span_id || 0
       end

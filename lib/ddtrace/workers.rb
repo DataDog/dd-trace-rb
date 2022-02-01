@@ -2,7 +2,7 @@
 require 'time'
 
 require 'ddtrace/workers/trace_writer'
-require 'ddtrace/workers/runtime_metrics'
+require 'datadog/core/workers/runtime_metrics'
 
 require 'ddtrace/buffer'
 require 'ddtrace/runtime/metrics'

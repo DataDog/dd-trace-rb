@@ -10,20 +10,21 @@ RSpec.describe Datadog::Correlation do
   let(:default_version) { 'default-version' }
 
   before do
-    allow(Datadog.configuration).to receive(:env).and_return(default_env)
-    allow(Datadog.configuration).to receive(:service).and_return(default_service)
-    allow(Datadog.configuration).to receive(:version).and_return(default_version)
+    settings = Datadog.configuration.send(:settings)
+    allow(settings).to receive(:env).and_return(default_env)
+    allow(settings).to receive(:service).and_return(default_service)
+    allow(settings).to receive(:version).and_return(default_version)
   end
 
   shared_context 'correlation data' do
     let(:env) { 'dev' }
     let(:service) { 'acme-api' }
-    let(:span_id) { Datadog::Utils.next_id }
+    let(:span_id) { Datadog::Core::Utils.next_id }
     let(:span_name) { 'active_record.sql' }
     let(:span_resource) { 'SELECT * FROM users;' }
     let(:span_service) { 'acme-mysql' }
     let(:span_type) { 'db' }
-    let(:trace_id) { Datadog::Utils.next_id }
+    let(:trace_id) { Datadog::Core::Utils.next_id }
     let(:trace_name) { 'rack.request' }
     let(:trace_resource) { 'GET /users' }
     let(:trace_service) { 'acme-api' }
@@ -208,8 +209,8 @@ RSpec.describe Datadog::Correlation do
           )
         end
 
-        let(:trace_id) { Datadog::Utils.next_id }
-        let(:span_id) { Datadog::Utils.next_id }
+        let(:trace_id) { Datadog::Core::Utils.next_id }
+        let(:span_id) { Datadog::Core::Utils.next_id }
         let(:env) { 'dev' }
         let(:service) { 'acme-api' }
         let(:version) { '1.0' }
@@ -228,7 +229,7 @@ RSpec.describe Datadog::Correlation do
       context 'when #trace_id' do
         context 'is defined' do
           it_behaves_like 'a log format string' do
-            let(:trace_id) { Datadog::Utils.next_id }
+            let(:trace_id) { Datadog::Core::Utils.next_id }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_TRACE_ID}=#{trace_id}") }
           end
         end
@@ -244,7 +245,7 @@ RSpec.describe Datadog::Correlation do
       context 'when #span_id' do
         context 'is defined' do
           it_behaves_like 'a log format string' do
-            let(:span_id) { Datadog::Utils.next_id }
+            let(:span_id) { Datadog::Core::Utils.next_id }
             it { is_expected.to have_attribute("#{Datadog::Ext::Correlation::ATTR_SPAN_ID}=#{span_id}") }
           end
         end

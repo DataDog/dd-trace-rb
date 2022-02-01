@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracer do
   end
 
   def lang_tag(span)
-    span.get_tag(Datadog::Ext::Runtime::TAG_LANG)
+    span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)
   end
 
   describe 'manual tracing' do
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracer do
 
     context 'for a mock job with fan-out/fan-in behavior' do
       subject(:job) do
-        tracer.trace('job', resource: 'import_job', service: 'job-worker') do |_span, trace|
+        tracer.trace('job', resource: 'import_job') do |_span, trace|
           tracer.trace('load_data', resource: 'imports.csv') do
             tracer.trace('read_file', resource: 'imports.csv') do
               sleep(0.01)
@@ -131,7 +131,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: 0,
           name: 'job',
           resource: 'import_job',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(load_data_span).to have_attributes(
@@ -140,7 +140,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'load_data',
           resource: 'imports.csv',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(read_file_span).to have_attributes(
@@ -149,7 +149,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: load_data_span.id,
           name: 'read_file',
           resource: 'imports.csv',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(deserialize_span).to have_attributes(
@@ -158,7 +158,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: load_data_span.id,
           name: 'deserialize',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(start_inserts_span).to have_attributes(
@@ -167,7 +167,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'start_inserts',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
 
         expect(db_query_spans).to all(
@@ -187,7 +187,7 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'wait_inserts',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
         expect(wait_insert_span.get_tag('worker.count')).to eq(5.0)
 
@@ -197,8 +197,44 @@ RSpec.describe Datadog::Tracer do
           parent_id: job_span.id,
           name: 'update_log',
           resource: 'inventory',
-          service: 'job-worker'
+          service: tracer.default_service
         )
+      end
+    end
+
+    context 'that continues from another trace' do
+      context 'without a block' do
+        before do
+          tracer.continue_trace!(digest)
+          tracer.trace('my.job').finish
+        end
+
+        context 'with state' do
+          let(:digest) do
+            Datadog::TraceDigest.new(
+              span_id: Datadog::Core::Utils.next_id,
+              trace_id: Datadog::Core::Utils.next_id,
+              trace_origin: 'synthetics',
+              trace_sampling_priority: Datadog::Ext::Priority::USER_KEEP
+            )
+          end
+
+          it 'clears the active trace after finishing' do
+            expect(spans).to have(1).item
+            expect(span.name).to eq('my.job')
+            expect(tracer.active_trace).to be nil
+          end
+        end
+
+        context 'without state' do
+          let(:digest) { nil }
+
+          it 'clears the active trace after finishing' do
+            expect(spans).to have(1).item
+            expect(span.name).to eq('my.job')
+            expect(tracer.active_trace).to be nil
+          end
+        end
       end
     end
   end

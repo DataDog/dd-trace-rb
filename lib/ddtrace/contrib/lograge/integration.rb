@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.11.0')
 
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :lograge
 
         def self.version
@@ -33,7 +34,7 @@ module Datadog
           false
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 

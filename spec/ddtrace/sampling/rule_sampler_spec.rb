@@ -37,7 +37,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
     context 'with rate_limit ENV' do
       before do
-        allow(Datadog.configuration.sampling).to receive(:rate_limit)
+        allow(Datadog::Tracing.configuration.sampling).to receive(:rate_limit)
           .and_return(20.0)
       end
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Sampling::RuleSampler do
 
     context 'with default_sample_rate ENV' do
       before do
-        allow(Datadog.configuration.sampling).to receive(:default_rate)
+        allow(Datadog::Tracing.configuration.sampling).to receive(:default_rate)
           .and_return(0.5)
       end
 

@@ -28,17 +28,17 @@ RSpec.describe 'Sequel instrumentation' do
     skip('Sequel not compatible.') unless Datadog::Contrib::Sequel::Integration.compatible?
 
     # Patch Sequel
-    Datadog.configure do |c|
-      c.use :sequel, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :sequel, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:sequel].reset_configuration!
+    Datadog::Tracing.registry[:sequel].reset_configuration!
     Sequel::DATABASES.each(&:disconnect)
     example.run
-    Datadog.registry[:sequel].reset_configuration!
+    Datadog::Tracing.registry[:sequel].reset_configuration!
   end
 
   shared_context 'instrumented queries' do
@@ -68,6 +68,9 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.resource).to eq(expected_query)
           expect(span.status).to eq(0)
           expect(span.parent_id).to eq(0)
+
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sequel')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('query')
         end
 
         it_behaves_like 'analytics for integration' do
@@ -75,7 +78,15 @@ RSpec.describe 'Sequel instrumentation' do
           let(:analytics_sample_rate_var) { Datadog::Contrib::Sequel::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) do
+            if PlatformHelpers.jruby?
+              nil # TODO: Extract host for Sequel with JDBC
+            else
+              host
+            end
+          end
+        end
 
         it_behaves_like 'measured span for integration', false
       end
@@ -155,6 +166,9 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
           expect(span.status).to eq(0)
 
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('sequel')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('query')
+
           # We then match `query` and `trace_id` for the statements under test.
           # Skip for internal Sequel queries.
           next unless query
@@ -206,6 +220,7 @@ RSpec.describe 'Sequel instrumentation' do
   describe 'with a SQLite database' do
     let(:connection_string) { 'sqlite::memory:' }
     let(:adapter) { 'sqlite' }
+    let(:host) { nil }
 
     it_behaves_like 'instrumented queries'
   end
@@ -214,11 +229,11 @@ RSpec.describe 'Sequel instrumentation' do
     let(:connection_string) do
       user = ENV.fetch('TEST_MYSQL_USER', 'root')
       password = ENV.fetch('TEST_MYSQL_PASSWORD', 'root')
-      host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
       port = ENV.fetch('TEST_MYSQL_PORT', '3306')
       db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
       "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
     end
+    let(:host) { ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1') }
     let(:adapter) do
       if PlatformHelpers.jruby?
         'mysql'
@@ -234,11 +249,11 @@ RSpec.describe 'Sequel instrumentation' do
     let(:connection_string) do
       user = ENV.fetch('TEST_POSTGRES_USER', 'postgres')
       password = ENV.fetch('TEST_POSTGRES_PASSWORD', 'postgres')
-      host = ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1')
       port = ENV.fetch('TEST_POSTGRES_PORT', 5432)
       db = ENV.fetch('TEST_POSTGRES_DB', 'postgres')
       "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
     end
+    let(:host) { ENV.fetch('TEST_POSTGRES_HOST', '127.0.0.1') }
     let(:normalized_adapter) { 'postgres' }
     let(:adapter) { 'postgresql' }
 

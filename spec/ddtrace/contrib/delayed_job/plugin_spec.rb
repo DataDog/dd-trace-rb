@@ -30,15 +30,15 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure { |c| c.use :delayed_job, configuration_options }
+    Datadog::Tracing.configure { |c| c.instrument :delayed_job, configuration_options }
     Delayed::Worker.delay_jobs = false
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:delayed_job].reset_configuration!
+    Datadog::Tracing.registry[:delayed_job].reset_configuration!
     example.run
-    Datadog.registry[:delayed_job].reset_configuration!
+    Datadog::Tracing.registry[:delayed_job].reset_configuration!
   end
 
   describe 'instrumenting worker execution' do
@@ -155,9 +155,8 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it_behaves_like 'measured span for integration', true
 
-      it 'has service name taken from configuration' do
-        expect(span.service).not_to be_nil
-        expect(span.service).to eq(Datadog.configuration[:delayed_job][:service_name])
+      it 'has default service name' do
+        expect(span.service).to eq(tracer.default_service)
       end
 
       it 'span tags include job id' do
@@ -166,6 +165,11 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it 'span tags include number of attempts' do
         expect(span.get_tag('delayed_job.attempts')).to eq(0)
+      end
+
+      it 'has invoke components and operation tags' do
+        span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+        span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
       end
     end
 
@@ -183,9 +187,13 @@ RSpec.describe Datadog::Contrib::DelayedJob::Plugin, :delayed_job_active_record 
 
       it_behaves_like 'measured span for integration', true
 
-      it 'has service name taken from configuration' do
-        expect(span.service).not_to be_nil
-        expect(span.service).to eq(Datadog.configuration[:delayed_job][:client_service_name])
+      it 'has default service name' do
+        expect(span.service).to eq(tracer.default_service)
+      end
+
+      it 'has enqueue components and operation tags' do
+        span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Datadog::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+        span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Datadog::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
       end
     end
   end

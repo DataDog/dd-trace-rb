@@ -3,11 +3,10 @@ require 'time'
 
 require 'datadog/core/environment/identity'
 require 'ddtrace/ext/errors'
-require 'ddtrace/ext/runtime'
 
 require 'ddtrace/span'
 require 'ddtrace/tagging'
-require 'ddtrace/utils'
+require 'datadog/core/utils'
 
 module Datadog
   # Represents the act of taking a span measurement.
@@ -15,6 +14,7 @@ module Datadog
   # build a Span. When completed, it yields the Span.
   #
   # rubocop:disable Metrics/ClassLength
+  # @public_api
   class SpanOperation
     include Tagging
 
@@ -40,7 +40,6 @@ module Datadog
     alias :span_type :type
     alias :span_type= :type=
 
-    # TODO: Remove span_type
     def initialize(
       name,
       child_of: nil,
@@ -54,19 +53,15 @@ module Datadog
       trace_id: nil,
       type: nil
     )
-      # Resolve service name
-      parent = child_of
-      service ||= parent.service unless parent.nil?
-
       # Set span attributes
       @name = name
       @service = service
       @resource = resource
       @type = type
 
-      @id = Utils.next_id
+      @id = Core::Utils.next_id
       @parent_id = parent_id || 0
-      @trace_id = trace_id || Utils.next_id
+      @trace_id = trace_id || Core::Utils.next_id
 
       @status = 0
 
@@ -91,6 +86,7 @@ module Datadog
       # Only set parent if explicitly provided.
       # We don't want it to override context-derived
       # IDs if it's a distributed trace w/o a parent span.
+      parent = child_of
       self.parent = parent if parent
 
       # Some other SpanOperation-specific behavior
@@ -166,7 +162,7 @@ module Datadog
       events.before_start.publish(self)
 
       # Start the span
-      @start_time = start_time || Utils::Time.now.utc
+      @start_time = start_time || Core::Utils::Time.now.utc
       @duration_start = start_time.nil? ? duration_marker : nil
 
       self
@@ -184,7 +180,7 @@ module Datadog
 
       set_metric('allocations', allocations)
 
-      now = Utils::Time.now.utc
+      now = Core::Utils::Time.now.utc
 
       # Provide a default start_time if unset.
       # Using `now` here causes duration to be 0; this is expected
@@ -441,12 +437,11 @@ module Datadog
       else
         @trace_id = parent.trace_id
         @parent_id = parent.id
-        @service ||= parent.service
       end
     end
 
     def duration_marker
-      Utils::Time.get_time
+      Core::Utils::Time.get_time
     end
 
     # Used for serialization

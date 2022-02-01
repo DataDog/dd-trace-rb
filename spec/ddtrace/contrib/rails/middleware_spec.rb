@@ -30,9 +30,9 @@ RSpec.describe 'Rails middleware' do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :rack if use_rack
-      c.use :rails, rails_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rack if use_rack
+      c.instrument :rails, rails_options
     end
   end
 
@@ -77,7 +77,7 @@ RSpec.describe 'Rails middleware' do
           end
 
           def call(env)
-            Datadog.tracer.trace('custom.test') do
+            Datadog::Tracing.trace('custom.test') do
               @app.call(env)
             end
           end

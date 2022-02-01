@@ -1,6 +1,7 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Errors
       STATUS = 1
       MSG = 'error.msg'.freeze

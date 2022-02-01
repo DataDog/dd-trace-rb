@@ -47,16 +47,16 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :httpclient, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :httpclient, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:httpclient].reset_configuration!
+    Datadog::Tracing.registry[:httpclient].reset_configuration!
     example.run
-    Datadog.registry[:httpclient].reset_configuration!
+    Datadog::Tracing.registry[:httpclient].reset_configuration!
   end
 
   describe 'instrumented request' do
@@ -118,7 +118,14 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
             expect(span.service).to eq('httpclient')
           end
 
-          it_behaves_like 'a peer service span'
+          it 'has correct component and operation tags' do
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('httpclient')
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+          end
+
+          it_behaves_like 'a peer service span' do
+            let(:peer_hostname) { host }
+          end
 
           it_behaves_like 'analytics for integration' do
             let(:analytics_enabled_var) { Datadog::Contrib::Httpclient::Ext::ENV_ANALYTICS_ENABLED }
@@ -242,13 +249,13 @@ RSpec.describe Datadog::Contrib::Httpclient::Instrumentation do
 
           context 'and the host matches a specific configuration' do
             before do
-              Datadog.configure do |c|
-                c.use :httpclient, describes: /localhost/ do |httpclient|
+              Datadog::Tracing.configure do |c|
+                c.instrument :httpclient, describes: /localhost/ do |httpclient|
                   httpclient.service_name = 'bar'
                   httpclient.split_by_domain = false
                 end
 
-                c.use :httpclient, describes: /random/ do |httpclient|
+                c.instrument :httpclient, describes: /random/ do |httpclient|
                   httpclient.service_name = 'barz'
                   httpclient.split_by_domain = false
                 end

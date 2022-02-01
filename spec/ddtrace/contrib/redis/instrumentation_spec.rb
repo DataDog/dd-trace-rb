@@ -14,9 +14,9 @@ RSpec.describe 'Redis instrumentation test' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:redis].reset_configuration!
+    Datadog::Tracing.registry[:redis].reset_configuration!
     example.run
-    Datadog.registry[:redis].reset_configuration!
+    Datadog::Tracing.registry[:redis].reset_configuration!
   end
 
   before do
@@ -30,9 +30,9 @@ RSpec.describe 'Redis instrumentation test' do
     let(:client) { Redis.new(url: redis_url) }
 
     before do
-      Datadog.configure do |c|
-        c.use :redis, service_name: default_service_name
-        c.use :redis, describes: { url: redis_url }, service_name: service_name
+      Datadog::Tracing.configure do |c|
+        c.instrument :redis, service_name: default_service_name
+        c.instrument :redis, describes: { url: redis_url }, service_name: service_name
       end
     end
 
@@ -51,6 +51,9 @@ RSpec.describe 'Redis instrumentation test' do
         expect(span.get_tag('redis.raw_command')).to eq('SET abc 123')
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('redis')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
       end
     end
   end
@@ -61,9 +64,9 @@ RSpec.describe 'Redis instrumentation test' do
     let(:client) { Redis.new(host: test_host, port: test_port) }
 
     before do
-      Datadog.configure do |c|
-        c.use :redis, service_name: default_service_name
-        c.use :redis, describes: { host: test_host, port: test_port }, service_name: service_name
+      Datadog::Tracing.configure do |c|
+        c.instrument :redis, service_name: default_service_name
+        c.instrument :redis, describes: { host: test_host, port: test_port }, service_name: service_name
       end
     end
 
@@ -82,6 +85,9 @@ RSpec.describe 'Redis instrumentation test' do
         expect(span.get_tag('redis.raw_command')).to eq('SET abc 123')
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('redis')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
       end
     end
   end

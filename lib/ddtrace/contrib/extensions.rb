@@ -1,7 +1,9 @@
 # typed: false
+require 'forwardable'
 require 'set'
 require 'datadog/contrib'
-require 'ddtrace/configuration/settings'
+require 'datadog/core/configuration/settings'
+require 'datadog/core/configuration/validation_proxy'
 
 module Datadog
   module Contrib
@@ -14,20 +16,33 @@ module Datadog
     # process.
     # Most of this file should probably live inside the tracer core.
     module Extensions
-      def self.extended(base)
-        base.extend(Helpers)
-        base.extend(Configuration)
+      def self.extend!
+        Datadog::Tracing.singleton_class.prepend Helpers
+        Datadog::Tracing.singleton_class.prepend Configuration
+        Datadog::Core::Configuration::Settings.include Configuration::Settings
+        Datadog::Core::Configuration::ValidationProxy::Tracing.include Configuration::ValidationProxy
       end
 
       # Helper methods for Datadog module.
       module Helpers
-        # Returns the global integration registry.
+        # The global integration registry.
         #
-        # This method is not safe to use while the tracer is initializing,
-        # thus access to the registry should go through
-        # ::Datadog::Contrib::REGISTRY for internal tracer work.
+        # This registry holds a reference to all integrations available
+        # to the tracer.
         #
-        # External use of this method is always safe.
+        # Integrations registered in the {.registry} can be activated as follows:
+        #
+        # ```
+        # Datadog::Tracing.configure do |c|
+        #   c.instrument :my_registered_integration, **my_options
+        # end
+        # ```
+        #
+        # New integrations can be registered by implementing the {Datadog::Contrib::Integration} interface.
+        #
+        # @return [Datadog::Contrib::Registry]
+        # @!attribute [r] registry
+        # @public_api
         def registry
           Contrib::REGISTRY
         end
@@ -40,11 +55,13 @@ module Datadog
         # TODO: Today this method sits here in the `Datadog::Contrib::Extensions` namespace
         # TODO: but cannot empirically constraints to the contrib domain only.
         # TODO: We should promote most of this logic to core parts of ddtrace.
-        def configure(configuration = self.configuration)
+        def configure(&block)
           # Reconfigure core settings
-          super
+          super(&block)
 
           # Activate integrations
+          configuration = self.configuration
+
           if configuration.respond_to?(:integrations_pending_activation)
             reduce_verbosity = configuration.respond_to?(:reduce_verbosity?) ? configuration.reduce_verbosity? : false
             configuration.integrations_pending_activation.each do |integration|
@@ -75,7 +92,8 @@ module Datadog
           configuration
         end
 
-        # Extensions for Datadog::Configuration::Settings
+        # Extensions for Datadog::Core::Configuration::Settings
+        # @public_api
         module Settings
           InvalidIntegrationError = Class.new(StandardError)
 
@@ -84,6 +102,10 @@ module Datadog
           #
           # How the matching is performed is integration-specific.
           #
+          # @example
+          #   Datadog::Tracing.configuration[:integration_name]
+          # @example
+          #   Datadog::Tracing.configuration[:integration_name][:sub_configuration]
           # @param [Symbol] integration_name the integration name
           # @param [Object] key the integration-specific lookup key
           # @return [Datadog::Contrib::Configuration::Settings]
@@ -102,6 +124,7 @@ module Datadog
           # @param [Object] describes the previously configured `describes:` object. If `nil`,
           #   fetches the default configuration
           # @return [Datadog::Contrib::Configuration::Settings]
+          # @!visibility private
           def configuration(integration_name, describes = nil)
             integration = fetch_integration(integration_name)
             integration.configuration(describes) unless integration.nil?
@@ -121,26 +144,33 @@ module Datadog
             end
           end
 
+          # TODO: Deprecate in the next major version, as `instrument` better describes
+          # TODO: what `c.instrument` does internally in the tracer.
           alias_method :use, :instrument
 
+          # @!visibility private
           def integrations_pending_activation
             @integrations_pending_activation ||= Set.new
           end
 
+          # @!visibility private
           def instrumented_integrations
             @instrumented_integrations ||= {}
           end
 
+          # @!visibility private
           def reset!
             instrumented_integrations.clear
             super
           end
 
+          # @!visibility private
           def fetch_integration(name)
             Contrib::REGISTRY[name] ||
               raise(InvalidIntegrationError, "'#{name}' is not a valid integration.")
           end
 
+          # @!visibility private
           def reduce_verbosity?
             defined?(@reduce_verbosity) ? @reduce_verbosity : false
           end
@@ -148,6 +178,19 @@ module Datadog
           def reduce_log_verbosity
             @reduce_verbosity ||= true
           end
+        end
+
+        module ValidationProxy
+          extend Forwardable
+
+          def_delegators \
+            :settings,
+            :[],
+            :instrument,
+            :instrumented_integrations,
+            :integrations_pending_activation,
+            :reduce_log_verbosity,
+            :reduce_verbosity?
         end
       end
     end

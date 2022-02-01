@@ -12,16 +12,16 @@ RSpec.describe 'Redis test' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :redis, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :redis, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:redis].reset_configuration!
+    Datadog::Tracing.registry[:redis].reset_configuration!
     example.run
-    Datadog.registry[:redis].reset_configuration!
+    Datadog::Tracing.registry[:redis].reset_configuration!
   end
 
   shared_examples_for 'a Redis driver' do |driver|
@@ -36,11 +36,6 @@ RSpec.describe 'Redis test' do
         redis.client
       end
     end
-
-    let(:pin) { Datadog::Pin.get_from(client) }
-
-    it { expect(pin).to_not be nil }
-    it { expect(pin.app_type).to eq('db') }
 
     shared_context 'password-protected Redis server' do
       let(:redis) { Redis.new(host: host, port: port, driver: driver, password: password) }
@@ -91,7 +86,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'get span' do
@@ -105,7 +102,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
     end
 
@@ -175,7 +174,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'command_args disabled' do
@@ -221,7 +222,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
     end
 
@@ -237,7 +240,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'get span' do
@@ -257,7 +262,9 @@ RSpec.describe 'Redis test' do
         end
 
         it_behaves_like 'a span with common tags'
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       describe 'auth span' do
@@ -272,7 +279,9 @@ RSpec.describe 'Redis test' do
           expect(span.get_tag('redis.raw_command')).to eq('AUTH ?')
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
     end
   end

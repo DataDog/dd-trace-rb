@@ -6,6 +6,7 @@ module Datadog
     module Shoryuken
       module Configuration
         # Default settings for the Shoryuken integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -22,7 +23,7 @@ module Datadog
             o.lazy
           end
 
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
           option :error_handler, default: Datadog::SpanOperation::Events::DEFAULT_ON_ERROR
           option :tag_body, default: false
         end

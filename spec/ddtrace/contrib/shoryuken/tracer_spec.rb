@@ -12,16 +12,16 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
   before do
     Shoryuken.worker_executor = Shoryuken::Worker::InlineExecutor
 
-    Datadog.configure do |c|
-      c.use :shoryuken, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :shoryuken, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:shoryuken].reset_configuration!
+    Datadog::Tracing.registry[:shoryuken].reset_configuration!
     example.run
-    Datadog.registry[:shoryuken].reset_configuration!
+    Datadog::Tracing.registry[:shoryuken].reset_configuration!
   end
 
   shared_context 'Shoryuken::Worker' do
@@ -55,9 +55,12 @@ RSpec.describe Datadog::Contrib::Shoryuken::Tracer do
       expect { call }.to_not raise_error
       expect(spans).to have(1).items
       expect(span.name).to eq(Datadog::Contrib::Shoryuken::Ext::SPAN_JOB)
+      expect(span.service).to eq(tracer.default_service)
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ID)).to eq(message_id)
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_QUEUE)).to eq(queue_name)
       expect(span.get_tag(Datadog::Contrib::Shoryuken::Ext::TAG_JOB_ATTRIBUTES)).to eq(attributes.to_s)
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('shoryuken')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('job')
     end
 
     it_behaves_like 'analytics for integration' do

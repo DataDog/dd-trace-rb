@@ -12,6 +12,7 @@ module Datadog
 
         MINIMUM_VERSION = Gem::Version.new('0.3.5')
 
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :racecar, auto_patch: false
 
         def self.version
@@ -27,7 +28,7 @@ module Datadog
           super && version >= MINIMUM_VERSION
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 

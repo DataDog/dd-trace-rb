@@ -3,8 +3,8 @@ module Datadog
   module Contrib
     module Sidekiq
       # Sidekiq integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
-        APP = 'sidekiq'.freeze
         CLIENT_SERVICE_NAME = 'sidekiq-client'.freeze
         ENV_ENABLED = 'DD_TRACE_SIDEKIQ_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED'.freeze
@@ -23,6 +23,12 @@ module Datadog
         TAG_JOB_RETRY_COUNT = 'sidekiq.job.retry_count'.freeze
         TAG_JOB_WRAPPER = 'sidekiq.job.wrapper'.freeze
         TAG_JOB_ARGS = 'sidekiq.job.args'.freeze
+        TAG_COMPONENT = 'sidekiq'.freeze
+        TAG_OPERATION_PUSH = 'push'.freeze
+        TAG_OPERATION_JOB = 'job'.freeze
+        TAG_OPERATION_JOB_FETCH = 'job_fetch'.freeze
+        TAG_OPERATION_HEARTBEAT = 'heartbeat'.freeze
+        TAG_OPERATION_SCHEDULED_PUSH = 'scheduled_push'.freeze
       end
     end
   end

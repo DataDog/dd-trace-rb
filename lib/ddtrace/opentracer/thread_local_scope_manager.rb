@@ -2,6 +2,7 @@
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scope management
+    # @public_api
     class ThreadLocalScopeManager < ScopeManager
       # Make a span instance active.
       #

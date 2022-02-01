@@ -2,7 +2,7 @@
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/mongodb/ext'
 require 'ddtrace/contrib/mongodb/parsers'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 module Datadog
   module Contrib
@@ -11,23 +11,29 @@ module Datadog
       # system available in the Mongo driver.
       class MongoCommandSubscriber
         def started(event)
-          pin = Datadog::Pin.get_from(event.address)
-          return unless pin && pin.enabled?
+          return unless Datadog::Tracing.enabled?
+
+          service = Datadog.configuration_for(event.address, :service_name) \
+                    || Datadog::Tracing.configuration[:mongo, event.address.seed][:service_name]
 
           # start a trace and store it in the current thread; using the `operation_id`
           # is safe since it's a unique id used to link events together. Also only one
           # thread is involved in this execution so thread-local storage should be safe. Reference:
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
           # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
-          span = Datadog.tracer.trace(Ext::SPAN_COMMAND, service: pin.service, span_type: Ext::SPAN_TYPE_COMMAND)
+          span = Datadog::Tracing.trace(Ext::SPAN_COMMAND, service: service, span_type: Ext::SPAN_TYPE_COMMAND)
           set_span(event, span)
 
           # build a quantized Query using the Parser module
           query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
           serialized_query = query.to_s
 
+          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
+
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, event.address.host)
 
           # Set analytics sample rate
           Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -104,7 +110,7 @@ module Datadog
         end
 
         def datadog_configuration
-          Datadog.configuration[:mongo]
+          Datadog::Tracing.configuration[:mongo]
         end
       end
     end

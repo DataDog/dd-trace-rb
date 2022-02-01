@@ -1,6 +1,7 @@
 module Datadog
   # Trace digest that represents the important parts of an active trace.
   # Used to propagate context and continue traces across execution boundaries.
+  # @public_api
   class TraceDigest
     attr_reader \
       :span_id,

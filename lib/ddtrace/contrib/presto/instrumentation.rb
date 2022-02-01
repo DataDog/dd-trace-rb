@@ -18,9 +18,9 @@ module Datadog
           # Instance methods for Presto::Client
           module InstanceMethods
             def run(query)
-              tracer.trace(Ext::SPAN_QUERY, **span_options) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
-                  decorate!(span)
+                  decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
                   span.span_type = Datadog::Ext::SQL::TYPE
                   span.set_tag(Ext::TAG_QUERY_ASYNC, false)
@@ -33,9 +33,9 @@ module Datadog
             end
 
             def query(query, &blk)
-              tracer.trace(Ext::SPAN_QUERY, **span_options) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_QUERY, **span_options) do |span|
                 begin
-                  decorate!(span)
+                  decorate!(span, Ext::TAG_OPERATION_QUERY)
                   span.resource = query
                   span.span_type = Datadog::Ext::SQL::TYPE
                   span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
@@ -48,9 +48,9 @@ module Datadog
             end
 
             def kill(query_id)
-              tracer.trace(Ext::SPAN_KILL, **span_options) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_KILL, **span_options) do |span|
                 begin
-                  decorate!(span)
+                  decorate!(span, Ext::TAG_OPERATION_KILL)
                   span.resource = Ext::SPAN_KILL
                   span.span_type = Datadog::Ext::AppTypes::DB
                   # ^ not an SQL type span, since there's no SQL query
@@ -66,23 +66,34 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog.configuration[:presto]
+              Datadog::Tracing.configuration[:presto]
             end
 
             def span_options
               {
                 service: datadog_configuration[:service_name],
-                app: Ext::APP,
+                app: Ext::TAG_COMPONENT,
                 app_type: Datadog::Ext::AppTypes::DB
               }
             end
 
-            def tracer
-              Datadog.tracer
-            end
+            def decorate!(span, operation)
+              span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+              span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, operation)
 
-            def decorate!(span)
-              set_nilable_tag!(span, :server, Datadog::Ext::NET::TARGET_HOST)
+              if (host_port = @options[:server])
+                host, port = Core::Utils.extract_host_port(host_port)
+                if host && port
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host)
+                  span.set_tag(Datadog::Ext::NET::TARGET_PORT, port)
+
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host)
+                else
+                  span.set_tag(Datadog::Ext::NET::TARGET_HOST, host_port)
+                  span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, host_port)
+                end
+              end
+
               set_nilable_tag!(span, :user, Ext::TAG_USER_NAME)
               set_nilable_tag!(span, :schema, Ext::TAG_SCHEMA_NAME)
               set_nilable_tag!(span, :catalog, Ext::TAG_CATALOG_NAME)
@@ -92,7 +103,7 @@ module Datadog
               set_nilable_tag!(span, :model_version, Ext::TAG_MODEL_VERSION)
 
               # Tag as an external peer service
-              span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])

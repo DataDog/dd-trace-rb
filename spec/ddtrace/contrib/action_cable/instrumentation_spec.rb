@@ -33,9 +33,9 @@ RSpec.describe 'ActionCable Rack override' do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :rails, options
-      c.use :action_cable, options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rails, options
+      c.instrument :action_cable, options
     end
 
     rails_test_application.instance.routes.draw do
@@ -55,14 +55,17 @@ RSpec.describe 'ActionCable Rack override' do
   context 'on ActionCable connection request' do
     subject! { get '/cable' }
 
-    it 'overrides parent Rack resource' do
+    it 'overrides trace resource' do
       action_cable, rack = spans
 
       expect(action_cable.name).to eq('action_cable.on_open')
       expect(action_cable.resource).to eq('ActionCable::Connection::Base#on_open')
 
+      expect(trace.name).to eq('rack.request')
+      expect(trace.resource).to eq('ActionCable::Connection::Base#on_open')
+
       expect(rack.name).to eq('rack.request')
-      expect(rack.resource).to eq('ActionCable::Connection::Base#on_open')
+      expect(rack.resource).to eq('GET -1')
     end
   end
 end

@@ -12,6 +12,10 @@ jobs:
       JRUBY_OPTS: --dev
     steps:
       - uses: actions/checkout@v2
+      # bundler appears to match both prerelease and release rubies when we
+      # want the former only. relax the constraint to allow any version for
+      # head rubies
+      - run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
       - uses: ruby/setup-ruby@77ca66ce2792fb05b8b204a203328e12593a64f3 # v1.72.1
         with:
           ruby-version: ${{ matrix.ruby }}

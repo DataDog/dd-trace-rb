@@ -1,16 +1,17 @@
 # typed: true
 require 'json'
 
-require 'ddtrace/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http'
 require 'ddtrace/transport/io'
-require 'ddtrace/encoding'
 require 'ddtrace/workers'
-require 'ddtrace/diagnostics/environment_logger'
-require 'ddtrace/utils/only_once'
+require 'datadog/core/diagnostics/environment_logger'
+require 'ddtrace/runtime/metrics'
 
 module Datadog
   # Processor that sends traces and metadata to the agent
+  # DEV: Our goal is for {Datadog::Workers::TraceWriter} to replace this class in the future
+  # @public_api
   class Writer
     attr_reader \
       :transport,
@@ -49,6 +50,9 @@ module Datadog
       @events = Events.new
     end
 
+    # Explicitly starts the {Writer}'s internal worker.
+    #
+    # The {Writer} is also automatically started when necessary during calls to {.write}.
     def start
       @mutex_after_fork.synchronize do
         return false if @stopped
@@ -64,6 +68,7 @@ module Datadog
     end
 
     # spawns a worker for spans; they share the same transport which is thread-safe
+    # @!visibility private
     def start_worker
       @trace_handler = ->(items, transport) { send_spans(items, transport) }
       @worker = Datadog::Workers::AsyncTransport.new(
@@ -100,6 +105,7 @@ module Datadog
     private :start_worker, :stop_worker
 
     # flush spans to the trace-agent, handles spans only
+    # @!visibility private
     def send_spans(traces, transport)
       return true if traces.empty?
 
@@ -132,7 +138,7 @@ module Datadog
       # TODO: Remove this, and have the tracer pump traces directly to runtime metrics
       #       instead of working through the trace writer.
       # Associate trace with runtime metrics
-      Datadog.runtime_metrics.associate_with_trace(trace) if Datadog.configuration.runtime_metrics.enabled && !trace.empty?
+      Datadog::Runtime::Metrics.associate_trace(trace)
 
       worker_local = @worker
 

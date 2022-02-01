@@ -13,16 +13,16 @@ RSpec.describe 'Rack integration configuration' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :rack, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rack, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rack].reset_configuration!
+    Datadog::Tracing.registry[:rack].reset_configuration!
     example.run
-    Datadog.registry[:rack].reset_configuration!
+    Datadog::Tracing.registry[:rack].reset_configuration!
   end
 
   shared_context 'an incoming HTTP request' do
@@ -75,20 +75,30 @@ RSpec.describe 'Rack integration configuration' do
         is_expected.to be_ok
         expect(spans).to have(2).items
 
+        web_service_name = Datadog::Tracing.configuration[:rack][:web_service_name]
         expect(queue_span.name).to eq('http_server.queue')
         expect(queue_span.span_type).to eq('proxy')
-        expect(queue_span.service).to eq(Datadog.configuration[:rack][:web_service_name])
+        expect(queue_span.service).to eq(web_service_name)
         expect(queue_span.start_time.to_i).to eq(queue_time)
-        expect(queue_span.get_tag(Datadog::Ext::Runtime::TAG_LANG)).to be_nil
+        expect(queue_span.get_tag(Datadog::Core::Runtime::Ext::TAG_LANG)).to be_nil
+        expect(queue_span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq(web_service_name)
+        expect(queue_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('rack')
+        expect(queue_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('queue')
 
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
-        expect(rack_span.service).to eq(Datadog.configuration[:rack][:service_name])
+        expect(rack_span.service).to eq(Datadog.configuration.service)
         expect(rack_span.resource).to eq('GET 200')
         expect(rack_span.get_tag('http.method')).to eq('GET')
         expect(rack_span.get_tag('http.status_code')).to eq('200')
         expect(rack_span.get_tag('http.url')).to eq('/')
         expect(rack_span.status).to eq(0)
+        expect(rack_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('rack')
+        expect(rack_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('request')
 
         expect(queue_span.span_id).to eq(rack_span.parent_id)
       end
@@ -102,12 +112,16 @@ RSpec.describe 'Rack integration configuration' do
         expect(span).to_not be nil
         expect(span.name).to eq('rack.request')
         expect(span.span_type).to eq('web')
-        expect(span.service).to eq(Datadog.configuration[:rack][:service_name])
+        expect(span.service).to eq(Datadog.configuration.service)
         expect(span.resource).to eq('GET 200')
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('http.url')).to eq('/')
         expect(span.status).to eq(0)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('rack')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('request')
 
         expect(span.parent_id).to eq(0)
       end

@@ -32,21 +32,19 @@ module Datadog
             trace_execute(proc { super(sql, options, &block) }, sql, options, &block)
           end
 
-          def datadog_pin
-            Datadog::Pin.get_from(db)
-          end
-
           private
 
           def trace_execute(super_method, sql, options, &block)
             opts = Utils.parse_opts(sql, options, db.opts, self)
             response = nil
 
-            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
-              span.service = datadog_pin.service
+            Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
+              span.service =  Datadog.configuration_for(db, :service_name) \
+                              || Datadog::Tracing.configuration[:sequel][:service_name] \
+                              || adapter_name
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
-              Utils.set_common_tags(span)
+              Utils.set_common_tags(span, db)
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
               span.set_tag(Ext::TAG_PREPARED_NAME, opts[:prepared_name]) if opts[:prepared_name]
               response = super_method.call(sql, options, &block)

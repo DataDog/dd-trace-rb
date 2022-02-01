@@ -21,8 +21,8 @@ RSpec.describe 'ActionMailer patcher' do
 
   before do
     if Datadog::Contrib::ActionMailer::Integration.compatible?
-      Datadog.configure do |c|
-        c.use :action_mailer, configuration_options
+      Datadog::Tracing.configure do |c|
+        c.instrument :action_mailer, configuration_options
       end
     else
       skip
@@ -31,9 +31,9 @@ RSpec.describe 'ActionMailer patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:action_mailer].reset_configuration!
+    Datadog::Tracing.registry[:action_mailer].reset_configuration!
     example.run
-    Datadog.registry[:action_mailer].reset_configuration!
+    Datadog::Tracing.registry[:action_mailer].reset_configuration!
   end
 
   describe 'for single process.action_mailer process' do
@@ -58,24 +58,30 @@ RSpec.describe 'ActionMailer patcher' do
     context 'that doesn\'t raise an error' do
       it 'is expected to send a process span' do
         expect(span).to_not be nil
-        expect(span.service).to eq('action_mailer')
+        expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_mailer.process')
         expect(span.resource).to eq(mailer)
         expect(span.get_tag('action_mailer.action')).to eq(action)
         expect(span.get_tag('action_mailer.mailer')).to eq(mailer)
         expect(span.span_type).to eq('template')
         expect(span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_mailer')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('process')
       end
 
       it 'is expected to send a deliver span' do
         expect(deliver_span).to_not be nil
-        expect(deliver_span.service).to eq('action_mailer')
+        expect(deliver_span.service).to eq(tracer.default_service)
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
         expect(deliver_span.span_type).to eq('worker')
         expect(deliver_span.get_tag('action_mailer.message_id')).to_not be nil
         expect(deliver_span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_mailer')
+        expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('deliver')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -92,13 +98,16 @@ RSpec.describe 'ActionMailer patcher' do
 
       it 'is expected to add additional email date to deliver span' do
         expect(deliver_span).to_not be nil
-        expect(deliver_span.service).to eq('action_mailer')
+        expect(deliver_span.service).to eq(tracer.default_service)
         expect(deliver_span.name).to eq('action_mailer.deliver')
         expect(deliver_span.resource).to eq(mailer)
         expect(deliver_span.get_tag('action_mailer.mailer')).to eq(mailer)
         expect(deliver_span.span_type).to eq('worker')
         expect(deliver_span.get_tag('action_mailer.message_id')).to_not be nil
         expect(deliver_span.status).to_not eq(Datadog::Ext::Errors::STATUS)
+        expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('action_mailer')
+        expect(deliver_span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('deliver')
 
         expect(deliver_span.get_tag('action_mailer.to')).to eq('test@example.com')
         expect(deliver_span.get_tag('action_mailer.from')).to eq('test@example.com')

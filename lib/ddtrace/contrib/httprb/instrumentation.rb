@@ -23,17 +23,14 @@ module Datadog
           def perform(req, options)
             host = req.uri.host if req.respond_to?(:uri) && req.uri
             request_options = datadog_configuration(host)
-            pin = datadog_pin(request_options)
+            client_config = Datadog.configuration_for(self)
 
-            return super(req, options) unless pin
-
-            Datadog.tracer.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
+            Datadog::Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
               begin
-                request_options[:service_name] = pin.service_name
-                span.service = service_name(host, request_options)
+                span.service = service_name(host, request_options, client_config)
                 span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
-                if Datadog.tracer.enabled && !should_skip_distributed_tracing?(pin)
+                if Datadog::Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
                   Datadog::HTTPPropagator.inject!(trace, req)
                 end
 
@@ -55,6 +52,9 @@ module Datadog
           private
 
           def annotate_span_with_request!(span, req, req_options)
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
             if req.verb && req.verb.is_a?(String) || req.verb.is_a?(Symbol)
               http_method = req.verb.to_s.upcase
               span.resource = http_method
@@ -68,12 +68,14 @@ module Datadog
               span.set_tag(Datadog::Ext::HTTP::URL, uri.path)
               span.set_tag(Datadog::Ext::NET::TARGET_HOST, uri.host)
               span.set_tag(Datadog::Ext::NET::TARGET_PORT, uri.port)
+
+              span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, uri.host)
             else
               logger.debug("service #{req_options[:service_name]} span #{Ext::SPAN_REQUEST} missing uri")
             end
 
             # Tag as an external peer service
-            span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+            span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
 
             set_analytics_sample_rate(span, req_options)
           end
@@ -95,35 +97,8 @@ module Datadog
             span.set_error(error)
           end
 
-          def datadog_pin(config = Datadog.configuration[:httprb])
-            service = config[:service_name]
-
-            @datadog_pin ||= Datadog::Pin.new(
-              service,
-              app: Ext::APP,
-              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-            )
-
-            if @datadog_pin.service_name == default_datadog_pin.service_name && @datadog_pin.service_name != service
-              @datadog_pin.service = service
-            end
-
-            @datadog_pin
-          end
-
-          def default_datadog_pin
-            config = Datadog.configuration[:httprb]
-            service = config[:service_name]
-
-            @default_datadog_pin ||= Datadog::Pin.new(
-              service,
-              app: Ext::APP,
-              app_type: Datadog::Ext::HTTP::TYPE_OUTBOUND,
-            )
-          end
-
           def datadog_configuration(host = :default)
-            Datadog.configuration[:httprb, host]
+            Datadog::Tracing.configuration[:httprb, host]
           end
 
           def analytics_enabled?(request_options)
@@ -134,10 +109,10 @@ module Datadog
             Datadog.logger
           end
 
-          def should_skip_distributed_tracing?(pin)
-            return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
+          def should_skip_distributed_tracing?(client_config)
+            return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
-            !Datadog.configuration[:httprb][:distributed_tracing]
+            !Datadog::Tracing.configuration[:httprb][:distributed_tracing]
           end
 
           def set_analytics_sample_rate(span, request_options)

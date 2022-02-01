@@ -1,6 +1,6 @@
 # typed: ignore
 require 'datadog/ci/contrib/support/spec_helper'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 
 require 'cucumber'
 require 'ddtrace'
@@ -23,8 +23,8 @@ RSpec.describe 'Cucumber formatter' do
   let(:cli)    { Cucumber::Cli::Main.new(args, stdin, stdout, stderr, kernel) }
 
   before do
-    Datadog.configure do |c|
-      c.use :cucumber, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :cucumber, configuration_options
     end
   end
 

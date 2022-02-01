@@ -11,7 +11,11 @@ RSpec.describe 'Rails cache' do
   include_context 'Rails test application'
 
   before do
-    Datadog.configuration[:rails][:cache_service] = 'rails-cache'
+    Datadog::Tracing.configuration[:active_support][:cache_service] = 'rails-cache'
+  end
+
+  after do
+    Datadog::Tracing.configuration[:active_support].reset!
   end
 
   before { app }
@@ -44,6 +48,20 @@ RSpec.describe 'Rails cache' do
       expect(get.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(get.get_tag('rails.cache.key')).to eq(key)
       expect(set.name).to eq('rails.cache')
+
+      expect(get.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(get.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('cache')
+      expect(get.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('rails-cache')
+
+      expect(set.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(set.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('cache')
+      expect(set.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('rails-cache')
     end
   end
 
@@ -68,8 +86,21 @@ RSpec.describe 'Rails cache' do
       expect(get.service).to eq('rails-cache')
       expect(get.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(JSON.parse(get.get_tag('rails.cache.keys'))).to eq(multi_keys)
+      expect(get.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(get.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('cache')
+      expect(get.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('rails-cache')
+
       spans[1..-1].each do |set|
         expect(set.name).to eq('rails.cache')
+        expect(set.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(set.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('cache')
+        expect(set.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq('rails-cache')
       end
     end
   end
@@ -89,10 +120,17 @@ RSpec.describe 'Rails cache' do
       expect(span.service).to eq('rails-cache')
       expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(span.get_tag('rails.cache.key')).to eq(key)
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('cache')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('rails-cache')
     end
 
     context 'with custom cache_service' do
-      before { Datadog.configuration[:rails][:cache_service] = 'service-cache' }
+      before { Datadog::Tracing.configuration[:active_support][:cache_service] = 'service-cache' }
 
       it 'uses the proper service name' do
         write
@@ -135,10 +173,17 @@ RSpec.describe 'Rails cache' do
         expect(span.service).to eq('rails-cache')
         expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
         expect(JSON.parse(span.get_tag('rails.cache.keys'))).to eq(multi_keys)
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('cache')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq('rails-cache')
       end
 
       context 'with custom cache_service' do
-        before { Datadog.configuration[:rails][:cache_service] = 'service-cache' }
+        before { Datadog::Tracing.configuration[:active_support][:cache_service] = 'service-cache' }
 
         it 'uses the proper service name' do
           write_multi
@@ -188,6 +233,13 @@ RSpec.describe 'Rails cache' do
       expect(span.service).to eq('rails-cache')
       expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
       expect(span.get_tag('rails.cache.key')).to eq(key)
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('cache')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('rails-cache')
     end
   end
 
@@ -215,6 +267,13 @@ RSpec.describe 'Rails cache' do
         expect(span.get_tag('rails.cache.key')).to eq('exception')
         expect(span.get_tag('error.type')).to eq('RuntimeError')
         expect(span.get_tag('error.msg')).to eq('oops')
+
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('cache')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+          .to eq('rails-cache')
       end
     end
   end
@@ -249,6 +308,13 @@ RSpec.describe 'Rails cache' do
           expect(span.get_tag('rails.cache.keys')).to eq('["exception", "another", "one"]')
           expect(span.get_tag('error.type')).to eq('RuntimeError')
           expect(span.get_tag('error.msg')).to eq('oops')
+
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+            .to eq('active_support')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+            .to eq('cache')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+            .to eq('rails-cache')
         end
       end
     end
@@ -282,6 +348,13 @@ RSpec.describe 'Rails cache' do
       expect(span.name).to eq('rails.cache')
       expect(span.get_tag('rails.cache.key')).to have(max_key_size).items
       expect(span.get_tag('rails.cache.key')).to end_with('...')
+
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+        .to eq('cache')
+      expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE))
+        .to eq('rails-cache')
     end
   end
 end

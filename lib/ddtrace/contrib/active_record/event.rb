@@ -14,15 +14,11 @@ module Datadog
         # Class methods for ActiveRecord events.
         module ClassMethods
           def span_options
-            { service: configuration[:service_name] }
-          end
-
-          def tracer
-            Datadog.tracer
+            {}
           end
 
           def configuration
-            Datadog.configuration[:active_record]
+            Datadog::Tracing.configuration[:active_record]
           end
         end
       end

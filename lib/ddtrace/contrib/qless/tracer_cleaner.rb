@@ -5,28 +5,21 @@ module Datadog
       # Shutdown Tracer in forks for performance reasons
       module TracerCleaner
         def around_perform(job)
-          return super unless datadog_configuration && tracer
+          return super unless datadog_configuration && Datadog::Tracing.enabled?
 
           super.tap do
-            tracer.shutdown! if forked?
+            Datadog::Tracing.shutdown! if forked?
           end
         end
 
         private
 
         def forked?
-          pin = Datadog::Pin.get_from(::Qless)
-          return false unless pin
-
-          pin.config[:forked] == true
-        end
-
-        def tracer
-          Datadog.tracer
+          Datadog.configuration_for(::Qless, :forked) == true
         end
 
         def datadog_configuration
-          Datadog.configuration[:qless]
+          Datadog::Tracing.configuration[:qless]
         end
       end
     end

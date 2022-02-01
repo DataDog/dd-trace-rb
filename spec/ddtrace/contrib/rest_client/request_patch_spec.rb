@@ -12,8 +12,8 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :rest_client, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :rest_client, configuration_options
     end
 
     WebMock.disable_net_connect!
@@ -22,9 +22,9 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:rest_client].reset_configuration!
+    Datadog::Tracing.registry[:rest_client].reset_configuration!
     example.run
-    Datadog.registry[:rest_client].reset_configuration!
+    Datadog::Tracing.registry[:rest_client].reset_configuration!
   end
 
   describe 'instrumented request' do
@@ -90,7 +90,14 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
             let(:analytics_sample_rate_var) { Datadog::Contrib::RestClient::Ext::ENV_ANALYTICS_SAMPLE_RATE }
           end
 
-          it_behaves_like 'a peer service span'
+          it 'has correct component and operation tags' do
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rest_client')
+            expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+          end
+
+          it_behaves_like 'a peer service span' do
+            let(:peer_hostname) { host }
+          end
 
           it_behaves_like 'measured span for integration', false
         end
@@ -204,7 +211,14 @@ RSpec.describe Datadog::Contrib::RestClient::RequestPatch do
               expect(span.service).to eq('rest_client')
             end
 
-            it_behaves_like 'a peer service span'
+            it 'has correct component and operation tags' do
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('rest_client')
+              expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
+            end
+
+            it_behaves_like 'a peer service span' do
+              let(:peer_hostname) { host }
+            end
           end
         end
       end

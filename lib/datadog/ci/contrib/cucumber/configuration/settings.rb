@@ -8,6 +8,7 @@ module Datadog
       module Cucumber
         module Configuration
           # Custom settings for the Cucumber integration
+          # TODO: mark as `@public_api` when GA
           class Settings < Datadog::Contrib::Configuration::Settings
             option :enabled do |o|
               o.default { env_to_bool(Ext::ENV_ENABLED, true) }

@@ -15,8 +15,8 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure do |c|
-      c.use :elasticsearch, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :elasticsearch, configuration_options
     end
 
     wait_http_server(server, 60)
@@ -24,9 +24,9 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:elasticsearch].reset_configuration!
+    Datadog::Tracing.registry[:elasticsearch].reset_configuration!
     example.run
-    Datadog.registry[:elasticsearch].reset_configuration!
+    Datadog::Tracing.registry[:elasticsearch].reset_configuration!
   end
 
   describe 'cluster health request' do
@@ -69,7 +69,18 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
-      it_behaves_like 'a peer service span'
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
+      }
+
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('query')
+      }
+
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     describe 'health request span' do
@@ -84,7 +95,18 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
-      it_behaves_like 'a peer service span'
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
+      }
+
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('query')
+      }
+
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -130,12 +152,23 @@ RSpec.describe Datadog::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('elasticsearch')
+      }
+
+      it {
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION))
+          .to eq('query')
+      }
+
       it 'tags span with quantized request body' do
         expect(span.get_tag('elasticsearch.body'))
           .to eq('{"field":"?","nested_object":{"value":"?"},"nested_array":["?"],"nested_object_array":[{"a":"?"},"?"]}')
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 end

@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/action_view/ext'
 
 module Datadog
@@ -10,10 +11,13 @@ module Datadog
           # Legacy shared code for Rails >= 3.1 template rendering
           module Rails31Plus
             def render(*args, &block)
-              datadog_tracer.trace(
+              Datadog::Tracing.trace(
                 Ext::SPAN_RENDER_TEMPLATE,
                 span_type: Datadog::Ext::HTTP::TEMPLATE
               ) do |span|
+                span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_TEMPLATE)
+
                 with_datadog_span(span) { super(*args, &block) }
               end
             end
@@ -59,10 +63,6 @@ module Datadog
             private
 
             attr_accessor :active_datadog_span
-
-            def datadog_tracer
-              Datadog.tracer
-            end
 
             def with_datadog_span(span)
               self.active_datadog_span = span

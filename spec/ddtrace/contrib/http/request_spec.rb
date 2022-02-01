@@ -24,14 +24,14 @@ RSpec.describe 'net/http requests' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog.configure { |c| c.use :http, configuration_options }
+    Datadog::Tracing.configure { |c| c.instrument :http, configuration_options }
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:http].reset_configuration!
+    Datadog::Tracing.registry[:http].reset_configuration!
     example.run
-    Datadog.registry[:http].reset_configuration!
+    Datadog::Tracing.registry[:http].reset_configuration!
   end
 
   describe '#get' do
@@ -69,7 +69,9 @@ RSpec.describe 'net/http requests' do
         before { response }
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     context 'that returns 404' do
@@ -93,7 +95,9 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('error.msg')).to be nil
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
 
       context 'when configured with #after_request hook' do
         before { Datadog::Contrib::HTTP::Instrumentation.after_request(&callback) }
@@ -159,7 +163,9 @@ RSpec.describe 'net/http requests' do
         expect(span.status).to eq(0)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -189,7 +195,9 @@ RSpec.describe 'net/http requests' do
         expect(span.status).to eq(0)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -199,7 +207,7 @@ RSpec.describe 'net/http requests' do
 
       before do
         stub_request(:get, "#{uri}#{path}").to_return(status: 200, body: '{}')
-        Datadog::Pin.get_from(client).service = service_name
+        Datadog.configure_onto(client, service_name: service_name)
       end
 
       let(:path) { '/my/path' }
@@ -212,7 +220,9 @@ RSpec.describe 'net/http requests' do
         expect(span.service).to eq(service_name)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
   end
 
@@ -233,14 +243,14 @@ RSpec.describe 'net/http requests' do
 
     context 'and the host matches a specific configuration' do
       before do
-        Datadog.configure do |c|
-          c.use :http, configuration_options
-          c.use :http, describes: /127.0.0.1/ do |http|
+        Datadog::Tracing.configure do |c|
+          c.instrument :http, configuration_options
+          c.instrument :http, describes: /127.0.0.1/ do |http|
             http.service_name = 'bar'
             http.split_by_domain = false
           end
 
-          c.use :http, describes: /badexample\.com/ do |http|
+          c.instrument :http, describes: /badexample\.com/ do |http|
             http.service_name = 'bar_bad'
             http.split_by_domain = false
           end
@@ -355,7 +365,7 @@ RSpec.describe 'net/http requests' do
 
       context 'but the tracer is disabled' do
         before do
-          Datadog.configure do |c|
+          Datadog::Tracing.configure do |c|
             c.tracer.enabled = false
           end
 
@@ -371,12 +381,12 @@ RSpec.describe 'net/http requests' do
 
     context 'when disabled' do
       before do
-        Datadog.configure { |c| c.use :http, distributed_tracing: false }
+        Datadog::Tracing.configure { |c| c.instrument :http, distributed_tracing: false }
         client.get(path)
       end
 
       after do
-        Datadog.configure { |c| c.use :http, distributed_tracing: true }
+        Datadog::Tracing.configure { |c| c.instrument :http, distributed_tracing: true }
       end
 
       let(:span) { spans.last }

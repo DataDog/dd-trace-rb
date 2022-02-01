@@ -15,12 +15,12 @@ RSpec.describe Datadog::Contrib::Configurable do
       subject(:configurable_object) { configurable_class.new }
 
       describe '#default_configuration' do
-        subject(:configuration) { configurable_object.default_configuration }
+        subject(:default_configuration) { configurable_object.default_configuration }
 
         it { is_expected.to be_a_kind_of(Datadog::Contrib::Configuration::Settings) }
 
         it 'defaults to being enabled' do
-          expect(configuration[:enabled]).to be true
+          expect(default_configuration[:enabled]).to be true
         end
       end
 

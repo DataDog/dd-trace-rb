@@ -7,6 +7,7 @@ module Datadog
     module Rake
       module Configuration
         # Custom settings for the Rake integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           option :enabled do |o|
             o.default { env_to_bool(Ext::ENV_ENABLED, true) }
@@ -24,7 +25,7 @@ module Datadog
           end
 
           option :quantize, default: {}
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name
         end
       end
     end

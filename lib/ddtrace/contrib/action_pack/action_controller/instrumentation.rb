@@ -16,15 +16,15 @@ module Datadog
 
           def start_processing(payload)
             # trace the execution
-            service = Datadog.configuration[:action_pack][:controller_service]
+            service = Datadog::Tracing.configuration[:action_pack][:service_name]
             type = Datadog::Ext::HTTP::TYPE_INBOUND
-            span = Datadog.tracer.trace(
+            span = Datadog::Tracing.trace(
               Ext::SPAN_ACTION_CONTROLLER,
               service: service,
               span_type: type,
               resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
             )
-            trace = Datadog.tracer.active_trace
+            trace = Datadog::Tracing.active_trace
 
             # attach the current span to the tracing context
             tracing_context = payload.fetch(:tracing_context)
@@ -33,6 +33,9 @@ module Datadog
 
             # We want the route to show up as the trace's resource
             trace.resource = span.resource
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
           rescue StandardError => e
             Datadog.logger.error(e.message)
           end
@@ -74,7 +77,7 @@ module Datadog
           end
 
           def exception_controller?(payload)
-            exception_controller_class = Datadog.configuration[:action_pack][:exception_controller]
+            exception_controller_class = Datadog::Tracing.configuration[:action_pack][:exception_controller]
             controller = payload.fetch(:controller)
             headers = payload.fetch(:headers)
 

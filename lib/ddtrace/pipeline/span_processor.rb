@@ -1,8 +1,17 @@
 # typed: true
 module Datadog
   module Pipeline
-    # SpanProcessor
+    # This processor executes the configured `operation` for each {Datadog::Span}
+    # in a {Datadog::TraceSegment}.
+    #
+    # @public_api
     class SpanProcessor
+      # You can either provide an `operation` object or a block to this method.
+      #
+      # Both have the same semantics as `operation`.
+      # `operation` is used if both `operation` and a block are present.
+      #
+      # @param [#call(Datadog::Span)] operation a callable that can modify the span.
       def initialize(operation = nil, &block)
         callable = operation || block
 
@@ -11,6 +20,10 @@ module Datadog
         @operation = operation || block
       end
 
+      # Invokes `operation#call` for each spans in the `trace` argument.
+      # @param [Datadog::TraceSegment] trace a trace segment.
+      # @return [Datadog::TraceSegment] the `trace` provided as an argument.
+      # @!visibility private
       def call(trace)
         trace.spans.each do |span|
           @operation.call(span) rescue next

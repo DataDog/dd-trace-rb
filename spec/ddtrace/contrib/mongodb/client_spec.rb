@@ -24,17 +24,17 @@ RSpec.describe 'Mongo::Client instrumentation' do
     # Disable Mongo logging
     Mongo::Logger.logger.level = ::Logger::WARN
 
-    Datadog.configure do |c|
-      c.use :mongo, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :mongo, configuration_options
     end
   end
 
   around do |example|
     without_warnings do
       # Reset before and after each example; don't allow global state to linger.
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Tracing.registry[:mongo].reset_configuration!
       example.run
-      Datadog.registry[:mongo].reset_configuration!
+      Datadog::Tracing.registry[:mongo].reset_configuration!
       client.database.drop if drop_database?
       client.close
     end
@@ -62,22 +62,26 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(spans.first.service).to eq(service)
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     context 'with a different service name using describes option' do
       let(:primary_service) { 'mongodb-primary' }
       let(:secondary_service) { 'mongodb-secondary' }
       let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
+      # TODO: This tests doesn't work if TEST_MONGODB_HOST is set to anything other than 127.0.0.1
+      #       We should fix this... maybe do a more clever IP resolve or something?
       let(:secondary_host) { 'localhost' }
 
       before do
-        Datadog.configure do |c|
-          c.use :mongo, describes: /#{host}/ do |mongo|
+        Datadog::Tracing.configure do |c|
+          c.instrument :mongo, describes: /#{host}/ do |mongo|
             mongo.service_name = primary_service
           end
 
-          c.use :mongo, describes: /#{secondary_host}/ do |mongo|
+          c.instrument :mongo, describes: /#{secondary_host}/ do |mongo|
             mongo.service_name = secondary_service
           end
         end
@@ -92,16 +96,18 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(spans.first.service).to eq(primary_service)
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
       end
 
       context 'secondary client' do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
-            Datadog.registry[:mongo].reset_configuration!
+            Datadog::Tracing.registry[:mongo].reset_configuration!
             example.run
-            Datadog.registry[:mongo].reset_configuration!
+            Datadog::Tracing.registry[:mongo].reset_configuration!
             secondary_client.database.drop if drop_database?
             secondary_client.close
           end
@@ -115,7 +121,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(spans.first.service).to eq(secondary_service)
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { secondary_host }
+        end
       end
     end
 
@@ -141,6 +149,8 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag('mongodb.collection')).to eq(collection_value)
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('mongodb')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('command')
       end
 
       it_behaves_like 'analytics for integration' do
@@ -148,7 +158,9 @@ RSpec.describe 'Mongo::Client instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::MongoDB::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
 
       it_behaves_like 'measured span for integration', false
     end

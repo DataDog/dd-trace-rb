@@ -2,6 +2,7 @@
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scopes
+    # @public_api
     class ThreadLocalScope < Scope
       attr_reader \
         :finish_on_close

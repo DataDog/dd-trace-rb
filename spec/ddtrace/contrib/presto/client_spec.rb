@@ -24,7 +24,7 @@ RSpec.describe 'Presto::Client instrumentation' do
   end
   let(:service) { 'presto' }
   let(:host) { ENV.fetch('TEST_PRESTO_HOST', 'localhost') }
-  let(:port) { ENV.fetch('TEST_PRESTO_PORT', 8080) }
+  let(:port) { ENV.fetch('TEST_PRESTO_PORT', 8080).to_i }
   let(:user) { 'test_user' }
   let(:schema) { 'test_schema' }
   let(:catalog) { 'memory' }
@@ -57,28 +57,28 @@ RSpec.describe 'Presto::Client instrumentation' do
   end
 
   before do
-    Datadog.configure do |c|
-      c.use :presto, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :presto, configuration_options
     end
   end
 
   around do |example|
     without_warnings do
-      Datadog.registry[:presto].reset_configuration!
+      Datadog::Tracing.registry[:presto].reset_configuration!
       example.run
-      Datadog.registry[:presto].reset_configuration!
-      Datadog.configuration.reset!
+      Datadog::Tracing.registry[:presto].reset_configuration!
+      Datadog::Tracing.configuration.reset!
     end
   end
 
   context 'when the tracer is disabled' do
     before do
-      Datadog.configure do |c|
+      Datadog::Tracing.configure do |c|
         c.tracer.enabled = false
       end
     end
 
-    after { Datadog.configuration.tracer.reset! }
+    after { Datadog::Tracing.configuration.tracer.reset! }
 
     it 'does not produce spans' do
       client.run('SELECT 1')
@@ -98,7 +98,10 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.get_tag('presto.language')).to eq(language)
         expect(span.get_tag('presto.http_proxy')).to eq(http_proxy)
         expect(span.get_tag('presto.model_version')).to eq(model_version)
-        expect(span.get_tag('out.host')).to eq("#{host}:#{port}")
+        expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.port')).to eq(port)
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('presto')
+        expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq(operation)
       end
     end
 
@@ -218,11 +221,15 @@ RSpec.describe 'Presto::Client instrumentation' do
 
       it_behaves_like 'measured span for integration', false
 
-      it_behaves_like 'a peer service span'
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { host }
+      end
     end
 
     describe '#run operation' do
       before { client.run('SELECT 1') }
+
+      let(:operation) { 'query' }
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
@@ -263,6 +270,8 @@ RSpec.describe 'Presto::Client instrumentation' do
     end
 
     describe '#query operation' do
+      let(:operation) { 'query' }
+
       shared_examples_for 'a query trace' do
         it 'has a query resource' do
           expect(span.resource).to eq('SELECT 1')
@@ -299,6 +308,8 @@ RSpec.describe 'Presto::Client instrumentation' do
         client.kill('a_query_id')
       end
 
+      let(:operation) { 'kill' }
+
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'
       it_behaves_like 'a sampled trace'
@@ -318,6 +329,8 @@ RSpec.describe 'Presto::Client instrumentation' do
 
     describe '#run_with_names operation' do
       before { client.run_with_names('SELECT 1') }
+
+      let(:operation) { 'query' }
 
       it_behaves_like 'a Presto trace'
       it_behaves_like 'a configurable Presto trace'

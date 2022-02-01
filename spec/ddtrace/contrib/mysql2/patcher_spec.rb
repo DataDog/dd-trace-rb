@@ -27,26 +27,16 @@ RSpec.describe 'Mysql2::Client patcher' do
   let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
 
   before do
-    Datadog.configure do |c|
-      c.use :mysql2, configuration_options
+    Datadog::Tracing.configure do |c|
+      c.instrument :mysql2, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:mysql2].reset_configuration!
+    Datadog::Tracing.registry[:mysql2].reset_configuration!
     example.run
-    Datadog.registry[:mysql2].reset_configuration!
-  end
-
-  context 'pin' do
-    subject(:pin) { client.datadog_pin }
-
-    it 'has the correct attributes' do
-      expect(pin.service).to eq(service_name)
-      expect(pin.app).to eq('mysql2')
-      expect(pin.app_type).to eq('db')
-    end
+    Datadog::Tracing.registry[:mysql2].reset_configuration!
   end
 
   describe 'tracing' do
@@ -60,6 +50,21 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
       end
 
+      context 'when the client is configured directly' do
+        let(:service_override) { 'mysql-override' }
+
+        before do
+          Datadog.configure_onto(client, service_name: service_override)
+          client.query('SELECT 1')
+        end
+
+        it 'produces a trace with service override' do
+          expect(spans.count).to eq(1)
+          expect(span.service).to eq(service_override)
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq(service_override)
+        end
+      end
+
       context 'when a successful query is made' do
         before { client.query('SELECT 1') }
 
@@ -68,6 +73,8 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('mysql2')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('query')
         end
 
         it_behaves_like 'analytics for integration' do
@@ -75,7 +82,9 @@ RSpec.describe 'Mysql2::Client patcher' do
           let(:analytics_sample_rate_var) { Datadog::Contrib::Mysql2::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
-        it_behaves_like 'a peer service span'
+        it_behaves_like 'a peer service span' do
+          let(:peer_hostname) { host }
+        end
 
         it_behaves_like 'measured span for integration', false
       end

@@ -1,7 +1,7 @@
 # typed: ignore
 require 'excon'
 require 'ddtrace/ext/http'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/ext/distributed'
 require 'ddtrace/propagation/http_propagator'
@@ -29,8 +29,8 @@ module Datadog
           begin
             unless datum.key?(:datadog_span)
               @options = build_request_options!(datum)
-              span = tracer.trace(Ext::SPAN_REQUEST)
-              trace = tracer.active_trace
+              span = Datadog::Tracing.trace(Ext::SPAN_REQUEST)
+              trace = Datadog::Tracing.active_trace
               datum[:datadog_span] = span
               annotate!(span, datum)
               propagate!(trace, span, datum) if distributed_tracing?
@@ -93,10 +93,6 @@ module Datadog
 
         private
 
-        def tracer
-          Datadog.tracer
-        end
-
         def analytics_enabled?
           Contrib::Analytics.enabled?(@options[:analytics_enabled])
         end
@@ -106,7 +102,7 @@ module Datadog
         end
 
         def distributed_tracing?
-          @options[:distributed_tracing] == true && tracer.enabled
+          @options[:distributed_tracing] == true && Datadog::Tracing.enabled?
         end
 
         def error_handler
@@ -118,8 +114,12 @@ module Datadog
           span.service = service_name(datum[:host], @options)
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
+          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, datum[:host])
 
           # Set analytics sample rate
           Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
@@ -158,7 +158,7 @@ module Datadog
         end
 
         def datadog_configuration(host = :default)
-          Datadog.configuration[:excon, host]
+          Datadog::Tracing.configuration[:excon, host]
         end
       end
     end

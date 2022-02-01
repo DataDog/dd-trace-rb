@@ -20,7 +20,7 @@ RSpec.describe 'net/http miniapp tests' do
   let(:client) { Net::HTTP.new(host, port) }
 
   before do
-    Datadog.configure { |c| c.use :http }
+    Datadog::Tracing.configure { |c| c.instrument :http }
   end
 
   context 'when performing a trace around HTTP calls' do
@@ -60,13 +60,17 @@ RSpec.describe 'net/http miniapp tests' do
         http_spans.each do |span|
           expect(span.name).to eq('http.request')
           expect(span.service).to eq('net/http')
-          expect(span.get_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE)).to eq('net/http')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE)).to eq('net/http')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME)).to eq(host)
           expect(span.resource).to eq('GET')
           expect(span.get_tag('http.url')).to eq('/my/path')
           expect(span.get_tag('http.method')).to eq('GET')
           expect(span.get_tag('http.status_code')).to eq('200')
           expect(span.parent_id).to eq(parent_span.span_id)
           expect(span.trace_id).to eq(trace_id)
+
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_COMPONENT)).to eq('net/http')
+          expect(span.get_tag(Datadog::Ext::Metadata::TAG_OPERATION)).to eq('request')
         end
       end
     end

@@ -9,9 +9,9 @@ module Datadog
       # Uses Qless job hooks to create traces
       module QlessJob
         def around_perform(job)
-          return super unless datadog_configuration && tracer
+          return super unless datadog_configuration && Datadog::Tracing.enabled?
 
-          tracer.trace(Ext::SPAN_JOB, **span_options) do |span|
+          Datadog::Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|
             span.resource = job.klass_name
             span.span_type = Datadog::Ext::AppTypes::WORKER
             span.set_tag(Ext::TAG_JOB_ID, job.jid)
@@ -30,6 +30,9 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_DATA, formatted_data)
             end
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(span, datadog_configuration[:analytics_sample_rate])
@@ -43,16 +46,13 @@ module Datadog
         end
 
         def after_fork
-          configuration = Datadog.configuration[:qless]
+          configuration = Datadog::Tracing.configuration[:qless]
           return if configuration.nil?
 
           # Add a pin, marking the job as forked.
           # Used to trigger shutdown in forks for performance reasons.
           # Cleanup happens in the TracerCleaner class
-          Datadog::Pin.new(
-            configuration[:service_name],
-            config: { forked: true }
-          ).onto(::Qless)
+          Datadog.configure_onto(::Qless, forked: true)
         end
 
         private
@@ -61,12 +61,8 @@ module Datadog
           { service: datadog_configuration[:service_name] }
         end
 
-        def tracer
-          Datadog.tracer
-        end
-
         def datadog_configuration
-          Datadog.configuration[:qless]
+          Datadog::Tracing.configuration[:qless]
         end
       end
     end

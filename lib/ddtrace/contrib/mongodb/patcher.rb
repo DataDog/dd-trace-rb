@@ -17,7 +17,6 @@ module Datadog
         end
 
         def patch
-          ::Mongo::Address.include(Instrumentation::Address)
           ::Mongo::Client.include(Instrumentation::Client)
           add_mongo_monitoring
         end

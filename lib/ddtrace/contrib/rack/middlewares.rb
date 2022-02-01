@@ -1,12 +1,16 @@
 # typed: false
+require 'date'
+
+require 'datadog/core/environment/variable_helpers'
+
 require 'ddtrace/ext/app_types'
 require 'ddtrace/ext/http'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
+require 'ddtrace/contrib/utils/quantization/http'
 require 'ddtrace/contrib/rack/ext'
 require 'ddtrace/contrib/rack/request_queue'
-require 'datadog/core/environment/variable_helpers'
-require 'date'
 
 module Datadog
   module Contrib
@@ -23,46 +27,53 @@ module Datadog
           @app = app
         end
 
-        def compute_queue_time(env, tracer)
+        def compute_queue_time(env)
           return unless configuration[:request_queuing]
 
           # parse the request queue time
           request_start = Datadog::Contrib::Rack::QueueTime.get_request_start(env)
           return if request_start.nil?
 
-          tracer.trace(
+          frontend_span = Datadog::Tracing.trace(
             Ext::SPAN_HTTP_SERVER_QUEUE,
             span_type: Datadog::Ext::HTTP::TYPE_PROXY,
             start_time: request_start,
             service: configuration[:web_service_name]
           )
+
+          # Tag this span as belonging to Rack
+          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
+
+          # Set peer service (so its not believed to belong to this app)
+          frontend_span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, configuration[:web_service_name])
+
+          frontend_span
         end
 
         def call(env)
-          # retrieve integration settings
-          tracer = Datadog.tracer
+          # Find out if this is rack within rack
+          previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
 
           # Extract distributed tracing context before creating any spans,
           # so that all spans will be added to the distributed trace.
-          if configuration[:distributed_tracing]
+          if configuration[:distributed_tracing] && previous_request_span.nil?
             trace_digest = HTTPPropagator.extract(env)
-            tracer.continue_trace!(trace_digest)
+            Datadog::Tracing.continue_trace!(trace_digest)
           end
 
           # Create a root Span to keep track of frontend web servers
           # (i.e. Apache, nginx) if the header is properly set
-          frontend_span = compute_queue_time(env, tracer)
+          frontend_span = compute_queue_time(env) if previous_request_span.nil?
 
-          trace_options = {
-            service: configuration[:service_name],
-            span_type: Datadog::Ext::HTTP::TYPE_INBOUND
-          }
+          trace_options = { span_type: Datadog::Ext::HTTP::TYPE_INBOUND }
+          trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
           # start a new request span and attach it to the current Rack environment;
           # we must ensure that the span `resource` is set later
-          request_span = tracer.trace(Ext::SPAN_REQUEST, **trace_options)
+          request_span = Datadog::Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
           request_span.resource = nil
-          request_trace = tracer.active_trace
+          request_trace = Datadog::Tracing.active_trace
           env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
           # Copy the original env, before the rest of the stack executes.
@@ -86,6 +97,8 @@ module Datadog
           request_span.set_error(e) unless request_span.nil?
           raise e
         ensure
+          env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
+
           if request_span
             # Rack is a really low level interface and it doesn't provide any
             # advanced functionality like routers. Because of that, we assume that
@@ -114,6 +127,7 @@ module Datadog
         # rubocop:disable Metrics/AbcSize
         # rubocop:disable Metrics/CyclomaticComplexity
         # rubocop:disable Metrics/PerceivedComplexity
+        # rubocop:disable Metrics/MethodLength
         def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
           # http://www.rubydoc.info/github/rack/rack/file/SPEC
           # The source of truth in Rack is the PATH_INFO key that holds the
@@ -135,6 +149,9 @@ module Datadog
           # Set trace name if it hasn't been set yet (name == resource)
           trace.resource = request_span.resource if trace.resource == trace.name
 
+          request_span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          request_span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
             Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])
@@ -149,7 +166,7 @@ module Datadog
 
           if request_span.get_tag(Datadog::Ext::HTTP::URL).nil?
             options = configuration[:quantize]
-            request_span.set_tag(Datadog::Ext::HTTP::URL, Datadog::Quantization::HTTP.url(url, options))
+            request_span.set_tag(Datadog::Ext::HTTP::URL, Contrib::Utils::Quantization::HTTP.url(url, options))
           end
 
           if request_span.get_tag(Datadog::Ext::HTTP::BASE_URL).nil?
@@ -183,11 +200,14 @@ module Datadog
           # unless it has been already set by the underlying framework
           request_span.status = 1 if status.to_s.start_with?('5') && request_span.status.zero?
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/CyclomaticComplexity
+        # rubocop:enable Metrics/PerceivedComplexity
 
         private
 
         def configuration
-          Datadog.configuration[:rack]
+          Datadog::Tracing.configuration[:rack]
         end
 
         def parse_request_headers(env)

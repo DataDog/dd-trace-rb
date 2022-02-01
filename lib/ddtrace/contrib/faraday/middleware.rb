@@ -1,7 +1,7 @@
 # typed: ignore
 require 'faraday'
 require 'ddtrace/ext/http'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/ext/net'
 require 'ddtrace/propagation/http_propagator'
 require 'ddtrace/contrib/analytics'
@@ -26,10 +26,9 @@ module Datadog
           # Do this once to reduce expensive regex calls.
           request_options = build_request_options!(env)
 
-          tracer = Datadog.tracer
-          tracer.trace(Ext::SPAN_REQUEST) do |span, trace|
+          Datadog::Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
             annotate!(span, env, request_options)
-            propagate!(trace, span, env) if request_options[:distributed_tracing] && tracer.enabled
+            propagate!(trace, span, env) if request_options[:distributed_tracing] && Datadog::Tracing.enabled?
             app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
           end
         end
@@ -44,8 +43,12 @@ module Datadog
           span.service = options[:split_by_domain] ? env[:url].host : options[:service_name]
           span.span_type = Datadog::Ext::HTTP::TYPE_OUTBOUND
 
+          span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+          span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
+
           # Tag as an external peer service
-          span.set_tag(Datadog::Ext::Integration::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_SERVICE, span.service)
+          span.set_tag(Datadog::Ext::Metadata::TAG_PEER_HOSTNAME, env[:url].host)
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(options[:analytics_enabled])
@@ -79,7 +82,7 @@ module Datadog
         end
 
         def datadog_configuration(host = :default)
-          Datadog.configuration[:faraday, host]
+          Datadog::Tracing.configuration[:faraday, host]
         end
       end
     end

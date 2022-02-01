@@ -48,7 +48,7 @@ RSpec.describe 'RSpec behavior' do
 
   context 'when calling traced code' do
     it 'wraps the RSpec instrumentation around the traced code' do
-      Datadog.tracer.trace('code_under_test') do |span|
+      Datadog::Tracing.trace('code_under_test') do |span|
         time_to_run = rand
         sleep(rand)
         span.set_tag('run_time', time_to_run)

@@ -21,23 +21,17 @@ module Datadog
 
             response = nil
 
-            Datadog.tracer.trace(Ext::SPAN_QUERY) do |span|
-              span.service = datadog_pin.service
+            Datadog::Tracing.trace(Ext::SPAN_QUERY) do |span|
+              span.service =  Datadog.configuration_for(self, :service_name) \
+                              || Datadog::Tracing.configuration[:sequel][:service_name] \
+                              || adapter_name
               span.resource = opts[:query]
               span.span_type = Datadog::Ext::SQL::TYPE
-              Utils.set_common_tags(span)
+              Utils.set_common_tags(span, self)
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
               response = super(sql, options)
             end
             response
-          end
-
-          def datadog_pin
-            @pin ||= Datadog::Pin.new(
-              Datadog.configuration[:sequel][:service_name] || adapter_name,
-              app: Ext::APP,
-              app_type: Datadog::Ext::AppTypes::DB,
-            )
           end
 
           private

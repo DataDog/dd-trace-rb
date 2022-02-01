@@ -3,17 +3,19 @@ module Datadog
   module Contrib
     module ActionMailer
       # ActionMailer integration constants
+      # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
       module Ext
-        APP = 'action_mailer'.freeze
         ENV_ENABLED = 'DD_TRACE_ACTION_MAILER_ENABLED'.freeze
         ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTION_MAILER_ANALYTICS_ENABLED'.freeze
         ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTION_MAILER_ANALYTICS_SAMPLE_RATE'.freeze
-        SERVICE_NAME = 'action_mailer'.freeze
         SPAN_PROCESS = 'action_mailer.process'.freeze
         SPAN_DELIVER = 'action_mailer.deliver'.freeze
+        TAG_COMPONENT = 'action_mailer'.freeze
         TAG_ACTION = 'action_mailer.action'.freeze
         TAG_MAILER = 'action_mailer.mailer'.freeze
         TAG_MSG_ID = 'action_mailer.message_id'.freeze
+        TAG_OPERATION_DELIVER = 'deliver'.freeze
+        TAG_OPERATION_PROCESS = 'process'.freeze
 
         TAG_SUBJECT = 'action_mailer.subject'.freeze
         TAG_TO = 'action_mailer.to'.freeze

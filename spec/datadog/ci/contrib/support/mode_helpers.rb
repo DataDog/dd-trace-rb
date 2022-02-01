@@ -1,18 +1,18 @@
 # typed: false
-require 'ddtrace/configuration/settings'
-require 'ddtrace/configuration/components'
+require 'datadog/core/configuration/settings'
+require 'datadog/core/configuration/components'
 
 RSpec.shared_context 'CI mode activated' do
   let(:settings) do
-    Datadog::Configuration::Settings.new.tap do |settings|
+    Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.ci_mode.enabled = true
     end
   end
 
-  let(:components) { Datadog::Configuration::Components.new(settings) }
+  let(:components) { Datadog::Core::Configuration::Components.new(settings) }
 
   before do
-    allow(Datadog)
+    allow(Datadog::Tracing)
       .to receive(:tracer)
       .and_return(components.tracer)
   end

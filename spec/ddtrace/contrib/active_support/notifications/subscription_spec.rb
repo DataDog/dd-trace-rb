@@ -32,7 +32,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:span_op) { instance_double(Datadog::SpanOperation) }
 
         it do
-          expect(tracer).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
+          expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
           expect(span_op).to receive(:start).with(start).and_return(span_op).ordered
           expect(spy).to receive(:call).with(span_op, name, id, payload).ordered
           expect(span_op).to receive(:finish).with(finish).and_return(span_op).ordered
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
           around { |example| without_errors { example.run } }
 
           it 'finishes tracing anyways' do
-            expect(tracer).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
+            expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
             expect(span_op).to receive(:start).with(start).and_return(span_op).ordered
             expect(span_op).to receive(:finish).with(finish).and_return(span_op).ordered
             is_expected.to be(span_op)
@@ -65,17 +65,17 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
         let(:span_op) { double('span_op') }
 
         it 'returns the span operation' do
-          expect(tracer).to receive(:trace).with(span_name, **options).and_return(span_op)
+          expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op)
           is_expected.to be(span_op)
         end
 
         it 'sets the parent span operation' do
-          parent = tracer.trace('parent_span_operation')
+          parent = Datadog::Tracing.trace('parent_span_operation')
           expect(subject.parent_id).to eq parent.span_id
         end
 
         it 'sets span operation in payload' do
-          expect(tracer).to receive(:trace).with(span_name, **options).and_return(span_op)
+          expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op)
           expect { subject }.to change { payload[:datadog_span] }.to be(span_op)
         end
       end
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Contrib::ActiveSupport::Notifications::Subscription do
             context 'on #start' do
               it do
                 expect(callback_spy).to receive(:call).ordered
-                expect(tracer).to receive(:trace).ordered
+                expect(Datadog::Tracing).to receive(:trace).ordered
                 subscription.start(double('name'), double('id'), payload)
               end
             end

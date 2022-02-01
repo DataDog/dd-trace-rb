@@ -1,4 +1,5 @@
 # typed: false
+require 'ddtrace/contrib/utils/quantization/hash'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/rake/ext'
 
@@ -16,7 +17,7 @@ module Datadog
           def invoke(*args)
             return super unless enabled?
 
-            tracer.trace(Ext::SPAN_INVOKE, **span_options) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_INVOKE, **span_options) do |span|
               annotate_invoke!(span, args)
               super
             end
@@ -27,7 +28,7 @@ module Datadog
           def execute(args = nil)
             return super unless enabled?
 
-            tracer.trace(Ext::SPAN_EXECUTE, **span_options) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_EXECUTE, **span_options) do |span|
               annotate_execute!(span, args)
               super
             end
@@ -38,7 +39,9 @@ module Datadog
           private
 
           def shutdown_tracer!
-            tracer.shutdown! if tracer.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+            if Datadog::Tracing.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)
+              Datadog::Tracing.shutdown!
+            end
           end
 
           def annotate_invoke!(span, args)
@@ -51,6 +54,8 @@ module Datadog
             # Measure service stats
             Contrib::Analytics.set_measured(span)
 
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_INVOKE)
             span.set_tag(Ext::TAG_TASK_ARG_NAMES, arg_names)
             span.set_tag(Ext::TAG_INVOKE_ARGS, quantize_args(args)) unless args.nil?
           rescue StandardError => e
@@ -59,6 +64,8 @@ module Datadog
 
           def annotate_execute!(span, args)
             span.resource = name
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_EXECUTE)
             span.set_tag(Ext::TAG_EXECUTE_ARGS, quantize_args(args.to_hash)) unless args.nil?
           rescue StandardError => e
             Datadog.logger.debug("Error while tracing Rake execute: #{e.message}")
@@ -66,15 +73,11 @@ module Datadog
 
           def quantize_args(args)
             quantize_options = configuration[:quantize][:args]
-            Datadog::Quantization::Hash.format(args, quantize_options)
+            Contrib::Utils::Quantization::Hash.format(args, quantize_options)
           end
 
           def enabled?
             configuration[:enabled] == true
-          end
-
-          def tracer
-            Datadog.tracer
           end
 
           def span_options
@@ -82,7 +85,7 @@ module Datadog
           end
 
           def configuration
-            Datadog.configuration[:rake]
+            Datadog::Tracing.configuration[:rake]
           end
         end
       end

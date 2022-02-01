@@ -1,6 +1,6 @@
 # typed: ignore
 require 'ddtrace/ext/http'
-require 'ddtrace/ext/integration'
+require 'ddtrace/ext/metadata'
 require 'ddtrace/contrib/analytics'
 require 'ddtrace/contrib/grpc/ext'
 
@@ -17,15 +17,15 @@ module Datadog
           def trace(keywords)
             options = {
               span_type: Datadog::Ext::HTTP::TYPE_INBOUND,
-              service: service_name,
+              service: service_name, # TODO: Remove server-side service name configuration
               resource: format_resource(keywords[:method]),
               on_error: error_handler
             }
             metadata = keywords[:call].metadata
 
-            set_distributed_context!(tracer, metadata)
+            set_distributed_context!(metadata)
 
-            tracer.trace(Ext::SPAN_SERVICE, **options) do |span|
+            Datadog::Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
               annotate!(span, metadata)
 
               yield
@@ -34,8 +34,8 @@ module Datadog
 
           private
 
-          def set_distributed_context!(tracer, metadata)
-            tracer.continue_trace!(Datadog::GRPCPropagator.extract(metadata))
+          def set_distributed_context!(metadata)
+            Datadog::Tracing.continue_trace!(Datadog::GRPCPropagator.extract(metadata))
           rescue StandardError => e
             Datadog.logger.debug(
               "unable to propagate GRPC metadata to context: #{e}"
@@ -48,6 +48,9 @@ module Datadog
 
               span.set_tag(header, value)
             end
+
+            span.set_tag(Datadog::Ext::Metadata::TAG_COMPONENT, Ext::TAG_COMPONENT)
+            span.set_tag(Datadog::Ext::Metadata::TAG_OPERATION, Ext::TAG_OPERATION_SERVICE)
 
             # Set analytics sample rate
             Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?

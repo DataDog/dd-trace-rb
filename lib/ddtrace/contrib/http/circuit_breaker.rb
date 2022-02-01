@@ -5,12 +5,12 @@ module Datadog
       # HTTP integration circuit breaker behavior
       # For avoiding recursive traces.
       module CircuitBreaker
-        def should_skip_tracing?(request, tracer)
+        def should_skip_tracing?(request)
           return true if datadog_http_request?(request)
 
           # we don't want a "shotgun" effect with two nested traces for one
           # logical get, and request is likely to call itself recursively
-          active = tracer.active_span
+          active = Datadog::Tracing.active_span
           return true if active && (active.name == Ext::SPAN_REQUEST)
 
           false
@@ -27,10 +27,10 @@ module Datadog
           end
         end
 
-        def should_skip_distributed_tracing?(pin)
-          return !pin.config[:distributed_tracing] if pin.config && pin.config.key?(:distributed_tracing)
+        def should_skip_distributed_tracing?(client_config)
+          return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
-          !Datadog.configuration[:http][:distributed_tracing]
+          !Datadog::Tracing.configuration[:http][:distributed_tracing]
         end
       end
     end

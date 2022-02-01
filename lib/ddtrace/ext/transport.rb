@@ -1,7 +1,9 @@
 # typed: true
 module Datadog
   module Ext
+    # @public_api
     module Transport
+      # @public_api
       module HTTP
         ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
         DEFAULT_HOST = '127.0.0.1'.freeze
@@ -18,10 +20,12 @@ module Datadog
         HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'.freeze
       end
 
+      # @public_api
       module Test
         ADAPTER = :test
       end
 
+      # @public_api
       module UnixSocket
         ADAPTER = :unix
         DEFAULT_PATH = '/var/run/datadog/apm.socket'.freeze

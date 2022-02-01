@@ -8,6 +8,7 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'ddtrace'
 require 'pry'
+require 'digest'
 require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of encoding pprofs and trying to submit them
@@ -27,24 +28,26 @@ class ProfilerSubmission
   def create_profiler
     @adapter_buffer = []
 
-    Datadog.configure do |c|
-      # c.diagnostics.debug = true
+    Datadog::Profiling.configure do |c|
       c.profiling.enabled = true
+    end
+
+    Datadog::Tracing.configure do |c|
       c.tracer.transport_options = proc { |t| t.adapter :test, @adapter_buffer }
     end
 
     # Stop background threads
-    Datadog.profiler.shutdown!
+    Datadog.shutdown!
 
     # Call exporter directly
-    @exporter = Datadog.profiler.scheduler.exporters.first
+    @exporter = Datadog.send(:components).profiler.scheduler.exporters.first
     @flush = Marshal.load(
       Zlib::GzipReader.new(File.open(ENV['FLUSH_DUMP_FILE'] || 'benchmarks/data/profiler-submission-marshal.gz'))
     )
   end
 
   def check_valid_pprof
-    output_pprof = @adapter_buffer.last[:form]["data[0]"].io
+    output_pprof = @adapter_buffer.last[:form]["data[rubyprofile.pprof]"].io
 
     expected_hashes = [
       "395dd7e65b35be6eede78ac9be072df8d6d79653f8c248691ad9bdd1d8b507de",
@@ -61,7 +64,7 @@ class ProfilerSubmission
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.001, warmup: 0.001} : {time: 70, warmup: 2}
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 70, warmup: 2}
       x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission_v2'))
 
       x.report("exporter #{ENV['CONFIG']}") do

@@ -3,7 +3,7 @@ RSpec.describe Datadog::Contrib::ActionView::Utils do
   describe '#normalize_template_name' do
     subject(:normalize_template_name) { described_class.normalize_template_name(name) }
 
-    after { Datadog.configuration[:action_view].reset! }
+    after { Datadog::Tracing.configuration[:action_view].reset! }
 
     context 'with template path' do
       let(:name) { '/rails/app/views/welcome/index.html.erb' }
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Contrib::ActionView::Utils do
     end
 
     context 'with a custom template base path' do
-      before { Datadog.configuration[:action_view][:template_base_path] = 'custom/' }
+      before { Datadog::Tracing.configuration[:action_view][:template_base_path] = 'custom/' }
 
       context 'with template outside of `views/` directory' do
         let(:name) { '/rails/app/custom/welcome/index.html.erb' }

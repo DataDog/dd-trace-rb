@@ -51,10 +51,6 @@ module Datadog
               {}
             end
 
-            def tracer
-              Datadog.tracer
-            end
-
             def report_if_exception(span, payload)
               exception = payload_exception(payload)
               span.set_error(payload[:exception]) if exception

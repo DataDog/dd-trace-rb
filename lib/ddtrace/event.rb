@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/logger'
+require 'datadog/core/logger'
 
 module Datadog
   # Event behavior and DSL

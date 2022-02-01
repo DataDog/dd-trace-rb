@@ -7,6 +7,7 @@ module Datadog
     module MongoDB
       module Configuration
         # Custom settings for the MongoDB integration
+        # @public_api
         class Settings < Contrib::Configuration::Settings
           DEFAULT_QUANTIZE = { show: [:collection, :database, :operation] }.freeze
 
@@ -26,7 +27,7 @@ module Datadog
           end
 
           option :quantize, default: DEFAULT_QUANTIZE
-          option :service_name, default: Ext::SERVICE_NAME
+          option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
         end
       end
     end

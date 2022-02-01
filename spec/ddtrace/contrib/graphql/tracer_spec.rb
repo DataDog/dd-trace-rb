@@ -19,10 +19,8 @@ RSpec.describe 'GraphQL patcher' do
   RSpec.shared_examples 'Schema patcher' do
     before do
       remove_patch!(:graphql)
-      Datadog.configure do |c|
-        c.use :graphql,
-              service_name: 'graphql-test',
-              schemas: [schema]
+      Datadog::Tracing.configure do |c|
+        c.instrument :graphql, schemas: [schema]
       end
     end
 
@@ -33,6 +31,8 @@ RSpec.describe 'GraphQL patcher' do
     end
 
     describe 'query trace' do
+      before { skip('GraphQL does not support ddtrace 1.0. Code must be updated in their package.') }
+
       subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
 
       let(:query) { '{ foo(id: 1) { name } }' }
@@ -79,7 +79,7 @@ RSpec.describe 'GraphQL patcher' do
 
         # Expect each span to be properly named
         spans.each do |span|
-          expect(span.service).to eq('graphql-test')
+          expect(span.service).to eq(tracer.default_service)
           expect(valid_resource_names).to include(span.resource)
         end
       end

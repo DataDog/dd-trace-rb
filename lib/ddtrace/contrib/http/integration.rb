@@ -19,6 +19,7 @@ module Datadog
 
         MINIMUM_VERSION = Datadog::VERSION::MINIMUM_RUBY_VERSION
 
+        # @public_api Changing the integration name or integration options can cause breaking changes
         register_as :http, auto_patch: true
 
         def self.version
@@ -29,7 +30,7 @@ module Datadog
           !defined?(::Net::HTTP).nil?
         end
 
-        def default_configuration
+        def new_configuration
           Configuration::Settings.new
         end
 
