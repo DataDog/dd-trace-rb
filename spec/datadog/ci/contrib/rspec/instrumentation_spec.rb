@@ -1,6 +1,8 @@
 # typed: false
-require 'ddtrace/contrib/support/spec_helper'
-require 'ddtrace/ext/metadata'
+require 'time'
+
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 
 require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/integration'
@@ -37,12 +39,12 @@ RSpec.describe 'RSpec hooks' do
       end.tap(&:run)
     end
 
-    expect(span.span_type).to eq(Datadog::CI::Ext::AppTypes::TEST)
+    expect(span.span_type).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)
     expect(span.name).to eq(Datadog::CI::Contrib::RSpec::Ext::OPERATION_NAME)
     expect(span.resource).to eq('some test foo')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to eq('some test foo')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
-    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND)).to eq(Datadog::CI::Ext::AppTypes::TEST)
+    expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND)).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_TYPE)).to eq(Datadog::CI::Contrib::RSpec::Ext::TEST_TYPE)
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK)).to eq(Datadog::CI::Contrib::RSpec::Ext::FRAMEWORK)
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_FRAMEWORK_VERSION)).to eq(
@@ -120,7 +122,7 @@ RSpec.describe 'RSpec hooks' do
     expect(spans).to have(2).items
 
     spans.each do |span|
-      expect(span.get_tag(Datadog::Ext::DistributedTracing::TAG_ORIGIN))
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN))
         .to eq(Datadog::CI::Ext::Test::CONTEXT_ORIGIN)
     end
   end

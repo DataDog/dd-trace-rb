@@ -36,7 +36,7 @@ module ConfigurationHelpers
   end
 
   def remove_patch!(integration, patch_key = :patch)
-    if (integration.is_a?(Module) || integration.is_a?(Class)) && integration <= Datadog::Contrib::Patcher
+    if (integration.is_a?(Module) || integration.is_a?(Class)) && integration <= Datadog::Tracing::Contrib::Patcher
       integration::PATCH_ONLY_ONCE.send(:reset_ran_once_state_for_tests) if defined?(integration::PATCH_ONLY_ONCE)
       if integration.respond_to?(:patch_only_once, true)
         integration.send(:patch_only_once).send(:reset_ran_once_state_for_tests)

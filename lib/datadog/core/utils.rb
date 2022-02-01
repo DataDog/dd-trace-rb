@@ -1,5 +1,6 @@
 # typed: true
 require 'datadog/core/utils/forking'
+require 'datadog/tracing/span'
 
 module Datadog
   module Core
@@ -17,7 +18,7 @@ module Datadog
       # This method is thread-safe and fork-safe.
       def self.next_id
         after_fork! { reset! }
-        id_rng.rand(Datadog::Span::RUBY_MAX_ID) # TODO: This should never return zero
+        id_rng.rand(Tracing::Span::RUBY_MAX_ID) # TODO: This should never return zero
       end
 
       def self.id_rng
@@ -57,11 +58,16 @@ module Datadog
 
       # Ensure `str` is a valid UTF-8, ready to be
       # sent through the tracer transport.
+      #
+      # @param [String,#to_s] str object to be converted to a UTF-8 string
+      # @param [Boolean] binary whether to expect binary data in the `str` parameter
+      # @param [String] placeholder string to be returned when encoding fails
+      # @return a UTF-8 string version of `str`
       # @!visibility private
-      def self.utf8_encode(str, options = {})
+      def self.utf8_encode(str, binary: false, placeholder: EMPTY_STRING)
         str = str.to_s
 
-        if options[:binary]
+        if binary
           # This option is useful for "gracefully" displaying binary data that
           # often contains text such as marshalled objects
           str.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '')
@@ -77,7 +83,7 @@ module Datadog
       rescue => e
         Datadog.logger.debug("Error encoding string in UTF-8: #{e}")
 
-        options.fetch(:placeholder, EMPTY_STRING)
+        placeholder
       end
 
       # @!visibility private

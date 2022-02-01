@@ -1,12 +1,12 @@
 # typed: false
 
-require 'datadog/profiling/native_extension'
-require 'datadog/profiling/backtrace_location'
-require 'datadog/profiling/events/stack'
 require 'datadog/core/utils/only_once'
 require 'datadog/core/utils/time'
 require 'datadog/core/worker'
 require 'datadog/core/workers/polling'
+require 'datadog/profiling/backtrace_location'
+require 'datadog/profiling/events/stack'
+require 'datadog/profiling/native_extension'
 
 module Datadog
   module Profiling
@@ -40,12 +40,12 @@ module Datadog
         def initialize(
           recorder,
           max_frames:,
-          trace_identifiers_helper:, # Usually an instance of Datadog::Profiling::TraceIdentifiers::Helper
+          trace_identifiers_helper:, # Usually an instance of Profiling::TraceIdentifiers::Helper
           ignore_thread: nil,
           max_time_usage_pct: DEFAULT_MAX_TIME_USAGE_PCT,
           max_threads_sampled: DEFAULT_MAX_THREADS_SAMPLED,
           thread_api: Thread,
-          cpu_time_provider: Datadog::Profiling::NativeExtension,
+          cpu_time_provider: Profiling::NativeExtension,
           fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
           interval: MIN_INTERVAL,
           enabled: true
@@ -89,7 +89,7 @@ module Datadog
         end
 
         def collect_and_wait
-          run_time = Datadog::Core::Utils::Time.measure do
+          run_time = Core::Utils::Time.measure do
             collect_events
           end
 
@@ -289,7 +289,7 @@ module Datadog
         end
 
         def get_current_wall_time_timestamp_ns
-          Datadog::Core::Utils::Time.get_time(:nanosecond)
+          Core::Utils::Time.get_time(:nanosecond)
         end
       end
     end
