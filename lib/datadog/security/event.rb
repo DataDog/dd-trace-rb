@@ -47,7 +47,7 @@ module Datadog
           end
 
           # TODO: this is a hack but there is no API to do that
-          root_span_tags = root_span.instance_eval { @meta }.keys
+          root_span_tags = root_span.send(:meta).keys
 
           # prepare and gather tags to apply
           tags = event_group.each_with_object({}) do |event, tags|

@@ -21,7 +21,7 @@ module Datadog
                   # TODO: factor out
                   if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
                     active_trace = Datadog::Tracing.active_trace
-                    root_span = active_trace.instance_eval { @root_span }
+                    root_span = active_trace.send(:root_span)
                     active_span = Datadog::Tracing.active_span
 
                     Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
