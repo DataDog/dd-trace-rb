@@ -1,7 +1,8 @@
 # typed: true
 # frozen_string_literal: true
 
-require 'ddtrace/ext/http'
+require 'datadog/tracing'
+require 'datadog/tracing/metadata/ext'
 
 module Datadog
   module Profiling
@@ -35,7 +36,7 @@ module Datadog
         # Resources MUST NOT include personal identifiable information (PII); this should not be the case with
         # ddtrace integrations, but worth mentioning just in case :)
         def maybe_extract_resource(trace, root_span)
-          trace.resource if root_span.span_type == Datadog::Ext::HTTP::TYPE_INBOUND
+          trace.resource if root_span.span_type == Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
         end
       end
     end

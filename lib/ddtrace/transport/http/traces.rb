@@ -2,8 +2,10 @@
 require 'json'
 
 require 'ddtrace/transport/traces'
+require 'ddtrace/transport/http/client'
 require 'ddtrace/transport/http/response'
 require 'ddtrace/transport/http/api/endpoint'
+require 'ddtrace/transport/http/api/instance'
 
 module Datadog
   module Transport

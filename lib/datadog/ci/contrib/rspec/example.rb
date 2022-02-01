@@ -36,7 +36,7 @@ module Datadog
                     service: configuration[:service_name]
                   },
                   framework: Ext::FRAMEWORK,
-                  framework_version: Datadog::CI::Contrib::RSpec::Integration.version.to_s,
+                  framework_version: CI::Contrib::RSpec::Integration.version.to_s,
                   test_name: test_name,
                   test_suite: file_path,
                   test_type: Ext::TEST_TYPE
@@ -60,7 +60,7 @@ module Datadog
             private
 
             def configuration
-              Datadog::Tracing.configuration[:rspec]
+              Tracing.configuration[:rspec]
             end
           end
         end

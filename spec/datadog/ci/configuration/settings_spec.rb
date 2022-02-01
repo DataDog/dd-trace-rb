@@ -2,6 +2,9 @@
 require 'datadog/ci/spec_helper'
 require 'datadog/ci/configuration/settings'
 
+require 'datadog/core/configuration/settings'
+require 'datadog/tracing/flush'
+
 RSpec.describe Datadog::CI::Configuration::Settings do
   context 'when used to extend Datadog::Core::Configuration::Settings' do
     subject(:settings) do
@@ -66,7 +69,7 @@ RSpec.describe Datadog::CI::Configuration::Settings do
       end
 
       describe '#trace_flush=' do
-        let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
+        let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
 
         it 'updates the #trace_flush setting' do
           expect { settings.ci_mode.trace_flush = trace_flush }

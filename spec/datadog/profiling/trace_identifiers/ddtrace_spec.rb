@@ -1,13 +1,12 @@
 # typed: false
 require 'datadog/profiling/trace_identifiers/ddtrace'
-
-require 'ddtrace/tracer'
-require 'ddtrace/context'
-require 'ddtrace/span'
+require 'datadog/tracing/span_operation'
+require 'datadog/tracing/trace_operation'
+require 'datadog/tracing/tracer'
 
 RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
   let(:thread) { instance_double(Thread) }
-  let(:tracer) { instance_double(Datadog::Tracer) }
+  let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
   subject(:datadog_trace_identifiers) { described_class.new(tracer: tracer) }
 
@@ -15,22 +14,31 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
     subject(:trace_identifiers_for) { datadog_trace_identifiers.trace_identifiers_for(thread) }
 
     context 'when there is an active datadog trace for the thread' do
-      let(:span_id) { rand(1e12) }
-      let(:span) { instance_double(Datadog::Span, id: span_id) }
       let(:root_span_id) { rand(1e12) }
       let(:root_span_type) { nil }
-      let(:root_span) { instance_double(Datadog::Span, id: root_span_id, span_type: root_span_type) }
+      let(:root_span) do
+        instance_double(
+          Datadog::Tracing::SpanOperation,
+          id: root_span_id,
+          span_type: root_span_type
+        )
+      end
       let(:resource) { nil }
 
-      let(:tracer) { instance_double(Datadog::Tracer, active_trace: trace) }
+      let(:span_id) { rand(1e12) }
+      let(:span) { instance_double(Datadog::Tracing::SpanOperation, id: span_id) }
 
       let(:trace) do
         instance_double(
-          Datadog::TraceOperation,
+          Datadog::Tracing::TraceOperation,
           active_span: span,
           root_span: root_span,
           resource: resource
         )
+      end
+
+      before do
+        allow(tracer).to receive(:active_trace).and_return(trace)
       end
 
       context "when root span type is 'web'" do
@@ -77,6 +85,14 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
       end
     end
 
+    context 'when no tracer instance is available' do
+      let(:tracer) { nil }
+
+      it do
+        expect(trace_identifiers_for).to be nil
+      end
+    end
+
     context 'when no datadog trace is active for the thread' do
       context 'and nil is returned' do
         before do
@@ -86,22 +102,6 @@ RSpec.describe Datadog::Profiling::TraceIdentifiers::Ddtrace do
         it do
           expect(trace_identifiers_for).to be nil
         end
-      end
-    end
-
-    context 'when no tracer instance is available' do
-      let(:tracer) { nil }
-
-      it do
-        expect(trace_identifiers_for).to be nil
-      end
-    end
-
-    context 'when tracer does not support #call_context' do
-      let(:tracer) { double('empty tracer') }
-
-      it do
-        expect(trace_identifiers_for).to be nil
       end
     end
   end

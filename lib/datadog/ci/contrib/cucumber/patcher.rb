@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/contrib/patcher'
+require 'datadog/tracing/contrib/patcher'
 require 'datadog/ci/contrib/cucumber/instrumentation'
 
 module Datadog
@@ -8,7 +8,7 @@ module Datadog
       module Cucumber
         # Patcher enables patching of 'cucumber' module.
         module Patcher
-          include Datadog::Contrib::Patcher
+          include Datadog::Tracing::Contrib::Patcher
 
           module_function
 

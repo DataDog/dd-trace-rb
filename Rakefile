@@ -29,29 +29,29 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:opentracer) do |t, args|
-    t.pattern = 'spec/ddtrace/opentracer/**/*_spec.rb'
+    t.pattern = 'spec/datadog/opentracer/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:opentelemetry) do |t, args|
-    t.pattern = 'spec/ddtrace/opentelemetry/**/*_spec.rb'
+    t.pattern = 'spec/datadog/opentelemetry/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:rails) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*_spec.rb'
-    t.exclude_pattern = 'spec/ddtrace/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
+    t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
                         'semantic_logger}*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:railsredis) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*redis*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:railsredis_activesupport) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*redis*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
 
     # Flag used to tell specs the expected configuration (so that they break if they're not being setup correctly)
@@ -59,17 +59,17 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:railsactivejob) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*active_job*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*active_job*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*disable_env*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*disable_env*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:railsautoinstrument) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*auto_instrument*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*auto_instrument*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -82,7 +82,7 @@ namespace :spec do
   # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
   # in order to isolate its effects for rails logs auto injection
   RSpec::Core::RakeTask.new(:railssemanticlogger) do |t, args|
-    t.pattern = 'spec/ddtrace/contrib/rails/**/*rails_semantic_logger*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*rails_semantic_logger*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -151,7 +151,7 @@ namespace :spec do
     :suite
   ].each do |contrib|
     RSpec::Core::RakeTask.new(contrib) do |t, args|
-      t.pattern = "spec/ddtrace/contrib/#{contrib}/**/*_spec.rb"
+      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end
@@ -181,7 +181,7 @@ YARD::Rake::YardocTask.new(:docs) do |t|
   # as `.yardopts` can be read by external YARD tools, like the
   # hot-reload YARD server `yard server --reload`.
 
-  t.options += ['--title', "ddtrace #{Datadog::VERSION::STRING} documentation"]
+  t.options += ['--title', "ddtrace #{DDTrace::VERSION::STRING} documentation"]
 end
 
 # Deploy tasks

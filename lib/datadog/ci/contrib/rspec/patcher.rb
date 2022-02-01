@@ -1,5 +1,5 @@
 # typed: true
-require 'ddtrace/contrib/patcher'
+require 'datadog/tracing/contrib/patcher'
 require 'datadog/ci/contrib/rspec/example'
 
 module Datadog
@@ -8,7 +8,7 @@ module Datadog
       module RSpec
         # Patcher enables patching of 'rspec' module.
         module Patcher
-          include Datadog::Contrib::Patcher
+          include Datadog::Tracing::Contrib::Patcher
 
           module_function
 

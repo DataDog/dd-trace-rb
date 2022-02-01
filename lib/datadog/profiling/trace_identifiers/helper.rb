@@ -13,7 +13,7 @@ module Datadog
       # the profile can be filtered down to look at only the samples for a given trace.
       class Helper
         DEFAULT_SUPPORTED_APIS = [
-          ::Datadog::Profiling::TraceIdentifiers::Ddtrace
+          Profiling::TraceIdentifiers::Ddtrace
         ].freeze
         private_constant :DEFAULT_SUPPORTED_APIS
 
