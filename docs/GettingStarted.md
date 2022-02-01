@@ -244,8 +244,8 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
     ```ruby
     require 'opentracing'
-    require 'ddtrace'
-    require 'ddtrace/opentracer'
+    require 'datadog/tracing'
+    require 'datadog/opentracer'
 
     # Activate the Datadog tracer for OpenTracing
     OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
@@ -396,53 +396,53 @@ end
 
 For a list of available integrations, and their configuration options, please refer to the following:
 
-| Name                     | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
-| ------------------------ | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
-| Action Cable             | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
-| Action Mailer            | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
-| Action Pack              | `action_pack`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
-| Action View              | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
-| Active Job               | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | *[Link](#active-job)*               | *[Link](https://github.com/rails/rails/tree/master/activejob)*             |
-| Active Model Serializers | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
-| Active Record            | `active_record`            | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
-| Active Support           | `active_support`           | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
-| AWS                      | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
-| Concurrent Ruby          | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
-| Cucumber                 | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                 | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
-| Dalli                    | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
-| DelayedJob               | `delayed_job`              | `>= 4.1`                 | `>= 4.1`                  | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
-| Elasticsearch            | `elasticsearch`            | `>= 1.0`                 | `>= 1.0`                  | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
-| Ethon                    | `ethon`                    | `>= 0.11`                | `>= 0.11`                 | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
-| Excon                    | `excon`                    | `>= 0.50`                | `>= 0.50`                 | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
-| Faraday                  | `faraday`                  | `>= 0.14`                | `>= 0.14`                 | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
-| Grape                    | `grape`                    | `>= 1.0`                 | `>= 1.0`                  | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
-| GraphQL                  | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
-| gRPC                     | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
-| http.rb                  | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#httprb)*                  | *[Link](https://github.com/httprb/http)*                                       |
-| httpclient                | `httpclient`              | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
-| httpx                     | `httpx`                   | `>= 0.11`                | `>= 0.11`                 | *[Link](#httpx)*                    | *[Link](https://gitlab.com/honeyryderchuck/httpx)*                             |
-| Kafka                    | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
-| Makara (through Active Record) | `makara`             | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#active-record)*            | *[Link](https://github.com/instacart/makara)*                                  |
-| MongoDB                  | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
-| MySQL2                   | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
-| Net/HTTP                 | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
-| Presto                   | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
-| Qless                    | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | *[Link](#qless)*                    | *[Link](https://github.com/seomoz/qless)*                                      |
-| Que                      | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | *[Link](#que)*                      | *[Link](https://github.com/que-rb/que)*                                        |
-| Racecar                  | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
-| Rack                     | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
-| Rails                    | `rails`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
-| Rake                     | `rake`                     | `>= 12.0`                | `>= 12.0`                 | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
-| Redis                    | `redis`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
-| Resque                   | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
-| Rest Client              | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
-| RSpec                    | `rspec`.                   | `>= 3.0.0`               | `>= 3.0.0`                | *[Link](#rspec)*.                   | *[Link](https://github.com/rspec/rspec)*                                       |
-| Sequel                   | `sequel`                   | `>= 3.41`                | `>= 3.41`                 | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
-| Shoryuken                | `shoryuken`                | `>= 3.2`                 | `>= 3.2`                  | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
-| Sidekiq                  | `sidekiq`                  | `>= 3.5.4`               | `>= 3.5.4`                | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
-| Sinatra                  | `sinatra`                  | `>= 1.4`                 | `>= 1.4`                  | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
-| Sneakers                 | `sneakers`                 | `>= 2.12.0`              | `>= 2.12.0`               | *[Link](#sneakers)*                 | *[Link](https://github.com/jondot/sneakers)*                                   |
-| Sucker Punch             | `sucker_punch`             | `>= 2.0`                 | `>= 2.0`                  | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
+| Name                       | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
+| -------------------------- | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
+| Action Cable               | `action_cable`             | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-cable)*             | *[Link](https://github.com/rails/rails/tree/master/actioncable)*               |
+| Action Mailer              | `action_mailer`            | `>= 5.0`                 | `>= 5.0`                  | *[Link](#action-mailer)*            | *[Link](https://github.com/rails/rails/tree/master/actionmailer)*              |
+| Action Pack                | `action_pack`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-pack)*              | *[Link](https://github.com/rails/rails/tree/master/actionpack)*                |
+| Action View                | `action_view`              | `>= 3.2`                 | `>= 3.2`                  | *[Link](#action-view)*              | *[Link](https://github.com/rails/rails/tree/master/actionview)*                |
+| Active Job                 | `active_job`               | `>= 4.2`                 | `>= 4.2`                  | *[Link](#active-job)*               | *[Link](https://github.com/rails/rails/tree/master/activejob)*             |
+| Active Model Serializers   | `active_model_serializers` | `>= 0.9`                 | `>= 0.9`                  | *[Link](#active-model-serializers)* | *[Link](https://github.com/rails-api/active_model_serializers)*                |
+| Active Record              | `active_record`            | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-record)*            | *[Link](https://github.com/rails/rails/tree/master/activerecord)*              |
+| Active Support             | `active_support`           | `>= 3.2`                 | `>= 3.2`                  | *[Link](#active-support)*           | *[Link](https://github.com/rails/rails/tree/master/activesupport)*             |
+| AWS                        | `aws`                      | `>= 2.0`                 | `>= 2.0`                  | *[Link](#aws)*                      | *[Link](https://github.com/aws/aws-sdk-ruby)*                                  |
+| Concurrent Ruby            | `concurrent_ruby`          | `>= 0.9`                 | `>= 0.9`                  | *[Link](#concurrent-ruby)*          | *[Link](https://github.com/ruby-concurrency/concurrent-ruby)*                  |
+| Cucumber                   | `cucumber`                 | `>= 3.0`                 | `>= 1.7.16`               | *[Link](#cucumber)*                 | *[Link](https://github.com/cucumber/cucumber-ruby)*                            |
+| Dalli                      | `dalli`                    | `>= 2.0`                 | `>= 2.0`                  | *[Link](#dalli)*                    | *[Link](https://github.com/petergoldstein/dalli)*                              |
+| DelayedJob                 | `delayed_job`              | `>= 4.1`                 | `>= 4.1`                  | *[Link](#delayedjob)*               | *[Link](https://github.com/collectiveidea/delayed_job)*                        |
+| Elasticsearch              | `elasticsearch`            | `>= 1.0`                 | `>= 1.0`                  | *[Link](#elasticsearch)*            | *[Link](https://github.com/elastic/elasticsearch-ruby)*                        |
+| Ethon                      | `ethon`                    | `>= 0.11`                | `>= 0.11`                 | *[Link](#ethon)*                    | *[Link](https://github.com/typhoeus/ethon)*                                    |
+| Excon                      | `excon`                    | `>= 0.50`                | `>= 0.50`                 | *[Link](#excon)*                    | *[Link](https://github.com/excon/excon)*                                       |
+| Faraday                    | `faraday`                  | `>= 0.14`                | `>= 0.14`                 | *[Link](#faraday)*                  | *[Link](https://github.com/lostisland/faraday)*                                |
+| Grape                      | `grape`                    | `>= 1.0`                 | `>= 1.0`                  | *[Link](#grape)*                    | *[Link](https://github.com/ruby-grape/grape)*                                  |
+| GraphQL                    | `graphql`                  | `>= 1.7.9`               | `>= 1.7.9`                | *[Link](#graphql)*                  | *[Link](https://github.com/rmosolgo/graphql-ruby)*                             |
+| gRPC                       | `grpc`                     | `>= 1.7`                 | *gem not available*       | *[Link](#grpc)*                     | *[Link](https://github.com/grpc/grpc/tree/master/src/rubyc)*                   |
+| http.rb                    | `httprb`                   | `>= 2.0`                 | `>= 2.0`                  | *[Link](#httprb)*                   | *[Link](https://github.com/httprb/http)*                                       |
+| httpclient                 | `httpclient`               | `>= 2.2`                 | `>= 2.2`                  | *[Link](#httpclient)*               | *[Link](https://github.com/nahi/httpclient)*                                     |
+| httpx                      | `httpx`                    | `>= 0.11`                | `>= 0.11`                 | *[Link](#httpx)*                    | *[Link](https://gitlab.com/honeyryderchuck/httpx)*                             |
+| Kafka                      | `ruby-kafka`               | `>= 0.7.10`              | `>= 0.7.10`               | *[Link](#kafka)*                    | *[Link](https://github.com/zendesk/ruby-kafka)*                                |
+| Makara (via Active Record) | `makara`                   | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#active-record)*            | *[Link](https://github.com/instacart/makara)*                                  |
+| MongoDB                    | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
+| MySQL2                     | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
+| Net/HTTP                   | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Presto                     | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
+| Qless                      | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | *[Link](#qless)*                    | *[Link](https://github.com/seomoz/qless)*                                      |
+| Que                        | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | *[Link](#que)*                      | *[Link](https://github.com/que-rb/que)*                                        |
+| Racecar                    | `racecar`                  | `>= 0.3.5`               | `>= 0.3.5`                | *[Link](#racecar)*                  | *[Link](https://github.com/zendesk/racecar)*                                   |
+| Rack                       | `rack`                     | `>= 1.1`                 | `>= 1.1`                  | *[Link](#rack)*                     | *[Link](https://github.com/rack/rack)*                                         |
+| Rails                      | `rails`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#rails)*                    | *[Link](https://github.com/rails/rails)*                                       |
+| Rake                       | `rake`                     | `>= 12.0`                | `>= 12.0`                 | *[Link](#rake)*                     | *[Link](https://github.com/ruby/rake)*                                         |
+| Redis                      | `redis`                    | `>= 3.2`                 | `>= 3.2`                  | *[Link](#redis)*                    | *[Link](https://github.com/redis/redis-rb)*                                    |
+| Resque                     | `resque`                   | `>= 1.0`                 | `>= 1.0`                  | *[Link](#resque)*                   | *[Link](https://github.com/resque/resque)*                                     |
+| Rest Client                | `rest-client`              | `>= 1.8`                 | `>= 1.8`                  | *[Link](#rest-client)*              | *[Link](https://github.com/rest-client/rest-client)*                           |
+| RSpec                      | `rspec`.                   | `>= 3.0.0`               | `>= 3.0.0`                | *[Link](#rspec)*.                   | *[Link](https://github.com/rspec/rspec)*                                       |
+| Sequel                     | `sequel`                   | `>= 3.41`                | `>= 3.41`                 | *[Link](#sequel)*                   | *[Link](https://github.com/jeremyevans/sequel)*                                |
+| Shoryuken                  | `shoryuken`                | `>= 3.2`                 | `>= 3.2`                  | *[Link](#shoryuken)*                | *[Link](https://github.com/phstc/shoryuken)*                                   |
+| Sidekiq                    | `sidekiq`                  | `>= 3.5.4`               | `>= 3.5.4`                | *[Link](#sidekiq)*                  | *[Link](https://github.com/mperham/sidekiq)*                                   |
+| Sinatra                    | `sinatra`                  | `>= 1.4`                 | `>= 1.4`                  | *[Link](#sinatra)*                  | *[Link](https://github.com/sinatra/sinatra)*                                   |
+| Sneakers                   | `sneakers`                 | `>= 2.12.0`              | `>= 2.12.0`               | *[Link](#sneakers)*                 | *[Link](https://github.com/jondot/sneakers)*                                   |
+| Sucker Punch               | `sucker_punch`             | `>= 2.0`                 | `>= 2.0`                  | *[Link](#sucker-punch)*             | *[Link](https://github.com/brandonhilkert/sucker_punch)*                       |
 
 ### Action Cable
 
@@ -867,7 +867,7 @@ If you use multiple connections with Excon, you can give each of them different 
 # Wrap the Datadog tracing middleware around the default middleware stack
 Excon.new(
   'http://example.com',
-  middlewares: Datadog::Contrib::Excon::Middleware.with(options).around_default_stack
+  middlewares: Datadog::Tracing::Contrib::Excon::Middleware.with(options).around_default_stack
 )
 
 # Insert the middleware into a custom middleware stack.
@@ -876,7 +876,7 @@ Excon.new(
   'http://example.com',
   middlewares: [
     Excon::Middleware::ResponseParser,
-    Datadog::Contrib::Excon::Middleware.with(options),
+    Datadog::Tracing::Contrib::Excon::Middleware.with(options),
     Excon::Middleware::Idempotent
   ]
 )
@@ -1057,7 +1057,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 In situations where you have multiple clients calling multiple distinct services, you may pass the Datadog interceptor directly, like so
 
 ```ruby
-configured_interceptor = Datadog::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
+configured_interceptor = Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new do |c|
   c.service_name = "Alternate"
 end
 
@@ -1386,7 +1386,7 @@ Datadog::Tracing.configure do |c|
   c.instrument :rack, options
 end
 
-use Datadog::Contrib::Rack::TraceMiddleware
+use Datadog::Tracing::Contrib::Rack::TraceMiddleware
 
 app = proc do |env|
   [ 200, {'Content-Type' => 'text/plain'}, ['OK'] ]
@@ -1807,7 +1807,7 @@ Datadog::Tracing.configure do |c|
 end
 
 class NestedApp < Sinatra::Base
-  register Datadog::Contrib::Sinatra::Tracer
+  register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   get '/nested' do
     'Hello from nested app!'
@@ -1815,7 +1815,7 @@ class NestedApp < Sinatra::Base
 end
 
 class App < Sinatra::Base
-  register Datadog::Contrib::Sinatra::Tracer
+  register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   use NestedApp
 
@@ -1825,7 +1825,7 @@ class App < Sinatra::Base
 end
 ```
 
-Ensure you register `Datadog::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
+Ensure you register `Datadog::Tracing::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
 
 #### Instrumentation options
 
@@ -1876,53 +1876,39 @@ LogJob.perform_async('login')
 
 ## Advanced configuration
 
-### Tracer settings
+### Environment variables
 
-To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog::Tracing.configure` block as in:
+- `DD_AGENT_HOST`: Hostname of agent to where traces will be sent. See [Tracer settings](#tracer-settings) for more details.
+- `DD_ENV`: Your application environment. See [Environment and tags](#environment-and-tags) for more details.
+- `DD_LOGS_INJECTION`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`. Valid values are: `true` (default) or `false`. e.g. `DD_LOGS_INJECTION=false`.
+- `DD_PROPAGATION_STYLE_EXTRACT`: Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.
+- `DD_PROPAGATION_STYLE_INJECT`: Distributed tracing header formats to inject. See [Distributed Tracing](#distributed-tracing) for more details.
+- `DD_SERVICE`: Your application's default service name. See [Environment and tags](#environment-and-tags) for more details.
+- `DD_TAGS`: Custom tags for telemetry produced by your application. See [Environment and tags](#environment-and-tags) for more details.
+- `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog::Tracing.configure { |c| c.instrument :integration }`).on code. This environment variable can only be used to disable an integration.
+- `DD_TRACE_AGENT_PORT`: Port to where traces will be sent. See [Tracer settings](#tracer-settings) for more details.
+- `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Has priority over `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`.
+- `DD_TRACE_ANALYTICS_ENABLED`: Enables or disables trace analytics. See [Sampling](#sampling) for more details.
+- `DD_TRACE_RATE_LIMIT`: Sets a rate limit for sampling. See [Sampling](#sampling) for more details.
+- `DD_TRACE_REPORT_HOSTNAME`: Enables ot disables hostname tags on traces.
+- `DD_TRACE_SAMPLE_RATE`: Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
+- `DD_TRACE_TEST_MODE_ENABLED`: Enables or disables test mode, for use of tracing in test suites.
+- `DD_VERSION`: Your application version. See [Environment and tags](#environment-and-tags) for more details.
+
+### Global settings
 
 ```ruby
 # config/initializers/datadog-tracer.rb
-
-# Global settings are set here:
 Datadog.configure do |c|
   c.agent.host = 'custom-agent-host'
   c.agent.port = 8126
-  # To enable debug mode
-  c.diagnostics.debug = true
-end
-
-# Tracer settings are set here:
-Datadog::Tracing.configure do |c|
-  c.tracer.enabled = true
-
-  # Ensure all traces are ingested by Datadog
-  c.sampling.default_rate = 1.0 # Recommended
-  c.sampling.rate_limit = 200
-  # or provide a custom implementation (overrides c.sampling settings)
-  c.tracer.sampler = Datadog::AllSampler.new
-
-  # Breaks down very large traces into smaller batches
-  c.tracer.partial_flush.enabled = false
-
-  # You can specify your own tracer
-  c.tracer.instance = Datadog::Tracer.new
 end
 ```
 
 Available options are:
 
- - `enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
- - `agent.host`: set the hostname of the trace agent.
- - `instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
- - `partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
- - `agent.port`: set the APM TCP port the Datadog Agent listening on.
- - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
- - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
- - `sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
- - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
- - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
- - `time_now_provider`: when testing, it might be helpful to use a different time provider. For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time. Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting. Defaults to `->{ Time.now }`.
- - `log_injection`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Defaults to `true`.
+- `agent.host`: set the hostname of the trace agent. Defaults to `127.0.0.1`.
+- `agent.port`: set the APM TCP port the Datadog Agent listening on. Defaults to `8126`.
 
 #### Custom logging
 
@@ -1942,7 +1928,7 @@ end
 Datadog.logger.info { "this is typically called by tracing code" }
 ```
 
-### Environment and tags
+#### Environment and tags
 
 By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file, see our [environments tutorial](https://app.datadoghq.com/apm/docs/tutorials/environments) for details.
 
@@ -1970,14 +1956,59 @@ This enables you to set this value on a per application basis, so you can have f
 
 Tags can also be set directly on individual spans, which will supersede any conflicting tags defined at the application level.
 
-### Environment variables
+#### Debugging and diagnostics
 
-Other Environment Variables:
+You can activate debugging features by using `Datadog.configure`:
 
-- `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Has priority over `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`.
-- `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog::Tracing.configure { |c| c.instrument :integration }`).on code. This environment variable can only be used to disable an integration.
-- `DD_TRACE_SAMPLE_RATE`: Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
-- `DD_LOGS_INJECTION`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`. Valid values are: `true` (default) or `false`. e.g. `DD_LOGS_INJECTION=false`.
+```ruby
+# config/initializers/datadog-tracer.rb
+
+# Global settings are set here:
+Datadog.configure do |c|
+  # To enable debug mode
+  c.diagnostics.debug = true
+end
+```
+
+Available options are:
+
+ - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
+ - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
+ - `time_now_provider`: when testing, it might be helpful to use a different time provider. For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time. Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting. Defaults to `->{ Time.now }`.
+
+### Tracer settings
+
+To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog::Tracing.configure` block as in:
+
+```ruby
+# config/initializers/datadog-tracer.rb
+# Tracer settings are set here:
+Datadog::Tracing.configure do |c|
+  c.tracer.enabled = true
+
+  # Ensure all traces are ingested by Datadog
+  c.sampling.default_rate = 1.0 # Recommended
+  c.sampling.rate_limit = 200
+  # or provide a custom implementation (overrides c.sampling settings)
+  c.tracer.sampler = Datadog::Tracing::Sampling::AllSampler.new
+
+  # Breaks down very large traces into smaller batches
+  c.tracer.partial_flush.enabled = false
+
+  # You can specify your own tracer
+  c.tracer.instance = Datadog::Tracing::Tracer.new
+end
+```
+
+Available options are:
+
+ - `log_injection`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Defaults to `true`.
+ - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
+ - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
+ - `tracer.enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
+ - `tracer.instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
+ - `tracer.partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
+ - `tracer.sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
 
 ### Sampling
 
@@ -1993,11 +2024,11 @@ While the trace agent can sample traces to reduce bandwidth usage, application-s
 
 This will **reduce visibility and is not recommended**. See [DD_TRACE_SAMPLE_RATE](#environment-variables) for the recommended sampling approach.
 
-`Datadog::RateSampler` samples a ratio of the traces. For example:
+`Datadog::Tracing::Sampling::RateSampler` samples a ratio of the traces. For example:
 
 ```ruby
 # Sample rate is between 0 (nothing sampled) to 1 (everything sampled).
-sampler = Datadog::RateSampler.new(0.5) # sample 50% of the traces
+sampler = Datadog::Tracing::Sampling::RateSampler.new(0.5) # sample 50% of the traces
 
 Datadog::Tracing.configure do |c|
   c.tracer.sampler = sampler
@@ -2010,15 +2041,15 @@ Priority sampling decides whether to keep a trace by using a priority attribute 
 
 The sampler can set the priority to the following values:
 
- - `Datadog::Ext::Priority::AUTO_REJECT`: the sampler automatically decided to reject the trace.
- - `Datadog::Ext::Priority::AUTO_KEEP`: the sampler automatically decided to keep the trace.
+ - `Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT`: the sampler automatically decided to reject the trace.
+ - `Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP`: the sampler automatically decided to keep the trace.
 
 Priority sampling is enabled by default. Enabling it ensures that your sampled distributed traces will be complete. Once enabled, the sampler will automatically assign a priority of 0 or 1 to traces, depending on their service and volume.
 
 You can also set this priority manually to either drop a non-interesting trace or to keep an important one. For that, set the `TraceOperation#sampling_priority` to:
 
- - `Datadog::Ext::Priority::USER_REJECT`: the user asked to reject the trace.
- - `Datadog::Ext::Priority::USER_KEEP`: the user asked to keep the trace.
+ - `Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT`: the user asked to reject the trace.
+ - `Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP`: the user asked to keep the trace.
 
 When not using [distributed tracing](#distributed-tracing), you may change the priority at any time, as long as the trace incomplete. But it has to be done before any context propagation (fork, RPC calls) to be useful in a distributed context. Changing the priority after the context has been propagated causes different parts of a distributed trace to use different priorities. Some parts might be kept, some parts might be rejected, and this can cause the trace to be partially stored and remain incomplete.
 
@@ -2151,6 +2182,33 @@ Service C:
   Priority:  1
 ```
 
+**Distributed header formats**
+
+Tracing supports the following distributed trace formats:
+
+ - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG` (Default)
+ - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3`
+ - `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER`
+
+You can enable/disable the use of these formats via `Datadog::Tracing.configure`:
+
+```ruby
+Datadog::Tracing.configure do |c|
+  # List of header formats that should be extracted
+  c.distributed_tracing.propagation_extract_style = [
+    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+
+  ]
+
+  # List of header formats that should be injected
+  c.distributed_tracing.propagation_inject_style = [
+    Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
+  ]
+end
+```
+
 **Activating distributed tracing for integrations**
 
 Many integrations included in `ddtrace` support distributed tracing. Distributed tracing is enabled by default in Agent v7 and most versions of Agent v6. If needed, you can activate distributed tracing with configuration settings.
@@ -2174,21 +2232,21 @@ For more details on how to activate distributed tracing for integrations, see th
 
 **Using the HTTP propagator**
 
-To make the process of propagating this metadata easier, you can use the `Datadog::HTTPPropagator` module.
+To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Propagation::HTTP` module.
 
 On the client:
 
 ```ruby
 Datadog::Tracing.trace('web.call') do |span, trace|
   # Inject trace headers into request headers (`env` must be a Hash)
-  Datadog::HTTPPropagator.inject!(trace.to_digest, env)
+  Datadog::Tracing::Propagation::HTTP.inject!(trace.to_digest, env)
 end
 ```
 
 On the server:
 
 ```ruby
-trace_digest = HTTPPropagator.extract(request.env)
+trace_digest = Datadog::Tracing::Propagation::HTTP.extract(request.env)
 
 Datadog::Tracing.trace('web.work', continue_from: trace_digest) do |span|
   # Do web work...
@@ -2221,25 +2279,25 @@ Some applications might require that traces be altered or filtered out before th
 
 #### Filtering
 
-You can use the `Datadog::Pipeline::SpanFilter` processor to remove spans, when the block evaluates as truthy:
+You can use the `Datadog::Tracing::Pipeline::SpanFilter` processor to remove spans, when the block evaluates as truthy:
 
 ```ruby
 Datadog::Tracing.before_flush(
   # Remove spans that match a particular resource
-  Datadog::Pipeline::SpanFilter.new { |span| span.resource =~ /PingController/ },
+  Datadog::Tracing::Pipeline::SpanFilter.new { |span| span.resource =~ /PingController/ },
   # Remove spans that are trafficked to localhost
-  Datadog::Pipeline::SpanFilter.new { |span| span.get_tag('host') == 'localhost' }
+  Datadog::Tracing::Pipeline::SpanFilter.new { |span| span.get_tag('host') == 'localhost' }
 )
 ```
 
 #### Processing
 
-You can use the `Datadog::Pipeline::SpanProcessor` processor to modify spans:
+You can use the `Datadog::Tracing::Pipeline::SpanProcessor` processor to modify spans:
 
 ```ruby
 Datadog::Tracing.before_flush(
   # Strip matching text from the resource field
-  Datadog::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
+  Datadog::Tracing::Pipeline::SpanProcessor.new { |span| span.resource.gsub!(/password=.*/, '') }
 )
 ```
 

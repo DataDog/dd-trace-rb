@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/contrib/integration'
+require 'datadog/tracing/contrib/integration'
 
 require 'datadog/ci/contrib/cucumber/configuration/settings'
 require 'datadog/ci/contrib/cucumber/patcher'
@@ -10,7 +10,7 @@ module Datadog
       module Cucumber
         # Description of Cucumber integration
         class Integration
-          include Datadog::Contrib::Integration
+          include Datadog::Tracing::Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('3.0.0')
 

@@ -1,9 +1,10 @@
 # typed: false
 require 'spec_helper'
 
-require 'datadog/statsd'
 require 'datadog/core/configuration'
 require 'datadog/core/pin'
+require 'datadog/statsd'
+require 'datadog/tracing/tracer'
 
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
@@ -258,8 +259,8 @@ RSpec.describe Datadog::Core::Configuration do
 
       context 'when the tracer' do
         context 'is replaced' do
-          let(:old_tracer) { Datadog::Tracer.new }
-          let(:new_tracer) { Datadog::Tracer.new }
+          let(:old_tracer) { Datadog::Tracing::Tracer.new }
+          let(:new_tracer) { Datadog::Tracing::Tracer.new }
 
           before do
             expect(old_tracer).to receive(:shutdown!)
@@ -274,7 +275,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context 'is reused' do
-          let(:tracer) { Datadog::Tracer.new }
+          let(:tracer) { Datadog::Tracing::Tracer.new }
 
           before do
             expect(tracer).to_not receive(:shutdown!)
@@ -289,7 +290,7 @@ RSpec.describe Datadog::Core::Configuration do
         end
 
         context 'is not changed' do
-          let(:tracer) { Datadog::Tracer.new }
+          let(:tracer) { Datadog::Tracing::Tracer.new }
 
           before do
             expect(tracer).to_not receive(:shutdown!)

@@ -1,9 +1,20 @@
 # typed: false
 require 'spec_helper'
-require 'securerandom'
 
-require 'ddtrace'
+require 'securerandom'
+require 'logger'
+
 require 'datadog/core/configuration/settings'
+require 'datadog/core/diagnostics/ext'
+require 'datadog/core/environment/ext'
+require 'datadog/core/runtime/ext'
+require 'datadog/core/utils/time'
+require 'datadog/profiling/ext'
+require 'datadog/tracing/configuration/ext'
+require 'datadog/tracing/flush'
+require 'datadog/tracing/sampling/priority_sampler'
+require 'datadog/tracing/tracer'
+require 'datadog/tracing/writer'
 
 RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
@@ -14,9 +25,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.analytics.enabled }
 
-      context "when #{Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => environment) do
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => environment
+          ) do
             example.run
           end
         end
@@ -199,9 +212,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#propagation_extract_style' do
       subject(:propagation_extract_style) { settings.distributed_tracing.propagation_extract_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV => environment) do
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT => environment
+          ) do
             example.run
           end
         end
@@ -212,9 +227,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           it do
             is_expected.to eq(
               [
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3,
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
               ]
             )
           end
@@ -226,8 +241,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           it do
             is_expected.to eq(
               [
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3,
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
               ]
             )
           end
@@ -238,9 +253,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#propagation_inject_style' do
       subject(:propagation_inject_style) { settings.distributed_tracing.propagation_inject_style }
 
-      context "when #{Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV => environment) do
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT => environment
+          ) do
             example.run
           end
         end
@@ -248,7 +265,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to eq([Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG]) }
+          it { is_expected.to eq([Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG]) }
         end
 
         context 'is defined' do
@@ -257,8 +274,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           it do
             is_expected.to eq(
               [
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
-                Datadog::Ext::DistributedTracing::PROPAGATION_STYLE_B3
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
               ]
             )
           end
@@ -330,9 +347,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   describe '#log_injection' do
     subject(:log_injection) { settings.log_injection }
 
-    context "when #{Datadog::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED}" do
+    context "when #{Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED => log_injection_env) do
+        ClimateControl.modify(
+          Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED => log_injection_env
+        ) do
           example.run
         end
       end
@@ -598,9 +617,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   describe '#report_hostname' do
     subject(:report_hostname) { settings.report_hostname }
 
-    context "when #{Datadog::Ext::NET::ENV_REPORT_HOSTNAME}" do
+    context "when #{Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME}" do
       around do |example|
-        ClimateControl.modify(Datadog::Ext::NET::ENV_REPORT_HOSTNAME => environment) do
+        ClimateControl.modify(Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME => environment) do
           example.run
         end
       end
@@ -709,7 +728,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       context 'when ENV is provided' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
             example.run
           end
         end
@@ -727,7 +746,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       context 'when ENV is provided' do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
             example.run
           end
         end
@@ -984,9 +1003,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       it { is_expected.to be false }
 
-      context "when #{Datadog::Ext::Test::ENV_MODE_ENABLED}" do
+      context "when #{Datadog::Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED}" do
         around do |example|
-          ClimateControl.modify(Datadog::Ext::Test::ENV_MODE_ENABLED => enable) do
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED => enable) do
             example.run
           end
         end
@@ -1020,7 +1039,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#trace_flush=' do
-      let(:trace_flush) { instance_double(Datadog::TraceFlush::Finished) }
+      let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
 
       it 'updates the #trace_flush setting' do
         expect { settings.test_mode.trace_flush = trace_flush }
@@ -1201,7 +1220,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#instance=' do
-      let(:tracer) { instance_double(Datadog::Tracer) }
+      let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
       it 'updates the #instance setting' do
         expect { settings.tracer.instance = tracer }
@@ -1267,7 +1286,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#sampler=' do
-      let(:sampler) { instance_double(Datadog::PrioritySampler) }
+      let(:sampler) { instance_double(Datadog::Tracing::Sampling::PrioritySampler) }
 
       it 'updates the #sampler setting' do
         expect { settings.tracer.sampler = sampler }
@@ -1309,7 +1328,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#writer=' do
-      let(:writer) { instance_double(Datadog::Writer) }
+      let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
       it 'updates the #writer setting' do
         expect { settings.tracer.writer = writer }

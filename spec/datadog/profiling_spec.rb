@@ -17,7 +17,7 @@ RSpec.describe Datadog::Profiling do
     context 'validation' do
       it 'wraps the configuration object with a proxy' do
         described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Profiling)
+          expect(c).to be_a_kind_of(Datadog::Profiling::Configuration::ValidationProxy)
         end
       end
 
@@ -39,7 +39,7 @@ RSpec.describe Datadog::Profiling do
     subject(:configuration) { described_class.configuration }
     it 'returns the global configuration' do
       expect(configuration)
-        .to be_a_kind_of(Datadog::Core::Configuration::ValidationProxy::Profiling)
+        .to be_a_kind_of(Datadog::Profiling::Configuration::ValidationProxy)
 
       expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
     end

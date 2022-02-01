@@ -52,11 +52,11 @@ RSpec.describe Datadog::Transport::HTTP::Builder do
     end
 
     context 'given a symbol' do
-      subject(:adapter) { builder.adapter(type, *args) }
+      subject(:adapter) { builder.adapter(type, *args, **kwargs) }
 
       let(:type) { :foo }
       let(:args) { [double('arg1'), double('arg2')] }
-      let(:kwargs) { {} }
+      let(:kwargs) { { kwarg: double('kwval') } }
 
       context 'that matches an adapter in the registry' do
         let(:adapter_class) { double('adapter class') }

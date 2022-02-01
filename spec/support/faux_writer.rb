@@ -1,10 +1,10 @@
 # typed: true
-require 'ddtrace/writer'
+require 'datadog/tracing/writer'
 
 require 'support/faux_transport'
 
 # FauxWriter is a dummy writer that buffers spans locally.
-class FauxWriter < Datadog::Writer
+class FauxWriter < Datadog::Tracing::Writer
   def initialize(options = {})
     options[:transport] ||= FauxTransport.new
     options[:call_original] ||= true

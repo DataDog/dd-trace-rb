@@ -2,7 +2,7 @@
 require 'spec_helper'
 require 'datadog/profiling/spec_helper'
 
-require 'ddtrace'
+require 'datadog/tracing'
 require 'datadog/core/utils/time'
 require 'datadog/profiling'
 require 'datadog/profiling/pprof/template'
@@ -20,7 +20,7 @@ RSpec.describe 'profiling integration test' do
     raise "Profiling did not load: #{Datadog::Profiling.unsupported_reason}" unless Datadog::Profiling.supported?
   end
 
-  let(:tracer) { instance_double(Datadog::Tracer) }
+  let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
   shared_context 'StackSample events' do
     # NOTE: Please do not convert stack_one or stack_two to let, because
@@ -101,7 +101,10 @@ RSpec.describe 'profiling integration test' do
       Datadog::Profiling::Collectors::Stack.new(
         recorder,
         trace_identifiers_helper:
-          Datadog::Profiling::TraceIdentifiers::Helper.new(tracer: tracer, endpoint_collection_enabled: true),
+          Datadog::Profiling::TraceIdentifiers::Helper.new(
+            tracer: tracer,
+            endpoint_collection_enabled: true
+          ),
         max_frames: 400
       )
     end

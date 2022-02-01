@@ -89,7 +89,7 @@ module Datadog
       private
 
       def flush_and_wait
-        run_time = Datadog::Core::Utils::Time.measure do
+        run_time = Core::Utils::Time.measure do
           flush_events
         end
 

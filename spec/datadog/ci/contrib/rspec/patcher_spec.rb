@@ -1,5 +1,5 @@
 # typed: false
-require 'ddtrace/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/patcher'
 
 require 'rspec'

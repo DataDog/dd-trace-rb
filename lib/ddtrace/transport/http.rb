@@ -1,17 +1,15 @@
 # typed: true
-require 'ddtrace/version'
-require 'datadog/core/environment/ext'
-require 'ddtrace/ext/transport'
+require 'uri'
 
 require 'datadog/core/environment/container'
-
-require 'ddtrace/transport/http/builder'
-require 'ddtrace/transport/http/api'
-
+require 'datadog/core/environment/ext'
+require 'ddtrace/transport/ext'
 require 'ddtrace/transport/http/adapters/net'
 require 'ddtrace/transport/http/adapters/test'
 require 'ddtrace/transport/http/adapters/unix_socket'
-require 'uri'
+require 'ddtrace/transport/http/api'
+require 'ddtrace/transport/http/builder'
+require 'ddtrace/version'
 
 module Datadog
   module Transport
@@ -64,19 +62,19 @@ module Datadog
 
       def default_headers
         {
-          Datadog::Ext::Transport::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
-          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
-          Datadog::Ext::Transport::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Environment::Ext::LANG_INTERPRETER,
-          Datadog::Ext::Transport::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
+          Datadog::Transport::Ext::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
+          Datadog::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
+          Datadog::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER => Datadog::Core::Environment::Ext::LANG_INTERPRETER,
+          Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
         }.tap do |headers|
           # Add container ID, if present.
           container_id = Datadog::Core::Environment::Container.container_id
-          headers[Datadog::Ext::Transport::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
+          headers[Datadog::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
         end
       end
 
       def default_adapter
-        Ext::Transport::HTTP::ADAPTER
+        Transport::Ext::HTTP::ADAPTER
       end
 
       def default_hostname(logger: Datadog.logger)
@@ -107,9 +105,9 @@ module Datadog
       end
 
       # Add adapters to registry
-      Builder::REGISTRY.set(Adapters::Net, Ext::Transport::HTTP::ADAPTER)
-      Builder::REGISTRY.set(Adapters::Test, Ext::Transport::Test::ADAPTER)
-      Builder::REGISTRY.set(Adapters::UnixSocket, Ext::Transport::UnixSocket::ADAPTER)
+      Builder::REGISTRY.set(Adapters::Net, Transport::Ext::HTTP::ADAPTER)
+      Builder::REGISTRY.set(Adapters::Test, Transport::Ext::Test::ADAPTER)
+      Builder::REGISTRY.set(Adapters::UnixSocket, Transport::Ext::UnixSocket::ADAPTER)
     end
   end
 end

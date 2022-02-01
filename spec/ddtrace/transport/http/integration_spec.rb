@@ -1,8 +1,10 @@
 # typed: ignore
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog/tracing/writer'
 require 'ddtrace/transport/http'
+require 'ddtrace/transport/http/traces'
+require 'ddtrace/transport/traces'
 
 RSpec.describe 'Datadog::Transport::HTTP integration tests' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
@@ -30,7 +32,7 @@ RSpec.describe 'Datadog::Transport::HTTP integration tests' do
     end
   end
 
-  describe Datadog::Writer do
+  describe Datadog::Tracing::Writer do
     subject(:writer) { described_class.new(writer_options) }
 
     let(:writer_options) { { transport: client } }

@@ -1,6 +1,11 @@
 # typed: false
 require 'datadog/ci/spec_helper'
+
 require 'datadog/ci/configuration/components'
+require 'datadog/ci/configuration/settings'
+require 'datadog/ci/flush'
+require 'datadog/core/configuration/components'
+require 'datadog/core/configuration/settings'
 
 RSpec.describe Datadog::CI::Configuration::Components do
   context 'when used to extend Datadog::Core::Configuration::Components' do
@@ -63,7 +68,7 @@ RSpec.describe Datadog::CI::Configuration::Components do
           it do
             expect(settings.test_mode)
               .to have_received(:trace_flush=)
-              .with(settings.ci_mode.trace_flush || kind_of(Datadog::CI::TraceFlush::Finished))
+              .with(settings.ci_mode.trace_flush || kind_of(Datadog::CI::Flush::Finished))
           end
 
           it do

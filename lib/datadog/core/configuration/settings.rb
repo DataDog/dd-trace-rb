@@ -1,14 +1,11 @@
 # typed: false
 require 'logger'
-require 'datadog/core/configuration/base'
 
-require 'ddtrace/ext/analytics'
-require 'ddtrace/ext/distributed'
+require 'datadog/core/configuration/base'
 require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
 require 'datadog/profiling/ext'
-require 'ddtrace/ext/sampling'
-require 'ddtrace/ext/test'
+require 'datadog/tracing/configuration/ext'
 
 module Datadog
   module Core
@@ -87,7 +84,7 @@ module Datadog
           # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
           # @return [Boolean,nil]
           option :enabled do |o|
-            o.default { env_to_bool(Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+            o.default { env_to_bool(Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
             o.lazy
           end
         end
@@ -196,11 +193,11 @@ module Datadog
             o.default do
               # Look for all headers by default
               env_to_list(
-                Ext::DistributedTracing::PROPAGATION_STYLE_EXTRACT_ENV,
+                Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
                 [
-                  Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG,
-                  Ext::DistributedTracing::PROPAGATION_STYLE_B3,
-                  Ext::DistributedTracing::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
                 ]
               )
             end
@@ -218,8 +215,8 @@ module Datadog
           option :propagation_inject_style do |o|
             o.default do
               env_to_list(
-                Ext::DistributedTracing::PROPAGATION_STYLE_INJECT_ENV,
-                [Ext::DistributedTracing::PROPAGATION_STYLE_DATADOG] # Only inject Datadog headers by default
+                Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
+                [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG] # Only inject Datadog headers by default
               )
             end
 
@@ -243,7 +240,7 @@ module Datadog
         # @return [Boolean]
         # @configure_with {Datadog::Tracing}
         option :log_injection do |o|
-          o.default { env_to_bool(Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
+          o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
           o.lazy
         end
 
@@ -335,7 +332,7 @@ module Datadog
         end
 
         option :report_hostname do |o|
-          o.default { env_to_bool(Ext::NET::ENV_REPORT_HOSTNAME, false) }
+          o.default { env_to_bool(Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME, false) }
           o.lazy
         end
 
@@ -369,7 +366,7 @@ module Datadog
           # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
           # @return [Float,nil]
           option :default_rate do |o|
-            o.default { env_to_float(Ext::Sampling::ENV_SAMPLE_RATE, nil) }
+            o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, nil) }
             o.lazy
           end
 
@@ -381,7 +378,7 @@ module Datadog
           # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
           # @return [Numeric,nil]
           option :rate_limit do |o|
-            o.default { env_to_float(Ext::Sampling::ENV_RATE_LIMIT, 100) }
+            o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
             o.lazy
           end
         end
@@ -480,7 +477,7 @@ module Datadog
           # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Ext::Test::ENV_MODE_ENABLED, false) }
+            o.default { env_to_bool(Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED, false) }
             o.lazy
           end
 
@@ -539,12 +536,11 @@ module Datadog
 
           # A custom tracer instance.
           #
-          # It must respect the contract of {Datadog::Tracer}.
-          # It's recommended to delegate methods to {Datadog::Tracer} to ease the implementation
+          # It must respect the contract of {Datadog::Tracing::Tracer}.
+          # It's recommended to delegate methods to {Datadog::Tracing::Tracer} to ease the implementation
           # of a custom tracer.
           #
-          # This option will not return the live tracer instance: it only holds a custom
-          # tracing instance, if any. The live tracer instance can be found in {Datadog::Tracing.tracer}.
+          # This option will not return the live tracer instance: it only holds a custom tracing instance, if any.
           #
           # For internal use only.
           #
@@ -589,7 +585,7 @@ module Datadog
           option :priority_sampling
 
           # A custom sampler instance.
-          # The object must respect the {Datadog::Sampler} interface.
+          # The object must respect the {Datadog::Tracing::Sampling::Sampler} interface.
           # @default `nil`
           # @return [Object,nil]
           option :sampler
@@ -608,7 +604,7 @@ module Datadog
           option :transport_options, default: ->(_i) { {} }, lazy: true
 
           # A custom writer instance.
-          # The object must respect the {Datadog::Writer} interface.
+          # The object must respect the {Datadog::Tracing::Writer} interface.
           #
           # This option is recommended for internal use only.
           #
@@ -616,7 +612,7 @@ module Datadog
           # @return [Object,nil]
           option :writer
 
-          # A custom {Hash} with keyword options to be passed to {Datadog::Writer#initialize}.
+          # A custom {Hash} with keyword options to be passed to {Datadog::Tracing::Writer#initialize}.
           #
           # This option is recommended for internal use only.
           #

@@ -1,8 +1,9 @@
 # typed: false
 require 'uri'
 
-require 'ddtrace/ext/transport'
 require 'datadog/core/configuration/settings'
+require 'datadog/tracing/configuration/ext'
+require 'ddtrace/transport/ext'
 
 module Datadog
   module Core
@@ -103,9 +104,9 @@ module Datadog
           # If no agent settings have been provided, we try to connect using a local unix socket.
           # We only do so if the socket is present when `ddtrace` runs.
           if should_use_uds_fallback?
-            Ext::Transport::UnixSocket::ADAPTER
+            Transport::Ext::UnixSocket::ADAPTER
           else
-            Ext::Transport::HTTP::ADAPTER
+            Transport::Ext::HTTP::ADAPTER
           end
         end
 
@@ -118,12 +119,12 @@ module Datadog
               value: settings.agent.host
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
               value: parsed_url && parsed_url.hostname
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST} environment variable",
-              value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST]
+              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST} environment variable",
+              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST]
             )
           )
         end
@@ -133,8 +134,8 @@ module Datadog
 
           parsed_port_from_env =
             try_parsing_as_integer(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT],
+              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
+              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
             )
 
           parsed_settings_tracer_port =
@@ -149,11 +150,11 @@ module Datadog
               value: parsed_settings_tracer_port,
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} environment variable",
+              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
               value: parsed_url && parsed_url.port,
             ),
             DetectedConfiguration.new(
-              friendly_name: "#{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT} environment variable",
+              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
               value: parsed_port_from_env,
             )
           )
@@ -176,11 +177,11 @@ module Datadog
         end
 
         def hostname
-          configured_hostname || (should_use_uds_fallback? ? nil : Datadog::Ext::Transport::HTTP::DEFAULT_HOST)
+          configured_hostname || (should_use_uds_fallback? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_HOST)
         end
 
         def port
-          configured_port || (should_use_uds_fallback? ? nil : Datadog::Ext::Transport::HTTP::DEFAULT_PORT)
+          configured_port || (should_use_uds_fallback? ? nil : Datadog::Transport::Ext::HTTP::DEFAULT_PORT)
         end
 
         # Unix socket path in the file system
@@ -221,9 +222,9 @@ module Datadog
                configured_port.nil? &&
                deprecated_for_removal_transport_configuration_proc.nil? &&
                deprecated_for_removal_transport_configuration_options.nil? &&
-               File.exist?(Ext::Transport::UnixSocket::DEFAULT_PATH)
+               File.exist?(Transport::Ext::UnixSocket::DEFAULT_PATH)
 
-              Ext::Transport::UnixSocket::DEFAULT_PATH
+              Transport::Ext::UnixSocket::DEFAULT_PATH
             end
         end
 
@@ -241,11 +242,13 @@ module Datadog
               if %w[http https].include?(parsed.scheme)
                 parsed
               else
+                # rubocop:disable Layout/LineLength
                 log_warning(
-                  "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL} " \
+                  "Invalid URI scheme '#{parsed.scheme}' for #{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} " \
                   "environment variable ('#{unparsed_url_from_env}'). " \
-                  "Ignoring the contents of #{Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL}."
+                  "Ignoring the contents of #{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL}."
                 )
+                # rubocop:enable Layout/LineLength
 
                 nil
               end
@@ -255,7 +258,7 @@ module Datadog
         # NOTE: This should only be used AFTER parsing, via `#parsed_url`. The only other use-case where this can be used
         # directly without parsing, is when displaying in warning messages, to show users what it actually contains.
         def unparsed_url_from_env
-          @unparsed_url_from_env ||= ENV[Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL]
+          @unparsed_url_from_env ||= ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL]
         end
 
         def pick_from(*configurations_in_priority_order)
