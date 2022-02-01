@@ -39,7 +39,12 @@ require 'support/tracer_helpers'
 begin
   # Ignore interpreter warnings from external libraries
   require 'warning'
-  Warning.ignore([:method_redefined, :not_reached, :unused_var], %r{.*/gems/[^/]*/lib/})
+
+  # Ignore warnings in Gem dependencies
+  Gem.path.each do |path|
+    Warning.ignore([:method_redefined, :not_reached, :unused_var, :arg_prefix], path)
+    Warning.ignore(/circular require considered harmful/, path)
+  end
 rescue LoadError
   puts 'warning suppressing gem not available, external library warnings will be displayed'
 end

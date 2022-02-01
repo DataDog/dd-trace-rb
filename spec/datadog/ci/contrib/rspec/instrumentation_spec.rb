@@ -4,7 +4,6 @@ require 'time'
 require 'datadog/tracing'
 require 'datadog/tracing/metadata/ext'
 
-require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/rspec/integration'
 

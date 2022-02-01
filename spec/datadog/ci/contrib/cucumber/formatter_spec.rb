@@ -1,5 +1,4 @@
 # typed: ignore
-require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/ci/contrib/support/spec_helper'
 
 require 'stringio'

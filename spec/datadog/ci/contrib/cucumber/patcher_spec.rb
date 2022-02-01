@@ -1,8 +1,8 @@
 # typed: false
-require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/ci/contrib/support/spec_helper'
 require 'datadog/ci/contrib/cucumber/patcher'
 
-require 'cucumber/runtime'
+require 'cucumber'
 
 RSpec.describe Datadog::CI::Contrib::Cucumber::Patcher do
   describe '.patch' do
