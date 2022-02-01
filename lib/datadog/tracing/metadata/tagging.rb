@@ -47,7 +47,8 @@ module Datadog
           if value.is_a?(Numeric) && !(value.is_a?(Integer) && !NUMERIC_TAG_SIZE_RANGE.cover?(value))
             set_metric(key, value)
           else
-            meta[key.to_s] = value.to_s
+            # Encode strings in UTF-8 to facilitate downstream serialization
+            meta[Core::Utils.utf8_encode(key)] = Core::Utils.utf8_encode(value)
           end
         rescue StandardError => e
           Datadog.logger.debug("Unable to set the tag #{key}, ignoring it. Caused by: #{e}")
@@ -81,7 +82,9 @@ module Datadog
 
           # enforce that the value is a floating point number
           value = Float(value)
-          metrics[key.to_s] = value
+
+          # Encode strings in UTF-8 to facilitate downstream serialization
+          metrics[Core::Utils.utf8_encode(key)] = value
         rescue StandardError => e
           Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
         end
