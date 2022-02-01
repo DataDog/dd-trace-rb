@@ -666,7 +666,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
                   end
                   let(:writer) { sync_writer }
 
-                  it_behaves_like 'event publishing writer and priority sampler'
+                  it_behaves_like 'event publishing writer'
                 end
               end
 
@@ -682,7 +682,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
                   end
                   let(:writer) { sync_writer }
 
-                  it_behaves_like 'event publishing writer and priority sampler'
+                  it_behaves_like 'event publishing writer'
                 end
               end
             end
@@ -705,7 +705,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
                   end
                   let(:writer) { sync_writer }
 
-                  it_behaves_like 'event publishing writer and priority sampler'
+                  it_behaves_like 'event publishing writer'
                 end
               end
             end

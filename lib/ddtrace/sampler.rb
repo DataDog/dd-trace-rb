@@ -265,10 +265,7 @@ module Datadog
       trace.sampled?
     end
 
-    # Forwards this method call to `@priority_sampler`, if it has a `update` method.
-    def update(rate_by_service)
-      @priority_sampler.update(rate_by_service) if @priority_sampler.respond_to?(:update)
-    end
+    def_delegators :@priority_sampler, :update
 
     private
 

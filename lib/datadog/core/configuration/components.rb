@@ -67,7 +67,7 @@ module Datadog
               writer = build_writer(settings, agent_settings)
             end
 
-            subscribe_to_writer_events!(writer, sampler)
+            subscribe_to_writer_events!(writer, sampler, settings.test_mode.enabled)
 
             Tracer.new(
               default_service: settings.service,
@@ -142,12 +142,19 @@ module Datadog
             Writer.new(agent_settings: agent_settings, **settings.tracer.writer_options)
           end
 
-          def subscribe_to_writer_events!(writer, sampler)
+          def subscribe_to_writer_events!(writer, sampler, test_mode)
             return unless writer.respond_to?(:events) # Check if it's a custom, external writer
 
             writer.events.after_send.subscribe(:record_environment_information, &WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
 
             return unless sampler.is_a?(Datadog::PrioritySampler)
+
+            # DEV: We need to ignore priority sampling updates coming from the agent in test mode
+            # because test mode wants to *unconditionally* sample all traces.
+            #
+            # This can cause trace metrics to be overestimated, but that's a trade-off we take
+            # here to achieve 100% sampling rate.
+            return if test_mode
 
             writer.events.after_send.subscribe(
               :update_priority_sampler_rates,
