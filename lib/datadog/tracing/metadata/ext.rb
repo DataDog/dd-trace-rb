@@ -86,8 +86,7 @@ module Datadog
               tag.downcase!
               tag.gsub!(INVALID_TAG_CHARACTERS, '_')
 
-              # Additionally HTTP header normalization is perform based on:
-              # https://github.com/DataDog/architecture/blob/master/rfcs/apm/integrations/trace-http-headers/rfc.md#header-name-normalization
+              # Additional HTTP header normalization.
               #
               # Periods are replaced with an underscore.
               tag.tr!('.', '_')
