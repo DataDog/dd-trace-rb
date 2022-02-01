@@ -14,19 +14,19 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
       expect(code_provenance.generate).to include(
         have_attributes(
-          type: 'standard library',
+          kind: 'standard library',
           name: 'stdlib',
           version: RUBY_VERSION.to_s,
           path: start_with('/'),
         ),
         have_attributes(
-          type: 'library',
+          kind: 'library',
           name: 'ddtrace',
           version: Datadog::VERSION::STRING,
           path: start_with('/'),
         ),
         have_attributes(
-          type: 'library',
+          kind: 'library',
           name: 'rspec-core',
           version: start_with('3.'), # This will one day need to be bumped for RSpec 4
           path: start_with('/'),
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         name: 'is_loaded',
         version: 'is_loaded_version',
         path: '/is_loaded/',
-        type: 'library',
+        kind: 'library',
       )
     end
 
@@ -125,13 +125,13 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
                             {
                                 "type": "object",
                                 "required": [
-                                    "type",
+                                    "kind",
                                     "name",
                                     "version",
                                     "paths"
                                 ],
                                 "properties": {
-                                    "type": {
+                                    "kind": {
                                         "type": "string"
                                     },
                                     "name": {
@@ -167,19 +167,19 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       expect(JSON.parse(code_provenance.generate_json).fetch('v1')).to include(
         hash_including(
           'name' => 'stdlib',
-          'type' => 'standard library',
+          'kind' => 'standard library',
           'version' => RUBY_VERSION.to_s,
           'paths' => include(start_with('/')),
         ),
         hash_including(
           'name' => 'ddtrace',
-          'type' => 'library',
+          'kind' => 'library',
           'version' => Datadog::VERSION::STRING,
           'paths' => include(start_with('/')),
         ),
         hash_including(
           'name' => 'rspec-core',
-          'type' => 'library',
+          'kind' => 'library',
           'version' => start_with('3.'), # This will one day need to be bumped for RSpec 4
           'paths' => include(start_with('/')),
         )

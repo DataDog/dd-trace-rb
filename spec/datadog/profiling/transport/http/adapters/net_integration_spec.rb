@@ -146,7 +146,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           )
 
           expect(code_provenance_data)
-            .to include('v1' => array_including(hash_including('type' => 'library', 'name' => 'ddtrace')))
+            .to include('v1' => array_including(hash_including('kind' => 'library', 'name' => 'ddtrace')))
         end
       end
     end
