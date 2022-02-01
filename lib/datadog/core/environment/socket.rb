@@ -7,7 +7,7 @@ module Datadog
     module Environment
       # For runtime identity
       module Socket
-        extend Datadog::Core::Utils::Forking
+        extend Core::Utils::Forking
 
         module_function
 

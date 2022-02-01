@@ -50,7 +50,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           'partial_flushing_enabled' => false,
           'priority_sampling_enabled' => false,
           'runtime_metrics_enabled' => false,
-          'version' => Datadog::VERSION::STRING,
+          'version' => DDTrace::VERSION::STRING,
           'vm' => be_a(String),
           'service' => be_a(String)
         )
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
           sampling_rules: nil,
           service: be_a(String),
           tags: nil,
-          version: Datadog::VERSION::STRING,
+          version: DDTrace::VERSION::STRING,
           vm: be_a(String)
         )
       end

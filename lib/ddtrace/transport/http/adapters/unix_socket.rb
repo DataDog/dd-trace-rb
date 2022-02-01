@@ -1,6 +1,6 @@
 # typed: false
 require 'net/http'
-require 'ddtrace/ext/transport'
+require 'ddtrace/transport/ext'
 require 'ddtrace/transport/http/adapters/net'
 
 module Datadog
@@ -18,7 +18,7 @@ module Datadog
           # @deprecated Positional parameters are deprecated. Use named parameters instead.
           def initialize(uds_path = nil, **options)
             @filepath = uds_path || options.fetch(:uds_path)
-            @timeout = options[:timeout] || Ext::Transport::UnixSocket::DEFAULT_TIMEOUT_SECONDS
+            @timeout = options[:timeout] || Transport::Ext::UnixSocket::DEFAULT_TIMEOUT_SECONDS
           end
 
           def self.build(agent_settings)

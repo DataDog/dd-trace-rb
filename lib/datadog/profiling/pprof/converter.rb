@@ -59,7 +59,7 @@ module Datadog
         def build_event_values(event)
           # Build a value array that matches the length of the sample types
           # Populate all values with "no value" by default
-          Array.new(@sample_type_mappings.length, Datadog::Profiling::Ext::Pprof::SAMPLE_VALUE_NO_VALUE)
+          Array.new(@sample_type_mappings.length, Profiling::Ext::Pprof::SAMPLE_VALUE_NO_VALUE)
         end
 
         def debug_statistics

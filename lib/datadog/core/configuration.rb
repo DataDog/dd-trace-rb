@@ -121,7 +121,7 @@ module Datadog
       # in the integration or feature that would use them.
       #
       # For example, for `Datadog.configure_onto(redis_client, **opts)`, `opts` can be
-      # any of the options in the Redis {Datadog::Contrib::Redis::Configuration::Settings} class.
+      # any of the options in the Redis {Datadog::Tracing::Contrib::Redis::Configuration::Settings} class.
       #
       # @param [Object] target the object to receive configuration options
       # @param [Hash] opts keyword arguments respective to the integration this object belongs to

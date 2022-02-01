@@ -1,10 +1,8 @@
-require 'ddtrace/ext/metadata'
-require 'ddtrace/ext/net'
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/socket'
 require 'datadog/core/runtime/ext'
-
-require 'ddtrace/trace_segment'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/trace_segment'
 
 module Datadog
   module Transport
@@ -63,7 +61,7 @@ module Datadog
         return unless trace.agent_sample_rate
 
         root_span.set_tag(
-          Ext::Sampling::TAG_AGENT_RATE,
+          Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE,
           trace.agent_sample_rate
         )
       end
@@ -72,13 +70,13 @@ module Datadog
         return unless trace.hostname
 
         root_span.set_tag(
-          Ext::NET::TAG_HOSTNAME,
+          Tracing::Metadata::Ext::NET::TAG_HOSTNAME,
           trace.hostname
         )
       end
 
       def tag_lang!
-        return if trace.lang.nil? || root_span.get_tag(Ext::Metadata::TAG_PEER_SERVICE)
+        return if trace.lang.nil? || root_span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
 
         root_span.set_tag(
           Core::Runtime::Ext::TAG_LANG,
@@ -90,7 +88,7 @@ module Datadog
         return unless trace.origin
 
         root_span.set_tag(
-          Ext::DistributedTracing::TAG_ORIGIN,
+          Tracing::Metadata::Ext::Distributed::TAG_ORIGIN,
           trace.origin
         )
       end
@@ -108,7 +106,7 @@ module Datadog
         return unless trace.rate_limiter_rate
 
         root_span.set_tag(
-          Ext::Sampling::TAG_RATE_LIMITER_RATE,
+          Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE,
           trace.rate_limiter_rate
         )
       end
@@ -117,7 +115,7 @@ module Datadog
         return unless trace.rule_sample_rate
 
         root_span.set_tag(
-          Ext::Sampling::TAG_RULE_SAMPLE_RATE,
+          Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE,
           trace.rule_sample_rate
         )
       end
@@ -135,7 +133,7 @@ module Datadog
         return unless trace.sample_rate
 
         root_span.set_tag(
-          Ext::Sampling::TAG_SAMPLE_RATE,
+          Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE,
           trace.sample_rate
         )
       end
@@ -144,7 +142,7 @@ module Datadog
         return unless trace.sampling_priority
 
         root_span.set_metric(
-          Ext::DistributedTracing::TAG_SAMPLING_PRIORITY,
+          Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY,
           trace.sampling_priority
         )
       end

@@ -29,16 +29,16 @@ module Datadog
         event_groups:,
         event_count:,
         code_provenance:,
-        runtime_id: Datadog::Core::Environment::Identity.id,
+        runtime_id: Core::Environment::Identity.id,
         service: Datadog.configuration.service,
         env: Datadog.configuration.env,
         version: Datadog.configuration.version,
-        host: Datadog::Core::Environment::Socket.hostname,
-        language: Datadog::Core::Environment::Identity.lang,
-        runtime_engine: Datadog::Core::Environment::Identity.lang_engine,
-        runtime_platform: Datadog::Core::Environment::Identity.lang_platform,
-        runtime_version: Datadog::Core::Environment::Identity.lang_version,
-        profiler_version: Datadog::Core::Environment::Identity.tracer_version,
+        host: Core::Environment::Socket.hostname,
+        language: Core::Environment::Identity.lang,
+        runtime_engine: Core::Environment::Identity.lang_engine,
+        runtime_platform: Core::Environment::Identity.lang_platform,
+        runtime_version: Core::Environment::Identity.lang_version,
+        profiler_version: Core::Environment::Identity.tracer_version,
         tags: Datadog.configuration.tags
       )
         super(

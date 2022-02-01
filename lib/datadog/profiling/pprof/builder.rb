@@ -49,8 +49,8 @@ module Datadog
         end
 
         def build_profile(start:, finish:)
-          start_ns = Datadog::Core::Utils::Time.as_utc_epoch_ns(start)
-          finish_ns = Datadog::Core::Utils::Time.as_utc_epoch_ns(finish)
+          start_ns = Core::Utils::Time.as_utc_epoch_ns(start)
+          finish_ns = Core::Utils::Time.as_utc_epoch_ns(finish)
 
           Perftools::Profiles::Profile.new(
             sample_type: @sample_types.messages,
