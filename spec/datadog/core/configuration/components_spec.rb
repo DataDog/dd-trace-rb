@@ -368,18 +368,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
         let(:writer) { Datadog::Tracing::Writer.new }
         let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
+        let(:sampler) do
+          if defined?(super)
+            super()
+          else
+            lambda do |sampler|
+              expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+              expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
+              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler)
+            end
+          end
+        end
         let(:default_options) do
           {
             default_service: settings.service,
             enabled: settings.tracer.enabled,
             trace_flush: trace_flush,
             tags: settings.tags,
-            sampler: lambda do |sampler|
-              expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
-              expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
-              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
-              expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler)
-            end,
+            sampler: sampler,
             writer: writer,
           }
         end
@@ -647,6 +654,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'with :test_mode' do
+        let(:sampler) do
+          lambda do |sampler|
+            expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
+            expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+            expect(sampler.priority_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
+          end
+        end
+
         context ':enabled' do
           before do
             allow(settings.test_mode)
@@ -678,7 +693,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
-                      sampler: kind_of(Datadog::Tracing::Sampling::AllSampler),
                       writer: kind_of(Datadog::Tracing::SyncWriter)
                     }
                   end
@@ -695,7 +709,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
                   let(:options) do
                     {
                       trace_flush: trace_flush,
-                      sampler: kind_of(Datadog::Tracing::Sampling::AllSampler),
                       writer: kind_of(Datadog::Tracing::SyncWriter)
                     }
                   end
@@ -719,7 +732,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
                 it_behaves_like 'new tracer' do
                   let(:options) do
                     {
-                      sampler: kind_of(Datadog::Tracing::Sampling::AllSampler),
                       writer: writer
                     }
                   end
