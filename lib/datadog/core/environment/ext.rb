@@ -38,7 +38,7 @@ module Datadog
         TAG_VERSION = 'version'.freeze
 
         # TODO: Migrate to Datadog::Tracing
-        TRACER_VERSION = Datadog::VERSION::STRING
+        TRACER_VERSION = DDTrace::VERSION::STRING
       end
     end
   end

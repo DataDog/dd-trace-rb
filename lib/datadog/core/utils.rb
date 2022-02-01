@@ -1,5 +1,6 @@
 # typed: true
 require 'datadog/core/utils/forking'
+require 'datadog/tracing/span'
 
 module Datadog
   module Core
@@ -17,7 +18,7 @@ module Datadog
       # This method is thread-safe and fork-safe.
       def self.next_id
         after_fork! { reset! }
-        id_rng.rand(Datadog::Span::RUBY_MAX_ID) # TODO: This should never return zero
+        id_rng.rand(Tracing::Span::RUBY_MAX_ID) # TODO: This should never return zero
       end
 
       def self.id_rng

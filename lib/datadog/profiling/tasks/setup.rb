@@ -8,7 +8,7 @@ module Datadog
     module Tasks
       # Takes care of loading our extensions/monkey patches to handle fork() and validating if CPU-time profiling is usable
       class Setup
-        ACTIVATE_EXTENSIONS_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+        ACTIVATE_EXTENSIONS_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         def run
           ACTIVATE_EXTENSIONS_ONLY_ONCE.run do
@@ -29,7 +29,7 @@ module Datadog
         def activate_forking_extensions
           if Ext::Forking.supported?
             Ext::Forking.apply!
-          elsif Datadog::Profiling.configuration.profiling.enabled
+          elsif Profiling.configuration.profiling.enabled
             Datadog.logger.debug('Profiler forking extensions skipped; forking not supported.')
           end
         rescue StandardError, ScriptError => e
@@ -61,7 +61,7 @@ module Datadog
                 Thread.current.send(:update_native_ids) if Thread.current.respond_to?(:update_native_ids, true)
 
                 # Restart profiler, if enabled
-                Datadog::Profiling.start_if_enabled
+                Profiling.start_if_enabled
               rescue StandardError => e
                 Datadog.logger.warn do
                   "Error during post-fork hooks. Cause: #{e.message} Location: #{Array(e.backtrace).first}"

@@ -47,8 +47,8 @@ module Datadog
         end
 
         # TODO: `close_metrics` is only needed because
-        # Datadog::Components directly manipulates the lifecycle of
-        # Runtime::Metrics.statsd instances.
+        # Datadog::Core::Configuration::Components directly manipulates
+        # the lifecycle of Runtime::Metrics.statsd instances.
         # This should be avoided, as it prevents this class from
         # ensuring correct resource decommission of its internal
         # dependencies.

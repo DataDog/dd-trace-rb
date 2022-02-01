@@ -1,6 +1,13 @@
 # typed: false
 require 'spec_helper'
 
+require 'datadog/core/environment/identity'
+require 'datadog/core/runtime/ext'
+require 'datadog/core/utils'
+require 'datadog/tracing/metadata/ext'
+require 'datadog/tracing/sampling/ext'
+require 'datadog/tracing/span'
+require 'datadog/tracing/trace_segment'
 require 'ddtrace/transport/trace_formatter'
 
 RSpec.describe Datadog::Transport::TraceFormatter do
@@ -34,24 +41,24 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:rule_sample_rate) { rand }
     let(:runtime_id) { 'trace.runtime_id' }
     let(:sample_rate) { rand }
-    let(:sampling_priority) { Datadog::Ext::Priority::USER_KEEP }
+    let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
   end
 
   shared_context 'no root span' do
-    let(:trace) { Datadog::TraceSegment.new(spans, **trace_options) }
-    let(:spans) { Array.new(3) { Datadog::Span.new('my.job') } }
+    let(:trace) { Datadog::Tracing::TraceSegment.new(spans, **trace_options) }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans.last }
   end
 
   shared_context 'missing root span' do
-    let(:trace) { Datadog::TraceSegment.new(spans, root_span_id: Datadog::Core::Utils.next_id, **trace_options) }
-    let(:spans) { Array.new(3) { Datadog::Span.new('my.job') } }
+    let(:trace) { Datadog::Tracing::TraceSegment.new(spans, root_span_id: Datadog::Core::Utils.next_id, **trace_options) }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans.last }
   end
 
   shared_context 'available root span' do
-    let(:trace) { Datadog::TraceSegment.new(spans, root_span_id: root_span.id, **trace_options) }
-    let(:spans) { Array.new(3) { Datadog::Span.new('my.job') } }
+    let(:trace) { Datadog::Tracing::TraceSegment.new(spans, root_span_id: root_span.id, **trace_options) }
+    let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans[1] }
   end
 
@@ -90,16 +97,16 @@ RSpec.describe Datadog::Transport::TraceFormatter do
       shared_examples 'root span with no tags' do
         it do
           expect(root_span).to have_metadata(
-            Datadog::Ext::Sampling::TAG_AGENT_RATE => nil,
-            Datadog::Ext::NET::TAG_HOSTNAME => nil,
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE => nil,
+            Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => nil,
             Datadog::Core::Runtime::Ext::TAG_LANG => nil,
-            Datadog::Ext::DistributedTracing::TAG_ORIGIN => nil,
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => nil,
             Datadog::Core::Runtime::Ext::TAG_PID => nil,
-            Datadog::Ext::Sampling::TAG_RATE_LIMITER_RATE => nil,
-            Datadog::Ext::Sampling::TAG_RULE_SAMPLE_RATE => nil,
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => nil,
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => nil,
             Datadog::Core::Runtime::Ext::TAG_ID => nil,
-            Datadog::Ext::Sampling::TAG_SAMPLE_RATE => nil,
-            Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY => nil
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => nil,
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => nil
           )
         end
       end
@@ -107,23 +114,23 @@ RSpec.describe Datadog::Transport::TraceFormatter do
       shared_examples 'root span with tags' do
         it do
           expect(root_span).to have_metadata(
-            Datadog::Ext::Sampling::TAG_AGENT_RATE => agent_sample_rate,
-            Datadog::Ext::NET::TAG_HOSTNAME => hostname,
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE => agent_sample_rate,
+            Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => hostname,
             Datadog::Core::Runtime::Ext::TAG_LANG => lang,
-            Datadog::Ext::DistributedTracing::TAG_ORIGIN => origin,
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => origin,
             Datadog::Core::Runtime::Ext::TAG_PID => process_id,
-            Datadog::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
-            Datadog::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
-            Datadog::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
-            Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY => sampling_priority
+            Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority
           )
         end
 
         context 'but peer.service is set' do
           before do
             allow(root_span).to receive(:get_tag)
-              .with(Datadog::Ext::Metadata::TAG_PEER_SERVICE)
+              .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)
               .and_return('a-peer-service')
           end
 

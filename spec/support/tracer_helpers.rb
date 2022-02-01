@@ -1,6 +1,6 @@
 # typed: false
-require 'ddtrace/tracer'
-require 'ddtrace/span'
+require 'datadog/tracing/tracer'
+require 'datadog/tracing/trace_operation'
 require 'support/faux_writer'
 
 module TracerHelpers
@@ -17,7 +17,7 @@ module TracerHelpers
     )
 
     options = { writer: writer }.merge(options)
-    Datadog::Tracer.new(**options)
+    Datadog::Tracing::Tracer.new(**options)
   end
 
   def get_test_writer(options = {})
@@ -35,7 +35,7 @@ module TracerHelpers
     traces = []
 
     n.times do
-      trace_op = Datadog::TraceOperation.new
+      trace_op = Datadog::Tracing::TraceOperation.new
 
       trace_op.measure('client.testing', service: service, resource: resource, type: type) do
         trace_op.measure('client.testing', service: service, resource: resource, type: type) do

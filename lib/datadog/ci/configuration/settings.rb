@@ -15,7 +15,7 @@ module Datadog
           base.class_eval do
             settings :ci_mode do
               option :enabled do |o|
-                o.default { env_to_bool(Datadog::CI::Ext::Settings::ENV_MODE_ENABLED, false) }
+                o.default { env_to_bool(CI::Ext::Settings::ENV_MODE_ENABLED, false) }
                 o.lazy
               end
 

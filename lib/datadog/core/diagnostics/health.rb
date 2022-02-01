@@ -1,6 +1,6 @@
 # typed: false
-require 'datadog/core/metrics/client'
 require 'datadog/core/diagnostics/ext'
+require 'datadog/core/metrics/client'
 
 module Datadog
   module Core
@@ -8,7 +8,7 @@ module Datadog
       # Health-related diagnostics
       module Health
         # Health metrics for diagnostics
-        class Metrics < ::Datadog::Core::Metrics::Client
+        class Metrics < Core::Metrics::Client
           count :api_errors, Ext::Health::Metrics::METRIC_API_ERRORS
           count :api_requests, Ext::Health::Metrics::METRIC_API_REQUESTS
           count :api_responses, Ext::Health::Metrics::METRIC_API_RESPONSES
