@@ -82,7 +82,9 @@ module Datadog
 
           # enforce that the value is a floating point number
           value = Float(value)
-          metrics[key.to_s] = value
+
+          # Encode strings in UTF-8 to facilitate downstream serialization
+          metrics[Core::Utils.utf8_encode(key)] = value
         rescue StandardError => e
           Datadog.logger.debug("Unable to set the metric #{key}, ignoring it. Caused by: #{e}")
         end

@@ -320,6 +320,18 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
         it_behaves_like 'a metric', [], nil
       end
     end
+
+    context 'given a string tag that is not in UTF-8' do
+      let(:key) { 'key'.encode(Encoding::ASCII) }
+      let(:value) { 123 }
+
+      it 'converts key to UTF-8' do
+        set_metric
+
+        expect(metrics.keys.first).to eq(key) & have_attributes(encoding: Encoding::UTF_8)
+        expect(metrics[key]).to eq(value)
+      end
+    end
   end
 
   describe '#clear_metric' do
