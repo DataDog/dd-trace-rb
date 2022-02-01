@@ -44,6 +44,36 @@ module Datadog
           tags
         end
 
+        # {https://docs.datadoghq.com/agent/ Datadog Agent} configuration.
+        # @configure_with {Datadog}
+        # @public_api
+        settings :agent do
+          # Agent hostname or IP.
+          # @configure_with {Datadog}
+          # @default `DD_AGENT_HOST` environment variable, otherwise `127.0.0.1`
+          # @return [String,nil]
+          option :host
+
+          # Agent APM TCP port.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @configure_with {Datadog}
+          # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
+          # @return [String,nil]
+          option :port
+
+          # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
+          # Statsd configuration for agent access.
+          # @configure_with {Datadog}
+          # @public_api
+          # settings :statsd do
+          #   # Agent Statsd UDP port.
+          #   # @configure_with {Datadog::Statsd}
+          #   # @default `DD_AGENT_HOST` environment variable, otherwise `8125`
+          #   # @return [String,nil]
+          #   option :port
+          # end
+        end
+
         # Legacy [App Analytics](https://docs.datadoghq.com/tracing/legacy_app_analytics/) configuration.
         #
         # @configure_with {Datadog::Tracing}
@@ -504,9 +534,6 @@ module Datadog
             o.lazy
           end
 
-          # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
-          option :hostname
-
           # A custom tracer instance.
           #
           # It must respect the contract of {Datadog::Tracing::Tracer}.
@@ -550,9 +577,6 @@ module Datadog
             # @return [Boolean]
             option :min_spans_threshold, default: 500
           end
-
-          # TODO: This setting is not tracer-specific and should be moved to top-level or to the transport.
-          option :port
 
           # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
           # Datadog intelligent retention filter}.

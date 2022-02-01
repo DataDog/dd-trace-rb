@@ -27,6 +27,7 @@ module Datadog
         # Forwards global configuration settings
         class Global < self
           FORWARDED_METHODS = [
+            :agent,
             :api_key,
             :api_key=,
             :diagnostics,

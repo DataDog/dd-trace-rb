@@ -1133,6 +1133,44 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  describe '#agent' do
+    describe '#host' do
+      subject(:host) { settings.agent.host }
+
+      it { is_expected.to be nil }
+    end
+
+    describe '#host=' do
+      let(:host) { 'my-agent' }
+
+      it 'updates the #host setting' do
+        expect { settings.agent.host = host }
+          .to change { settings.agent.host }
+          .from(nil)
+          .to(host)
+      end
+    end
+
+    describe '#tracer' do
+      describe '#port' do
+        subject(:port) { settings.agent.port }
+
+        it { is_expected.to be nil }
+      end
+
+      describe '#port=' do
+        let(:port) { 1234 }
+
+        it 'updates the #port setting' do
+          expect { settings.agent.port = port }
+            .to change { settings.agent.port }
+            .from(nil)
+            .to(port)
+        end
+      end
+    end
+  end
+
   describe '#tracer' do
     describe '#enabled' do
       subject(:enabled) { settings.tracer.enabled }
@@ -1172,23 +1210,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.tracer.enabled }
           .from(true)
           .to(false)
-      end
-    end
-
-    describe '#hostname' do
-      subject(:hostname) { settings.tracer.hostname }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#hostname=' do
-      let(:hostname) { 'my-agent' }
-
-      it 'updates the #hostname setting' do
-        expect { settings.tracer.hostname = hostname }
-          .to change { settings.tracer.hostname }
-          .from(nil)
-          .to(hostname)
       end
     end
 
@@ -1240,23 +1261,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .from(500)
             .to(value)
         end
-      end
-    end
-
-    describe '#port' do
-      subject(:port) { settings.tracer.port }
-
-      it { is_expected.to be nil }
-    end
-
-    describe '#port=' do
-      let(:port) { 1234 }
-
-      it 'updates the #port setting' do
-        expect { settings.tracer.port = port }
-          .to change { settings.tracer.port }
-          .from(nil)
-          .to(port)
       end
     end
 

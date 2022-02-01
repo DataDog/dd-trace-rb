@@ -511,9 +511,12 @@ RSpec.describe 'Tracer integration tests' do
 
   describe 'tracer transport' do
     subject(:configure) do
+      Datadog.configure do |c|
+        c.agent.host = hostname
+        c.agent.port = port
+      end
+
       Datadog::Tracing.configure do |c|
-        c.tracer.hostname = hostname
-        c.tracer.port = port
         c.tracer.priority_sampling = true
       end
     end
