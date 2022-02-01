@@ -1,0 +1,42 @@
+name: AppSec System Tests
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch: {}
+  schedule:
+    - cron:  '00 04 * * 2-6'
+
+jobs:
+  system-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          repository: 'DataDog/system-tests'
+
+      - name: Checkout dd-trace-rb
+        uses: actions/checkout@v2
+        with:
+          path: 'binaries/dd-trace-rb'
+
+      - name: Build ruby
+        run: ./build.sh ruby
+
+      - name: Run
+        run: ./run.sh
+        env:
+          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+
+      - name: Compress artifact
+        if: ${{ always() }}
+        run: tar -czvf artifact.tar.gz $(ls | grep logs)
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: logs
+          path: artifact.tar.gz
