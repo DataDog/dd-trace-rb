@@ -22,7 +22,7 @@ module Datadog
 
           record_library(
             Library.new(
-              type: 'standard library',
+              kind: 'standard library',
               name: 'stdlib',
               version: RUBY_VERSION,
               path: standard_library_path,
@@ -79,7 +79,7 @@ module Datadog
           loaded_specs.each do |spec|
             next if libraries_by_name.key?(spec.name)
 
-            record_library(Library.new(type: 'library', name: spec.name, version: spec.version, path: spec.gem_dir))
+            record_library(Library.new(kind: 'library', name: spec.name, version: spec.version, path: spec.gem_dir))
             recorded_library = true
           end
 
@@ -97,14 +97,14 @@ module Datadog
           end
         end
 
-        Library = Struct.new(:type, :name, :version, :path) do
-          def initialize(type:, name:, version:, path:)
-            super(type.freeze, name.dup.freeze, version.to_s.dup.freeze, path.dup.freeze)
+        Library = Struct.new(:kind, :name, :version, :path) do
+          def initialize(kind:, name:, version:, path:)
+            super(kind.freeze, name.dup.freeze, version.to_s.dup.freeze, path.dup.freeze)
             freeze
           end
 
           def to_json(*args)
-            { type: type, name: name, version: version, paths: [path] }.to_json(*args)
+            { kind: kind, name: name, version: version, paths: [path] }.to_json(*args)
           end
         end
       end

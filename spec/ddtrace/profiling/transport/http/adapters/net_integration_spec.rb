@@ -141,7 +141,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           code_provenance_data = JSON.parse(Datadog::Utils::Compression.gunzip(body.fetch('data[code_provenance.json]')))
 
           expect(code_provenance_data)
-            .to include('v1' => array_including(hash_including('type' => 'library', 'name' => 'ddtrace')))
+            .to include('v1' => array_including(hash_including('kind' => 'library', 'name' => 'ddtrace')))
         end
       end
     end
