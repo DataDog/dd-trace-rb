@@ -1,4 +1,6 @@
 # typed: true
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Metadata
@@ -65,8 +67,31 @@ module Datadog
           module Headers
             module_function
 
+            INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:\./]}.freeze
+
+            # Normalizes an HTTP header string into a valid tag string.
             def to_tag(name)
-              name.to_s.downcase.gsub(/[-\s]/, '_')
+              # Tag normalization based on: https://docs.datadoghq.com/tagging/#defining-tags.
+              #
+              # Only the following characters are accepted.
+              #  * Alphanumerics
+              #  * Underscores
+              #  * Minuses
+              #  * Colons
+              #  * Periods
+              #  * Slashes
+              #
+              # All other characters are replaced with an underscore.
+              tag = name.to_s.strip
+              tag.downcase!
+              tag.gsub!(INVALID_TAG_CHARACTERS, '_')
+
+              # Additionally HTTP header normalization is perform based on:
+              # https://github.com/DataDog/architecture/blob/master/rfcs/apm/integrations/trace-http-headers/rfc.md#header-name-normalization
+              #
+              # Periods are replaced with an underscore.
+              tag.tr!('.', '_')
+              tag
             end
           end
 
