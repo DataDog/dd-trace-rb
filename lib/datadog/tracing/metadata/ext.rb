@@ -11,63 +11,63 @@ module Datadog
       # @public_api
       module Ext
         # Name of package that was instrumented
-        TAG_COMPONENT = 'component'.freeze
+        TAG_COMPONENT = 'component'
         # Type of operation being performed (e.g. )
-        TAG_OPERATION = 'operation'.freeze
+        TAG_OPERATION = 'operation'
         # Hostname of external service interacted with
-        TAG_PEER_HOSTNAME = 'peer.hostname'.freeze
+        TAG_PEER_HOSTNAME = 'peer.hostname'
         # Name of external service that performed the work
-        TAG_PEER_SERVICE = 'peer.service'.freeze
+        TAG_PEER_SERVICE = 'peer.service'
 
         # Defines constants for trace analytics
         # @public_api
         module Analytics
           DEFAULT_SAMPLE_RATE = 1.0
-          TAG_ENABLED = 'analytics.enabled'.freeze
-          TAG_MEASURED = '_dd.measured'.freeze
-          TAG_SAMPLE_RATE = '_dd1.sr.eausr'.freeze
+          TAG_ENABLED = 'analytics.enabled'
+          TAG_MEASURED = '_dd.measured'
+          TAG_SAMPLE_RATE = '_dd1.sr.eausr'
         end
 
         module AppTypes
-          TYPE_WEB = 'web'.freeze
-          TYPE_DB = 'db'.freeze
-          TYPE_CACHE = 'cache'.freeze
-          TYPE_WORKER = 'worker'.freeze
-          TYPE_CUSTOM = 'custom'.freeze
+          TYPE_WEB = 'web'
+          TYPE_DB = 'db'
+          TYPE_CACHE = 'cache'
+          TYPE_WORKER = 'worker'
+          TYPE_CUSTOM = 'custom'
         end
 
         # @public_api
         # Tags related to distributed tracing
         module Distributed
-          TAG_ORIGIN = '_dd.origin'.freeze
-          TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'.freeze
+          TAG_ORIGIN = '_dd.origin'
+          TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
         end
 
         # @public_api
         module Errors
           STATUS = 1
-          TAG_MSG = 'error.msg'.freeze
-          TAG_STACK = 'error.stack'.freeze
-          TAG_TYPE = 'error.type'.freeze
+          TAG_MSG = 'error.msg'
+          TAG_STACK = 'error.stack'
+          TAG_TYPE = 'error.type'
         end
 
         # @public_api
         module HTTP
           ERROR_RANGE = (500...600).freeze
-          TAG_BASE_URL = 'http.base_url'.freeze
-          TAG_METHOD = 'http.method'.freeze
-          TAG_STATUS_CODE = 'http.status_code'.freeze
-          TAG_URL = 'http.url'.freeze
+          TAG_BASE_URL = 'http.base_url'
+          TAG_METHOD = 'http.method'
+          TAG_STATUS_CODE = 'http.status_code'
+          TAG_URL = 'http.url'
           TYPE_INBOUND = AppTypes::TYPE_WEB.freeze
-          TYPE_OUTBOUND = 'http'.freeze
-          TYPE_PROXY = 'proxy'.freeze
-          TYPE_TEMPLATE = 'template'.freeze
+          TYPE_OUTBOUND = 'http'
+          TYPE_PROXY = 'proxy'
+          TYPE_TEMPLATE = 'template'
 
           # General header functionality
           module Headers
             module_function
 
-            INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:\./]}.freeze
+            INVALID_TAG_CHARACTERS = %r{[^a-z0-9_\-:./]}.freeze
 
             # Normalizes an HTTP header string into a valid tag string.
             def to_tag(name)
@@ -97,7 +97,7 @@ module Datadog
 
           # Request headers
           module RequestHeaders
-            PREFIX = 'http.request.headers'.freeze
+            PREFIX = 'http.request.headers'
 
             module_function
 
@@ -108,7 +108,7 @@ module Datadog
 
           # Response headers
           module ResponseHeaders
-            PREFIX = 'http.response.headers'.freeze
+            PREFIX = 'http.response.headers'
 
             module_function
 
@@ -120,30 +120,30 @@ module Datadog
 
         # @public_api
         module NET
-          TAG_HOSTNAME = '_dd.hostname'.freeze
-          TAG_TARGET_HOST = 'out.host'.freeze
-          TAG_TARGET_PORT = 'out.port'.freeze
+          TAG_HOSTNAME = '_dd.hostname'
+          TAG_TARGET_HOST = 'out.host'
+          TAG_TARGET_PORT = 'out.port'
         end
 
         # @public_api
         module Sampling
-          TAG_AGENT_RATE = '_dd.agent_psr'.freeze
+          TAG_AGENT_RATE = '_dd.agent_psr'
 
           # If rule sampling is applied to a span, set this metric the sample rate configured for that rule.
           # This should be done regardless of sampling outcome.
-          TAG_RULE_SAMPLE_RATE = '_dd.rule_psr'.freeze
+          TAG_RULE_SAMPLE_RATE = '_dd.rule_psr'
 
           # If rate limiting is checked on a span, set this metric the effective rate limiting rate applied.
           # This should be done regardless of rate limiting outcome.
-          TAG_RATE_LIMITER_RATE = '_dd.limit_psr'.freeze
+          TAG_RATE_LIMITER_RATE = '_dd.limit_psr'
 
-          TAG_SAMPLE_RATE = '_sample_rate'.freeze
+          TAG_SAMPLE_RATE = '_sample_rate'
         end
 
         # @public_api
         module SQL
-          TYPE = 'sql'.freeze
-          TAG_QUERY = 'sql.query'.freeze
+          TYPE = 'sql'
+          TAG_QUERY = 'sql.query'
         end
       end
     end
