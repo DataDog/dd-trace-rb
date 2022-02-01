@@ -71,7 +71,7 @@ module Datadog
 
             # Normalizes an HTTP header string into a valid tag string.
             def to_tag(name)
-              # Tag normalization based on: https://docs.datadoghq.com/tagging/#defining-tags.
+              # Tag normalization based on: https://docs.datadoghq.com/getting_started/tagging/#defining-tags.
               #
               # Only the following characters are accepted.
               #  * Alphanumerics
