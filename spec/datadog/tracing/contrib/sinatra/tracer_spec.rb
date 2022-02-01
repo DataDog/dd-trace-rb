@@ -150,7 +150,7 @@ RSpec.describe 'Sinatra instrumentation' do
             it do
               subject
               skip('not matching app span') unless span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)
-              expect(span.get_tag('http.response.headers.x_request_id')).to eq('test id')
+              expect(span.get_tag('http.response.headers.x-request-id')).to eq('test id')
             end
           end
         end
@@ -427,14 +427,14 @@ RSpec.describe 'Sinatra instrumentation' do
         let(:headers) { { 'HTTP_X_REQUEST_HEADER' => header_value } }
         let(:header_value) { SecureRandom.uuid }
 
-        it { expect(span.get_tag('http.request.headers.x_request_header')).to eq(header_value) }
+        it { expect(span.get_tag('http.request.headers.x-request-header')).to eq(header_value) }
       end
 
       context 'with a header that should not be tagged' do
         let(:headers) { { 'HTTP_X_REQUEST_HEADER' => header_value } }
         let(:header_value) { SecureRandom.uuid }
 
-        it { expect(span.get_tag('http.request.headers.x_request_header')).to be nil }
+        it { expect(span.get_tag('http.request.headers.x-request-header')).to be nil }
       end
     end
   end
@@ -660,7 +660,7 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.resource).to eq(opts[:resource] || resource)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(http_method) if opts[:http_tags]
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(url) if opts[:http_tags]
-      expect(span.get_tag('http.response.headers.content_type')).to eq('text/html;charset=utf-8') if opts[:http_tags]
+      expect(span.get_tag('http.response.headers.content-type')).to eq('text/html;charset=utf-8') if opts[:http_tags]
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(app_name)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url) if app_name == self.app_name
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil

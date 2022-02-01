@@ -599,19 +599,19 @@ RSpec.describe 'Rack integration tests' do
               expect(span).to be_root_span
 
               # Request headers
-              expect(span.get_tag('http.request.headers.cache_control')).to eq('no-cache')
+              expect(span.get_tag('http.request.headers.cache-control')).to eq('no-cache')
               # Make sure non-whitelisted headers don't become tags.
-              expect(span.get_tag('http.request.headers.x_request_id')).to be nil
-              expect(span.get_tag('http.request.headers.x_fake_request')).to be nil
+              expect(span.get_tag('http.request.headers.x-request-id')).to be nil
+              expect(span.get_tag('http.request.headers.x-fake-request')).to be nil
 
               # Response headers
-              expect(span.get_tag('http.response.headers.content_type')).to eq('text/html')
-              expect(span.get_tag('http.response.headers.cache_control')).to eq('max-age=3600')
+              expect(span.get_tag('http.response.headers.content-type')).to eq('text/html')
+              expect(span.get_tag('http.response.headers.cache-control')).to eq('max-age=3600')
               expect(span.get_tag('http.response.headers.etag')).to eq('"737060cd8c284d8af7ad3082f209582d"')
-              expect(span.get_tag('http.response.headers.last_modified')).to eq('Tue, 15 Nov 1994 12:45:26 GMT')
-              expect(span.get_tag('http.response.headers.x_request_id')).to eq('f058ebd6-02f7-4d3f-942e-904344e8cde5')
+              expect(span.get_tag('http.response.headers.last-modified')).to eq('Tue, 15 Nov 1994 12:45:26 GMT')
+              expect(span.get_tag('http.response.headers.x-request-id')).to eq('f058ebd6-02f7-4d3f-942e-904344e8cde5')
               # Make sure non-whitelisted headers don't become tags.
-              expect(span.get_tag('http.request.headers.x_fake_response')).to be nil
+              expect(span.get_tag('http.request.headers.x-fake-response')).to be nil
             end
           end
         end
