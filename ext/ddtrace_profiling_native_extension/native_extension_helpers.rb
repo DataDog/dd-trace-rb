@@ -20,7 +20,17 @@ module Datadog
             on_jruby? ||
             on_truffleruby? ||
             on_windows? ||
-            expected_to_use_mjit_but_mjit_is_disabled?
+            expected_to_use_mjit_but_mjit_is_disabled? ||
+            libddprof_not_usable?
+        end
+
+        private_class_method def self.skipping_build_banner(details)
+          %(
++------------------------------------------------------------------------------+
+| Skipping build of profiling native extension:                                |
+#{details.strip}
++------------------------------------------------------------------------------+
+)
         end
 
         private_class_method def self.disabled_via_env?
@@ -87,13 +97,48 @@ module Datadog
 )
         end
 
-        private_class_method def self.skipping_build_banner(details)
-          %(
-+------------------------------------------------------------------------------+
-| Skipping build of profiling native extension:                                |
-#{details.strip}
-+------------------------------------------------------------------------------+
+        private_class_method def self.libddprof_not_usable?
+          begin
+            require 'libddprof'
+          rescue LoadError
+            return skipping_build_banner %(
+| `libddprof` gem is not available.                                            |
+|                                                                              |
+| The Datadog Continuous Profiler will not be available,                       |
+| but all other ddtrace features will work fine!                               |
 )
+          end
+
+          unless Libddprof.binaries?
+            return skipping_build_banner %(
+| `libddprof` gem installed on your system is missing platform-specific        |
+| binaries. Make sure you install a platform-specific version of the gem,      |
+| and that you are not enabling the `force_ruby_platform` bundler option,      |
+| nor the `BUNDLE_FORCE_RUBY_PLATFORM` environment variable.                   |
+|                                                                              |
+| The Datadog Continuous Profiler will not be available,                       |
+| but all other ddtrace features will work fine!                               |
+|                                                                              |
+| For help solving this issue, please contact Datadog support at               |
+| <https://docs.datadoghq.com/help/>.                                          |
+)
+          end
+
+          unless Libddprof.pkgconfig_folder
+            current_platform = Gem::Platform.local.to_s
+            return skipping_build_banner %(
+| `libddprof` gem installed on your system is missing binaries for your        |
+| platform variant.                                                            |
+| (Your platform: `#{current_platform}`)
+| (Available binaries: `#{Libddprof.available_binaries})
+|                                                                              |
+| The Datadog Continuous Profiler will not be available,                       |
+| but all other ddtrace features will work fine!                               |
+|                                                                              |
+| For help solving this issue, please contact Datadog support at               |
+| <https://docs.datadoghq.com/help/>.                                          |
+)
+          end
         end
       end
     end
