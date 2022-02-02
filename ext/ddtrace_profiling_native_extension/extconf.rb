@@ -1,91 +1,29 @@
 # typed: ignore
 # rubocop:disable Style/StderrPuts
 
-# Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
-CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
-
-def on_jruby?
-  # We don't support JRuby for profiling, and JRuby doesn't support native extensions, so let's just skip this entire
-  # thing so that JRuby users of dd-trace-rb aren't impacted.
-  RUBY_ENGINE == 'jruby'
-end
-
-def on_truffleruby?
-  # We don't officially support TruffleRuby for dd-trace-rb at all BUT let's not break adventurous customers that
-  # want to give it a try.
-  RUBY_ENGINE == 'truffleruby'
-end
-
-def on_windows?
-  # Microsoft Windows is unsupported, so let's not build the extension there.
-  Gem.win_platform?
-end
-
-def expected_to_use_mjit_but_mjit_is_disabled?
-  # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
-  # building the extension.
-  mjit_disabled = CAN_USE_MJIT_HEADER && RbConfig::CONFIG['MJIT_SUPPORT'] != 'yes'
-
-  if mjit_disabled
-    $stderr.puts(%(
-+------------------------------------------------------------------------------+
-| Your Ruby has been compiled without JIT support (--disable-jit-support).     |
-| The profiling native extension requires a Ruby compiled with JIT support,    |
-| even if the JIT is not in use by the application itself.                     |
-|                                                                              |
-| WARNING: Without the profiling native extension, some profiling features     |
-| will not be available.                                                       |
-+------------------------------------------------------------------------------+
-
-))
-  end
-
-  mjit_disabled
-end
-
-def disabled_via_env?
-  # Experimental toggle to disable building the extension.
-  # Disabling the extension will lead to the profiler not working in future releases.
-  # If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.
-  ENV['DD_PROFILING_NO_EXTENSION'].to_s.downcase == 'true'
-end
-
-def skip_building_extension?
-  disabled_via_env? || on_jruby? || on_truffleruby? || on_windows? || expected_to_use_mjit_but_mjit_is_disabled?
-end
-
-# IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
-# doublecheck that what you're adding can be reasonably expected to work on their systems.
-def add_compiler_flag(flag)
-  $CFLAGS << ' ' << flag
-end
+require_relative 'native_extension_helpers'
 
 def skip_building_extension!
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   exit
 end
 
-if skip_building_extension?
-  $stderr.puts(%(
-+------------------------------------------------------------------------------+
-| Skipping build of profiling native extension and replacing it with a no-op   |
-| Makefile                                                                     |
-+------------------------------------------------------------------------------+
-
-))
+unless Datadog::Profiling::NativeExtensionHelpers::Supported.supported?
+  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
   skip_building_extension!
 end
 
 $stderr.puts(%(
 +------------------------------------------------------------------------------+
-| ** Preparing to build the ddtrace native extension... **                     |
+| ** Preparing to build the ddtrace profiling native extension... **           |
 |                                                                              |
 | If you run into any failures during this step, you can set the               |
 | `DD_PROFILING_NO_EXTENSION` environment variable to `true` e.g.              |
 | `$ DD_PROFILING_NO_EXTENSION=true bundle install` to skip this step.         |
 |                                                                              |
-| Disabling the extension will lead to the ddtrace profiling features not      |
-| working in future releases.                                                  |
+| If you disable this extension, the Datadog Continuous Profiler will          |
+| not be available, but all other ddtrace features will work fine!             |
+|                                                                              |
 | If you needed to use this, please tell us why on                             |
 | <https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :\)      |
 |                                                                              |
@@ -97,6 +35,12 @@ $stderr.puts(%(
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
+
+# IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
+# doublecheck that what you're adding can be reasonably expected to work on their systems.
+def add_compiler_flag(flag)
+  $CFLAGS << ' ' << flag
+end
 
 # Gets really noisy when we include the MJIT header, let's omit it
 add_compiler_flag '-Wno-unused-function'
@@ -125,7 +69,7 @@ end
 # When requiring, we need to use the exact same string, including the version and the platform.
 EXTENSION_NAME = "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
-if CAN_USE_MJIT_HEADER
+if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   mjit_header_file_name = "rb_mjit_min_header-#{RUBY_VERSION}.h"
 
   # Validate that the mjit header can actually be compiled on this system. We learned via
@@ -142,8 +86,8 @@ if CAN_USE_MJIT_HEADER
 | WARNING: Unable to compile a needed component for ddtrace native extension.  |
 | Your C compiler or Ruby VM just-in-time compiler seems to be broken.         |
 |                                                                              |
-| You will be NOT be able to use ddtrace profiling features,                   |
-| but all other features will work fine!                                       |
+| The Datadog Continuous Profiler will not be available,                       |
+| but all other ddtrace features will work fine!                               |
 |                                                                              |
 | For help solving this issue, please contact Datadog support at               |
 | <https://docs.datadoghq.com/help/>.                                          |
