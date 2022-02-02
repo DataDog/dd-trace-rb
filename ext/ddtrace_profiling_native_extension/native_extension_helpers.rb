@@ -21,6 +21,7 @@ module Datadog
             on_truffleruby? ||
             on_windows? ||
             on_unknown_os? ||
+            not_on_x86_64? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libddprof_not_usable?
         end
@@ -56,7 +57,7 @@ module Datadog
 |                                                                              |
 | All other ddtrace features will work fine!                                   |
 |                                                                              |
-| Get in touch with us if you're interested on profiling JRuby!                |
+| Get in touch with us if you're interested in profiling JRuby!                |
 )
         end
 
@@ -67,7 +68,7 @@ module Datadog
           skipping_build_banner %(
 | TruffleRuby is not supported by the ddtrace gem.                             |
 |                                                                              |
-| Get in touch with us if you're interested on profiling TruffleRuby!          |
+| Get in touch with us if you're interested in profiling TruffleRuby!          |
 )
         end
 
@@ -79,7 +80,7 @@ module Datadog
           skipping_build_banner %(
 | Microsoft Windows is not supported by the Datadog Continuous Profiler.       |
 |                                                                              |
-| Get in touch with us if you're interested on profiling Ruby on Windows!      |
+| Get in touch with us if you're interested in profiling Ruby on Windows!      |
 )
         end
 
@@ -88,6 +89,16 @@ module Datadog
 
           skipping_build_banner %(
 | Current operating system is not supported by the Datadog Continuous Profiler.|
+)
+        end
+
+        private_class_method def self.not_on_x86_64?
+          return if RUBY_PLATFORM.start_with?('x86_64')
+
+          skipping_build_banner %(
+| Your CPU architecture is not supported by the Datadog Continuous Profiler.   |
+|                                                                              |
+| Get in touch with us if you're interested in profiling Ruby!                 |
 )
         end
 
