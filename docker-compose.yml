@@ -31,6 +31,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-2.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.2:
@@ -64,6 +65,7 @@ services:
     volumes:
       - .:/app
       - bundle-2.2:/usr/local/bundle
+      - extension-build-tmp:/app/tmp
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.3:
     image: ivoanjo/docker-library:ddtrace_rb_2_3_8
@@ -95,6 +97,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-2.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.4:
@@ -127,6 +130,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-2.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.5:
@@ -159,6 +163,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
@@ -191,6 +196,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
@@ -223,6 +229,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
@@ -252,6 +259,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
@@ -281,6 +289,7 @@ services:
     tty: true
     volumes:
       - .:/app
+      - extension-build-tmp:/app/tmp
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
@@ -478,3 +487,6 @@ volumes:
   bundle-jruby-9.2-latest:
   bundle-truffleruby-21.3.0:
   ddagent_var_run:
+  # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
+  # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.
+  extension-build-tmp:
