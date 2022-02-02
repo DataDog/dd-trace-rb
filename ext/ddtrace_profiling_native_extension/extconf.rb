@@ -66,7 +66,7 @@ end
 # If we got here, libddprof is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
 unless pkg_config('ddprof_ffi')
-    $stderr.puts(%(
+  $stderr.puts(%(
 +------------------------------------------------------------------------------+
 | Skipping build of profiling native extension:                                |
 | failed to configure `libddprof` for compilation.                             |

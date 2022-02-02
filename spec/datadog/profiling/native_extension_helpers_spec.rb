@@ -62,63 +62,73 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           it { is_expected.to include 'operating system is not supported' }
         end
 
-        shared_examples 'libddprof usable' do
-          context 'when libddprof is not available' do
-            before do
-              allow(described_class)
-                .to receive(:require).with('libddprof').and_raise(LoadError.new('Testing failed require'))
+        context 'when not on x86-64' do
+          before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
+
+          it { is_expected.to include 'architecture is not supported' }
+        end
+
+        context 'when on x86-64 linux' do
+          before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
+
+          shared_examples 'libddprof usable' do
+            context 'when libddprof is not available' do
+              before do
+                allow(described_class)
+                  .to receive(:require).with('libddprof').and_raise(LoadError.new('Testing failed require'))
+              end
+
+              it { is_expected.to include '`libddprof` gem is not available' }
             end
 
-            it { is_expected.to include '`libddprof` gem is not available' }
-          end
+            context 'when libddprof is available' do
+              context 'but DOES NOT have binaries' do
+                before { expect(Libddprof).to receive(:binaries?).and_return(false) }
 
-          context 'when libddprof is available' do
-            context 'but DOES NOT have binaries' do
-              before { expect(Libddprof).to receive(:binaries?).and_return(false) }
+                it { is_expected.to include 'gem installed on your system is missing platform-specific' }
+              end
 
-              it { is_expected.to include 'gem installed on your system is missing platform-specific' }
-            end
+              context 'and DOES have binaries' do
+                before { expect(Libddprof).to receive(:binaries?).and_return(true) }
 
-            context 'and DOES have binaries' do
-              before { expect(Libddprof).to receive(:binaries?).and_return(true) }
+                context 'but DOES NOT HAVE binaries for the current platform' do
+                  before do
+                    expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
+                    expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+                  end
 
-              context 'but DOES NOT HAVE binaries for the current platform' do
-                before do
-                  expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
-                  expect(Libddprof).to receive(:available_binaries).and_return(['fooarch-linux', 'bararch-linux-musl'])
+                  it { is_expected.to include 'platform variant' }
                 end
 
-                it { is_expected.to include 'platform variant' }
-              end
+                context 'and HAS BINARIES for the current platform' do
+                  before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
 
-              context 'and HAS BINARIES for the current platform' do
-                before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
-
-                it { is_expected.to be nil }
+                  it { is_expected.to be nil }
+                end
               end
             end
           end
-        end
 
-        context 'when Ruby CAN NOT use the MJIT header' do
-          before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
-
-          include_examples 'libddprof usable'
-        end
-
-        context 'when Ruby CAN use the MJIT header' do
-          before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
-
-          context 'but DOES NOT have MJIT support' do
-            before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
-
-            it { is_expected.to include 'without JIT' }
-          end
-
-          context 'and DOES have MJIT support' do
-            before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
+          context 'when Ruby CAN NOT use the MJIT header' do
+            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
 
             include_examples 'libddprof usable'
+          end
+
+          context 'when Ruby CAN use the MJIT header' do
+            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
+
+            context 'but DOES NOT have MJIT support' do
+              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
+
+              it { is_expected.to include 'without JIT' }
+            end
+
+            context 'and DOES have MJIT support' do
+              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
+
+              include_examples 'libddprof usable'
+            end
           end
         end
       end
