@@ -56,6 +56,12 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
       context 'when not on Windows' do
         before { expect(Gem).to receive(:win_platform?).and_return(false) }
 
+        context 'when not on macOS or Linux' do
+          before { stub_const('RUBY_PLATFORM', 'sparc-opensolaris') }
+
+          it { is_expected.to include 'operating system is not supported' }
+        end
+
         shared_examples 'libddprof usable' do
           context 'when libddprof is not available' do
             before do

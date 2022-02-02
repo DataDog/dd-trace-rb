@@ -20,6 +20,7 @@ module Datadog
             on_jruby? ||
             on_truffleruby? ||
             on_windows? ||
+            on_unknown_os? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libddprof_not_usable?
         end
@@ -79,6 +80,14 @@ module Datadog
 | Microsoft Windows is not supported by the Datadog Continuous Profiler.       |
 |                                                                              |
 | Get in touch with us if you're interested on profiling Ruby on Windows!      |
+)
+        end
+
+        private_class_method def self.on_unknown_os?
+          return if RUBY_PLATFORM.include?('darwin') || RUBY_PLATFORM.include?('linux')
+
+          skipping_build_banner %(
+| Current operating system is not supported by the Datadog Continuous Profiler.|
 )
         end
 
