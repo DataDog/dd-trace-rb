@@ -29,6 +29,7 @@ test_containers:
   - &container_base_environment
     BUNDLE_GEMFILE: /app/Gemfile
     JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+    GRPC_RUBY_BUILD_PROCS: 8 # Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
   - &container_parameters_environment
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1
@@ -488,7 +489,6 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '3.1'
     image: ivoanjo/docker-library:ddtrace_rb_3_1_1
-    resource_class_to_use: xlarge # Temporary, see https://github.com/DataDog/dd-trace-rb/issues/1791
     # ADD NEW RUBIES HERE
   # JRuby
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
