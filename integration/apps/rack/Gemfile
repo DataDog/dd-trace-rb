@@ -1,5 +1,16 @@
 require 'datadog/demo_env'
 
+# Hack inspired by https://github.com/Shopify/semian/commit/2225ab140e21f233c933e771ae9347a75595352e
+# to get bundler to recompile google-protobuf, rather than trying to use the shipped binaries (which are not available
+# for all Ruby versions)
+# This is expected to be temporary, since the profiler will replace google-protobuf with libddprof for profile encoding
+module BundlerHack
+  def __materialize__
+    name == 'google-protobuf' ? Bundler.settings.temporary(force_ruby_platform: true) { super } : super
+  end
+end
+Bundler::LazySpecification.prepend(BundlerHack)
+
 source 'https://rubygems.org' do
   gem 'puma'
   gem 'unicorn'
