@@ -25,6 +25,7 @@
 # Ignore local data
 /data
 *.pprof
+*.html.*
 
 # Ignore local variables
 .envrc

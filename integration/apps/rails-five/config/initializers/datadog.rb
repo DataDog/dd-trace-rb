@@ -1,3 +1,4 @@
+require 'datadog/statsd'
 require 'ddtrace'
 
 Datadog.configure do |c|
