@@ -22,24 +22,24 @@ module Datadog
           @instruments << Instrument.new(name, options)
         end
 
-        def enabled(value)
+        def enabled=(value)
           options[:enabled] = value
         end
 
-        def ruleset(value)
+        def ruleset=(value)
           options[:ruleset] = value
         end
 
         # in microseconds
-        def waf_timeout(value)
+        def waf_timeout=(value)
           options[:waf_timeout] = value
         end
 
-        def waf_debug(value)
+        def waf_debug=(value)
           options[:waf_debug] = value
         end
 
-        def trace_rate_limit(value)
+        def trace_rate_limit=(value)
           options[:trace_rate_limit] = value
         end
 
