@@ -22,6 +22,7 @@ See `README.md` in each directory for more information:
 
 - `apps/rack`: Rack application
 - `apps/rails-five`: Rails 5 application
+- `apps/rails-six`: Rails 6 application
 
 ### Base images
 
