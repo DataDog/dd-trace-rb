@@ -17,9 +17,7 @@ module Datadog
     # @!attribute [r] configuration
     # @public_api
     def configuration
-      Configuration::ValidationProxy.new(
-        Datadog.send(:internal_configuration)
-      )
+      internal_configuration
     end
 
     # Apply configuration changes to `Datadog::CI`. An example of a {.configure} call:
@@ -53,14 +51,8 @@ module Datadog
     # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
     # @return [void]
     # @public_api
-    def configure
-      # Wrap block with trace option validation
-      wrapped_block = proc do |c|
-        yield(Configuration::ValidationProxy.new(c))
-      end
-
-      # Configure application normally
-      Datadog.send(:internal_configure, &wrapped_block)
+    def configure(&block)
+      internal_configuration.configure(&block)
     end
   end
 end

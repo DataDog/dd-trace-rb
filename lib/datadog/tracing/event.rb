@@ -44,45 +44,45 @@ module Datadog
       def initialize(name)
         @name = name
         @subscriptions = {}
-        @mutex = Mutex.new
+        # @mutex = Mutex.new
       end
 
       def subscribe(key, &block)
         raise ArgumentError, 'Must give a block to subscribe!' unless block
 
-        @mutex.synchronize do
+        # @mutex.synchronize do
           subscriptions[key] = block
-        end
+        # end
       end
 
       def wrap(key)
         raise ArgumentError, 'Must give a block to subscribe!' unless block_given?
 
-        @mutex.synchronize do
+        # @mutex.synchronize do
           original = subscriptions[key]
 
           subscriptions[key] = proc do |*args|
             yield(original, *args)
           end
-        end
+        # end
       end
 
       def unsubscribe(key)
-        @mutex.synchronize do
+        # @mutex.synchronize do
           subscriptions.delete(key)
-        end
+        # end
       end
 
       def unsubscribe_all!
-        @mutex.synchronize do
+        # @mutex.synchronize do
           subscriptions.clear
-        end
+        # end
 
         true
       end
 
       def publish(*args)
-        @mutex.synchronize do
+        # @mutex.synchronize do
           subscriptions.each do |key, block|
             begin
               block.call(*args)
@@ -92,7 +92,7 @@ module Datadog
           end
 
           true
-        end
+        # end
       end
     end
   end

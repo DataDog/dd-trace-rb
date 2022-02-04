@@ -52,9 +52,7 @@ module Datadog
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        ValidationProxy::Global.new(
-          internal_configuration
-        )
+        internal_configuration
       end
 
       # Apply global configuration changes to `Datadog`. An example of a {.configure} call:

@@ -22,7 +22,7 @@ module Datadog
         ENV_VERSION = 'DD_VERSION'.freeze
         FALLBACK_SERVICE_NAME =
           begin
-            File.basename($PROGRAM_NAME, '.*')
+            File.basename($PROGRAM_NAME, '.*').encode(Encoding::UTF_8)
           rescue StandardError
             'ruby'
           end.freeze

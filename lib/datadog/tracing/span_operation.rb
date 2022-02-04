@@ -67,8 +67,8 @@ module Datadog
 
         @status = 0
 
-        @allocation_count_start = now_allocations
-        @allocation_count_stop = @allocation_count_start
+        # @allocation_count_start = now_allocations
+        # @allocation_count_stop = @allocation_count_start
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -208,9 +208,9 @@ module Datadog
         # fallback to avoid very bad things and protect you in most common cases.
         return if stopped?
 
-        @allocation_count_stop = now_allocations
+        # @allocation_count_stop = now_allocations
 
-        set_metric('allocations', allocations)
+        # set_metric('allocations', allocations)
 
         now = Core::Utils::Time.now.utc
 
@@ -274,9 +274,9 @@ module Datadog
         return @end_time - @start_time if @start_time && @end_time
       end
 
-      def allocations
-        @allocation_count_stop - @allocation_count_start
-      end
+      # def allocations
+      #   @allocation_count_stop - @allocation_count_start
+      # end
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
@@ -352,17 +352,23 @@ module Datadog
         attr_reader \
           :after_finish,
           :after_stop,
-          :before_start,
-          :on_error
+          :before_start
 
         def initialize(on_error: nil)
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
           @before_start = BeforeStart.new
-          @on_error = OnError.new
+        end
 
-          # Set default error behavior
-          @on_error.subscribe(:default, &DEFAULT_ON_ERROR)
+        # This event is lazily initialized as error paths
+        # are normally less common that non-error paths.
+        def on_error
+          @on_error ||= begin
+                          event = OnError.new
+                          # Set default error behavior
+                          event.subscribe(:default, &DEFAULT_ON_ERROR)
+                          event
+                        end
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -435,18 +441,18 @@ module Datadog
       # we don't want this SpanOperation to modify it further.
       def build_span
         Span.new(
-          @name && @name.dup,
+          @name.frozen? ? @name : @name.dup,
           duration: duration,
           end_time: @end_time,
           id: @id,
-          meta: meta && meta.dup,
-          metrics: metrics && metrics.dup,
+          meta: meta.dup,
+          metrics: metrics.dup,
           parent_id: @parent_id,
-          resource: @resource && @resource.dup,
-          service: @service && @service.dup,
+          resource: @resource.frozen? ? @resource : @resource.dup,
+          service: @service.frozen? ? @service : @service.dup,
           start_time: @start_time,
           status: @status,
-          type: @type && @type.dup,
+          type: @type.frozen? ? @type : @type.dup,
           trace_id: @trace_id
         )
       end
@@ -488,19 +494,19 @@ module Datadog
         (duration * 1e9).to_i
       end
 
-      if defined?(JRUBY_VERSION)
-        def now_allocations
-          0
-        end
-      elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
-        def now_allocations
-          GC.stat.fetch(:total_allocated_object)
-        end
-      else
-        def now_allocations
-          GC.stat(:total_allocated_objects)
-        end
-      end
+      # if defined?(JRUBY_VERSION)
+      #   def now_allocations
+      #     0
+      #   end
+      # elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
+      #   def now_allocations
+      #     GC.stat.fetch(:total_allocated_object)
+      #   end
+      # else
+      #   def now_allocations
+      #     GC.stat(:total_allocated_objects)
+      #   end
+      # end
 
       # For backwards compatibility
       # TODO: Deprecate and remove these in 2.0.
