@@ -1,5 +1,3 @@
-require 'forwardable'
-
 require 'datadog/core/runtime/ext'
 
 require 'datadog/tracing/sampling/ext'
@@ -10,19 +8,9 @@ module Datadog
     # Serializable construct representing a trace
     # @public_api
     class TraceSegment
-      extend Forwardable
-
       TAG_NAME = 'name'.freeze
       TAG_RESOURCE = 'resource'.freeze
       TAG_SERVICE = 'service'.freeze
-
-      SPANS_METHODS = [
-        :any?,
-        :count,
-        :empty?,
-        :length,
-        :size
-      ].freeze
 
       attr_reader \
         :id,
@@ -68,7 +56,25 @@ module Datadog
         self.service = (service && service.dup)
       end
 
-      def_delegators :spans, *SPANS_METHODS
+      def any?
+        spans.any?
+      end
+
+      def count
+        spans.count
+      end
+
+      def empty?
+        spans.empty?
+      end
+
+      def length
+        spans.length
+      end
+
+      def size
+        spans.size
+      end
 
       # Define tag accessors
       {
