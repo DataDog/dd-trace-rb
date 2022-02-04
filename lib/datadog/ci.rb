@@ -16,9 +16,6 @@ module Datadog
     # @return [Datadog::Core::Configuration::Settings]
     # @!attribute [r] configuration
     # @public_api
-    def configuration
-      internal_configuration
-    end
 
     # Apply configuration changes to `Datadog::CI`. An example of a {.configure} call:
     # ```
@@ -51,9 +48,6 @@ module Datadog
     # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
     # @return [void]
     # @public_api
-    def configure(&block)
-      internal_configuration.configure(&block)
-    end
   end
 end
 

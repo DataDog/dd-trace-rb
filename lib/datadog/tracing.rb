@@ -83,7 +83,7 @@ module Datadog
       # @return [void]
       # @public_api
       def configure(&block)
-        Datadog.send(:configure, &block)
+        Datadog.send(:internal_configure, &block)
       end
 
       # (see Datadog::Tracing::Tracer#active_trace)
