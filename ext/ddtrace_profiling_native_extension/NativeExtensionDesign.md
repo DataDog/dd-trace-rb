@@ -1,9 +1,11 @@
 # Profiling Native Extension Design
 
-The profiling native extension is used to implement features which are expensive (in terms of resources) or otherwise
-impossible to implement using Ruby code.
+The profiling native extension is used to:
+1. Implement features which are expensive (in terms of resources) or otherwise impossible to implement using Ruby code.
+2. Bridge between Ruby-specific profiling features and [`libddprof`](https://github.com/DataDog/libddprof), a Rust-based
+library with common profiling functionality.
 
-This extension is quite coupled with MRI Ruby ("C Ruby") internals, and is not intended to support other rubies such as
+Due to (1), this extension is quite coupled with MRI Ruby ("C Ruby") internals, and is not intended to support other rubies such as
 JRuby or TruffleRuby. When below we say "Ruby", read it as "MRI Ruby".
 
 ## Disabling
@@ -21,7 +23,7 @@ in future releases -- e.g. disabling the extension will disable profiling entire
 The profiling native extension is (and must always be) designed to **not cause failures** during gem installation, even
 if some features, Ruby versions, or operating systems are not supported.
 
-E.g. the extension must cleanly build on Ruby 2.1 (or the oldest Ruby version we support at the time) on Windows,
+E.g. the extension must not break installation on Ruby 2.1 (or the oldest Ruby version we support at the time) on 64-bit ARM macOS,
 even if at run time it will effectively do nothing for such a setup.
 
 We have a CI setup to help validate this, but this is really important to keep in mind when adding to or changing the
