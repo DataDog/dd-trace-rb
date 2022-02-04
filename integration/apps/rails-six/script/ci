@@ -29,22 +29,22 @@ if [ -z ${APP_RUBY_VERSION+x} ]; then
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.1" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 5"
+  echo "Ruby 2.1 is not supported by Rails 6"
   exit 1
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.2" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 5"
+  echo "Ruby 2.1 is not supported by Rails 6"
   exit 1
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.3" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 5"
+  echo "Ruby 2.1 is not supported by Rails 6"
   exit 1
 fi
 
 if [[ "$APP_RUBY_VERSION" == "2.4" ]]; then
-  echo "Ruby 2.1 is not supported by Rails 5"
+  echo "Ruby 2.1 is not supported by Rails 6"
   exit 1
 fi
 

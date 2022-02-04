@@ -76,7 +76,7 @@ services:
       #   source: /sys/fs/cgroup/
       #   target: /host/sys/fs/cgroup:ro
   mysql:
-    image: mysql:5.6
+    image: mysql:5.7
     environment:
       - MYSQL_DATABASE=acme_production
       - MYSQL_ROOT_PASSWORD=root
@@ -99,7 +99,7 @@ services:
     environment:
       - HEALTH_CHECK_URL=http://app/health
       - HEALTH_CHECK_INTERVAL=1
-      - HEALTH_CHECK_MAX_ATTEMPTS=30
+      - HEALTH_CHECK_MAX_ATTEMPTS=60
     volumes:
       - ./data/wrk:/data
       - ../../images/wrk/scripts:/scripts

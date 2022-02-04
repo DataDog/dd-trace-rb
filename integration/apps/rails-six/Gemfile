@@ -1,8 +1,6 @@
 require 'datadog/demo_env'
 
 source 'https://rubygems.org' do
-  # gem 'rails', '5.2.2'
-
   google_protobuf_versions = [
     '~> 3.0',
     '!= 3.7.0.rc.2',
@@ -12,7 +10,7 @@ source 'https://rubygems.org' do
     '!= 3.8.0.rc.1'
   ]
 
-  rails_version = ['~> 5.2', '>= 5.2.6']
+  rails_version = ['~> 6.1']
 
   gem 'actioncable', *rails_version
   gem 'actionmailer', *rails_version
@@ -34,19 +32,14 @@ source 'https://rubygems.org' do
   gem 'ffi'
   gem 'google-protobuf', *google_protobuf_versions
 
-  # Fixes conflict with profiling (patch overwrite in Thread)
-  # Upgrade this to latest when this patch is merged & released.
-  # https://github.com/rollbar/rollbar-gem/pull/1018
-  gem 'rollbar', git: 'https://github.com/rollbar/rollbar-gem.git', ref: '310a9d1743bb44031480b49e8e0cef79ddc870c3'
-
   # Gems which give aide to higher performance
-  gem 'hiredis', '~> 0.6', platform: :ruby
+  gem 'hiredis', platform: :ruby
   gem 'multi_json'
-  gem 'oj', '3.3', platform: :ruby
+  gem 'oj', platform: :ruby
 
-  gem 'active_model_serializers', '0.9.3'
+  gem 'active_model_serializers'
   gem 'activerecord-import' # Speeds up mass imports
-  gem 'aws-sdk', '< 2.0'
+  gem 'aws-sdk'
   gem 'bcrypt-ruby', platform: :ruby
   gem 'connection_pool'
   gem 'devise'
@@ -63,9 +56,10 @@ source 'https://rubygems.org' do
   # gem 'resque-pool' # Incompatible with Redis 4.0+
   gem 'resque-scheduler'
   gem 'tzinfo-data', platforms: [:mingw, :mswin, :jruby]
-  gem 'validates_timeliness', '~> 3.0.8' # Date comparisons
+  gem 'validates_timeliness'
   gem 'versionist'
   gem 'warden'
+  gem 'rollbar'
 
   group :development do
     gem 'annotate'
@@ -76,11 +70,11 @@ source 'https://rubygems.org' do
   group :test do
     gem 'ci_reporter_rspec'
     gem 'database_cleaner'
-    gem 'factory_girl_rails', '4.5.0'
+    gem 'factory_girl_rails'
     gem 'rspec'
     gem 'rspec-collection_matchers'
     gem 'rspec-rails'
-    gem 'shoulda-matchers', '4.0.1'
+    gem 'shoulda-matchers'
     gem 'simplecov', require: false # Will install simplecov-html as a dependency
     gem 'timecop'
     gem 'webmock'
@@ -88,7 +82,7 @@ source 'https://rubygems.org' do
 
   group :test, :development do
     gem 'byebug', platform: :ruby
-    gem 'mock_redis', '0.19.0'
+    gem 'mock_redis'
     gem 'parallel_tests'
 
     gem 'listen'

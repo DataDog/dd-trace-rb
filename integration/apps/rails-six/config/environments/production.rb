@@ -72,11 +72,21 @@ Rails.application.configure do
   # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new 'app-name')
 
   if ENV["RAILS_LOG_TO_STDOUT"].present?
+    # NOTE: TaggedLogging breaks broadcasting to multiple loggers.
+    #       We need to apply tagging before we apply broadcasting.
+    #       This still doesn't apply tags properly to console,
+    #       presumably because it's the second logger, but that's
+    #       a problem to fix some other time.
     console_logger = ActiveSupport::Logger.new(STDOUT)
+    console_logger.formatter = config.log_formatter
+    console_logger = ActiveSupport::TaggedLogging.new(console_logger)
+
     file_logger = ActiveSupport::Logger.new('log/production.log')
-    combined_logger = console_logger.extend(ActiveSupport::Logger.broadcast(file_logger))
-    combined_logger.formatter = config.log_formatter
-    config.logger    = ActiveSupport::TaggedLogging.new(combined_logger)
+    file_logger.formatter = config.log_formatter
+    file_logger = ActiveSupport::TaggedLogging.new(file_logger)
+
+    file_logger.extend(ActiveSupport::Logger.broadcast(console_logger))
+    config.logger = file_logger
   end
 
   # Do not dump schema after migrations.
