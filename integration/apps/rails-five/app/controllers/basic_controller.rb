@@ -15,7 +15,7 @@ class BasicController < ApplicationController
     records = Test.where(version: 0)
 
     # Queue job
-    Resque.enqueue(Jobs::Test, job_id: request.request_id, records: records.map(&:to_json))
+    Resque.enqueue(TestJob, job_id: request.request_id, records: records.map(&:to_json))
 
     # Return response
     render json: { job_id: request.request_id }
