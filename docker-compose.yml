@@ -190,6 +190,8 @@ services:
   tracer-2.7:
     image: ivoanjo/docker-library:ddtrace_rb_2_7_3
     command: /bin/bash
+    cap_add:
+      - SYS_PTRACE
     depends_on:
       - ddagent
       - elasticsearch

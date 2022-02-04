@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+STACKPROF_DUMP="tmp/stackprof-cpu-1.0-microbenchmark"
+
+# Generate raw profile data for tracing only
+STACKPROF_DUMP_FILE=$STACKPROF_DUMP.dump bundle exec rspec './spec/datadog/tracing/benchmark/microbenchmark_spec.rb[1:2:1:2]'
+
+# Convert profile data to visible output
+bundle exec stackprof $STACKPROF_DUMP.dump --text > $STACKPROF_DUMP.txt
+bundle exec stackprof --flamegraph $STACKPROF_DUMP.dump > $STACKPROF_DUMP-flamegraph
+bundle exec stackprof --d3-flamegraph $STACKPROF_DUMP.dump > $STACKPROF_DUMP-flamegraph.html

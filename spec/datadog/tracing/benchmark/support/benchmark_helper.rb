@@ -8,6 +8,7 @@ require 'benchmark/ips'
 unless PlatformHelpers.jruby?
   require 'benchmark/memory'
   require 'memory_profiler'
+  require 'stackprof'
 end
 
 require 'fileutils'
@@ -96,6 +97,17 @@ RSpec.shared_context 'benchmark' do
     end.to_h
 
     write_result(result)
+  end
+
+  it 'profile timing' do
+    skip('No profiling in JRuby') if PlatformHelpers.jruby?
+    skip('No stackprof output given') unless ENV['STACKPROF_DUMP_FILE']
+
+    StackProf.run(mode: :cpu, out: ENV['STACKPROF_DUMP_FILE'], raw: true) do
+      1_000_000.times do
+        subject(1)
+      end
+    end
   end
 
   # Measure memory usage (object creation and memory size)
