@@ -5,6 +5,7 @@ module Datadog
     module Contrib
       module Rack
         module Reactive
+          # Dispatch data from a Rack response to the WAF context
           module Response
             def self.publish(op, response)
               catch(:block) do

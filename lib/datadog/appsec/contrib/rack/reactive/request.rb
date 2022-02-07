@@ -5,6 +5,7 @@ module Datadog
     module Contrib
       module Rack
         module Reactive
+          # Dispatch data from a Rack request to the WAF context
           module Request
             def self.publish(op, request)
               catch(:block) do
@@ -20,6 +21,7 @@ module Datadog
               end
             end
 
+            # rubocop:disable Metrics/MethodLength
             def self.subscribe(op, waf_context)
               addresses = [
                 'request.headers',
@@ -74,6 +76,7 @@ module Datadog
                 end
               end
             end
+            # rubocop:enable Metrics/MethodLength
           end
         end
       end

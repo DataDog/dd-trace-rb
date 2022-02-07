@@ -10,7 +10,7 @@ module Datadog
               case v
               when /(1|true)/i
                 true
-              when  /(0|false)/i, nil
+              when /(0|false)/i, nil
                 false
               else
                 raise ArgumentError, "invalid boolean: #{v.inspect}"
@@ -18,21 +18,23 @@ module Datadog
             end
           end
 
-          def string # TODO: allow symbols
-            -> (v) { v.to_s }
+          # TODO: allow symbols
+          def string
+            ->(v) { v.to_s }
           end
 
           def integer
             lambda do |v|
               case v
               when /(\d+)/
-                Integer($1)
+                Integer(Regexp.last_match[1])
               else
                 raise ArgumentError, "invalid integer: #{v.inspect}"
               end
             end
           end
 
+          # rubocop:disable Metrics/MethodLength
           def duration(base = :ns, type = :integer)
             lambda do |v|
               cast = case type
@@ -40,6 +42,8 @@ module Datadog
                        method(:Integer)
                      when :float, Float
                        method(:Float)
+                     else
+                       raise ArgumentError, "invalid type: #{v.inspect}"
                      end
 
               scale = case base
@@ -51,28 +55,31 @@ module Datadog
                         1000
                       when :ns
                         1
+                      else
+                        raise ArgumentError, "invalid base: #{v.inspect}"
                       end
 
               case v
               when /^(\d+)h$/
-                cast.call($1) * 1_000_000_000 * 60 * 60 / scale
+                cast.call(Regexp.last_match[1]) * 1_000_000_000 * 60 * 60 / scale
               when /^(\d+)m$/
-                cast.call($1) * 1_000_000_000 * 60 / scale
+                cast.call(Regexp.last_match[1]) * 1_000_000_000 * 60 / scale
               when /^(\d+)s$/
-                cast.call($1) * 1_000_000_000 / scale
+                cast.call(Regexp.last_match[1]) * 1_000_000_000 / scale
               when /^(\d+)ms$/
-                cast.call($1) * 1_000_000 / scale
+                cast.call(Regexp.last_match[1]) * 1_000_000 / scale
               when /^(\d+)us$/
-                cast.call($1) * 1_000 / scale
+                cast.call(Regexp.last_match[1]) * 1_000 / scale
               when /^(\d+)ns$/
-                cast.call($1) / scale
-              when  /^(\d+)$/
-                cast.call($1)
+                cast.call(Regexp.last_match[1]) / scale
+              when /^(\d+)$/
+                cast.call(Regexp.last_match[1])
               else
                 raise ArgumentError, "invalid duration: #{v.inspect}"
               end
             end
           end
+          # rubocop:enable Metrics/MethodLength
         end
 
         DEFAULTS = {
@@ -81,7 +88,7 @@ module Datadog
           waf_timeout: 5_000, # us
           waf_debug: false,
           trace_rate_limit: 100, # traces/s
-        }
+        }.freeze
 
         ENVS = {
           'DD_APPSEC_ENABLED' => [:enabled, Settings.boolean],
@@ -89,7 +96,7 @@ module Datadog
           'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, Settings.duration(:us)],
           'DD_APPSEC_WAF_DEBUG' => [:waf_debug, Settings.boolean],
           'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, Settings.integer],
-        }
+        }.freeze
 
         Integration = Struct.new(:integration, :options)
 

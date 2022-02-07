@@ -55,7 +55,8 @@ module Datadog
           def add_middleware(app)
             # Add trace middleware
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
-              app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
+              app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware,
+                                          Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             else
               app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             end
@@ -78,7 +79,7 @@ module Datadog
                        else
                          # rails 7.0 uses ... to pass args
                          args_getter = Class.new do
-                           def method_missing(_op, *args)
+                           def method_missing(_op, *args) # rubocop:disable Style/MissingRespondToMissing
                              args
                            end
                          end.new
@@ -89,9 +90,7 @@ module Datadog
                        []
                      end
 
-              if args.include?(middleware)
-                found = true
-              end
+              found = true if args.include?(middleware)
             end
 
             found

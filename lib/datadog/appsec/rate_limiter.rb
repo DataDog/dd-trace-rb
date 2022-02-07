@@ -1,5 +1,7 @@
 module Datadog
   module AppSec
+    # Simple per-thread rate limiter
+    # Since AppSec marks sampling to keep on a security event, this limits the flood of egress traces involving AppSec
     class RateLimiter
       def initialize(rate)
         @rate = rate
@@ -26,18 +28,24 @@ module Datadog
         end
       end
 
-      def self.limit(name, &block)
-        rate_limiter(name).limit(&block)
-      end
+      class << self
+        def limit(name, &block)
+          rate_limiter(name).limit(&block)
+        end
 
-      private
+        protected
 
-      def self.rate_limiter(name)
-        case name
-        when :traces
-          Thread.current[:datadog_security_trace_rate_limiter] ||= RateLimiter.new(Datadog::AppSec.settings.trace_rate_limit)
-        else
-          raise "unsupported rate limiter: #{name.inspect}"
+        def rate_limiter(name)
+          case name
+          when :traces
+            Thread.current[:datadog_security_trace_rate_limiter] ||= RateLimiter.new(trace_rate_limit)
+          else
+            raise "unsupported rate limiter: #{name.inspect}"
+          end
+        end
+
+        def trace_rate_limit
+          Datadog::AppSec.settings.trace_rate_limit
         end
       end
     end

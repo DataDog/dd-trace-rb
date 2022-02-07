@@ -8,6 +8,7 @@ module Datadog
     module Contrib
       module Rack
         # Topmost Rack middleware for AppSec
+        # This should be inserted just below Datadog::Tracing::Contrib::Rack::TraceMiddleware
         class RequestMiddleware
           def initialize(app, opt = {})
             @app = app
@@ -24,7 +25,9 @@ module Datadog
               Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
               @waf = Datadog::AppSec::WAF::Handle.new(waf_rules)
             else
-              Datadog.logger.warn { "libddwaf is missing components. installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}" }
+              Datadog.logger.warn do
+                "libddwaf failed to load, installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}"
+              end
               Datadog.logger.warn { 'AppSec is disabled' }
             end
           end
@@ -74,9 +77,7 @@ module Datadog
             response_response.each { |_, e| e.merge!(request: request) } if response_response
             both_response = (request_response || []) + (response_response || [])
 
-            if both_response.any?
-              AppSec::Event.record(*both_response.map { |_action, event| event })
-            end
+            AppSec::Event.record(*both_response.map { |_action, event| event }) if both_response.any?
 
             request_return
           end
@@ -88,8 +89,7 @@ module Datadog
           def require_libddwaf
             require 'libddwaf'
           rescue LoadError => e
-            Datadog.logger.warn { "LoadError: libddwaf failed to load: #{e.message}. Try adding `gem 'libddwaf'` to your Gemfile" }
-            Datadog.logger.warn { 'Appsec is disabled' }
+            Datadog.logger.warn { "LoadError: libddwaf failed to load: #{e.message}" }
           end
         end
       end

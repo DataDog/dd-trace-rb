@@ -27,12 +27,17 @@ module Datadog
             builder = args.first
 
             super.tap do
-              if Datadog::Tracing::Contrib::Sinatra::Framework.include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, builder)
-                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
+              tracing_sinatra_framework = Datadog::Tracing::Contrib::Sinatra::Framework
+              tracing_middleware = Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+              if tracing_sinatra_framework.include_middleware?(tracing_middleware, builder)
+                tracing_sinatra_framework.add_middleware_after(tracing_middleware,
+                                                               Datadog::AppSec::Contrib::Rack::RequestMiddleware,
+                                                               builder)
               else
-                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
+                tracing_sinatra_framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
               end
-              Datadog::Tracing::Contrib::Sinatra::Framework.inspect_middlewares(builder)
+              tracing_sinatra_framework.inspect_middlewares(builder)
             end
           end
         end

@@ -18,6 +18,8 @@ module Datadog
           @options = {}
         end
 
+        attr_reader :instruments, :options
+
         def instrument(name, options = {})
           @instruments << Instrument.new(name, options)
         end
@@ -42,9 +44,6 @@ module Datadog
         def trace_rate_limit=(value)
           options[:trace_rate_limit] = value
         end
-
-        attr_reader :instruments
-        attr_reader :options
 
         def [](key)
           found = @instruments.find { |e| e.name == key }

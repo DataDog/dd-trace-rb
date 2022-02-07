@@ -4,13 +4,17 @@ require 'datadog/appsec/contrib/rack/reactive/request'
 require 'datadog/appsec/contrib/rack/reactive/response'
 require 'datadog/appsec/event'
 
-
 module Datadog
   module AppSec
     module Contrib
       module Rack
         module Gateway
+          # Watcher for Rack gateway events
           module Watcher
+            # rubocop:disable Metrics/AbcSize
+            # rubocop:disable Metrics/CyclomaticComplexity
+            # rubocop:disable Metrics/MethodLength
+            # rubocop:disable Metrics/PerceivedComplexity
             def self.watch
               Instrumentation.gateway.watch('rack.request') do |stack, request|
                 block = false
@@ -32,11 +36,18 @@ module Datadog
                     end
                   end
 
-                  Rack::Reactive::Request.subscribe(op, waf_context) do |action, result, block|
+                  Rack::Reactive::Request.subscribe(op, waf_context) do |action, result, _block|
                     record = [:block, :monitor].include?(action)
                     if record
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, trace: active_trace, root_span: root_span, span: active_span, request: request, action: action }
+                      event = {
+                        waf_result: result,
+                        trace: active_trace,
+                        root_span: root_span,
+                        span: active_span,
+                        request: request,
+                        action: action
+                      }
                     end
                   end
 
@@ -48,7 +59,7 @@ module Datadog
                 ret, res = stack.call(request)
 
                 if event
-                  res = [] unless res
+                  res ||= []
                   res << [:monitor, event]
                 end
 
@@ -75,11 +86,18 @@ module Datadog
                     end
                   end
 
-                  Rack::Reactive::Response.subscribe(op, waf_context) do |action, result, block|
+                  Rack::Reactive::Response.subscribe(op, waf_context) do |action, result, _block|
                     record = [:block, :monitor].include?(action)
                     if record
                       # TODO: should this hash be an Event instance instead?
-                      event =  { waf_result: result, trace: active_trace, root_span: root_span, span: active_span, response: response, action: action }
+                      event = {
+                        waf_result: result,
+                        trace: active_trace,
+                        root_span: root_span,
+                        span: active_span,
+                        response: response,
+                        action: action
+                      }
                     end
                   end
 
@@ -91,13 +109,17 @@ module Datadog
                 ret, res = stack.call(response)
 
                 if event
-                  res = [] unless res
+                  res ||= []
                   res << [:monitor, event]
                 end
 
                 [ret, res]
               end
             end
+            # rubocop:enable Metrics/AbcSize
+            # rubocop:enable Metrics/CyclomaticComplexity
+            # rubocop:enable Metrics/MethodLength
+            # rubocop:enable Metrics/PerceivedComplexity
           end
         end
       end
