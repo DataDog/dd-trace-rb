@@ -74,7 +74,7 @@ module Datadog
 
         code_provenance = @code_provenance_collector.refresh.generate_json if @code_provenance_collector
 
-        Flush.new(
+        OldFlush.new(
           start: start,
           finish: finish,
           event_groups: event_groups,

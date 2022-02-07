@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::Transport::IO::Client do
   describe '#send_profiling_flush' do
     subject(:send_profiling_flush) { client.send_profiling_flush(flush) }
 
-    let(:flush) { instance_double(Datadog::Profiling::Flush) }
+    let(:flush) { instance_double(Datadog::Profiling::OldFlush) }
     let(:encoded_events) { double('encoded events') }
     let(:result) { double('IO result') }
 

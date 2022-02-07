@@ -128,7 +128,7 @@ RSpec.describe Datadog::Profiling::Recorder do
       context 'whose buffer returns events' do
         let(:events) { [event_class.new, event_class.new] }
 
-        it { is_expected.to be_a_kind_of(Datadog::Profiling::Flush) }
+        it { is_expected.to be_a_kind_of(Datadog::Profiling::OldFlush) }
 
         it do
           is_expected.to have_attributes(
@@ -152,7 +152,7 @@ RSpec.describe Datadog::Profiling::Recorder do
       end
 
       context 'whose buffer returns no events' do
-        it { is_expected.to be_a_kind_of(Datadog::Profiling::Flush) }
+        it { is_expected.to be_a_kind_of(Datadog::Profiling::OldFlush) }
         it { expect(flush.event_groups).to be_empty }
       end
 

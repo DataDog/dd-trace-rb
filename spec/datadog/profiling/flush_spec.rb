@@ -1,6 +1,6 @@
 # typed: false
 
-RSpec.describe Datadog::Profiling::Flush do
+RSpec.describe Datadog::Profiling::OldFlush do
   describe '#new' do
     let(:start) { double('start') }
     let(:finish) { double('finish') }

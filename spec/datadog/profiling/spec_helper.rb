@@ -30,7 +30,7 @@ module ProfileHelpers
     finish = start + 10
     event_groups = [Datadog::Profiling::EventGroup.new(Datadog::Profiling::Events::StackSample, stack_samples)]
 
-    Datadog::Profiling::Flush.new(
+    Datadog::Profiling::OldFlush.new(
       start: start,
       finish: finish,
       event_groups: event_groups,

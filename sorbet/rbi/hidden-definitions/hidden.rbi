@@ -4358,7 +4358,7 @@ module Datadog::Profiling::Ext::NativePthread
   def self.pthread_self(*arg); end
 end
 
-class Datadog::Profiling::Flush
+class Datadog::Profiling::OldFlush
   def self.[](*arg); end
 
   def self.members(); end

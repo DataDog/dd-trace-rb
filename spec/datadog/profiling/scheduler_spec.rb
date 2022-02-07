@@ -139,7 +139,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
     let(:flush_start) { Time.now }
     let(:flush_finish) { flush_start + 1 }
     let(:flush) do
-      instance_double(Datadog::Profiling::Flush, event_count: event_count, start: flush_start, finish: flush_finish)
+      instance_double(Datadog::Profiling::OldFlush, event_count: event_count, start: flush_start, finish: flush_finish)
     end
 
     before { expect(recorder).to receive(:flush).and_return(flush) }
