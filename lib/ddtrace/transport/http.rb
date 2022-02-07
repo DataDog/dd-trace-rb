@@ -34,12 +34,6 @@ module Datadog
           transport.adapter(agent_settings)
           transport.headers default_headers
 
-          if agent_settings.deprecated_for_removal_transport_configuration_options
-            # The deprecated_for_removal_transport_configuration_options take precedence over any options the caller
-            # specifies
-            options = options.merge(**agent_settings.deprecated_for_removal_transport_configuration_options)
-          end
-
           apis = API.defaults
 
           transport.api API::V4, apis[API::V4], fallback: API::V3, default: true

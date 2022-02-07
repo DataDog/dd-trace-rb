@@ -80,7 +80,6 @@ RSpec.describe Datadog::Transport::HTTP do
       let(:uds_path) { nil }
       let(:timeout_seconds) { nil }
       let(:deprecated_for_removal_transport_configuration_proc) { nil }
-      let(:deprecated_for_removal_transport_configuration_options) { nil }
 
       let(:agent_settings) do
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
@@ -91,7 +90,6 @@ RSpec.describe Datadog::Transport::HTTP do
           uds_path: uds_path,
           timeout_seconds: timeout_seconds,
           deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-          deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
         )
       end
 
@@ -108,55 +106,6 @@ RSpec.describe Datadog::Transport::HTTP do
             expect(api.adapter.port).to eq(port)
             expect(api.adapter.timeout).to be(timeout_seconds)
             expect(api.adapter.ssl).to be true
-          end
-        end
-      end
-
-      context 'that specifies an API version' do
-        let(:deprecated_for_removal_transport_configuration_options) { { api_version: api_version } }
-
-        context 'that is defined' do
-          let(:api_version) { Datadog::Transport::HTTP::API::V4 }
-
-          it { expect(default.current_api_id).to eq(api_version) }
-        end
-
-        context 'that is not defined' do
-          let(:api_version) { double('non-existent API') }
-
-          it { expect { default }.to raise_error(Datadog::Transport::HTTP::Builder::UnknownApiError) }
-        end
-
-        context 'when the options also try to set the api_version' do
-          let(:api_version) { Datadog::Transport::HTTP::API::V3 }
-          let(:options) { { api_version: Datadog::Transport::HTTP::API::V4 } }
-
-          it 'prioritizes the version in the agent_settings' do
-            expect(default.current_api_id).to eq(api_version)
-          end
-        end
-      end
-
-      context 'that specifies headers' do
-        let(:deprecated_for_removal_transport_configuration_options) { { headers: headers } }
-
-        let(:headers) { { 'Test-Header' => 'foo' } }
-
-        it do
-          default.apis.each_value do |api|
-            expect(api.headers).to include(described_class.default_headers)
-            expect(api.headers).to include(headers)
-          end
-        end
-
-        context 'when the options also try to set the headers' do
-          let(:options) { { headers: { 'Some-Other-Test-Header' => 'foo' } } }
-
-          it 'prioritizes the headers in the agent_settings' do
-            default.apis.each_value do |api|
-              expect(api.headers).to include(described_class.default_headers)
-              expect(api.headers).to include(headers)
-            end
           end
         end
       end

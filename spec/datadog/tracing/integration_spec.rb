@@ -532,7 +532,7 @@ RSpec.describe 'Tracer integration tests' do
         end
       end
 
-      context 'is a Proc' do
+      context 'is provided' do
         let(:transport_options) { proc { |t| on_build.call(t) } }
         let(:on_build) do
           double('on_build').tap do |double|
@@ -549,30 +549,6 @@ RSpec.describe 'Tracer integration tests' do
             expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
             expect(transport.current_api.adapter.hostname).to be hostname
             expect(transport.current_api.adapter.port).to be port
-          end
-        end
-      end
-
-      context 'is a Hash' do
-        let(:transport_options) do
-          {
-            api_version: api_version,
-            headers: headers
-          }
-        end
-
-        let(:api_version) { Datadog::Transport::HTTP::API::V4 }
-        let(:headers) { { 'Test-Header' => 'test' } }
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Transport::Traces::Transport)
-            expect(transport.current_api_id).to be api_version
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-            expect(transport.current_api.headers).to include(headers)
           end
         end
       end

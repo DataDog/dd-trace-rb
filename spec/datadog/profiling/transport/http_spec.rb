@@ -48,7 +48,6 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         uds_path: uds_path,
         timeout_seconds: nil,
         deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-        deprecated_for_removal_transport_configuration_options: nil,
       )
     end
     let(:adapter) { :net_http }
