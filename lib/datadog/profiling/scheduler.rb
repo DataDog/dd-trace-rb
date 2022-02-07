@@ -113,7 +113,7 @@ module Datadog
         # Sleep for a bit to cause misalignment between profilers in multi-process applications
         #
         # When not being run in a loop, it means the scheduler has not been started or was stopped, and thus
-        # a) it's being shutting down (and is trying to report the last profile)
+        # a) it's being shut down (and is trying to report the last profile)
         # b) it's being run as a one-shot, usually in a test
         # ...so in those cases we don't sleep
         #
