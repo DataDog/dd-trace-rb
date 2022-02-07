@@ -2,7 +2,7 @@ require 'datadog/security'
 require 'datadog/security/reactive/engine'
 
 module Datadog
-  module Security
+  module AppSec
     module Reactive
       # Reactive Engine nested operation tracking
       class Operation

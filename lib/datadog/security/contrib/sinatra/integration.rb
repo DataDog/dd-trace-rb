@@ -7,12 +7,12 @@ require 'datadog/security/contrib/sinatra/patcher'
 require 'datadog/security/contrib/sinatra/request_middleware'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Sinatra
         # Description of Sinatra integration
         class Integration
-          include Datadog::Security::Contrib::Integration
+          include Datadog::AppSec::Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('1.4.0')
 

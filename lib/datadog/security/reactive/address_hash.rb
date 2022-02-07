@@ -1,5 +1,5 @@
 module Datadog
-  module Security
+  module AppSec
     module Reactive
       # Address for Reactive Engine
       class AddressHash < Hash

@@ -1,5 +1,5 @@
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
         module Request

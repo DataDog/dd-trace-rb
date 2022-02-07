@@ -4,10 +4,10 @@ require 'datadog/security/instrumentation/gateway'
 require 'datadog/security/assets'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
-        # Topmost Rack middleware for Security
+        # Topmost Rack middleware for AppSec
         class RequestMiddleware
           def initialize(app, opt = {})
             @app = app
@@ -21,8 +21,8 @@ module Datadog
 
             if libddwaf_required?
               Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
-              Datadog::Security::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::Security.settings.waf_debug
-              @waf = Datadog::Security::WAF::Handle.new(waf_rules)
+              Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
+              @waf = Datadog::AppSec::WAF::Handle.new(waf_rules)
             else
               Datadog.logger.warn { "libddwaf is missing components. installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}" }
               Datadog.logger.warn { 'AppSec is disabled' }
@@ -30,10 +30,10 @@ module Datadog
           end
 
           def waf_rules
-            ruleset_setting = Datadog::Security.settings.ruleset
+            ruleset_setting = Datadog::AppSec.settings.ruleset
             case ruleset_setting
             when :recommended, :risky, :strict
-              @waf_rules ||= JSON.parse(Datadog::Security::Assets.waf_rules(ruleset_setting))
+              @waf_rules ||= JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
             when String
               # TODO: handle file missing
               filename = ruleset_setting
@@ -50,7 +50,7 @@ module Datadog
 
             # TODO: handle exceptions, except for @app.call
 
-            context = Datadog::Security::WAF::Context.new(@waf)
+            context = Datadog::AppSec::WAF::Context.new(@waf)
 
             env['datadog.waf.context'] = context
             request = ::Rack::Request.new(env)
@@ -60,7 +60,7 @@ module Datadog
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = [403, { 'Content-Type' => 'text/html' }, [Datadog::Security::Assets.blocked]]
+              request_return = [403, { 'Content-Type' => 'text/html' }, [Datadog::AppSec::Assets.blocked]]
             end
 
             response = ::Rack::Response.new(request_return[2], request_return[0], request_return[1])
@@ -75,14 +75,14 @@ module Datadog
             both_response = (request_response || []) + (response_response || [])
 
             if both_response.any?
-              Security::Event.record(*both_response.map { |_action, event| event })
+              AppSec::Event.record(*both_response.map { |_action, event| event })
             end
 
             request_return
           end
 
           def libddwaf_required?
-            defined?(Datadog::Security::WAF)
+            defined?(Datadog::AppSec::WAF)
           end
 
           def require_libddwaf

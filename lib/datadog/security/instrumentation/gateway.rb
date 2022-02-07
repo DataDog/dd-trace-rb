@@ -1,6 +1,6 @@
 module Datadog
-  module Security
-    # Instrumentation for Security
+  module AppSec
+    # Instrumentation for AppSec
     module Instrumentation
       # Instrumentation gateway implementation
       class Gateway

@@ -1,8 +1,8 @@
 require 'datadog/security/configuration'
 
 module Datadog
-  # Namespace for Datadog Security instrumentation
-  module Security
+  # Namespace for Datadog AppSec instrumentation
+  module AppSec
     include Configuration
 
     def self.writer

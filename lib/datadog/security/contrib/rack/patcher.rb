@@ -5,12 +5,12 @@ require 'datadog/security/contrib/rack/integration'
 require 'datadog/security/contrib/rack/gateway/watcher'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
         # Patcher for Rack integration
         module Patcher
-          include Datadog::Security::Contrib::Patcher
+          include Datadog::AppSec::Contrib::Patcher
 
           module_function
 

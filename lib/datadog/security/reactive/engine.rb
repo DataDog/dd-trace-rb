@@ -2,7 +2,7 @@ require 'datadog/security/reactive/address_hash'
 require 'datadog/security/reactive/subscriber'
 
 module Datadog
-  module Security
+  module AppSec
     module Reactive
       # Reactive Engine
       class Engine

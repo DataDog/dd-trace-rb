@@ -7,12 +7,12 @@ require 'datadog/security/contrib/rack/patcher'
 require 'datadog/security/contrib/rack/request_middleware'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
         # Description of Rack integration
         class Integration
-          include Datadog::Security::Contrib::Integration
+          include Datadog::AppSec::Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('1.1.0')
 

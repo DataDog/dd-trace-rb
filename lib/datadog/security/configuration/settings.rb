@@ -1,5 +1,5 @@
 module Datadog
-  module Security
+  module AppSec
     module Configuration
       # Configuration settings, acting as an integration registry
       # TODO: as with Configuration, this is a trivial implementation
@@ -128,7 +128,7 @@ module Datadog
           # patcher.patch may call configure again, hence merge might be called again so it needs to be reentrant
           dsl.instruments.each do |instrument|
             # TODO: error handling
-            registered_integration = Datadog::Security::Contrib::Integration.registry[instrument.name]
+            registered_integration = Datadog::AppSec::Contrib::Integration.registry[instrument.name]
             @integrations << Integration.new(registered_integration, instrument.options)
 
             # TODO: move to a separate apply step

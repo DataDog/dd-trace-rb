@@ -1,11 +1,11 @@
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rails
         # Rails specific framework tie
         module Framework
           def self.setup
-            Datadog::Security.configure do |datadog_config|
+            Datadog::AppSec.configure do |datadog_config|
               rails_config = config_with_defaults(datadog_config)
               activate_rack!(datadog_config, rails_config)
             end

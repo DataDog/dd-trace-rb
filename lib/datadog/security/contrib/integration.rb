@@ -1,5 +1,5 @@
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       # Base provides features that are shared across all integrations
       module Integration

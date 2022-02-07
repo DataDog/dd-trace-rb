@@ -1,8 +1,8 @@
 require 'datadog/security/configuration/settings'
 
 module Datadog
-  module Security
-    # Configuration for Security
+  module AppSec
+    # Configuration for AppSec
     # TODO: this is a trivial implementation, check with shareable code with
     # tracer and other products
     module Configuration

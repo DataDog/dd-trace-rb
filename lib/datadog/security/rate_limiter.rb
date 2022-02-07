@@ -1,5 +1,5 @@
 module Datadog
-  module Security
+  module AppSec
     class RateLimiter
       def initialize(rate)
         @rate = rate
@@ -35,7 +35,7 @@ module Datadog
       def self.rate_limiter(name)
         case name
         when :traces
-          Thread.current[:datadog_security_trace_rate_limiter] ||= RateLimiter.new(Datadog::Security.settings.trace_rate_limit)
+          Thread.current[:datadog_security_trace_rate_limiter] ||= RateLimiter.new(Datadog::AppSec.settings.trace_rate_limit)
         else
           raise "unsupported rate limiter: #{name.inspect}"
         end

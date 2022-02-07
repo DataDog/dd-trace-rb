@@ -1,8 +1,8 @@
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rails
-        # Rack middleware for Security on Rails
+        # Rack middleware for AppSec on Rails
         class RequestMiddleware
           def initialize(app, opt = {})
             @app = app

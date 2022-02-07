@@ -1,5 +1,5 @@
 module Datadog
-  module Security
+  module AppSec
     module Reactive
       # Reactive Engine subscriber
       class Subscriber

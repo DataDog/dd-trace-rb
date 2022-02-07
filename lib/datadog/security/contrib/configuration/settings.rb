@@ -1,7 +1,7 @@
 require 'datadog/core/configuration/base'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Configuration
         # Common settings for all integrations

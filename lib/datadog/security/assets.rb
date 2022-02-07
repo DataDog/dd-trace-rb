@@ -1,7 +1,7 @@
 require 'pathname'
 
 module Datadog
-  module Security
+  module AppSec
     # Helper methods to get vendored assets
     module Assets
       module_function

@@ -3,7 +3,7 @@ require 'datadog/security/contrib/rack/response'
 require 'datadog/security/rate_limiter'
 
 module Datadog
-  module Security
+  module AppSec
     module Event
       ALLOWED_REQUEST_HEADERS = [
         'X-Forwarded-For',
@@ -34,7 +34,7 @@ module Datadog
       ].map!(&:downcase)
 
       def self.record(*events)
-        Datadog::Security::RateLimiter.limit(:traces) do
+        Datadog::AppSec::RateLimiter.limit(:traces) do
           record_via_span(*events)
         end
       end
@@ -63,9 +63,9 @@ module Datadog
             response = event[:response]
 
             # TODO: assume HTTP request context for now
-            request_headers = Security::Contrib::Rack::Request.headers(request)
+            request_headers = AppSec::Contrib::Rack::Request.headers(request)
               .select { |k, _| ALLOWED_REQUEST_HEADERS.include?(k.downcase) }
-            response_headers = Security::Contrib::Rack::Response.headers(response)
+            response_headers = AppSec::Contrib::Rack::Response.headers(response)
               .select { |k, _| ALLOWED_RESPONSE_HEADERS.include?(k.downcase) }
 
             request_headers.each do |header, value|

@@ -6,7 +6,7 @@ require 'datadog/security/event'
 
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
         module Gateway
@@ -17,7 +17,7 @@ module Datadog
                 event = nil
                 waf_context = request.env['datadog.waf.context']
 
-                Security::Reactive::Operation.new('rack.request') do |op|
+                AppSec::Reactive::Operation.new('rack.request') do |op|
                   # TODO: factor out
                   if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
                     active_trace = Datadog::Tracing.active_trace
@@ -60,7 +60,7 @@ module Datadog
                 event = nil
                 waf_context = response.instance_eval { @waf_context }
 
-                Security::Reactive::Operation.new('rack.response') do |op|
+                AppSec::Reactive::Operation.new('rack.response') do |op|
                   # TODO: factor out
                   if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
                     active_trace = Datadog::Tracing.active_trace

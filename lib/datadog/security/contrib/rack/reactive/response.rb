@@ -1,7 +1,7 @@
 require 'datadog/security/contrib/rack/response'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
         module Reactive
@@ -28,7 +28,7 @@ module Datadog
                   'server.response.status' => response_status.to_s,
                 }
 
-                waf_timeout = Datadog::Security.settings.waf_timeout
+                waf_timeout = Datadog::AppSec.settings.waf_timeout
                 action, result = waf_context.run(waf_args, waf_timeout)
 
                 # TODO: encapsulate return array in a type

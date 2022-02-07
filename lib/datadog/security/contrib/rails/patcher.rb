@@ -10,12 +10,12 @@ require 'datadog/security/contrib/rack/request_middleware'
 require 'datadog/tracing/contrib/rack/middlewares'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rails
-        # Patcher for Security on Rails
+        # Patcher for AppSec on Rails
         module Patcher
-          include Datadog::Security::Contrib::Patcher
+          include Datadog::AppSec::Contrib::Patcher
 
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
@@ -39,7 +39,7 @@ module Datadog
 
           def patch_before_intialize
             ::ActiveSupport.on_load(:before_initialize) do
-              Datadog::Security::Contrib::Rails::Patcher.before_intialize(self)
+              Datadog::AppSec::Contrib::Rails::Patcher.before_intialize(self)
             end
           end
 
@@ -55,9 +55,9 @@ module Datadog
           def add_middleware(app)
             # Add trace middleware
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
-              app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware)
+              app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             else
-              app.middleware.insert_before(0, Datadog::Security::Contrib::Rack::RequestMiddleware)
+              app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             end
           end
 
@@ -103,7 +103,7 @@ module Datadog
 
           def patch_after_intialize
             ::ActiveSupport.on_load(:after_initialize) do
-              Datadog::Security::Contrib::Rails::Patcher.after_intialize(self)
+              Datadog::AppSec::Contrib::Rails::Patcher.after_intialize(self)
             end
           end
 
@@ -117,7 +117,7 @@ module Datadog
           end
 
           def setup_security
-            Datadog::Security::Contrib::Rails::Framework.setup
+            Datadog::AppSec::Contrib::Rails::Framework.setup
           end
         end
       end

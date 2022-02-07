@@ -1,7 +1,7 @@
 require 'datadog/security/contrib/rack/request'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Rack
         module Reactive
@@ -49,7 +49,7 @@ module Datadog
                   # TODO: 'server.request.path_params' => path_params,
                 }
 
-                waf_timeout = Datadog::Security.settings.waf_timeout
+                waf_timeout = Datadog::AppSec.settings.waf_timeout
                 action, result = waf_context.run(waf_args, waf_timeout)
 
                 # TODO: encapsulate return array in a type

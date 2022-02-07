@@ -1,7 +1,7 @@
 module Datadog
-  module Security
+  module AppSec
     module Contrib
-      # Common patcher code for Security integrations
+      # Common patcher code for AppSec integrations
       # TODO: empty implementation, check with tracer shareable code
       module Patcher
       end

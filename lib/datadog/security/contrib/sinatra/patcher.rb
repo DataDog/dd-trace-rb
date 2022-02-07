@@ -9,14 +9,14 @@ require 'datadog/security/contrib/sinatra/framework'
 require 'datadog/tracing/contrib/sinatra/framework'
 
 module Datadog
-  module Security
+  module AppSec
     module Contrib
       module Sinatra
         # Set tracer configuration at a late enough time
-        module SecuritySetupPatch
+        module AppSecSetupPatch
           def setup_middleware(*args, &block)
             super.tap do
-              Datadog::Security::Contrib::Sinatra::Framework.setup
+              Datadog::AppSec::Contrib::Sinatra::Framework.setup
             end
           end
         end
@@ -28,18 +28,18 @@ module Datadog
 
             super.tap do
               if Datadog::Tracing::Contrib::Sinatra::Framework.include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, builder)
-                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::Security::Contrib::Rack::RequestMiddleware, builder)
+                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware, Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
               else
-                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware(Datadog::Security::Contrib::Rack::RequestMiddleware, builder)
+                Datadog::Tracing::Contrib::Sinatra::Framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
               end
               Datadog::Tracing::Contrib::Sinatra::Framework.inspect_middlewares(builder)
             end
           end
         end
 
-        # Patcher for Security on Sinatra
+        # Patcher for AppSec on Sinatra
         module Patcher
-          include Datadog::Security::Contrib::Patcher
+          include Datadog::AppSec::Contrib::Patcher
 
           module_function
 
@@ -59,7 +59,7 @@ module Datadog
           end
 
           def setup_security
-            ::Sinatra::Base.singleton_class.prepend(SecuritySetupPatch)
+            ::Sinatra::Base.singleton_class.prepend(AppSecSetupPatch)
           end
 
           def patch_default_middlewares
