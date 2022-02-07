@@ -22,6 +22,8 @@ module Datadog
 
       def export(flush)
         do_export(
+          upload_timeout_milliseconds: @upload_timeout_milliseconds,
+
           # why "timespec"?
           # libddprof represents time using POSIX's struct timespec, see
           # https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
@@ -70,6 +72,7 @@ module Datadog
       end
 
       def do_export(
+        upload_timeout_milliseconds:,
         start_timespec_seconds:,
         start_timespec_nanoseconds:,
         finish_timespec_seconds:,
@@ -80,6 +83,7 @@ module Datadog
         code_provenance_data:
       )
         _native_do_export(
+          upload_timeout_milliseconds.to_i,
           start_timespec_seconds.to_i,
           start_timespec_nanoseconds.to_i,
           finish_timespec_seconds.to_i,
@@ -94,9 +98,17 @@ module Datadog
       # FIXME: TEMP
       def _native_create_agentless_exporter(site, api_key, tags); end
       def _native_create_agent_exporter(base_url, tags); end
+      def _native_do_export(
+        upload_timeout_milliseconds,
+        start_timespec_seconds,
+        start_timespec_nanoseconds,
+        finish_timespec_seconds,
+        finish_timespec_nanoseconds,
+        pprof_file_name,
+        pprof_data,
+        code_provenance_file_name,
+        code_provenance_data
+      ); end
     end
   end
 end
-
-# New structure for Flush:
-# start, finish, pprof_file_name, pprof_data, code_provenance_file_name, code_provenance_data

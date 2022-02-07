@@ -107,9 +107,47 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
 
   describe '#export' do
-    let(:flush) { :FIXME }
+    subject(:export) { http_transport.export(flush) }
 
-    it 'calls the native export method with the data from the flush'
+    let(:flush) do
+      Datadog::Profiling::Flush.new(
+        start: start,
+        finish: finish,
+        pprof_file_name: pprof_file_name,
+        pprof_data: pprof_data,
+        code_provenance_file_name: code_provenance_file_name,
+        code_provenance_data: code_provenance_data,
+      )
+    end
+    let(:start)  { Time.iso8601("2022-02-07T15:59:53.987654321Z") }
+    let(:finish) { Time.iso8601("2023-11-11T16:00:00.123456789Z") }
+    let(:pprof_file_name) { 'the_pprof_file_name.pprof' }
+    let(:pprof_data) { 'the_pprof_data' }
+    let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
+    let(:code_provenance_data) { 'the_code_provenance_data' }
+
+    it 'calls the native export method with the data from the flush' do
+      # Manually converted from the lets above :)
+      upload_timeout_milliseconds = 123_000
+      start_timespec_seconds = 1644249593
+      start_timespec_nanoseconds = 987654321
+      finish_timespec_seconds = 1699718400
+      finish_timespec_nanoseconds = 123456789
+
+      expect(http_transport).to receive(:_native_do_export).with(
+        upload_timeout_milliseconds,
+        start_timespec_seconds,
+        start_timespec_nanoseconds,
+        finish_timespec_seconds,
+        finish_timespec_nanoseconds,
+        pprof_file_name,
+        pprof_data,
+        code_provenance_file_name,
+        code_provenance_data
+      )
+
+      export
+    end
   end
 
   context 'integration testing' do
