@@ -3682,7 +3682,7 @@ class Datadog::Profiling::Collectors::Stack
   include ::Datadog::Core::Workers::Polling::PrependedMethods
 end
 
-class Datadog::Profiling::Flush
+class Datadog::Profiling::OldFlush
   def self.[](*arg); end
 
   def self.members(); end
