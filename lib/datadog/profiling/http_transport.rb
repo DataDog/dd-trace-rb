@@ -10,6 +10,9 @@ module Datadog
 
         validate_agent_settings(agent_settings)
 
+        # FIXME: Handle/convert tags?
+        # FIXME: Strict types in tags
+
         if site && api_key && agentless_allowed?
           create_agentless_exporter(site, api_key, tags)
         else
@@ -45,7 +48,7 @@ module Datadog
       # messages and next steps for customers, the current messages are too cryptic. Ideally, we would still support
       # Unix Domain Socket for reporting data.
       def validate_agent_settings(agent_settings)
-        if agent_settings.adapter == Transport::Ext::UnixSocket::ADAPTER
+        if agent_settings.adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
           raise ArgumentError, 'Unsupported agent configuration for profiling: Unix Domain Sockets are currently unsupported.'
         end
 
@@ -54,12 +57,16 @@ module Datadog
         end
       end
 
+      def agentless_allowed?
+        Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
+      end
+
       def create_agentless_exporter(site, api_key, tags)
-        _native_create_agentless_exporter(site, api_key, tags)
+        _native_create_agentless_exporter(site.to_str, api_key.to_str, tags)
       end
 
       def create_agent_exporter(base_url, tags)
-        _native_create_agent_exporter(base_url, tags)
+        _native_create_agent_exporter(base_url.to_str, tags)
       end
 
       def do_export(
@@ -73,16 +80,20 @@ module Datadog
         code_provenance_data:
       )
         _native_do_export(
-          start_timespec_seconds,
-          start_timespec_nanoseconds,
-          finish_timespec_seconds,
-          finish_timespec_nanoseconds,
-          pprof_file_name,
-          pprof_data,
-          code_provenance_file_name,
-          code_provenance_data,
+          start_timespec_seconds.to_i,
+          start_timespec_nanoseconds.to_i,
+          finish_timespec_seconds.to_i,
+          finish_timespec_nanoseconds.to_i,
+          pprof_file_name.to_str,
+          pprof_data.to_str,
+          code_provenance_file_name.to_str,
+          code_provenance_data.to_str,
         )
       end
+
+      # FIXME: TEMP
+      def _native_create_agentless_exporter(site, api_key, tags); end
+      def _native_create_agent_exporter(base_url, tags); end
     end
   end
 end
