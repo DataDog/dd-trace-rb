@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling::Transport::Client do
     describe '#send_profiling_flush' do
       subject(:send_profiling_flush) { client.send_profiling_flush(flush) }
 
-      let(:flush) { instance_double(Datadog::Profiling::Flush) }
+      let(:flush) { instance_double(Datadog::Profiling::OldFlush) }
 
       it { expect { send_profiling_flush }.to raise_error(NotImplementedError) }
     end

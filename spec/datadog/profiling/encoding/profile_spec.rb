@@ -9,7 +9,7 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     subject(:encode) { described_class.encode(flush) }
 
     let(:flush) do
-      instance_double(Datadog::Profiling::Flush, event_groups: event_groups, start: start_time, finish: finish_time)
+      instance_double(Datadog::Profiling::OldFlush, event_groups: event_groups, start: start_time, finish: finish_time)
     end
     let(:event_groups) { [event_group] }
     let(:event_group) { instance_double(Datadog::Profiling::EventGroup, event_class: event_class, events: events) }

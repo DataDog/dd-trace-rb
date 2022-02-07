@@ -5,7 +5,7 @@ require 'datadog/core/environment/socket'
 module Datadog
   module Profiling
     # Entity class used to represent metadata for a given profile
-    Flush = Struct.new(
+    OldFlush = Struct.new(
       :start,
       :finish,
       :event_groups,

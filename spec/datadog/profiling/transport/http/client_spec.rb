@@ -34,7 +34,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
 
     subject(:send_profiling_flush) { client.send_profiling_flush(flush) }
 
-    let(:flush) { instance_double(Datadog::Profiling::Flush) }
+    let(:flush) { instance_double(Datadog::Profiling::OldFlush) }
 
     context 'when request was successful' do
       before do

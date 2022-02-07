@@ -32,7 +32,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   describe '#export' do
     subject(:export) { exporter.export(flush) }
 
-    let(:flush) { instance_double(Datadog::Profiling::Flush) }
+    let(:flush) { instance_double(Datadog::Profiling::OldFlush) }
     let(:result) { double('result') }
 
     before do
