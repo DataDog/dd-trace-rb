@@ -65,6 +65,12 @@ module ProfileHelpers
       wall_time_ns || rand(1e9)
     )
   end
+
+  def skip_if_profiling_not_supported(testcase)
+    testcase.skip('Profiling is not supported on JRuby') if PlatformHelpers.jruby?
+    testcase.skip('Profiling is not supported on TruffleRuby') if PlatformHelpers.truffleruby?
+    testcase.skip('Profiling is not supported on macOS') if PlatformHelpers.mac?
+  end
 end
 
 RSpec.configure do |config|

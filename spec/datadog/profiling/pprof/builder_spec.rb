@@ -1,16 +1,14 @@
 # typed: false
 
 require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling'
 require 'datadog/profiling/events/stack'
 require 'datadog/profiling/pprof/builder'
 
 RSpec.describe Datadog::Profiling::Pprof::Builder do
-  before do
-    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
-  end
+  before { skip_if_profiling_not_supported(self) }
 
   subject(:builder) { described_class.new }
 
