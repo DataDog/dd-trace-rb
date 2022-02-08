@@ -53,7 +53,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'debase-ruby_core_source', '<= 0.10.14'
 
   # Used by appsec
-  spec.add_dependency 'libddwaf', '~> 1.0.14.1.0.a'
+  spec.add_dependency 'libddwaf', '~> 1.0.14.2.0.a'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb']
 end
