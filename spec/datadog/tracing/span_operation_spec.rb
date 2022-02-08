@@ -980,7 +980,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
   end
 end
 
-RSpec.xdescribe Datadog::Tracing::SpanOperation::Events do
+RSpec.describe Datadog::Tracing::SpanOperation::Events do
   subject(:events) { described_class.new }
 
   describe '::new' do
@@ -991,10 +991,6 @@ RSpec.xdescribe Datadog::Tracing::SpanOperation::Events do
         on_error: kind_of(described_class::OnError)
       )
     }
-
-    it 'creates a default #on_error event' do
-      expect(events.on_error.subscriptions[:default]).to be(described_class::DEFAULT_ON_ERROR)
-    end
   end
 
   describe '#after_finish' do

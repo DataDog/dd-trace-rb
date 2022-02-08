@@ -394,6 +394,11 @@ module Datadog
           end
 
           # Call custom error handler but fallback to default behavior on failure.
+
+          # DEV: Revisit this before full 1.0 release.
+          # It seems like OnError wants to behave like a middleware stack,
+          # where each "subscriber"'s executed is chained to the previous one.
+          # This is different from how {Tracing::Event} works, and might be incompatible.
           def wrap_default(error_handler)
             return unless error_handler && error_handler.is_a?(Proc)
 

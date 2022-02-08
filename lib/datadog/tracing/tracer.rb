@@ -348,7 +348,7 @@ module Datadog
         # NOTE: This might be redundant sometimes (given #start_trace does this)
         #       however, it is necessary because the Context/TraceOperation may
         #       have been provided by a source outside the tracer e.g. OpenTracing
-        # bind_trace_events!(trace)
+        # bind_trace_events!(trace) # Pending OpenTracing PR
 
         span_options = {
           events: build_span_events,
@@ -411,6 +411,14 @@ module Datadog
       def subscribe_trace_deactivation!(context, trace, original_trace)
         # Don't override this event if it's set.
         # The original event should reactivate the original trace correctly.
+        #
+        # This happens when multiple manually-activation spans are created:
+        # ```ruby
+        # tracer.trace('parent') do
+        #   span1 = tracer.trace('first') # Registers trace deactivation back to `parent` span.
+        #   span2 = tracer.trace('second') # Tries to register trace deactivation back to `first`, which is not correct.
+        # end
+        # ```
         return if trace.send(:events).trace_finished.deactivate_trace_subscribed?
 
         trace.send(:events).trace_finished.subscribe_deactivate_trace do |*_|

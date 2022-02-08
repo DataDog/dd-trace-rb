@@ -17,7 +17,6 @@ module Datadog
     module Configuration
       # Global components for the trace library.
       # rubocop:disable Metrics/ClassLength
-      # rubocop:disable Layout/LineLength
       class Components
         class << self
           def build_health_metrics(settings)
@@ -386,7 +385,6 @@ module Datadog
         end
       end
       # rubocop:enable Metrics/ClassLength
-      # rubocop:enable Layout/LineLength
     end
   end
 end
