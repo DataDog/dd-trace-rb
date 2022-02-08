@@ -238,6 +238,16 @@ module Datadog
         class TraceFinished < Tracing::Event
           def initialize
             super(:trace_finished)
+            @deactivate_trace_subscribed = false
+          end
+
+          def deactivate_trace_subscribed?
+            @deactivate_trace_subscribed
+          end
+
+          def subscribe_deactivate_trace(&block)
+            @deactivate_trace_subscribed = true
+            subscribe(&block)
           end
         end
       end
@@ -349,12 +359,12 @@ module Datadog
         options[:events] = events
 
         # Before start: activate the span, publish events.
-        events.before_start.subscribe(:trace_before_span_start) do |span_op|
+        events.before_start.subscribe do |span_op|
           start_span(span_op)
         end
 
         # After finish: deactivate the span, record, publish events.
-        events.after_finish.subscribe(:trace_span_finished) do |span, span_op|
+        events.after_finish.subscribe do |span, span_op|
           finish_span(span, span_op, parent)
         end
 

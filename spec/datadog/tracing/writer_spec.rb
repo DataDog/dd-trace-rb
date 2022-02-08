@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::Writer do
 
         shared_examples 'after_send events' do
           it 'publishes after_send event' do
-            writer.events.after_send.subscribe(:test) do |writer, responses|
+            writer.events.after_send.subscribe do |writer, responses|
               expect(writer).to be(self.writer)
               expect(responses).to be(self.responses)
             end

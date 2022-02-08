@@ -363,12 +363,7 @@ module Datadog
         # This event is lazily initialized as error paths
         # are normally less common that non-error paths.
         def on_error
-          @on_error ||= begin
-                          event = OnError.new
-                          # Set default error behavior
-                          event.subscribe(:default, &DEFAULT_ON_ERROR)
-                          event
-                        end
+          @on_error ||= OnError.new(DEFAULT_ON_ERROR)
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -394,15 +389,19 @@ module Datadog
 
         # Triggered when the span raises an error during measurement.
         class OnError < Tracing::Event
-          def initialize
+          def initialize(default)
             super(:on_error)
+
+            @default = default
+            subscribe(&default)
           end
 
           # Call custom error handler but fallback to default behavior on failure.
           def wrap_default(error_handler)
             return unless error_handler && error_handler.is_a?(Proc)
 
-            wrap(:default) do |original, op, error|
+            unsubscribe_all!
+            subscribe do |op, error|
               begin
                 error_handler.call(op, error)
               rescue StandardError => e
@@ -411,7 +410,7 @@ module Datadog
                   Error: #{e.message} Location: #{e.backtrace.first}"
                 end
 
-                original.call(op, error) if original
+                @default.call(op, error) if @default
               end
             end
           end

@@ -414,7 +414,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       shared_examples 'event publishing writer' do
         it 'subscribes to writer events' do
-          expect(writer.events.after_send).to receive(:subscribe).with(:record_environment_information) do |&block|
+          expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
               .to be(
                 Datadog::Core::Configuration::Components
@@ -430,8 +430,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it_behaves_like 'event publishing writer'
 
         before do
-          allow(writer.events.after_send).to receive(:subscribe).with(:record_environment_information)
-          allow(writer.events.after_send).to receive(:subscribe).with(:update_priority_sampler_rates)
+          allow(writer.events.after_send).to receive(:subscribe)
         end
 
         let(:sampler_rates_callback) { -> { double('sampler rates callback') } }
@@ -440,7 +439,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(described_class).to receive(:writer_update_priority_sampler_rates_callback)
             .with(tracer_options[:sampler]).and_return(sampler_rates_callback)
 
-          expect(writer.events.after_send).to receive(:subscribe).with(:update_priority_sampler_rates) do |&block|
+          expect(writer.events.after_send).to receive(:subscribe) do |&block|
+            expect(block)
+              .to be(Datadog::Core::Configuration::Components
+                       .singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+                  )
+          end
+
+          expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block).to be(sampler_rates_callback)
           end
           build_tracer
