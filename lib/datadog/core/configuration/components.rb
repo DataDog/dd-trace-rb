@@ -148,7 +148,7 @@ module Datadog
           def subscribe_to_writer_events!(writer, sampler, test_mode)
             return unless writer.respond_to?(:events) # Check if it's a custom, external writer
 
-            writer.events.after_send.subscribe(:record_environment_information, &WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
+            writer.events.after_send.subscribe(&WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
 
             return unless sampler.is_a?(Tracing::Sampling::PrioritySampler)
 
@@ -159,10 +159,7 @@ module Datadog
             # here to achieve 100% sampling rate.
             return if test_mode
 
-            writer.events.after_send.subscribe(
-              :update_priority_sampler_rates,
-              &writer_update_priority_sampler_rates_callback(sampler)
-            )
+            writer.events.after_send.subscribe(&writer_update_priority_sampler_rates_callback(sampler))
           end
 
           WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
