@@ -66,11 +66,11 @@ module Datadog
       end
 
       def create_agentless_exporter(site, api_key, tags)
-        self.class._native_create_agentless_exporter(site.to_str, api_key.to_str, tags)
+        self.class._native_create_agentless_exporter(site, api_key, tags)
       end
 
       def create_agent_exporter(base_url, tags)
-        self.class._native_create_agent_exporter(base_url.to_str, tags)
+        self.class._native_create_agent_exporter(base_url, tags)
       end
 
       def do_export(
@@ -87,15 +87,15 @@ module Datadog
       )
         self.class._native_do_export(
           libddprof_exporter,
-          upload_timeout_milliseconds.to_i,
-          start_timespec_seconds.to_i,
-          start_timespec_nanoseconds.to_i,
-          finish_timespec_seconds.to_i,
-          finish_timespec_nanoseconds.to_i,
-          pprof_file_name.to_str,
-          pprof_data.to_str,
-          code_provenance_file_name.to_str,
-          code_provenance_data.to_str,
+          upload_timeout_milliseconds,
+          start_timespec_seconds,
+          start_timespec_nanoseconds,
+          finish_timespec_seconds,
+          finish_timespec_nanoseconds,
+          pprof_file_name,
+          pprof_data,
+          code_provenance_file_name,
+          code_provenance_data,
         )
       end
 

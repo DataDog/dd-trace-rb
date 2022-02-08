@@ -4,13 +4,16 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/http_transport'
 require 'datadog/profiling'
 
+require 'webrick'
+
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
 #
-# We also have a few integration tests, where we also exercise libddprof and ensure that things come out of libddprof
+# We also have a integration specs, where we exercise libddprof and ensure that things come out of libddprof
 # as we expect.
 RSpec.describe Datadog::Profiling::HttpTransport do
+  # FIXME: Enable better testing on macOS
   #before { skip_if_profiling_not_supported(self) }
 
   subject(:http_transport) do
@@ -38,8 +41,25 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:deprecated_for_removal_transport_configuration_proc) { nil }
   let(:site) { nil }
   let(:api_key) { nil }
-  let(:tags) { :FIXME }
+  let(:tags) { {'tag_a' => 'value_a', 'tag_b' => 'value_b'} }
   let(:upload_timeout_seconds) { 123 }
+
+  let(:flush) do
+    Datadog::Profiling::Flush.new(
+      start: start,
+      finish: finish,
+      pprof_file_name: pprof_file_name,
+      pprof_data: pprof_data,
+      code_provenance_file_name: code_provenance_file_name,
+      code_provenance_data: code_provenance_data,
+    )
+  end
+  let(:start)  { Time.iso8601("2022-02-07T15:59:53.987654321Z") }
+  let(:finish) { Time.iso8601("2023-11-11T16:00:00.123456789Z") }
+  let(:pprof_file_name) { 'the_pprof_file_name.pprof' }
+  let(:pprof_data) { 'the_pprof_data' }
+  let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
+  let(:code_provenance_data) { 'the_code_provenance_data' }
 
   describe '#initialize' do
     context 'when agent_settings are provided' do
@@ -109,23 +129,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   describe '#export' do
     subject(:export) { http_transport.export(flush) }
 
-    let(:flush) do
-      Datadog::Profiling::Flush.new(
-        start: start,
-        finish: finish,
-        pprof_file_name: pprof_file_name,
-        pprof_data: pprof_data,
-        code_provenance_file_name: code_provenance_file_name,
-        code_provenance_data: code_provenance_data,
-      )
-    end
-    let(:start)  { Time.iso8601("2022-02-07T15:59:53.987654321Z") }
-    let(:finish) { Time.iso8601("2023-11-11T16:00:00.123456789Z") }
-    let(:pprof_file_name) { 'the_pprof_file_name.pprof' }
-    let(:pprof_data) { 'the_pprof_data' }
-    let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
-    let(:code_provenance_data) { 'the_code_provenance_data' }
-
     it 'calls the native export method with the data from the flush' do
       # Manually converted from the lets above :)
       upload_timeout_milliseconds = 123_000
@@ -152,12 +155,77 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
 
   context 'integration testing' do
-    context 'when in agentless mode' do
-      it 'can export data successfully'
+    shared_context 'HTTP server' do
+      let(:server) do
+        WEBrick::HTTPServer.new(
+          Port: port,
+          Logger: log,
+          AccessLog: access_log,
+          StartCallback: -> { init_signal.push(1) }
+        )
+      end
+      let(:hostname) { '127.0.0.1' }
+      let(:port) { 6218 }
+      let(:log) { WEBrick::Log.new(log_buffer) }
+      let(:log_buffer) { StringIO.new }
+      let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
+      let(:server_proc) do
+        proc do |req, res|
+          messages << req.tap { req.body } # Read body, store message before socket closes.
+          res.body = '{}'
+        end
+      end
+      let(:init_signal) { Queue.new }
+
+      let(:messages) { [] }
+
+      before do
+        server.mount_proc('/', &server_proc)
+        @server_thread = Thread.new { server.start }
+        init_signal.pop
+      end
+
+      after do
+        unless RSpec.current_example.skipped?
+          # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
+          # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
+          # and join to be called on a nil @server_thread
+          server.shutdown
+          @server_thread.join
+        end
+      end
     end
 
+    include_context 'HTTP server'
+
+    let(:request) { messages.first }
+
     context 'when in agent mode' do
-      it 'can export data successfully'
+      let(:agent_settings) do
+        instance_double(
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+          adapter: adapter,
+          ssl: ssl,
+          hostname: '127.0.0.1',
+          port: '6128',
+        )
+      end
+
+      xit 'can export data successfully to the datadog agent' do
+        http_transport.export(flush)
+
+        # FIXME: Test url, headers, body
+
+        skip 'TODO'
+      end
+    end
+
+    context 'when in agentless mode' do
+      xit 'can export data successfully to the profiling backend' do
+        http_transport.export(flush)
+
+        skip 'TODO'
+      end
     end
   end
 end
