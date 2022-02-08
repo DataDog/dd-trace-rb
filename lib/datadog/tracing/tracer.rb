@@ -105,7 +105,6 @@ module Datadog
       #   See {https://docs.datadoghq.com/tracing/guide/configuring-primary-operation/ Primary Operations in Services}.
       # @param [Datadog::Tracing::TraceDigest] continue_from continue a trace from a {Datadog::Tracing::TraceDigest}.
       #   Used for linking traces that are executed asynchronously.
-      # @param [Boolean] autostart whether to autostart the span, if no block is provided.
       # @param [Proc] on_error a block that overrides error handling behavior for this operation.
       # @param [String] resource the resource this span refers, or `name` if it's missing
       # @param [String] service the service name for this span.
@@ -119,11 +118,18 @@ module Datadog
       # @yieldparam [Datadog::Tracing::SpanOperation] span_op the newly created and active [Datadog::Tracing::SpanOperation]
       # @yieldparam [Datadog::Tracing::TraceOperation] trace_op the active [Datadog::Tracing::TraceOperation]
       # rubocop:disable Lint/UnderscorePrefixedVariableName
+      # rubocop:disable Metrics/MethodLength
       def trace(
         name,
         continue_from: nil,
+        on_error: nil,
+        resource: nil,
+        service: nil,
+        start_time: nil,
+        tags: nil,
+        type: nil,
+        span_type: nil,
         _context: nil,
-        **span_options,
         &block
       )
         return skip_trace(name, &block) unless enabled
@@ -149,17 +155,37 @@ module Datadog
         # Activate and start the trace
         if block
           context.activate!(trace) do
-            start_span(name, _trace: trace, **span_options, &block)
+            start_span(
+              name,
+              on_error: on_error,
+              resource: resource,
+              service: service,
+              start_time: start_time,
+              tags: tags,
+              type: span_type || type,
+              _trace: trace,
+              &block
+            )
           end
         else
           # Setup trace activation/deactivation
           manual_trace_activation!(context, trace)
 
           # Return the new span
-          start_span(name, _trace: trace, **span_options)
+          start_span(
+            name,
+            on_error: on_error,
+            resource: resource,
+            service: service,
+            start_time: start_time,
+            tags: tags,
+            type: span_type || type,
+            _trace: trace
+          )
         end
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
+      # rubocop:enable Metrics/MethodLength
 
       # Set the given key / value tag pair at the tracer level. These tags will be
       # appended to each span created by the tracer. Keys and values must be strings.
@@ -333,6 +359,7 @@ module Datadog
         trace
       end
 
+      # rubocop:disable Lint/UnderscorePrefixedVariableName
       def start_span(
         name,
         continue_from: nil,
@@ -342,11 +369,10 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
-        **kwargs,
+        _trace: nil,
         &block
       )
-        trace = kwargs[:_trace] || start_trace(continue_from: continue_from)
-        autostart = kwargs.key?(:_autostart) ? kwargs[:_autostart] : true
+        trace = _trace || start_trace(continue_from: continue_from)
 
         # Bind trace events: sample trace, set default service, flush spans.
         # NOTE: This might be redundant sometimes (given #start_trace does this)
@@ -354,27 +380,36 @@ module Datadog
         #       have been provided by a source outside the tracer e.g. OpenTracing
         bind_trace_events!(trace)
 
-        span_options = {
-          events: build_span_events,
-          on_error: on_error,
-          resource: resource,
-          service: service,
-          start_time: start_time,
-          tags: resolve_tags(tags),
-          type: type || kwargs[:span_type]
-        }
-
         if block
           # Ignore start time if a block has been given
-          span_options.delete(:start_time)
-          trace.measure(name, **span_options, &block)
+          trace.measure(
+            name,
+            events: build_span_events,
+            on_error: on_error,
+            resource: resource,
+            service: service,
+            tags: resolve_tags(tags),
+            type: type,
+            &block
+          )
         else
           # Return the new span
-          span = trace.build_span(name, **span_options)
-          span.start(start_time) if autostart
+          span = trace.build_span(
+            name,
+            events: build_span_events,
+            on_error: on_error,
+            resource: resource,
+            service: service,
+            start_time: start_time,
+            tags: resolve_tags(tags),
+            type: type
+          )
+
+          span.start(start_time)
           span
         end
       end
+      # rubocop:enable Lint/UnderscorePrefixedVariableName
 
       def build_span_events(events = nil)
         case events
@@ -417,7 +452,7 @@ module Datadog
         # The original event should reactivate the original trace correctly.
         return if trace.send(:events).trace_finished.subscriptions[:tracer_deactivate_trace]
 
-        trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do |*_|
+        trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do
           context.activate!(original_trace)
         end
       end

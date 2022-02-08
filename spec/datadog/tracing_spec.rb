@@ -62,7 +62,7 @@ RSpec.describe Datadog::Tracing do
     subject(:trace) { described_class.trace(name, continue_from: continue_from, **span_options, &block) }
     let(:name) { double('name') }
     let(:continue_from) { double('continue_from') }
-    let(:span_options) { { my: double('option') } }
+    let(:span_options) { { resource: double('option') } }
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
