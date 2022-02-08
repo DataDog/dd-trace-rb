@@ -29,7 +29,6 @@ module Datadog
             :uds_path,
             :timeout_seconds,
             :deprecated_for_removal_transport_configuration_proc,
-            :deprecated_for_removal_transport_configuration_options
           ) do
             def initialize(
               adapter:,
@@ -38,8 +37,7 @@ module Datadog
               port:,
               uds_path:,
               timeout_seconds:,
-              deprecated_for_removal_transport_configuration_proc:,
-              deprecated_for_removal_transport_configuration_options:
+              deprecated_for_removal_transport_configuration_proc:
             )
               super(
                 adapter,
@@ -48,8 +46,7 @@ module Datadog
                 port,
                 uds_path,
                 timeout_seconds,
-                deprecated_for_removal_transport_configuration_proc,
-                deprecated_for_removal_transport_configuration_options,
+                deprecated_for_removal_transport_configuration_proc
               )
               freeze
             end
@@ -96,7 +93,6 @@ module Datadog
             # That is the main reason why it is deprecated -- it's an opaque function that may set a bunch of settings
             # that we know nothing of until we actually call it.
             deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-            deprecated_for_removal_transport_configuration_options: deprecated_for_removal_transport_configuration_options
           )
         end
 
@@ -199,19 +195,6 @@ module Datadog
           settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
         end
 
-        def deprecated_for_removal_transport_configuration_options
-          options = settings.tracer.transport_options
-
-          if options.is_a?(Hash) && !options.empty?
-            log_warning(
-              'Configuring the tracer via a c.tracer.transport_options hash is deprecated for removal in a future ' \
-              "ddtrace version (c.tracer.transport_options contained '#{options.inspect}')."
-            )
-
-            options
-          end
-        end
-
         # We only use the default unix socket if it is already present.
         # This is by design, as we still want to use the default host:port if no unix socket is present.
         def uds_fallback
@@ -221,7 +204,6 @@ module Datadog
             if configured_hostname.nil? &&
                configured_port.nil? &&
                deprecated_for_removal_transport_configuration_proc.nil? &&
-               deprecated_for_removal_transport_configuration_options.nil? &&
                File.exist?(Transport::Ext::UnixSocket::DEFAULT_PATH)
 
               Transport::Ext::UnixSocket::DEFAULT_PATH

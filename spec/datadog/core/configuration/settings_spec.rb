@@ -1299,25 +1299,17 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#transport_options' do
       subject(:transport_options) { settings.tracer.transport_options }
 
-      it { is_expected.to eq({}) }
-
-      context 'when modified' do
-        it 'does not modify the default by reference' do
-          settings.tracer.transport_options[:foo] = :bar
-          expect(settings.tracer.transport_options).to_not be_empty
-          expect(settings.tracer.options[:transport_options].default_value).to be_empty
-        end
-      end
+      it { is_expected.to be nil }
     end
 
     describe '#transport_options=' do
-      let(:options) { { hostname: 'my-agent' } }
+      let(:config_proc) { proc { |t| t.adapter :test } }
 
       it 'updates the #transport_options setting' do
-        expect { settings.tracer.transport_options = options }
+        expect { settings.tracer.transport_options = config_proc }
           .to change { settings.tracer.transport_options }
-          .from({})
-          .to(options)
+          .from(nil)
+          .to(config_proc)
       end
     end
 
