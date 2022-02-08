@@ -44,7 +44,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   describe '#initialize' do
     context 'when agent_settings are provided' do
       it 'creates an agent exporter with the given settings' do
-        expect_any_instance_of(described_class)
+        expect(described_class)
           .to receive(:_native_create_agent_exporter).with('http://192.168.0.1:12345/', tags)
 
         http_transport
@@ -54,7 +54,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         let(:ssl) { true }
 
         it 'creates an agent exporter that reports over https' do
-          expect_any_instance_of(described_class)
+          expect(described_class)
             .to receive(:_native_create_agent_exporter).with('https://192.168.0.1:12345/', tags)
 
           http_transport
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:api_key) { SecureRandom.uuid }
 
       it 'ignores them and creates an agent exporter using the agent_settings' do
-        expect_any_instance_of(described_class)
+        expect(described_class)
           .to receive(:_native_create_agent_exporter).with('http://192.168.0.1:12345/', tags)
 
         http_transport
@@ -97,7 +97,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         end
 
         it 'creates an agentless exporter with the given site and api key' do
-          expect_any_instance_of(described_class)
+          expect(described_class)
             .to receive(:_native_create_agentless_exporter).with(site, api_key, tags)
 
           http_transport
@@ -134,7 +134,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_seconds = 1699718400
       finish_timespec_nanoseconds = 123456789
 
-      expect(http_transport).to receive(:_native_do_export).with(
+      expect(described_class).to receive(:_native_do_export).with(
         upload_timeout_milliseconds,
         start_timespec_seconds,
         start_timespec_nanoseconds,
