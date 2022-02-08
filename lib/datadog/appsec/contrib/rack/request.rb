@@ -8,9 +8,18 @@ module Datadog
             request.query_string.split('&').map { |e| e.split('=').map { |s| CGI.unescape(s) } }
           end
 
-          def self.headers(request)
-            request.each_header.each_with_object({}) do |(k, v), h|
-              h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
+          # Rack < 2.0 does not have :each_header
+          if ::Rack::Request.instance_methods.include?(:each_header)
+            def self.headers(request)
+              request.each_header.each_with_object({}) do |(k, v), h|
+                h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
+              end
+            end
+          else
+            def self.headers(request)
+              request.env.each_with_object({}) do |(k, v), h|
+                h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
+              end
             end
           end
 
