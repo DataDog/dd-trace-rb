@@ -181,7 +181,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     let!(:trace) do
-      tracer.trace_completed.subscribe(:test) do |trace|
+      tracer.trace_completed.subscribe do |trace|
         @sampling_priority = trace.sampling_priority
         @rule_sample_rate = trace.rule_sample_rate
         @rate_limiter_rate = trace.rate_limiter_rate
