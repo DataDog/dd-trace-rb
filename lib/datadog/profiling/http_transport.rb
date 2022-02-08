@@ -13,15 +13,17 @@ module Datadog
         # FIXME: Handle/convert tags?
         # FIXME: Strict types in tags
 
-        if site && api_key && agentless_allowed?
-          create_agentless_exporter(site, api_key, tags)
-        else
-          create_agent_exporter(base_url_from(agent_settings), tags)
-        end
+        @libddprof_exporter =
+          if site && api_key && agentless_allowed?
+            create_agentless_exporter(site, api_key, tags)
+          else
+            create_agent_exporter(base_url_from(agent_settings), tags)
+          end
       end
 
       def export(flush)
         do_export(
+          libddprof_exporter: @libddprof_exporter,
           upload_timeout_milliseconds: @upload_timeout_milliseconds,
 
           # why "timespec"?
@@ -72,6 +74,7 @@ module Datadog
       end
 
       def do_export(
+        libddprof_exporter:,
         upload_timeout_milliseconds:,
         start_timespec_seconds:,
         start_timespec_nanoseconds:,
@@ -83,6 +86,7 @@ module Datadog
         code_provenance_data:
       )
         self.class._native_do_export(
+          libddprof_exporter,
           upload_timeout_milliseconds.to_i,
           start_timespec_seconds.to_i,
           start_timespec_nanoseconds.to_i,
@@ -99,6 +103,7 @@ module Datadog
       def self._native_create_agentless_exporter(site, api_key, tags); end
       def self._native_create_agent_exporter(base_url, tags); end
       def self._native_do_export(
+        libddprof_exporter,
         upload_timeout_milliseconds,
         start_timespec_seconds,
         start_timespec_nanoseconds,

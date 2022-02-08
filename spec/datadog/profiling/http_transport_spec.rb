@@ -135,6 +135,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_nanoseconds = 123456789
 
       expect(described_class).to receive(:_native_do_export).with(
+        anything, # libddprof_exporter
         upload_timeout_milliseconds,
         start_timespec_seconds,
         start_timespec_nanoseconds,
