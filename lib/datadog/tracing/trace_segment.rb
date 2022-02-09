@@ -54,8 +54,8 @@ module Datadog
 
         # Set well-known tags
         self.agent_sample_rate = agent_sample_rate
-        self.hostname = (hostname.frozen? ? hostname : hostname.dup)
-        self.lang = (lang.frozen? ? lang : lang.dup)
+        self.hostname = hostname
+        self.lang = lang
         self.name = (name.frozen? ? name : name.dup)
         self.origin = (origin.frozen? ? origin : origin.dup)
         self.process_id = process_id
