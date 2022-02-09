@@ -505,9 +505,8 @@ module Datadog
         end
 
         # Tracer specific configurations.
-        # @configure_with {Datadog::Tracing}
         # @public_api
-        settings :tracer do
+        settings :tracing do
           # Enable trace collection and span generation.
           #
           # You can use this option to disable tracing without having to

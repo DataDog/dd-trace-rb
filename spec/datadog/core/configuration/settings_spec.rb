@@ -1171,9 +1171,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
-  describe '#tracer' do
+  describe '#tracing' do
     describe '#enabled' do
-      subject(:enabled) { settings.tracer.enabled }
+      subject(:enabled) { settings.tracing.enabled }
 
       it { is_expected.to be true }
 
@@ -1206,15 +1206,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#enabled=' do
       it 'updates the #enabled setting' do
-        expect { settings.tracer.enabled = false }
-          .to change { settings.tracer.enabled }
+        expect { settings.tracing.enabled = false }
+          .to change { settings.tracing.enabled }
           .from(true)
           .to(false)
       end
     end
 
     describe '#instance' do
-      subject(:instance) { settings.tracer.instance }
+      subject(:instance) { settings.tracing.instance }
 
       it { is_expected.to be nil }
     end
@@ -1223,8 +1223,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
       it 'updates the #instance setting' do
-        expect { settings.tracer.instance = tracer }
-          .to change { settings.tracer.instance }
+        expect { settings.tracing.instance = tracer }
+          .to change { settings.tracing.instance }
           .from(nil)
           .to(tracer)
       end
@@ -1232,22 +1232,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#partial_flush' do
       describe '#enabled' do
-        subject(:enabled) { settings.tracer.partial_flush.enabled }
+        subject(:enabled) { settings.tracing.partial_flush.enabled }
 
         it { is_expected.to be false }
       end
 
       describe '#enabled=' do
         it 'updates the #enabled setting' do
-          expect { settings.tracer.partial_flush.enabled = true }
-            .to change { settings.tracer.partial_flush.enabled }
+          expect { settings.tracing.partial_flush.enabled = true }
+            .to change { settings.tracing.partial_flush.enabled }
             .from(false)
             .to(true)
         end
       end
 
       describe '#min_spans_threshold' do
-        subject(:min_spans_threshold) { settings.tracer.partial_flush.min_spans_threshold }
+        subject(:min_spans_threshold) { settings.tracing.partial_flush.min_spans_threshold }
 
         it { is_expected.to eq(500) }
       end
@@ -1256,8 +1256,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         let(:value) { 1234 }
 
         it 'updates the #min_spans_before_partial_flush setting' do
-          expect { settings.tracer.partial_flush.min_spans_threshold = value }
-            .to change { settings.tracer.partial_flush.min_spans_threshold }
+          expect { settings.tracing.partial_flush.min_spans_threshold = value }
+            .to change { settings.tracing.partial_flush.min_spans_threshold }
             .from(500)
             .to(value)
         end
@@ -1265,22 +1265,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#priority_sampling' do
-      subject(:priority_sampling) { settings.tracer.priority_sampling }
+      subject(:priority_sampling) { settings.tracing.priority_sampling }
 
       it { is_expected.to be nil }
     end
 
     describe '#priority_sampling=' do
       it 'updates the #priority_sampling setting' do
-        expect { settings.tracer.priority_sampling = true }
-          .to change { settings.tracer.priority_sampling }
+        expect { settings.tracing.priority_sampling = true }
+          .to change { settings.tracing.priority_sampling }
           .from(nil)
           .to(true)
       end
     end
 
     describe '#sampler' do
-      subject(:sampler) { settings.tracer.sampler }
+      subject(:sampler) { settings.tracing.sampler }
 
       it { is_expected.to be nil }
     end
@@ -1289,15 +1289,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       let(:sampler) { instance_double(Datadog::Tracing::Sampling::PrioritySampler) }
 
       it 'updates the #sampler setting' do
-        expect { settings.tracer.sampler = sampler }
-          .to change { settings.tracer.sampler }
+        expect { settings.tracing.sampler = sampler }
+          .to change { settings.tracing.sampler }
           .from(nil)
           .to(sampler)
       end
     end
 
     describe '#transport_options' do
-      subject(:transport_options) { settings.tracer.transport_options }
+      subject(:transport_options) { settings.tracing.transport_options }
 
       it { is_expected.to be nil }
     end
@@ -1306,15 +1306,15 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       let(:config_proc) { proc { |t| t.adapter :test } }
 
       it 'updates the #transport_options setting' do
-        expect { settings.tracer.transport_options = config_proc }
-          .to change { settings.tracer.transport_options }
+        expect { settings.tracing.transport_options = config_proc }
+          .to change { settings.tracing.transport_options }
           .from(nil)
           .to(config_proc)
       end
     end
 
     describe '#writer' do
-      subject(:writer) { settings.tracer.writer }
+      subject(:writer) { settings.tracing.writer }
 
       it { is_expected.to be nil }
     end
@@ -1323,23 +1323,23 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
       it 'updates the #writer setting' do
-        expect { settings.tracer.writer = writer }
-          .to change { settings.tracer.writer }
+        expect { settings.tracing.writer = writer }
+          .to change { settings.tracing.writer }
           .from(nil)
           .to(writer)
       end
     end
 
     describe '#writer_options' do
-      subject(:writer_options) { settings.tracer.writer_options }
+      subject(:writer_options) { settings.tracing.writer_options }
 
       it { is_expected.to eq({}) }
 
       context 'when modified' do
         it 'does not modify the default by reference' do
-          settings.tracer.writer_options[:foo] = :bar
-          expect(settings.tracer.writer_options).to_not be_empty
-          expect(settings.tracer.options[:writer_options].default_value).to be_empty
+          settings.tracing.writer_options[:foo] = :bar
+          expect(settings.tracing.writer_options).to_not be_empty
+          expect(settings.tracing.options[:writer_options].default_value).to be_empty
         end
       end
     end
@@ -1348,8 +1348,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       let(:options) { { priority_sampling: true } }
 
       it 'updates the #writer_options setting' do
-        expect { settings.tracer.writer_options = options }
-          .to change { settings.tracer.writer_options }
+        expect { settings.tracing.writer_options = options }
+          .to change { settings.tracing.writer_options }
           .from({})
           .to(options)
       end

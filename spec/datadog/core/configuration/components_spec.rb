@@ -353,7 +353,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
 
       before do
-        expect(settings.tracer).to receive(:instance)
+        expect(settings.tracing).to receive(:instance)
           .and_return(instance)
       end
 
@@ -383,7 +383,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:default_options) do
           {
             default_service: settings.service,
-            enabled: settings.tracer.enabled,
+            enabled: settings.tracing.enabled,
             trace_flush: trace_flush,
             tags: settings.tags,
             sampler: sampler,
@@ -457,7 +457,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:enabled) { double('enabled') }
 
         before do
-          allow(settings.tracer)
+          allow(settings.tracing)
             .to receive(:enabled)
             .and_return(enabled)
         end
@@ -487,7 +487,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:enabled) { true }
 
         before do
-          allow(settings.tracer.partial_flush)
+          allow(settings.tracing.partial_flush)
             .to receive(:enabled)
             .and_return(enabled)
         end
@@ -501,7 +501,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           let(:min_spans_threshold) { double('min_spans_threshold') }
 
           before do
-            allow(settings.tracer.partial_flush)
+            allow(settings.tracing.partial_flush)
               .to receive(:min_spans_threshold)
               .and_return(min_spans_threshold)
           end
@@ -519,7 +519,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context 'with :priority_sampling' do
         before do
-          allow(settings.tracer)
+          allow(settings.tracing)
             .to receive(:priority_sampling)
             .and_return(priority_sampling)
         end
@@ -531,7 +531,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           context 'with :sampler' do
             before do
-              allow(settings.tracer)
+              allow(settings.tracing)
                 .to receive(:sampler)
                 .and_return(sampler)
             end
@@ -573,7 +573,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           context 'with :sampler' do
             before do
-              allow(settings.tracer)
+              allow(settings.tracing)
                 .to receive(:sampler)
                 .and_return(sampler)
             end
@@ -763,7 +763,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:writer) { instance_double(Datadog::Tracing::Writer) }
 
         before do
-          allow(settings.tracer)
+          allow(settings.tracing)
             .to receive(:writer)
             .and_return(writer)
 
@@ -790,7 +790,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         it_behaves_like 'new tracer' do
           before do
-            expect(settings.tracer)
+            expect(settings.tracing)
               .to receive(:writer_options)
               .and_return(writer_options)
           end
@@ -800,7 +800,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           let(:writer) { double('writer') }
 
           before do
-            allow(settings.tracer)
+            allow(settings.tracing)
               .to receive(:writer)
               .and_return(writer)
           end

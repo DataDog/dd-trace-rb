@@ -118,7 +118,7 @@ RSpec.describe 'Tracer integration tests' do
         skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
 
         Datadog::Tracing.configure do |c|
-          c.tracer.transport_options = proc { |t|
+          c.tracing.transport_options = proc { |t|
             t.adapter :unix, ENV['TEST_DDAGENT_UNIX_SOCKET']
           }
         end
@@ -160,7 +160,7 @@ RSpec.describe 'Tracer integration tests' do
 
     before do
       Datadog::Tracing.configure do |c|
-        c.tracer.sampler = sampler if sampler
+        c.tracing.sampler = sampler if sampler
       end
     end
 
@@ -418,7 +418,7 @@ RSpec.describe 'Tracer integration tests' do
 
     before do
       Datadog::Tracing.configure do |c|
-        c.tracer.writer = writer
+        c.tracing.writer = writer
       end
 
       # Verify Transport::IO is configured
@@ -438,7 +438,7 @@ RSpec.describe 'Tracer integration tests' do
     # Reset the writer
     after do
       Datadog::Tracing.configure do |c|
-        c.tracer.reset!
+        c.tracing.reset!
       end
     end
 
@@ -472,8 +472,8 @@ RSpec.describe 'Tracer integration tests' do
 
     before do
       Datadog::Tracing.configure do |c|
-        c.tracer.priority_sampling = true
-        c.tracer.writer = writer
+        c.tracing.priority_sampling = true
+        c.tracing.writer = writer
       end
 
       # Verify Transport::HTTP is configured
@@ -517,7 +517,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       Datadog::Tracing.configure do |c|
-        c.tracer.priority_sampling = true
+        c.tracing.priority_sampling = true
       end
     end
 
@@ -528,7 +528,7 @@ RSpec.describe 'Tracer integration tests' do
     context 'when :transport_options' do
       before do
         Datadog::Tracing.configure do |c|
-          c.tracer.transport_options = transport_options
+          c.tracing.transport_options = transport_options
         end
       end
 

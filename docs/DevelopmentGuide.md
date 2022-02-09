@@ -247,7 +247,7 @@ Then pass an adapter instance to the tracer configuration:
 
 ```ruby
 Datadog::Tracing.configure do |c|
-  c.tracer.transport_options = proc { |t|
+  c.tracing.transport_options = proc { |t|
     # By name
     t.adapter :custom
 

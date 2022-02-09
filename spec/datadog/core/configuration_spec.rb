@@ -265,8 +265,8 @@ RSpec.describe Datadog::Core::Configuration do
           before do
             expect(old_tracer).to receive(:shutdown!)
 
-            test_class.send(:configure) { |c| c.tracer.instance = old_tracer }
-            test_class.send(:configure) { |c| c.tracer.instance = new_tracer }
+            test_class.send(:configure) { |c| c.tracing.instance = old_tracer }
+            test_class.send(:configure) { |c| c.tracing.instance = new_tracer }
           end
 
           it 'replaces the old tracer and shuts it down' do
@@ -280,8 +280,8 @@ RSpec.describe Datadog::Core::Configuration do
           before do
             expect(tracer).to_not receive(:shutdown!)
 
-            test_class.send(:configure) { |c| c.tracer.instance = tracer }
-            test_class.send(:configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:configure) { |c| c.tracing.instance = tracer }
+            test_class.send(:configure) { |c| c.tracing.instance = tracer }
           end
 
           it 'reuses the same tracer' do
@@ -295,7 +295,7 @@ RSpec.describe Datadog::Core::Configuration do
           before do
             expect(tracer).to_not receive(:shutdown!)
 
-            test_class.send(:configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:configure) { |c| c.tracing.instance = tracer }
             test_class.send(:configure) { |_c| }
           end
 
