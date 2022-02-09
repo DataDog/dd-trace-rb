@@ -10,16 +10,19 @@ RSpec.describe Datadog::OpenTracer::SpanContextFactory do
       context 'given Datadog::Tracing::Context' do
         subject(:span_context) do
           described_class.build(
-            datadog_context: datadog_context
+            datadog_context: datadog_context,
+            datadog_trace_digest: datadog_trace_digest
           )
         end
 
         let(:datadog_context) { instance_double(Datadog::Tracing::Context) }
+        let(:datadog_trace_digest) { instance_double(Datadog::Tracing::TraceDigest) }
 
         it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
 
         describe 'builds a SpanContext where' do
           it { expect(span_context.datadog_context).to be(datadog_context) }
+          it { expect(span_context.datadog_trace_digest).to be(datadog_trace_digest) }
 
           describe '#baggage' do
             subject(:baggage) { span_context.baggage }
@@ -33,6 +36,7 @@ RSpec.describe Datadog::OpenTracer::SpanContextFactory do
           subject(:span_context) do
             described_class.build(
               datadog_context: datadog_context,
+              datadog_trace_digest: datadog_trace_digest,
               baggage: original_baggage
             )
           end
@@ -67,16 +71,19 @@ RSpec.describe Datadog::OpenTracer::SpanContextFactory do
           instance_double(
             Datadog::OpenTracer::SpanContext,
             datadog_context: original_datadog_context,
+            datadog_trace_digest: original_datadog_trace_digest,
             baggage: original_baggage
           )
         end
         let(:original_datadog_context) { instance_double(Datadog::Tracing::Context) }
+        let(:original_datadog_trace_digest) { instance_double(Datadog::Tracing::TraceDigest) }
         let(:original_baggage) { {} }
 
         it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
 
         describe 'builds a SpanContext where' do
           it { expect(span_context.datadog_context).to be(original_datadog_context) }
+          it { expect(span_context.datadog_trace_digest).to be(original_datadog_trace_digest) }
 
           describe '#baggage' do
             subject(:baggage) { span_context.baggage }
