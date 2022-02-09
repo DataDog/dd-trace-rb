@@ -265,8 +265,8 @@ RSpec.describe Datadog::Core::Configuration do
           before do
             expect(old_tracer).to receive(:shutdown!)
 
-            test_class.send(:internal_configure) { |c| c.tracer.instance = old_tracer }
-            test_class.send(:internal_configure) { |c| c.tracer.instance = new_tracer }
+            test_class.send(:configure) { |c| c.tracer.instance = old_tracer }
+            test_class.send(:configure) { |c| c.tracer.instance = new_tracer }
           end
 
           it 'replaces the old tracer and shuts it down' do
@@ -280,8 +280,8 @@ RSpec.describe Datadog::Core::Configuration do
           before do
             expect(tracer).to_not receive(:shutdown!)
 
-            test_class.send(:internal_configure) { |c| c.tracer.instance = tracer }
-            test_class.send(:internal_configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:configure) { |c| c.tracer.instance = tracer }
           end
 
           it 'reuses the same tracer' do
@@ -295,8 +295,8 @@ RSpec.describe Datadog::Core::Configuration do
           before do
             expect(tracer).to_not receive(:shutdown!)
 
-            test_class.send(:internal_configure) { |c| c.tracer.instance = tracer }
-            test_class.send(:internal_configure) { |_c| }
+            test_class.send(:configure) { |c| c.tracer.instance = tracer }
+            test_class.send(:configure) { |_c| }
           end
 
           it 'reuses the same tracer' do
@@ -314,7 +314,7 @@ RSpec.describe Datadog::Core::Configuration do
 
           context 'and profiling is enabled' do
             before do
-              allow(test_class.send(:internal_configuration).profiling)
+              allow(test_class.configuration.profiling)
                 .to receive(:enabled)
                 .and_return(true)
 
@@ -500,11 +500,11 @@ RSpec.describe Datadog::Core::Configuration do
         let(:custom_value) { 777 }
 
         before do
-          test_class.send(:internal_configuration).sampling.rate_limit = custom_value
+          test_class.configuration.sampling.rate_limit = custom_value
         end
 
         it 'resets the configuration' do
-          expect { reset! }.to change { test_class.send(:internal_configuration).sampling.rate_limit }
+          expect { reset! }.to change { test_class.configuration.sampling.rate_limit }
             .from(custom_value).to(default_value)
         end
       end

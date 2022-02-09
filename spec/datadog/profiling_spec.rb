@@ -10,7 +10,7 @@ RSpec.describe Datadog::Profiling do
     let(:block) { proc {} }
 
     it 'delegates to the global configuration' do
-      expect(Datadog).to receive(:internal_configure) { |&b| expect(b).to be_a_kind_of(Proc) }
+      expect(Datadog).to receive(:configure) { |&b| expect(b).to be_a_kind_of(Proc) }
       configure
     end
   end

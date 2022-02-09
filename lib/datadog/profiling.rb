@@ -59,7 +59,7 @@ module Datadog
     # @return [void]
     # @public_api
     def self.configure(&block)
-      Datadog.send(:internal_configure, &block)
+      Datadog.configure(&block)
     end
 
     # Current profiler configuration.
@@ -72,7 +72,7 @@ module Datadog
     # @!attribute [r] configuration
     # @public_api
     def self.configuration
-      Datadog.send(:internal_configuration)
+      Datadog.configuration
     end
 
     # Starts the profiler, if the profiler is supported by in

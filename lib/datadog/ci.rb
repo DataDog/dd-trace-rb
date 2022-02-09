@@ -16,7 +16,7 @@ module Datadog
     # @!attribute [r] configuration
     # @public_api
     def configuration
-      Datadog.send(:internal_configuration)
+      Datadog.configuration
     end
 
     # Apply configuration changes to `Datadog::CI`. An example of a {.configure} call:
@@ -51,7 +51,7 @@ module Datadog
     # @return [void]
     # @public_api
     def configure(&block)
-      Datadog.send(:internal_configure, &block)
+      Datadog.configure(&block)
     end
   end
 end
