@@ -73,6 +73,7 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
     let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
     let(:items) { {} }
     let(:datadog_context) { span_context.datadog_context }
+    let(:datadog_trace_digest) { span_context.datadog_trace_digest }
 
     before do
       allow(carrier).to receive(:each) { |&block| items.each(&block) }
@@ -129,7 +130,8 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
         end
 
         it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
-        it { expect(datadog_context.active_trace).to be nil }
+        it { expect(datadog_context).to be nil }
+        it { expect(datadog_trace_digest).to be nil }
 
         it_behaves_like 'baggage'
       end
@@ -146,16 +148,18 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
           )
         end
 
-        let(:trace_id) { double('trace ID') }
-        let(:parent_id) { double('parent span ID') }
-        let(:sampling_priority) { double('sampling priority') }
-        let(:origin) { double('synthetics') }
+        let(:trace_id) { 123 }
+        let(:parent_id) { 456 }
+        let(:sampling_priority) { 1 }
+        let(:origin) { 'my-origin' }
 
         it { is_expected.to be_a_kind_of(Datadog::OpenTracer::SpanContext) }
-        it { expect(datadog_context.active_trace.id).to be trace_id }
-        it { expect(datadog_context.active_trace.parent_span_id).to be parent_id }
-        it { expect(datadog_context.active_trace.sampling_priority).to be sampling_priority }
-        it { expect(datadog_context.active_trace.origin).to be origin }
+        it { expect(datadog_context).to be nil }
+        it { expect(datadog_trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest) }
+        it { expect(datadog_trace_digest.span_id).to eq parent_id }
+        it { expect(datadog_trace_digest.trace_id).to eq trace_id }
+        it { expect(datadog_trace_digest.trace_origin).to eq origin }
+        it { expect(datadog_trace_digest.trace_sampling_priority).to eq sampling_priority }
 
         it_behaves_like 'baggage'
       end

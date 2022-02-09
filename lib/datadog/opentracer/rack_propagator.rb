@@ -41,9 +41,7 @@ module Datadog
         # @return [SpanContext, nil] the extracted SpanContext or nil if none could be found
         def extract(carrier)
           # First extract & build a Datadog context
-          datadog_context = Datadog::Tracing::Context.new(
-            trace: digest_to_trace(Tracing::Propagation::HTTP.extract(carrier))
-          )
+          datadog_trace_digest = Tracing::Propagation::HTTP.extract(carrier)
 
           # Then extract any other baggage
           baggage = {}
@@ -51,21 +49,14 @@ module Datadog
             baggage[header_to_baggage(key)] = value if baggage_header?(key)
           end
 
-          SpanContextFactory.build(datadog_context: datadog_context, baggage: baggage)
+          SpanContextFactory.build(
+            datadog_context: nil,
+            datadog_trace_digest: datadog_trace_digest,
+            baggage: baggage
+          )
         end
 
         private
-
-        def digest_to_trace(digest)
-          return unless digest
-
-          Datadog::Tracing::TraceOperation.new(
-            id: digest.trace_id,
-            origin: digest.trace_origin,
-            parent_span_id: digest.span_id,
-            sampling_priority: digest.trace_sampling_priority
-          )
-        end
 
         def baggage_header?(header)
           header.to_s.start_with?(BAGGAGE_PREFIX_FORMATTED)
