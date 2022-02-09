@@ -67,9 +67,6 @@ module Datadog
 
         @status = 0
 
-        @allocation_count_start = now_allocations
-        @allocation_count_stop = @allocation_count_start
-
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
         # to measure duration when a time is supplied by the user, or if monotonic clock
@@ -208,10 +205,6 @@ module Datadog
         # fallback to avoid very bad things and protect you in most common cases.
         return if stopped?
 
-        @allocation_count_stop = now_allocations
-
-        set_metric('allocations', allocations)
-
         now = Core::Utils::Time.now.utc
 
         # Provide a default start_time if unset.
@@ -272,10 +265,6 @@ module Datadog
       def duration
         return @duration_end - @duration_start if @duration_start && @duration_end
         return @end_time - @start_time if @start_time && @end_time
-      end
-
-      def allocations
-        @allocation_count_stop - @allocation_count_start
       end
 
       def set_error(e)
@@ -492,20 +481,6 @@ module Datadog
       # @return [Integer] in nanoseconds since Epoch
       def duration_nano
         (duration * 1e9).to_i
-      end
-
-      if defined?(JRUBY_VERSION)
-        def now_allocations
-          0
-        end
-      elsif Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2.0')
-        def now_allocations
-          GC.stat.fetch(:total_allocated_object)
-        end
-      else
-        def now_allocations
-          GC.stat(:total_allocated_objects)
-        end
       end
 
       # For backwards compatibility

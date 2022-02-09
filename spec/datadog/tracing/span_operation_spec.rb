@@ -90,7 +90,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
       it 'has default behavior' do
         is_expected.to have_attributes(
-          allocations: 0,
           duration: nil,
           finished?: false,
           started?: false,
@@ -538,14 +537,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       context 'then #stop' do
         before { start }
         it { expect { span_op.stop }.to change { span_op.duration }.from(nil).to(kind_of(Float)) }
-
-        it 'sets the measured number of allocations as a metric' do
-          skip 'Measuring allocations is not supported on JRuby' if PlatformHelpers.jruby?
-
-          span_op.stop
-
-          expect(span_op.to_hash[:metrics]).to include('allocations' => a_value > 0)
-        end
       end
 
       context 'and callbacks have been configured' do
@@ -909,34 +900,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         span_op.stop
 
         expect(span_op.start_time).to eq(time_now)
-      end
-    end
-  end
-
-  describe '#allocations' do
-    before do
-      skip 'Measuring allocations is not supported on JRuby' if PlatformHelpers.jruby?
-    end
-
-    subject(:allocations) { span_op.allocations }
-
-    it { is_expected.to be 0 }
-
-    context 'when span measures an operation' do
-      before do
-        span_op.measure { Object.new }
-      end
-
-      it { is_expected.to be > 0 }
-
-      context 'compared to a span that allocates more' do
-        let(:span_op_two) { described_class.new('span_op_two') }
-
-        before do
-          span_op_two.measure { 10_000.times { Object.new } }
-        end
-
-        it { is_expected.to be < span_op_two.allocations }
       end
     end
   end
