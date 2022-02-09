@@ -166,6 +166,48 @@ namespace :spec do
       t.rspec_opts = args.to_a.join(' ')
     end
   end
+
+  namespace :appsec do
+    task all: [:main, :rack, :rails, :sinatra,
+              :railsautoinstrument, :autoinstrument]
+
+    # Datadog AppSec main specs
+    RSpec::Core::RakeTask.new(:main) do |t, args|
+      t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
+      t.exclude_pattern = 'spec/datadog/appsec/**/{contrib,benchmark,auto_instrument}/**/*_spec.rb,'\
+                          ' spec/datadog/appsec/**/{auto_instrument,auto_load}_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    # Datadog AppSec integrations
+    [
+      :rack,
+      :sinatra,
+      :rails,
+    ].each do |contrib|
+      RSpec::Core::RakeTask.new(contrib) do |t, args|
+        t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
+        t.rspec_opts = args.to_a.join(' ')
+      end
+    end
+
+    RSpec::Core::RakeTask.new(:railsautoinstrument) do |t, args|
+      t.pattern = 'spec/datadog/appsec/contrib/rails/**/*auto_instrument*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
+      t.pattern = 'spec/datadog/appsec/auto_instrument_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    RSpec::Core::RakeTask.new(:autoload) do |t, args|
+      t.pattern = 'spec/datadog/appsec/auto_load_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+
+  task appsec: [:'appsec:all']
 end
 
 if defined?(RuboCop::RakeTask)
