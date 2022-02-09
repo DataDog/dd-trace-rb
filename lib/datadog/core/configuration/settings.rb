@@ -148,61 +148,6 @@ module Datadog
           end
         end
 
-        # [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing) propagation
-        # style configuration.
-        #
-        # The supported formats are:
-        # * `Datadog`: Datadog propagation format, described by [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing).
-        # * `B3`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
-        # * `B3 single header`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
-        #
-        # @configure_with {Datadog::Tracing}
-        # @public_api
-        settings :distributed_tracing do
-          # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
-          # data from incoming requests and messages.
-          #
-          # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
-          # The first format to have valid data present will be used.
-          #
-          # @default `DD_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
-          #   otherwise `['Datadog','B3','B3 single header']`.
-          # @return [Array<String>]
-          option :propagation_extract_style do |o|
-            o.default do
-              # Look for all headers by default
-              env_to_list(
-                Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
-                [
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                ]
-              )
-            end
-
-            o.lazy
-          end
-
-          # The data propagation styles the tracer will use to inject distributed tracing propagation
-          # data into outgoing requests and messages.
-          #
-          # The tracer will inject data from all styles specified in this option.
-          #
-          # @default `DD_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
-          # @return [Array<String>]
-          option :propagation_inject_style do |o|
-            o.default do
-              env_to_list(
-                Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
-                [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG] # Only inject Datadog headers by default
-              )
-            end
-
-            o.lazy
-          end
-        end
-
         # The `env` tag in Datadog. Use it to separate out your staging, development, and production environments.
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_ENV` environment variable, otherwise `nil`
@@ -477,6 +422,60 @@ module Datadog
             # @return [Boolean,nil]
             option :enabled do |o|
               o.default { env_to_bool(Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+              o.lazy
+            end
+          end
+
+          # [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing) propagation
+          # style configuration.
+          #
+          # The supported formats are:
+          # * `Datadog`: Datadog propagation format, described by [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing).
+          # * `B3`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
+          # * `B3 single header`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
+          #
+          # @public_api
+          settings :distributed_tracing do
+            # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
+            # data from incoming requests and messages.
+            #
+            # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
+            # The first format to have valid data present will be used.
+            #
+            # @default `DD_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
+            #   otherwise `['Datadog','B3','B3 single header']`.
+            # @return [Array<String>]
+            option :propagation_extract_style do |o|
+              o.default do
+                # Look for all headers by default
+                env_to_list(
+                  Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT,
+                  [
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                  ]
+                )
+              end
+
+              o.lazy
+            end
+
+            # The data propagation styles the tracer will use to inject distributed tracing propagation
+            # data into outgoing requests and messages.
+            #
+            # The tracer will inject data from all styles specified in this option.
+            #
+            # @default `DD_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
+            # @return [Array<String>]
+            option :propagation_inject_style do |o|
+              o.default do
+                env_to_list(
+                  Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
+                  [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG] # Only inject Datadog headers by default
+                )
+              end
+
               o.lazy
             end
           end

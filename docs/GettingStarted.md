@@ -2195,7 +2195,7 @@ You can enable/disable the use of these formats via `Datadog::Tracing.configure`
 ```ruby
 Datadog::Tracing.configure do |c|
   # List of header formats that should be extracted
-  c.distributed_tracing.propagation_extract_style = [
+  c.tracing.distributed_tracing.propagation_extract_style = [
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
@@ -2203,7 +2203,7 @@ Datadog::Tracing.configure do |c|
   ]
 
   # List of header formats that should be injected
-  c.distributed_tracing.propagation_inject_style = [
+  c.tracing.distributed_tracing.propagation_inject_style = [
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
   ]
 end
