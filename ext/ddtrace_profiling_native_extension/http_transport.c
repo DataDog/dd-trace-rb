@@ -101,7 +101,7 @@ static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_a
   if (exporter_result.tag != DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) {
     VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
     ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result); // Clean up result
-    rb_raise(rb_eRuntimeError, "Failed to initialize libddprof: %"PRIsVALUE, failure_details);
+    rb_raise(rb_eRuntimeError, "Failed to initialize libddprof: %+"PRIsVALUE, failure_details);
   }
 
   VALUE exporter = exporter_to_ruby_object(exporter_result.ok);

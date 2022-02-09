@@ -127,7 +127,13 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
     end
 
-    # TODO test native exception when libddprof failed to init
+    context 'when an invalid configuration is provided' do
+      before { expect(agent_settings).to receive(:port).and_return(1_000_000_000.to_s) }
+
+      it do
+        expect { http_transport }.to raise_error(RuntimeError, /Failed to initialize libddprof/)
+      end
+    end
   end
 
   describe '#export' do
