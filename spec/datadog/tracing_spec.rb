@@ -141,37 +141,6 @@ RSpec.describe Datadog::Tracing do
       expect(Datadog).to receive(:internal_configure) { |&b| expect(b).to be_a_kind_of(Proc) }
       configure
     end
-
-    context 'validation' do
-      it 'wraps the configuration object with a proxy' do
-        described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Tracing::Configuration::ValidationProxy)
-        end
-      end
-
-      it 'allows tracing options' do
-        described_class.configure do |c|
-          expect(c).to respond_to(:tracer)
-          expect(c).to respond_to(:instrument)
-        end
-      end
-
-      it 'raises errors for non-tracing options' do
-        described_class.configure do |c|
-          expect(c).to_not respond_to(:profiling)
-        end
-      end
-    end
-  end
-
-  describe '.configuration' do
-    subject(:configuration) { described_class.configuration }
-    it 'returns the global configuration' do
-      expect(configuration)
-        .to be_a_kind_of(Datadog::Tracing::Configuration::ValidationProxy)
-
-      expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
-    end
   end
 
   describe '.correlation' do

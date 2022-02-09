@@ -13,36 +13,6 @@ RSpec.describe Datadog::Profiling do
       expect(Datadog).to receive(:internal_configure) { |&b| expect(b).to be_a_kind_of(Proc) }
       configure
     end
-
-    context 'validation' do
-      it 'wraps the configuration object with a proxy' do
-        described_class.configure do |c|
-          expect(c).to be_a_kind_of(Datadog::Profiling::Configuration::ValidationProxy)
-        end
-      end
-
-      it 'allows profiling options' do
-        described_class.configure do |c|
-          expect(c).to respond_to(:profiling)
-        end
-      end
-
-      it 'raises errors for non-profiling options' do
-        described_class.configure do |c|
-          expect(c).to_not respond_to(:tracer)
-        end
-      end
-    end
-  end
-
-  describe '.configuration' do
-    subject(:configuration) { described_class.configuration }
-    it 'returns the global configuration' do
-      expect(configuration)
-        .to be_a_kind_of(Datadog::Profiling::Configuration::ValidationProxy)
-
-      expect(configuration.send(:settings)).to eq(Datadog.send(:internal_configuration))
-    end
   end
 
   describe '.start_if_enabled' do

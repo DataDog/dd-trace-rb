@@ -48,7 +48,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration.send(:settings))
+              .with(test_class.configuration)
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Core::Configuration do
             # New components should startup
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration.send(:settings))
+              .with(test_class.configuration)
 
             expect(new_components).to_not have_received(:shutdown!)
           end

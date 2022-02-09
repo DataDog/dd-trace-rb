@@ -12,8 +12,7 @@ RSpec.describe Datadog do
         subject(:configuration) { datadog.configuration }
 
         it do
-          is_expected.to be_an_instance_of(Datadog::Core::Configuration::ValidationProxy::Global)
-          expect(configuration.send(:settings)).to be_an_instance_of(Datadog::Core::Configuration::Settings)
+          expect(configuration).to be_an_instance_of(Datadog::Core::Configuration::Settings)
         end
       end
 
@@ -22,7 +21,7 @@ RSpec.describe Datadog do
 
         it do
           expect { |b| datadog.configure(&b) }
-            .to yield_with_args(kind_of(Datadog::Core::Configuration::ValidationProxy::Global))
+            .to yield_with_args(kind_of(Datadog::Core::Configuration::Settings))
         end
       end
 

@@ -2,7 +2,6 @@
 require 'forwardable'
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'
-require 'datadog/core/configuration/validation_proxy'
 require 'datadog/core/logger'
 require 'datadog/core/pin'
 
@@ -52,9 +51,7 @@ module Datadog
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        ValidationProxy::Global.new(
-          internal_configuration
-        )
+        internal_configuration
       end
 
       # Apply global configuration changes to `Datadog`. An example of a {.configure} call:
@@ -86,14 +83,8 @@ module Datadog
       # @param [Datadog::Core::Configuration::Settings] configuration the base configuration object. Provide a custom
       #   instance if you are managing the configuration yourself. By default, the global configuration object is used.
       # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
-      def configure(configuration = self.configuration)
-        # Wrap block with global option validation
-        wrapped_block = proc do |c|
-          yield(ValidationProxy::Global.new(c))
-        end
-
-        # Configure application normally
-        internal_configure(&wrapped_block)
+      def configure(&block)
+        internal_configure(&block)
       end
 
       # Apply configuration changes only to a specific Ruby object.

@@ -3,7 +3,6 @@ require 'forwardable'
 require 'set'
 
 require 'datadog/core/configuration/settings'
-require 'datadog/tracing/configuration/validation_proxy'
 require 'datadog/tracing/contrib'
 
 module Datadog
@@ -22,7 +21,6 @@ module Datadog
           Tracing.singleton_class.prepend Helpers
           Tracing.singleton_class.prepend Configuration
           Core::Configuration::Settings.include Configuration::Settings
-          Tracing::Configuration::ValidationProxy.include Configuration::ValidationProxy
         end
 
         # Helper methods for Datadog module.
@@ -180,19 +178,6 @@ module Datadog
             def reduce_log_verbosity
               @reduce_verbosity ||= true
             end
-          end
-
-          module ValidationProxy
-            extend Forwardable
-
-            def_delegators \
-              :settings,
-              :[],
-              :instrument,
-              :instrumented_integrations,
-              :integrations_pending_activation,
-              :reduce_log_verbosity,
-              :reduce_verbosity?
           end
         end
       end
