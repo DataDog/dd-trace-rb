@@ -70,21 +70,6 @@ module Datadog
           # end
         end
 
-        # Legacy [App Analytics](https://docs.datadoghq.com/tracing/legacy_app_analytics/) configuration.
-        #
-        # @configure_with {Datadog::Tracing}
-        # @deprecated Use [Trace Retention and Ingestion](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/)
-        #   controls.
-        # @public_api
-        settings :analytics do
-          # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
-          # @return [Boolean,nil]
-          option :enabled do |o|
-            o.default { env_to_bool(Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
-            o.lazy
-          end
-        end
-
         # Datadog API key.
         #
         # For internal use only.
@@ -481,6 +466,21 @@ module Datadog
         # Tracer specific configurations.
         # @public_api
         settings :tracing do
+          # Legacy [App Analytics](https://docs.datadoghq.com/tracing/legacy_app_analytics/) configuration.
+          #
+          # @configure_with {Datadog::Tracing}
+          # @deprecated Use [Trace Retention and Ingestion](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/)
+          #   controls.
+          # @public_api
+          settings :analytics do
+            # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
+            # @return [Boolean,nil]
+            option :enabled do |o|
+              o.default { env_to_bool(Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED, nil) }
+              o.lazy
+            end
+          end
+
           # Enable trace collection and span generation.
           #
           # You can use this option to disable tracing without having to

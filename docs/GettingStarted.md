@@ -2016,7 +2016,7 @@ Datadog's Tracing without Limits™ allows you to send all of your traffic and [
 
 We recommend setting the environment variable `DD_TRACE_SAMPLE_RATE=1.0` in all new applications using `ddtrace`.
 
-App Analytics, previously configured with the `analytics.enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
+App Analytics, previously configured with the `tracing.analytics.enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
 
 #### Application-side sampling
 

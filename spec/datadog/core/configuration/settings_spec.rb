@@ -21,45 +21,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   let(:options) { {} }
 
-  describe '#analytics' do
-    describe '#enabled' do
-      subject(:enabled) { settings.analytics.enabled }
-
-      context "when #{Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED}" do
-        around do |example|
-          ClimateControl.modify(
-            Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => environment
-          ) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be nil }
-        end
-
-        context 'is defined' do
-          let(:environment) { 'true' }
-
-          it { is_expected.to be true }
-        end
-      end
-    end
-
-    describe '#enabled=' do
-      after { settings.runtime_metrics.reset! }
-
-      it 'changes the #enabled setting' do
-        expect { settings.analytics.enabled = true }
-          .to change { settings.analytics.enabled }
-          .from(nil)
-          .to(true)
-      end
-    end
-  end
-
   describe '#api_key' do
     subject(:api_key) { settings.api_key }
 
@@ -1085,6 +1046,45 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   end
 
   describe '#tracing' do
+    describe '#analytics' do
+      describe '#enabled' do
+        subject(:enabled) { settings.tracing.analytics.enabled }
+
+        context "when #{Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED}" do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED => environment
+            ) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be nil }
+          end
+
+          context 'is defined' do
+            let(:environment) { 'true' }
+
+            it { is_expected.to be true }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        after { settings.runtime_metrics.reset! }
+
+        it 'changes the #enabled setting' do
+          expect { settings.tracing.analytics.enabled = true }
+            .to change { settings.tracing.analytics.enabled }
+                  .from(nil)
+                  .to(true)
+        end
+      end
+    end
+
     describe '#enabled' do
       subject(:enabled) { settings.tracing.enabled }
 

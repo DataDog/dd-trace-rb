@@ -130,7 +130,7 @@ module Datadog
 
         # @return [Boolean, nil] analytics enabled in configuration
         def analytics_enabled
-          !!Tracing.configuration.analytics.enabled
+          !!Tracing.configuration.tracing.analytics.enabled
         end
 
         # @return [Numeric, nil] tracer sample rate configured
