@@ -2,6 +2,9 @@
 
 #include "clock_id.h"
 
+// Each class/module here is implemented in their separate file
+void HttpTransport_init(VALUE profiling_module);
+
 static VALUE native_working_p(VALUE self);
 
 void Init_ddtrace_profiling_native_extension(void) {
@@ -13,6 +16,8 @@ void Init_ddtrace_profiling_native_extension(void) {
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));
 
   rb_define_singleton_method(native_extension_module, "clock_id_for", clock_id_for, 1); // from clock_id.h
+
+  HttpTransport_init(profiling_module);
 }
 
 static VALUE native_working_p(VALUE self) {

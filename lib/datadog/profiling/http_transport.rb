@@ -56,6 +56,9 @@ module Datadog
           raise ArgumentError, 'Unsupported agent configuration for profiling: Unix Domain Sockets are currently unsupported.'
         end
 
+        # TODO: We may need to handle the hash version of the transport_options
+        # if https://github.com/DataDog/dd-trace-rb/pull/1886 is rejected
+
         if agent_settings.deprecated_for_removal_transport_configuration_proc
           raise ArgumentError, 'Unsupported agent configuration for profiling: custom c.tracer.transport_options is currently unsupported.'
         end
@@ -98,22 +101,6 @@ module Datadog
           code_provenance_data,
         )
       end
-
-      # FIXME: TEMP
-      def self._native_create_agentless_exporter(site, api_key, tags); end
-      def self._native_create_agent_exporter(base_url, tags); end
-      def self._native_do_export(
-        libddprof_exporter,
-        upload_timeout_milliseconds,
-        start_timespec_seconds,
-        start_timespec_nanoseconds,
-        finish_timespec_seconds,
-        finish_timespec_nanoseconds,
-        pprof_file_name,
-        pprof_data,
-        code_provenance_file_name,
-        code_provenance_data
-      ); end
     end
   end
 end
