@@ -229,32 +229,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
-  describe '#log_injection' do
-    subject(:log_injection) { settings.log_injection }
-
-    context "when #{Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED}" do
-      around do |example|
-        ClimateControl.modify(
-          Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED => log_injection_env
-        ) do
-          example.run
-        end
-      end
-
-      context 'is not defined' do
-        let(:log_injection_env) { nil }
-
-        it { is_expected.to be(true) }
-      end
-
-      context 'is defined' do
-        let(:log_injection_env) { 'false' }
-
-        it { is_expected.to be(false) }
-      end
-    end
-  end
-
   describe '#logger' do
     describe '#instance' do
       subject(:instance) { settings.logger.instance }
@@ -1140,6 +1114,32 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.tracing.instance }
           .from(nil)
           .to(tracer)
+      end
+    end
+
+    describe '#log_injection' do
+      subject(:log_injection) { settings.tracing.log_injection }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED => log_injection_env
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:log_injection_env) { nil }
+
+          it { is_expected.to be(true) }
+        end
+
+        context 'is defined' do
+          let(:log_injection_env) { 'false' }
+
+          it { is_expected.to be(false) }
+        end
       end
     end
 

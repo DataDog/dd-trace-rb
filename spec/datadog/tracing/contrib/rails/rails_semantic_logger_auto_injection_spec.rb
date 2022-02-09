@@ -30,7 +30,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     Datadog::Tracing.configuration[:rails].reset_options!
     Datadog::Tracing.configure do |c|
       c.instrument :rails
-      c.log_injection = log_injection
+      c.tracing.log_injection = log_injection
     end
 
     allow(ENV).to receive(:[]).and_call_original
@@ -63,7 +63,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         Datadog::Tracing.configure do |c|
           c.instrument :rails
-          c.log_injection = log_injection
+          c.tracing.log_injection = log_injection
         end
 
         allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)
@@ -139,7 +139,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         Datadog::Tracing.configure do |c|
           c.instrument :rails
-          c.log_injection = log_injection
+          c.tracing.log_injection = log_injection
         end
 
         allow(ENV).to receive(:[]).with('USE_SEMANTIC_LOGGER').and_return(true)

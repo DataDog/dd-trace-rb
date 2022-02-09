@@ -158,15 +158,6 @@ module Datadog
           o.lazy
         end
 
-        # Automatic correlation between tracing and logging.
-        # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
-        # @return [Boolean]
-        # @configure_with {Datadog::Tracing}
-        option :log_injection do |o|
-          o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
-          o.lazy
-        end
-
         # Internal `Datadog.logger` configuration.
         #
         # This logger instance is only used internally by the gem.
@@ -505,6 +496,14 @@ module Datadog
           # @default `nil`
           # @return [Object,nil]
           option :instance
+
+          # Automatic correlation between tracing and logging.
+          # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
+          # @return [Boolean]
+          option :log_injection do |o|
+            o.default { env_to_bool(Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED, true) }
+            o.lazy
+          end
 
           # Configures an alternative trace transport behavior, where
           # traces can be sent to the agent and backend before all spans
