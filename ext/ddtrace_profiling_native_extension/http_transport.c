@@ -4,7 +4,10 @@
 // Used to report profiling data to Datadog.
 // This file implements the native bits of the Datadog::Profiling::HttpTransport class
 
-static VALUE libddprof_exporter_class = Qnil;
+// Datadog::Profiling::HttpTransport::Exporter
+// This is used to wrap a native-level pointer to a libddprof exporter;
+// see exporter_as_ruby_object below for more details
+static VALUE exporter_class = Qnil;
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string);
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
@@ -41,14 +44,12 @@ void http_transport_init(VALUE profiling_module) {
     http_transport_class, "_native_do_export",  _native_do_export, 10
   );
 
-  // This Ruby class is used to wrap a native-level pointer to a libddprof exporter;
-  // see exporter_as_ruby_object below for more details
-  libddprof_exporter_class = rb_define_class_under(http_transport_class, "LibddprofExporter", rb_cObject);
-  rb_undef_method(rb_singleton_class(libddprof_exporter_class), "new");
+  exporter_class = rb_define_class_under(http_transport_class, "Exporter", rb_cObject);
+  rb_undef_alloc_func(exporter_class);
 }
 
 // TODO: Extract these out
-// FIXME I THINK THIS IS COMPLETELY BROKEN
+// FIXME I THINK THIS IS COMPLETELY BROKEN !
 inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string) {
   ddprof_ffi_ByteSlice byte_slice = {.ptr = (uint8_t *) string, .len = sizeof(string) - 1};
   return byte_slice;
@@ -133,7 +134,7 @@ static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE 
 // This structure is used to define a Ruby object that stores a pointer to a ddprof_ffi_ProfileExporterV3 instance
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
 static const rb_data_type_t exporter_as_ruby_object = {
-  .wrap_struct_name = "exporter_as_ruby_object",
+  .wrap_struct_name = "Datadog::Profiling::HttpTransport::Exporter",
   .function = {
     .dfree = exporter_as_ruby_object_free,
     .dsize = NULL, // We don't track exporter memory usage
@@ -147,7 +148,7 @@ static void exporter_as_ruby_object_free(void *data) {
 }
 
 static VALUE exporter_to_ruby_object(ddprof_ffi_ProfileExporterV3* exporter) {
-  return TypedData_Wrap_Struct(libddprof_exporter_class, &exporter_as_ruby_object, exporter);
+  return TypedData_Wrap_Struct(exporter_class, &exporter_as_ruby_object, exporter);
 }
 
 static VALUE _native_do_export(
@@ -163,7 +164,7 @@ static VALUE _native_do_export(
   VALUE code_provenance_file_name,
   VALUE code_provenance_data
 ) {
-  // Check_Type(libddprof_exporter, ???); FIXME
+  Check_TypedStruct(libddprof_exporter, &exporter_as_ruby_object);
   Check_Type(upload_timeout_milliseconds, T_FIXNUM);
   Check_Type(start_timespec_seconds, T_FIXNUM);
   Check_Type(start_timespec_nanoseconds, T_FIXNUM);
@@ -175,6 +176,7 @@ static VALUE _native_do_export(
   Check_Type(code_provenance_data, T_STRING);
 
   // TODO: libpprof magic
+  // TODO: Release gil
 
   return Qnil;
 }

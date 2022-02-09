@@ -55,9 +55,6 @@ module Datadog
           raise ArgumentError, 'Unsupported agent configuration for profiling: Unix Domain Sockets are currently unsupported.'
         end
 
-        # TODO: We may need to handle the hash version of the transport_options
-        # if https://github.com/DataDog/dd-trace-rb/pull/1886 is rejected
-
         if agent_settings.deprecated_for_removal_transport_configuration_proc
           raise ArgumentError, 'Unsupported agent configuration for profiling: custom c.tracer.transport_options is currently unsupported.'
         end
