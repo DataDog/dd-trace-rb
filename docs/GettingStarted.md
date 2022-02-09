@@ -1987,9 +1987,9 @@ Datadog::Tracing.configure do |c|
   c.tracing.enabled = true
 
   # Ensure all traces are ingested by Datadog
-  c.sampling.default_rate = 1.0 # Recommended
-  c.sampling.rate_limit = 200
-  # or provide a custom implementation (overrides c.sampling settings)
+  c.tracing.sampling.default_rate = 1.0 # Recommended
+  c.tracing.sampling.rate_limit = 200
+  # or provide a custom implementation (overrides c.tracing.sampling settings)
   c.tracing.sampler = Datadog::Tracing::Sampling::AllSampler.new
 
   # Breaks down very large traces into smaller batches

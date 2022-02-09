@@ -104,15 +104,15 @@ module Datadog
               end
             elsif settings.tracing.priority_sampling == false
               Tracing::Sampling::RuleSampler.new(
-                rate_limit: settings.sampling.rate_limit,
-                default_sample_rate: settings.sampling.default_rate
+                rate_limit: settings.tracing.sampling.rate_limit,
+                default_sample_rate: settings.tracing.sampling.default_rate
               )
             else
               Tracing::Sampling::PrioritySampler.new(
                 base_sampler: Tracing::Sampling::AllSampler.new,
                 post_sampler: Tracing::Sampling::RuleSampler.new(
-                  rate_limit: settings.sampling.rate_limit,
-                  default_sample_rate: settings.sampling.default_rate
+                  rate_limit: settings.tracing.sampling.rate_limit,
+                  default_sample_rate: settings.tracing.sampling.default_rate
                 )
               )
             end
@@ -125,8 +125,8 @@ module Datadog
               Tracing::Sampling::PrioritySampler.new(
                 base_sampler: sampler,
                 post_sampler: Tracing::Sampling::RuleSampler.new(
-                  rate_limit: settings.sampling.rate_limit,
-                  default_sample_rate: settings.sampling.default_rate
+                  rate_limit: settings.tracing.sampling.rate_limit,
+                  default_sample_rate: settings.tracing.sampling.default_rate
                 )
               )
             end

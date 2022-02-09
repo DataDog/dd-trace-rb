@@ -544,44 +544,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
-  describe '#sampling' do
-    describe '#rate_limit' do
-      subject(:rate_limit) { settings.sampling.rate_limit }
-
-      context 'default' do
-        it { is_expected.to eq(100) }
-      end
-
-      context 'when ENV is provided' do
-        around do |example|
-          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(20.0) }
-      end
-    end
-
-    describe '#default_rate' do
-      subject(:default_rate) { settings.sampling.default_rate }
-
-      context 'default' do
-        it { is_expected.to be nil }
-      end
-
-      context 'when ENV is provided' do
-        around do |example|
-          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
-            example.run
-          end
-        end
-
-        it { is_expected.to eq(0.5) }
-      end
-    end
-  end
-
   describe '#service' do
     subject(:service) { settings.service }
 
@@ -1206,6 +1168,44 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.tracing.sampler }
           .from(nil)
           .to(sampler)
+      end
+    end
+
+    describe '#sampling' do
+      describe '#rate_limit' do
+        subject(:rate_limit) { settings.tracing.sampling.rate_limit }
+
+        context 'default' do
+          it { is_expected.to eq(100) }
+        end
+
+        context 'when ENV is provided' do
+          around do |example|
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT => '20.0') do
+              example.run
+            end
+          end
+
+          it { is_expected.to eq(20.0) }
+        end
+      end
+
+      describe '#default_rate' do
+        subject(:default_rate) { settings.tracing.sampling.default_rate }
+
+        context 'default' do
+          it { is_expected.to be nil }
+        end
+
+        context 'when ENV is provided' do
+          around do |example|
+            ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
+              example.run
+            end
+          end
+
+          it { is_expected.to eq(0.5) }
+        end
       end
     end
 

@@ -375,7 +375,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             lambda do |sampler|
               expect(sampler).to be_a(Datadog::Tracing::Sampling::PrioritySampler)
               expect(sampler.pre_sampler).to be_a(Datadog::Tracing::Sampling::AllSampler)
-              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.sampling.rate_limit)
+              expect(sampler.priority_sampler.rate_limiter.rate).to eq(settings.tracing.sampling.rate_limit)
               expect(sampler.priority_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler)
             end
           end

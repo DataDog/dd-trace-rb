@@ -500,11 +500,11 @@ RSpec.describe Datadog::Core::Configuration do
         let(:custom_value) { 777 }
 
         before do
-          test_class.configuration.sampling.rate_limit = custom_value
+          test_class.configuration.tracing.sampling.rate_limit = custom_value
         end
 
         it 'resets the configuration' do
-          expect { reset! }.to change { test_class.configuration.sampling.rate_limit }
+          expect { reset! }.to change { test_class.configuration.tracing.sampling.rate_limit }
             .from(custom_value).to(default_value)
         end
       end

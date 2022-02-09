@@ -259,36 +259,6 @@ module Datadog
           option :statsd
         end
 
-        # Client-side sampling configuration.
-        # @configure_with {Datadog::Tracing}
-        # @public_api
-        settings :sampling do
-          # Default sampling rate for the tracer.
-          #
-          # If `nil`, the trace uses an automatic sampling strategy that tries to ensure
-          # the collection of traces that are considered important (e.g. traces with an error, traces
-          # for resources not seen recently).
-          #
-          # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
-          # @return [Float,nil]
-          option :default_rate do |o|
-            o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, nil) }
-            o.lazy
-          end
-
-          # Rate limit for number of spans per second.
-          #
-          # Spans created above the limit will contribute to service metrics, but won't
-          # have their payload stored.
-          #
-          # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
-          # @return [Numeric,nil]
-          option :rate_limit do |o|
-            o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
-            o.lazy
-          end
-        end
-
         # The `service` tag in Datadog. Use it to group related traces into a service.
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
@@ -546,6 +516,35 @@ module Datadog
           # @default `nil`
           # @return [Object,nil]
           option :sampler
+
+          # Client-side sampling configuration.
+          # @public_api
+          settings :sampling do
+            # Default sampling rate for the tracer.
+            #
+            # If `nil`, the trace uses an automatic sampling strategy that tries to ensure
+            # the collection of traces that are considered important (e.g. traces with an error, traces
+            # for resources not seen recently).
+            #
+            # @default `DD_TRACE_SAMPLE_RATE` environment variable, otherwise `nil`.
+            # @return [Float,nil]
+            option :default_rate do |o|
+              o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, nil) }
+              o.lazy
+            end
+
+            # Rate limit for number of spans per second.
+            #
+            # Spans created above the limit will contribute to service metrics, but won't
+            # have their payload stored.
+            #
+            # @default `DD_TRACE_RATE_LIMIT` environment variable, otherwise 100.
+            # @return [Numeric,nil]
+            option :rate_limit do |o|
+              o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
+              o.lazy
+            end
+          end
 
           # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
           # @public_api

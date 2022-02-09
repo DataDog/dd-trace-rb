@@ -165,7 +165,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     after do
-      Datadog::Tracing.configuration.sampling.reset!
+      Datadog::Tracing.configuration.tracing.sampling.reset!
     end
 
     shared_examples 'priority sampled' do |sampling_priority|
