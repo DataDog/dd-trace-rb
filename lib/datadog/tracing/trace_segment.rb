@@ -62,7 +62,7 @@ module Datadog
         self.rate_limiter_rate = rate_limiter_rate
         self.resource = (resource.frozen? ? resource : resource.dup)
         self.rule_sample_rate = rule_sample_rate
-        self.runtime_id = (runtime_id.frozen? ? runtime_id : runtime_id.dup)
+        self.runtime_id = runtime_id
         self.sample_rate = sample_rate
         self.sampling_priority = sampling_priority
         self.service = (service.frozen? ? service : service.dup)
