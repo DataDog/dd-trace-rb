@@ -68,6 +68,12 @@ module Datadog
         self.service = (service.frozen? ? service : service.dup)
       end
 
+      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
+        def nil.dup
+          self
+        end
+      end
+
       def_delegators :spans, *SPANS_METHODS
 
       # Define tag accessors

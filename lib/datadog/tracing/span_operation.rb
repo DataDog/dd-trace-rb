@@ -451,6 +451,12 @@ module Datadog
         )
       end
 
+      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
+        def nil.dup
+          self
+        end
+      end
+
       # Set this span's parent, inheriting any properties not explicitly set.
       # If the parent is nil, set the span as the root span.
       #
