@@ -45,25 +45,21 @@ module Datadog
         end
 
         # {https://docs.datadoghq.com/agent/ Datadog Agent} configuration.
-        # @configure_with {Datadog}
         # @public_api
         settings :agent do
           # Agent hostname or IP.
-          # @configure_with {Datadog}
           # @default `DD_AGENT_HOST` environment variable, otherwise `127.0.0.1`
           # @return [String,nil]
           option :host
 
           # Agent APM TCP port.
           # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
-          # @configure_with {Datadog}
           # @default `DD_TRACE_AGENT_PORT` environment variable, otherwise `8126`
           # @return [String,nil]
           option :port
 
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
-          # @configure_with {Datadog}
           # @public_api
           # settings :statsd do
           #   # Agent Statsd UDP port.
@@ -93,7 +89,6 @@ module Datadog
         #
         # For internal use only.
         #
-        # @configure_with {Datadog}
         # @default `DD_API_KEY` environment variable, otherwise `nil`
         # @return [String,nil]
         option :api_key do |o|
@@ -105,7 +100,6 @@ module Datadog
         #
         # Enabling these surfaces debug information that can be helpful to
         # diagnose issues related to Datadog internals.
-        # @configure_with {Datadog}
         # @public_api
         settings :diagnostics do
           # Outputs all spans created by the host application to `Datadog.logger`.
@@ -228,7 +222,6 @@ module Datadog
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_ENV` environment variable, otherwise `nil`
         # @return [String,nil]
-        # @configure_with {Datadog}
         option :env do |o|
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_ENVIRONMENT, nil) }
@@ -247,7 +240,6 @@ module Datadog
         # Internal `Datadog.logger` configuration.
         #
         # This logger instance is only used internally by the gem.
-        # @configure_with {Datadog}
         # @public_api
         settings :logger do
           # The `Datadog.logger` object.
@@ -270,7 +262,6 @@ module Datadog
         # Datadog Profiler-specific configurations.
         #
         # @see https://docs.datadoghq.com/tracing/profiler/
-        # @configure_with {Datadog::Profiling}
         # @public_api
         settings :profiling do
           # Enable profiling.
@@ -338,7 +329,6 @@ module Datadog
 
         # [Runtime Metrics](https://docs.datadoghq.com/tracing/runtime_metrics/)
         # are StatsD metrics collected by the tracer to gain additional insights into an application's performance.
-        # @configure_with {Datadog}
         # @public_api
         settings :runtime_metrics do
           # Enable runtime metrics.
@@ -387,7 +377,6 @@ module Datadog
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
         # @return [String]
-        # @configure_with {Datadog}
         option :service do |o|
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::FALLBACK_SERVICE_NAME) }
@@ -412,7 +401,6 @@ module Datadog
         # @see https://docs.datadoghq.com/agent/troubleshooting/site/
         # @default `DD_SITE` environment variable, otherwise `nil` which sends data to `app.datadoghq.com`
         # @return [String,nil]
-        # @configure_with {Datadog}
         option :site do |o|
           o.default { ENV.fetch(Core::Environment::Ext::ENV_SITE, nil) }
           o.lazy
@@ -424,7 +412,6 @@ module Datadog
         # e.g. trace spans, profiles, etc.
         # @default `DD_TAGS` environment variable (in the format `'tag1:value1,tag2:value2'`), otherwise `{}`
         # @return [Hash<String,String>]
-        # @configure_with {Datadog}
         option :tags do |o|
           o.default do
             tags = {}
@@ -501,7 +488,6 @@ module Datadog
         #
         # @default `->{ Time.now }`
         # @return [Proc<Time>]
-        # @configure_with {Datadog}
         option :time_now_provider do |o|
           o.default { ::Time.now }
 
@@ -621,7 +607,6 @@ module Datadog
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_VERSION` environment variable, otherwise `nils`
         # @return [String,nil]
-        # @configure_with {Datadog}
         option :version do |o|
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_VERSION, nil) }
