@@ -1,11 +1,12 @@
 #include <ruby.h>
 #include <ddprof/ffi.h>
 
-inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const unsigned char *string);
+inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string);
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
-static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags);
-static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags);
-static void create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags);
+static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array);
+static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array);
+static void create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array);
+static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array);
 static VALUE _native_do_export(
   VALUE self,
   VALUE libddprof_exporter,
@@ -34,8 +35,9 @@ void HttpTransport_init(VALUE profiling_module) {
   );
 }
 
-inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const unsigned char *string) {
-  ddprof_ffi_ByteSlice byte_slice = {.ptr = string, .len = sizeof(string) - 1};
+// TODO: Extract these out
+inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string) {
+  ddprof_ffi_ByteSlice byte_slice = {.ptr = (uint8_t *) string, .len = sizeof(string) - 1};
   return byte_slice;
 }
 
@@ -45,47 +47,68 @@ inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   return byte_slice;
 }
 
-static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags) {
+static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array) {
   Check_Type(site, T_STRING);
   Check_Type(api_key, T_STRING);
-  Check_Type(tags, RUBY_T_HASH);
+  Check_Type(tags_as_array, T_ARRAY);
 
   create_exporter(
     ddprof_ffi_EndpointV3_agentless(
       byte_slice_from_ruby_string(site),
       byte_slice_from_ruby_string(api_key)
     ),
-    tags
+    tags_as_array
   );
 
   return Qnil;
 }
 
-static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags) {
+static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array) {
   Check_Type(base_url, T_STRING);
-  Check_Type(tags, T_HASH);
+  Check_Type(tags_as_array, T_ARRAY);
 
   create_exporter(
     ddprof_ffi_EndpointV3_agent(byte_slice_from_ruby_string(base_url)),
-    tags
+    tags_as_array
   );
 
   return Qnil;
 }
 
-static void create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags) {
-  Check_Type(tags, T_HASH);
+static void create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array) {
 
-  // struct ddprof_ffi_NewProfileExporterV3Result profile_exporter_result =
-  //   ddprof_ffi_ProfileExporterV3_new(
-  //     LIBDDPROF_STRING("ruby"),
-  //     /* FIXME TAGS */,
-  //     /* FIXME ENDPOINT */
-  //   );
+  long tags_count = rb_array_len(tags_as_array);
+  ddprof_ffi_Tag converted_tags[tags_count];
 
+  convert_tags(converted_tags, tags_count, tags_as_array);
+
+  struct ddprof_ffi_NewProfileExporterV3Result profile_exporter_result =
+    ddprof_ffi_ProfileExporterV3_new(
+      byte_slice_from_chars("ruby"),
+      (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
+      endpoint
+    );
 }
 
+static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array) {
+  Check_Type(tags_as_array, T_ARRAY);
 
+  for (long i = 0; i < tags_count; i++) {
+    VALUE name_value_pair = rb_ary_entry(tags_as_array, i);
+    Check_Type(name_value_pair, T_ARRAY);
+
+    // Note: We can index the array without checking its size first because rb_ary_entry returns Qnil if out of bounds
+    VALUE tag_name = rb_ary_entry(name_value_pair, 0);
+    VALUE tag_value = rb_ary_entry(name_value_pair, 1);
+    Check_Type(tag_name, T_STRING);
+    Check_Type(tag_value, T_STRING);
+
+    converted_tags[i] = (ddprof_ffi_Tag) {
+      .name = byte_slice_from_ruby_string(tag_name),
+      .value = byte_slice_from_ruby_string(tag_value)
+    };
+  }
+}
 
 static VALUE _native_do_export(
   VALUE self,

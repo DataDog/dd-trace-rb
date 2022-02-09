@@ -10,14 +10,13 @@ module Datadog
 
         validate_agent_settings(agent_settings)
 
-        # FIXME: Handle/convert tags?
-        # FIXME: Strict types in tags
+        tags_as_array = tags.to_a
 
         @libddprof_exporter =
           if site && api_key && agentless_allowed?
-            create_agentless_exporter(site, api_key, tags)
+            create_agentless_exporter(site, api_key, tags_as_array)
           else
-            create_agent_exporter(base_url_from(agent_settings), tags)
+            create_agent_exporter(base_url_from(agent_settings), tags_as_array)
           end
       end
 
@@ -68,12 +67,12 @@ module Datadog
         Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
       end
 
-      def create_agentless_exporter(site, api_key, tags)
-        self.class._native_create_agentless_exporter(site, api_key, tags)
+      def create_agentless_exporter(site, api_key, tags_as_array)
+        self.class._native_create_agentless_exporter(site, api_key, tags_as_array)
       end
 
-      def create_agent_exporter(base_url, tags)
-        self.class._native_create_agent_exporter(base_url, tags)
+      def create_agent_exporter(base_url, tags_as_array)
+        self.class._native_create_agent_exporter(base_url, tags_as_array)
       end
 
       def do_export(

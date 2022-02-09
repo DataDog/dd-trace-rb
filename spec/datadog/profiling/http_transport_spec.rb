@@ -62,10 +62,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:code_provenance_data) { 'the_code_provenance_data' }
 
   describe '#initialize' do
+    let(:tags_as_array) { [['tag_a', 'value_a'], ['tag_b', 'value_b']] }
+
     context 'when agent_settings are provided' do
       it 'creates an agent exporter with the given settings' do
         expect(described_class)
-          .to receive(:_native_create_agent_exporter).with('http://192.168.0.1:12345/', tags)
+          .to receive(:_native_create_agent_exporter).with('http://192.168.0.1:12345/', tags_as_array)
 
         http_transport
       end
@@ -75,7 +77,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it 'creates an agent exporter that reports over https' do
           expect(described_class)
-            .to receive(:_native_create_agent_exporter).with('https://192.168.0.1:12345/', tags)
+            .to receive(:_native_create_agent_exporter).with('https://192.168.0.1:12345/', tags_as_array)
 
           http_transport
         end
@@ -104,7 +106,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       it 'ignores them and creates an agent exporter using the agent_settings' do
         expect(described_class)
-          .to receive(:_native_create_agent_exporter).with('http://192.168.0.1:12345/', tags)
+          .to receive(:_native_create_agent_exporter).with('http://192.168.0.1:12345/', tags_as_array)
 
         http_transport
       end
@@ -118,7 +120,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it 'creates an agentless exporter with the given site and api key' do
           expect(described_class)
-            .to receive(:_native_create_agentless_exporter).with(site, api_key, tags)
+            .to receive(:_native_create_agentless_exporter).with(site, api_key, tags_as_array)
 
           http_transport
         end
