@@ -126,6 +126,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         end
       end
     end
+
+    # TODO test native exception when libddprof failed to init
   end
 
   describe '#export' do

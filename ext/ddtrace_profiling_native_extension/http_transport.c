@@ -1,12 +1,19 @@
 #include <ruby.h>
 #include <ddprof/ffi.h>
 
+// Used to report profiling data to Datadog.
+// This file implements the native bits of the Datadog::Profiling::HttpTransport class
+
+static VALUE libddprof_exporter_class = Qnil;
+
 inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string);
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array);
 static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array);
-static void create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array);
+static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array);
 static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array);
+static void exporter_as_ruby_object_free(void *data);
+static VALUE exporter_to_ruby_object(ddprof_ffi_ProfileExporterV3* exporter);
 static VALUE _native_do_export(
   VALUE self,
   VALUE libddprof_exporter,
@@ -21,7 +28,7 @@ static VALUE _native_do_export(
   VALUE code_provenance_data
 );
 
-void HttpTransport_init(VALUE profiling_module) {
+void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(
@@ -33,9 +40,15 @@ void HttpTransport_init(VALUE profiling_module) {
   rb_define_singleton_method(
     http_transport_class, "_native_do_export",  _native_do_export, 10
   );
+
+  // This Ruby class is used to wrap a native-level pointer to a libddprof exporter;
+  // see exporter_as_ruby_object below for more details
+  libddprof_exporter_class = rb_define_class_under(http_transport_class, "LibddprofExporter", rb_cObject);
+  rb_undef_method(rb_singleton_class(libddprof_exporter_class), "new");
 }
 
 // TODO: Extract these out
+// FIXME I THINK THIS IS COMPLETELY BROKEN
 inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string) {
   ddprof_ffi_ByteSlice byte_slice = {.ptr = (uint8_t *) string, .len = sizeof(string) - 1};
   return byte_slice;
@@ -52,42 +65,49 @@ static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api
   Check_Type(api_key, T_STRING);
   Check_Type(tags_as_array, T_ARRAY);
 
-  create_exporter(
+  return create_exporter(
     ddprof_ffi_EndpointV3_agentless(
       byte_slice_from_ruby_string(site),
       byte_slice_from_ruby_string(api_key)
     ),
     tags_as_array
   );
-
-  return Qnil;
 }
 
 static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array) {
   Check_Type(base_url, T_STRING);
   Check_Type(tags_as_array, T_ARRAY);
 
-  create_exporter(
+  return create_exporter(
     ddprof_ffi_EndpointV3_agent(byte_slice_from_ruby_string(base_url)),
     tags_as_array
   );
-
-  return Qnil;
 }
 
-static void create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array) {
+static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array) {
 
   long tags_count = rb_array_len(tags_as_array);
   ddprof_ffi_Tag converted_tags[tags_count];
 
   convert_tags(converted_tags, tags_count, tags_as_array);
 
-  struct ddprof_ffi_NewProfileExporterV3Result profile_exporter_result =
+  struct ddprof_ffi_NewProfileExporterV3Result exporter_result =
     ddprof_ffi_ProfileExporterV3_new(
       byte_slice_from_chars("ruby"),
       (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
       endpoint
     );
+
+  if (exporter_result.tag != DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) {
+    VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
+    ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result); // Clean up result
+    rb_raise(rb_eRuntimeError, "Failed to initialize libddprof: %"PRIsVALUE, failure_details);
+  }
+
+  VALUE exporter = exporter_to_ruby_object(exporter_result.ok);
+  // No need to call the result dtor, since the only heap-allocated part is the exporter and we like that part
+
+  return exporter;
 }
 
 static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array) {
@@ -108,6 +128,26 @@ static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE 
       .value = byte_slice_from_ruby_string(tag_value)
     };
   }
+}
+
+// This structure is used to define a Ruby object that stores a pointer to a ddprof_ffi_ProfileExporterV3 instance
+// See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
+static const rb_data_type_t exporter_as_ruby_object = {
+  .wrap_struct_name = "exporter_as_ruby_object",
+  .function = {
+    .dfree = exporter_as_ruby_object_free,
+    .dsize = NULL, // We don't track exporter memory usage
+    // No need to provide dmark nor dcompact because we don't reference Ruby VALUEs from inside this object
+  },
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+static void exporter_as_ruby_object_free(void *data) {
+  ddprof_ffi_ProfileExporterV3_delete((ddprof_ffi_ProfileExporterV3 *) data);
+}
+
+static VALUE exporter_to_ruby_object(ddprof_ffi_ProfileExporterV3* exporter) {
+  return TypedData_Wrap_Struct(libddprof_exporter_class, &exporter_as_ruby_object, exporter);
 }
 
 static VALUE _native_do_export(
