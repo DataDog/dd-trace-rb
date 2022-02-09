@@ -453,32 +453,6 @@ module Datadog
           o.lazy
         end
 
-        # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
-        # @configure_with {Datadog::Tracing}
-        # @public_api
-        settings :test_mode do
-          # Enable test mode. This allows the tracer to collect spans from test runs.
-          #
-          # It also prevents the tracer from collecting spans in a production environment. Only use in a test environment.
-          #
-          # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
-          # @return [Boolean]
-          option :enabled do |o|
-            o.default { env_to_bool(Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED, false) }
-            o.lazy
-          end
-
-          option :trace_flush do |o|
-            o.default { nil }
-            o.lazy
-          end
-
-          option :writer_options do |o|
-            o.default { {} }
-            o.lazy
-          end
-        end
-
         # The time provider used by Datadog. It must respect the interface of [Time](https://ruby-doc.org/core-3.0.1/Time.html).
         #
         # When testing, it can be helpful to use a different time provider.
@@ -574,6 +548,31 @@ module Datadog
           # @default `nil`
           # @return [Object,nil]
           option :sampler
+
+          # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
+          # @public_api
+          settings :test_mode do
+            # Enable test mode. This allows the tracer to collect spans from test runs.
+            #
+            # It also prevents the tracer from collecting spans in a production environment. Only use in a test environment.
+            #
+            # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
+            # @return [Boolean]
+            option :enabled do |o|
+              o.default { env_to_bool(Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED, false) }
+              o.lazy
+            end
+
+            option :trace_flush do |o|
+              o.default { nil }
+              o.lazy
+            end
+
+            option :writer_options do |o|
+              o.default { {} }
+              o.lazy
+            end
+          end
 
           # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
           #

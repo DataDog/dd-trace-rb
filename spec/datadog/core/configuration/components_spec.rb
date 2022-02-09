@@ -664,7 +664,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         context ':enabled' do
           before do
-            allow(settings.test_mode)
+            allow(settings.tracing.test_mode)
               .to receive(:enabled)
               .and_return(enabled)
           end
@@ -682,7 +682,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             context 'and :trace_flush' do
               before do
-                allow(settings.test_mode)
+                allow(settings.tracing.test_mode)
                   .to receive(:trace_flush)
                   .and_return(trace_flush)
               end
@@ -721,7 +721,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             context 'and :writer_options' do
               before do
-                allow(settings.test_mode)
+                allow(settings.tracing.test_mode)
                   .to receive(:writer_options)
                   .and_return(writer_options)
               end

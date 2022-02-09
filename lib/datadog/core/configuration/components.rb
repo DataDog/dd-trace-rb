@@ -60,7 +60,7 @@ module Datadog
             return tracer unless tracer.nil?
 
             # Apply test mode settings if test mode is activated
-            if settings.test_mode.enabled
+            if settings.tracing.test_mode.enabled
               trace_flush = build_test_mode_trace_flush(settings)
               sampler = build_test_mode_sampler
               writer = build_test_mode_writer(settings, agent_settings)
@@ -70,7 +70,7 @@ module Datadog
               writer = build_writer(settings, agent_settings)
             end
 
-            subscribe_to_writer_events!(writer, sampler, settings.test_mode.enabled)
+            subscribe_to_writer_events!(writer, sampler, settings.tracing.test_mode.enabled)
 
             Tracing::Tracer.new(
               default_service: settings.service,
@@ -249,7 +249,7 @@ module Datadog
 
           def build_test_mode_trace_flush(settings)
             # If context flush behavior is provided, use it instead.
-            settings.test_mode.trace_flush || build_trace_flush(settings)
+            settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
           end
 
           def build_test_mode_sampler
@@ -263,7 +263,7 @@ module Datadog
 
           def build_test_mode_writer(settings, agent_settings)
             # Flush traces synchronously, to guarantee they are written.
-            writer_options = settings.test_mode.writer_options || {}
+            writer_options = settings.tracing.test_mode.writer_options || {}
             Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
           end
 

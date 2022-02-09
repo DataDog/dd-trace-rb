@@ -44,13 +44,13 @@ RSpec.describe Datadog::CI::Configuration::Components do
             .and_return(enabled)
 
           # Spy on test mode behavior
-          allow(settings.test_mode)
+          allow(settings.tracing.test_mode)
             .to receive(:enabled=)
 
-          allow(settings.test_mode)
+          allow(settings.tracing.test_mode)
             .to receive(:trace_flush=)
 
-          allow(settings.test_mode)
+          allow(settings.tracing.test_mode)
             .to receive(:writer_options=)
 
           components
@@ -60,19 +60,19 @@ RSpec.describe Datadog::CI::Configuration::Components do
           let(:enabled) { true }
 
           it do
-            expect(settings.test_mode)
+            expect(settings.tracing.test_mode)
               .to have_received(:enabled=)
               .with(true)
           end
 
           it do
-            expect(settings.test_mode)
+            expect(settings.tracing.test_mode)
               .to have_received(:trace_flush=)
               .with(settings.ci_mode.trace_flush || kind_of(Datadog::CI::Flush::Finished))
           end
 
           it do
-            expect(settings.test_mode)
+            expect(settings.tracing.test_mode)
               .to have_received(:writer_options=)
               .with(settings.ci_mode.writer_options)
           end
@@ -82,17 +82,17 @@ RSpec.describe Datadog::CI::Configuration::Components do
           let(:enabled) { false }
 
           it do
-            expect(settings.test_mode)
+            expect(settings.tracing.test_mode)
               .to_not have_received(:enabled=)
           end
 
           it do
-            expect(settings.test_mode)
+            expect(settings.tracing.test_mode)
               .to_not have_received(:trace_flush=)
           end
 
           it do
-            expect(settings.test_mode)
+            expect(settings.tracing.test_mode)
               .to_not have_received(:writer_options=)
           end
         end
