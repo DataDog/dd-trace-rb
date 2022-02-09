@@ -19,7 +19,7 @@ RSpec.describe Datadog::Profiling::Pprof::Payload do
   end
 
   describe '#to_s' do
-    subject(:to_s) { payload.to_s }
+    subject(:to_ess) { payload.to_s }
 
     it { is_expected.to be(data) }
   end
