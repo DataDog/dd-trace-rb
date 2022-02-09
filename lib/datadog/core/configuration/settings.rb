@@ -12,6 +12,7 @@ module Datadog
     module Configuration
       # Global configuration settings for the trace library.
       # @public_api
+      # rubocop:disable Metrics/BlockLength
       # rubocop:disable Metrics/ClassLength
       # rubocop:disable Layout/LineLength
       class Settings
@@ -608,6 +609,7 @@ module Datadog
           o.lazy
         end
       end
+      # rubocop:enable Metrics/BlockLength
       # rubocop:enable Metrics/ClassLength
       # rubocop:enable Layout/LineLength
     end
