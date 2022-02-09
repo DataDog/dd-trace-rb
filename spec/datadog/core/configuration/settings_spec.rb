@@ -906,8 +906,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'changes the #enabled setting' do
           expect { settings.tracing.analytics.enabled = true }
             .to change { settings.tracing.analytics.enabled }
-                  .from(nil)
-                  .to(true)
+            .from(nil)
+            .to(true)
         end
       end
     end
@@ -930,12 +930,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
             it do
               is_expected.to eq(
-                               [
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                               ]
-                             )
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
             end
           end
 
@@ -944,11 +944,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
             it do
               is_expected.to eq(
-                               [
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                               ]
-                             )
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
+                ]
+              )
             end
           end
         end
@@ -977,11 +977,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
             it do
               is_expected.to eq(
-                               [
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                                 Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                               ]
-                             )
+                [
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                  Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
+                ]
+              )
             end
           end
         end
@@ -1149,8 +1149,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it 'changes the #report_hostname setting' do
         expect { settings.tracing.report_hostname = true }
           .to change { settings.tracing.report_hostname }
-                .from(false)
-                .to(true)
+          .from(false)
+          .to(true)
       end
     end
 
@@ -1256,8 +1256,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #trace_flush setting' do
           expect { settings.tracing.test_mode.trace_flush = trace_flush }
             .to change { settings.tracing.test_mode.trace_flush }
-                  .from(nil)
-                  .to(trace_flush)
+            .from(nil)
+            .to(trace_flush)
         end
       end
 
@@ -1265,8 +1265,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #enabled setting' do
           expect { settings.tracing.test_mode.enabled = true }
             .to change { settings.tracing.test_mode.enabled }
-                  .from(false)
-                  .to(true)
+            .from(false)
+            .to(true)
         end
       end
 
@@ -1290,8 +1290,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #writer_options setting' do
           expect { settings.tracing.test_mode.writer_options = options }
             .to change { settings.tracing.test_mode.writer_options }
-                  .from({})
-                  .to(options)
+            .from({})
+            .to(options)
         end
       end
     end
