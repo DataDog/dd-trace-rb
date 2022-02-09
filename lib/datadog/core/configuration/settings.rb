@@ -243,11 +243,6 @@ module Datadog
           end
         end
 
-        option :report_hostname do |o|
-          o.default { env_to_bool(Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME, false) }
-          o.lazy
-        end
-
         # [Runtime Metrics](https://docs.datadoghq.com/tracing/runtime_metrics/)
         # are StatsD metrics collected by the tracer to gain additional insights into an application's performance.
         # @public_api
@@ -540,6 +535,11 @@ module Datadog
           # @default `true`
           # @return [Boolean,nil]
           option :priority_sampling
+
+          option :report_hostname do |o|
+            o.default { env_to_bool(Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME, false) }
+            o.lazy
+          end
 
           # A custom sampler instance.
           # The object must respect the {Datadog::Tracing::Sampling::Sampler} interface.

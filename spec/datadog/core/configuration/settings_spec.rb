@@ -473,39 +473,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
-  describe '#report_hostname' do
-    subject(:report_hostname) { settings.report_hostname }
-
-    context "when #{Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME}" do
-      around do |example|
-        ClimateControl.modify(Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME => environment) do
-          example.run
-        end
-      end
-
-      context 'is not defined' do
-        let(:environment) { nil }
-
-        it { is_expected.to be false }
-      end
-
-      context 'is defined' do
-        let(:environment) { 'true' }
-
-        it { is_expected.to be true }
-      end
-    end
-  end
-
-  describe '#report_hostname=' do
-    it 'changes the #report_hostname setting' do
-      expect { settings.report_hostname = true }
-        .to change { settings.report_hostname }
-        .from(false)
-        .to(true)
-    end
-  end
-
   describe '#runtime_metrics' do
     describe '#enabled' do
       subject(:enabled) { settings.runtime_metrics.enabled }
@@ -1189,6 +1156,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.tracing.priority_sampling }
           .from(nil)
           .to(true)
+      end
+    end
+
+    describe '#report_hostname' do
+      subject(:report_hostname) { settings.tracing.report_hostname }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    describe '#report_hostname=' do
+      it 'changes the #report_hostname setting' do
+        expect { settings.tracing.report_hostname = true }
+          .to change { settings.tracing.report_hostname }
+                .from(false)
+                .to(true)
       end
     end
 
