@@ -109,6 +109,10 @@ module Datadog
           end
         end
 
+        def enabled
+          @options[:enabled]
+        end
+
         def ruleset
           @options[:ruleset]
         end
@@ -123,6 +127,14 @@ module Datadog
 
         def trace_rate_limit
           @options[:trace_rate_limit]
+        end
+
+        def [](integration_name)
+          integration = Datadog::AppSec::Contrib::Integration.registry[integration_name]
+
+          raise ArgumentError, "'#{integration_name}' is not a valid integration." unless integration
+
+          integration.options if integration
         end
 
         def merge(dsl)
@@ -147,6 +159,13 @@ module Datadog
           end
 
           self
+        end
+
+        private
+
+        # Restore to original state, for testing only.
+        def reset!
+          initialize
         end
       end
     end

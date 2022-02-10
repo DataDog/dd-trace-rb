@@ -9,7 +9,7 @@ module Datadog
           end
 
           # Rack < 2.0 does not have :each_header
-          if ::Rack::Request.instance_methods.include?(:each_header)
+          if defined?(::Rack) && ::Rack::Request.instance_methods.include?(:each_header)
             def self.headers(request)
               request.each_header.each_with_object({}) do |(k, v), h|
                 h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
