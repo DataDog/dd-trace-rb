@@ -36,10 +36,10 @@ RSpec.describe Datadog::CI::Configuration::Components do
     after { components.shutdown! }
 
     describe '::new' do
-      context 'when #ci_mode' do
+      context 'when #ci' do
         before do
           # Stub CI mode behavior
-          allow(settings.ci_mode)
+          allow(settings.ci)
             .to receive(:enabled)
             .and_return(enabled)
 
@@ -68,13 +68,13 @@ RSpec.describe Datadog::CI::Configuration::Components do
           it do
             expect(settings.tracing.test_mode)
               .to have_received(:trace_flush=)
-              .with(settings.ci_mode.trace_flush || kind_of(Datadog::CI::Flush::Finished))
+              .with(settings.ci.trace_flush || kind_of(Datadog::CI::Flush::Finished))
           end
 
           it do
             expect(settings.tracing.test_mode)
               .to have_received(:writer_options=)
-              .with(settings.ci_mode.writer_options)
+              .with(settings.ci.writer_options)
           end
         end
 

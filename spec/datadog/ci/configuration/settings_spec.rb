@@ -18,9 +18,9 @@ RSpec.describe Datadog::CI::Configuration::Settings do
       end
     end
 
-    describe '#ci_mode' do
+    describe '#ci' do
       describe '#enabled' do
-        subject(:enabled) { settings.ci_mode.enabled }
+        subject(:enabled) { settings.ci.enabled }
 
         it { is_expected.to be false }
 
@@ -53,15 +53,15 @@ RSpec.describe Datadog::CI::Configuration::Settings do
 
       describe '#enabled=' do
         it 'updates the #enabled setting' do
-          expect { settings.ci_mode.enabled = true }
-            .to change { settings.ci_mode.enabled }
+          expect { settings.ci.enabled = true }
+            .to change { settings.ci.enabled }
             .from(false)
             .to(true)
         end
       end
 
       describe '#trace_flush' do
-        subject(:trace_flush) { settings.ci_mode.trace_flush }
+        subject(:trace_flush) { settings.ci.trace_flush }
 
         context 'default' do
           it { is_expected.to be nil }
@@ -72,23 +72,23 @@ RSpec.describe Datadog::CI::Configuration::Settings do
         let(:trace_flush) { instance_double(Datadog::Tracing::Flush::Finished) }
 
         it 'updates the #trace_flush setting' do
-          expect { settings.ci_mode.trace_flush = trace_flush }
-            .to change { settings.ci_mode.trace_flush }
+          expect { settings.ci.trace_flush = trace_flush }
+            .to change { settings.ci.trace_flush }
             .from(nil)
             .to(trace_flush)
         end
       end
 
       describe '#writer_options' do
-        subject(:writer_options) { settings.ci_mode.writer_options }
+        subject(:writer_options) { settings.ci.writer_options }
 
         it { is_expected.to eq({}) }
 
         context 'when modified' do
           it 'does not modify the default by reference' do
-            settings.ci_mode.writer_options[:foo] = :bar
-            expect(settings.ci_mode.writer_options).to_not be_empty
-            expect(settings.ci_mode.options[:writer_options].default_value).to be_empty
+            settings.ci.writer_options[:foo] = :bar
+            expect(settings.ci.writer_options).to_not be_empty
+            expect(settings.ci.options[:writer_options].default_value).to be_empty
           end
         end
       end
@@ -97,8 +97,8 @@ RSpec.describe Datadog::CI::Configuration::Settings do
         let(:options) { { priority_sampling: true } }
 
         it 'updates the #writer_options setting' do
-          expect { settings.ci_mode.writer_options = options }
-            .to change { settings.ci_mode.writer_options }
+          expect { settings.ci.writer_options = options }
+            .to change { settings.ci.writer_options }
             .from({})
             .to(options)
         end
