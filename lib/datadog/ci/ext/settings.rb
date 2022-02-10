@@ -4,7 +4,7 @@ module Datadog
     module Ext
       # Defines constants for test tags
       module Settings
-        ENV_MODE_ENABLED = 'DD_TRACE_CI_MODE_ENABLED'.freeze
+        ENV_MODE_ENABLED = 'DD_TRACE_CI_ENABLED'.freeze
       end
     end
   end

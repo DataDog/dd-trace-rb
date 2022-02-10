@@ -22,7 +22,7 @@ module Datadog
     # Apply configuration changes to `Datadog::CI`. An example of a {.configure} call:
     # ```
     # Datadog::CI.configure do |c|
-    #   c.ci_mode.enabled = true
+    #   c.ci.enabled = true
     # end
     # ```
     # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
