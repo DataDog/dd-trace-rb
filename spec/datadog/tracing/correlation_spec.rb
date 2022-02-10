@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Correlation do
   let(:default_version) { 'default-version' }
 
   before do
-    settings = Datadog.configuration.send(:settings)
+    settings = Datadog.configuration
     allow(settings).to receive(:env).and_return(default_env)
     allow(settings).to receive(:service).and_return(default_service)
     allow(settings).to receive(:version).and_return(default_version)

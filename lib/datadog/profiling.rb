@@ -2,7 +2,6 @@
 require 'datadog/core'
 require 'datadog/core/environment/variable_helpers'
 require 'datadog/core/utils/only_once'
-require 'datadog/profiling/configuration/validation_proxy'
 
 module Datadog
   # Contains profiler for generating stack profiles, etc.
@@ -59,14 +58,8 @@ module Datadog
     # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
     # @return [void]
     # @public_api
-    def self.configure
-      # Wrap block with profiling option validation
-      wrapped_block = proc do |c|
-        yield(Configuration::ValidationProxy.new(c))
-      end
-
-      # Configure application normally
-      Datadog.send(:internal_configure, &wrapped_block)
+    def self.configure(&block)
+      Datadog.configure(&block)
     end
 
     # Current profiler configuration.
@@ -79,9 +72,7 @@ module Datadog
     # @!attribute [r] configuration
     # @public_api
     def self.configuration
-      Configuration::ValidationProxy.new(
-        Datadog.send(:internal_configuration)
-      )
+      Datadog.configuration
     end
 
     # Starts the profiler, if the profiler is supported by in
