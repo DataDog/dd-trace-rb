@@ -1,4 +1,4 @@
-name: AppSec System Tests
+name: System Tests
 
 on:
   push:
