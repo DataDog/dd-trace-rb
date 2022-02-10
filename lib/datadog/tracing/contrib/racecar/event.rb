@@ -30,7 +30,7 @@ module Datadog
             end
 
             def configuration
-              Tracing.configuration[:racecar]
+              Tracing.configuration.tracing[:racecar]
             end
 
             def process(span, event, _id, payload)

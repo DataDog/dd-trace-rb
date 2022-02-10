@@ -32,7 +32,7 @@ RSpec.describe 'Faraday middleware' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.instrument :faraday, configuration_options
+      c.tracing.instrument :faraday, configuration_options
     end
   end
 
@@ -251,12 +251,12 @@ RSpec.describe 'Faraday middleware' do
     context 'and the host matches a specific configuration' do
       before do
         Datadog::Tracing.configure do |c|
-          c.instrument :faraday, describes: /example\.com/ do |faraday|
+          c.tracing.instrument :faraday, describes: /example\.com/ do |faraday|
             faraday.service_name = 'bar'
             faraday.split_by_domain = false
           end
 
-          c.instrument :faraday, describes: /badexample\.com/ do |faraday|
+          c.tracing.instrument :faraday, describes: /badexample\.com/ do |faraday|
             faraday.service_name = 'bar_bad'
             faraday.split_by_domain = false
           end
@@ -309,11 +309,11 @@ RSpec.describe 'Faraday middleware' do
     let(:service_name) { 'faraday-global' }
 
     before do
-      @old_service_name = Datadog::Tracing.configuration[:faraday][:service_name]
-      Datadog::Tracing.configure { |c| c.instrument :faraday, service_name: service_name }
+      @old_service_name = Datadog::Tracing.configuration.tracing[:faraday][:service_name]
+      Datadog::Tracing.configure { |c| c.tracing.instrument :faraday, service_name: service_name }
     end
 
-    after { Datadog::Tracing.configure { |c| c.instrument :faraday, service_name: @old_service_name } }
+    after { Datadog::Tracing.configure { |c| c.tracing.instrument :faraday, service_name: @old_service_name } }
 
     subject { client.get('/success') }
 
@@ -358,7 +358,7 @@ RSpec.describe 'Faraday middleware' do
       context 'and per-host configuration' do
         before do
           Datadog::Tracing.configure do |c|
-            c.instrument :faraday, describes: /example\.com/, service_name: 'host'
+            c.tracing.instrument :faraday, describes: /example\.com/, service_name: 'host'
           end
         end
 

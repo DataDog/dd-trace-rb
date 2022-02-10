@@ -34,8 +34,8 @@ RSpec.describe 'ActionCable Rack override' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.instrument :rails, options
-      c.instrument :action_cable, options
+      c.tracing.instrument :rails, options
+      c.tracing.instrument :action_cable, options
     end
 
     rails_test_application.instance.routes.draw do

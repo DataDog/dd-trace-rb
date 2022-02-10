@@ -72,11 +72,12 @@ module Datadog
           end
 
           def span_options
-            { service: datadog_configuration[:service_name], on_error: datadog_configuration[:error_handler] }
+            { service: datadog_configuration[:service_name],
+              on_error: datadog_configuration[:error_handler] }
           end
 
           def datadog_configuration
-            Tracing.configuration[:resque]
+            Tracing.configuration.tracing[:resque]
           end
         end
       end
@@ -85,7 +86,7 @@ module Datadog
 end
 
 Resque.after_fork do
-  configuration = Datadog::Tracing.configuration[:resque]
+  configuration = Datadog::Tracing.configuration.tracing[:resque]
   next if configuration.nil?
 
   # Add a pin, marking the job as forked.

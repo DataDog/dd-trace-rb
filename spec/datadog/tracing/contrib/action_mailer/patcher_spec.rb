@@ -22,7 +22,7 @@ RSpec.describe 'ActionMailer patcher' do
   before do
     if Datadog::Tracing::Contrib::ActionMailer::Integration.compatible?
       Datadog::Tracing.configure do |c|
-        c.instrument :action_mailer, configuration_options
+        c.tracing.instrument :action_mailer, configuration_options
       end
     else
       skip

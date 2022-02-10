@@ -15,12 +15,12 @@ RSpec.describe 'Rails ActionController' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.instrument :rails, rails_options
+      c.tracing.instrument :rails, rails_options
       # Manually activate ActionPack to trigger patching.
       # This is because Rails instrumentation normally defers patching until #after_initialize
       # when it activates and configures each of the Rails components with application details.
       # We aren't initializing a full Rails application here, so the patch doesn't auto-apply.
-      c.instrument :action_pack
+      c.tracing.instrument :action_pack
     end
   end
 

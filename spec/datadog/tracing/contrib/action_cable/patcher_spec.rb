@@ -28,7 +28,7 @@ RSpec.describe 'ActionCable patcher' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.instrument :action_cable, configuration_options
+      c.tracing.instrument :action_cable, configuration_options
     end
 
     raise_on_rails_deprecation!

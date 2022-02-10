@@ -87,7 +87,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
     Datadog::Tracing.registry[:active_record].reset_configuration!
 
     Datadog::Tracing.configure do |c|
-      c.instrument :active_record, configuration_options
+      c.tracing.instrument :active_record, configuration_options
     end
 
     raise_on_rails_deprecation!
@@ -137,11 +137,11 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           allow(ActiveRecord::Base).to receive(:configurations).and_return(database_configuration_object)
 
           Datadog::Tracing.configure do |c|
-            c.instrument :active_record, describes: :gadget do |gadget_db|
+            c.tracing.instrument :active_record, describes: :gadget do |gadget_db|
               gadget_db.service_name = gadget_db_service_name
             end
 
-            c.instrument :active_record, describes: :widget do |widget_db|
+            c.tracing.instrument :active_record, describes: :widget do |widget_db|
               widget_db.service_name = widget_db_service_name
             end
           end
@@ -179,7 +179,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       context 'for a typical server' do
         before do
           Datadog::Tracing.configure do |c|
-            c.instrument :active_record, describes: mysql_connection_string do |gadget_db|
+            c.tracing.instrument :active_record, describes: mysql_connection_string do |gadget_db|
               gadget_db.service_name = gadget_db_service_name
             end
           end
@@ -205,7 +205,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
       context 'for an in-memory database' do
         before do
           Datadog::Tracing.configure do |c|
-            c.instrument :active_record, describes: 'sqlite3::memory:' do |widget_db|
+            c.tracing.instrument :active_record, describes: 'sqlite3::memory:' do |widget_db|
               widget_db.service_name = widget_db_service_name
             end
           end
@@ -234,7 +234,7 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
         widget_db_connection_hash = { adapter: 'sqlite3', database: ':memory:' }
 
         Datadog::Tracing.configure do |c|
-          c.instrument :active_record, describes: widget_db_connection_hash do |widget_db|
+          c.tracing.instrument :active_record, describes: widget_db_connection_hash do |widget_db|
             widget_db.service_name = widget_db_service_name
           end
         end

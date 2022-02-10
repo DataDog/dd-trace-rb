@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           subject(:configure) { described_class.configure(&block) }
 
           context 'that calls #instrument for an integration' do
-            let(:block) { proc { |c| c.instrument integration_name } }
+            let(:block) { proc { |c| c.tracing.instrument integration_name } }
 
             it 'configures & patches the integration' do
               expect(integration).to receive(:configure).with(:default, any_args)

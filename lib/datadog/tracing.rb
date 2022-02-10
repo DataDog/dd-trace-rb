@@ -51,9 +51,9 @@ module Datadog
       # ```
       # Datadog::Tracing.configure do |c|
       #   c.tracing.sampling.default_rate = 1.0
-      #   c.instrument :aws
-      #   c.instrument :rails
-      #   c.instrument :sidekiq
+      #   c.tracing.instrument :aws
+      #   c.tracing.instrument :rails
+      #   c.tracing.instrument :sidekiq
       # end
       # ```
       # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and

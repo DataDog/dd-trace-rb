@@ -31,7 +31,7 @@ module Datadog
               tracing_context = payload.fetch(:tracing_context)
 
               # create a new ``Span`` and add it to the tracing context
-              service = Tracing.configuration[:active_support][:cache_service]
+              service = Tracing.configuration.tracing[:active_support][:cache_service]
               type = Ext::SPAN_TYPE_CACHE
               span = Tracing.trace(Ext::SPAN_CACHE, service: service, span_type: type)
               span.resource = payload.fetch(:action)

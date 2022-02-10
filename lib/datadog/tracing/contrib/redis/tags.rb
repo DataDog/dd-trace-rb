@@ -31,7 +31,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Tracing.configuration[:redis]
+              Tracing.configuration.tracing[:redis]
             end
 
             def analytics_enabled?

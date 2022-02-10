@@ -10,7 +10,7 @@ end
 if Datadog::DemoEnv.feature?('tracing')
   Datadog::Tracing.configure do |c|
     c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
-    c.instrument :rack
+    c.tracing.instrument :rack
   end
 end
 

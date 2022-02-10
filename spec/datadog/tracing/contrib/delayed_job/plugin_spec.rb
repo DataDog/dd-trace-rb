@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure { |c| c.instrument :delayed_job, configuration_options }
+    Datadog::Tracing.configure { |c| c.tracing.instrument :delayed_job, configuration_options }
     Delayed::Worker.delay_jobs = false
   end
 

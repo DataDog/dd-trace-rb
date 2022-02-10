@@ -22,7 +22,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     ActiveModelSerializersHelpers.disable_logging
 
     Datadog::Tracing.configure do |c|
-      c.instrument :active_model_serializers, configuration_options
+      c.tracing.instrument :active_model_serializers, configuration_options
     end
 
     raise_on_rails_deprecation!

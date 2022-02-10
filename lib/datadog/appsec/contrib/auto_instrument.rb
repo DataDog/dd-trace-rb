@@ -17,7 +17,7 @@ module Datadog
 
           Datadog::AppSec.configure do |c|
             integrations.each do |integration_name|
-              c.instrument integration_name
+              c.tracing.instrument integration_name
             end
           end
         end

@@ -25,7 +25,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
     Mongo::Logger.logger.level = ::Logger::WARN
 
     Datadog::Tracing.configure do |c|
-      c.instrument :mongo, configuration_options
+      c.tracing.instrument :mongo, configuration_options
     end
   end
 
@@ -77,11 +77,11 @@ RSpec.describe 'Mongo::Client instrumentation' do
 
       before do
         Datadog::Tracing.configure do |c|
-          c.instrument :mongo, describes: /#{host}/ do |mongo|
+          c.tracing.instrument :mongo, describes: /#{host}/ do |mongo|
             mongo.service_name = primary_service
           end
 
-          c.instrument :mongo, describes: /#{secondary_host}/ do |mongo|
+          c.tracing.instrument :mongo, describes: /#{secondary_host}/ do |mongo|
             mongo.service_name = secondary_service
           end
         end

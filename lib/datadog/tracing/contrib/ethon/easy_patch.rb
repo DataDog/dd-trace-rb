@@ -157,7 +157,7 @@ module Datadog
             # rubocop:enable Lint/SuppressedException
 
             def load_datadog_configuration_for(host = :default)
-              @datadog_configuration = Tracing.configuration[:ethon, host]
+              @datadog_configuration = Tracing.configuration.tracing[:ethon, host]
             end
 
             def analytics_enabled?

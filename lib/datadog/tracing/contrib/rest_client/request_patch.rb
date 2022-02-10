@@ -25,7 +25,10 @@ module Datadog
               return super(&block) unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
-                Tracing::Propagation::HTTP.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
+                if datadog_configuration[:distributed_tracing]
+                  Tracing::Propagation::HTTP.inject!(trace,
+                                                     processed_headers)
+                end
 
                 super(&block)
               end
@@ -86,7 +89,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Tracing.configuration[:rest_client]
+              Tracing.configuration.tracing[:rest_client]
             end
 
             def analytics_enabled?

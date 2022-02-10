@@ -48,7 +48,7 @@ module Datadog
           private
 
           def configuration
-            Tracing.configuration[:sneakers]
+            Tracing.configuration.tracing[:sneakers]
           end
         end
       end

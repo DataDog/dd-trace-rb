@@ -66,7 +66,7 @@ module Datadog
               private
 
               def datadog_configuration
-                Tracing.configuration[:presto]
+                Tracing.configuration.tracing[:presto]
               end
 
               def span_options

@@ -20,7 +20,7 @@ module Datadog
         def self.extend!
           Tracing.singleton_class.prepend Helpers
           Tracing.singleton_class.prepend Configuration
-          Core::Configuration::Settings.include Configuration::Settings
+          Datadog.configuration.tracing.singleton_class.include Configuration::Settings
         end
 
         # Helper methods for Datadog module.
@@ -34,7 +34,7 @@ module Datadog
           #
           # ```
           # Datadog::Tracing.configure do |c|
-          #   c.instrument :my_registered_integration, **my_options
+          #   c.tracing.instrument :my_registered_integration, **my_options
           # end
           # ```
           #
@@ -60,7 +60,7 @@ module Datadog
             super(&block)
 
             # Activate integrations
-            configuration = self.configuration
+            configuration = self.configuration.tracing
 
             if configuration.respond_to?(:integrations_pending_activation)
               reduce_verbosity = configuration.respond_to?(:reduce_verbosity?) ? configuration.reduce_verbosity? : false
@@ -103,9 +103,9 @@ module Datadog
             # How the matching is performed is integration-specific.
             #
             # @example
-            #   Tracing.configuration[:integration_name]
+            #   Tracing.configuration.tracing[:integration_name]
             # @example
-            #   Tracing.configuration[:integration_name][:sub_configuration]
+            #   Tracing.configuration.tracing[:integration_name][:sub_configuration]
             # @param [Symbol] integration_name the integration name
             # @param [Object] key the integration-specific lookup key
             # @return [Datadog::Tracing::Contrib::Configuration::Settings]
@@ -145,7 +145,7 @@ module Datadog
             end
 
             # TODO: Deprecate in the next major version, as `instrument` better describes
-            # TODO: what `c.instrument` does internally in the tracer.
+            # TODO: what `c.tracing.instrument` does internally in the tracer.
             alias_method :use, :instrument
 
             # @!visibility private

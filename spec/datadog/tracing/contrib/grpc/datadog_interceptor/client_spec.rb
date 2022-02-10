@@ -16,7 +16,7 @@ RSpec.describe 'tracing on the client connection' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.instrument :grpc, configuration_options
+      c.tracing.instrument :grpc, configuration_options
     end
   end
 

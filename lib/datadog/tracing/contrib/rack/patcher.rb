@@ -61,7 +61,7 @@ module Datadog
           end
 
           def get_option(option)
-            Tracing.configuration[:rack].get_option(option)
+            Tracing.configuration.tracing[:rack].get_option(option)
           end
         end
 
@@ -99,7 +99,7 @@ module Datadog
           end
 
           def get_option(option)
-            Tracing.configuration[:rack].get_option(option)
+            Tracing.configuration.tracing[:rack].get_option(option)
           end
         end
       end

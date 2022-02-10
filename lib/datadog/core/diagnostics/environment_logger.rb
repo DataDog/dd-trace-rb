@@ -256,7 +256,7 @@ module Datadog
         private
 
         def instrumented_integrations
-          Tracing.configuration.instrumented_integrations
+          Tracing.configuration.tracing.instrumented_integrations
         end
 
         # Capture all active integration settings into "integrationName_settingName: value" entries.

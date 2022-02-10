@@ -49,7 +49,7 @@ module Datadog
           end
 
           def after_fork
-            configuration = Tracing.configuration[:qless]
+            configuration = Tracing.configuration.tracing[:qless]
             return if configuration.nil?
 
             # Add a pin, marking the job as forked.
@@ -65,7 +65,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Tracing.configuration[:qless]
+            Tracing.configuration.tracing[:qless]
           end
         end
       end

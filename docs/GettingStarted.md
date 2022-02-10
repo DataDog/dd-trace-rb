@@ -194,7 +194,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     ```ruby
     Datadog::Tracing.configure do |c|
       # This will activate auto-instrumentation for Rails
-      c.instrument :rails
+      c.tracing.instrument :rails
     end
     ```
 
@@ -388,7 +388,7 @@ Many popular libraries and frameworks are supported out-of-the-box, which can be
 ```ruby
 Datadog::Tracing.configure do |c|
   # Activates and configures an integration
-  c.instrument :integration_name, options
+  c.tracing.instrument :integration_name, options
 end
 ```
 
@@ -454,7 +454,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :action_cable
+  c.tracing.instrument :action_cable
 end
 ```
 
@@ -467,7 +467,7 @@ You can enable it through `Datadog::Tracing.configure`:
 ```ruby
 require 'ddtrace'
  Datadog::Tracing.configure do |c|
-  c.instrument :action_mailer, options
+  c.tracing.instrument :action_mailer, options
 end
 ```
 
@@ -487,7 +487,7 @@ require 'actionpack'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :action_pack
+  c.tracing.instrument :action_pack
 end
 ```
 
@@ -500,7 +500,7 @@ require 'actionview'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :action_view, options
+  c.tracing.instrument :action_view, options
 end
 ```
 
@@ -519,7 +519,7 @@ require 'active_job'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :active_job
+  c.tracing.instrument :active_job
 end
 
 ExampleJob.perform_later
@@ -534,7 +534,7 @@ require 'active_model_serializers'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :active_model_serializers
+  c.tracing.instrument :active_model_serializers
 end
 
 my_object = MyModel.new(name: 'my object')
@@ -552,7 +552,7 @@ require 'active_record'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :active_record, options
+  c.tracing.instrument :active_record, options
 end
 
 Dir::Tmpname.create(['test', '.sqlite']) do |db|
@@ -581,22 +581,22 @@ You can configure trace settings per database connection by using the `describes
 Datadog::Tracing.configure do |c|
   # Symbol matching your database connection in config/database.yml
   # Only available if you are using Rails with ActiveRecord.
-  c.instrument :active_record, describes: :secondary_database, service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: :secondary_database, service_name: 'secondary-db'
 
   # Block configuration pattern.
-  c.instrument :active_record, describes: :secondary_database do |second_db|
+  c.tracing.instrument :active_record, describes: :secondary_database do |second_db|
     second_db.service_name = 'secondary-db'
   end
 
   # Connection string with the following connection settings:
   # adapter, username, host, port, database
   # Other fields are ignored.
-  c.instrument :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: 'mysql2://root@127.0.0.1:3306/mysql', service_name: 'secondary-db'
 
   # Hash with following connection settings:
   # adapter, username, host, port, database
   # Other fields are ignored.
-  c.instrument :active_record, describes: {
+  c.tracing.instrument :active_record, describes: {
       adapter:  'mysql2',
       host:     '127.0.0.1',
       port:     '3306',
@@ -606,8 +606,8 @@ Datadog::Tracing.configure do |c|
     service_name: 'secondary-db'
 
   # If using the `makara` gem, it's possible to match on connection `role`:
-  c.instrument :active_record, describes: { makara_role: 'primary' }, service_name: 'primary-db'
-  c.instrument :active_record, describes: { makara_role: 'replica' }, service_name: 'secondary-db'
+  c.tracing.instrument :active_record, describes: { makara_role: 'primary' }, service_name: 'primary-db'
+  c.tracing.instrument :active_record, describes: { makara_role: 'replica' }, service_name: 'secondary-db'
 end
 ```
 
@@ -616,23 +616,23 @@ You can also create configurations based on partial matching of database connect
 ```ruby
 Datadog::Tracing.configure do |c|
   # Matches any connection on host `127.0.0.1`.
-  c.instrument :active_record, describes: { host:  '127.0.0.1' }, service_name: 'local-db'
+  c.tracing.instrument :active_record, describes: { host:  '127.0.0.1' }, service_name: 'local-db'
 
   # Matches any `mysql2` connection.
-  c.instrument :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
+  c.tracing.instrument :active_record, describes: { adapter: 'mysql2'}, service_name: 'mysql-db'
 
   # Matches any `mysql2` connection to the `reports` database.
   #
   # In case of multiple matching `describe` configurations, the latest one applies.
   # In this case a connection with both adapter `mysql` and database `reports`
   # will be configured `service_name: 'reports-db'`, not `service_name: 'mysql-db'`.
-  c.instrument :active_record, describes: { adapter: 'mysql2', database:  'reports'}, service_name: 'reports-db'
+  c.tracing.instrument :active_record, describes: { adapter: 'mysql2', database:  'reports'}, service_name: 'reports-db'
 end
 ```
 
 When multiple `describes` configurations match a connection, the latest configured rule that matches will be applied.
 
-If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.instrument :active_record` instead.
+If ActiveRecord traces an event that uses a connection that matches a key defined by `describes`, it will use the trace settings assigned to that connection. If the connection does not match any of the described connections, it will use default settings defined by `c.tracing.instrument :active_record` instead.
 
 ### Active Support
 
@@ -643,7 +643,7 @@ require 'activesupport'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :active_support, options
+  c.tracing.instrument :active_support, options
 end
 
 cache = ActiveSupport::Cache::MemoryStore.new
@@ -665,7 +665,7 @@ require 'aws-sdk'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :aws, options
+  c.tracing.instrument :aws, options
 end
 
 # Perform traced call
@@ -689,7 +689,7 @@ To activate your integration, use the `Datadog::Tracing.configure` method:
 # Inside Rails initializer or equivalent
 Datadog::Tracing.configure do |c|
   # Patches ::Concurrent::Future to use ExecutorService that propagates context
-  c.instrument :concurrent_ruby
+  c.tracing.instrument :concurrent_ruby
 end
 
 # Pass context into code executed within Concurrent::Future
@@ -743,7 +743,7 @@ require 'ddtrace'
 
 # Configure default Dalli tracing behavior
 Datadog::Tracing.configure do |c|
-  c.instrument :dalli, options
+  c.tracing.instrument :dalli, options
 end
 
 # Configure Dalli tracing behavior for single client
@@ -767,7 +767,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :delayed_job, options
+  c.tracing.instrument :delayed_job, options
 end
 ```
 
@@ -786,7 +786,7 @@ require 'elasticsearch/transport'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :elasticsearch, options
+  c.tracing.instrument :elasticsearch, options
 end
 
 # Perform a query to Elasticsearch
@@ -809,10 +809,10 @@ The `ethon` integration will trace any HTTP request through `Easy` or `Multi` ob
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :ethon, options
+  c.tracing.instrument :ethon, options
 
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :ethon, describes: /user-[^.]+\.example\.com/ do |ethon|
+  c.tracing.instrument :ethon, describes: /user-[^.]+\.example\.com/ do |ethon|
     ethon.service_name = 'user.example.com'
     ethon.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -837,10 +837,10 @@ require 'ddtrace'
 
 # Configure default Excon tracing behavior
 Datadog::Tracing.configure do |c|
-  c.instrument :excon, options
+  c.tracing.instrument :excon, options
 
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :excon, describes: /user-[^.]+\.example\.com/ do |excon|
+  c.tracing.instrument :excon, describes: /user-[^.]+\.example\.com/ do |excon|
     excon.service_name = 'user.example.com'
     excon.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -894,10 +894,10 @@ require 'ddtrace'
 
 # Configure default Faraday tracing behavior
 Datadog::Tracing.configure do |c|
-  c.instrument :faraday, options
+  c.tracing.instrument :faraday, options
 
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :faraday, describes: /user-[^.]+\.example\.com/ do |faraday|
+  c.tracing.instrument :faraday, describes: /user-[^.]+\.example\.com/ do |faraday|
     faraday.service_name = 'user.example.com'
     faraday.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -933,7 +933,7 @@ require 'grape'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :grape, options
+  c.tracing.instrument :grape, options
 end
 
 # Then define your application
@@ -961,7 +961,7 @@ To activate your integration, use the `Datadog::Tracing.configure` method:
 ```ruby
 # Inside Rails initializer or equivalent
 Datadog::Tracing.configure do |c|
-  c.instrument :graphql, schemas: [YourSchema], options
+  c.tracing.instrument :graphql, schemas: [YourSchema], options
 end
 
 # Then run a GraphQL query
@@ -1031,7 +1031,7 @@ require 'grpc'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :grpc, options
+  c.tracing.instrument :grpc, options
 end
 
 # Server side
@@ -1078,9 +1078,9 @@ The http.rb integration will trace any HTTP call using the Http.rb gem.
 require 'http'
 require 'ddtrace'
 Datadog::Tracing.configure do |c|
-  c.instrument :httprb, options
+  c.tracing.instrument :httprb, options
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :httprb, describes: /user-[^.]+\.example\.com/ do |httprb|
+  c.tracing.instrument :httprb, describes: /user-[^.]+\.example\.com/ do |httprb|
     httprb.service_name = 'user.example.com'
     httprb.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -1103,9 +1103,9 @@ The httpclient integration will trace any HTTP call using the httpclient gem.
 require 'httpclient'
 require 'ddtrace'
 Datadog::Tracing.configure do |c|
-  c.instrument :httpclient, options
+  c.tracing.instrument :httpclient, options
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :httpclient, describes: /user-[^.]+\.example\.com/ do |httpclient|
+  c.tracing.instrument :httpclient, describes: /user-[^.]+\.example\.com/ do |httpclient|
     httpclient.service_name = 'user.example.com'
     httpclient.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -1129,10 +1129,10 @@ require "ddtrace"
 require "httpx/adapters/datadog"
 
 Datadog::Tracing.configure do |c|
-  c.instrument :httpx
+  c.tracing.instrument :httpx
 
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :httpx, describes: /user-[^.]+\.example\.com/ do |http|
+  c.tracing.instrument :httpx, describes: /user-[^.]+\.example\.com/ do |http|
     http.service_name = 'user.example.com'
     http.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -1151,7 +1151,7 @@ require 'kafka'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :kafka
+  c.tracing.instrument :kafka
 end
 ```
 
@@ -1164,7 +1164,7 @@ require 'mongo'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :mongo, options
+  c.tracing.instrument :mongo, options
 end
 
 # Create a MongoDB client and use it as usual
@@ -1195,10 +1195,10 @@ You can configure trace settings per connection by using the `describes` option:
 
 Datadog::Tracing.configure do |c|
   # Network connection string
-  c.instrument :mongo, describes: '127.0.0.1:27017', service_name: 'mongo-primary'
+  c.tracing.instrument :mongo, describes: '127.0.0.1:27017', service_name: 'mongo-primary'
 
   # Network connection regular expression
-  c.instrument :mongo, describes: /localhost.*/, service_name: 'mongo-secondary'
+  c.tracing.instrument :mongo, describes: /localhost.*/, service_name: 'mongo-secondary'
 end
 
 client = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'artists')
@@ -1223,7 +1223,7 @@ require 'mysql2'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :mysql2, options
+  c.tracing.instrument :mysql2, options
 end
 
 client = Mysql2::Client.new(:host => "localhost", :username => "root")
@@ -1245,10 +1245,10 @@ require 'net/http'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :http, options
+  c.tracing.instrument :http, options
 
   # optionally, specify a different service name for hostnames matching a regex
-  c.instrument :http, describes: /user-[^.]+\.example\.com/ do |http|
+  c.tracing.instrument :http, describes: /user-[^.]+\.example\.com/ do |http|
     http.service_name = 'user.example.com'
     http.split_by_domain = false # Only necessary if split_by_domain is true by default
   end
@@ -1286,7 +1286,7 @@ require 'presto-client'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :presto, options
+  c.tracing.instrument :presto, options
 end
 
 client = Presto::Client.new(
@@ -1318,7 +1318,7 @@ To add tracing to a Qless job:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :qless, options
+  c.tracing.instrument :qless, options
 end
 ```
 
@@ -1339,7 +1339,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :que, options
+  c.tracing.instrument :que, options
 end
 ```
 
@@ -1362,7 +1362,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :racecar, options
+  c.tracing.instrument :racecar, options
 end
 ```
 
@@ -1383,7 +1383,7 @@ This integration is automatically activated with web frameworks like Rails. If y
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :rack, options
+  c.tracing.instrument :rack, options
 end
 
 use Datadog::Tracing::Contrib::Rack::TraceMiddleware
@@ -1421,23 +1421,23 @@ Datadog::Tracing.configure do |c|
 
   # Show values for any query string parameter matching 'category_id' exactly
   # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id=1&sort_by
-  c.instrument :rack, quantize: { query: { show: ['category_id'] } }
+  c.tracing.instrument :rack, quantize: { query: { show: ['category_id'] } }
 
   # Show all values for all query string parameters
   # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id=1&sort_by=asc
-  c.instrument :rack, quantize: { query: { show: :all } }
+  c.tracing.instrument :rack, quantize: { query: { show: :all } }
 
   # Totally exclude any query string parameter matching 'sort_by' exactly
   # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id
-  c.instrument :rack, quantize: { query: { exclude: ['sort_by'] } }
+  c.tracing.instrument :rack, quantize: { query: { exclude: ['sort_by'] } }
 
   # Remove the query string entirely
   # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path
-  c.instrument :rack, quantize: { query: { exclude: :all } }
+  c.tracing.instrument :rack, quantize: { query: { exclude: :all } }
 
   # Show URL fragments
   # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id&sort_by#featured
-  c.instrument :rack, quantize: { fragment: :show }
+  c.tracing.instrument :rack, quantize: { fragment: :show }
 end
 ```
 
@@ -1452,7 +1452,7 @@ To enable the Rails instrumentation, create an initializer file in your `config/
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :rails, options
+  c.tracing.instrument :rails, options
 end
 ```
 
@@ -1492,7 +1492,7 @@ require 'rake'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :rake, options
+  c.tracing.instrument :rake, options
 end
 
 task :my_task do
@@ -1519,27 +1519,27 @@ Datadog::Tracing.configure do |c|
   # Default behavior: all arguments are quantized.
   # `rake.invoke.args` tag  --> ['?']
   # `rake.execute.args` tag --> { one: '?', two: '?', three: '?' }
-  c.instrument :rake
+  c.tracing.instrument :rake
 
   # Show values for any argument matching :two exactly
   # `rake.invoke.args` tag  --> ['?']
   # `rake.execute.args` tag --> { one: '?', two: 'bar', three: '?' }
-  c.instrument :rake, quantize: { args: { show: [:two] } }
+  c.tracing.instrument :rake, quantize: { args: { show: [:two] } }
 
   # Show all values for all arguments.
   # `rake.invoke.args` tag  --> ['foo', 'bar', 'baz']
   # `rake.execute.args` tag --> { one: 'foo', two: 'bar', three: 'baz' }
-  c.instrument :rake, quantize: { args: { show: :all } }
+  c.tracing.instrument :rake, quantize: { args: { show: :all } }
 
   # Totally exclude any argument matching :three exactly
   # `rake.invoke.args` tag  --> ['?']
   # `rake.execute.args` tag --> { one: '?', two: '?' }
-  c.instrument :rake, quantize: { args: { exclude: [:three] } }
+  c.tracing.instrument :rake, quantize: { args: { exclude: [:three] } }
 
   # Remove the arguments entirely
   # `rake.invoke.args` tag  --> ['?']
   # `rake.execute.args` tag --> {}
-  c.instrument :rake, quantize: { args: { exclude: :all } }
+  c.tracing.instrument :rake, quantize: { args: { exclude: :all } }
 end
 ```
 
@@ -1552,7 +1552,7 @@ require 'redis'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :redis, options
+  c.tracing.instrument :redis, options
 end
 
 # Perform Redis commands
@@ -1574,7 +1574,7 @@ require 'redis'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :redis # Enabling integration instrumentation is still required
+  c.tracing.instrument :redis # Enabling integration instrumentation is still required
 end
 
 customer_cache = Redis.new
@@ -1601,23 +1601,23 @@ You can configure trace settings per connection by using the `describes` option:
 
 Datadog::Tracing.configure do |c|
   # The default configuration for any redis client
-  c.instrument :redis, service_name: 'redis-default'
+  c.tracing.instrument :redis, service_name: 'redis-default'
 
   # The configuration matching a given unix socket.
-  c.instrument :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
+  c.tracing.instrument :redis, describes: { url: 'unix://path/to/file' }, service_name: 'redis-unix'
 
   # For network connections, only these fields are considered during matching:
   # scheme, host, port, db
   # Other fields are ignored.
 
   # Network connection string
-  c.instrument :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
-  c.instrument :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
+  c.tracing.instrument :redis, describes: 'redis://127.0.0.1:6379/0', service_name: 'redis-connection-string'
+  c.tracing.instrument :redis, describes: { url: 'redis://127.0.0.1:6379/1' }, service_name: 'redis-connection-url'
   # Network client hash
-  c.instrument :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
+  c.tracing.instrument :redis, describes: { host: 'my-host.com', port: 6379, db: 1, scheme: 'redis' }, service_name: 'redis-connection-hash'
   # Only a subset of the connection hash
-  c.instrument :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
-  c.instrument :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
+  c.tracing.instrument :redis, describes: { host: ENV['APP_CACHE_HOST'], port: ENV['APP_CACHE_PORT'] }, service_name: 'redis-cache'
+  c.tracing.instrument :redis, describes: { host: ENV['SIDEKIQ_CACHE_HOST'] }, service_name: 'redis-sidekiq'
 end
 ```
 
@@ -1634,7 +1634,7 @@ require 'resque'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :resque, **options
+  c.tracing.instrument :resque, **options
 end
 ```
 
@@ -1653,7 +1653,7 @@ require 'rest_client'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :rest_client, options
+  c.tracing.instrument :rest_client, options
 end
 ```
 
@@ -1706,7 +1706,7 @@ database.create_table :articles do
 end
 
 Datadog::Tracing.configure do |c|
-  c.instrument :sequel, options
+  c.tracing.instrument :sequel, options
 end
 
 # Perform a query
@@ -1743,7 +1743,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :shoryuken, options
+  c.tracing.instrument :shoryuken, options
 end
 ```
 
@@ -1764,7 +1764,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :sidekiq, options
+  c.tracing.instrument :sidekiq, options
 end
 ```
 
@@ -1788,7 +1788,7 @@ require 'sinatra'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :sinatra, options
+  c.tracing.instrument :sinatra, options
 end
 
 get '/' do
@@ -1803,7 +1803,7 @@ require 'sinatra/base'
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :sinatra, options
+  c.tracing.instrument :sinatra, options
 end
 
 class NestedApp < Sinatra::Base
@@ -1847,7 +1847,7 @@ You can enable it through `Datadog::Tracing.configure`:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :sneakers, options
+  c.tracing.instrument :sneakers, options
 end
 ```
 
@@ -1867,7 +1867,7 @@ The `sucker_punch` integration traces all scheduled jobs:
 require 'ddtrace'
 
 Datadog::Tracing.configure do |c|
-  c.instrument :sucker_punch
+  c.tracing.instrument :sucker_punch
 end
 
 # Execution of this job is traced
@@ -1885,7 +1885,7 @@ LogJob.perform_async('login')
 - `DD_PROPAGATION_STYLE_INJECT`: Distributed tracing header formats to inject. See [Distributed Tracing](#distributed-tracing) for more details.
 - `DD_SERVICE`: Your application's default service name. See [Environment and tags](#environment-and-tags) for more details.
 - `DD_TAGS`: Custom tags for telemetry produced by your application. See [Environment and tags](#environment-and-tags) for more details.
-- `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog::Tracing.configure { |c| c.instrument :integration }`).on code. This environment variable can only be used to disable an integration.
+- `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog::Tracing.configure { |c| c.tracing.instrument :integration }`).on code. This environment variable can only be used to disable an integration.
 - `DD_TRACE_AGENT_PORT`: Port to where traces will be sent. See [Tracer settings](#tracer-settings) for more details.
 - `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Has priority over `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`.
 - `DD_TRACE_ANALYTICS_ENABLED`: Enables or disables trace analytics. See [Sampling](#sampling) for more details.

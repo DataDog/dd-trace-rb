@@ -21,7 +21,8 @@ module Datadog
             def call(*args, &block)
               response = nil
               Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-                span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+                span.service = Datadog.configuration_for(self,
+                                                         :service_name) || datadog_configuration[:service_name]
                 span.span_type = Contrib::Redis::Ext::TYPE
                 span.resource = get_command(args)
                 Contrib::Redis::Tags.set_common_tags(self, span)
@@ -35,7 +36,8 @@ module Datadog
             def call_pipeline(*args, &block)
               response = nil
               Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-                span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+                span.service = Datadog.configuration_for(self,
+                                                         :service_name) || datadog_configuration[:service_name]
                 span.span_type = Contrib::Redis::Ext::TYPE
                 commands = get_pipeline_commands(args)
                 span.resource = commands.join("\n")
@@ -67,7 +69,7 @@ module Datadog
             end
 
             def datadog_configuration
-              Tracing.configuration[:redis, options]
+              Tracing.configuration.tracing[:redis, options]
             end
           end
         end

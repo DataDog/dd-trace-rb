@@ -36,12 +36,12 @@ RSpec.describe 'Sequel configuration' do
     end
 
     describe 'when configured' do
-      after { Datadog::Tracing.configuration[:sequel].reset! }
+      after { Datadog::Tracing.configuration.tracing[:sequel].reset! }
 
       context 'only with defaults' do
         # Expect it to be the normalized adapter name.
         before do
-          Datadog::Tracing.configure { |c| c.instrument :sequel }
+          Datadog::Tracing.configure { |c| c.tracing.instrument :sequel }
           perform_query!
         end
 
@@ -56,7 +56,7 @@ RSpec.describe 'Sequel configuration' do
         let(:service_name) { 'my-sequel' }
 
         before do
-          Datadog::Tracing.configure { |c| c.instrument :sequel, service_name: service_name }
+          Datadog::Tracing.configure { |c| c.tracing.instrument :sequel, service_name: service_name }
           perform_query!
         end
 
@@ -71,9 +71,9 @@ RSpec.describe 'Sequel configuration' do
         let(:service_name) { 'custom-sequel' }
 
         before do
-          Datadog::Tracing.configure { |c| c.instrument :sequel }
+          Datadog::Tracing.configure { |c| c.tracing.instrument :sequel }
           Datadog.configure_onto(sequel, service_name: service_name)
-          Datadog::Tracing.configure { |c| c.instrument :sequel }
+          Datadog::Tracing.configure { |c| c.tracing.instrument :sequel }
           perform_query!
         end
 
@@ -90,7 +90,7 @@ RSpec.describe 'Sequel configuration' do
         #       no way to unpatch it once its happened in other tests.
         before do
           sequel
-          Datadog::Tracing.configure { |c| c.instrument :sequel }
+          Datadog::Tracing.configure { |c| c.tracing.instrument :sequel }
           perform_query!
         end
 

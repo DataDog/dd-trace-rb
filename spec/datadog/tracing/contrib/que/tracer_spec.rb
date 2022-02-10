@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.instrument :que, configuration_options
+      c.tracing.instrument :que, configuration_options
     end
 
     Que::Job.run_synchronously = true

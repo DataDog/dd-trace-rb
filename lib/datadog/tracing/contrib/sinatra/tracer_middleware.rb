@@ -79,7 +79,8 @@ module Datadog
                   end
 
                   if (headers = response[1])
-                    Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
+                    Sinatra::Headers.response_header_tags(headers,
+                                                          configuration[:headers][:response]).each do |name, value|
                       span.set_tag(name, value) if span.get_tag(name).nil?
                     end
                   end
@@ -109,7 +110,7 @@ module Datadog
           end
 
           def configuration
-            Tracing.configuration[:sinatra]
+            Tracing.configuration.tracing[:sinatra]
           end
 
           def header_to_rack_header(name)

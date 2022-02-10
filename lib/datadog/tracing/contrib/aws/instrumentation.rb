@@ -55,7 +55,7 @@ module Datadog
           end
 
           def configuration
-            Tracing.configuration[:aws]
+            Tracing.configuration.tracing[:aws]
           end
         end
 

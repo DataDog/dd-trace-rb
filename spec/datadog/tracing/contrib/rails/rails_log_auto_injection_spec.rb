@@ -38,9 +38,9 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   before do
-    Datadog::Tracing.configuration[:rails].reset_options!
+    Datadog::Tracing.configuration.tracing[:rails].reset_options!
     Datadog::Tracing.configure do |c|
-      c.instrument :rails
+      c.tracing.instrument :rails
       c.tracing.log_injection = log_injection
     end
 
@@ -48,8 +48,8 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   after do
-    Datadog::Tracing.configuration[:rails].reset_options!
-    Datadog::Tracing.configuration[:lograge].reset_options!
+    Datadog::Tracing.configuration.tracing[:rails].reset_options!
+    Datadog::Tracing.configuration.tracing[:lograge].reset_options!
   end
 
   context 'with log injection enabled' do
@@ -176,7 +176,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     let(:logs) { log_output.string }
 
     before do
-      Datadog::Tracing.configuration[:lograge].enabled = false
+      Datadog::Tracing.configuration.tracing[:lograge].enabled = false
     end
 
     context 'with Tagged Logging' do
