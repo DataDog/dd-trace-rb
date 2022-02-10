@@ -53,6 +53,7 @@ WebMock.allow_net_connect!
 WebMock.disable!
 
 RSpec.configure do |config|
+  config.seed = 52132
   config.include ConfigurationHelpers
   config.include ContainerHelpers
   config.include HealthMetricHelpers

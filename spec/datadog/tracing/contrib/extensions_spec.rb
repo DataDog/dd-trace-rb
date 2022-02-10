@@ -47,12 +47,15 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
       end
     end
 
-    describe Datadog::Core::Configuration::Settings do
+    describe Datadog.configuration.tracing do
       include_context 'registry with integration'
 
-      subject(:settings) { described_class.new }
+      subject(:settings) { described_class }
 
       before { stub_const('Datadog::Tracing::Contrib::REGISTRY', registry) }
+      after {
+        described_class.reset!
+      }
 
       describe '#[]' do
         context 'when the integration doesn\'t exist' do
