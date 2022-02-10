@@ -192,7 +192,7 @@ module Datadog
         end
 
         def deprecated_for_removal_transport_configuration_proc
-          settings.tracer.transport_options if settings.tracer.transport_options.is_a?(Proc)
+          settings.tracing.transport_options if settings.tracing.transport_options.is_a?(Proc)
         end
 
         # We only use the default unix socket if it is already present.

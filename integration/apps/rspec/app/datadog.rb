@@ -7,7 +7,7 @@ Datadog.configure do |c|
 end
 
 Datadog::Tracing.configure do |c|
-  c.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
+  c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
 end
 
 Datadog::Profiling.configure do |c|

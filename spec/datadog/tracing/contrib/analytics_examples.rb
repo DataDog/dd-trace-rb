@@ -170,7 +170,7 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
   shared_context 'analytics setting' do |analytics_enabled|
     let(:analytics_enabled) { defined?(super) ? super() : analytics_enabled }
 
-    before { Datadog::Tracing.configuration.analytics.enabled = analytics_enabled }
+    before { Datadog::Tracing.configuration.tracing.analytics.enabled = analytics_enabled }
 
     after { without_warnings { Datadog::Tracing.configuration.reset! } }
   end

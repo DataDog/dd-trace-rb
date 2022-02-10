@@ -11,7 +11,7 @@ RSpec.describe 'Disabled tracer' do
 
   before do
     Datadog::Tracing.configure do |c|
-      c.tracer.enabled = false
+      c.tracing.enabled = false
     end
 
     Sidekiq::Testing.server_middleware.clear

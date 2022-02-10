@@ -50,7 +50,7 @@ module Datadog
       # Apply configuration changes to `Datadog::Tracing`. An example of a {.configure} call:
       # ```
       # Datadog::Tracing.configure do |c|
-      #   c.sampling.default_rate = 1.0
+      #   c.tracing.sampling.default_rate = 1.0
       #   c.instrument :aws
       #   c.instrument :rails
       #   c.instrument :sidekiq

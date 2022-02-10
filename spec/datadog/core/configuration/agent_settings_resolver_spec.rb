@@ -326,7 +326,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
     let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
 
     before do
-      ddtrace_settings.tracer.transport_options = deprecated_for_removal_transport_configuration_proc
+      ddtrace_settings.tracing.transport_options = deprecated_for_removal_transport_configuration_proc
     end
 
     it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do

@@ -1984,31 +1984,31 @@ To change the default behavior of the Datadog tracer, you can provide custom opt
 # config/initializers/datadog-tracer.rb
 # Tracer settings are set here:
 Datadog::Tracing.configure do |c|
-  c.tracer.enabled = true
+  c.tracing.enabled = true
 
   # Ensure all traces are ingested by Datadog
-  c.sampling.default_rate = 1.0 # Recommended
-  c.sampling.rate_limit = 200
-  # or provide a custom implementation (overrides c.sampling settings)
-  c.tracer.sampler = Datadog::Tracing::Sampling::AllSampler.new
+  c.tracing.sampling.default_rate = 1.0 # Recommended
+  c.tracing.sampling.rate_limit = 200
+  # or provide a custom implementation (overrides c.tracing.sampling settings)
+  c.tracing.sampler = Datadog::Tracing::Sampling::AllSampler.new
 
   # Breaks down very large traces into smaller batches
-  c.tracer.partial_flush.enabled = false
+  c.tracing.partial_flush.enabled = false
 
   # You can specify your own tracer
-  c.tracer.instance = Datadog::Tracing::Tracer.new
+  c.tracing.instance = Datadog::Tracing::Tracer.new
 end
 ```
 
 Available options are:
 
- - `log_injection`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Defaults to `true`.
+ - `tracing.log_injection`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Defaults to `true`.
  - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
  - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
- - `tracer.enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
- - `tracer.instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
- - `tracer.partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
- - `tracer.sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
+ - `tracing.enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
+ - `tracing.instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
+ - `tracing.partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
+ - `tracing.sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
 
 ### Sampling
 
@@ -2016,7 +2016,7 @@ Datadog's Tracing without Limits™ allows you to send all of your traffic and [
 
 We recommend setting the environment variable `DD_TRACE_SAMPLE_RATE=1.0` in all new applications using `ddtrace`.
 
-App Analytics, previously configured with the `analytics.enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
+App Analytics, previously configured with the `tracing.analytics.enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
 
 #### Application-side sampling
 
@@ -2031,7 +2031,7 @@ This will **reduce visibility and is not recommended**. See [DD_TRACE_SAMPLE_RAT
 sampler = Datadog::Tracing::Sampling::RateSampler.new(0.5) # sample 50% of the traces
 
 Datadog::Tracing.configure do |c|
-  c.tracer.sampler = sampler
+  c.tracing.sampler = sampler
 end
 ```
 
@@ -2195,7 +2195,7 @@ You can enable/disable the use of these formats via `Datadog::Tracing.configure`
 ```ruby
 Datadog::Tracing.configure do |c|
   # List of header formats that should be extracted
-  c.distributed_tracing.propagation_extract_style = [
+  c.tracing.distributed_tracing.propagation_extract_style = [
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
@@ -2203,7 +2203,7 @@ Datadog::Tracing.configure do |c|
   ]
 
   # List of header formats that should be injected
-  c.distributed_tracing.propagation_inject_style = [
+  c.tracing.distributed_tracing.propagation_inject_style = [
     Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
   ]
 end
@@ -2396,7 +2396,7 @@ The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default t
 
 ```ruby
 Datadog::Tracing.configure do |c|
-  c.tracer.transport_options = proc { |t|
+  c.tracing.transport_options = proc { |t|
     # Hostname, port, and additional options. :timeout is in seconds.
     t.adapter :net_http, '127.0.0.1', 8126, { timeout: 1 }
   }
@@ -2411,7 +2411,7 @@ To use, first configure your trace agent to listen by Unix socket, then configur
 
 ```ruby
 Datadog::Tracing.configure do |c|
-  c.tracer.transport_options = proc { |t|
+  c.tracing.transport_options = proc { |t|
     # Provide local path to trace agent Unix socket
     t.adapter :unix, '/tmp/ddagent/trace.sock'
   }
@@ -2424,7 +2424,7 @@ The `Test` adapter is a no-op transport that can optionally buffer requests. For
 
 ```ruby
 Datadog::Tracing.configure do |c|
-  c.tracer.transport_options = proc { |t|
+  c.tracing.transport_options = proc { |t|
     # Set transport to no-op mode. Does not retain traces.
     t.adapter :test
 
@@ -2441,7 +2441,7 @@ Custom adapters can be configured with:
 
 ```ruby
 Datadog::Tracing.configure do |c|
-  c.tracer.transport_options = proc { |t|
+  c.tracing.transport_options = proc { |t|
     # Initialize and pass an instance of the adapter
     custom_adapter = CustomAdapter.new
     t.adapter custom_adapter

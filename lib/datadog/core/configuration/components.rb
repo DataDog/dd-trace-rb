@@ -56,11 +56,11 @@ module Datadog
           def build_tracer(settings, agent_settings)
             # If a custom tracer has been provided, use it instead.
             # Ignore all other options (they should already be configured.)
-            tracer = settings.tracer.instance
+            tracer = settings.tracing.instance
             return tracer unless tracer.nil?
 
             # Apply test mode settings if test mode is activated
-            if settings.test_mode.enabled
+            if settings.tracing.test_mode.enabled
               trace_flush = build_test_mode_trace_flush(settings)
               sampler = build_test_mode_sampler
               writer = build_test_mode_writer(settings, agent_settings)
@@ -70,11 +70,11 @@ module Datadog
               writer = build_writer(settings, agent_settings)
             end
 
-            subscribe_to_writer_events!(writer, sampler, settings.test_mode.enabled)
+            subscribe_to_writer_events!(writer, sampler, settings.tracing.test_mode.enabled)
 
             Tracing::Tracer.new(
               default_service: settings.service,
-              enabled: settings.tracer.enabled,
+              enabled: settings.tracing.enabled,
               trace_flush: trace_flush,
               sampler: sampler,
               writer: writer,
@@ -83,8 +83,8 @@ module Datadog
           end
 
           def build_trace_flush(settings)
-            if settings.tracer.partial_flush.enabled
-              Tracing::Flush::Partial.new(min_spans_before_partial_flush: settings.tracer.partial_flush.min_spans_threshold)
+            if settings.tracing.partial_flush.enabled
+              Tracing::Flush::Partial.new(min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold)
             else
               Tracing::Flush::Finished.new
             end
@@ -96,23 +96,23 @@ module Datadog
           # a fully custom instance) that makes the Tracer
           # initialization process complex.
           def build_sampler(settings)
-            if (sampler = settings.tracer.sampler)
-              if settings.tracer.priority_sampling == false
+            if (sampler = settings.tracing.sampler)
+              if settings.tracing.priority_sampling == false
                 sampler
               else
                 ensure_priority_sampling(sampler, settings)
               end
-            elsif settings.tracer.priority_sampling == false
+            elsif settings.tracing.priority_sampling == false
               Tracing::Sampling::RuleSampler.new(
-                rate_limit: settings.sampling.rate_limit,
-                default_sample_rate: settings.sampling.default_rate
+                rate_limit: settings.tracing.sampling.rate_limit,
+                default_sample_rate: settings.tracing.sampling.default_rate
               )
             else
               Tracing::Sampling::PrioritySampler.new(
                 base_sampler: Tracing::Sampling::AllSampler.new,
                 post_sampler: Tracing::Sampling::RuleSampler.new(
-                  rate_limit: settings.sampling.rate_limit,
-                  default_sample_rate: settings.sampling.default_rate
+                  rate_limit: settings.tracing.sampling.rate_limit,
+                  default_sample_rate: settings.tracing.sampling.default_rate
                 )
               )
             end
@@ -125,8 +125,8 @@ module Datadog
               Tracing::Sampling::PrioritySampler.new(
                 base_sampler: sampler,
                 post_sampler: Tracing::Sampling::RuleSampler.new(
-                  rate_limit: settings.sampling.rate_limit,
-                  default_sample_rate: settings.sampling.default_rate
+                  rate_limit: settings.tracing.sampling.rate_limit,
+                  default_sample_rate: settings.tracing.sampling.default_rate
                 )
               )
             end
@@ -138,11 +138,11 @@ module Datadog
           # a fully custom instance) that makes the Tracer
           # initialization process complex.
           def build_writer(settings, agent_settings)
-            if (writer = settings.tracer.writer)
+            if (writer = settings.tracing.writer)
               return writer
             end
 
-            Tracing::Writer.new(agent_settings: agent_settings, **settings.tracer.writer_options)
+            Tracing::Writer.new(agent_settings: agent_settings, **settings.tracing.writer_options)
           end
 
           def subscribe_to_writer_events!(writer, sampler, test_mode)
@@ -249,7 +249,7 @@ module Datadog
 
           def build_test_mode_trace_flush(settings)
             # If context flush behavior is provided, use it instead.
-            settings.test_mode.trace_flush || build_trace_flush(settings)
+            settings.tracing.test_mode.trace_flush || build_trace_flush(settings)
           end
 
           def build_test_mode_sampler
@@ -263,7 +263,7 @@ module Datadog
 
           def build_test_mode_writer(settings, agent_settings)
             # Flush traces synchronously, to guarantee they are written.
-            writer_options = settings.test_mode.writer_options || {}
+            writer_options = settings.tracing.test_mode.writer_options || {}
             Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
           end
 
