@@ -51,7 +51,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'DataDog/system-tests'
-          ref: 'use-system-test-apps-for-ruby'
 
       - name: Checkout dd-trace-rb
         uses: actions/checkout@v2
