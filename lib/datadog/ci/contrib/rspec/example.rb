@@ -31,7 +31,6 @@ module Datadog
                 configuration[:operation_name],
                 {
                   span_options: {
-                    app: Ext::APP,
                     resource: test_name,
                     service: configuration[:service_name]
                   },

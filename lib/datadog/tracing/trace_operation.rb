@@ -117,27 +117,85 @@ module Datadog
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
       end
 
-      def measure(op_name, **span_options, &block)
+      def measure(
+        op_name,
+        events: nil,
+        on_error: nil,
+        resource: nil,
+        service: nil,
+        start_time: nil,
+        tags: nil,
+        type: nil,
+        &block
+      )
         # Don't allow more span measurements if the
         # trace is already completed. Prevents multiple
         # root spans with parent_span_id = 0.
         return yield(SpanOperation.new(op_name), TraceOperation.new) if finished? || full?
 
         # Create new span
-        span_op = build_span(op_name, **span_options)
+        span_op = build_span(
+          op_name,
+          events: events,
+          on_error: on_error,
+          resource: resource,
+          service: service,
+          start_time: start_time,
+          tags: tags,
+          type: type
+        )
 
         # Start span measurement
         span_op.measure { |s| yield(s, self) }
       end
 
-      def build_span(op_name, **span_options)
+      def build_span(
+        op_name,
+        events: nil,
+        on_error: nil,
+        resource: nil,
+        service: nil,
+        start_time: nil,
+        tags: nil,
+        type: nil
+      )
         begin
           # Resolve span options:
           # Parent, service name, etc.
-          span_options = build_span_options(**span_options)
+          # Add default options
+          trace_id = @id
+          parent = @active_span
+
+          # Use active span's span ID if available. Otherwise, the parent span ID.
+          # Necessary when this trace continues from another, e.g. distributed trace.
+          parent_id = parent ? parent.id : @parent_span_id || 0
+
+          # Build events
+          events ||= SpanOperation::Events.new
+
+          # Before start: activate the span, publish events.
+          events.before_start.subscribe(:trace_before_span_start) do |span_op|
+            start_span(span_op)
+          end
+
+          # After finish: deactivate the span, record, publish events.
+          events.after_finish.subscribe(:trace_span_finished) do |span, span_op|
+            finish_span(span, span_op, parent)
+          end
 
           # Build a new span operation
-          SpanOperation.new(op_name, **span_options)
+          SpanOperation.new(
+            op_name,
+            events: events,
+            on_error: on_error,
+            parent_id: parent_id,
+            resource: resource || op_name,
+            service: service,
+            start_time: start_time,
+            tags: tags,
+            trace_id: trace_id,
+            type: type
+          )
         rescue StandardError => e
           Datadog.logger.debug { "Failed to build new span: #{e}" }
 
@@ -315,50 +373,6 @@ module Datadog
         @name ||= span.name
         @resource ||= span.resource
         @service ||= span.service
-      end
-
-      def build_span_options(
-        events: nil,
-        on_error: nil,
-        resource: nil,
-        service: nil,
-        start_time: nil,
-        tags: nil,
-        type: nil
-      )
-        # Add default options
-        options = { trace_id: @id }
-        options[:on_error] = on_error unless on_error.nil?
-        options[:resource] = resource unless resource.nil?
-        options[:service] = service unless service.nil?
-        options[:start_time] = start_time unless start_time.nil?
-        options[:tags] = tags unless tags.nil?
-        options[:type] = type unless type.nil?
-
-        # Use active span's span ID if available. Otherwise, the parent span ID.
-        # Necessary when this trace continues from another, e.g. distributed trace.
-        if (parent = @active_span)
-          options[:child_of] = parent
-          options[:parent_id] = parent.id
-        else
-          options[:parent_id] = @parent_span_id || 0
-        end
-
-        # Build events
-        events ||= SpanOperation::Events.new
-        options[:events] = events
-
-        # Before start: activate the span, publish events.
-        events.before_start.subscribe(:trace_before_span_start) do |span_op|
-          start_span(span_op)
-        end
-
-        # After finish: deactivate the span, record, publish events.
-        events.after_finish.subscribe(:trace_span_finished) do |span, span_op|
-          finish_span(span, span_op, parent)
-        end
-
-        options
       end
 
       def build_trace(spans, partial = false)

@@ -341,17 +341,23 @@ module Datadog
         attr_reader \
           :after_finish,
           :after_stop,
-          :before_start,
-          :on_error
+          :before_start
 
         def initialize(on_error: nil)
           @after_finish = AfterFinish.new
           @after_stop = AfterStop.new
           @before_start = BeforeStart.new
-          @on_error = OnError.new
+        end
 
-          # Set default error behavior
-          @on_error.subscribe(:default, &DEFAULT_ON_ERROR)
+        # This event is lazily initialized as error paths
+        # are normally less common that non-error paths.
+        def on_error
+          @on_error ||= begin
+            event = OnError.new
+            # Set default error behavior
+            event.subscribe(:default, &DEFAULT_ON_ERROR)
+            event
+          end
         end
 
         # Triggered when the span is finished, regardless of error.
