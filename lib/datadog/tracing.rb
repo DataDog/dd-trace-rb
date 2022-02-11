@@ -1,5 +1,4 @@
 require 'datadog/core'
-require 'datadog/tracing/configuration/validation_proxy'
 require 'datadog/tracing/pipeline'
 
 module Datadog
@@ -45,15 +44,13 @@ module Datadog
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        Configuration::ValidationProxy.new(
-          Datadog.send(:internal_configuration)
-        )
+        Datadog.configuration
       end
 
       # Apply configuration changes to `Datadog::Tracing`. An example of a {.configure} call:
       # ```
       # Datadog::Tracing.configure do |c|
-      #   c.sampling.default_rate = 1.0
+      #   c.tracing.sampling.default_rate = 1.0
       #   c.instrument :aws
       #   c.instrument :rails
       #   c.instrument :sidekiq
@@ -84,14 +81,8 @@ module Datadog
       # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
       # @return [void]
       # @public_api
-      def configure
-        # Wrap block with trace option validation
-        wrapped_block = proc do |c|
-          yield(Configuration::ValidationProxy.new(c))
-        end
-
-        # Configure application normally
-        Datadog.send(:internal_configure, &wrapped_block)
+      def configure(&block)
+        Datadog.configure(&block)
       end
 
       # (see Datadog::Tracing::Tracer#active_trace)

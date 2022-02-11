@@ -128,7 +128,7 @@ module Datadog
           def self.activate_lograge!(trace_config, rails_config)
             return unless defined?(::Lograge)
 
-            if trace_config.log_injection
+            if trace_config.tracing.log_injection
               trace_config.instrument(
                 :lograge
               )
@@ -138,7 +138,7 @@ module Datadog
           def self.activate_semantic_logger!(trace_config, rails_config)
             return unless defined?(::SemanticLogger)
 
-            if trace_config.log_injection
+            if trace_config.tracing.log_injection
               trace_config.instrument(
                 :semantic_logger
               )

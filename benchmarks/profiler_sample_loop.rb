@@ -19,7 +19,7 @@ class ProfilerSampleLoopBenchmark
     end
 
     Datadog::Tracing.configure do |c|
-      c.tracer.transport_options = proc { |t| t.adapter :test }
+      c.tracing.transport_options = proc { |t| t.adapter :test }
     end
 
     # Stop background threads

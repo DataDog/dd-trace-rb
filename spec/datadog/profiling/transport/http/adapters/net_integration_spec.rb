@@ -72,8 +72,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
       let(:tags) { { 'test_tag' => 'test_value' } }
 
       before do
-        settings = Datadog.configuration.send(:settings)
-        allow(settings).to receive(:tags).and_return(tags)
+        allow(Datadog.configuration).to receive(:tags).and_return(tags)
       end
 
       it 'sends profiles successfully' do

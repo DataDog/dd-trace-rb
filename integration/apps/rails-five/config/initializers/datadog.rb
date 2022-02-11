@@ -8,7 +8,7 @@ end
 
 if Datadog::DemoEnv.feature?('tracing')
   Datadog::Tracing.configure do |c|
-    c.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
+    c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
 
     c.instrument :rails
     c.instrument :redis, service_name: 'acme-redis'

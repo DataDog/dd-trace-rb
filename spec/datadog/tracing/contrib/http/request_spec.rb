@@ -366,7 +366,7 @@ RSpec.describe 'net/http requests' do
       context 'but the tracer is disabled' do
         before do
           Datadog::Tracing.configure do |c|
-            c.tracer.enabled = false
+            c.tracing.enabled = false
           end
 
           client.get(path)

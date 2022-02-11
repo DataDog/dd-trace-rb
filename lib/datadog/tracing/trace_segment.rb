@@ -1,5 +1,3 @@
-require 'forwardable'
-
 require 'datadog/core/runtime/ext'
 
 require 'datadog/tracing/sampling/ext'
@@ -9,20 +7,11 @@ module Datadog
   module Tracing
     # Serializable construct representing a trace
     # @public_api
+    # rubocop:disable Metrics/ClassLength
     class TraceSegment
-      extend Forwardable
-
       TAG_NAME = 'name'.freeze
       TAG_RESOURCE = 'resource'.freeze
       TAG_SERVICE = 'service'.freeze
-
-      SPANS_METHODS = [
-        :any?,
-        :count,
-        :empty?,
-        :length,
-        :size
-      ].freeze
 
       attr_reader \
         :id,
@@ -68,28 +57,193 @@ module Datadog
         self.service = (service && service.dup)
       end
 
-      def_delegators :spans, *SPANS_METHODS
+      def any?
+        @spans.any?
+      end
 
-      # Define tag accessors
-      {
-        agent_sample_rate: Metadata::Ext::Sampling::TAG_AGENT_RATE,
-        hostname: Metadata::Ext::NET::TAG_HOSTNAME,
-        lang: Core::Runtime::Ext::TAG_LANG,
-        name: TAG_NAME,
-        origin: Metadata::Ext::Distributed::TAG_ORIGIN,
-        process_id: Core::Runtime::Ext::TAG_PID,
-        rate_limiter_rate: Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE,
-        resource: TAG_RESOURCE,
-        rule_sample_rate: Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE,
-        runtime_id: Core::Runtime::Ext::TAG_ID,
-        sample_rate: Metadata::Ext::Sampling::TAG_SAMPLE_RATE,
-        sampling_priority: Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY,
-        service: TAG_SERVICE
-      }.each do |tag_name, tag_key|
-        define_method(tag_name) { tags[tag_key] }
-        define_method(:"#{tag_name}=") do |value|
-          value.nil? ? tags.delete(value) : tags[tag_key] = value
+      def count
+        @spans.count
+      end
+
+      def empty?
+        @spans.empty?
+      end
+
+      def length
+        @spans.length
+      end
+
+      def size
+        @spans.size
+      end
+
+      def agent_sample_rate
+        tags[Metadata::Ext::Sampling::TAG_AGENT_RATE]
+      end
+
+      def agent_sample_rate=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::Sampling::TAG_AGENT_RATE)
+          return
         end
+
+        tags[Metadata::Ext::Sampling::TAG_AGENT_RATE] = value
+      end
+
+      def hostname
+        tags[Metadata::Ext::NET::TAG_HOSTNAME]
+      end
+
+      def hostname=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::NET::TAG_HOSTNAME)
+          return
+        end
+
+        tags[Metadata::Ext::NET::TAG_HOSTNAME] = value
+      end
+
+      def lang
+        tags[Core::Runtime::Ext::TAG_LANG]
+      end
+
+      def lang=(value)
+        if value.nil?
+          tags.delete(Core::Runtime::Ext::TAG_LANG)
+          return
+        end
+
+        tags[Core::Runtime::Ext::TAG_LANG] = value
+      end
+
+      def name
+        tags[TAG_NAME]
+      end
+
+      def name=(value)
+        if value.nil?
+          tags.delete(TAG_NAME)
+          return
+        end
+
+        tags[TAG_NAME] = value
+      end
+
+      def origin
+        tags[Metadata::Ext::Distributed::TAG_ORIGIN]
+      end
+
+      def origin=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::Distributed::TAG_ORIGIN)
+          return
+        end
+
+        tags[Metadata::Ext::Distributed::TAG_ORIGIN] = value
+      end
+
+      def process_id
+        tags[Core::Runtime::Ext::TAG_PID]
+      end
+
+      def process_id=(value)
+        if value.nil?
+          tags.delete(Core::Runtime::Ext::TAG_PID)
+          return
+        end
+
+        tags[Core::Runtime::Ext::TAG_PID] = value
+      end
+
+      def rate_limiter_rate
+        tags[Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE]
+      end
+
+      def rate_limiter_rate=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE)
+          return
+        end
+
+        tags[Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE] = value
+      end
+
+      def resource
+        tags[TAG_RESOURCE]
+      end
+
+      def resource=(value)
+        if value.nil?
+          tags.delete(TAG_RESOURCE)
+          return
+        end
+
+        tags[TAG_RESOURCE] = value
+      end
+
+      def rule_sample_rate
+        tags[Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE]
+      end
+
+      def rule_sample_rate=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE)
+          return
+        end
+
+        tags[Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE] = value
+      end
+
+      def runtime_id
+        tags[Core::Runtime::Ext::TAG_ID]
+      end
+
+      def runtime_id=(value)
+        if value.nil?
+          tags.delete(Core::Runtime::Ext::TAG_ID)
+          return
+        end
+
+        tags[Core::Runtime::Ext::TAG_ID] = value
+      end
+
+      def sample_rate
+        tags[Metadata::Ext::Sampling::TAG_SAMPLE_RATE]
+      end
+
+      def sample_rate=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::Sampling::TAG_SAMPLE_RATE)
+          return
+        end
+
+        tags[Metadata::Ext::Sampling::TAG_SAMPLE_RATE] = value
+      end
+
+      def sampling_priority
+        tags[Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY]
+      end
+
+      def sampling_priority=(value)
+        if value.nil?
+          tags.delete(Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY)
+          return
+        end
+
+        tags[Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY] = value
+      end
+
+      def service
+        tags[TAG_SERVICE]
+      end
+
+      def service=(value)
+        if value.nil?
+          tags.delete(TAG_SERVICE)
+          return
+        end
+
+        tags[TAG_SERVICE] = value
       end
 
       # If an active trace is present, forces it to be retained by the Datadog backend.
@@ -120,5 +274,6 @@ module Datadog
       attr_reader \
         :root_span_id
     end
+    # rubocop:enable Metrics/ClassLength
   end
 end

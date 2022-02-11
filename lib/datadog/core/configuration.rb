@@ -2,7 +2,6 @@
 require 'forwardable'
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'
-require 'datadog/core/configuration/validation_proxy'
 require 'datadog/core/logger'
 require 'datadog/core/pin'
 
@@ -52,9 +51,7 @@ module Datadog
       # @!attribute [r] configuration
       # @public_api
       def configuration
-        ValidationProxy::Global.new(
-          internal_configuration
-        )
+        @configuration ||= Settings.new
       end
 
       # Apply global configuration changes to `Datadog`. An example of a {.configure} call:
@@ -83,17 +80,22 @@ module Datadog
       # The yielded configuration `c` comes pre-populated from environment variables, if
       # any are applicable.
       #
-      # @param [Datadog::Core::Configuration::Settings] configuration the base configuration object. Provide a custom
-      #   instance if you are managing the configuration yourself. By default, the global configuration object is used.
       # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
-      def configure(configuration = self.configuration)
-        # Wrap block with global option validation
-        wrapped_block = proc do |c|
-          yield(ValidationProxy::Global.new(c))
+      def configure
+        configuration = self.configuration
+        yield(configuration)
+
+        safely_synchronize do |write_components|
+          write_components.call(
+            if components?
+              replace_components!(configuration, @components)
+            else
+              build_components(configuration)
+            end
+          )
         end
 
-        # Configure application normally
-        internal_configure(&wrapped_block)
+        configuration
       end
 
       # Apply configuration changes only to a specific Ruby object.
@@ -189,31 +191,11 @@ module Datadog
         return current_components if current_components || !allow_initialization
 
         safely_synchronize do |write_components|
-          (defined?(@components) && @components) || write_components.call(build_components(internal_configuration))
+          (defined?(@components) && @components) || write_components.call(build_components(configuration))
         end
       end
 
       private
-
-      def internal_configure(configuration = internal_configuration)
-        yield(configuration)
-
-        safely_synchronize do |write_components|
-          write_components.call(
-            if components?
-              replace_components!(configuration, @components)
-            else
-              build_components(configuration)
-            end
-          )
-        end
-
-        configuration
-      end
-
-      def internal_configuration
-        @configuration ||= Settings.new
-      end
 
       # Gracefully shuts down Datadog components and disposes of component references,
       # allowing execution to start anew.

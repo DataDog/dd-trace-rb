@@ -44,37 +44,30 @@ module Datadog
       def initialize(name)
         @name = name
         @subscriptions = []
-        @mutex = Mutex.new
       end
 
       def subscribe(&block)
         raise ArgumentError, 'Must give a block to subscribe!' unless block
 
-        @mutex.synchronize do
-          subscriptions << block
-        end
+        subscriptions << block
       end
 
       def unsubscribe_all!
-        @mutex.synchronize do
-          subscriptions.clear
-        end
+        subscriptions.clear
 
         true
       end
 
       def publish(*args)
-        @mutex.synchronize do
-          subscriptions.each do |block|
-            begin
-              block.call(*args)
-            rescue StandardError => e
-              Datadog.logger.debug { "Error while handling '#{name}' event with '#{block}': #{e.message}" }
-            end
+        subscriptions.each do |block|
+          begin
+            block.call(*args)
+          rescue StandardError => e
+            Datadog.logger.debug { "Error while handling '#{name}' event with '#{block}': #{e.message}" }
           end
-
-          true
         end
+
+        true
       end
     end
   end

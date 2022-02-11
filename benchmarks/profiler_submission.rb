@@ -33,7 +33,7 @@ class ProfilerSubmission
     end
 
     Datadog::Tracing.configure do |c|
-      c.tracer.transport_options = proc { |t| t.adapter :test, @adapter_buffer }
+      c.tracing.transport_options = proc { |t| t.adapter :test, @adapter_buffer }
     end
 
     # Stop background threads

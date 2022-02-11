@@ -996,10 +996,18 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     context 'when building the span fails' do
+      let(:span_options) { { resource: 'my-span' } }
       let(:error) { error_class.new('error message') }
 
       before do
-        allow(trace_op).to receive(:build_span_options).and_raise(error)
+        allow(Datadog::Tracing::SpanOperation).to receive(:new) do
+          # Unstub (so it only raises an error once)
+          allow(Datadog::Tracing::SpanOperation).to receive(:new).and_call_original
+
+          # Trigger error
+          raise error
+        end
+
         allow(Datadog.logger).to receive(:debug)
       end
 

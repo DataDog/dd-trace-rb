@@ -6,7 +6,7 @@ Datadog::Tracing.configure do |c|
 end
 
 Datadog::CI.configure do |c|
-  c.ci_mode.enabled = true
+  c.ci.enabled = true
 end
 
 RSpec.configure do |config|
