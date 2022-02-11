@@ -13,9 +13,9 @@ module Datadog
 
         def hostname
           # Check if runtime has changed, e.g. forked.
-          after_fork! { @hostname = ::Socket.gethostname }
+          after_fork! { @hostname = ::Socket.gethostname.freeze }
 
-          @hostname ||= ::Socket.gethostname
+          @hostname ||= ::Socket.gethostname.freeze
         end
       end
     end

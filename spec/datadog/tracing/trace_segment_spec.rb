@@ -61,14 +61,14 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { { hostname: hostname } }
         let(:hostname) { 'my.host' }
 
-        it { is_expected.to have_attributes(hostname: be_a_copy_of(hostname)) }
+        it { is_expected.to have_attributes(hostname: be(hostname)) }
       end
 
       context ':lang' do
         let(:options) { { lang: lang } }
         let(:lang) { 'ruby' }
 
-        it { is_expected.to have_attributes(lang: be_a_copy_of(lang)) }
+        it { is_expected.to have_attributes(lang: be(lang)) }
       end
 
       context ':name' do
@@ -117,7 +117,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { { runtime_id: runtime_id } }
         let(:runtime_id) { Datadog::Core::Environment::Identity.id }
 
-        it { is_expected.to have_attributes(runtime_id: be_a_copy_of(runtime_id)) }
+        it { is_expected.to have_attributes(runtime_id: be(runtime_id)) }
       end
 
       context ':sample_rate' do

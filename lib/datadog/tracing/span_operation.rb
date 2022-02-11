@@ -424,24 +424,37 @@ module Datadog
         :parent,
         :span
 
+      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
+        # Ensures #initialize can call nil.dup safely
+        module RefineNil
+          refine NilClass do
+            def dup
+              self
+            end
+          end
+        end
+
+        using RefineNil
+      end
+
       # Create a Span from the operation which represents
       # the finalized measurement. We #dup here to prevent
       # mutation by reference; when this span is returned,
       # we don't want this SpanOperation to modify it further.
       def build_span
         Span.new(
-          @name && @name.dup,
+          @name.frozen? ? @name : @name.dup,
           duration: duration,
           end_time: @end_time,
           id: @id,
-          meta: meta && meta.dup,
-          metrics: metrics && metrics.dup,
+          meta: meta.dup,
+          metrics: metrics.dup,
           parent_id: @parent_id,
-          resource: @resource && @resource.dup,
-          service: @service && @service.dup,
+          resource: @resource.frozen? ? @resource : @resource.dup,
+          service: @service.frozen? ? @service : @service.dup,
           start_time: @start_time,
           status: @status,
-          type: @type && @type.dup,
+          type: @type.frozen? ? @type : @type.dup,
           trace_id: @trace_id
         )
       end
