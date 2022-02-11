@@ -409,7 +409,9 @@ module Datadog
             begin
               @handler.call(*args)
             rescue StandardError => e
-              Datadog.logger.debug { "Error in error handler '#{@default}': #{e.message} at #{Array(e.backtrace).first}" }
+              Datadog.logger.debug do
+                "Error in on_error handler '#{@default}': #{e.message} at #{Array(e.backtrace).first}"
+              end
             end
 
             true
