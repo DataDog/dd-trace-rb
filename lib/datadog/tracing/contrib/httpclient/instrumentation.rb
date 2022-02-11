@@ -86,7 +86,7 @@ module Datadog
             end
 
             def datadog_configuration(host = :default)
-              Tracing.configuration[:httpclient, host]
+              Datadog.configuration[:httpclient, host]
             end
 
             def analytics_enabled?(request_options)
@@ -100,7 +100,7 @@ module Datadog
             def should_skip_distributed_tracing?(client_config)
               return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
-              !Tracing.configuration[:httpclient][:distributed_tracing]
+              !Datadog.configuration[:httpclient][:distributed_tracing]
             end
 
             def set_analytics_sample_rate(span, request_options)

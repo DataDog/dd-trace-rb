@@ -6,13 +6,13 @@ RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    without_warnings { Datadog::Tracing.configuration.reset! }
+    without_warnings { Datadog.configuration.reset! }
 
     ClimateControl.modify('TEST_AUTO_INSTRUMENT' => 'true') do
       example.run
     end
 
-    without_warnings { Datadog::Tracing.configuration.reset! }
+    without_warnings { Datadog.configuration.reset! }
   end
 
   context 'when auto patching is included' do
@@ -20,7 +20,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument' do
       skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
     end
 
-    let(:config) { Datadog::Tracing.configuration[:rails] }
+    let(:config) { Datadog.configuration[:rails] }
 
     it 'configurations application correctly' do
       expect_in_fork do

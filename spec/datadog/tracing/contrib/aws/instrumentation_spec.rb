@@ -14,16 +14,16 @@ RSpec.describe 'AWS instrumentation' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :aws, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:aws].reset_configuration!
+    Datadog.registry[:aws].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:aws].reset_configuration!
+    Datadog.registry[:aws].reset_configuration!
   end
 
   context 'with a core AWS SDK client', if: RUBY_VERSION >= '2.2.0' do

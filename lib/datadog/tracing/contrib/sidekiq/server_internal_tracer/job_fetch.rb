@@ -10,7 +10,7 @@ module Datadog
             private
 
             def fetch
-              configuration = Datadog::Tracing.configuration[:sidekiq]
+              configuration = Datadog.configuration[:sidekiq]
 
               Datadog::Tracing.trace(Ext::SPAN_JOB_FETCH, service: configuration[:service_name]) do |span|
                 span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER

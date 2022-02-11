@@ -4,9 +4,9 @@ require 'datadog/tracing/metadata/ext'
 RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    without_warnings { Datadog::Tracing.configuration.reset! }
+    without_warnings { Datadog.configuration.reset! }
     example.run
-    without_warnings { Datadog::Tracing.configuration.reset! }
+    without_warnings { Datadog.configuration.reset! }
   end
 
   context 'when not configured' do
@@ -170,9 +170,9 @@ RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_glo
   shared_context 'analytics setting' do |analytics_enabled|
     let(:analytics_enabled) { defined?(super) ? super() : analytics_enabled }
 
-    before { Datadog::Tracing.configuration.tracing.analytics.enabled = analytics_enabled }
+    before { Datadog.configuration.tracing.analytics.enabled = analytics_enabled }
 
-    after { without_warnings { Datadog::Tracing.configuration.reset! } }
+    after { without_warnings { Datadog.configuration.reset! } }
   end
 
   context 'when configured by configuration options' do

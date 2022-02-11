@@ -55,7 +55,7 @@ module Datadog
           end
 
           def get_option(option)
-            Tracing.configuration[:graphql].get_option(option)
+            Datadog.configuration[:graphql].get_option(option)
           end
         end
       end

@@ -12,14 +12,14 @@ RSpec.describe 'Redis integration test' do
 
     use_real_tracer!
 
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :redis
     end
   end
 
   after do
-    Datadog::Tracing.registry[:redis].reset_configuration!
-    without_warnings { Datadog::Tracing.configuration.reset! }
+    Datadog.registry[:redis].reset_configuration!
+    without_warnings { Datadog.configuration.reset! }
   end
 
   let(:redis) { Redis.new(host: host, port: port) }

@@ -25,7 +25,7 @@ module Datadog
             end
 
             def configuration
-              Tracing.configuration[:kafka]
+              Datadog.configuration[:kafka]
             end
 
             def process(span, _event, _id, payload)

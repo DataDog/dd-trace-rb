@@ -25,7 +25,7 @@ module Datadog
           end
 
           def get_option(option)
-            Tracing.configuration[:rake].get_option(option)
+            Datadog.configuration[:rake].get_option(option)
           end
         end
       end

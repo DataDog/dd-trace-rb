@@ -24,14 +24,14 @@ RSpec.describe 'net/http requests' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure { |c| c.instrument :http, configuration_options }
+    Datadog.configure { |c| c.instrument :http, configuration_options }
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:http].reset_configuration!
+    Datadog.registry[:http].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:http].reset_configuration!
+    Datadog.registry[:http].reset_configuration!
   end
 
   describe '#get' do
@@ -243,7 +243,7 @@ RSpec.describe 'net/http requests' do
 
     context 'and the host matches a specific configuration' do
       before do
-        Datadog::Tracing.configure do |c|
+        Datadog.configure do |c|
           c.instrument :http, configuration_options
           c.instrument :http, describes: /127.0.0.1/ do |http|
             http.service_name = 'bar'
@@ -365,7 +365,7 @@ RSpec.describe 'net/http requests' do
 
       context 'but the tracer is disabled' do
         before do
-          Datadog::Tracing.configure do |c|
+          Datadog.configure do |c|
             c.tracing.enabled = false
           end
 
@@ -381,12 +381,12 @@ RSpec.describe 'net/http requests' do
 
     context 'when disabled' do
       before do
-        Datadog::Tracing.configure { |c| c.instrument :http, distributed_tracing: false }
+        Datadog.configure { |c| c.instrument :http, distributed_tracing: false }
         client.get(path)
       end
 
       after do
-        Datadog::Tracing.configure { |c| c.instrument :http, distributed_tracing: true }
+        Datadog.configure { |c| c.instrument :http, distributed_tracing: true }
       end
 
       let(:span) { spans.last }

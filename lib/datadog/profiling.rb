@@ -27,54 +27,6 @@ module Datadog
         protobuf_failed_to_load?
     end
 
-    # Apply configuration changes to `Datadog::Profiling`. An example of a {.configure} call:
-    # ```
-    # Datadog::Profiling.configure do |c|
-    #   c.profiling.enabled = true
-    # end
-    # ```
-    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
-    # available environment variables for configuration.
-    #
-    # Only permits access to profiling configuration settings; others will raise an error.
-    # If you wish to configure a global setting, use `Datadog.configure`` instead.
-    # If you wish to configure a setting for a specific Datadog component (e.g. Tracing),
-    # use the corresponding `Datadog::COMPONENT.configure` method instead.
-    #
-    # Because many configuration changes require restarting internal components,
-    # invoking {.configure} is the only safe way to change `ddtrace` configuration.
-    #
-    # Successive calls to {.configure} maintain the previous configuration values:
-    # configuration is additive between {.configure} calls.
-    #
-    # The yielded configuration `c` comes pre-populated from environment variables, if
-    # any are applicable.
-    #
-    # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
-    # available environment variables for configuration.
-    #
-    # Will raise errors if invalid setting is accessed.
-    #
-    # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
-    # @return [void]
-    # @public_api
-    def self.configure(&block)
-      Datadog.configure(&block)
-    end
-
-    # Current profiler configuration.
-    #
-    # Access to non-profiling configuration will raise an error.
-    #
-    # To modify the configuration, use {.configure}.
-    #
-    # @return [Datadog::Core::Configuration::Settings]
-    # @!attribute [r] configuration
-    # @public_api
-    def self.configuration
-      Datadog.configuration
-    end
-
     # Starts the profiler, if the profiler is supported by in
     # this runtime environment and if the profiler has been enabled
     # in configuration.

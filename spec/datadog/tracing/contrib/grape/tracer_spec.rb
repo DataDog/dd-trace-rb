@@ -121,7 +121,7 @@ RSpec.describe 'Grape instrumentation' do
   end
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :rack, configuration_options if with_rack
       c.instrument :grape, configuration_options
     end
@@ -129,11 +129,11 @@ RSpec.describe 'Grape instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:rack].reset_configuration!
-    Datadog::Tracing.registry[:grape].reset_configuration!
+    Datadog.registry[:rack].reset_configuration!
+    Datadog.registry[:grape].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:rack].reset_configuration!
-    Datadog::Tracing.registry[:grape].reset_configuration!
+    Datadog.registry[:rack].reset_configuration!
+    Datadog.registry[:grape].reset_configuration!
   end
 
   context 'without rack' do

@@ -5,16 +5,6 @@ require 'datadog/profiling'
 RSpec.describe Datadog::Profiling do
   extend ConfigurationHelpers
 
-  describe '.configure' do
-    subject(:configure) { described_class.configure(&block) }
-    let(:block) { proc {} }
-
-    it 'delegates to the global configuration' do
-      expect(Datadog).to receive(:configure) { |&b| expect(b).to be_a_kind_of(Proc) }
-      configure
-    end
-  end
-
   describe '.start_if_enabled' do
     subject(:start_if_enabled) { described_class.start_if_enabled }
 

@@ -27,16 +27,16 @@ RSpec.describe 'Mysql2::Client patcher' do
   let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :mysql2, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:mysql2].reset_configuration!
+    Datadog.registry[:mysql2].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:mysql2].reset_configuration!
+    Datadog.registry[:mysql2].reset_configuration!
   end
 
   describe 'tracing' do

@@ -51,7 +51,7 @@ module Datadog
           end
 
           def configuration
-            Tracing.configuration[:que]
+            Datadog.configuration[:que]
           end
         end
       end

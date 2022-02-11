@@ -44,7 +44,7 @@ RSpec.describe 'ActiveJob' do
     end
 
     before do
-      Datadog::Tracing.configure do |c|
+      Datadog.configure do |c|
         c.instrument :active_job
       end
 
@@ -270,7 +270,7 @@ RSpec.describe 'ActiveJob' do
 
       context 'when active_job tracing is also enabled' do
         before do
-          Datadog::Tracing.configure do |c|
+          Datadog.configure do |c|
             c.instrument :active_job
           end
         end

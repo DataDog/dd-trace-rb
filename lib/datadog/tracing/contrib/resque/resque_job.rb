@@ -76,7 +76,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Tracing.configuration[:resque]
+            Datadog.configuration[:resque]
           end
         end
       end
@@ -85,7 +85,7 @@ module Datadog
 end
 
 Resque.after_fork do
-  configuration = Datadog::Tracing.configuration[:resque]
+  configuration = Datadog.configuration[:resque]
   next if configuration.nil?
 
   # Add a pin, marking the job as forked.

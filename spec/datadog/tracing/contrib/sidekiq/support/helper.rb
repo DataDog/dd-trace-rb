@@ -20,7 +20,7 @@ end
 
 module SidekiqTestingConfiguration
   def configure_sidekiq
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :sidekiq
     end
 

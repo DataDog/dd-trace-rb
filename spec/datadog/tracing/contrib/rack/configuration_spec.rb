@@ -13,16 +13,16 @@ RSpec.describe 'Rack integration configuration' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :rack, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:rack].reset_configuration!
+    Datadog.registry[:rack].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:rack].reset_configuration!
+    Datadog.registry[:rack].reset_configuration!
   end
 
   shared_context 'an incoming HTTP request' do
@@ -75,7 +75,7 @@ RSpec.describe 'Rack integration configuration' do
         is_expected.to be_ok
         expect(spans).to have(2).items
 
-        web_service_name = Datadog::Tracing.configuration[:rack][:web_service_name]
+        web_service_name = Datadog.configuration[:rack][:web_service_name]
         expect(queue_span.name).to eq('http_server.queue')
         expect(queue_span.span_type).to eq('proxy')
         expect(queue_span.service).to eq(web_service_name)

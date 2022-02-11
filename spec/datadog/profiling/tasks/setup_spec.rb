@@ -84,7 +84,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
       context 'and profiling is enabled' do
         before do
-          allow(Datadog::Profiling.configuration.profiling)
+          allow(Datadog.configuration.profiling)
             .to receive(:enabled)
             .and_return(true)
         end
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
 
       context 'and profiling is disabled' do
         before do
-          allow(Datadog::Profiling.configuration.profiling)
+          allow(Datadog.configuration.profiling)
             .to receive(:enabled)
             .and_return(false)
         end

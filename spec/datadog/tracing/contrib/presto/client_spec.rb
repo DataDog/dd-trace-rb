@@ -57,28 +57,28 @@ RSpec.describe 'Presto::Client instrumentation' do
   end
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :presto, configuration_options
     end
   end
 
   around do |example|
     without_warnings do
-      Datadog::Tracing.registry[:presto].reset_configuration!
+      Datadog.registry[:presto].reset_configuration!
       example.run
-      Datadog::Tracing.registry[:presto].reset_configuration!
-      Datadog::Tracing.configuration.reset!
+      Datadog.registry[:presto].reset_configuration!
+      Datadog.configuration.reset!
     end
   end
 
   context 'when the tracer is disabled' do
     before do
-      Datadog::Tracing.configure do |c|
+      Datadog.configure do |c|
         c.tracing.enabled = false
       end
     end
 
-    after { Datadog::Tracing.configuration.tracing.reset! }
+    after { Datadog.configuration.tracing.reset! }
 
     it 'does not produce spans' do
       client.run('SELECT 1')

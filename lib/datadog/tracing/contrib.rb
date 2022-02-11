@@ -19,9 +19,9 @@ module Datadog
       # The registered integrations themselves can depend on the stateful configuration
       # of the tracer.
       #
-      # `Datadog::Tracing.registry` is a helper accessor to this constant, but it's only available
+      # `Datadog.registry` is a helper accessor to this constant, but it's only available
       # after the tracer has complete initialization. Use `Datadog::Tracing::Contrib::REGISTRY` instead
-      # of `Datadog::Tracing.registry` when you code might be called during tracer initialization.
+      # of `Datadog.registry` when you code might be called during tracer initialization.
       REGISTRY = Registry.new
     end
   end

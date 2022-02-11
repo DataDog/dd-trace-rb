@@ -14,11 +14,8 @@ require_relative 'dogstatsd_reporter'
 
 class ProfilerSampleLoopBenchmark
   def create_profiler
-    Datadog::Profiling.configure do |c|
+    Datadog.configure do |c|
       c.profiling.enabled = true
-    end
-
-    Datadog::Tracing.configure do |c|
       c.tracing.transport_options = proc { |t| t.adapter :test }
     end
 

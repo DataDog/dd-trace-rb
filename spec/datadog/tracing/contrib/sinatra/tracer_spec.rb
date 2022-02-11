@@ -98,16 +98,16 @@ RSpec.describe 'Sinatra instrumentation' do
   let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :sinatra, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:sinatra].reset_configuration!
+    Datadog.registry[:sinatra].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:sinatra].reset_configuration!
+    Datadog.registry[:sinatra].reset_configuration!
   end
 
   shared_examples 'sinatra examples' do |opts = {}|

@@ -9,7 +9,7 @@ RSpec.describe 'Rails database' do
   let(:database_service) { adapter_name }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :rails
       c.instrument :active_record, service_name: database_service
     end

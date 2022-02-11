@@ -23,7 +23,7 @@ module Datadog
           end
 
           def get_option(option)
-            Tracing.configuration[:active_model_serializers].get_option(option)
+            Datadog.configuration[:active_model_serializers].get_option(option)
           end
         end
       end

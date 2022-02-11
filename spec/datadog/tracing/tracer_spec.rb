@@ -242,7 +242,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         context 'when #report_hostname' do
           context 'is enabled' do
             before do
-              allow(Datadog::Tracing.configuration.tracing).to receive(:report_hostname).and_return(true)
+              allow(Datadog.configuration.tracing).to receive(:report_hostname).and_return(true)
             end
 
             it 'adds a hostname to the trace' do
@@ -253,7 +253,7 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           context 'is disabled' do
-            before { allow(Datadog::Tracing.configuration.tracing).to receive(:report_hostname).and_return(false) }
+            before { allow(Datadog.configuration.tracing).to receive(:report_hostname).and_return(false) }
 
             it 'adds a hostname to the trace' do
               tracer.trace(name) do |_span, trace|

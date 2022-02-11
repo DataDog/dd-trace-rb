@@ -16,16 +16,16 @@ RSpec.describe 'Racecar patcher' do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :racecar, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:racecar].reset_configuration!
+    Datadog.registry[:racecar].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:racecar].reset_configuration!
+    Datadog.registry[:racecar].reset_configuration!
   end
 
   describe 'for both single and batch message processing' do

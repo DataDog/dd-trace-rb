@@ -86,7 +86,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Tracing.configuration[:rest_client]
+              Datadog.configuration[:rest_client]
             end
 
             def analytics_enabled?

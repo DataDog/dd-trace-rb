@@ -25,7 +25,7 @@ module Datadog
             flush.event_groups.each { |event_group| template.add_events!(event_group.event_class, event_group.events) }
 
             Datadog.logger.debug do
-              max_events = Profiling.configuration.profiling.advanced.max_events
+              max_events = Datadog.configuration.profiling.advanced.max_events
               events_sampled =
                 if flush.event_count == max_events
                   'max events limit hit, events were sampled [profile will be biased], '

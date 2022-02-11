@@ -6,7 +6,7 @@ require 'ddtrace'
 
 RSpec.describe 'sucker_punch instrumentation' do
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :sucker_punch
     end
 
@@ -34,9 +34,9 @@ RSpec.describe 'sucker_punch instrumentation' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:sucker_punch].reset_configuration!
+    Datadog.registry[:sucker_punch].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:sucker_punch].reset_configuration!
+    Datadog.registry[:sucker_punch].reset_configuration!
   end
 
   let(:expect_thread?) { true }
