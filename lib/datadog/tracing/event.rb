@@ -43,27 +43,13 @@ module Datadog
 
       def initialize(name)
         @name = name
-        @subscriptions = {}
+        @subscriptions = []
       end
 
-      def subscribe(key, &block)
+      def subscribe(&block)
         raise ArgumentError, 'Must give a block to subscribe!' unless block
 
-        subscriptions[key] = block
-      end
-
-      def wrap(key)
-        raise ArgumentError, 'Must give a block to subscribe!' unless block_given?
-
-        original = subscriptions[key]
-
-        subscriptions[key] = proc do |*args|
-          yield(original, *args)
-        end
-      end
-
-      def unsubscribe(key)
-        subscriptions.delete(key)
+        subscriptions << block
       end
 
       def unsubscribe_all!
@@ -73,11 +59,13 @@ module Datadog
       end
 
       def publish(*args)
-        subscriptions.each do |key, block|
+        subscriptions.each do |block|
           begin
             block.call(*args)
           rescue StandardError => e
-            Datadog.logger.debug { "Error while handling '#{key}' for '#{name}' event: #{e.message}" }
+            Datadog.logger.debug do
+              "Error while handling '#{name}' event with '#{block}': #{e.message} at #{Array(e.backtrace).first}"
+            end
           end
         end
 

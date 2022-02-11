@@ -47,25 +47,25 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
       # after_finish
       allow(callback_spy).to receive(:after_finish)
-      events.after_finish.subscribe(:test) do |*args|
+      events.after_finish.subscribe do |*args|
         callback_spy.after_finish(*args)
       end
 
       # after_stop
       allow(callback_spy).to receive(:after_stop)
-      events.after_stop.subscribe(:test) do |*args|
+      events.after_stop.subscribe do |*args|
         callback_spy.after_stop(*args)
       end
 
       # before_start
       allow(callback_spy).to receive(:before_start)
-      events.before_start.subscribe(:test) do |*args|
+      events.before_start.subscribe do |*args|
         callback_spy.before_start(*args)
       end
 
       # on_error
       allow(callback_spy).to receive(:on_error)
-      events.on_error.subscribe(:test) do |*args|
+      events.on_error.wrap_default do |*args|
         callback_spy.on_error(*args)
       end
     end
@@ -954,10 +954,6 @@ RSpec.describe Datadog::Tracing::SpanOperation::Events do
         on_error: kind_of(described_class::OnError)
       )
     }
-
-    it 'creates a default #on_error event' do
-      expect(events.on_error.subscriptions[:default]).to be(described_class::DEFAULT_ON_ERROR)
-    end
   end
 
   describe '#after_finish' do
@@ -974,7 +970,6 @@ RSpec.describe Datadog::Tracing::SpanOperation::Events do
 
   describe '#on_error' do
     subject(:on_error) { events.on_error }
-    it { is_expected.to be_a_kind_of(Datadog::Tracing::Event) }
-    it { expect(on_error.name).to be(:on_error) }
+    it { is_expected.to respond_to(:publish) }
   end
 end

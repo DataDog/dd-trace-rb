@@ -17,7 +17,6 @@ module Datadog
     module Configuration
       # Global components for the trace library.
       # rubocop:disable Metrics/ClassLength
-      # rubocop:disable Layout/LineLength
       class Components
         class << self
           def build_health_metrics(settings)
@@ -84,7 +83,9 @@ module Datadog
 
           def build_trace_flush(settings)
             if settings.tracing.partial_flush.enabled
-              Tracing::Flush::Partial.new(min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold)
+              Tracing::Flush::Partial.new(
+                min_spans_before_partial_flush: settings.tracing.partial_flush.min_spans_threshold
+              )
             else
               Tracing::Flush::Finished.new
             end
@@ -148,7 +149,7 @@ module Datadog
           def subscribe_to_writer_events!(writer, sampler, test_mode)
             return unless writer.respond_to?(:events) # Check if it's a custom, external writer
 
-            writer.events.after_send.subscribe(:record_environment_information, &WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
+            writer.events.after_send.subscribe(&WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
 
             return unless sampler.is_a?(Tracing::Sampling::PrioritySampler)
 
@@ -159,10 +160,7 @@ module Datadog
             # here to achieve 100% sampling rate.
             return if test_mode
 
-            writer.events.after_send.subscribe(
-              :update_priority_sampler_rates,
-              &writer_update_priority_sampler_rates_callback(sampler)
-            )
+            writer.events.after_send.subscribe(&writer_update_priority_sampler_rates_callback(sampler))
           end
 
           WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
@@ -389,7 +387,6 @@ module Datadog
         end
       end
       # rubocop:enable Metrics/ClassLength
-      # rubocop:enable Layout/LineLength
     end
   end
 end

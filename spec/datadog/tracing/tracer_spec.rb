@@ -518,7 +518,8 @@ RSpec.describe Datadog::Tracing::Tracer do
                 tracer.trace(name, on_error: error_raising_block, &block)
               end.to raise_error(error)
 
-              expect(Datadog.logger).to have_lazy_debug_logged(/Custom on_error handler failed/)
+              expect(Datadog.logger).to have_lazy_debug_logged('Custom on_error handler')
+              expect(Datadog.logger).to have_lazy_debug_logged('span_operation.rb') # Proc declaration location
             end
           end
 

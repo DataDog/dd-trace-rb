@@ -334,18 +334,14 @@ module Datadog
       def bind_trace_events!(trace_op)
         events = trace_op.send(:events)
 
-        unless events.span_before_start.subscriptions[:tracer_span_before_start]
-          events.span_before_start.subscribe(:tracer_span_before_start) do |event_span_op, event_trace_op|
-            event_trace_op.service ||= @default_service
-            event_span_op.service ||= @default_service
-            sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
-          end
+        events.span_before_start.subscribe do |event_span_op, event_trace_op|
+          event_trace_op.service ||= @default_service
+          event_span_op.service ||= @default_service
+          sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
-        unless events.span_finished.subscriptions[:tracer_span_finished]
-          events.span_finished.subscribe(:tracer_span_finished) do |_event_span, event_trace_op|
-            flush_trace(event_trace_op)
-          end
+        events.span_finished.subscribe do |_event_span, event_trace_op|
+          flush_trace(event_trace_op)
         end
       end
 
@@ -373,12 +369,6 @@ module Datadog
         &block
       )
         trace = _trace || start_trace(continue_from: continue_from)
-
-        # Bind trace events: sample trace, set default service, flush spans.
-        # NOTE: This might be redundant sometimes (given #start_trace does this)
-        #       however, it is necessary because the Context/TraceOperation may
-        #       have been provided by a source outside the tracer e.g. OpenTracing
-        bind_trace_events!(trace)
 
         if block
           # Ignore start time if a block has been given
@@ -450,9 +440,17 @@ module Datadog
       def subscribe_trace_deactivation!(context, trace, original_trace)
         # Don't override this event if it's set.
         # The original event should reactivate the original trace correctly.
-        return if trace.send(:events).trace_finished.subscriptions[:tracer_deactivate_trace]
+        #
+        # This happens when multiple manually-activation spans are created:
+        # ```ruby
+        # tracer.trace('parent') do
+        #   span1 = tracer.trace('first') # Registers trace deactivation back to `parent` span.
+        #   span2 = tracer.trace('second') # Tries to register trace deactivation back to `first`, which is not correct.
+        # end
+        # ```
+        return if trace.send(:events).trace_finished.deactivate_trace_subscribed?
 
-        trace.send(:events).trace_finished.subscribe(:tracer_deactivate_trace) do
+        trace.send(:events).trace_finished.subscribe_deactivate_trace do
           context.activate!(original_trace)
         end
       end

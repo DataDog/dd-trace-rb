@@ -137,10 +137,12 @@ module Datadog
 
         # Retrieve Datadog::Context from parent SpanContext.
         datadog_context = parent_span_context.nil? ? Datadog::Tracing::Context.new : parent_span_context.datadog_context
+        datadog_trace_digest = parent_span_context && parent_span_context.datadog_trace_digest
 
         # Build the new Datadog span
         datadog_span = datadog_tracer.trace(
           operation_name,
+          continue_from: datadog_trace_digest,
           _context: datadog_context,
           start_time: start_time,
           tags: tags || {}

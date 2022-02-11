@@ -93,7 +93,7 @@ module Datadog
         @span = nil
 
         # Subscribe :on_error event
-        @events.on_error.wrap_default(on_error) unless on_error.nil?
+        @events.on_error.wrap_default(&on_error) if on_error.is_a?(Proc)
 
         # Start the span with start time, if given.
         start(start_time) if start_time
@@ -352,12 +352,7 @@ module Datadog
         # This event is lazily initialized as error paths
         # are normally less common that non-error paths.
         def on_error
-          @on_error ||= begin
-            event = OnError.new
-            # Set default error behavior
-            event.subscribe(:default, &DEFAULT_ON_ERROR)
-            event
-          end
+          @on_error ||= OnError.new(DEFAULT_ON_ERROR)
         end
 
         # Triggered when the span is finished, regardless of error.
@@ -382,27 +377,44 @@ module Datadog
         end
 
         # Triggered when the span raises an error during measurement.
-        class OnError < Tracing::Event
-          def initialize
-            super(:on_error)
+        class OnError
+          def initialize(default)
+            @handler = default
           end
 
           # Call custom error handler but fallback to default behavior on failure.
-          def wrap_default(error_handler)
-            return unless error_handler && error_handler.is_a?(Proc)
 
-            wrap(:default) do |original, op, error|
+          # DEV: Revisit this before full 1.0 release.
+          # It seems like OnError wants to behave like a middleware stack,
+          # where each "subscriber"'s executed is chained to the previous one.
+          # This is different from how {Tracing::Event} works, and might be incompatible.
+          def wrap_default
+            original = @handler
+
+            @handler = proc do |op, error|
               begin
-                error_handler.call(op, error)
+                yield(op, error)
               rescue StandardError => e
                 Datadog.logger.debug do
-                  "Custom on_error handler failed, using fallback behavior. \
-                  Error: #{e.message} Location: #{e.backtrace.first}"
+                  "Custom on_error handler #{@handler} failed, using fallback behavior. \
+                  Error: #{e.message} Location: #{Array(e.backtrace).first}"
                 end
 
                 original.call(op, error) if original
               end
             end
+          end
+
+          def publish(*args)
+            begin
+              @handler.call(*args)
+            rescue StandardError => e
+              Datadog.logger.debug do
+                "Error in on_error handler '#{@default}': #{e.message} at #{Array(e.backtrace).first}"
+              end
+            end
+
+            true
           end
         end
       end
