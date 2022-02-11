@@ -31,17 +31,82 @@ module Datadog
         end
 
         # Writer methods
-        AppSec::Configuration::DSL.instance_methods(false).each do |met|
-          define_method(met) do |*arg|
-            dsl = AppSec::Configuration::DSL.new
-            dsl.send(met, *arg)
-            @settings.merge(dsl) # `merge` ensures any required side-effects take place
-            arg
-          end
+        def trace_rate_limit=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.trace_rate_limit = arg
+          @settings.merge(dsl)
+        end
+
+        def options(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.options arg
+          @settings.merge(dsl)
+        end
+
+        def instruments(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.instruments arg
+          @settings.merge(dsl)
+        end
+
+        def ruleset=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.ruleset = arg
+          @settings.merge(dsl)
+        end
+
+        def instrument(*args)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.instrument(*args)
+          @settings.merge(dsl)
+        end
+
+        def waf_timeout=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.waf_timeout = arg
+          @settings.merge(dsl)
+        end
+
+        def enabled=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.enabled = arg
+          @settings.merge(dsl)
+        end
+
+        def waf_debug=(arg)
+          dsl = AppSec::Configuration::DSL.new
+          dsl.waf_debug = arg
+          @settings.merge(dsl)
         end
 
         # Reader methods
-        def_delegators :@settings, *AppSec::Configuration::Settings.instance_methods(false)
+        def [](arg)
+          @settings[arg]
+        end
+
+        def ruleset
+          @settings.ruleset
+        end
+
+        def waf_timeout
+          @settings.waf_timeout
+        end
+
+        def enabled
+          @settings.enabled
+        end
+
+        def waf_debug
+          @settings.waf_debug
+        end
+
+        def trace_rate_limit
+          @settings.trace_rate_limit
+        end
+
+        def merge(arg)
+          @settings.merge(arg)
+        end
 
         private
 
