@@ -48,7 +48,7 @@ module Datadog
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
-              add_middleware(app) if Datadog::Tracing.configuration[:rails][:middleware]
+              add_middleware(app) if Datadog.configuration[:rails][:middleware]
             end
           end
 

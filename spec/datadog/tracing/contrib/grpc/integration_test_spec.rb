@@ -8,7 +8,7 @@ RSpec.describe 'gRPC integration test' do
   include GRPCHelper
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :grpc, service_name: 'rspec'
     end
   end

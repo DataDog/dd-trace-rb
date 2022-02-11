@@ -240,7 +240,7 @@ module Datadog
             end
 
             def datadog_configuration
-              Tracing.configuration[:grape]
+              Datadog.configuration[:grape]
             end
           end
         end

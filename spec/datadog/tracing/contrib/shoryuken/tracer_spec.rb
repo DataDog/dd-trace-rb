@@ -12,16 +12,16 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   before do
     Shoryuken.worker_executor = Shoryuken::Worker::InlineExecutor
 
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :shoryuken, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:shoryuken].reset_configuration!
+    Datadog.registry[:shoryuken].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:shoryuken].reset_configuration!
+    Datadog.registry[:shoryuken].reset_configuration!
   end
 
   shared_context 'Shoryuken::Worker' do

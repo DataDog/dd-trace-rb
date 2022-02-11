@@ -14,7 +14,7 @@ module Datadog
           # Instance methods for configuration
           module InstanceMethods
             def custom_options(event)
-              return super unless Tracing.configuration[:lograge].enabled
+              return super unless Datadog.configuration[:lograge].enabled
 
               original_custom_options = super(event)
 

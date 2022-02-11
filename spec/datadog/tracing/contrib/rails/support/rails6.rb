@@ -68,7 +68,7 @@ RSpec.shared_context 'Rails 6 base application' do
         require 'ddtrace/auto_instrument'
       else
         # Enables the auto-instrumentation for the testing application
-        Datadog::Tracing.configure do |c|
+        Datadog.configure do |c|
           c.instrument :rails
           c.instrument :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
         end

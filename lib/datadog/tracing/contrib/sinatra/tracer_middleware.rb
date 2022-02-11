@@ -109,7 +109,7 @@ module Datadog
           end
 
           def configuration
-            Tracing.configuration[:sinatra]
+            Datadog.configuration[:sinatra]
           end
 
           def header_to_rack_header(name)

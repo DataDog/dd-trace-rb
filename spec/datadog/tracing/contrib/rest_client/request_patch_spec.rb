@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :rest_client, configuration_options
     end
 
@@ -26,9 +26,9 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:rest_client].reset_configuration!
+    Datadog.registry[:rest_client].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:rest_client].reset_configuration!
+    Datadog.registry[:rest_client].reset_configuration!
   end
 
   describe 'instrumented request' do

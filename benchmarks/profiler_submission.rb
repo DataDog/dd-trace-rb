@@ -28,11 +28,8 @@ class ProfilerSubmission
   def create_profiler
     @adapter_buffer = []
 
-    Datadog::Profiling.configure do |c|
+    Datadog.configure do |c|
       c.profiling.enabled = true
-    end
-
-    Datadog::Tracing.configure do |c|
       c.tracing.transport_options = proc { |t| t.adapter :test, @adapter_buffer }
     end
 

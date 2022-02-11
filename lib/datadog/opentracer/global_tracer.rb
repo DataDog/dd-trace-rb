@@ -7,7 +7,7 @@ module Datadog
         super.tap do
           if tracer.class <= Datadog::OpenTracer::Tracer
             # Update the Datadog global tracer, too.
-            Datadog::Tracing.configure { |c| c.tracing.instance = tracer.datadog_tracer }
+            Datadog.configure { |c| c.tracing.instance = tracer.datadog_tracer }
           end
         end
       end

@@ -27,7 +27,7 @@ module Datadog
             end
 
             def configuration
-              Tracing.configuration[:action_cable]
+              Datadog.configuration[:action_cable]
             end
           end
         end

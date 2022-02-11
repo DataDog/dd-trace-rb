@@ -126,23 +126,6 @@ RSpec.describe Datadog::Tracing do
     end
   end
 
-  describe '.registry' do
-    subject(:registry) { described_class.registry }
-    it 'returns the global registry' do
-      expect(registry).to eq(Datadog::Tracing::Contrib::REGISTRY)
-    end
-  end
-
-  describe '.configure' do
-    subject(:configure) { described_class.configure(&block) }
-    let(:block) { proc {} }
-
-    it 'delegates to the global configuration' do
-      expect(Datadog).to receive(:configure) { |&b| expect(b).to be_a_kind_of(Proc) }
-      configure
-    end
-  end
-
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
     it 'delegates to the tracer' do

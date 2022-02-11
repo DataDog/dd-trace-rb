@@ -15,16 +15,16 @@ RSpec.describe 'tracing on the client connection' do
   let(:port) { 0 }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :grpc, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:grpc].reset_configuration!
+    Datadog.registry[:grpc].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:grpc].reset_configuration!
+    Datadog.registry[:grpc].reset_configuration!
   end
 
   context 'using client-specific configurations' do

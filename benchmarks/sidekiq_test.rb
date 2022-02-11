@@ -103,7 +103,7 @@ class Worker
 end
 
 
-Datadog::Tracing.configure do |d|
+Datadog.configure do |d|
   d.instrument :rails, enabled: true, tags: { 'tag' => 'value' }
   d.instrument :http
   d.instrument :sidekiq, service_name: 'service'

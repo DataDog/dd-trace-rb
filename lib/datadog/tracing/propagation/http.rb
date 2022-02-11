@@ -35,7 +35,7 @@ module Datadog
           digest = digest.to_digest if digest.is_a?(TraceOperation)
 
           # Inject all configured propagation styles
-          Tracing.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
+          Datadog.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
             propagator = PROPAGATION_STYLES[style]
             begin
               propagator.inject!(digest, env) unless propagator.nil?
@@ -54,7 +54,7 @@ module Datadog
           trace_digest = nil
           dd_trace_digest = nil
 
-          Tracing.configuration.tracing.distributed_tracing.propagation_extract_style.each do |style|
+          Datadog.configuration.tracing.distributed_tracing.propagation_extract_style.each do |style|
             propagator = PROPAGATION_STYLES[style]
             next if propagator.nil?
 

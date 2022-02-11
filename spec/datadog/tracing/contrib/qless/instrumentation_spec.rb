@@ -15,16 +15,16 @@ RSpec.describe 'Qless instrumentation' do
     delete_all_redis_keys
 
     # Patch Qless
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :qless, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:qless].reset_configuration!
+    Datadog.registry[:qless].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:qless].reset_configuration!
+    Datadog.registry[:qless].reset_configuration!
   end
 
   shared_examples 'job execution tracing' do

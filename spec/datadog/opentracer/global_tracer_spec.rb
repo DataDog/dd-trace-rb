@@ -10,7 +10,7 @@ RSpec.describe Datadog::OpenTracer::GlobalTracer do
     describe '#global_tracer=' do
       subject(:global_tracer) { OpenTracing.global_tracer = tracer }
 
-      after { Datadog::Tracing.configuration.tracing.instance = Datadog::Tracing::Tracer.new }
+      after { Datadog.configuration.tracing.instance = Datadog::Tracing::Tracer.new }
 
       context 'when given a Datadog::OpenTracer::Tracer' do
         let(:tracer) { Datadog::OpenTracer::Tracer.new }

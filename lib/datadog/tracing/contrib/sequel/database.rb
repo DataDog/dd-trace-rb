@@ -24,7 +24,7 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_QUERY) do |span|
                 span.service =  Datadog.configuration_for(self, :service_name) \
-                                || Tracing.configuration[:sequel][:service_name] \
+                                || Datadog.configuration[:sequel][:service_name] \
                                 || adapter_name
                 span.resource = opts[:query]
                 span.span_type = Tracing::Metadata::Ext::SQL::TYPE

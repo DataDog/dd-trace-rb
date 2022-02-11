@@ -67,7 +67,7 @@ module Datadog
             end
 
             def datadog_configuration
-              Tracing.configuration[:redis, options]
+              Datadog.configuration[:redis, options]
             end
           end
         end

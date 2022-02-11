@@ -92,7 +92,7 @@ module Datadog
 
         # @return [Boolean, nil]
         def enabled
-          Tracing.configuration.tracing.enabled
+          Datadog.configuration.tracing.enabled
         end
 
         # @return [String] configured application service name
@@ -130,12 +130,12 @@ module Datadog
 
         # @return [Boolean, nil] analytics enabled in configuration
         def analytics_enabled
-          !!Tracing.configuration.tracing.analytics.enabled
+          !!Datadog.configuration.tracing.analytics.enabled
         end
 
         # @return [Numeric, nil] tracer sample rate configured
         def sample_rate
-          sampler = Tracing.configuration.tracing.sampler
+          sampler = Datadog.configuration.tracing.sampler
           return nil unless sampler
 
           sampler.sample_rate(nil) rescue nil
@@ -148,7 +148,7 @@ module Datadog
         #
         # @return [Hash, nil] sample rules configured
         def sampling_rules
-          sampler = Tracing.configuration.tracing.sampler
+          sampler = Datadog.configuration.tracing.sampler
           return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
                             sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
 
@@ -203,12 +203,12 @@ module Datadog
 
         # @return [Boolean, nil] partial flushing enabled in configuration
         def partial_flushing_enabled
-          !!Tracing.configuration.tracing.partial_flush.enabled
+          !!Datadog.configuration.tracing.partial_flush.enabled
         end
 
         # @return [Boolean, nil] priority sampling enabled in configuration
         def priority_sampling_enabled
-          !!Tracing.configuration.tracing.priority_sampling
+          !!Datadog.configuration.tracing.priority_sampling
         end
 
         # @return [Boolean, nil] health metrics enabled in configuration
@@ -256,7 +256,7 @@ module Datadog
         private
 
         def instrumented_integrations
-          Tracing.configuration.instrumented_integrations
+          Datadog.configuration.instrumented_integrations
         end
 
         # Capture all active integration settings into "integrationName_settingName: value" entries.

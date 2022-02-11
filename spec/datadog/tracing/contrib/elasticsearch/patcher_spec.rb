@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :elasticsearch, configuration_options
     end
 
@@ -24,9 +24,9 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:elasticsearch].reset_configuration!
+    Datadog.registry[:elasticsearch].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:elasticsearch].reset_configuration!
+    Datadog.registry[:elasticsearch].reset_configuration!
   end
 
   describe 'cluster health request' do

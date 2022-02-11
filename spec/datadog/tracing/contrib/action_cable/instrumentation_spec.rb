@@ -33,7 +33,7 @@ RSpec.describe 'ActionCable Rack override' do
   end
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :rails, options
       c.instrument :action_cable, options
     end

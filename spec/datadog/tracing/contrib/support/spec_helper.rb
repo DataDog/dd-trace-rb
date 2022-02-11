@@ -22,6 +22,6 @@ RSpec.configure do |config|
   # +expect(Datadog).to receive(:shutdown!).once+
   config.before do
     Datadog.shutdown!
-    without_warnings { Datadog::Tracing.configuration.reset! }
+    without_warnings { Datadog.configuration.reset! }
   end
 end

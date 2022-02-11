@@ -34,57 +34,6 @@ module Datadog
         Datadog.logger
       end
 
-      # Current tracer configuration.
-      #
-      # Access to non-tracer configuration will raise an error.
-      #
-      # To modify the configuration, use {.configure}.
-      #
-      # @return [Datadog::Core::Configuration::Settings]
-      # @!attribute [r] configuration
-      # @public_api
-      def configuration
-        Datadog.configuration
-      end
-
-      # Apply configuration changes to `Datadog::Tracing`. An example of a {.configure} call:
-      # ```
-      # Datadog::Tracing.configure do |c|
-      #   c.tracing.sampling.default_rate = 1.0
-      #   c.instrument :aws
-      #   c.instrument :rails
-      #   c.instrument :sidekiq
-      # end
-      # ```
-      # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
-      # available environment variables for configuration.
-      #
-      # Only permits access to tracing configuration settings; others will raise an error.
-      # If you wish to configure a global setting, use `Datadog.configure`` instead.
-      # If you wish to configure a setting for a specific Datadog component (e.g. Profiling),
-      # use the corresponding `Datadog::COMPONENT.configure` method instead.
-      #
-      # Because many configuration changes require restarting internal components,
-      # invoking {.configure} is the only safe way to change `ddtrace` configuration.
-      #
-      # Successive calls to {.configure} maintain the previous configuration values:
-      # configuration is additive between {.configure} calls.
-      #
-      # The yielded configuration `c` comes pre-populated from environment variables, if
-      # any are applicable.
-      #
-      # See {Datadog::Core::Configuration::Settings} for all available options, defaults, and
-      # available environment variables for configuration.
-      #
-      # Will raise errors if invalid setting is accessed.
-      #
-      # @yieldparam [Datadog::Core::Configuration::Settings] c the mutable configuration object
-      # @return [void]
-      # @public_api
-      def configure(&block)
-        Datadog.configure(&block)
-      end
-
       # (see Datadog::Tracing::Tracer#active_trace)
       # @public_api
       def active_trace

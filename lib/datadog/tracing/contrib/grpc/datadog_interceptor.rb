@@ -41,7 +41,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Tracing.configuration[:grpc]
+              Datadog.configuration[:grpc]
             end
 
             def service_name
@@ -80,7 +80,7 @@ module Datadog
                 define_method(option) do
                   return @options[option] if @options.key?(option)
 
-                  Tracing.configuration[:grpc][option]
+                  Datadog.configuration[:grpc][option]
                 end
               end
 

@@ -27,8 +27,8 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   before do
-    Datadog::Tracing.configuration[:rails].reset_options!
-    Datadog::Tracing.configure do |c|
+    Datadog.configuration[:rails].reset_options!
+    Datadog.configure do |c|
       c.instrument :rails
       c.tracing.log_injection = log_injection
     end
@@ -37,8 +37,8 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   after do
-    Datadog::Tracing.configuration[:rails].reset_options!
-    Datadog::Tracing.configuration[:semantic_logger].reset_options!
+    Datadog.configuration[:rails].reset_options!
+    Datadog.configuration[:semantic_logger].reset_options!
   end
 
   context 'with log injection enabled', if: Rails.version >= '4.0' do
@@ -59,9 +59,6 @@ RSpec.describe 'Rails Log Auto Injection' do
           c.env = test_env
           c.version = test_version
           c.service = test_service
-        end
-
-        Datadog::Tracing.configure do |c|
           c.instrument :rails
           c.tracing.log_injection = log_injection
         end
@@ -122,7 +119,7 @@ RSpec.describe 'Rails Log Auto Injection' do
     let(:test_service) { 'test-service' }
 
     before do
-      Datadog::Tracing.configuration[:semantic_logger].enabled = false
+      Datadog.configuration[:semantic_logger].enabled = false
     end
 
     context 'with Semantic Logger' do
@@ -135,9 +132,6 @@ RSpec.describe 'Rails Log Auto Injection' do
           c.env = test_env
           c.version = test_version
           c.service = test_service
-        end
-
-        Datadog::Tracing.configure do |c|
           c.instrument :rails
           c.tracing.log_injection = log_injection
         end

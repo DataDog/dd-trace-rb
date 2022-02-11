@@ -21,7 +21,7 @@ RSpec.describe 'ActiveModelSerializers patcher' do
     # Supress active_model_serializers log output in the test run
     ActiveModelSerializersHelpers.disable_logging
 
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :active_model_serializers, configuration_options
     end
 
@@ -30,9 +30,9 @@ RSpec.describe 'ActiveModelSerializers patcher' do
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:active_model_serializers].reset_configuration!
+    Datadog.registry[:active_model_serializers].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:active_model_serializers].reset_configuration!
+    Datadog.registry[:active_model_serializers].reset_configuration!
   end
 
   describe 'on render' do

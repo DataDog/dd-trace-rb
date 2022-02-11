@@ -45,7 +45,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:tracer) { Datadog::Tracing.send(:tracer) }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.tracing.writer = writer
     end
   end

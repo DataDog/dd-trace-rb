@@ -47,7 +47,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Tracing.configuration[:dalli, "#{hostname}:#{port}"]
+              Datadog.configuration[:dalli, "#{hostname}:#{port}"]
             end
           end
         end

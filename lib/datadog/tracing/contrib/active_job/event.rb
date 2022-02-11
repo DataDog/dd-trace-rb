@@ -23,7 +23,7 @@ module Datadog
             end
 
             def configuration
-              Tracing.configuration[:active_job]
+              Datadog.configuration[:active_job]
             end
 
             def set_common_tags(span, payload)

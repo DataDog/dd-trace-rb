@@ -120,7 +120,7 @@ module Datadog
             end
 
             def datadog_configuration(host = :default)
-              Tracing.configuration[:http, host]
+              Datadog.configuration[:http, host]
             end
 
             def analytics_enabled?(request_options)

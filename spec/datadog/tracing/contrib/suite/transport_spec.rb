@@ -26,7 +26,7 @@ require 'ddtrace/transport/io'
 RSpec.describe 'transport with integrations' do
   describe 'when sending traces' do
     before do
-      Datadog::Tracing.configure do |c|
+      Datadog.configure do |c|
         # Activate all outbound integrations...
         # Although the transport by default only uses Net/HTTP
         # its possible for other adapters to be used instead.

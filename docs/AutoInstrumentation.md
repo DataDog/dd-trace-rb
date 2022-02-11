@@ -27,7 +27,7 @@ require 'ddtrace/auto_instrument'
 ## Additional configuration
 
 You can reconfigure, override, or disable any specific integration settings by adding
-a [`Datadog::Tracing.configure`](GettingStarted.md#integration-instrumentation) call after `ddtrace/auto_instrument` is activated.
+a [`Datadog.configure`](GettingStarted.md#integration-instrumentation) call after `ddtrace/auto_instrument` is activated.
 
 ## Custom integrations
 

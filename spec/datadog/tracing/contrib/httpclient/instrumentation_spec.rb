@@ -52,16 +52,16 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
   let(:configuration_options) { {} }
 
   before do
-    Datadog::Tracing.configure do |c|
+    Datadog.configure do |c|
       c.instrument :httpclient, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog::Tracing.registry[:httpclient].reset_configuration!
+    Datadog.registry[:httpclient].reset_configuration!
     example.run
-    Datadog::Tracing.registry[:httpclient].reset_configuration!
+    Datadog.registry[:httpclient].reset_configuration!
   end
 
   describe 'instrumented request' do
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
 
           context 'and the host matches a specific configuration' do
             before do
-              Datadog::Tracing.configure do |c|
+              Datadog.configure do |c|
                 c.instrument :httpclient, describes: /localhost/ do |httpclient|
                   httpclient.service_name = 'bar'
                   httpclient.split_by_domain = false

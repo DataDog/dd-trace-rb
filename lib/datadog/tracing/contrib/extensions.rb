@@ -18,8 +18,8 @@ module Datadog
       # Most of this file should probably live inside the tracer core.
       module Extensions
         def self.extend!
-          Tracing.singleton_class.prepend Helpers
-          Tracing.singleton_class.prepend Configuration
+          Datadog.singleton_class.prepend Helpers
+          Datadog.singleton_class.prepend Configuration
           Core::Configuration::Settings.include Configuration::Settings
         end
 
@@ -33,7 +33,7 @@ module Datadog
           # Integrations registered in the {.registry} can be activated as follows:
           #
           # ```
-          # Datadog::Tracing.configure do |c|
+          # Datadog.configure do |c|
           #   c.instrument :my_registered_integration, **my_options
           # end
           # ```
@@ -103,9 +103,9 @@ module Datadog
             # How the matching is performed is integration-specific.
             #
             # @example
-            #   Tracing.configuration[:integration_name]
+            #   Datadog.configuration[:integration_name]
             # @example
-            #   Tracing.configuration[:integration_name][:sub_configuration]
+            #   Datadog.configuration[:integration_name][:sub_configuration]
             # @param [Symbol] integration_name the integration name
             # @param [Object] key the integration-specific lookup key
             # @return [Datadog::Tracing::Contrib::Configuration::Settings]

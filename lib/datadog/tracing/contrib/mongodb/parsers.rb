@@ -40,7 +40,7 @@ module Datadog
         end
 
         def configuration
-          Tracing.configuration[:mongo]
+          Datadog.configuration[:mongo]
         end
       end
     end
