@@ -32,7 +32,7 @@ RSpec.describe 'Tracer configuration' do
 
     context 'with custom error handler' do
       let(:job_class) { ErrorWorker }
-      let(:error_handler) { proc {} }
+      let(:error_handler) { proc { @error_handler_called = true } }
 
       before do
         stub_const('ErrorWorker', Class.new do
@@ -45,8 +45,8 @@ RSpec.describe 'Tracer configuration' do
       end
 
       it 'uses custom error handler' do
-        expect(error_handler).to receive(:call)
         expect { perform_async }.to raise_error
+        expect(@error_handler_called).to be_truthy
       end
     end
   end

@@ -85,7 +85,7 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
     context 'when job fails' do
       let(:configuration_options) { { error_handler: error_handler } }
-      let(:error_handler) { proc {} }
+      let(:error_handler) { proc { @error_handler_called = true } }
 
       let(:sample_job_object) do
         stub_const('SampleJob', Class.new do
@@ -96,8 +96,8 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
       end
 
       it 'uses custom error handler' do
-        expect(error_handler).to receive(:call)
         expect { job_run }.to raise_error
+        expect(@error_handler_called).to be_truthy
       end
     end
 

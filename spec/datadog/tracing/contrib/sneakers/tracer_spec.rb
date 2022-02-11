@@ -120,14 +120,14 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Tracer do
 
     context 'with custom error handler' do
       let(:configuration_options) { super().merge(error_handler: error_handler) }
-      let(:error_handler) { proc {} }
+      let(:error_handler) { proc { @error_handler_called = true } }
 
       let(:worker) { FailingMiddlewareWorker.new(queue, Concurrent::ImmediateExecutor.new) }
       let(:queue_name) { 'failing-middleware-demo' }
 
       it 'uses custom error handler' do
-        expect(error_handler).to receive(:call)
         call
+        expect(@error_handler_called).to be_truthy
       end
     end
   end

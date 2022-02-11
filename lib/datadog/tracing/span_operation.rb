@@ -388,9 +388,7 @@ module Datadog
           # It seems like OnError wants to behave like a middleware stack,
           # where each "subscriber"'s executed is chained to the previous one.
           # This is different from how {Tracing::Event} works, and might be incompatible.
-          def wrap_default(&error_handler)
-            return unless error_handler
-
+          def wrap_default
             original = @handler
 
             @handler = proc do |op, error|
