@@ -17,6 +17,19 @@ module Datadog
         :spans,
         :tags
 
+      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
+        # Ensures #initialize can call nil.dup safely
+        module RefineNil
+          refine NilClass do
+            def dup
+              self
+            end
+          end
+        end
+
+        using RefineNil
+      end
+
       def initialize(
         spans,
         agent_sample_rate: nil,
@@ -54,12 +67,6 @@ module Datadog
         self.sample_rate = sample_rate
         self.sampling_priority = sampling_priority
         self.service = (service.frozen? ? service : service.dup)
-      end
-
-      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
-        def nil.dup
-          self
-        end
       end
 
       def any?

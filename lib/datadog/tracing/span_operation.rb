@@ -418,6 +418,19 @@ module Datadog
         :parent,
         :span
 
+      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
+        # Ensures #initialize can call nil.dup safely
+        module RefineNil
+          refine NilClass do
+            def dup
+              self
+            end
+          end
+        end
+
+        using RefineNil
+      end
+
       # Create a Span from the operation which represents
       # the finalized measurement. We #dup here to prevent
       # mutation by reference; when this span is returned,
@@ -438,12 +451,6 @@ module Datadog
           type: @type.frozen? ? @type : @type.dup,
           trace_id: @trace_id
         )
-      end
-
-      if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
-        def nil.dup
-          self
-        end
       end
 
       # Set this span's parent, inheriting any properties not explicitly set.
