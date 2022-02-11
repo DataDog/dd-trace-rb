@@ -93,7 +93,7 @@ module Datadog
         @span = nil
 
         # Subscribe :on_error event
-        @events.on_error.wrap_default(on_error) unless on_error.nil?
+        @events.on_error.wrap_default(&on_error) if on_error.is_a?(Proc)
 
         # Start the span with start time, if given.
         start(start_time) if start_time
@@ -377,12 +377,9 @@ module Datadog
         end
 
         # Triggered when the span raises an error during measurement.
-        class OnError < Tracing::Event
+        class OnError
           def initialize(default)
-            super(:on_error)
-
-            @default = default
-            subscribe(&default)
+            @handler = default
           end
 
           # Call custom error handler but fallback to default behavior on failure.
@@ -391,22 +388,33 @@ module Datadog
           # It seems like OnError wants to behave like a middleware stack,
           # where each "subscriber"'s executed is chained to the previous one.
           # This is different from how {Tracing::Event} works, and might be incompatible.
-          def wrap_default(error_handler)
-            return unless error_handler && error_handler.is_a?(Proc)
+          def wrap_default(&error_handler)
+            return unless error_handler
 
-            unsubscribe_all!
-            subscribe do |op, error|
+            original = @handler
+
+            @handler = proc do |op, error|
               begin
-                error_handler.call(op, error)
+                yield(op, error)
               rescue StandardError => e
                 Datadog.logger.debug do
                   "Custom on_error handler failed, using fallback behavior. \
                   Error: #{e.message} Location: #{e.backtrace.first}"
                 end
 
-                @default.call(op, error) if @default
+                original.call(op, error) if original
               end
             end
+          end
+
+          def publish(*args)
+            begin
+              @handler.call(*args)
+            rescue StandardError => e
+              Datadog.logger.debug { "Error on error handler '#{@default}': #{e.message}" }
+            end
+
+            true
           end
         end
       end

@@ -65,7 +65,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
       # on_error
       allow(callback_spy).to receive(:on_error)
-      events.on_error.subscribe do |*args|
+      events.on_error.wrap_default do |*args|
         callback_spy.on_error(*args)
       end
     end
@@ -970,7 +970,6 @@ RSpec.describe Datadog::Tracing::SpanOperation::Events do
 
   describe '#on_error' do
     subject(:on_error) { events.on_error }
-    it { is_expected.to be_a_kind_of(Datadog::Tracing::Event) }
-    it { expect(on_error.name).to be(:on_error) }
+    it { is_expected.to respond_to(:publish) }
   end
 end

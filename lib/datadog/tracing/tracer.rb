@@ -370,12 +370,6 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
-        # Bind trace events: sample trace, set default service, flush spans.
-        # NOTE: This might be redundant sometimes (given #start_trace does this)
-        #       however, it is necessary because the Context/TraceOperation may
-        #       have been provided by a source outside the tracer e.g. OpenTracing
-        # bind_trace_events!(trace) # Pending OpenTracing PR
-
         if block
           # Ignore start time if a block has been given
           trace.measure(
