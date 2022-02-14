@@ -99,12 +99,32 @@ Datadog.configure do |c|
 end
 ```
 
-List of all settings that changed:
+*List of all settings that changed:*
 
- - `ci_mode` --> `ci.enabled`
- - `tracer.hostname` --> `agent.hostname`
- - `tracer.port` --> `agent.port`
- - **TODO: Add more here!**
+| 0.x setting                            | 1.0 setting                   |
+|----------------------------------------|-------------------------------|
+| `analytics.enabled`                    | `tracing.analytics.enabled`   |
+| `ci_mode.context_flush`                | `ci.context_flush`            |
+| `ci_mode.enabled`                      | `ci.enabled`                  |
+| `ci_mode.writer_options`               | `ci.writer_options`           |
+| `distributed_tracing`                  | `tracing.distributed_tracing` |
+| `logger=`                              | `logger.instance=`            |
+| `profiling.exporter.transport_options` | Removed                       |
+| `report_hostname`                      | `tracing.report_hostname`     |
+| `runtime_metrics_enabled`              | `runtime_metrics.enabled`     |
+| `runtime_metrics(options)`             | Removed                       |
+| `sampling`                             | `tracing.sampling`            |
+| `test_moade`                           | `tracing.test_mode`           |
+| `tracer.enabled`                       | `tracing.enabled`             |
+| `tracer.hostname`                      | `agent.hostname`              |
+| `tracer.instance`                      | `tracing.instance`            |
+| `tracer.partial_flush`                 | `tracing.partial_flush`       |
+| `tracer.port`                          | `agent.port`                  |
+| `tracer.sampler`                       | `tracing.sampler`             |
+| `tracer.transport_options`             | `tracing.transport_options`   |
+| `tracer.writer`                        | `tracing.writer`              |
+| `tracer.writer_options`                | `tracing.writer_options`      |
+
 
 ### Activating instrumentation
 
