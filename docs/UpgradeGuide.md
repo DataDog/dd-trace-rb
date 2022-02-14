@@ -36,20 +36,15 @@ Use of some of the functions in this API will be described in use cases below. W
 
 ## Configuration
 
-### Settings have been split
+### Settings have been namespaced
 
-Configuration settings have been split into smaller configuration groups.
+Configuration settings have been sorted into smaller configuration groups, by product.
 
- - `Datadog::Tracing.configure`: Trace configuration settings (e.g. `distributed_tracing`, `instrument`, etc.)
- - `Datadog::Profiling.configure`: Profiling configuration settings (e.g. `profiling`)
- - `Datadog::CI.configure`: CI configuration settings (e.g. `ci_mode`)
- - `Datadog.configure`: Global configuration settings (e.g. `service`, `env`, etc.)
+ - `Datadog.configure { |c| c.tracing }`: Trace configuration settings
+ - `Datadog.configure { |c| c.profiling }`: Profiling configuration settings
+ - `Datadog.configure { |c| c.ci }`: CI configuration settings
 
-Likewise, `Datadog.configuration` has been split the same way.
-
-You must access/modify settings in the appropriate namespace, or an error will be raised. See the [`Settings` documentation]() for a list settings and their assigned namespaces.
-
-Existing applications should update their configuration files and split their settings accordingly. For example:
+Existing applications should update their configuration files and settings accordingly. For example:
 
 ```ruby
 # config/initializers/datadog.rb
@@ -57,41 +52,59 @@ require 'ddtrace'
 
 ### Old 0.x ###
 Datadog.configure do |c|
-  c.service = 'billing-api'
+  # Global settings
   c.diagnostics.debug = true
+  c.service = 'billing-api'
 
+  # Profiling settings
+  c.profiling.enabled = true
+
+  # Tracer settings
   c.analytics.enabled = true
   c.runtime_metrics.enabled = true
+  c.tracer.hostname = '127.0.0.1'
+  c.tracer.port = 8126
 
+  # CI settings
+  c.ci_mode = (ENV['DD_ENV'] == 'ci')
+
+  # Instrumentation
   c.instrument :rails
   c.instrument :redis, service_name: 'billing-redis'
   c.instrument :resque
-
-  c.profiling.enabled = true
 end
 
 ### New 1.0 ###
-# Global settings only
 Datadog.configure do |c|
-  c.service = 'billing-api'
+  # Global settings
+  c.agent.hostname = '127.0.0.1'
+  c.agent.port = 8126
   c.diagnostics.debug = true
-end
+  c.service = 'billing-api'
 
-# Trace settings only
-Datadog::Tracing.configure do |c|
-  c.analytics.enabled = true
-  c.runtime_metrics.enabled = true
+  # Profiling settings
+  c.profiling.enabled = true
 
+  # Tracer settings
+  c.tracing.analytics.enabled = true
+  c.tracing.runtime_metrics.enabled = true
+
+  # CI settings
+  c.ci.enabled = (ENV['DD_ENV'] == 'ci')
+
+  # Instrumentation
   c.instrument :rails
   c.instrument :redis, service_name: 'billing-redis'
   c.instrument :resque
 end
-
-# Profiling settings only
-Datadog::Profiling.configure do |c|
-  c.profiling.enabled = true
-end
 ```
+
+List of all settings that changed:
+
+ - `ci_mode` --> `ci.enabled`
+ - `tracer.hostname` --> `agent.hostname`
+ - `tracer.port` --> `agent.port`
+ - **TODO: Add more here!**
 
 ### Activating instrumentation
 
@@ -104,7 +117,7 @@ Datadog.configure do |c|
 end
 
 ### New 1.0 ###
-Datadog::Tracing.configure do |c|
+Datadog.configure do |c|
   c.instrument :rails
 end
 ```
@@ -296,6 +309,8 @@ Many of the functions accessed directly through `Datadog.tracer` have been moved
 Direct usage of `Datadog::Context` has been removed. Previously, it was used to modify or access active trace state. Most of these use cases have been replaced by `TraceOperation` and have been given new APIs.
 
 ## Full list of breaking changes
+
+**TODO: Replace with table instead**
 
 ### General
 
