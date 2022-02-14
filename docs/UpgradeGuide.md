@@ -314,16 +314,25 @@ Direct usage of `Datadog::Context` has been removed. Previously, it was used to 
 
 ### General
 
+- **Removed**: Tracer transport v0.2. Use transport v0.4 instead, which is the default.
+
 ### Configuration
 
 - **Changed**: `Datadog.configure` raises errors if you attempt to configure non-global settings. Use `Datadog::Tracing.configure`, `Datadog::Profiling.configure`, or `Datadog::CI.configure` when appropriate.
 - **Changed**: `Datadog.configuration` raises errors if you attempt to access non-global settings. Use `Datadog::Tracing.configuration`, `Datadog::Profiling.configuration`, or `Datadog::CI.configuration` when appropriate.
-- **Removed**: `Datadog.tracer`. Use methods in `Datadog::Tracing` instead.
-- **Removed**: `Datadog.configure_onto`. Use `Datadog::Tracing.configure_onto` instead.
+- **Removed**: `Datadog.tracer` instance. Use methods in `Datadog::Tracing` instead.
+- **Removed**: `Datadog.configure(client, options)`. Use `Datadog::Tracing.configure_onto(client, options)` instead.
 - **Removed**: `#use` option. Use `#instrument` instead.
+- **Changed**: `DD_PROPAGATION_INJECT_STYLE` and `DD_PROPAGATION_EXTRACT_STYLE` environment variables renamed to `DD_PROPAGATION_STYLE_INJECT` and `DD_PROPAGATION_STYLE_EXTRACT`, respectively.
+- **Changed**: `DD_#{integration}_ANALYTICS_ENABLED` and `DD_#{integration}_ANALYTICS_SAMPLE_RATE` environment variables renamed to `DD_TRACE_#{integration}_ANALYTICS_ENABLED` and `DD_TRACE_#{integration}_ANALYTICS_SAMPLE_RATE`, respectively, for all integrations. For example, `DD_GRPC_ANALYTICS_ENABLED` and `DD_GRPC_ANALYTICS_SAMPLE_RATE` are renamed to `DD_TRACE_GRPC_ANALYTICS_ENABLED` and `DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE`.
+- **Removed**: `c.analytics_enabled` option. Use `c.analytics.enabled` instead.
+- **Removed**: `c.tracer option: value` keyword options. Use `c.tracing.option = value` instead.
+- **Removed**: `c.logger = custom_object` keyword options. Use `c.logger.instance = custom_object` instead.
+- **Removed**: Unused profiler configuration `c.profiling.exporter.transport_options`.
 
 ### Integrations
 
+- **Changed**: Rails: Trace-Logging correlation is enabled by default. Can be disabled using the environment variable `DD_LOGS_INJECTION=false`.
 - **Changed**: `Datadog::Ext::Integration` to `Datadog::Ext::Metadata`
 - **Changed**: The `service_name` option from each integration uses the default service name, unless it represents an external service. Users should set `c.service` or `DD_SERVICE` to configure the service name for these integrations. `service_name` for all integrations can still be configured.
   - For embedded processes like "sidekiq", when users want to distinguish these processes as different services, they should set a different `DD_SERVICE` when starting that process, or add logic to their `Datadog.configure` block to determine and set `c.service` when the process loads.
@@ -331,9 +340,15 @@ Direct usage of `Datadog::Context` has been removed. Previously, it was used to 
 - **Removed**: Active Model Serializers: service name configuration.
 - **Removed**: ConcurrentRuby: unused option `service_name`.
 - **Changed**: Presto: `out.host` tag now contains only client hostname. Before it contained `"#{hostname}:#{port}"`.
+- **Removed**: Rails: 3.0 and 3.1 support. Rails 3.2 or newer continue to be supported.
 - **Removed**: Rails: service name propagation to sub-components (e.g. `c.use :rails, cache_service: 'my-cache'`).
 - **Removed**: Rails: Sub-components service name options are now consistently called `:service_name`.
 - **Removed**: Rails: `orm_service_name` option.
+- **Removed**: Rails: `log_injection` option. Use global `c.log_injection` instead.
+- **Removed**: ActiveJob: `log_injection` option. Use global `c.log_injection` instead.
+- **Removed**: Resque: `workers` option. All Resque workers are now automatically instrumented.
+- **Removed**: `tracer` integration option. All integrations now use the global tracer instance.
+- **Changed**: `Datadog.configuration.registry` moved to `Datadog.registry`.
 
 ### Tracing API
 
@@ -345,10 +360,14 @@ Direct usage of `Datadog::Context` has been removed. Previously, it was used to 
  - **Changed**: Rules for RuleSampler now yield `TraceOperation` instead of `SpanOperation`
  - **Changed**: Various constant names for sampling, distributed tracing.
  - **Removed**: `child_of:` option from `Tracer#trace`. No replacement.
+ - **Removed**: `Tracer#configure`. No replacement.
  - **Removed**: `Tracer#start_span`. Use `Datadog::Tracing.trace` instead.
  - **Removed**: `Tracer#build_span`. No replacement.
  - **Removed**: `Tracer#active_root_span`. No replacement.
  - **Removed**: `Tracer#call_context`. No replacement.
- - **Removed**: `SpanOperation#parent`. No replacement.
+ - **Removed**: Unused `Tracer#services`.
+ - **Removed**: Unused `Tracer#set_service_info`.
+ - **Removed**: `SpanOperation#parent` and `SpanOperation#parent=`. Use `SpanOperation#parent_id` and `SpanOperation#parent_id=` instead, respectively.
  - **Removed**: `SpanOperation#context`. No replacement.
  - **Removed**: `SpanOperation#sampled`. Use `Datadog::TraceOperation#sampled?` instead.
+ - **Removed**: Unused `Writer#write` and `SyncWriter#write` `services` argument.
