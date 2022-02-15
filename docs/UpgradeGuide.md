@@ -146,6 +146,7 @@ Spans that describe external services (e.g. `mysql`), will default to some other
 As an example, expect the following code & trace in 0.x:
 
 ```ruby
+### Old 0.x ###
 Datadog.configure do |c|
   c.service = 'billing-api'
   c.use :rails
@@ -159,6 +160,7 @@ end
 To reflect the following trace in 1.0 instead:
 
 ```ruby
+### New 1.0 ###
 Datadog.configure do |c|
   c.service = 'billing-api'
   c.tracing.instrument :rails
