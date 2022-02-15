@@ -1,3 +1,5 @@
+***Version 1.0.0 is in beta! Check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10) for more details.***
+
 # Datadog Trace Client
 
 ![Gem](https://img.shields.io/gem/v/ddtrace)
