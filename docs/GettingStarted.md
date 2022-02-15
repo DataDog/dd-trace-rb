@@ -9,6 +9,8 @@ For the general APM documentation, see our [setup documentation][setup docs].
 
 For more information about what APM looks like once your application is sending information to Datadog, take a look at [Visualizing your APM data][visualization docs].
 
+For the library API documentation, see our [YARD documentation][yard docs].
+
 To contribute, check out the [contribution guidelines][contribution docs] and [development guide][development docs].
 
 [setup docs]: https://docs.datadoghq.com/tracing/
@@ -16,6 +18,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 [visualization docs]: https://docs.datadoghq.com/tracing/visualization/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
+[yard docs]: https://www.rubydoc.info/gems/ddtrace/
 
 ## Table of Contents
 
