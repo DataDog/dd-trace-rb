@@ -13,9 +13,9 @@ Here's a list of the most common changes you may encounter:
 
 ## Namespacing & the public API
 
-To avoid naming conflicts with new Datadog features and products, many of the constants and functions defined directly under `Datadog` have moved to `Datadog::Tracing`.
+To avoid naming conflicts with new Datadog features and products, many of the tracing constants and functions defined directly under `Datadog` have moved to `Datadog::Tracing`.
 
-The most commonly used functions have been moved to our [public API](https://www.rubydoc.info/gems/ddtrace/), with accompanying documentation. Here's a few examples:
+You can access most common functions through our [public API](https://www.rubydoc.info/gems/ddtrace/) within `Datadog::Tracing`. Use of some of the functions in the public API will be described in use cases below. Here's a few examples:
 
 ```ruby
 ### Old 0.x ###
@@ -31,105 +31,15 @@ Datadog::Tracing.log_correlation
 # ...and more...
 ```
 
-Use of some of the functions in this API will be described in use cases below. We hope this API will be a much simpler way to implement tracing in your application. Please check out [our documentation]() for detailed specifications.
+Check out our [complete list of namespacing changes](#appendix-namespacing) for more details.
 
-### Namespacing
+### Removed `Datadog.tracer`
 
-Modules and classes have moved from `Datadog::_class_or_module_` to `Datadog::Tracing::_class_or_module_`, with the following exceptions:
+Many of the functions accessed directly through `Datadog.tracer` have been moved to `Datadog::Tracing` instead.
 
-### No changes
+### Removed access to `Datadog::Context`
 
-- `Datadog.add_auto_instrument`
-- `Datadog::CI`
-- `Datadog::Profiling`
-
-### Moved to `Datadog::Contrib`
-
-- `Datadog::Vendor::ActiveRecord` to `Datadog::Contrib::ActiveRecord::Vendor`
-
-### Moved to `Datadog::Core`
-
-The following modules and classes were moved from `Datadog::_class_or_module_` to `Datadog::Core::_class_or_module_`:
-
-- `Datadog::Chunker`
-- `Datadog::Configuration`
-- `Datadog::Diagnostics`
-- `Datadog::Encoding`
-- `Datadog::Error`
-- `Datadog::Logger`
-- `Datadog::Runtime`
-- `Datadog::Utils`
-- `Datadog::Worker`
-- `Datadog::Workers`
-
-The following modules and classes were moved from `Datadog::_class_or_module_` a different location:
-
-- `Datadog::Ext::Runtime` to `Datadog::Core::Runtime::Ext`
-- `Datadog::Buffer` class to `Datadog::Core::Buffer::Random`
-- `Datadog::CRubyBuffer` to `Datadog::Core::Buffer::CRuby`
-- `Datadog::ThreadSafeBuffer` to `Datadog::Core::Buffer::ThreadSafe`
-- `Datadog::Ext::Diagnostics` to `Datadog::Core::Diagnostics::Ext`
-- `Datadog::Metrics` to `Datadog::Core::Metrics` module and `Datadog::Core::Metrics::Client` class
-- `Datadog::Quantization` to `Datadog::Contrib::Utils::Quantization`
-- `Datadog::Ext::Environment` to `Datadog::Core::Environment::Ext`
-- `Datadog::Ext::Git` to `Datadog::Core::Git::Ext`
-- `Datadog::Vendor::Multipart` to `Datadog::Core::Vendor::Multipart`
-
-### Moved to a different path under `Datadog::Tracing`
-
-- `Datadog::AllSampler` to `Datadog::Tracing::Sampling::AllSampler`
-- `Datadog::ContextFlush` to `Datadog::Tracing::Flush`
-- `Datadog::GRPCPropagator` to `Datadog::Tracing::Propagation::GRPC`
-- `Datadog::HTTPPropagator` to `Datadog::Tracing::Propagation::HTTP`
-- `Datadog::PrioritySampler` to `Datadog::Tracing::Sampling::PrioritySampler`
-- `Datadog::RateByKeySampler` to `Datadog::Tracing::Sampling::RateByKeySampler`
-- `Datadog::RateByServiceSampler` to `Datadog::Tracing::Sampling::RateByServiceSampler`
-- `Datadog::RateSampler` to `Datadog::Tracing::Sampling::RateSampler`
-- `Datadog::Sampler` to `Datadog::Tracing::Sampling::Sampler`
-- `Datadog::Tagging::Analytics` to `Datadog::Tracing::Metadata::Analytics`
-- `Datadog::Tagging::Metadata` to `Datadog::Tracing::Metadata::Tagging`
-
-#### Moved from `Datadog::Ext`
-
-- `Datadog::Ext::Analytics` to `Datadog::Tracing::Metadata::Ext::Analytics`, with the following exception:
-  - `Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED` to `Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED`
-- `Datadog::Ext::AppTypes` to `Datadog::Tracing::Metadata::Ext::AppTypes`
-- `Datadog::Ext::Correlation` to `Datadog::Tracing::Correlation::Identifier`, with the following exception:
-  - `Datadog::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED` to `Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED`
-- `Datadog::Ext::Distributed` to `Datadog::Tracing::Metadata::Ext::Distributed`, with the following exceptions:
-  - `Datadog::Ext::Distributed::PROPAGATION_STYLE_DATADOG` to `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG`
-  - `Datadog::Ext::Distributed::PROPAGATION_STYLE_B3` to `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3`
-  - `Datadog::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER` to `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER`
-  - `Datadog::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT` to `Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT`
-  - `Datadog::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT` to `Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT`
-- `Datadog::Ext::DistributedTracing` to `Datadog::Tracing::Distributed::Headers::Ext`, with the following exception:
-  - `Datadog::Ext::DistributedTracing::TAG_ORIGIN` and `Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY` to `Datadog::Tracing::Metadata::Ext::Distributed`
-- `Datadog::DistributedTracing` to `Datadog::Tracing::Distributed`
-- `Datadog::Ext::Errors` to `Datadog::Tracing::Metadata::Ext::Errors`
-- `Datadog::Ext::HTTP` to `Datadog::Tracing::Metadata::Ext::HTTP`
-- `Datadog::Ext::Integration` to `Datadog::Tracing::Metadata::Ext`
-- `Datadog::Ext::NET` to `Datadog::Tracing::Metadata::Ext::NET`, with the following exception:
-  - `Datadog::Ext::NET::ENV_REPORT_HOSTNAME` to `Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME`
-- `Datadog::Ext::Priority` to `Datadog::Tracing::Sampling::Ext::Priority`
-- `Datadog::Ext::Sampling` to `Datadog::Tracing::Metadata::Ext::Sampling`, with the following exceptions:
-  - `Datadog::Ext::Sampling::ENV_SAMPLE_RATE` to `Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE`
-  - `Datadog::Ext::Sampling::ENV_RATE_LIMIT` to `Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT`
-- `Datadog::Ext::SQL` to `Datadog::Tracing::Metadata::Ext::SQL`
-- `Datadog::Ext::Test` to `Datadog::Tracing::Configuration::Ext::Test`
-
-### Moved within `Datadog`
-
-- `Datadog::Ext::Transport` to `Datadog::Transport::Ext`, with the following exception:
-  - `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST` to `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST`
-  - `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT` to `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT`
-  - `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL` to `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL`
-
-### Only file location moved
-
-These changes retain their Ruby object paths, but their file location has moved:
-
-- `ddtrace/opentracer` to `datadog/opentracer`
-- `ddtrace/opentelemetry` to `datadog/opentelemetry`
+Direct usage of `Datadog::Context` has been removed. Previously, it was used to modify or access active trace state. Most use cases have been replaced by our public trace API.
 
 ## Configuration
 
@@ -198,32 +108,7 @@ Datadog.configure do |c|
 end
 ```
 
-*List of all settings that changed:*
-
-| 0.x setting                            | 1.0 setting                   |
-|----------------------------------------|-------------------------------|
-| `analytics.enabled`                    | `tracing.analytics.enabled`   |
-| `ci_mode.context_flush`                | `ci.context_flush`            |
-| `ci_mode.enabled`                      | `ci.enabled`                  |
-| `ci_mode.writer_options`               | `ci.writer_options`           |
-| `distributed_tracing`                  | `tracing.distributed_tracing` |
-| `logger=`                              | `logger.instance=`            |
-| `profiling.exporter.transport_options` | Removed                       |
-| `report_hostname`                      | `tracing.report_hostname`     |
-| `runtime_metrics_enabled`              | `runtime_metrics.enabled`     |
-| `runtime_metrics(options)`             | Removed                       |
-| `sampling`                             | `tracing.sampling`            |
-| `test_moade`                           | `tracing.test_mode`           |
-| `tracer.enabled`                       | `tracing.enabled`             |
-| `tracer.hostname`                      | `agent.hostname`              |
-| `tracer.instance`                      | `tracing.instance`            |
-| `tracer.partial_flush`                 | `tracing.partial_flush`       |
-| `tracer.port`                          | `agent.port`                  |
-| `tracer.sampler`                       | `tracing.sampler`             |
-| `tracer.transport_options`             | `tracing.transport_options`   |
-| `tracer.writer`                        | `tracing.writer`              |
-| `tracer.writer_options`                | `tracing.writer_options`      |
-
+Check out our [complete list of configuration changes](#appendix-configuration) for more details.
 
 ### Activating instrumentation
 
@@ -243,6 +128,33 @@ end
 ```
 
 ## Instrumentation
+
+### Service naming
+
+In 0.x, The `service` field on spans generated by Datadog integrations would typically default to the package name, e.g. `http` or `sidekiq`. This would often result in many "services" being generated by one application, one for each instrumented package. Users would often rectify this by overriding the `service_name` setting on each integration to get matching `service` names.
+
+To remedy this in later 0.x versions, we introduced the global `service` name setting (also set via `DD_SERVICE`), which is the recommended way to set the name of your application. However, the Datadog integrations (with the exception of Rails) still did not employ this field.
+
+In 1.0, spans now inherit the global `service` name by default, unless otherwise explicitly set. This means for spans generated by Datadog integrations, they will default to the global `service` name, unless the `service_name` setting is configured for that integration.
+
+Spans that describe external services (e.g. `mysql`), will default to some other name that describes the external service instead.
+
+As an example, expect the following code & trace in 0.x:
+
+```ruby
+Datadog.configure do |c|
+  c.service = 'billing-api'
+  c.instrument :rails
+  c.instrument :redis
+  c.instrument :resque
+end
+```
+
+![0.x trace](./0.x-trace.png)
+
+To reflect the following trace in 1.0 instead:
+
+![1.0 trace](./1.0-trace.png)
 
 ### Manual tracing & trace model
 
@@ -299,7 +211,7 @@ Use of `active_root_span` has been removed.
 
 Previously, distributed tracing required building new `Datadog::Context` objects, then replacing the context within the tracer.
 
-Instead, users utilize `TraceDigest` objects derived from a trace. This object which represents the state of a trace. It can be used to propagate a trace across execution boundaries (processes, threads), or to continue a trace locally.
+Instead, users utilize `TraceDigest` objects derived from a trace. This object represents the state of a trace. It can be used to propagate a trace across execution boundaries (processes, threads), or to continue a trace locally.
 
 ```ruby
 ### Old 0.x ###
@@ -312,8 +224,8 @@ context = Datadog::HTTPPropagator.extract(env)
 Datadog.tracer.provider.context = context
 
 # Next trace inherits trace properties
-Datadog.tracer.trace('my.job') do |span, trace|
-  trace.id == trace_digest.trace_id
+Datadog.tracer.trace('my.job') do |span|
+  span.trace_id == context.trace_id
 end
 
 
@@ -348,6 +260,8 @@ To propagate a local trace to a remote service:
 
 ```ruby
 ### Old 0.x ###
+context = Datadog.tracer.call_context
+
 # HTTP
 headers = {}
 Datadog::HTTPPropagator.inject!(context, headers)
@@ -360,6 +274,8 @@ Datadog::GRPCPropagator.inject!(context, headers)
 
 
 ### New 1.0 ###
+trace_digest = Datadog::Tracing.active_trace.to_digest
+
 # HTTP
 headers = {}
 Datadog::Tracing::Propagation::HTTP.inject!(trace_digest, headers)
@@ -397,7 +313,7 @@ Datadog::Tracing.continue_trace!(digest)
 
 Traces do not implicitly propagate across threads, as they are considered different execution contexts.
 
-However, if you wish to do this, trace propagation across threads is similar to cross-process. A `TraceDigest` should be produced and consumed.
+However, if you wish to do this, trace propagation across threads is similar to cross-process. A `TraceDigest` should be produced by the parent thread and consumed by the child thread.
 
 NOTE: The same `TraceOperation` object should never be shared between threads; this would create race conditions.
 
@@ -406,7 +322,7 @@ NOTE: The same `TraceOperation` object should never be shared between threads; t
 trace = Datadog::Tracing.active_trace
 
 # NOTE: We must produce the digest BEFORE starting the thread.
-#       Otherwise if its lazily evaluated within the thread,
+#       Otherwise if it's lazily evaluated within the thread,
 #       the thread's trace may follow the wrong parent span.
 trace_digest = trace.to_digest
 
@@ -466,89 +382,147 @@ Datadog::Tracing.before_flush do |trace|
 end
 ```
 
-### Service naming
+## Appendix
 
-In 0.x, The `service` field on spans generated by Datadog integrations would typically default to the package name, e.g. `http` or `sidekiq`. This would often result in many "services" being generated by one application, one for each instrumented package. Users would often rectify this by overriding the `service_name` setting on each integration to get matching `service` names.
+<h3 id="appendix-namespacing">Namespacing</h3>
 
-To remedy this in later 0.x versions, we introduced the global `service` name setting (also set via `DD_SERVICE`), which is the recommended way to set the name of your application. However, the Datadog integrations (with the exception of Rails) still did not employ this field.
+#### `require` paths
 
-In 1.0, spans now inherit the global `service` name by default, unless otherwise explicitly set. This means for spans generated by Datadog integrations, they will default to the global `service` name, unless the `service_name` setting is configured for that integration.
+| `0.x require path`          | `1.0 require path`          |
+|-----------------------------|-----------------------------|
+| `ddtrace/opentelemetry`     | `datadog/opentelemetry`     |
+| `ddtrace/opentracer`        | `datadog/opentracer`        |
+| `ddtrace/profiling/preload` | `datadog/profiling/preload` |
 
-Spans that describe external services (e.g. `mysql`), will default to some other name that describes the external service instead.
 
-As an example, expect the following code & trace in 0.x:
+#### Constants
 
-```ruby
-Datadog.configure do |c|
-  c.service = 'billing-api'
-  c.instrument :rails
-  c.instrument :redis
-  c.instrument :resque
-end
-```
+| `0.x Constant`                                                  | `1.0 Constant`                                                                          |
+|-----------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| `Datadog::AllSampler`                                           | `Datadog::Tracing::Sampling::AllSampler`                                                |
+| `Datadog::Buffer`                                               | `Datadog::Core::Buffer::Random`                                                         |
+| `Datadog::Chunker`                                              | `Datadog::Core::Chunker`                                                                |
+| `Datadog::Configuration`                                        | `Datadog::Core::Configuration`                                                          |
+| `Datadog::ContextFlush`                                         | `Datadog::Tracing::Flush`                                                               |
+| `Datadog::CRubyBuffer`                                          | `Datadog::Core::Buffer::CRuby`                                                          |
+| `Datadog::Diagnostics`                                          | `Datadog::Core::Diagnostics`                                                            |
+| `Datadog::DistributedTracing`                                   | `Datadog::Tracing::Distributed`                                                         |
+| `Datadog::Encoding`                                             | `Datadog::Core::Encoding`                                                               |
+| `Datadog::Error`                                                | `Datadog::Core::Error`                                                                  |
+| `Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED`          | `Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED`          |
+| `Datadog::Ext::Analytics`                                       | `Datadog::Tracing::Metadata::Ext::Analytics`                                            |
+| `Datadog::Ext::AppTypes`                                        | `Datadog::Tracing::Metadata::Ext::AppTypes`                                             |
+| `Datadog::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED`         | `Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED`         |
+| `Datadog::Ext::Correlation`                                     | `Datadog::Tracing::Correlation::Identifier`                                             |
+| `Datadog::Ext::Diagnostics`                                     | `Datadog::Core::Diagnostics::Ext`                                                       |
+| `Datadog::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT`      | `Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT`      |
+| `Datadog::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT`       | `Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT`       |
+| `Datadog::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER` | `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER` |
+| `Datadog::Ext::Distributed::PROPAGATION_STYLE_B3`               | `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3`               |
+| `Datadog::Ext::Distributed::PROPAGATION_STYLE_DATADOG`          | `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG`          |
+| `Datadog::Ext::Distributed`                                     | `Datadog::Tracing::Metadata::Ext::Distributed`                                          |
+| `Datadog::Ext::DistributedTracing::TAG_ORIGIN`                  | `Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN`                              |
+| `Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY`       | `Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY`                   |
+| `Datadog::Ext::DistributedTracing`                              | `Datadog::Tracing::Distributed::Headers::Ext`                                           |
+| `Datadog::Ext::Environment`                                     | `Datadog::Core::Environment::Ext`                                                       |
+| `Datadog::Ext::Errors`                                          | `Datadog::Tracing::Metadata::Ext::Errors`                                               |
+| `Datadog::Ext::Git`                                             | `Datadog::Core::Git::Ext`                                                               |
+| `Datadog::Ext::HTTP`                                            | `Datadog::Tracing::Metadata::Ext::HTTP`                                                 |
+| `Datadog::Ext::Integration`                                     | `Datadog::Tracing::Metadata::Ext`                                                       |
+| `Datadog::Ext::NET::ENV_REPORT_HOSTNAME`                        | `Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME`                        |
+| `Datadog::Ext::NET`                                             | `Datadog::Tracing::Metadata::Ext::NET`                                                  |
+| `Datadog::Ext::Priority`                                        | `Datadog::Tracing::Sampling::Ext::Priority`                                             |
+| `Datadog::Ext::Runtime`                                         | `Datadog::Core::Runtime::Ext`                                                           |
+| `Datadog::Ext::Sampling::ENV_RATE_LIMIT`                        | `Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT`                        |
+| `Datadog::Ext::Sampling::ENV_SAMPLE_RATE`                       | `Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE`                       |
+| `Datadog::Ext::Sampling`                                        | `Datadog::Tracing::Metadata::Ext::Sampling`                                             |
+| `Datadog::Ext::SQL`                                             | `Datadog::Tracing::Metadata::Ext::SQL`                                                  |
+| `Datadog::Ext::Test`                                            | `Datadog::Tracing::Configuration::Ext::Test`                                            |
+| `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST`               | `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST`                     |
+| `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT`               | `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT`                     |
+| `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL`                | `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL`                      |
+| `Datadog::Ext::Transport`                                       | `Datadog::Transport::Ext`                                                               |
+| `Datadog::GRPCPropagator`                                       | `Datadog::Tracing::Propagation::GRPC`                                                   |
+| `Datadog::HTTPPropagator`                                       | `Datadog::Tracing::Propagation::HTTP`                                                   |
+| `Datadog::Logger`                                               | `Datadog::Core::Logger`                                                                 |
+| `Datadog::Metrics`                                              | `Datadog::Core::Metrics::Client`                                                        |
+| `Datadog::PrioritySampler`                                      | `Datadog::Tracing::Sampling::PrioritySampler`                                           |
+| `Datadog::Quantization`                                         | `Datadog::Contrib::Utils::Quantization`                                                 |
+| `Datadog::RateByKeySampler`                                     | `Datadog::Tracing::Sampling::RateByKeySampler`                                          |
+| `Datadog::RateByServiceSampler`                                 | `Datadog::Tracing::Sampling::RateByServiceSampler`                                      |
+| `Datadog::RateSampler`                                          | `Datadog::Tracing::Sampling::RateSampler`                                               |
+| `Datadog::Runtime`                                              | `Datadog::Core::Runtime`                                                                |
+| `Datadog::Sampler`                                              | `Datadog::Tracing::Sampling::Sampler`                                                   |
+| `Datadog::Tagging::Analytics`                                   | `Datadog::Tracing::Metadata::Analytics`                                                 |
+| `Datadog::Tagging::Metadata`                                    | `Datadog::Tracing::Metadata::Tagging`                                                   |
+| `Datadog::ThreadSafeBuffer`                                     | `Datadog::Core::Buffer::ThreadSafe`                                                     |
+| `Datadog::Utils`                                                | `Datadog::Core::Utils`                                                                  |
+| `Datadog::Vendor::ActiveRecord`                                 | `Datadog::Contrib::ActiveRecord::Vendor`                                                |
+| `Datadog::Vendor::Multipart`                                    | `Datadog::Core::Vendor::Multipart`                                                      |
+| `Datadog::Worker`                                               | `Datadog::Core::Worker`                                                                 |
+| `Datadog::Workers`                                              | `Datadog::Core::Workers`                                                                |
 
-![0.x trace](./0.x-trace.png)
 
-To reflect the following trace instead:
+<h3 id="appendix-configuration">Configuration</h3>
 
-![1.0 trace](./1.0-trace.png)
+| 0.x setting                            | 1.0 setting                   |
+|----------------------------------------|-------------------------------|
+| `analytics.enabled`                    | `tracing.analytics.enabled`   |
+| `ci_mode.context_flush`                | `ci.context_flush`            |
+| `ci_mode.enabled`                      | `ci.enabled`                  |
+| `ci_mode.writer_options`               | `ci.writer_options`           |
+| `distributed_tracing`                  | `tracing.distributed_tracing` |
+| `logger=`                              | `logger.instance=`            |
+| `profiling.exporter.transport_options` | Removed                       |
+| `report_hostname`                      | `tracing.report_hostname`     |
+| `runtime_metrics_enabled`              | `runtime_metrics.enabled`     |
+| `runtime_metrics(options)`             | Removed                       |
+| `sampling`                             | `tracing.sampling`            |
+| `test_moade`                           | `tracing.test_mode`           |
+| `tracer.enabled`                       | `tracing.enabled`             |
+| `tracer.hostname`                      | `agent.hostname`              |
+| `tracer.instance`                      | `tracing.instance`            |
+| `tracer.partial_flush`                 | `tracing.partial_flush`       |
+| `tracer.port`                          | `agent.port`                  |
+| `tracer.sampler`                       | `tracing.sampler`             |
+| `tracer.transport_options`             | `tracing.transport_options`   |
+| `tracer.transport_options(options)`    | Removed                       |
+| `tracer.writer`                        | `tracing.writer`              |
+| `tracer.writer_options`                | `tracing.writer_options`      |
 
-### Removed `Datadog.tracer`
-
-Many of the functions accessed directly through `Datadog.tracer` have been moved to `Datadog::Tracing` instead.
-
-### Context
-
-Direct usage of `Datadog::Context` has been removed. Previously, it was used to modify or access active trace state. Most of these use cases have been replaced by `TraceOperation` and have been given new APIs.
-
-## Full list of breaking changes
+<h3 id="appendix-breaking-changes">Breaking changes</h3>
 
 | **Category**  | **Type** | **Description**                                                                                                      | **Change / Alternative**                                                                                                                                                  |
 |---------------|----------|----------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| General       | Changed  | Many constants have been moved from `Datadog` to `Datadog::Core`, `Datadog::Tracing`, `Datadog::Profiling`           | Update your references to these new namespaces where appropriate.                                                                                                         |
+| General       | Changed  | Many constants have been moved from `Datadog` to `Datadog::Core`, `Datadog::Tracing`, `Datadog::Profiling`           | Update your references to these [new namespaces](#appendix-namespacing) where appropriate.                                                                                |
 | General       | Removed  | `Datadog.tracer`                                                                                                     | Use methods in `Datadog::Tracing` instead.                                                                                                                                |
-| General       | Removed  | Support for trace agent API v0.2.                                                                                    | Use v0.4 instead (default behavior)                                                                                                                                       |
-| CI API        | Changed  | `DD_TRACE_CI_MODE_ENABLED` environment variable is now `DD_TRACE_CI_ENABLED`.                                        | Use `DD_TRACE_CI_ENABLED` instead.                                                                                                                                        |
-| Configuration | Changed  | `Datadog.configuration` raises errors if you attempt to access non-global settings.                                  | Use `Datadog::Tracing.configuration`, `Datadog::Profiling.configuration`, or `Datadog::CI.configuration` when appropriate.                                                |
-| Configuration | Changed  | `Datadog.configure` raises errors if you attempt to configure non-global settings.                                   | Use `Datadog::Tracing.configure`, `Datadog::Profiling.configure`, or `Datadog::CI.configure` when appropriate.                                                            |
-| Configuration | Changed  | `c.tracer.hostname` moved to `c.agent.host`.                                                                         | Use `c.agent.host` instead.                                                                                                                                               |
-| Configuration | Changed  | `c.tracer.port` moved to `c.agent.port`.                                                                             | Use `c.agent.port` instead.                                                                                                                                               |
-| Configuration | Removed  | `c.tracer.transport_options(option: value)`.                                                                         | Use `c.tracer.transport_options { \|t\| t.option = value }` instead.                                                                                                        |
-| Configuration | Removed  | `c.analytics_enabled` option                                                                                         | Use `c.tracing.analytics.enabled` instead.                                                                                                                                |
-| Configuration | Removed  | `c.logger = custom_object` keyword options                                                                           | Use `c.logger.instance = custom_object` instead.                                                                                                                          |
-| Configuration | Removed  | `c.tracer(option: value)` keyword options                                                                            | Use `c.tracing.option = value` instead.                                                                                                                                   |
-| Configuration | Removed  | `c.runtime_metrics(option: value)` keyword options                                                                   | Use `c.runtime_metrics.option = value` instead.                                                                                                                           |
-| Configuration | Removed  | `c.runtime_metrics_enabled` option                                                                                   | Use `c.runtime_metrics.enabled` instead.                                                                                                                                  |
+| General       | Removed  | Support for trace agent API v0.2                                                                                     | Use v0.4 instead (default behavior.)                                                                                                                                      |
+| CI API        | Changed  | `DD_TRACE_CI_MODE_ENABLED` environment variable is now `DD_TRACE_CI_ENABLED`                                         | Use `DD_TRACE_CI_ENABLED` instead.                                                                                                                                        |
+| Configuration | Changed  | Many settings have been namespaced under specific categories                                                         | Update your configuration to these [new settings](#appendix-configuration) where appropriate.                                                                             |
 | Configuration | Removed  | `Datadog.configure(client, options)`                                                                                 | Use `Datadog::Tracing.configure_onto(client, options)` instead.                                                                                                           |
-| Configuration | Removed  | `DD_#{integration}_ANALYTICS_ENABLED` and `DD_#{integration}_ANALYTICS_SAMPLE_RATE` environment variables            | Use `DD_TRACE_#{integration}_ANALYTICS_ENABLED` and `DD_TRACE_#{integration}_ANALYTICS_SAMPLE_RATE` instead                                                               |
-| Configuration | Removed  | `DD_PROPAGATION_INJECT_STYLE` and `DD_PROPAGATION_EXTRACT_STYLE` environment variables                               | Use `DD_PROPAGATION_STYLE_INJECT` and `DD_PROPAGATION_STYLE_EXTRACT` instead                                                                                              |
-| Configuration | Removed  | Setting a hash on `c.tracer.transport_options`                                                                       | Use a proc instead to pass the options to the desired adapter                                                                                                             |
-| Configuration | Removed  | Unused profiler configuration `c.profiling.exporter.transport_options`.                                              | Not supported.                                                                                                                                                            |
-| Integrations  | Changed  | `-` in HTTP header tag names are kept, and no longer replaced with `_`.                                              | For example: `http.response.headers.content_type` is changed to `http.response.headers.content-type`.                                                                     |
-| Integrations  | Changed  | `Contrib::Configurable#default_configuration` moved to `Tracing::Contrib::Configurable#new_configuration`.           | Use `Tracing::Contrib::Configurable#new_configuration` instead.                                                                                                           |
-| Integrations  | Changed  | `Datadog.configuration.registry` moved to `Datadog.registry`.                                                        | Use `Datadog.registry` instead.                                                                                                                                           |
-| Integrations  | Changed  | `Datadog::Ext::Integration` to `Datadog::Ext::Metadata`                                                              | Update your references.                                                                                                                                                   |
-| Integrations  | Changed  | `service_name` option from each integration uses the default service name, unless it represents an external service. | Set `c.service` or `DD_SERVICE`, and remove `service_name` option from integration to inherit default service name. Set `service_name` option on integration to override. |
-| Integrations  | Changed  | Presto: `out.host` tag now contains only client hostname. Before it contained `""#{hostname}:#{port}""`.             |                                                                                                                                                                           |
-| Integrations  | Changed  | Rails: service_name does not propagate to sub-components (e.g. `c.use :rails, cache_service: 'my-cache'`).           | Use `c.service` instead.                                                                                                                                                  |
-| Integrations  | Changed  | Rails: Sub-components service_name options are now consistently called `:service_name`.                              | Update your configuration to use `:service_name`                                                                                                                          |
-| Integrations  | Changed  | Rails: Trace-logging correlation is enabled by default.                                                              | Can be disabled using the environment variable `DD_LOGS_INJECTION=false`.                                                                                                 |
-| Integrations  | Removed  | `tracer` integration option from all integrations.                                                                   | Remove this option from your configuration                                                                                                                                |
-| Integrations  | Removed  | ActiveJob: `log_injection` option.                                                                                   | Use `c.tracing.log_injection` instead.                                                                                                                                    |
-| Integrations  | Removed  | ActiveModelSerializers: service_name configuration.                                                                  | Remove this option from your configuration                                                                                                                                |
-| Integrations  | Removed  | ConcurrentRuby: unused option `service_name`.                                                                        | Remove this option from your configuration                                                                                                                                |
+| Configuration | Removed  | `DD_#{integration}_ANALYTICS_ENABLED` and `DD_#{integration}_ANALYTICS_SAMPLE_RATE` environment variables            | Use `DD_TRACE_#{integration}_ANALYTICS_ENABLED` and `DD_TRACE_#{integration}_ANALYTICS_SAMPLE_RATE` instead.                                                              |
+| Configuration | Removed  | `DD_PROPAGATION_INJECT_STYLE` and `DD_PROPAGATION_EXTRACT_STYLE` environment variables                               | Use `DD_PROPAGATION_STYLE_INJECT` and `DD_PROPAGATION_STYLE_EXTRACT` instead.                                                                                             |
+| Integrations  | Changed  | `-` in HTTP header tag names are kept, and no longer replaced with `_`                                               | For example: `http.response.headers.content_type` is changed to `http.response.headers.content-type`.                                                                     |
+| Integrations  | Changed  | `Contrib::Configurable#default_configuration` moved to `Tracing::Contrib::Configurable#new_configuration`            | Use `Tracing::Contrib::Configurable#new_configuration` instead.                                                                                                           |
+| Integrations  | Changed  | `Datadog.configuration.registry` moved to `Datadog.registry`                                                         | Use `Datadog.registry` instead.                                                                                                                                           |
+| Integrations  | Changed  | `service_name` option from each integration uses the default service name, unless it represents an external service  | Set `c.service` or `DD_SERVICE`, and remove `service_name` option from integration to inherit default service name. Set `service_name` option on integration to override. |
+| Integrations  | Changed  | Presto: `out.host` tag now contains only client hostname. Before it contained `"#{hostname}:#{port}"`.               |                                                                                                                                                                           |
+| Integrations  | Changed  | Rails: service_name does not propagate to sub-components (e.g. `c.use :rails, cache_service: 'my-cache'`)            | Use `c.service` instead.                                                                                                                                                  |
+| Integrations  | Changed  | Rails: Sub-components service_name options are now consistently called `:service_name`                               | Update your configuration to use `:service_name`.                                                                                                                         |
+| Integrations  | Changed  | Rails: Trace-logging correlation is enabled by default                                                               | Can be disabled using the environment variable `DD_LOGS_INJECTION=false`.                                                                                                 |
+| Integrations  | Removed  | `tracer` integration option from all integrations                                                                    | Remove this option from your configuration.                                                                                                                               |
+| Integrations  | Removed  | ActiveJob: `log_injection` option                                                                                    | Use `c.tracing.log_injection` instead.                                                                                                                                    |
+| Integrations  | Removed  | ActiveModelSerializers: service_name configuration                                                                   | Remove this option from your configuration.                                                                                                                               |
+| Integrations  | Removed  | ConcurrentRuby: unused option `service_name`                                                                         | Remove this option from your configuration.                                                                                                                               |
 | Integrations  | Removed  | Rails: 3.0 and 3.1 support.                                                                                          | Not supported.                                                                                                                                                            |
 | Integrations  | Removed  | Rails: `log_injection` option.                                                                                       | Use global `c.tracing.log_injection` instead.                                                                                                                             |
-| Integrations  | Removed  | Rails: `orm_service_name` option.                                                                                    | Remove this option from your configuration                                                                                                                                |
-| Integrations  | Removed  | Resque: `workers` option. (All Resque workers are now automatically instrumented.)                                   | Remove this option from your configuration                                                                                                                                |
-| Profiling API | Changed  | `require 'ddtrace/profiling/preload'` moved to `require 'datadog/profiling/preload'`.                                | Use `require 'datadog/profiling/preload'` instead.                                                                                                                        |
+| Integrations  | Removed  | Rails: `orm_service_name` option.                                                                                    | Remove this option from your configuration.                                                                                                                               |
+| Integrations  | Removed  | Resque: `workers` option. (All Resque workers are now automatically instrumented.)                                   | Remove this option from your configuration.                                                                                                                               |
 | Tracing API   | Changed  | `Correlation#to_s` to `Correlation#to_log_format`                                                                    | Use `Datadog::Tracing.log_correlation` instead.                                                                                                                           |
-| Tracing API   | Changed  | `Tracer#trace` implements keyword args.                                                                              | Omit invalid options from `trace` calls.                                                                                                                                  |
+| Tracing API   | Changed  | `Tracer#trace` implements keyword args                                                                               | Omit invalid options from `trace` calls.                                                                                                                                  |
 | Tracing API   | Changed  | Distributed tracing takes and yields `TraceDigest` instead of `Context`                                              | Update your usage of distributed tracing to use `continue_from` and `to_digest`.                                                                                          |
-| Tracing API   | Changed  | Renamed `ContextFlush` (and configuration) to `TraceFlush`                                                           | Update your references.                                                                                                                                                   |
 | Tracing API   | Changed  | Rules for RuleSampler now yield `TraceOperation` instead of `Span`                                                   | Update Rule sampler usage to use `TraceOperation`.                                                                                                                        |
-| Tracing API   | Changed  | Trace processors yield `TraceSegment` instead of `Array[Span]`.                                                      | Update pipeline callbacks to use `TraceSegment instead.                                                                                                                   |
-| Tracing API   | Changed  | Various constant names in the `Ext` namespace for sampling, distributed tracing.                                     | Update your references.                                                                                                                                                   |
+| Tracing API   | Changed  | Trace processors yield `TraceSegment` instead of `Array[Span]`                                                       | Update pipeline callbacks to use `TraceSegment instead.                                                                                                                   |
 | Tracing API   | Removed  | `child_of:` option from `Tracer#trace`                                                                               | Not supported.                                                                                                                                                            |
 | Tracing API   | Removed  | `Pin.new(service, config: { option: value }).onto(client)`                                                           | Use `Datadog::Tracing.configure_onto(client, service_name: service, option: value)` instead.                                                                              |
 | Tracing API   | Removed  | `Pin.get_from(client)`                                                                                               | Use `Datadog::Tracing.configure_for(client)` instead.                                                                                                                     |
