@@ -1,5 +1,11 @@
 # https://hub.docker.com/layers/jruby/library/jruby/9.2.18-jre8/images/sha256-8dd56d26850fbba5c558fe195f98f2cc765d82e91ace601e3fc2273c1f9c95b5
 FROM jruby@sha256:8dd56d26850fbba5c558fe195f98f2cc765d82e91ace601e3fc2273c1f9c95b5
+# NOTE BEFORE YOU UPGRADE TO A LATER JRUBY 9.2 VERSION:
+# There's an incompatibility in JRuby 9.2.19.0+ when run on Java 8 (jre8) with the ethon gem, see
+# https://github.com/jruby/jruby/issues/7033 .
+# The issue goes away if we run on Java 11, but we probably want to test on 8.
+# So, as of this writing (January 2022) we cannot have it all: latest ethon, ethon testing enable, latest JRuby 9.2,
+# and Java 8. One always has to give.
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
