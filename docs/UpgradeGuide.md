@@ -23,6 +23,7 @@ Datadog.tracer.trace
 Datadog.tracer.active_span
 Datadog.tracer.active_correlation.to_s
 
+
 ### New 1.0 ###
 Datadog::Tracing.trace
 Datadog::Tracing.active_span
@@ -72,6 +73,7 @@ Datadog.configure do |c|
   c.instrument :redis, service_name: 'billing-redis'
   c.instrument :resque
 end
+
 
 ### New 1.0 ###
 Datadog.configure do |c|
@@ -135,6 +137,7 @@ Datadog.configure do |c|
   c.use :rails
 end
 
+
 ### New 1.0 ###
 Datadog.configure do |c|
   c.instrument :rails
@@ -153,14 +156,15 @@ Whereas in 0.x, the block would yield a `Datadog::Span` as `span`, in 1.0, the b
 ### Old 0.x ###
 Datadog.tracer.trace('my.job') do |span|
   # Do work...
-  # span => #<Datadog::Span>
+  # span => #<Datadog::Tracing::Span>
 end
+
 
 ### New 1.0 ###
 Datadog::Tracing.trace('my.job') do |span, trace|
   # Do work...
-  # span => #<Datadog::SpanOperation>
-  # trace => #<Datadog::TraceOperation>
+  # span => #<Datadog::Tracing::SpanOperation>
+  # trace => #<Datadog::Tracing::TraceOperation>
 end
 ```
 
@@ -173,9 +177,19 @@ For more details about new behaviors and the trace model, see [this pull request
 The public API provides new functions to access active trace data:
 
 ```ruby
-# Retuns the active TraceOperation for the current thread
+### Old 0.x ###
+# Retuns the active context (contains trace state)
+Datadog.tracer.call_context
+# Returns the active Span
+Datadog.tracer.active_span
+# Returns an immutable set of identifiers for the current trace state
+Datadog.tracer.active_correlation
+
+
+### New 1.0 ###
+# Retuns the active TraceOperation for the current thread (contains trace state)
 Datadog::Tracing.active_trace
-# Returns the active SpanOperation for the current thread
+# Returns the active SpanOperation for the current thread (contains span state)
 Datadog::Tracing.active_span
 # Returns an immutable set of identifiers for the current trace state
 Datadog::Tracing.correlation
@@ -190,9 +204,24 @@ Previously, distributed tracing required building new `Datadog::Context` objects
 Instead, users utilize `TraceDigest` objects derived from a trace. This object which represents the state of a trace. It can be used to propagate a trace across execution boundaries (processes, threads), or to continue a trace locally.
 
 ```ruby
-# Get trace digest
-trace = Datadog::Tracing.active_trace
-trace_digest = trace.to_digest
+### Old 0.x ###
+# Get trace continuation from active trace
+env = {}
+Datadog::HTTPPropagator.inject(Datadog.tracer.call_context, env)
+context = Datadog::HTTPPropagator.extract(env)
+
+# Continue a trace: implicit continuation
+Datadog.tracer.provider.context = context
+
+# Next trace inherits trace properties
+Datadog.tracer.trace('my.job') do |span, trace|
+  trace.id == trace_digest.trace_id
+end
+
+
+### New 1.0 ###
+# Get trace continuation from active trace
+trace_digest = Datadog::Tracing.active_trace.to_digest
 
 # Continue a trace: explicit continuation
 # Inherits trace properties from the trace digest
@@ -220,25 +249,50 @@ end
 To propagate a local trace to a remote service:
 
 ```ruby
+### Old 0.x ###
 # HTTP
-# `headers` should behave like a Hash
-Datadog::HTTPPropagator.inject!(trace_digest, headers)
+headers = {}
+Datadog::HTTPPropagator.inject!(context, headers)
+# Inject `headers` into your HTTP headers
 
 # gRPC
-# `headers` should behave like a Hash
-Datadog::GRPCPropagator.inject!(trace_digest, headers)
+headers = {}
+Datadog::GRPCPropagator.inject!(context, headers)
+# Inject `headers` into your headers
+
+
+### New 1.0 ###
+# HTTP
+headers = {}
+Datadog::Tracing::Propagation::HTTP.inject!(trace_digest, headers)
+# Inject `headers` into your HTTP headers
+
+# gRPC
+headers = {}
+Datadog::Tracing::Propagation::GRPC.inject!(trace_digest, headers)
+# Inject `headers` into your headers
 ```
 
 To continue a propagated trace locally:
 
 ```ruby
+### Old 0.x ###
 # HTTP
-digest = HTTPPropagator.extract(request.env)
-digest # => #<Datadog::TraceDigest>
+context = Datadog::HTTPPropagator.extract(request.env)
+Datadog.tracer.provider.context = context
 
 # gRPC
-digest = Datadog::GRPCPropagator.extract(metadata)
-digest # => #<Datadog::TraceDigest>
+context = Datadog::GRPCPropagator.extract(metadata)
+Datadog.tracer.provider.context = context
+
+### New 1.0 ###
+# HTTP
+digest = Datadog::Tracing::Propagation::HTTP.extract(request.env)
+Datadog::Tracing.continue_trace!(digest)
+
+# gRPC
+digest = Datadog::Tracing::Propagation::GRPC.extract(metadata)
+Datadog::Tracing.continue_trace!(digest)
 ```
 
 #### Propagation between threads
@@ -273,6 +327,18 @@ Accessing `call_context` to set explicit sampling has been removed.
 Instead, use the `TraceOperation` to set the sampling decision.
 
 ```ruby
+### Old 0.x ###
+# From within the trace:
+Datadog.tracer.trace('web.request') do |span|
+  span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT if env.path == '/healthcheck'
+end
+
+# From outside the trace:
+Datadog.tracer.active_span.context.sampling_priority = Datadog::Ext::Priority::USER_KEEP # Keeps current trace
+Datadog.tracer.active_span.context.sampling_priority = Datadog::Ext::Priority::USER_REJECT # Drops current trace
+
+
+### New 1.0 ###
 # From within the trace:
 Datadog::Tracing.trace('web.request') do |span, trace|
   trace.reject! if env.path == '/healthcheck'
@@ -288,9 +354,17 @@ Datadog::Tracing.reject! # Drops current trace
 When using a trace processor in the processing pipeline, the block yields a `TraceSegment` as `trace` instead of `Array[Datadog::Span]`. This object can be modified by reference.
 
 ```ruby
+### Old 0.x ###
+Datadog::Pipeline.before_flush do |trace|
+  # Processing logic...
+  trace # => Array[Datadog::Span]
+end
+
+
+### New 1.0 ###
 Datadog::Tracing.before_flush do |trace|
    # Processing logic...
-   trace
+   trace # => #<Datadog::Tracing::TraceSegment>
 end
 ```
 
