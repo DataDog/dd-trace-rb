@@ -62,7 +62,7 @@ module Datadog
           end
 
           def self.activate_rack!(trace_config, rails_config)
-            trace_config.instrument(
+            trace_config.tracing.instrument(
               :rack,
               application: ::Rails.application,
               service_name: rails_config[:service_name],
@@ -74,19 +74,19 @@ module Datadog
           def self.activate_active_support!(trace_config, rails_config)
             return unless defined?(::ActiveSupport)
 
-            trace_config.instrument(:active_support)
+            trace_config.tracing.instrument(:active_support)
           end
 
           def self.activate_action_cable!(trace_config, rails_config)
             return unless defined?(::ActionCable)
 
-            trace_config.instrument(:action_cable)
+            trace_config.tracing.instrument(:action_cable)
           end
 
           def self.activate_action_mailer!(trace_config, rails_config)
             return unless defined?(::ActionMailer)
 
-            trace_config.instrument(
+            trace_config.tracing.instrument(
               :action_mailer,
               service_name: rails_config[:service_name]
             )
@@ -95,7 +95,7 @@ module Datadog
           def self.activate_action_pack!(trace_config, rails_config)
             return unless defined?(::ActionPack)
 
-            trace_config.instrument(
+            trace_config.tracing.instrument(
               :action_pack,
               service_name: rails_config[:service_name]
             )
@@ -104,7 +104,7 @@ module Datadog
           def self.activate_action_view!(trace_config, rails_config)
             return unless defined?(::ActionView)
 
-            trace_config.instrument(
+            trace_config.tracing.instrument(
               :action_view,
               service_name: rails_config[:service_name]
             )
@@ -113,7 +113,7 @@ module Datadog
           def self.activate_active_job!(trace_config, rails_config)
             return unless defined?(::ActiveJob)
 
-            trace_config.instrument(
+            trace_config.tracing.instrument(
               :active_job,
               service_name: rails_config[:service_name]
             )
@@ -122,14 +122,14 @@ module Datadog
           def self.activate_active_record!(trace_config, rails_config)
             return unless defined?(::ActiveRecord)
 
-            trace_config.instrument(:active_record)
+            trace_config.tracing.instrument(:active_record)
           end
 
           def self.activate_lograge!(trace_config, rails_config)
             return unless defined?(::Lograge)
 
             if trace_config.tracing.log_injection
-              trace_config.instrument(
+              trace_config.tracing.instrument(
                 :lograge
               )
             end
@@ -139,7 +139,7 @@ module Datadog
             return unless defined?(::SemanticLogger)
 
             if trace_config.tracing.log_injection
-              trace_config.instrument(
+              trace_config.tracing.instrument(
                 :semantic_logger
               )
             end

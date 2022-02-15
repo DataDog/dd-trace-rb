@@ -469,6 +469,9 @@ module Datadog
             Datadog.configuration.send(:instrument, integration_name, options, &block)
           end
 
+          # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
+          alias_method :use, :instrument
+
           # Automatic correlation between tracing and logging.
           # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
           # @return [Boolean]

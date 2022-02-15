@@ -73,7 +73,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
         let(:options) { {} }
         let(:default_settings) { settings.configuration(integration_name) }
 
-        before { settings.instrument(integration_name, options) }
+        before { settings.send(:instrument, integration_name, options) }
 
         context 'with a matching described configuration' do
           let(:options) { { describes: matcher } }
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
       end
 
       describe '#instrument' do
-        subject(:result) { settings.instrument(integration_name, options) }
+        subject(:result) { settings.send(:instrument, integration_name, options) }
 
         let(:options) { {} }
 
@@ -148,14 +148,14 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           context 'which is provided only a name' do
             it do
               expect(integration).to receive(:configure).with(:default, {})
-              settings.instrument(integration_name)
+              settings.send(:instrument, integration_name)
             end
           end
 
           context 'which is provided a block' do
             it do
               expect(integration).to receive(:configure).with(:default, {}).and_call_original
-              expect { |b| settings.instrument(integration_name, options, &b) }.to yield_with_args(
+              expect { |b| settings.send(:instrument, integration_name, options, &b) }.to yield_with_args(
                 a_kind_of(Datadog::Tracing::Contrib::Configuration::Settings)
               )
             end
