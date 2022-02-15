@@ -21,7 +21,7 @@ module Datadog
 
           # Apply relevant configuration from Sinatra to Rack
           def self.activate_rack!(datadog_config, sinatra_config)
-            datadog_config.tracing.instrument(
+            datadog_config.instrument(
               :rack,
             )
           end
