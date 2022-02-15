@@ -15,7 +15,7 @@ Here's a list of the most common changes you may encounter:
 
 To avoid naming conflicts with new Datadog features and products, many of the constants and functions defined directly under `Datadog` have moved to `Datadog::Tracing`.
 
-The most commonly used functions have been moved to our [public API](), with accompanying documentation. Here's a few examples:
+The most commonly used functions have been moved to our [public API](https://www.rubydoc.info/gems/ddtrace/), with accompanying documentation. Here's a few examples:
 
 ```ruby
 ### Old 0.x ###
