@@ -158,6 +158,15 @@ end
 
 To reflect the following trace in 1.0 instead:
 
+```ruby
+Datadog.configure do |c|
+  c.service = 'billing-api'
+  c.tracing.instrument :rails
+  c.tracing.instrument :redis
+  c.tracing.instrument :resque
+end
+```
+
 ![1.0 trace](./1.0-trace.png)
 
 ### Manual tracing & trace model
