@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
 
   before do
     Datadog.configure do |c|
-      c.instrument :rest_client, configuration_options
+      c.tracing.instrument :rest_client, configuration_options
     end
 
     WebMock.disable_net_connect!

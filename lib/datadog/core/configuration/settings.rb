@@ -463,6 +463,12 @@ module Datadog
           # @return [Object,nil]
           option :instance
 
+          # DEV: Alias to Datadog::Tracing::Contrib::Extensions::Configuration::Settings#instrument.
+          # DEV: Should be removed when `c.tracing.instrument` namespacing is complete.
+          define_method(:instrument) do |integration_name, options = {}, &block|
+            Datadog.configuration.send(:instrument, integration_name, options, &block)
+          end
+
           # Automatic correlation between tracing and logging.
           # @see https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#trace-correlation
           # @return [Boolean]

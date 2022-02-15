@@ -16,7 +16,7 @@ RSpec.describe 'Qless instrumentation' do
 
     # Patch Qless
     Datadog.configure do |c|
-      c.instrument :qless, configuration_options
+      c.tracing.instrument :qless, configuration_options
     end
   end
 

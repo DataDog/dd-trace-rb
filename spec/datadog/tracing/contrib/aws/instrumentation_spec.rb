@@ -15,7 +15,7 @@ RSpec.describe 'AWS instrumentation' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :aws, configuration_options
+      c.tracing.instrument :aws, configuration_options
     end
   end
 

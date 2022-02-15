@@ -21,7 +21,7 @@ end
 module SidekiqTestingConfiguration
   def configure_sidekiq
     Datadog.configure do |c|
-      c.instrument :sidekiq
+      c.tracing.instrument :sidekiq
     end
 
     redis_host = ENV.fetch('TEST_REDIS_HOST', '127.0.0.1')

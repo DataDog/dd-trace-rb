@@ -63,8 +63,8 @@ RSpec.shared_context 'Rails 4 base application' do
       else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
-          c.instrument :rails
-          c.instrument :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
+          c.tracing.instrument :rails
+          c.tracing.instrument :redis if Gem.loaded_specs['redis'] && defined?(::Redis)
         end
       end
 

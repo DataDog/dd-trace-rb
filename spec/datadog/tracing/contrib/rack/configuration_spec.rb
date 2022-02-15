@@ -14,7 +14,7 @@ RSpec.describe 'Rack integration configuration' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :rack, configuration_options
+      c.tracing.instrument :rack, configuration_options
     end
   end
 

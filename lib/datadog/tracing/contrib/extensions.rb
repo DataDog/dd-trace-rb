@@ -34,7 +34,7 @@ module Datadog
           #
           # ```
           # Datadog.configure do |c|
-          #   c.instrument :my_registered_integration, **my_options
+          #   c.tracing.instrument :my_registered_integration, **my_options
           # end
           # ```
           #
@@ -144,8 +144,7 @@ module Datadog
               end
             end
 
-            # TODO: Deprecate in the next major version, as `instrument` better describes
-            # TODO: what `c.instrument` does internally in the tracer.
+            # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
             alias_method :use, :instrument
 
             # @!visibility private

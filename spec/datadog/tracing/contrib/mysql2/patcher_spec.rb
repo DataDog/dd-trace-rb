@@ -28,7 +28,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :mysql2, configuration_options
+      c.tracing.instrument :mysql2, configuration_options
     end
   end
 

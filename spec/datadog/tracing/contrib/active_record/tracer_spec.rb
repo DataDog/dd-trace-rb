@@ -19,7 +19,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Datadog.configuration[:active_record].reset!
 
     Datadog.configure do |c|
-      c.instrument :active_record, configuration_options
+      c.tracing.instrument :active_record, configuration_options
     end
 
     raise_on_rails_deprecation!
@@ -102,9 +102,11 @@ RSpec.describe 'ActiveRecord instrumentation' do
             clear_traces!
 
             Datadog.configure do |c|
-              c.instrument :active_record, service_name: 'bad-no-match'
-              c.instrument :active_record, describes: { makara_role: primary_role }, service_name: primary_service_name
-              c.instrument :active_record, describes: { makara_role: secondary_role }, service_name: secondary_service_name
+              c.tracing.instrument :active_record, service_name: 'bad-no-match'
+              c.tracing.instrument :active_record, describes: { makara_role: primary_role },
+                                                   service_name: primary_service_name
+              c.tracing.instrument :active_record, describes: { makara_role: secondary_role },
+                                                   service_name: secondary_service_name
             end
           end
 

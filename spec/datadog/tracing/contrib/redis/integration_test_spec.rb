@@ -13,7 +13,7 @@ RSpec.describe 'Redis integration test' do
     use_real_tracer!
 
     Datadog.configure do |c|
-      c.instrument :redis
+      c.tracing.instrument :redis
     end
   end
 
