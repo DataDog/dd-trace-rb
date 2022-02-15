@@ -31,8 +31,8 @@ RSpec.describe 'Redis instrumentation test' do
 
     before do
       Datadog.configure do |c|
-        c.instrument :redis, service_name: default_service_name
-        c.instrument :redis, describes: { url: redis_url }, service_name: service_name
+        c.tracing.instrument :redis, service_name: default_service_name
+        c.tracing.instrument :redis, describes: { url: redis_url }, service_name: service_name
       end
     end
 
@@ -65,8 +65,8 @@ RSpec.describe 'Redis instrumentation test' do
 
     before do
       Datadog.configure do |c|
-        c.instrument :redis, service_name: default_service_name
-        c.instrument :redis, describes: { host: test_host, port: test_port }, service_name: service_name
+        c.tracing.instrument :redis, service_name: default_service_name
+        c.tracing.instrument :redis, describes: { host: test_host, port: test_port }, service_name: service_name
       end
     end
 

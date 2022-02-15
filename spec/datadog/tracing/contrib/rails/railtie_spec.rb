@@ -40,7 +40,7 @@ RSpec.describe 'Rails Railtie' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :rails, rails_options
+      c.tracing.instrument :rails, rails_options
     end
   end
 

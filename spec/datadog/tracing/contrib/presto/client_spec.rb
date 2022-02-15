@@ -58,7 +58,7 @@ RSpec.describe 'Presto::Client instrumentation' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :presto, configuration_options
+      c.tracing.instrument :presto, configuration_options
     end
   end
 

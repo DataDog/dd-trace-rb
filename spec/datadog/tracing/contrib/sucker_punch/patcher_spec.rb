@@ -7,7 +7,7 @@ require 'ddtrace'
 RSpec.describe 'sucker_punch instrumentation' do
   before do
     Datadog.configure do |c|
-      c.instrument :sucker_punch
+      c.tracing.instrument :sucker_punch
     end
 
     SuckerPunch::RUNNING.make_true

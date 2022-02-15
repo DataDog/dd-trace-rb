@@ -17,7 +17,7 @@ RSpec.describe 'Dalli instrumentation' do
   # Enable the test tracer
   before do
     Datadog.configure do |c|
-      c.instrument :dalli, configuration_options
+      c.tracing.instrument :dalli, configuration_options
     end
   end
 
@@ -65,7 +65,7 @@ RSpec.describe 'Dalli instrumentation' do
 
     before do
       Datadog.configure do |c|
-        c.instrument :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
+        c.tracing.instrument :dalli, describes: "#{test_host}:#{test_port}", service_name: service_name
       end
     end
 

@@ -30,12 +30,12 @@ RSpec.describe 'transport with integrations' do
         # Activate all outbound integrations...
         # Although the transport by default only uses Net/HTTP
         # its possible for other adapters to be used instead.
-        c.instrument :ethon
-        c.instrument :excon
-        c.instrument :faraday
-        c.instrument :grpc
-        c.instrument :http
-        c.instrument :rest_client
+        c.tracing.instrument :ethon
+        c.tracing.instrument :excon
+        c.tracing.instrument :faraday
+        c.tracing.instrument :grpc
+        c.tracing.instrument :http
+        c.tracing.instrument :rest_client
       end
 
       # Requests may produce an error (because the transport cannot connect)

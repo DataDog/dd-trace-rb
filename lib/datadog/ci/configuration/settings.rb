@@ -19,6 +19,15 @@ module Datadog
                 o.lazy
               end
 
+              # DEV: Alias to Datadog::Tracing::Contrib::Extensions::Configuration::Settings#instrument.
+              # DEV: Should be removed when `c.ci.instrument` namespacing is complete.
+              define_method(:instrument) do |integration_name, options = {}, &block|
+                Datadog.configuration.send(:instrument, integration_name, options, &block)
+              end
+
+              # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
+              alias_method :use, :instrument
+
               option :trace_flush do |o|
                 o.default { nil }
                 o.lazy

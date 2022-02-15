@@ -15,7 +15,7 @@ RSpec.describe 'Rack integration distributed tracing' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :rack, rack_options
+      c.tracing.instrument :rack, rack_options
     end
   end
 

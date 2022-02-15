@@ -52,7 +52,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
 
   before do
     Datadog.configure do |c|
-      c.instrument :httprb, configuration_options
+      c.tracing.instrument :httprb, configuration_options
     end
 
     # LibFFI native thread
@@ -262,12 +262,12 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           context 'and the host matches a specific configuration' do
             before do
               Datadog.configure do |c|
-                c.instrument :httprb, describes: /localhost/ do |httprb|
+                c.tracing.instrument :httprb, describes: /localhost/ do |httprb|
                   httprb.service_name = 'bar'
                   httprb.split_by_domain = false
                 end
 
-                c.instrument :httprb, describes: /random/ do |httprb|
+                c.tracing.instrument :httprb, describes: /random/ do |httprb|
                   httprb.service_name = 'barz'
                   httprb.split_by_domain = false
                 end
