@@ -77,9 +77,10 @@ Datadog.configure do |c|
   c.ci_mode = (ENV['DD_ENV'] == 'ci')
 
   # Instrumentation
-  c.instrument :rails
-  c.instrument :redis, service_name: 'billing-redis'
-  c.instrument :resque
+  c.use :rails
+  c.use :redis, service_name: 'billing-redis'
+  c.use :resque
+  c.use :rspec
 end
 
 
@@ -102,9 +103,10 @@ Datadog.configure do |c|
   c.ci.enabled = (ENV['DD_ENV'] == 'ci')
 
   # Instrumentation
-  c.instrument :rails
-  c.instrument :redis, service_name: 'billing-redis'
-  c.instrument :resque
+  c.tracing.instrument :rails
+  c.tracing.instrument :redis, service_name: 'billing-redis'
+  c.tracing.instrument :resque
+  c.ci.instrument :rspec
 end
 ```
 
@@ -112,18 +114,20 @@ Check out our [complete list of configuration changes](#appendix-configuration) 
 
 ### Activating instrumentation
 
-The `use` function has been renamed to `instrument`:
+The `use` function has been renamed to `instrument`. Also, `instrument` has been namespaced to the specific product:
 
 ```ruby
 ### Old 0.x ###
 Datadog.configure do |c|
   c.use :rails
+  c.use :cucumber
 end
 
 
 ### New 1.0 ###
 Datadog.configure do |c|
-  c.instrument :rails
+  c.tracing.instrument :rails
+  c.ci.instrument :cucumber
 end
 ```
 
@@ -144,9 +148,9 @@ As an example, expect the following code & trace in 0.x:
 ```ruby
 Datadog.configure do |c|
   c.service = 'billing-api'
-  c.instrument :rails
-  c.instrument :redis
-  c.instrument :resque
+  c.use :rails
+  c.use :redis
+  c.use :resque
 end
 ```
 
