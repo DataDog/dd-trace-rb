@@ -33,6 +33,104 @@ Datadog::Tracing.log_correlation
 
 Use of some of the functions in this API will be described in use cases below. We hope this API will be a much simpler way to implement tracing in your application. Please check out [our documentation]() for detailed specifications.
 
+### Namespacing
+
+Modules and classes have moved from `Datadog::_class_or_module_` to `Datadog::Tracing::_class_or_module_`, with the following exceptions:
+
+### No changes
+
+- `Datadog.add_auto_instrument`
+- `Datadog::CI`
+- `Datadog::Profiling`
+
+### Moved to `Datadog::Contrib`
+
+- `Datadog::Vendor::ActiveRecord` to `Datadog::Contrib::ActiveRecord::Vendor`
+
+### Moved to `Datadog::Core`
+
+The following modules and classes were moved from `Datadog::_class_or_module_` to `Datadog::Core::_class_or_module_`:
+
+- `Datadog::Chunker`
+- `Datadog::Configuration`
+- `Datadog::Diagnostics`
+- `Datadog::Encoding`
+- `Datadog::Error`
+- `Datadog::Logger`
+- `Datadog::Runtime`
+- `Datadog::Utils`
+- `Datadog::Worker`
+- `Datadog::Workers`
+
+The following modules and classes were moved from `Datadog::_class_or_module_` a different location:
+
+- `Datadog::Ext::Runtime` to `Datadog::Core::Runtime::Ext`
+- `Datadog::Buffer` class to `Datadog::Core::Buffer::Random`
+- `Datadog::CRubyBuffer` to `Datadog::Core::Buffer::CRuby`
+- `Datadog::ThreadSafeBuffer` to `Datadog::Core::Buffer::ThreadSafe`
+- `Datadog::Ext::Diagnostics` to `Datadog::Core::Diagnostics::Ext`
+- `Datadog::Metrics` to `Datadog::Core::Metrics` module and `Datadog::Core::Metrics::Client` class
+- `Datadog::Quantization` to `Datadog::Contrib::Utils::Quantization`
+- `Datadog::Ext::Environment` to `Datadog::Core::Environment::Ext`
+- `Datadog::Ext::Git` to `Datadog::Core::Git::Ext`
+- `Datadog::Vendor::Multipart` to `Datadog::Core::Vendor::Multipart`
+
+### Moved to a different path under `Datadog::Tracing`
+
+- `Datadog::AllSampler` to `Datadog::Tracing::Sampling::AllSampler`
+- `Datadog::ContextFlush` to `Datadog::Tracing::Flush`
+- `Datadog::GRPCPropagator` to `Datadog::Tracing::Propagation::GRPC`
+- `Datadog::HTTPPropagator` to `Datadog::Tracing::Propagation::HTTP`
+- `Datadog::PrioritySampler` to `Datadog::Tracing::Sampling::PrioritySampler`
+- `Datadog::RateByKeySampler` to `Datadog::Tracing::Sampling::RateByKeySampler`
+- `Datadog::RateByServiceSampler` to `Datadog::Tracing::Sampling::RateByServiceSampler`
+- `Datadog::RateSampler` to `Datadog::Tracing::Sampling::RateSampler`
+- `Datadog::Sampler` to `Datadog::Tracing::Sampling::Sampler`
+- `Datadog::Tagging::Analytics` to `Datadog::Tracing::Metadata::Analytics`
+- `Datadog::Tagging::Metadata` to `Datadog::Tracing::Metadata::Tagging`
+
+#### Moved from `Datadog::Ext`
+
+- `Datadog::Ext::Analytics` to `Datadog::Tracing::Metadata::Ext::Analytics`, with the following exception:
+  - `Datadog::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED` to `Datadog::Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED`
+- `Datadog::Ext::AppTypes` to `Datadog::Tracing::Metadata::Ext::AppTypes`
+- `Datadog::Ext::Correlation` to `Datadog::Tracing::Correlation::Identifier`, with the following exception:
+  - `Datadog::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED` to `Datadog::Tracing::Configuration::Ext::Correlation::ENV_LOGS_INJECTION_ENABLED`
+- `Datadog::Ext::Distributed` to `Datadog::Tracing::Metadata::Ext::Distributed`, with the following exceptions:
+  - `Datadog::Ext::Distributed::PROPAGATION_STYLE_DATADOG` to `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG`
+  - `Datadog::Ext::Distributed::PROPAGATION_STYLE_B3` to `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3`
+  - `Datadog::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER` to `Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER`
+  - `Datadog::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT` to `Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT`
+  - `Datadog::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT` to `Datadog::Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT`
+- `Datadog::Ext::DistributedTracing` to `Datadog::Tracing::Distributed::Headers::Ext`, with the following exception:
+  - `Datadog::Ext::DistributedTracing::TAG_ORIGIN` and `Datadog::Ext::DistributedTracing::TAG_SAMPLING_PRIORITY` to `Datadog::Tracing::Metadata::Ext::Distributed`
+- `Datadog::DistributedTracing` to `Datadog::Tracing::Distributed`
+- `Datadog::Ext::Errors` to `Datadog::Tracing::Metadata::Ext::Errors`
+- `Datadog::Ext::HTTP` to `Datadog::Tracing::Metadata::Ext::HTTP`
+- `Datadog::Ext::Integration` to `Datadog::Tracing::Metadata::Ext`
+- `Datadog::Ext::NET` to `Datadog::Tracing::Metadata::Ext::NET`, with the following exception:
+  - `Datadog::Ext::NET::ENV_REPORT_HOSTNAME` to `Datadog::Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME`
+- `Datadog::Ext::Priority` to `Datadog::Tracing::Sampling::Ext::Priority`
+- `Datadog::Ext::Sampling` to `Datadog::Tracing::Metadata::Ext::Sampling`, with the following exceptions:
+  - `Datadog::Ext::Sampling::ENV_SAMPLE_RATE` to `Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE`
+  - `Datadog::Ext::Sampling::ENV_RATE_LIMIT` to `Datadog::Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT`
+- `Datadog::Ext::SQL` to `Datadog::Tracing::Metadata::Ext::SQL`
+- `Datadog::Ext::Test` to `Datadog::Tracing::Configuration::Ext::Test`
+
+### Moved within `Datadog`
+
+- `Datadog::Ext::Transport` to `Datadog::Transport::Ext`, with the following exception:
+  - `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_HOST` to `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_HOST`
+  - `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_PORT` to `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT`
+  - `Datadog::Ext::Transport::HTTP::ENV_DEFAULT_URL` to `Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL`
+
+### Only file location moved
+
+These changes retain their Ruby object paths, but their file location has moved:
+
+- `ddtrace/opentracer` to `datadog/opentracer`
+- `ddtrace/opentelemetry` to `datadog/opentelemetry`
+
 ## Configuration
 
 ### Settings have been namespaced
