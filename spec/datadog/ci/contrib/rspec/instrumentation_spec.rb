@@ -14,7 +14,7 @@ RSpec.describe 'RSpec hooks' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :rspec, configuration_options
+      c.ci.instrument :rspec, configuration_options
     end
   end
 

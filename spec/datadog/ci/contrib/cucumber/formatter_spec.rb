@@ -26,7 +26,7 @@ RSpec.describe 'Cucumber formatter' do
 
   before do
     Datadog.configure do |c|
-      c.instrument :cucumber, configuration_options
+      c.ci.instrument :cucumber, configuration_options
     end
   end
 

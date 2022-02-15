@@ -710,7 +710,7 @@ require 'ddtrace'
 
 # Configure default Cucumber integration
 Datadog.configure do |c|
-  c.instrument :cucumber, options
+  c.ci.instrument :cucumber, options
 end
 
 # Example of how to attach tags from scenario to active span
@@ -1676,7 +1676,7 @@ require 'ddtrace'
 
 # Configure default RSpec integration
 Datadog.configure do |c|
-  c.instrument :rspec, options
+  c.ci.instrument :rspec, options
 end
 ```
 
