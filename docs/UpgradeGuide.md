@@ -15,17 +15,15 @@ Here's a list of the most common changes you may encounter:
 
 To avoid naming conflicts with new Datadog features and products, many of the constants and functions defined directly under `Datadog` have moved to `Datadog::Tracing`.
 
-The most commonly used functions have been moved to our [public API](), with accompanying documentation. e.g.
+The most commonly used functions have been moved to our [public API](), with accompanying documentation. Here's a few examples:
 
 ```ruby
 ### Old 0.x ###
-Datadog.configure
 Datadog.tracer.trace
 Datadog.tracer.active_span
 Datadog.tracer.active_correlation.to_s
 
 ### New 1.0 ###
-Datadog::Tracing.configure
 Datadog::Tracing.trace
 Datadog::Tracing.active_span
 Datadog::Tracing.log_correlation
@@ -40,9 +38,10 @@ Use of some of the functions in this API will be described in use cases below. W
 
 Configuration settings have been sorted into smaller configuration groups, by product.
 
- - `Datadog.configure { |c| c.tracing }`: Trace configuration settings
- - `Datadog.configure { |c| c.profiling }`: Profiling configuration settings
- - `Datadog.configure { |c| c.ci }`: CI configuration settings
+ - `Datadog.configure { |c| c.* }`: Datadog configuration settings
+ - `Datadog.configure { |c| c.tracing.* }`: Tracing configuration settings
+ - `Datadog.configure { |c| c.profiling.* }`: Profiling configuration settings
+ - `Datadog.configure { |c| c.ci.* }`: CI configuration settings
 
 Existing applications should update their configuration files and settings accordingly. For example:
 
