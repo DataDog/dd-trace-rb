@@ -83,7 +83,7 @@ module Datadog
                 desc += ", Compatible? #{patch_results[:compatible]}"
                 desc += ", Patchable? #{patch_results[:patchable]}"
 
-                Datadog.logger.warn("Unable to patch #{patch_results[:name]} (#{desc})")
+                Datadog.logger.debug("Unable to patch #{patch_results[:name]} (#{desc})")
               end
 
               configuration.integrations_pending_activation.clear
