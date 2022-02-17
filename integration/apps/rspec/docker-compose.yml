@@ -17,7 +17,7 @@ services:
       - DD_PROFILING_ENABLED=true
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=rspec
-      - DD_DEMO_ENV_FEATURES=tracing
+      - DD_DEMO_ENV_FEATURES=ci
       # Use this for a local version of ddtrace
       - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
       # Use these for a specific revision of ddtrace

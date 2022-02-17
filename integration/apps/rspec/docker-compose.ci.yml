@@ -20,7 +20,7 @@ services:
       - DD_PROFILING_ENABLED=true
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=rspec
-      - DD_DEMO_ENV_FEATURES=tracing
+      - DD_DEMO_ENV_FEATURES=ci
     stdin_open: true
     tty: true
   ddagent:
