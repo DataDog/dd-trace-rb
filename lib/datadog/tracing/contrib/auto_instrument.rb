@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/extensions'
 
 module Datadog
   module Tracing
+    # Out-of-the-box instrumentation for tracing
     module Contrib
       # Auto-activate instrumentation
       def self.auto_instrument!
