@@ -107,10 +107,6 @@ end
 RSpec.describe 'Profiler startup' do
   subject(:auto_instrument) { load 'ddtrace/auto_instrument.rb' }
 
-  before do
-    allow(Datadog).to receive(:add_auto_instrument)
-  end
-
   it 'starts the profiler' do
     expect(Datadog::Profiling).to receive(:start_if_enabled)
     auto_instrument
