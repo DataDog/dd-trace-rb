@@ -90,6 +90,7 @@ Datadog.configure do |c|
   c.agent.hostname = '127.0.0.1'
   c.agent.port = 8126
   c.diagnostics.debug = true
+  c.runtime_metrics.enabled = true
   c.service = 'billing-api'
 
   # Profiling settings
@@ -97,7 +98,6 @@ Datadog.configure do |c|
 
   # Tracer settings
   c.tracing.analytics.enabled = true
-  c.tracing.runtime_metrics.enabled = true
 
   # CI settings
   c.ci.enabled = (ENV['DD_ENV'] == 'ci')
@@ -119,14 +119,20 @@ The `use` function has been renamed to `instrument`. Also, `instrument` has been
 ```ruby
 ### Old 0.x ###
 Datadog.configure do |c|
+  # Tracing instrumentation
   c.use :rails
+
+  # CI instrumentation
   c.use :cucumber
 end
 
 
 ### New 1.0 ###
 Datadog.configure do |c|
+  # Tracing instrumentation
   c.tracing.instrument :rails
+
+  # CI instrumentation
   c.ci.instrument :cucumber
 end
 ```
@@ -492,7 +498,7 @@ end
 | `runtime_metrics_enabled`              | `runtime_metrics.enabled`     |
 | `runtime_metrics(options)`             | Removed                       |
 | `sampling`                             | `tracing.sampling`            |
-| `test_moade`                           | `tracing.test_mode`           |
+| `test_mode`                            | `tracing.test_mode`           |
 | `tracer.enabled`                       | `tracing.enabled`             |
 | `tracer.hostname`                      | `agent.hostname`              |
 | `tracer.instance`                      | `tracing.instance`            |
