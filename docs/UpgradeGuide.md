@@ -5,7 +5,7 @@
 - [Namespacing & the public API](#namespacing--the-public-api)
 - [Configuration](#configuration)
 - [Instrumentation](#instrumentation)
-- [Full list of breaking changes](#full-list-of-breaking-changes)
+- [Full list of breaking changes](#breaking-changes)
 
 Upgrading `ddtrace` from 0.x to 1.x introduces some changes to namespacing, the public API, and the underlying trace data structure.
 
