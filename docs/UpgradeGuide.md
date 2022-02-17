@@ -97,7 +97,9 @@ Datadog.configure do |c|
 
   # Tracer settings
   c.tracing.analytics.enabled = true
-  c.tracing.runtime_metrics.enabled = true
+  
+  # Runtime metrics settings
+  c.runtime_metrics.enabled = true
 
   # CI settings
   c.ci.enabled = (ENV['DD_ENV'] == 'ci')
