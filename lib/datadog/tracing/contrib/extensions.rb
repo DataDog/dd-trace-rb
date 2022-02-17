@@ -181,4 +181,7 @@ module Datadog
       end
     end
   end
+
+  # Load built-in Datadog integrations
+  Tracing::Contrib::Extensions.extend!
 end

@@ -11,4 +11,7 @@ module Datadog
       end
     end
   end
+
+  # Load and extend OpenTelemetry compatibility by default
+  extend OpenTelemetry::Extensions
 end

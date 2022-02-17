@@ -1,5 +1,7 @@
 # typed: true
+require 'datadog/tracing'
 require 'datadog/tracing/contrib/registry'
+require 'datadog/tracing/contrib/extensions'
 
 module Datadog
   module Tracing
