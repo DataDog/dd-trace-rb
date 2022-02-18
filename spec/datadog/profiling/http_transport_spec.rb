@@ -15,6 +15,7 @@ require 'webrick'
 RSpec.describe Datadog::Profiling::HttpTransport do
   # FIXME: Enable better testing on macOS
   #before { skip_if_profiling_not_supported(self) }
+  before { ensure_profiling_is_available }
 
   subject(:http_transport) do
     described_class.new(

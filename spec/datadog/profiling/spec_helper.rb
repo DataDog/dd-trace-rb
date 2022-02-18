@@ -70,6 +70,13 @@ module ProfileHelpers
     testcase.skip('Profiling is not supported on TruffleRuby') if PlatformHelpers.truffleruby?
     testcase.skip('Profiling is not supported on macOS') if PlatformHelpers.mac?
   end
+
+  def ensure_profiling_is_available
+    return if Datadog::Profiling.supported?
+
+    raise "Profiling does not seem to be available: #{Datadog::Profiling.unsupported_reason}. " \
+      "Try running `bundle exec rake compile` before running this test."
+  end
 end
 
 RSpec.configure do |config|
