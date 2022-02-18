@@ -45,6 +45,7 @@ void http_transport_init(VALUE profiling_module) {
   );
 
   exporter_class = rb_define_class_under(http_transport_class, "Exporter", rb_cObject);
+  // This prevents creation of the exporter class outside of our extension, see https://bugs.ruby-lang.org/issues/18007
   rb_undef_alloc_func(exporter_class);
 }
 
