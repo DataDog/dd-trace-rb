@@ -1,5 +1,12 @@
-# https://hub.docker.com/layers/ruby/library/ruby/3.1.0-preview1-bullseye/images/sha256-19f9abe757cd2a99262aded1177cedba0613cefc3c6181ce670b2259270a59d7
-FROM ruby@sha256:19f9abe757cd2a99262aded1177cedba0613cefc3c6181ce670b2259270a59d7
+# To build this docker file for multiple architectures, use the following example (update tag as needed):
+# $ docker buildx build . --platform linux/amd64,linux/arm64/v8 -f Dockerfile-3.1.1 -t ivoanjo/docker-library:ddtrace_rb_3_1_1
+# Also note that the tag created will automatically contain both architectures. To additionally create an
+# architecture-specific tag, I needed to do the following (sha is the specific image)
+# $ docker pull ivoanjo/docker-library:ddtrace_rb_3_1_1@sha256:56402a1c5e522b669965db4600f1a4fa035f6e3597d098ec808e77192c4238fd
+# $ docker tag ivoanjo/docker-library@sha256:56402a1c5e522b669965db4600f1a4fa035f6e3597d098ec808e77192c4238fd ivoanjo/docker-library:ddtrace_rb_3_1_1_amd64
+# $ docker push ivoanjo/docker-library:ddtrace_rb_3_1_1_amd64
+
+FROM ruby:3.1.1-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -15,7 +22,7 @@ RUN set -ex; \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim less; \
+            tzdata rsync vim less jq; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -26,16 +33,10 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-# Install jq
-RUN JQ_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/jq-latest" \
-  && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/jq $JQ_URL \
-  && chmod +x /usr/bin/jq \
-  && jq --version
-
 # Install Docker
 RUN set -ex \
-  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/x86_64/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
-  && DOCKER_URL="https://download.docker.com/linux/static/stable/x86_64/${DOCKER_VERSION}" \
+  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
+  && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
   && echo Docker URL: $DOCKER_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
   && ls -lha /tmp/docker.tgz \
@@ -46,17 +47,13 @@ RUN set -ex \
   && (docker version || true)
 
 # Install Docker Compose
-RUN COMPOSE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/docker-compose-latest" \
+RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51/docker-compose-$(dpkg --print-architecture)" \
   && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL \
   && chmod +x /usr/bin/docker-compose \
   && docker-compose version
 
 # Install Dockerize
-RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/dockerize-latest.tar.gz" \
-  && curl --silent --show-error --location --fail --retry 3 --output /tmp/dockerize-linux-amd64.tar.gz $DOCKERIZE_URL \
-  && tar -C /usr/local/bin -xzvf /tmp/dockerize-linux-amd64.tar.gz \
-  && rm -rf /tmp/dockerize-linux-amd64.tar.gz \
-  && dockerize --version
+RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
 RUN gem update --system

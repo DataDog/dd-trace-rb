@@ -255,7 +255,7 @@ services:
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_0_preview1
+    image: ivoanjo/docker-library:ddtrace_rb_3_1_1
     platform: linux/x86_64
     command: /bin/bash
     depends_on:
@@ -282,6 +282,34 @@ services:
     volumes:
       - .:/app
       - bundle-3.1:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.1-arm64:
+    image: ivoanjo/docker-library:ddtrace_rb_3_1_1_arm64
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - postgres
+      - redis
+    env_file: ./.env
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - TEST_DATADOG_INTEGRATION=1
+      - TEST_ELASTICSEARCH_HOST=elasticsearch
+      - TEST_MEMCACHED_HOST=memcached
+      - TEST_MONGODB_HOST=mongodb
+      - TEST_MYSQL_HOST=mysql
+      - TEST_POSTGRES_HOST=postgres
+      - TEST_REDIS_HOST=redis
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-3.1-arm64:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   # JRuby
@@ -473,6 +501,7 @@ volumes:
   bundle-2.7:
   bundle-3.0:
   bundle-3.1:
+  bundle-3.1-arm64:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2.8.0:
   bundle-jruby-9.2-latest:
