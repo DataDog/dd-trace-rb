@@ -201,6 +201,8 @@ static VALUE _native_do_export(
     ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, timeout_milliseconds);
 
   ddprof_ffi_SendResult result = ddprof_ffi_ProfileExporterV3_send(exporter, request);
+  request = NULL; // send consumes and takes care of cleaning up request
+
   // TODO: handle result
 
   // TODO: Release gil
