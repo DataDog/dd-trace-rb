@@ -203,9 +203,12 @@ static VALUE _native_do_export(
   ddprof_ffi_SendResult result = ddprof_ffi_ProfileExporterV3_send(exporter, request);
   request = NULL; // send consumes and takes care of cleaning up request
 
-  // TODO: handle result
+  if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
+    VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
+    // TODO: Missing clean up of error string?
+    rb_raise(rb_eRuntimeError, "Failed to report profile: %+"PRIsVALUE, failure_details);
+  }
 
-  // TODO: Release gil
-
-  return Qnil;
+  // TODO: Release gil (how to interrupt libddprof send?)
+  return UINT2NUM(result.http_response.code);
 }
