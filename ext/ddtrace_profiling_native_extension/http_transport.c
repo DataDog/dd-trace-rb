@@ -9,7 +9,8 @@
 // see exporter_as_ruby_object below for more details
 static VALUE exporter_class = Qnil;
 
-inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string);
+#define byte_slice_from_literal(string) ((ddprof_ffi_ByteSlice) {.ptr = (uint8_t *) "" string, .len = sizeof("" string) - 1})
+
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array);
 static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array);
@@ -47,13 +48,6 @@ void http_transport_init(VALUE profiling_module) {
   exporter_class = rb_define_class_under(http_transport_class, "Exporter", rb_cObject);
   // This prevents creation of the exporter class outside of our extension, see https://bugs.ruby-lang.org/issues/18007
   rb_undef_alloc_func(exporter_class);
-}
-
-// TODO: Extract these out
-// FIXME I THINK THIS IS COMPLETELY BROKEN !
-inline static ddprof_ffi_ByteSlice byte_slice_from_chars(const char *string) {
-  ddprof_ffi_ByteSlice byte_slice = {.ptr = (uint8_t *) string, .len = sizeof(string) - 1};
-  return byte_slice;
 }
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
@@ -95,7 +89,7 @@ static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_a
 
   struct ddprof_ffi_NewProfileExporterV3Result exporter_result =
     ddprof_ffi_ProfileExporterV3_new(
-      byte_slice_from_chars("ruby"),
+      byte_slice_from_literal("ruby"),
       (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
       endpoint
     );
