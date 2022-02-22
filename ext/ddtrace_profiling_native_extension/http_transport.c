@@ -176,7 +176,33 @@ static VALUE _native_do_export(
   Check_Type(code_provenance_file_name, T_STRING);
   Check_Type(code_provenance_data, T_STRING);
 
-  // TODO: libpprof magic
+  ddprof_ffi_ProfileExporterV3 *exporter;
+  TypedData_Get_Struct(libddprof_exporter, ddprof_ffi_ProfileExporterV3, &exporter_as_ruby_object, exporter);
+
+  uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
+
+  ddprof_ffi_Timespec start =
+    {.seconds = NUM2LONG(start_timespec_seconds), .nanoseconds = NUM2UINT(start_timespec_nanoseconds)};
+  ddprof_ffi_Timespec finish =
+    {.seconds = NUM2LONG(finish_timespec_seconds), .nanoseconds = NUM2UINT(finish_timespec_nanoseconds)};
+
+  ddprof_ffi_Buffer pprof_buffer =
+    {.ptr = (uint8_t *) StringValuePtr(pprof_data), .len = RSTRING_LEN(pprof_data), .capacity = 0}; // FIXME Should I be using this?
+  ddprof_ffi_Buffer code_provenance_buffer =
+    {.ptr = (uint8_t *) StringValuePtr(code_provenance_data), .len = RSTRING_LEN(code_provenance_data), .capacity = 0}; // FIXME Should I be using this?
+
+  const ddprof_ffi_File files[] = {
+    {.name = byte_slice_from_ruby_string(pprof_file_name), .file = &pprof_buffer},
+    {.name = byte_slice_from_ruby_string(code_provenance_file_name), .file = &code_provenance_buffer}
+  };
+  ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = (sizeof(files) / sizeof(ddprof_ffi_File))};
+
+  ddprof_ffi_Request *request =
+    ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, timeout_milliseconds);
+
+  ddprof_ffi_SendResult result = ddprof_ffi_ProfileExporterV3_send(exporter, request);
+  // TODO: handle result
+
   // TODO: Release gil
 
   return Qnil;
