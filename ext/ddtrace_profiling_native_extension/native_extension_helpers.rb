@@ -22,7 +22,7 @@ module Datadog
             on_truffleruby? ||
             on_windows? ||
             on_unknown_os? ||
-            not_on_x86_64? ||
+            not_on_amd64_or_arm64? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libddprof_not_usable?
         end
@@ -51,8 +51,8 @@ module Datadog
           UNKNOWN_OS_NOT_SUPPORTED unless RUBY_PLATFORM.include?('darwin') || RUBY_PLATFORM.include?('linux')
         end
 
-        private_class_method def self.not_on_x86_64?
-          ARCHITECTURE_NOT_SUPPORTED unless RUBY_PLATFORM.start_with?('x86_64')
+        private_class_method def self.not_on_amd64_or_arm64?
+          ARCHITECTURE_NOT_SUPPORTED unless (RUBY_PLATFORM.start_with?('x86_64') || RUBY_PLATFORM.start_with?('aarch64'))
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
