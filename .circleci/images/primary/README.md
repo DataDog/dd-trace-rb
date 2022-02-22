@@ -4,7 +4,7 @@ This folder contains Dockerfiles for all versions of Ruby used in the testing an
 
 ## Multiplatform builds
 
-Images marked with a "# This image supports multiple platforms" are able to be built for both amd64 (x86-64) and
+Images marked with a "# This image supports multiple platforms" are able to be built for both amd64 (x86_64) and
 arm64 (aarch64) Linux.
 
 Here's an example of building the Ruby 3.1 image:
