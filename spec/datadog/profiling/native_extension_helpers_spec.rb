@@ -63,15 +63,13 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           it { is_expected.to include 'operating system is not supported' }
         end
 
-        context 'when not on x86-64' do
-          before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
+        context 'when not on amd64 or arm64' do
+          before { stub_const('RUBY_PLATFORM', 'mipsel-linux') }
 
           it { is_expected.to include 'architecture is not supported' }
         end
 
-        context 'when on x86-64 linux' do
-          before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
-
+        shared_examples 'mjit header validation' do
           shared_examples 'libddprof usable' do
             context 'when libddprof is not available' do
               before do
@@ -131,6 +129,18 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
               include_examples 'libddprof usable'
             end
           end
+        end
+
+        context 'when on amd64 (x86-64) linux' do
+          before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
+
+          include_examples 'mjit header validation'
+        end
+
+        context 'when on arm64 (aarch64) linux' do
+          before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
+
+          include_examples 'mjit header validation'
         end
       end
     end
