@@ -149,6 +149,8 @@ class Array
 
   def deconstruct(); end
 
+  def quote(); end
+
   def shelljoin(); end
 
   def to_h(); end
@@ -216,15 +218,112 @@ module Builder::XChar
   XML_PREDEFINED = ::T.let(nil, ::T.untyped)
 end
 
+class Bundler::APIResponseInvalidDependenciesError
+  def status_code(); end
+end
+
+class Bundler::APIResponseInvalidDependenciesError
+end
+
+class Bundler::CurrentRuby
+  def jruby_30?(); end
+
+  def jruby_3?(); end
+
+  def maglev_30?(); end
+
+  def maglev_3?(); end
+
+  def mingw_30?(); end
+
+  def mingw_3?(); end
+
+  def mri_30?(); end
+
+  def mri_3?(); end
+
+  def mswin64_30?(); end
+
+  def mswin64_3?(); end
+
+  def mswin_30?(); end
+
+  def mswin_3?(); end
+
+  def on_30?(); end
+
+  def on_3?(); end
+
+  def rbx_30?(); end
+
+  def rbx_3?(); end
+
+  def ruby_30?(); end
+
+  def ruby_3?(); end
+
+  def truffleruby_30?(); end
+
+  def truffleruby_3?(); end
+
+  def x64_mingw_30?(); end
+
+  def x64_mingw_3?(); end
+end
+
+class Bundler::Definition
+  def dependencies_for(groups); end
+
+  def locked_dependencies(); end
+
+  def most_specific_locked_platform(); end
+
+  def requested_dependencies(); end
+
+  def resolve_only_locally!(); end
+end
+
+class Bundler::Definition
+  def self.no_lock(); end
+
+  def self.no_lock=(no_lock); end
+end
+
+class Bundler::DepProxy
+  def clone(); end
+end
+
+class Bundler::DepProxy
+  def self.get_proxy(dep, platform); end
+end
+
 class Bundler::Dependency
   def branch(); end
 
   def expanded_platforms(); end
 
   def git(); end
+
+  def github(); end
+
+  def ref(); end
 end
 
 Bundler::Deprecate = Gem::Deprecate
+
+module Bundler::Digest
+  SHA1_MASK = ::T.let(nil, ::T.untyped)
+  SHA1_WORDS = ::T.let(nil, ::T.untyped)
+end
+
+module Bundler::Digest
+  def self.sha1(string); end
+end
+
+class Bundler::Dsl
+  def check_primary_source_safety(); end
+  GITHUB_PULL_REQUEST_URL = ::T.let(nil, ::T.untyped)
+end
 
 class Bundler::Env
 end
@@ -235,6 +334,16 @@ class Bundler::Env
   def self.report(options=T.unsafe(nil)); end
 
   def self.write(io); end
+end
+
+class Bundler::EnvironmentPreserver
+  def replace_with_backup(); end
+end
+
+class Bundler::EnvironmentPreserver
+  def self.env_to_hash(env); end
+
+  def self.from_env(); end
 end
 
 class Bundler::Fetcher
@@ -297,8 +406,6 @@ end
 class Bundler::Fetcher::CompactIndex
   def available?(*args, &blk); end
 
-  def fetch_spec(*args, &blk); end
-
   def specs(*args, &blk); end
 
   def specs_for_names(gem_names); end
@@ -357,8 +464,6 @@ class Bundler::Fetcher::Downloader
 end
 
 class Bundler::Fetcher::Index
-  def fetch_spec(spec); end
-
   def specs(_gem_names); end
 end
 
@@ -418,6 +523,8 @@ class Bundler::GemHelper
 
   def base(); end
 
+  def build_checksum(built_gem_path=T.unsafe(nil)); end
+
   def build_gem(); end
 
   def built_gem_path(); end
@@ -425,6 +532,10 @@ class Bundler::GemHelper
   def clean?(); end
 
   def committed?(); end
+
+  def current_branch(); end
+
+  def default_remote(); end
 
   def gem_command(); end
 
@@ -448,8 +559,6 @@ class Bundler::GemHelper
 
   def name(); end
 
-  def perform_git_push(options=T.unsafe(nil)); end
-
   def rubygem_push(path); end
 
   def sh(cmd, &block); end
@@ -459,6 +568,8 @@ class Bundler::GemHelper
   def sh_with_status(cmd, &block); end
 
   def spec_path(); end
+
+  def tag_prefix=(tag_prefix); end
 
   def tag_version(); end
 
@@ -475,6 +586,20 @@ class Bundler::GemHelper
   def self.instance(); end
 
   def self.instance=(instance); end
+
+  def self.tag_prefix=(prefix); end
+end
+
+class Bundler::GemHelpers::PlatformMatch
+  def self.specificity_score(spec_platform, user_platform); end
+end
+
+module Bundler::GemHelpers
+  def self.local_platform(); end
+
+  def self.same_deps(spec, exemplary_spec); end
+
+  def self.same_specificity(platform, spec, exemplary_spec); end
 end
 
 class Bundler::GemVersionPromoter
@@ -559,56 +684,30 @@ class Bundler::Injector
   def self.remove(gems, options=T.unsafe(nil)); end
 end
 
-class Bundler::Installer
-  def generate_bundler_executable_stubs(spec, options=T.unsafe(nil)); end
+class Bundler::LazySpecification
+  def eql?(other); end
 
-  def generate_standalone_bundler_executable_stubs(spec); end
-
-  def initialize(root, definition); end
-
-  def post_install_messages(); end
-
-  def run(options); end
+  def platform_string(); end
 end
 
-class Bundler::Installer
-  def self.ambiguous_gems(); end
-
-  def self.ambiguous_gems=(ambiguous_gems); end
-
-  def self.install(root, definition, options=T.unsafe(nil)); end
+class Bundler::LockfileParser
+  def self.bundled_with(); end
 end
 
-class Bundler::LockfileGenerator
-  def definition(); end
-
-  def generate!(); end
-
-  def initialize(definition); end
-
-  def out(); end
+module Bundler::Molinillo::SpecificationProvider
+  def dependencies_equal?(dependencies, other_dependencies); end
 end
 
-class Bundler::LockfileGenerator
-  def self.generate(definition); end
-end
+class Bundler::PermissionError
+  def parent_folder(); end
 
-class Bundler::Molinillo::DependencyGraph
-  include ::Enumerable
-end
-
-class Bundler::Molinillo::DependencyGraph::Log
-  extend ::Enumerable
-end
-
-class Bundler::Molinillo::DependencyGraph::Vertex
-  def _recursive_predecessors(vertices=T.unsafe(nil)); end
-
-  def _recursive_successors(vertices=T.unsafe(nil)); end
+  def permission_type(); end
 end
 
 module Bundler::Plugin::API::Source
   def ==(other); end
+
+  def add_dependency_names(names); end
 
   def app_cache_dirname(); end
 
@@ -636,6 +735,8 @@ module Bundler::Plugin::API::Source
 
   def hash(); end
 
+  def identifier(); end
+
   def include?(other); end
 
   def initialize(opts); end
@@ -645,6 +746,8 @@ module Bundler::Plugin::API::Source
   def install_path(); end
 
   def installed?(); end
+
+  def local!(); end
 
   def name(); end
 
@@ -657,6 +760,8 @@ module Bundler::Plugin::API::Source
   def remote!(); end
 
   def root(); end
+
+  def spec_names(); end
 
   def specs(); end
 
@@ -687,6 +792,8 @@ class Bundler::Plugin::Index
   def installed_plugins(); end
 
   def plugin_commands(plugin); end
+
+  def unregister_plugin(name); end
 end
 
 class Bundler::Plugin::Index::CommandConflict
@@ -725,6 +832,12 @@ end
 class Bundler::Plugin::Installer
 end
 
+class Bundler::Plugin::PluginInstallError
+end
+
+class Bundler::Plugin::PluginInstallError
+end
+
 class Bundler::Plugin::SourceList
 end
 
@@ -733,6 +846,10 @@ end
 
 module Bundler::Plugin
   def self.list(); end
+
+  def self.save_plugin(name, spec, optional_plugin=T.unsafe(nil)); end
+
+  def self.uninstall(names, options); end
 end
 
 class Bundler::ProcessLock
@@ -740,6 +857,29 @@ end
 
 class Bundler::ProcessLock
   def self.lock(bundle_path=T.unsafe(nil)); end
+end
+
+class Bundler::RemoteSpecification
+  def required_rubygems_version(); end
+end
+
+class Bundler::Resolver
+  include ::Bundler::GemHelpers
+  def results_for(dependency, base); end
+
+  def source_for(name); end
+end
+
+class Bundler::Resolver::SpecGroup
+  def activated_platforms(); end
+
+  def activated_platforms=(activated_platforms); end
+
+  def sorted_activated_platforms(); end
+end
+
+class Bundler::Resolver::SpecGroup
+  def self.create_for(specs, all_platforms, specific_platform); end
 end
 
 class Bundler::Retry
@@ -770,13 +910,9 @@ class Bundler::Retry
   def self.default_retries(); end
 end
 
-class Bundler::RubyGemsGemInstaller
-end
-
-class Bundler::RubyGemsGemInstaller
-end
-
 class Bundler::RubygemsIntegration
+  def add_default_gems_to(specs); end
+
   def add_to_load_path(paths); end
 
   def all_specs(); end
@@ -787,9 +923,13 @@ class Bundler::RubygemsIntegration
 
   def default_stubs(); end
 
+  def find_bundler(version); end
+
   def find_name(name); end
 
   def gem_remote_fetcher(); end
+
+  def load_env_plugins(); end
 
   def plain_specs(); end
 
@@ -797,7 +937,23 @@ class Bundler::RubygemsIntegration
 
   def stub_rubygems(specs); end
 
-  def use_gemdeps(gemfile); end
+  def supports_bundler_trampolining?(); end
+end
+
+class Bundler::SelfManager
+  def install_locked_bundler_and_restart_with_it_if_needed(); end
+
+  def restart_with_locked_bundler_if_needed(); end
+
+  def update_bundler_and_restart_with_it_if_needed(target); end
+end
+
+class Bundler::SelfManager
+end
+
+class Bundler::Settings
+  def processor_count(); end
+  STRING_KEYS = ::T.let(nil, ::T.untyped)
 end
 
 class Bundler::Settings::Mirror
@@ -859,12 +1015,148 @@ class Bundler::Settings::Validator
   def self.validate!(key, value, settings); end
 end
 
+class Bundler::Settings
+  def self.key_for(key); end
+end
+
+class Bundler::Source
+  def add_dependency_names(names); end
+
+  def cached!(); end
+
+  def identifier(); end
+
+  def local!(); end
+
+  def local_only!(); end
+
+  def remote!(); end
+
+  def spec_names(); end
+end
+
 class Bundler::Source::Git
   def glob(); end
+
+  def local?(); end
+end
+
+class Bundler::Source::Rubygems
+  def default_cache_path_for(dir); end
+
+  def dependency_api_available?(); end
+
+  def multiple_remotes?(); end
+
+  def no_remotes?(); end
+
+  def remote_names(); end
+end
+
+class Bundler::Source::RubygemsAggregate
+  def identifier(); end
+
+  def initialize(sources, source_map); end
+
+  def source_map(); end
+
+  def sources(); end
+
+  def specs(); end
+end
+
+class Bundler::Source::RubygemsAggregate
+end
+
+class Bundler::SourceList
+  def add_global_rubygems_remote(uri); end
+
+  def aggregate_global_source?(); end
+
+  def expired_sources?(replacement_sources); end
+
+  def global_path_source(); end
+
+  def implicit_global_source?(); end
+
+  def local_only!(); end
+
+  def lock_other_sources(); end
+
+  def lock_rubygems_sources(); end
+
+  def merged_gem_lockfile_sections!(replacement_source); end
+
+  def merged_gem_lockfile_sections?(); end
+
+  def non_default_explicit_sources(); end
+
+  def non_global_rubygems_sources(); end
+end
+
+class Bundler::SourceMap
+  def all_requirements(); end
+
+  def dependencies(); end
+
+  def direct_requirements(); end
+
+  def initialize(sources, dependencies); end
+
+  def pinned_spec_names(skip=T.unsafe(nil)); end
+
+  def sources(); end
+end
+
+class Bundler::SourceMap
 end
 
 class Bundler::SpecSet
   include ::Enumerable
+  include ::Bundler::TSort
+  def missing_specs(); end
+end
+
+class Bundler::StubSpecification
+  def extensions(); end
+
+  def gem_build_complete_path(); end
+
+  def manually_installed?(); end
+end
+
+module Bundler::TSort
+  def each_strongly_connected_component(&block); end
+
+  def each_strongly_connected_component_from(node, id_map=T.unsafe(nil), stack=T.unsafe(nil), &block); end
+
+  def strongly_connected_components(); end
+
+  def tsort(); end
+
+  def tsort_each(&block); end
+
+  def tsort_each_child(node); end
+
+  def tsort_each_node(); end
+end
+
+class Bundler::TSort::Cyclic
+end
+
+class Bundler::TSort::Cyclic
+end
+
+module Bundler::TSort
+  def self.each_strongly_connected_component(each_node, each_child); end
+
+  def self.each_strongly_connected_component_from(node, each_child, id_map=T.unsafe(nil), stack=T.unsafe(nil)); end
+
+  def self.strongly_connected_components(each_node, each_child); end
+
+  def self.tsort(each_node, each_child); end
+
+  def self.tsort_each(each_node, each_child); end
 end
 
 class Bundler::Thor
@@ -1327,6 +1619,8 @@ class Bundler::Thor::CoreExt::HashWithIndifferentAccess
 
   def delete(key); end
 
+  def except(*keys); end
+
   def fetch(key, *args); end
 
   def initialize(hash=T.unsafe(nil)); end
@@ -1580,6 +1874,8 @@ class Bundler::Thor::Options
   def switch?(arg); end
 
   def switch_option(arg); end
+
+  def unshift(arg, is_value: T.unsafe(nil)); end
   EQ_RE = ::T.let(nil, ::T.untyped)
   LONG_RE = ::T.let(nil, ::T.untyped)
   OPTS_END = ::T.let(nil, ::T.untyped)
@@ -1637,6 +1933,8 @@ module Bundler::Thor::Shell
   def print_wrapped(*args, &block); end
 
   def say(*args, &block); end
+
+  def say_error(*args, &block); end
 
   def say_status(*args, &block); end
 
@@ -1717,6 +2015,8 @@ class Bundler::Thor::Shell::Basic
 
   def say(message=T.unsafe(nil), color=T.unsafe(nil), force_new_line=T.unsafe(nil)); end
 
+  def say_error(message=T.unsafe(nil), color=T.unsafe(nil), force_new_line=T.unsafe(nil)); end
+
   def say_status(status, message, log_status=T.unsafe(nil)); end
 
   def set_color(string, *arg); end
@@ -1742,6 +2042,8 @@ end
 
 class Bundler::Thor::Shell::Color
   def are_colors_disabled?(); end
+
+  def are_colors_supported?(); end
 
   def diff_lcs_loaded?(); end
 
@@ -1990,7 +2292,7 @@ class Bundler::UI::Shell
 
   def debug?(); end
 
-  def error(msg, newline=T.unsafe(nil)); end
+  def error(msg, newline=T.unsafe(nil), color=T.unsafe(nil)); end
 
   def info(msg, newline=T.unsafe(nil)); end
 
@@ -2012,7 +2314,7 @@ class Bundler::UI::Shell
 
   def unprinted_warnings(); end
 
-  def warn(msg, newline=T.unsafe(nil)); end
+  def warn(msg, newline=T.unsafe(nil), color=T.unsafe(nil)); end
 
   def yes?(msg); end
   LEVELS = ::T.let(nil, ::T.untyped)
@@ -2059,19 +2361,6 @@ class Bundler::URI::Error
 end
 
 class Bundler::URI::Error
-end
-
-module Bundler::URI::Escape
-  def decode(*arg); end
-
-  def encode(*arg); end
-
-  def escape(*arg); end
-
-  def unescape(*arg); end
-end
-
-module Bundler::URI::Escape
 end
 
 class Bundler::URI::FTP
@@ -2440,7 +2729,6 @@ module Bundler::URI::Util
 end
 
 module Bundler::URI
-  extend ::Bundler::URI::Escape
   def self.decode_www_form(str, enc=T.unsafe(nil), separator: T.unsafe(nil), use__charset_: T.unsafe(nil), isindex: T.unsafe(nil)); end
 
   def self.decode_www_form_component(str, enc=T.unsafe(nil)); end
@@ -2450,6 +2738,8 @@ module Bundler::URI
   def self.encode_www_form_component(str, enc=T.unsafe(nil)); end
 
   def self.extract(str, schemes=T.unsafe(nil), &block); end
+
+  def self.for(scheme, *arguments, default: T.unsafe(nil)); end
 
   def self.get_encoding(label); end
 
@@ -2529,9 +2819,19 @@ module Bundler::VersionRanges
 end
 
 module Bundler
+  def self.configure_gem_home_and_path(path=T.unsafe(nil)); end
+
+  def self.most_specific_locked_platform?(platform); end
+
   def self.original_exec(*args); end
 
   def self.original_system(*args); end
+
+  def self.preferred_gemfile_name(); end
+
+  def self.reset_settings_and_root!(); end
+
+  def self.self_manager(); end
 
   def self.unbundled_env(); end
 
@@ -2817,7 +3117,7 @@ class Concurrent::ConcurrentUpdateError
 end
 
 class Concurrent::Future
-  include ::Datadog::Contrib::ConcurrentRuby::FuturePatch
+  include ::Datadog::Tracing::Contrib::ConcurrentRuby::FuturePatch
   def ns_initialize_without_datadog(value, opts); end
 end
 
@@ -3111,12 +3411,65 @@ DRbObject = DRb::DRbObject
 
 DRbUndumped = DRb::DRbUndumped
 
-class Datadog::CI::ContextFlush::Finished
-  include ::Datadog::CI::ContextFlush::Tagging
+class Datadog::AppSec::Configuration::DSL::Instrument
+  def self.[](*arg); end
+
+  def self.members(); end
 end
 
-class Datadog::CI::ContextFlush::Partial
-  include ::Datadog::CI::ContextFlush::Tagging
+class Datadog::AppSec::Configuration::Settings::Integration
+  def self.[](*arg); end
+
+  def self.members(); end
+end
+
+class Datadog::AppSec::Contrib::Configuration::Settings
+  include ::Datadog::Core::Environment::VariableHelpers
+  include ::Datadog::Core::Configuration::Options
+  include ::Datadog::Core::Configuration::Options::InstanceMethods
+  include ::Datadog::Core::Configuration::Base::InstanceMethods
+  def enabled(); end
+
+  def enabled=(value); end
+
+  def service_name(); end
+
+  def service_name=(value); end
+end
+
+class Datadog::AppSec::Contrib::Configuration::Settings
+  extend ::Datadog::Core::Environment::VariableHelpers
+end
+
+class Datadog::AppSec::Contrib::Integration::RegisteredIntegration
+  def self.[](*arg); end
+
+  def self.members(); end
+end
+
+class Datadog::AppSec::WAF::Context
+  ACTION_MAP_OUT = ::T.let(nil, ::T.untyped)
+  DEFAULT_TIMEOUT_US = ::T.let(nil, ::T.untyped)
+end
+
+class Datadog::AppSec::WAF::Handle
+  DEFAULT_MAX_ARRAY_LENGTH = ::T.let(nil, ::T.untyped)
+  DEFAULT_MAX_MAP_DEPTH = ::T.let(nil, ::T.untyped)
+  DEFAULT_MAX_TIME_STORE = ::T.let(nil, ::T.untyped)
+end
+
+module Datadog::AppSec::WAF::LibDDWAF
+  DDWAF_LOG_LEVEL = ::T.let(nil, ::T.untyped)
+  DDWAF_OBJ_TYPE = ::T.let(nil, ::T.untyped)
+  DDWAF_RET_CODE = ::T.let(nil, ::T.untyped)
+  ObjectFree = ::T.let(nil, ::T.untyped)
+  ObjectNoFree = ::T.let(nil, ::T.untyped)
+end
+
+module Datadog::AppSec::WAF::VERSION
+  BASE_STRING = ::T.let(nil, ::T.untyped)
+  MINIMUM_RUBY_VERSION = ::T.let(nil, ::T.untyped)
+  STRING = ::T.let(nil, ::T.untyped)
 end
 
 class Datadog::CI::Contrib::Cucumber::Configuration::Settings
@@ -3126,12 +3479,12 @@ class Datadog::CI::Contrib::Cucumber::Configuration::Settings
 end
 
 class Datadog::CI::Contrib::Cucumber::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
 end
 
 class Datadog::CI::Contrib::RSpec::Configuration::Settings
@@ -3141,57 +3494,53 @@ class Datadog::CI::Contrib::RSpec::Configuration::Settings
 end
 
 class Datadog::CI::Contrib::RSpec::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
 end
 
-class Datadog::CRubyTraceBuffer
-  include ::Datadog::MeasuredBuffer
+class Datadog::CI::Flush::Finished
+  include ::Datadog::CI::Flush::Tagging
 end
 
-class Datadog::Configuration::AgentSettingsResolver::AgentSettings
+class Datadog::CI::Flush::Partial
+  include ::Datadog::CI::Flush::Tagging
+end
+
+class Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings
   def self.[](*arg); end
 
   def self.members(); end
 end
 
-class Datadog::Configuration::Components
+class Datadog::Core::Configuration::Components
   include ::Datadog::CI::Configuration::Components
 end
 
-class Datadog::Configuration::Settings
+class Datadog::Core::Configuration::Settings
   include ::Datadog::Core::Environment::VariableHelpers
-  include ::Datadog::Configuration::Options
-  include ::Datadog::Configuration::Options::InstanceMethods
-  include ::Datadog::Configuration::Base::InstanceMethods
-  include ::Datadog::Contrib::Extensions::Configuration::Settings
-  def analytics(); end
+  include ::Datadog::Core::Configuration::Options
+  include ::Datadog::Core::Configuration::Options::InstanceMethods
+  include ::Datadog::Core::Configuration::Base::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Extensions::Configuration::Settings
+  def agent(); end
 
-  def analytics=(value); end
-
-  def analytics_enabled(); end
-
-  def analytics_enabled=(value); end
+  def agent=(value); end
 
   def api_key(); end
 
   def api_key=(value); end
 
-  def ci_mode(); end
+  def ci(); end
 
-  def ci_mode=(value); end
+  def ci=(value); end
 
   def diagnostics(); end
 
   def diagnostics=(value); end
-
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
 
   def env(); end
 
@@ -3199,23 +3548,15 @@ class Datadog::Configuration::Settings
 
   def logger(); end
 
+  def logger=(value); end
+
   def profiling(); end
 
   def profiling=(value); end
 
-  def report_hostname(); end
-
-  def report_hostname=(value); end
+  def runtime_metrics(); end
 
   def runtime_metrics=(value); end
-
-  def runtime_metrics_enabled(); end
-
-  def runtime_metrics_enabled=(value); end
-
-  def sampling(); end
-
-  def sampling=(value); end
 
   def service(); end
 
@@ -3231,1060 +3572,25 @@ class Datadog::Configuration::Settings
 
   def tags=(value); end
 
-  def test_mode(); end
-
-  def test_mode=(value); end
-
   def time_now_provider(); end
 
   def time_now_provider=(value); end
+
+  def tracing(); end
+
+  def tracing=(value); end
 
   def version(); end
 
   def version=(value); end
 end
 
-class Datadog::Configuration::Settings
+class Datadog::Core::Configuration::Settings
   extend ::Datadog::Core::Environment::VariableHelpers
   extend ::Datadog::CI::Configuration::Settings
 end
 
-class Datadog::Context
-  include ::Datadog::Utils::Forking::ClassExtensions
-end
-
-module Datadog::Contrib::ActionCable::Events::Broadcast
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionCable::Events::Broadcast
-  extend ::Datadog::Contrib::ActionCable::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActionCable::Events::PerformAction
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionCable::Events::PerformAction
-  extend ::Datadog::Contrib::ActionCable::RootContextEvent::ClassMethods
-  extend ::Datadog::Contrib::ActionCable::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActionCable::Events::Transmit
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionCable::Events::Transmit
-  extend ::Datadog::Contrib::ActionCable::Event::ClassMethods
-end
-
-class Datadog::Contrib::ActionCable::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::ActionMailer::Configuration::Settings
-  def email_data(); end
-
-  def email_data=(value); end
-end
-
-module Datadog::Contrib::ActionMailer::Events::Deliver
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionMailer::Events::Deliver
-  extend ::Datadog::Contrib::ActionMailer::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActionMailer::Events::Process
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionMailer::Events::Process
-  extend ::Datadog::Contrib::ActionMailer::Event::ClassMethods
-end
-
-class Datadog::Contrib::ActionMailer::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::ActionPack::Configuration::Settings
-  def controller_service(); end
-
-  def controller_service=(value); end
-
-  def exception_controller(); end
-
-  def exception_controller=(value); end
-end
-
-class Datadog::Contrib::ActionPack::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::ActionView::Configuration::Settings
-  def template_base_path(); end
-
-  def template_base_path=(value); end
-end
-
-module Datadog::Contrib::ActionView::Events::RenderPartial
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionView::Events::RenderPartial
-  extend ::Datadog::Contrib::ActionView::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActionView::Events::RenderTemplate
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActionView::Events::RenderTemplate
-  extend ::Datadog::Contrib::ActionView::Event::ClassMethods
-end
-
-class Datadog::Contrib::ActionView::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::ActiveJob::Configuration::Settings
-  def error_handler(); end
-
-  def error_handler=(value); end
-end
-
-module Datadog::Contrib::ActiveJob::Events::Discard
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveJob::Events::Discard
-  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveJob::Events::Enqueue
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveJob::Events::Enqueue
-  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveJob::Events::EnqueueAt
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveJob::Events::EnqueueAt
-  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveJob::Events::EnqueueRetry
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveJob::Events::EnqueueRetry
-  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveJob::Events::Perform
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveJob::Events::Perform
-  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveJob::Events::RetryStopped
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveJob::Events::RetryStopped
-  extend ::Datadog::Contrib::ActiveJob::Event::ClassMethods
-end
-
-class Datadog::Contrib::ActiveJob::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-module Datadog::Contrib::ActiveModelSerializers::Events::Render
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveModelSerializers::Events::Render
-  extend ::Datadog::Contrib::ActiveModelSerializers::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveModelSerializers::Events::Serialize
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveModelSerializers::Events::Serialize
-  extend ::Datadog::Contrib::ActiveModelSerializers::Event::ClassMethods
-end
-
-class Datadog::Contrib::ActiveModelSerializers::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::ActiveRecord::Configuration::Resolver
-  include ::Datadog::Contrib::ActiveRecord::Configuration::MakaraResolver
-end
-
-class Datadog::Contrib::ActiveRecord::Configuration::Settings
-  def orm_service_name(); end
-
-  def orm_service_name=(value); end
-end
-
-module Datadog::Contrib::ActiveRecord::Events::Instantiation
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveRecord::Events::Instantiation
-  extend ::Datadog::Contrib::ActiveRecord::Event::ClassMethods
-end
-
-module Datadog::Contrib::ActiveRecord::Events::SQL
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::ActiveRecord::Events::SQL
-  extend ::Datadog::Contrib::ActiveRecord::Event::ClassMethods
-end
-
-class Datadog::Contrib::ActiveRecord::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-module Datadog::Contrib::ActiveSupport::Cache::Patcher
-  extend ::Datadog::Contrib::ActiveSupport::Cache::Redis::Patcher
-end
-
-class Datadog::Contrib::ActiveSupport::Configuration::Settings
-  def cache_service(); end
-
-  def cache_service=(value); end
-end
-
-class Datadog::Contrib::ActiveSupport::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Aws::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::ConcurrentRuby::ContextCompositeExecutorService
-  def can_overflow?(*args, &block); end
-
-  def serialized?(*args, &block); end
-end
-
-class Datadog::Contrib::ConcurrentRuby::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Configuration::Settings
-  include ::Datadog::Core::Environment::VariableHelpers
-  include ::Datadog::Configuration::Options
-  include ::Datadog::Configuration::Options::InstanceMethods
-  include ::Datadog::Configuration::Base::InstanceMethods
-  def analytics_enabled(); end
-
-  def analytics_enabled=(value); end
-
-  def analytics_sample_rate(); end
-
-  def analytics_sample_rate=(value); end
-
-  def enabled(); end
-
-  def enabled=(value); end
-
-  def service_name(); end
-
-  def service_name=(value); end
-
-  def tracer(); end
-
-  def tracer=(value); end
-end
-
-class Datadog::Contrib::Configuration::Settings
-  extend ::Datadog::Core::Environment::VariableHelpers
-end
-
-class Datadog::Contrib::Dalli::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::DelayedJob::Configuration::Settings
-  def client_service_name(); end
-
-  def client_service_name=(value); end
-
-  def error_handler(); end
-
-  def error_handler=(value); end
-end
-
-class Datadog::Contrib::DelayedJob::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Elasticsearch::Configuration::Settings
-  def quantize(); end
-
-  def quantize=(value); end
-end
-
-class Datadog::Contrib::Elasticsearch::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Ethon::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def split_by_domain(); end
-
-  def split_by_domain=(value); end
-end
-
-class Datadog::Contrib::Ethon::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Excon::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def split_by_domain(); end
-
-  def split_by_domain=(value); end
-end
-
-class Datadog::Contrib::Excon::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Faraday::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def split_by_domain(); end
-
-  def split_by_domain=(value); end
-end
-
-class Datadog::Contrib::Faraday::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::GRPC::Configuration::Settings
-  def error_handler(); end
-
-  def error_handler=(value); end
-end
-
-class Datadog::Contrib::GRPC::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Grape::Configuration::Settings
-  def error_statuses(); end
-
-  def error_statuses=(value); end
-end
-
-class Datadog::Contrib::Grape::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::GraphQL::Configuration::Settings
-  def schemas(); end
-
-  def schemas=(value); end
-end
-
-class Datadog::Contrib::GraphQL::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::HTTP::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def split_by_domain(); end
-
-  def split_by_domain=(value); end
-end
-
-class Datadog::Contrib::HTTP::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Httpclient::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def split_by_domain(); end
-
-  def split_by_domain=(value); end
-end
-
-class Datadog::Contrib::Httpclient::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Httprb::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def split_by_domain(); end
-
-  def split_by_domain=(value); end
-end
-
-class Datadog::Contrib::Httprb::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-module Datadog::Contrib::Kafka::Events::Connection::Request
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::Connection::Request
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::Consumer::ProcessBatch
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::Consumer::ProcessBatch
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::Consumer::ProcessMessage
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::Consumer::ProcessMessage
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::Heartbeat
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::Heartbeat
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::JoinGroup
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::JoinGroup
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::LeaveGroup
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::LeaveGroup
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::SyncGroup
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::ConsumerGroup::SyncGroup
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::ProduceOperation::SendMessages
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::ProduceOperation::SendMessages
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-module Datadog::Contrib::Kafka::Events::Producer::DeliverMessages
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Kafka::Events::Producer::DeliverMessages
-  extend ::Datadog::Contrib::Kafka::Event::ClassMethods
-end
-
-class Datadog::Contrib::Kafka::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Lograge::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::MongoDB::Configuration::Settings
-  def quantize(); end
-
-  def quantize=(value); end
-end
-
-class Datadog::Contrib::MongoDB::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Mysql2::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Presto::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Qless::Configuration::Settings
-  def tag_job_data(); end
-
-  def tag_job_data=(value); end
-
-  def tag_job_tags(); end
-
-  def tag_job_tags=(value); end
-end
-
-class Datadog::Contrib::Qless::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Que::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def tag_args(); end
-
-  def tag_args=(value); end
-
-  def tag_data(); end
-
-  def tag_data=(value); end
-end
-
-class Datadog::Contrib::Que::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-module Datadog::Contrib::Racecar::Events::Batch
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Racecar::Events::Batch
-  extend ::Datadog::Contrib::Racecar::Event::ClassMethods
-end
-
-module Datadog::Contrib::Racecar::Events::Consume
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Racecar::Events::Consume
-  extend ::Datadog::Contrib::Racecar::Event::ClassMethods
-end
-
-module Datadog::Contrib::Racecar::Events::Message
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Event
-  include ::Datadog::Contrib::ActiveSupport::Notifications::Subscriber
-end
-
-module Datadog::Contrib::Racecar::Events::Message
-  extend ::Datadog::Contrib::Racecar::Event::ClassMethods
-end
-
-class Datadog::Contrib::Racecar::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Rack::Configuration::Settings
-  def application(); end
-
-  def application=(value); end
-
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def headers(); end
-
-  def headers=(value); end
-
-  def middleware_names(); end
-
-  def middleware_names=(value); end
-
-  def quantize(); end
-
-  def quantize=(value); end
-
-  def request_queuing(); end
-
-  def request_queuing=(value); end
-
-  def web_service_name(); end
-
-  def web_service_name=(value); end
-end
-
-class Datadog::Contrib::Rack::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Rails::Configuration::Settings
-  def cache_service(); end
-
-  def cache_service=(value); end
-
-  def controller_service(); end
-
-  def controller_service=(value); end
-
-  def database_service(); end
-
-  def database_service=(value); end
-
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def exception_controller(); end
-
-  def exception_controller=(value); end
-
-  def log_injection(); end
-
-  def log_injection=(value); end
-
-  def middleware(); end
-
-  def middleware=(value); end
-
-  def middleware_names(); end
-
-  def middleware_names=(value); end
-
-  def template_base_path(); end
-
-  def template_base_path=(value); end
-end
-
-class Datadog::Contrib::Rails::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Rake::Configuration::Settings
-  def quantize(); end
-
-  def quantize=(value); end
-end
-
-class Datadog::Contrib::Rake::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Redis::Configuration::Settings
-  def command_args(); end
-
-  def command_args=(value); end
-end
-
-class Datadog::Contrib::Redis::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Registry::Entry
-  def self.[](*arg); end
-
-  def self.members(); end
-end
-
-class Datadog::Contrib::Resque::Configuration::Settings
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def workers(); end
-
-  def workers=(value); end
-end
-
-class Datadog::Contrib::Resque::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::RestClient::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-end
-
-class Datadog::Contrib::RestClient::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::SemanticLogger::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Sequel::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Shoryuken::Configuration::Settings
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def tag_body(); end
-
-  def tag_body=(value); end
-end
-
-class Datadog::Contrib::Shoryuken::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Sidekiq::Configuration::Settings
-  def client_service_name(); end
-
-  def client_service_name=(value); end
-
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def tag_args(); end
-
-  def tag_args=(value); end
-end
-
-class Datadog::Contrib::Sidekiq::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Sinatra::Configuration::Settings
-  def distributed_tracing(); end
-
-  def distributed_tracing=(value); end
-
-  def headers(); end
-
-  def headers=(value); end
-
-  def resource_script_names(); end
-
-  def resource_script_names=(value); end
-end
-
-class Datadog::Contrib::Sinatra::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::Sneakers::Configuration::Settings
-  def error_handler(); end
-
-  def error_handler=(value); end
-
-  def tag_body(); end
-
-  def tag_body=(value); end
-end
-
-class Datadog::Contrib::Sneakers::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Contrib::SuckerPunch::Integration
-  include ::Datadog::Contrib::Configurable
-  include ::Datadog::Contrib::Configurable::InstanceMethods
-  include ::Datadog::Contrib::Patchable
-  include ::Datadog::Contrib::Patchable::InstanceMethods
-  include ::Datadog::Contrib::Registerable
-  include ::Datadog::Contrib::Registerable::InstanceMethods
-end
-
-class Datadog::Core::Environment::Cgroup::Descriptor
-  def self.[](*arg); end
-
-  def self.members(); end
-end
-
-class Datadog::Core::Environment::Container::Descriptor
-  def self.[](*arg); end
-
-  def self.members(); end
-end
-
-class Datadog::Diagnostics::Health::Metrics
+class Datadog::Core::Diagnostics::Health::Metrics
   def api_errors(*args, &block); end
 
   def api_requests(*args, &block); end
@@ -4324,7 +3630,19 @@ class Datadog::Diagnostics::Health::Metrics
   def writer_cpu_time(*args, &block); end
 end
 
-module Datadog::Metrics::Helpers
+class Datadog::Core::Environment::Cgroup::Descriptor
+  def self.[](*arg); end
+
+  def self.members(); end
+end
+
+class Datadog::Core::Environment::Container::Descriptor
+  def self.[](*arg); end
+
+  def self.members(); end
+end
+
+module Datadog::Core::Metrics::Helpers
   def count(name, stat); end
 
   def distribution(name, stat); end
@@ -4336,26 +3654,32 @@ module Datadog::Metrics::Helpers
   def time(name, stat); end
 end
 
-class Datadog::Metrics::Metric
+class Datadog::Core::Metrics::Metric
+  def self.[](*arg); end
+
+  def self.members(); end
+end
+
+class Datadog::Core::Workers::RuntimeMetrics
+  include ::Datadog::Core::Workers::IntervalLoop
+  include ::Datadog::Core::Workers::Async::Thread
+  include ::Datadog::Core::Workers::IntervalLoop::PrependedMethods
+  include ::Datadog::Core::Workers::Async::Thread::PrependedMethods
+  include ::Datadog::Core::Workers::Polling::PrependedMethods
+end
+
+class Datadog::Profiling::Collectors::CodeProvenance::Library
   def self.[](*arg); end
 
   def self.members(); end
 end
 
 class Datadog::Profiling::Collectors::Stack
-  include ::Datadog::Workers::IntervalLoop
-  include ::Datadog::Workers::Async::Thread
-  include ::Datadog::Workers::IntervalLoop::PrependedMethods
-  include ::Datadog::Workers::Async::Thread::PrependedMethods
-  include ::Datadog::Workers::Polling::PrependedMethods
-end
-
-module Datadog::Profiling::Ext::NativePthread
-  def pthread_self(*arg); end
-end
-
-module Datadog::Profiling::Ext::NativePthread
-  def self.pthread_self(*arg); end
+  include ::Datadog::Core::Workers::IntervalLoop
+  include ::Datadog::Core::Workers::Async::Thread
+  include ::Datadog::Core::Workers::IntervalLoop::PrependedMethods
+  include ::Datadog::Core::Workers::Async::Thread::PrependedMethods
+  include ::Datadog::Core::Workers::Polling::PrependedMethods
 end
 
 class Datadog::Profiling::Flush
@@ -4377,17 +3701,11 @@ class Datadog::Profiling::Pprof::Payload
 end
 
 class Datadog::Profiling::Scheduler
-  include ::Datadog::Workers::IntervalLoop
-  include ::Datadog::Workers::Async::Thread
-  include ::Datadog::Workers::IntervalLoop::PrependedMethods
-  include ::Datadog::Workers::Async::Thread::PrependedMethods
-  include ::Datadog::Workers::Polling::PrependedMethods
-end
-
-class Datadog::Span
-  include ::Datadog::Analytics::Span
-  include ::Datadog::ForcedTracing::Span
-  include ::Datadog::OpenTelemetry::Span
+  include ::Datadog::Core::Workers::IntervalLoop
+  include ::Datadog::Core::Workers::Async::Thread
+  include ::Datadog::Core::Workers::IntervalLoop::PrependedMethods
+  include ::Datadog::Core::Workers::Async::Thread::PrependedMethods
+  include ::Datadog::Core::Workers::Polling::PrependedMethods
 end
 
 class Datadog::Statsd
@@ -4405,10 +3723,17 @@ class Datadog::Statsd
   SET_TYPE = ::T.let(nil, ::T.untyped)
   TIMING_TYPE = ::T.let(nil, ::T.untyped)
   UDP_DEFAULT_BUFFER_SIZE = ::T.let(nil, ::T.untyped)
+  UDP_DEFAULT_SENDER_QUEUE_SIZE = ::T.let(nil, ::T.untyped)
   UDS_DEFAULT_BUFFER_SIZE = ::T.let(nil, ::T.untyped)
+  UDS_DEFAULT_SENDER_QUEUE_SIZE = ::T.let(nil, ::T.untyped)
   UNKNOWN = ::T.let(nil, ::T.untyped)
   VERSION = ::T.let(nil, ::T.untyped)
   WARNING = ::T.let(nil, ::T.untyped)
+end
+
+class Datadog::Statsd::ConnectionCfg
+  DEFAULT_HOST = ::T.let(nil, ::T.untyped)
+  DEFAULT_PORT = ::T.let(nil, ::T.untyped)
 end
 
 class Datadog::Statsd::MessageBuffer
@@ -4431,13 +3756,1071 @@ class Datadog::Statsd::Telemetry
   MAX_TELEMETRY_MESSAGE_SIZE_WT_TAGS = ::T.let(nil, ::T.untyped)
 end
 
-class Datadog::Statsd::UDPConnection
-  DEFAULT_HOST = ::T.let(nil, ::T.untyped)
-  DEFAULT_PORT = ::T.let(nil, ::T.untyped)
+class Datadog::Tracing::CRubyTraceBuffer
+  include ::Datadog::Tracing::MeasuredBuffer
 end
 
-class Datadog::ThreadSafeTraceBuffer
-  include ::Datadog::MeasuredBuffer
+class Datadog::Tracing::Context
+  include ::Datadog::Core::Utils::Forking::ClassExtensions
+end
+
+module Datadog::Tracing::Contrib::ActionCable::Events::Broadcast
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionCable::Events::Broadcast
+  extend ::Datadog::Tracing::Contrib::ActionCable::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActionCable::Events::PerformAction
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionCable::Events::PerformAction
+  extend ::Datadog::Tracing::Contrib::ActionCable::RootContextEvent::ClassMethods
+  extend ::Datadog::Tracing::Contrib::ActionCable::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActionCable::Events::Transmit
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionCable::Events::Transmit
+  extend ::Datadog::Tracing::Contrib::ActionCable::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::ActionCable::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::ActionMailer::Configuration::Settings
+  def email_data(); end
+
+  def email_data=(value); end
+end
+
+module Datadog::Tracing::Contrib::ActionMailer::Events::Deliver
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionMailer::Events::Deliver
+  extend ::Datadog::Tracing::Contrib::ActionMailer::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActionMailer::Events::Process
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionMailer::Events::Process
+  extend ::Datadog::Tracing::Contrib::ActionMailer::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::ActionMailer::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::ActionPack::Configuration::Settings
+  def exception_controller(); end
+
+  def exception_controller=(value); end
+end
+
+class Datadog::Tracing::Contrib::ActionPack::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::ActionView::Configuration::Settings
+  def template_base_path(); end
+
+  def template_base_path=(value); end
+end
+
+module Datadog::Tracing::Contrib::ActionView::Events::RenderPartial
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionView::Events::RenderPartial
+  extend ::Datadog::Tracing::Contrib::ActionView::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActionView::Events::RenderTemplate
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActionView::Events::RenderTemplate
+  extend ::Datadog::Tracing::Contrib::ActionView::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::ActionView::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::ActiveJob::Configuration::Settings
+  def error_handler(); end
+
+  def error_handler=(value); end
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::Discard
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::Discard
+  extend ::Datadog::Tracing::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::Enqueue
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::Enqueue
+  extend ::Datadog::Tracing::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::EnqueueAt
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::EnqueueAt
+  extend ::Datadog::Tracing::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::EnqueueRetry
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::EnqueueRetry
+  extend ::Datadog::Tracing::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::Perform
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::Perform
+  extend ::Datadog::Tracing::Contrib::ActiveJob::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::RetryStopped
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveJob::Events::RetryStopped
+  extend ::Datadog::Tracing::Contrib::ActiveJob::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::ActiveJob::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveModelSerializers::Events::Render
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveModelSerializers::Events::Render
+  extend ::Datadog::Tracing::Contrib::ActiveModelSerializers::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveModelSerializers::Events::Serialize
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveModelSerializers::Events::Serialize
+  extend ::Datadog::Tracing::Contrib::ActiveModelSerializers::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::ActiveModelSerializers::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver
+  include ::Datadog::Tracing::Contrib::ActiveRecord::Configuration::MakaraResolver
+end
+
+module Datadog::Tracing::Contrib::ActiveRecord::Events::Instantiation
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveRecord::Events::Instantiation
+  extend ::Datadog::Tracing::Contrib::ActiveRecord::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveRecord::Events::SQL
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::ActiveRecord::Events::SQL
+  extend ::Datadog::Tracing::Contrib::ActiveRecord::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::ActiveRecord::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+module Datadog::Tracing::Contrib::ActiveSupport::Cache::Patcher
+  extend ::Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher
+end
+
+class Datadog::Tracing::Contrib::ActiveSupport::Configuration::Settings
+  def cache_service(); end
+
+  def cache_service=(value); end
+end
+
+class Datadog::Tracing::Contrib::ActiveSupport::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Aws::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::ConcurrentRuby::ContextCompositeExecutorService
+  def can_overflow?(*args, &block); end
+
+  def serialized?(*args, &block); end
+end
+
+class Datadog::Tracing::Contrib::ConcurrentRuby::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Configuration::Settings
+  include ::Datadog::Core::Environment::VariableHelpers
+  include ::Datadog::Core::Configuration::Options
+  include ::Datadog::Core::Configuration::Options::InstanceMethods
+  include ::Datadog::Core::Configuration::Base::InstanceMethods
+  def analytics_enabled(); end
+
+  def analytics_enabled=(value); end
+
+  def analytics_sample_rate(); end
+
+  def analytics_sample_rate=(value); end
+
+  def enabled(); end
+
+  def enabled=(value); end
+
+  def service_name(); end
+
+  def service_name=(value); end
+end
+
+class Datadog::Tracing::Contrib::Configuration::Settings
+  extend ::Datadog::Core::Environment::VariableHelpers
+end
+
+class Datadog::Tracing::Contrib::Dalli::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::DelayedJob::Configuration::Settings
+  def client_service_name(); end
+
+  def client_service_name=(value); end
+
+  def error_handler(); end
+
+  def error_handler=(value); end
+end
+
+class Datadog::Tracing::Contrib::DelayedJob::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Elasticsearch::Configuration::Settings
+  def quantize(); end
+
+  def quantize=(value); end
+end
+
+class Datadog::Tracing::Contrib::Elasticsearch::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Ethon::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def split_by_domain(); end
+
+  def split_by_domain=(value); end
+end
+
+class Datadog::Tracing::Contrib::Ethon::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Excon::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def error_handler(); end
+
+  def error_handler=(value); end
+
+  def split_by_domain(); end
+
+  def split_by_domain=(value); end
+end
+
+class Datadog::Tracing::Contrib::Excon::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Faraday::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def error_handler(); end
+
+  def error_handler=(value); end
+
+  def split_by_domain(); end
+
+  def split_by_domain=(value); end
+end
+
+class Datadog::Tracing::Contrib::Faraday::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::GRPC::Configuration::Settings
+  def error_handler(); end
+
+  def error_handler=(value); end
+end
+
+module Datadog::Tracing::Contrib::GRPC::DatadogInterceptor
+end
+
+module Datadog::Tracing::Contrib::GRPC::DatadogInterceptor
+end
+
+class Datadog::Tracing::Contrib::GRPC::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Grape::Configuration::Settings
+  def error_statuses(); end
+
+  def error_statuses=(value); end
+end
+
+class Datadog::Tracing::Contrib::Grape::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::GraphQL::Configuration::Settings
+  def schemas(); end
+
+  def schemas=(value); end
+
+  def service_nam(); end
+
+  def service_nam=(value); end
+end
+
+class Datadog::Tracing::Contrib::GraphQL::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::HTTP::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def split_by_domain(); end
+
+  def split_by_domain=(value); end
+end
+
+class Datadog::Tracing::Contrib::HTTP::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Httpclient::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def split_by_domain(); end
+
+  def split_by_domain=(value); end
+end
+
+class Datadog::Tracing::Contrib::Httpclient::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Httprb::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def split_by_domain(); end
+
+  def split_by_domain=(value); end
+end
+
+class Datadog::Tracing::Contrib::Httprb::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Connection::Request
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Connection::Request
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Consumer::ProcessBatch
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Consumer::ProcessBatch
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Consumer::ProcessMessage
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Consumer::ProcessMessage
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::Heartbeat
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::Heartbeat
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::JoinGroup
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::JoinGroup
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::LeaveGroup
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::LeaveGroup
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::SyncGroup
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ConsumerGroup::SyncGroup
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ProduceOperation::SendMessages
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::ProduceOperation::SendMessages
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Producer::DeliverMessages
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Kafka::Events::Producer::DeliverMessages
+  extend ::Datadog::Tracing::Contrib::Kafka::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::Kafka::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Lograge::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::MongoDB::Configuration::Settings
+  def quantize(); end
+
+  def quantize=(value); end
+end
+
+class Datadog::Tracing::Contrib::MongoDB::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Mysql2::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Presto::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Qless::Configuration::Settings
+  def tag_job_data(); end
+
+  def tag_job_data=(value); end
+
+  def tag_job_tags(); end
+
+  def tag_job_tags=(value); end
+end
+
+class Datadog::Tracing::Contrib::Qless::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Que::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def error_handler(); end
+
+  def error_handler=(value); end
+
+  def tag_args(); end
+
+  def tag_args=(value); end
+
+  def tag_data(); end
+
+  def tag_data=(value); end
+end
+
+class Datadog::Tracing::Contrib::Que::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+module Datadog::Tracing::Contrib::Racecar::Events::Batch
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Racecar::Events::Batch
+  extend ::Datadog::Tracing::Contrib::Racecar::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Racecar::Events::Consume
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Racecar::Events::Consume
+  extend ::Datadog::Tracing::Contrib::Racecar::Event::ClassMethods
+end
+
+module Datadog::Tracing::Contrib::Racecar::Events::Message
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event
+  include ::Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscriber
+end
+
+module Datadog::Tracing::Contrib::Racecar::Events::Message
+  extend ::Datadog::Tracing::Contrib::Racecar::Event::ClassMethods
+end
+
+class Datadog::Tracing::Contrib::Racecar::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Rack::Configuration::Settings
+  def application(); end
+
+  def application=(value); end
+
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def headers(); end
+
+  def headers=(value); end
+
+  def middleware_names(); end
+
+  def middleware_names=(value); end
+
+  def quantize(); end
+
+  def quantize=(value); end
+
+  def request_queuing(); end
+
+  def request_queuing=(value); end
+
+  def web_service_name(); end
+
+  def web_service_name=(value); end
+end
+
+class Datadog::Tracing::Contrib::Rack::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Rails::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def exception_controller(); end
+
+  def exception_controller=(value); end
+
+  def middleware(); end
+
+  def middleware=(value); end
+
+  def middleware_names(); end
+
+  def middleware_names=(value); end
+
+  def template_base_path(); end
+
+  def template_base_path=(value); end
+end
+
+class Datadog::Tracing::Contrib::Rails::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+module Datadog::Tracing::Contrib::Rails::Patcher
+  include ::Datadog::Tracing::Contrib::Patcher
+  AFTER_INITIALIZE_ONLY_ONCE_PER_APP = ::T.let(nil, ::T.untyped)
+  BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = ::T.let(nil, ::T.untyped)
+end
+
+module Datadog::Tracing::Contrib::Rails::Patcher
+  def self.add_logger(app); end
+
+  def self.add_middleware(app); end
+
+  def self.after_intialize(app); end
+
+  def self.before_intialize(app); end
+
+  def self.patch_after_intialize(); end
+
+  def self.patch_before_intialize(); end
+
+  def self.setup_tracer(); end
+
+  def self.target_version(); end
+end
+
+class Datadog::Tracing::Contrib::Rake::Configuration::Settings
+  def quantize(); end
+
+  def quantize=(value); end
+end
+
+class Datadog::Tracing::Contrib::Rake::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Redis::Configuration::Settings
+  def command_args(); end
+
+  def command_args=(value); end
+end
+
+class Datadog::Tracing::Contrib::Redis::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Registry::Entry
+  def self.[](*arg); end
+
+  def self.members(); end
+end
+
+class Datadog::Tracing::Contrib::Resque::Configuration::Settings
+  def error_handler(); end
+
+  def error_handler=(value); end
+end
+
+class Datadog::Tracing::Contrib::Resque::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::RestClient::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+end
+
+class Datadog::Tracing::Contrib::RestClient::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::SemanticLogger::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Sequel::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Shoryuken::Configuration::Settings
+  def error_handler(); end
+
+  def error_handler=(value); end
+
+  def tag_body(); end
+
+  def tag_body=(value); end
+end
+
+class Datadog::Tracing::Contrib::Shoryuken::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Sidekiq::Configuration::Settings
+  def client_service_name(); end
+
+  def client_service_name=(value); end
+
+  def error_handler(); end
+
+  def error_handler=(value); end
+
+  def tag_args(); end
+
+  def tag_args=(value); end
+end
+
+class Datadog::Tracing::Contrib::Sidekiq::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Sinatra::Configuration::Settings
+  def distributed_tracing(); end
+
+  def distributed_tracing=(value); end
+
+  def headers(); end
+
+  def headers=(value); end
+
+  def resource_script_names(); end
+
+  def resource_script_names=(value); end
+end
+
+class Datadog::Tracing::Contrib::Sinatra::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::Sneakers::Configuration::Settings
+  def error_handler(); end
+
+  def error_handler=(value); end
+
+  def tag_body(); end
+
+  def tag_body=(value); end
+end
+
+class Datadog::Tracing::Contrib::Sneakers::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Contrib::SuckerPunch::Integration
+  include ::Datadog::Tracing::Contrib::Configurable
+  include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Patchable
+  include ::Datadog::Tracing::Contrib::Patchable::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Registerable
+  include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
+end
+
+class Datadog::Tracing::Span
+  include ::Datadog::Tracing::Metadata::Tagging
+  include ::Datadog::Tracing::Metadata::Analytics
+end
+
+class Datadog::Tracing::SpanOperation
+  include ::Datadog::Tracing::Metadata::Tagging
+  include ::Datadog::Tracing::Metadata::Analytics
+  include ::Datadog::OpenTelemetry::Span
+end
+
+class Datadog::Tracing::SpanOperation::Events
+  include ::Datadog::Tracing::Events::InstanceMethods
+end
+
+class Datadog::Tracing::SpanOperation::Events
+  extend ::Datadog::Tracing::Events::ClassMethods
+end
+
+class Datadog::Tracing::ThreadSafeTraceBuffer
+  include ::Datadog::Tracing::MeasuredBuffer
+end
+
+class Datadog::Tracing::TraceOperation::Events
+  include ::Datadog::Tracing::Events::InstanceMethods
+end
+
+class Datadog::Tracing::TraceOperation::Events
+  extend ::Datadog::Tracing::Events::ClassMethods
+end
+
+class Datadog::Tracing::Workers::AsyncTraceWriter
+  include ::Datadog::Core::Workers::IntervalLoop
+  include ::Datadog::Core::Workers::Async::Thread
+  include ::Datadog::Core::Workers::Queue::PrependedMethods
+  include ::Datadog::Core::Workers::IntervalLoop::PrependedMethods
+  include ::Datadog::Core::Workers::Async::Thread::PrependedMethods
+  include ::Datadog::Core::Workers::Polling::PrependedMethods
 end
 
 class Datadog::Transport::HTTP::API::Instance
@@ -4476,31 +4859,16 @@ class Datadog::Transport::IO::Client
   include ::Datadog::Transport::IO::Traces::Client
 end
 
-class Datadog::Workers::AsyncTraceWriter
-  include ::Datadog::Workers::IntervalLoop
-  include ::Datadog::Workers::Async::Thread
-  include ::Datadog::Workers::Queue::PrependedMethods
-  include ::Datadog::Workers::IntervalLoop::PrependedMethods
-  include ::Datadog::Workers::Async::Thread::PrependedMethods
-  include ::Datadog::Workers::Polling::PrependedMethods
-end
-
-class Datadog::Workers::RuntimeMetrics
-  include ::Datadog::Workers::IntervalLoop
-  include ::Datadog::Workers::Async::Thread
-  include ::Datadog::Workers::IntervalLoop::PrependedMethods
-  include ::Datadog::Workers::Async::Thread::PrependedMethods
-  include ::Datadog::Workers::Polling::PrependedMethods
-end
-
 module Datadog
-  extend ::Datadog::Contrib::Extensions::Helpers
-  extend ::Datadog::Contrib::Extensions::Configuration
-  extend ::Datadog::Contrib::AutoInstrument::Patch
+  extend ::Datadog::Core::Configuration
+  extend ::Datadog::Tracing::Contrib::AutoInstrument::Patch
+  extend ::Datadog::Tracing::Contrib::Extensions::Helpers
+  extend ::Datadog::Tracing::Contrib::Extensions::Configuration
 end
 
 class Date
   def infinite?(); end
+  VERSION = ::T.let(nil, ::T.untyped)
 end
 
 class Date::Infinity
@@ -5203,9 +5571,15 @@ end
 class File
   def self.absolute_path?(arg); end
 
+  def self.cleanpath(path, rel_root=T.unsafe(nil)); end
+
   def self.exists?(arg); end
 
+  def self.open!(file, *args, &block); end
+
   def self.read_binary(file); end
+
+  def self.relative_path(from, to); end
 end
 
 FileList = Rake::FileList
@@ -5319,184 +5693,33 @@ class Gem::Ext::ExtConfBuilder
   def self.get_relative_path(path); end
 end
 
-class Gem::Package
-  def gem(); end
+Gem::Installer::ExtensionBuildError = Gem::Ext::BuildError
+
+class Gem::Installer::FakePackage
+  def copy_to(path); end
+
+  def data_mode(); end
+
+  def data_mode=(data_mode); end
+
+  def dir_mode(); end
+
+  def dir_mode=(dir_mode); end
+
+  def extract_files(destination_dir, pattern=T.unsafe(nil)); end
+
+  def initialize(spec); end
+
+  def prog_mode(); end
+
+  def prog_mode=(prog_mode); end
+
+  def spec(); end
+
+  def spec=(spec); end
 end
 
-class Gem::Package::DigestIO
-  def digests(); end
-
-  def initialize(io, digests); end
-
-  def write(data); end
-end
-
-class Gem::Package::DigestIO
-  def self.wrap(io, digests); end
-end
-
-class Gem::Package::FileSource
-  def initialize(path); end
-
-  def path(); end
-
-  def present?(); end
-
-  def start(); end
-
-  def with_read_io(&block); end
-
-  def with_write_io(&block); end
-end
-
-class Gem::Package::FileSource
-end
-
-class Gem::Package::IOSource
-  def initialize(io); end
-
-  def io(); end
-
-  def path(); end
-
-  def present?(); end
-
-  def start(); end
-
-  def with_read_io(); end
-
-  def with_write_io(); end
-end
-
-class Gem::Package::IOSource
-end
-
-class Gem::Package::Old
-  def extract_files(destination_dir); end
-
-  def file_list(io); end
-
-  def read_until_dashes(io); end
-
-  def skip_ruby(io); end
-end
-
-class Gem::Package::Old
-end
-
-class Gem::Package::Source
-end
-
-class Gem::Package::Source
-end
-
-class Gem::Package::TarHeader
-  def ==(other); end
-
-  def checksum(); end
-
-  def devmajor(); end
-
-  def devminor(); end
-
-  def empty?(); end
-
-  def gid(); end
-
-  def gname(); end
-
-  def initialize(vals); end
-
-  def linkname(); end
-
-  def magic(); end
-
-  def mode(); end
-
-  def mtime(); end
-
-  def name(); end
-
-  def prefix(); end
-
-  def size(); end
-
-  def typeflag(); end
-
-  def uid(); end
-
-  def uname(); end
-
-  def update_checksum(); end
-
-  def version(); end
-  EMPTY_HEADER = ::T.let(nil, ::T.untyped)
-  FIELDS = ::T.let(nil, ::T.untyped)
-  PACK_FORMAT = ::T.let(nil, ::T.untyped)
-  UNPACK_FORMAT = ::T.let(nil, ::T.untyped)
-end
-
-class Gem::Package::TarHeader
-  def self.from(stream); end
-
-  def self.oct_or_256based(str); end
-
-  def self.strict_oct(str); end
-end
-
-class Gem::Package::TarReader::Entry
-  def bytes_read(); end
-
-  def check_closed(); end
-
-  def close(); end
-
-  def closed?(); end
-
-  def directory?(); end
-
-  def eof?(); end
-
-  def file?(); end
-
-  def full_name(); end
-
-  def getc(); end
-
-  def header(); end
-
-  def initialize(header, io); end
-
-  def length(); end
-
-  def pos(); end
-
-  def read(len=T.unsafe(nil)); end
-
-  def readpartial(maxlen=T.unsafe(nil), outbuf=T.unsafe(nil)); end
-
-  def rewind(); end
-
-  def size(); end
-
-  def symlink?(); end
-end
-
-class Gem::Package::TarReader::Entry
-end
-
-class Gem::Package::TarReader
-  def self.new(io); end
-end
-
-class Gem::Package::TarWriter
-  def self.new(io); end
-end
-
-class Gem::Package
-  def self.new(gem, security_policy=T.unsafe(nil)); end
-
-  def self.raw_spec(path, security_policy=T.unsafe(nil)); end
+class Gem::Installer::FakePackage
 end
 
 class Gem::PathSupport
@@ -5509,28 +5732,39 @@ class Gem::PathSupport
   def spec_cache_dir(); end
 end
 
-class Gem::RemoteFetcher::FetchError
-  include ::Gem::UriParsing
-  def initialize(message, uri); end
+class Gem::Platform
+  def self.match_gem?(platform, gem_name); end
 
-  def uri(); end
-
-  def uri=(uri); end
-end
-
-class Gem::RemoteFetcher::FetchError
-end
-
-class Gem::RemoteFetcher::UnknownHostError
-end
-
-class Gem::RemoteFetcher::UnknownHostError
+  def self.match_spec?(spec); end
 end
 
 class Gem::Request
   extend ::Gem::UserInteraction
   extend ::Gem::DefaultUserInteraction
   extend ::Gem::Text
+end
+
+class Gem::Requirement
+  include ::Gem::Requirement::OrderIndependentComparison
+  include ::Gem::Requirement::CorrectHashForLambdaOperator
+end
+
+module Gem::Requirement::CorrectHashForLambdaOperator
+  def hash(); end
+end
+
+module Gem::Requirement::CorrectHashForLambdaOperator
+end
+
+module Gem::Requirement::OrderIndependentComparison
+  def ==(other); end
+
+  def _requirements_sorted?(); end
+
+  def _with_sorted_requirements(); end
+end
+
+module Gem::Requirement::OrderIndependentComparison
 end
 
 class Gem::Resolver::CurrentSet
@@ -5580,147 +5814,6 @@ end
 class Gem::RuntimeRequirementNotMetError
 end
 
-class Gem::Security::Exception
-end
-
-class Gem::Security::Exception
-end
-
-Gem::Security::KEY_ALGORITHM = OpenSSL::PKey::RSA
-
-class Gem::Security::Policy
-  include ::Gem::UserInteraction
-  include ::Gem::DefaultUserInteraction
-  include ::Gem::Text
-  def check_cert(signer, issuer, time); end
-
-  def check_chain(chain, time); end
-
-  def check_data(public_key, digest, signature, data); end
-
-  def check_key(signer, key); end
-
-  def check_root(chain, time); end
-
-  def check_trust(chain, digester, trust_dir); end
-
-  def initialize(name, policy=T.unsafe(nil), opt=T.unsafe(nil)); end
-
-  def name(); end
-
-  def only_signed(); end
-
-  def only_signed=(only_signed); end
-
-  def only_trusted(); end
-
-  def only_trusted=(only_trusted); end
-
-  def subject(certificate); end
-
-  def verify(chain, key=T.unsafe(nil), digests=T.unsafe(nil), signatures=T.unsafe(nil), full_name=T.unsafe(nil)); end
-
-  def verify_chain(); end
-
-  def verify_chain=(verify_chain); end
-
-  def verify_data(); end
-
-  def verify_data=(verify_data); end
-
-  def verify_root(); end
-
-  def verify_root=(verify_root); end
-
-  def verify_signatures(spec, digests, signatures); end
-
-  def verify_signer(); end
-
-  def verify_signer=(verify_signer); end
-end
-
-class Gem::Security::Policy
-end
-
-class Gem::Security::Signer
-  include ::Gem::UserInteraction
-  include ::Gem::DefaultUserInteraction
-  include ::Gem::Text
-  def cert_chain(); end
-
-  def cert_chain=(cert_chain); end
-
-  def digest_algorithm(); end
-
-  def digest_name(); end
-
-  def extract_name(cert); end
-
-  def initialize(key, cert_chain, passphrase=T.unsafe(nil), options=T.unsafe(nil)); end
-
-  def key(); end
-
-  def key=(key); end
-
-  def load_cert_chain(); end
-
-  def options(); end
-
-  def re_sign_key(expiration_length: T.unsafe(nil)); end
-
-  def sign(data); end
-end
-
-class Gem::Security::Signer
-  def self.re_sign_cert(expired_cert, expired_cert_path, private_key); end
-end
-
-class Gem::Security::TrustDir
-  def cert_path(certificate); end
-
-  def dir(); end
-
-  def each_certificate(); end
-
-  def initialize(dir, permissions=T.unsafe(nil)); end
-
-  def issuer_of(certificate); end
-
-  def load_certificate(certificate_file); end
-
-  def name_path(name); end
-
-  def trust_cert(certificate); end
-
-  def verify(); end
-end
-
-module Gem::Security
-  def self.alt_name_or_x509_entry(certificate, x509_entry); end
-
-  def self.create_cert(subject, key, age=T.unsafe(nil), extensions=T.unsafe(nil), serial=T.unsafe(nil)); end
-
-  def self.create_cert_email(email, key, age=T.unsafe(nil), extensions=T.unsafe(nil)); end
-
-  def self.create_cert_self_signed(subject, key, age=T.unsafe(nil), extensions=T.unsafe(nil), serial=T.unsafe(nil)); end
-
-  def self.create_key(length=T.unsafe(nil), algorithm=T.unsafe(nil)); end
-
-  def self.email_to_name(email_address); end
-
-  def self.re_sign(expired_certificate, private_key, age=T.unsafe(nil), extensions=T.unsafe(nil)); end
-
-  def self.reset(); end
-
-  def self.sign(certificate, signing_key, signing_cert, age=T.unsafe(nil), extensions=T.unsafe(nil), serial=T.unsafe(nil)); end
-
-  def self.trust_dir(); end
-
-  def self.trusted_certificates(&block); end
-
-  def self.write(pemmable, path, permissions=T.unsafe(nil), passphrase=T.unsafe(nil), cipher=T.unsafe(nil)); end
-end
-
 class Gem::SpecFetcher
   include ::Gem::UserInteraction
   include ::Gem::DefaultUserInteraction
@@ -5757,6 +5850,8 @@ end
 class Gem::Specification
   include ::Bundler::MatchPlatform
   include ::Bundler::GemHelpers
+  def deleted_gem?(); end
+
   def removed_method_calls(); end
 
   def to_ruby(); end
@@ -5860,8 +5955,181 @@ class Google::Protobuf::Descriptor
   include ::Enumerable
 end
 
+class Google::Protobuf::DescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::DescriptorProto::ExtensionRange
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::DescriptorProto::ExtensionRange
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::DescriptorProto::ReservedRange
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::DescriptorProto::ReservedRange
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::DescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
 class Google::Protobuf::EnumDescriptor
   include ::Enumerable
+end
+
+class Google::Protobuf::EnumDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::EnumDescriptorProto::EnumReservedRange
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::EnumDescriptorProto::EnumReservedRange
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::EnumDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::EnumOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::EnumOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::EnumValueDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::EnumValueDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::EnumValueOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::EnumValueOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::ExtensionRangeOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::ExtensionRangeOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::FieldDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+module Google::Protobuf::FieldDescriptorProto::Label
+  LABEL_OPTIONAL = ::T.let(nil, ::T.untyped)
+  LABEL_REPEATED = ::T.let(nil, ::T.untyped)
+  LABEL_REQUIRED = ::T.let(nil, ::T.untyped)
+end
+
+module Google::Protobuf::FieldDescriptorProto::Type
+  TYPE_BOOL = ::T.let(nil, ::T.untyped)
+  TYPE_BYTES = ::T.let(nil, ::T.untyped)
+  TYPE_DOUBLE = ::T.let(nil, ::T.untyped)
+  TYPE_ENUM = ::T.let(nil, ::T.untyped)
+  TYPE_FIXED32 = ::T.let(nil, ::T.untyped)
+  TYPE_FIXED64 = ::T.let(nil, ::T.untyped)
+  TYPE_FLOAT = ::T.let(nil, ::T.untyped)
+  TYPE_GROUP = ::T.let(nil, ::T.untyped)
+  TYPE_INT32 = ::T.let(nil, ::T.untyped)
+  TYPE_INT64 = ::T.let(nil, ::T.untyped)
+  TYPE_MESSAGE = ::T.let(nil, ::T.untyped)
+  TYPE_SFIXED32 = ::T.let(nil, ::T.untyped)
+  TYPE_SFIXED64 = ::T.let(nil, ::T.untyped)
+  TYPE_SINT32 = ::T.let(nil, ::T.untyped)
+  TYPE_SINT64 = ::T.let(nil, ::T.untyped)
+  TYPE_STRING = ::T.let(nil, ::T.untyped)
+  TYPE_UINT32 = ::T.let(nil, ::T.untyped)
+  TYPE_UINT64 = ::T.let(nil, ::T.untyped)
+end
+
+class Google::Protobuf::FieldDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::FieldOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+module Google::Protobuf::FieldOptions::CType
+  CORD = ::T.let(nil, ::T.untyped)
+  STRING = ::T.let(nil, ::T.untyped)
+  STRING_PIECE = ::T.let(nil, ::T.untyped)
+end
+
+module Google::Protobuf::FieldOptions::JSType
+  JS_NORMAL = ::T.let(nil, ::T.untyped)
+  JS_NUMBER = ::T.let(nil, ::T.untyped)
+  JS_STRING = ::T.let(nil, ::T.untyped)
+end
+
+class Google::Protobuf::FieldOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::FileDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::FileDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::FileDescriptorSet
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::FileDescriptorSet
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::FileOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+module Google::Protobuf::FileOptions::OptimizeMode
+  CODE_SIZE = ::T.let(nil, ::T.untyped)
+  LITE_RUNTIME = ::T.let(nil, ::T.untyped)
+  SPEED = ::T.let(nil, ::T.untyped)
+end
+
+class Google::Protobuf::FileOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::GeneratedCodeInfo
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::GeneratedCodeInfo::Annotation
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::GeneratedCodeInfo::Annotation
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::GeneratedCodeInfo
+  extend ::Google::Protobuf::MessageExts::ClassMethods
 end
 
 class Google::Protobuf::Internal::Arena
@@ -5874,12 +6142,106 @@ class Google::Protobuf::Map
   include ::Enumerable
 end
 
+class Google::Protobuf::MessageOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::MessageOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::MethodDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::MethodDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::MethodOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+module Google::Protobuf::MethodOptions::IdempotencyLevel
+  IDEMPOTENCY_UNKNOWN = ::T.let(nil, ::T.untyped)
+  IDEMPOTENT = ::T.let(nil, ::T.untyped)
+  NO_SIDE_EFFECTS = ::T.let(nil, ::T.untyped)
+end
+
+class Google::Protobuf::MethodOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
 class Google::Protobuf::OneofDescriptor
   include ::Enumerable
 end
 
+class Google::Protobuf::OneofDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::OneofDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::OneofOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::OneofOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
 class Google::Protobuf::RepeatedField
   include ::Enumerable
+end
+
+class Google::Protobuf::ServiceDescriptorProto
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::ServiceDescriptorProto
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::ServiceOptions
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::ServiceOptions
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::SourceCodeInfo
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::SourceCodeInfo::Location
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::SourceCodeInfo::Location
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::SourceCodeInfo
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::UninterpretedOption
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::UninterpretedOption::NamePart
+  include ::Google::Protobuf::MessageExts
+end
+
+class Google::Protobuf::UninterpretedOption::NamePart
+  extend ::Google::Protobuf::MessageExts::ClassMethods
+end
+
+class Google::Protobuf::UninterpretedOption
+  extend ::Google::Protobuf::MessageExts::ClassMethods
 end
 
 class Hash
@@ -6308,9 +6670,41 @@ end
 
 JSON::Parser = JSON::Ext::Parser
 
+class JSON::Schema::Attribute
+  TYPE_CLASS_MAPPINGS = ::T.let(nil, ::T.untyped)
+end
+
+class JSON::Schema::DateFormat
+  REGEXP = ::T.let(nil, ::T.untyped)
+end
+
+class JSON::Schema::DateTimeFormat
+  REGEXP = ::T.let(nil, ::T.untyped)
+end
+
+class JSON::Schema::TimeFormat
+  REGEXP = ::T.let(nil, ::T.untyped)
+end
+
+class JSON::Schema::ValidationError
+  INDENT = ::T.let(nil, ::T.untyped)
+end
+
 JSON::State = JSON::Ext::Generator::State
 
 JSON::UnparserError = JSON::GeneratorError
+
+module JSON::Util::URI
+  SUPPORTED_PROTOCOLS = ::T.let(nil, ::T.untyped)
+end
+
+class JSON::Util::UUID
+  NameSpace_DNS = ::T.let(nil, ::T.untyped)
+  NameSpace_OID = ::T.let(nil, ::T.untyped)
+  NameSpace_URL = ::T.let(nil, ::T.untyped)
+  NameSpace_X500 = ::T.let(nil, ::T.untyped)
+  Nil = ::T.let(nil, ::T.untyped)
+end
 
 module Kernel
   def itself(); end
@@ -6355,6 +6749,251 @@ end
 
 module Logger::Period
   SiD = ::T.let(nil, ::T.untyped)
+end
+
+module MakeMakefile
+  def append_cflags(flags, *opts); end
+
+  def append_cppflags(flags, *opts); end
+
+  def append_ldflags(flags, *opts); end
+
+  def append_library(libs, lib); end
+
+  def arg_config(config, default=T.unsafe(nil), &block); end
+
+  def cc_command(opt=T.unsafe(nil)); end
+
+  def cc_config(opt=T.unsafe(nil)); end
+
+  def check_signedness(type, headers=T.unsafe(nil), opts=T.unsafe(nil), &b); end
+
+  def check_sizeof(type, headers=T.unsafe(nil), opts=T.unsafe(nil), &b); end
+
+  def checking_for(m, fmt=T.unsafe(nil)); end
+
+  def checking_message(target, place=T.unsafe(nil), opt=T.unsafe(nil)); end
+
+  def configuration(srcdir); end
+
+  def conftest_source(); end
+
+  def convertible_int(type, headers=T.unsafe(nil), opts=T.unsafe(nil), &b); end
+
+  def cpp_command(outfile, opt=T.unsafe(nil)); end
+
+  def cpp_include(header); end
+
+  def create_header(header=T.unsafe(nil)); end
+
+  def create_makefile(target, srcprefix=T.unsafe(nil)); end
+
+  def create_tmpsrc(src); end
+
+  def depend_rules(depend); end
+
+  def dir_config(target, idefault=T.unsafe(nil), ldefault=T.unsafe(nil)); end
+
+  def dummy_makefile(srcdir); end
+
+  def each_compile_rules(); end
+
+  def egrep_cpp(pat, src, opt=T.unsafe(nil), &b); end
+
+  def enable_config(config, default=T.unsafe(nil)); end
+
+  def find_executable(bin, path=T.unsafe(nil)); end
+
+  def find_executable0(bin, path=T.unsafe(nil)); end
+
+  def find_header(header, *paths); end
+
+  def find_library(lib, func, *paths, &b); end
+
+  def find_type(type, opt, *headers, &b); end
+
+  def have_const(const, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_devel?(); end
+
+  def have_framework(fw, &b); end
+
+  def have_func(func, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_header(header, preheaders=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_library(lib, func=T.unsafe(nil), headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_macro(macro, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_struct_member(type, member, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_type(type, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def have_typeof?(); end
+
+  def have_var(var, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def init_mkmf(config=T.unsafe(nil), rbconfig=T.unsafe(nil)); end
+
+  def install_dirs(target_prefix=T.unsafe(nil)); end
+
+  def install_files(mfile, ifiles, map=T.unsafe(nil), srcprefix=T.unsafe(nil)); end
+
+  def install_rb(mfile, dest, srcdir=T.unsafe(nil)); end
+
+  def libpath_env(); end
+
+  def libpathflag(libpath=T.unsafe(nil)); end
+
+  def link_command(ldflags, *opts); end
+
+  def link_config(ldflags, opt=T.unsafe(nil), libpath=T.unsafe(nil)); end
+
+  def log_src(src, heading=T.unsafe(nil)); end
+
+  def macro_defined?(macro, src, opt=T.unsafe(nil), &b); end
+
+  def map_dir(dir, map=T.unsafe(nil)); end
+
+  def merge_libs(*libs); end
+
+  def message(*s); end
+
+  def mkintpath(path); end
+
+  def mkmf_failed(path); end
+
+  def modified?(target, times); end
+
+  def pkg_config(pkg, option=T.unsafe(nil)); end
+
+  def relative_from(path, base); end
+
+  def scalar_ptr_type?(type, member=T.unsafe(nil), headers=T.unsafe(nil), &b); end
+
+  def scalar_type?(type, member=T.unsafe(nil), headers=T.unsafe(nil), &b); end
+
+  def split_libs(*strs); end
+
+  def timestamp_file(name, target_prefix=T.unsafe(nil)); end
+
+  def try_cflags(flags, opts=T.unsafe(nil)); end
+
+  def try_compile(src, opt=T.unsafe(nil), *opts, &b); end
+
+  def try_const(const, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def try_constant(const, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def try_cpp(src, opt=T.unsafe(nil), *opts, &b); end
+
+  def try_cppflags(flags, opts=T.unsafe(nil)); end
+
+  def try_do(src, command, *opts, &b); end
+
+  def try_func(func, libs, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def try_header(src, opt=T.unsafe(nil), *opts, &b); end
+
+  def try_ldflags(flags, opts=T.unsafe(nil)); end
+
+  def try_link(src, opt=T.unsafe(nil), *opts, &b); end
+
+  def try_link0(src, opt=T.unsafe(nil), *opts, &b); end
+
+  def try_run(src, opt=T.unsafe(nil), &b); end
+
+  def try_signedness(type, member, headers=T.unsafe(nil), opts=T.unsafe(nil)); end
+
+  def try_static_assert(expr, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def try_type(type, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def try_var(var, headers=T.unsafe(nil), opt=T.unsafe(nil), &b); end
+
+  def typedef_expr(type, headers); end
+
+  def what_type?(type, member=T.unsafe(nil), headers=T.unsafe(nil), &b); end
+
+  def winsep(s); end
+
+  def with_cflags(flags); end
+
+  def with_config(config, default=T.unsafe(nil)); end
+
+  def with_cppflags(flags); end
+
+  def with_destdir(dir); end
+
+  def with_ldflags(flags); end
+
+  def with_werror(opt, opts=T.unsafe(nil)); end
+
+  def xpopen(command, *mode, &block); end
+
+  def xsystem(command, opts=T.unsafe(nil)); end
+  ASSEMBLE_C = ::T.let(nil, ::T.untyped)
+  ASSEMBLE_CXX = ::T.let(nil, ::T.untyped)
+  CLEANINGS = ::T.let(nil, ::T.untyped)
+  COMMON_HEADERS = ::T.let(nil, ::T.untyped)
+  COMMON_LIBS = ::T.let(nil, ::T.untyped)
+  COMPILE_C = ::T.let(nil, ::T.untyped)
+  COMPILE_CXX = ::T.let(nil, ::T.untyped)
+  COMPILE_RULES = ::T.let(nil, ::T.untyped)
+  CONFIG = ::T.let(nil, ::T.untyped)
+  CONFTEST = ::T.let(nil, ::T.untyped)
+  CONFTEST_C = ::T.let(nil, ::T.untyped)
+  CONFTEST_CXX = ::T.let(nil, ::T.untyped)
+  COUTFLAG = ::T.let(nil, ::T.untyped)
+  CPPOUTFILE = ::T.let(nil, ::T.untyped)
+  CSRCFLAG = ::T.let(nil, ::T.untyped)
+  CXX_EXT = ::T.let(nil, ::T.untyped)
+  C_EXT = ::T.let(nil, ::T.untyped)
+  EXPORT_PREFIX = ::T.let(nil, ::T.untyped)
+  FailedMessage = ::T.let(nil, ::T.untyped)
+  HDR_EXT = ::T.let(nil, ::T.untyped)
+  INSTALL_DIRS = ::T.let(nil, ::T.untyped)
+  LIBARG = ::T.let(nil, ::T.untyped)
+  LIBPATHFLAG = ::T.let(nil, ::T.untyped)
+  LINK_SO = ::T.let(nil, ::T.untyped)
+  MAIN_DOES_NOTHING = ::T.let(nil, ::T.untyped)
+  ORIG_LIBPATH = ::T.let(nil, ::T.untyped)
+  OUTFLAG = ::T.let(nil, ::T.untyped)
+  RPATHFLAG = ::T.let(nil, ::T.untyped)
+  RULE_SUBST = ::T.let(nil, ::T.untyped)
+  SRC_EXT = ::T.let(nil, ::T.untyped)
+  STRING_OR_FAILED_FORMAT = ::T.let(nil, ::T.untyped)
+  TRY_LINK = ::T.let(nil, ::T.untyped)
+  TRY_LINK_CXX = ::T.let(nil, ::T.untyped)
+  UNIVERSAL_INTS = ::T.let(nil, ::T.untyped)
+end
+
+module MakeMakefile::Logging
+end
+
+module MakeMakefile::Logging
+  def self.log_close(); end
+
+  def self.log_open(); end
+
+  def self.log_opened?(); end
+
+  def self.logfile(file); end
+
+  def self.open(); end
+
+  def self.postpone(); end
+
+  def self.quiet(); end
+
+  def self.quiet=(quiet); end
+end
+
+module MakeMakefile
+  def self.[](name); end
+
+  def self.[]=(name, mod); end
 end
 
 Markdown = RedcarpetCompat
@@ -6444,9 +7083,9 @@ class Net::BufferedIO
 end
 
 class Net::HTTP
-  include ::Datadog::Contrib::HTTP::Instrumentation
-  include ::Datadog::Contrib::HTTP::Instrumentation::InstanceMethods
-  include ::Datadog::Contrib::HttpAnnotationHelper
+  include ::Datadog::Tracing::Contrib::HTTP::Instrumentation
+  include ::Datadog::Tracing::Contrib::HTTP::Instrumentation::InstanceMethods
+  include ::Datadog::Tracing::Contrib::HttpAnnotationHelper
   def ipaddr(); end
 
   def ipaddr=(addr); end
@@ -6606,6 +7245,7 @@ end
 class Object
   include ::JSON::Ext::Generator::GeneratorMethods::Object
   include ::PP::ObjectMixin
+  include ::MakeMakefile
   def to_yaml(options=T.unsafe(nil)); end
   ARGF = ::T.let(nil, ::T.untyped)
   ARGV = ::T.let(nil, ::T.untyped)
@@ -6773,8 +7413,56 @@ class OpenSSL::SSL::SSLSocket
 end
 
 module OpenSSL::X509
+  V_ERR_CA_KEY_TOO_SMALL = ::T.let(nil, ::T.untyped)
+  V_ERR_CA_MD_TOO_WEAK = ::T.let(nil, ::T.untyped)
+  V_ERR_CRL_PATH_VALIDATION_ERROR = ::T.let(nil, ::T.untyped)
+  V_ERR_DANE_NO_MATCH = ::T.let(nil, ::T.untyped)
+  V_ERR_DIFFERENT_CRL_SCOPE = ::T.let(nil, ::T.untyped)
+  V_ERR_EE_KEY_TOO_SMALL = ::T.let(nil, ::T.untyped)
+  V_ERR_EMAIL_MISMATCH = ::T.let(nil, ::T.untyped)
+  V_ERR_EXCLUDED_VIOLATION = ::T.let(nil, ::T.untyped)
+  V_ERR_HOSTNAME_MISMATCH = ::T.let(nil, ::T.untyped)
+  V_ERR_INVALID_CALL = ::T.let(nil, ::T.untyped)
+  V_ERR_INVALID_EXTENSION = ::T.let(nil, ::T.untyped)
+  V_ERR_INVALID_NON_CA = ::T.let(nil, ::T.untyped)
+  V_ERR_INVALID_POLICY_EXTENSION = ::T.let(nil, ::T.untyped)
+  V_ERR_IP_ADDRESS_MISMATCH = ::T.let(nil, ::T.untyped)
+  V_ERR_KEYUSAGE_NO_CRL_SIGN = ::T.let(nil, ::T.untyped)
+  V_ERR_KEYUSAGE_NO_DIGITAL_SIGNATURE = ::T.let(nil, ::T.untyped)
+  V_ERR_NO_EXPLICIT_POLICY = ::T.let(nil, ::T.untyped)
+  V_ERR_NO_VALID_SCTS = ::T.let(nil, ::T.untyped)
+  V_ERR_OCSP_CERT_UNKNOWN = ::T.let(nil, ::T.untyped)
+  V_ERR_OCSP_VERIFY_FAILED = ::T.let(nil, ::T.untyped)
+  V_ERR_OCSP_VERIFY_NEEDED = ::T.let(nil, ::T.untyped)
+  V_ERR_PATH_LOOP = ::T.let(nil, ::T.untyped)
+  V_ERR_PERMITTED_VIOLATION = ::T.let(nil, ::T.untyped)
+  V_ERR_PROXY_CERTIFICATES_NOT_ALLOWED = ::T.let(nil, ::T.untyped)
+  V_ERR_PROXY_PATH_LENGTH_EXCEEDED = ::T.let(nil, ::T.untyped)
+  V_ERR_PROXY_SUBJECT_NAME_VIOLATION = ::T.let(nil, ::T.untyped)
+  V_ERR_STORE_LOOKUP = ::T.let(nil, ::T.untyped)
+  V_ERR_SUBTREE_MINMAX = ::T.let(nil, ::T.untyped)
+  V_ERR_SUITE_B_CANNOT_SIGN_P_384_WITH_P_256 = ::T.let(nil, ::T.untyped)
+  V_ERR_SUITE_B_INVALID_ALGORITHM = ::T.let(nil, ::T.untyped)
+  V_ERR_SUITE_B_INVALID_CURVE = ::T.let(nil, ::T.untyped)
+  V_ERR_SUITE_B_INVALID_SIGNATURE_ALGORITHM = ::T.let(nil, ::T.untyped)
+  V_ERR_SUITE_B_INVALID_VERSION = ::T.let(nil, ::T.untyped)
+  V_ERR_SUITE_B_LOS_NOT_ALLOWED = ::T.let(nil, ::T.untyped)
+  V_ERR_UNABLE_TO_GET_CRL_ISSUER = ::T.let(nil, ::T.untyped)
+  V_ERR_UNHANDLED_CRITICAL_CRL_EXTENSION = ::T.let(nil, ::T.untyped)
+  V_ERR_UNHANDLED_CRITICAL_EXTENSION = ::T.let(nil, ::T.untyped)
+  V_ERR_UNNESTED_RESOURCE = ::T.let(nil, ::T.untyped)
+  V_ERR_UNSPECIFIED = ::T.let(nil, ::T.untyped)
+  V_ERR_UNSUPPORTED_CONSTRAINT_SYNTAX = ::T.let(nil, ::T.untyped)
+  V_ERR_UNSUPPORTED_CONSTRAINT_TYPE = ::T.let(nil, ::T.untyped)
+  V_ERR_UNSUPPORTED_EXTENSION_FEATURE = ::T.let(nil, ::T.untyped)
+  V_ERR_UNSUPPORTED_NAME_SYNTAX = ::T.let(nil, ::T.untyped)
   V_FLAG_NO_CHECK_TIME = ::T.let(nil, ::T.untyped)
+  V_FLAG_PARTIAL_CHAIN = ::T.let(nil, ::T.untyped)
+  V_FLAG_SUITEB_128_LOS = ::T.let(nil, ::T.untyped)
+  V_FLAG_SUITEB_128_LOS_ONLY = ::T.let(nil, ::T.untyped)
+  V_FLAG_SUITEB_192_LOS = ::T.let(nil, ::T.untyped)
   V_FLAG_TRUSTED_FIRST = ::T.let(nil, ::T.untyped)
+  V_FLAG_USE_CHECK_TIME = ::T.let(nil, ::T.untyped)
 end
 
 class OpenSSL::X509::Attribute
@@ -6843,6 +7531,58 @@ module OpenTracing
   extend ::Datadog::OpenTracer::GlobalTracer
 end
 
+class OpenURI::Buffer
+  def <<(str); end
+
+  def io(); end
+
+  def size(); end
+  StringMax = ::T.let(nil, ::T.untyped)
+end
+
+class OpenURI::Buffer
+end
+
+class OpenURI::HTTPError
+  def initialize(message, io); end
+end
+
+class OpenURI::HTTPRedirect
+  def initialize(message, io, uri); end
+end
+
+module OpenURI::Meta
+  def content_type_parse(); end
+
+  def meta_add_field(name, value); end
+
+  def meta_add_field2(name, values); end
+
+  def meta_setup_encoding(); end
+  RE_LWS = ::T.let(nil, ::T.untyped)
+  RE_PARAMETERS = ::T.let(nil, ::T.untyped)
+  RE_QUOTED_STRING = ::T.let(nil, ::T.untyped)
+  RE_TOKEN = ::T.let(nil, ::T.untyped)
+end
+
+module OpenURI::Meta
+  def self.init(obj, src=T.unsafe(nil)); end
+end
+
+module OpenURI
+  def self.check_options(options); end
+
+  def self.open_http(buf, target, proxy, options); end
+
+  def self.open_loop(uri, options); end
+
+  def self.open_uri(name, *rest); end
+
+  def self.redirectable?(uri1, uri2); end
+
+  def self.scan_open_optional_arguments(*rest); end
+end
+
 class OptionParser
   def additional_message(typ, opt); end
 end
@@ -6855,95 +7595,6 @@ class OptionParser::ParseError
   def additional(); end
 
   def additional=(additional); end
-end
-
-module Parallel
-  Stop = ::T.let(nil, ::T.untyped)
-  VERSION = ::T.let(nil, ::T.untyped)
-  Version = ::T.let(nil, ::T.untyped)
-end
-
-class Parallel::UserInterruptHandler
-  INTERRUPT_SIGNAL = ::T.let(nil, ::T.untyped)
-end
-
-ParseError = Racc::ParseError
-
-module Parser
-  MESSAGES = ::T.let(nil, ::T.untyped)
-  VERSION = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Diagnostic
-  LEVELS = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Lexer
-  ESCAPES = ::T.let(nil, ::T.untyped)
-  KEYWORDS = ::T.let(nil, ::T.untyped)
-  KEYWORDS_BEGIN = ::T.let(nil, ::T.untyped)
-  LEX_STATES = ::T.let(nil, ::T.untyped)
-  PUNCTUATION = ::T.let(nil, ::T.untyped)
-  PUNCTUATION_BEGIN = ::T.let(nil, ::T.untyped)
-  REGEXP_META_CHARACTERS = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Lexer::Dedenter
-  TAB_WIDTH = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Lexer::Literal
-  DELIMITERS = ::T.let(nil, ::T.untyped)
-  TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::MaxNumparamStack
-  ORDINARY_PARAMS = ::T.let(nil, ::T.untyped)
-end
-
-module Parser::Meta
-  NODE_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Rewriter
-  DEPRECATION_WARNING = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Ruby24
-  Racc_arg = ::T.let(nil, ::T.untyped)
-  Racc_debug_parser = ::T.let(nil, ::T.untyped)
-  Racc_token_to_s_table = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Source::Buffer
-  ENCODING_RE = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Source::Comment::Associator
-  MAGIC_COMMENT_RE = ::T.let(nil, ::T.untyped)
-  POSTFIX_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Source::Rewriter
-  DEPRECATION_WARNING = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::Source::TreeRewriter
-  ACTIONS = ::T.let(nil, ::T.untyped)
-  DEPRECATION_WARNING = ::T.let(nil, ::T.untyped)
-  POLICY_TO_LEVEL = ::T.let(nil, ::T.untyped)
-end
-
-class Parser::StaticEnvironment
-  FORWARD_ARGS = ::T.let(nil, ::T.untyped)
-end
-
-class Pathname
-  def fnmatch?(*arg); end
-
-  def glob(*arg); end
-
-  def make_symlink(arg); end
 end
 
 module PimpMyChangelog
@@ -6962,60 +7613,6 @@ class Proc
   def >>(arg); end
 
   def clone(); end
-end
-
-class ProgressBar::Components::Bar
-  DEFAULT_PROGRESS_MARK = ::T.let(nil, ::T.untyped)
-  DEFAULT_REMAINDER_MARK = ::T.let(nil, ::T.untyped)
-  DEFAULT_UPA_STEPS = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Components::Time
-  ELAPSED_LABEL = ::T.let(nil, ::T.untyped)
-  ESTIMATED_LABEL = ::T.let(nil, ::T.untyped)
-  NO_TIME_ELAPSED_TEXT = ::T.let(nil, ::T.untyped)
-  OOB_FRIENDLY_TIME_TEXT = ::T.let(nil, ::T.untyped)
-  OOB_LIMIT_IN_HOURS = ::T.let(nil, ::T.untyped)
-  OOB_TEXT_TO_FORMAT = ::T.let(nil, ::T.untyped)
-  OOB_TIME_FORMATS = ::T.let(nil, ::T.untyped)
-  OOB_UNKNOWN_TIME_TEXT = ::T.let(nil, ::T.untyped)
-  TIME_FORMAT = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Components::Title
-  DEFAULT_TITLE = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Format::Molecule
-  BAR_MOLECULES = ::T.let(nil, ::T.untyped)
-  MOLECULES = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Format::String
-  ANSI_SGR_PATTERN = ::T.let(nil, ::T.untyped)
-  MOLECULE_PATTERN = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Output
-  DEFAULT_OUTPUT_STREAM = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Outputs::NonTty
-  DEFAULT_FORMAT_STRING = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Outputs::Tty
-  DEFAULT_FORMAT_STRING = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Progress
-  DEFAULT_BEGINNING_POSITION = ::T.let(nil, ::T.untyped)
-  DEFAULT_SMOOTHING = ::T.let(nil, ::T.untyped)
-  DEFAULT_TOTAL = ::T.let(nil, ::T.untyped)
-end
-
-class ProgressBar::Time
-  TIME_MOCKING_LIBRARY_METHODS = ::T.let(nil, ::T.untyped)
 end
 
 class Pry
@@ -7126,6 +7723,10 @@ end
 
 class Pry::Output
   DEFAULT_SIZE = ::T.let(nil, ::T.untyped)
+end
+
+class Pry::PluginManager
+  PRY_PLUGIN_PREFIX = ::T.let(nil, ::T.untyped)
 end
 
 class Pry::Slop
@@ -7702,6 +8303,10 @@ class RSpec::CollectionMatchers::Have
   QUERY_METHODS = ::T.let(nil, ::T.untyped)
 end
 
+class RSpec::Core::Bisect::Channel
+  MARSHAL_DUMP_ENCODING = ::T.let(nil, ::T.untyped)
+end
+
 class RSpec::Core::Configuration
   DEFAULT_FORMATTER = ::T.let(nil, ::T.untyped)
   FAILED_STATUS = ::T.let(nil, ::T.untyped)
@@ -7825,7 +8430,13 @@ module RSpec::Expectations::Version
 end
 
 module RSpec::Matchers
+  def be_a_copy_of(*expected, &block_arg); end
+
+  def be_a_frozen_copy_of(*expected, &block_arg); end
+
   def be_measured(*expected, &block_arg); end
+
+  def be_root_span(*expected, &block_arg); end
 
   def have_distributed_parent(*expected, &block_arg); end
 
@@ -7836,6 +8447,10 @@ module RSpec::Matchers
   def have_error_stack(*expected, &block_arg); end
 
   def have_error_type(*expected, &block_arg); end
+
+  def have_lazy_debug_logged(*expected, &block_arg); end
+
+  def have_metadata(*expected, &block_arg); end
 
   def match_normalized_sql(*expected, &block_arg); end
   BE_PREDICATE_REGEX = ::T.let(nil, ::T.untyped)
@@ -7999,19 +8614,6 @@ class RSpecJUnitFormatter
   STRIP_DIFF_COLORS_CODES_REGEXP = ::T.let(nil, ::T.untyped)
 end
 
-module Racc
-  Copyright = ::T.let(nil, ::T.untyped)
-  Racc_No_Extentions = ::T.let(nil, ::T.untyped)
-  VERSION = ::T.let(nil, ::T.untyped)
-  Version = ::T.let(nil, ::T.untyped)
-end
-
-class Racc::CparseParams
-end
-
-class Racc::CparseParams
-end
-
 class Racc::Parser
   Racc_Main_Parsing_Routine = ::T.let(nil, ::T.untyped)
   Racc_Runtime_Core_Id_C = ::T.let(nil, ::T.untyped)
@@ -8089,8 +8691,8 @@ class Rake::Scope
 end
 
 class Rake::Task
-  include ::Datadog::Contrib::Rake::Instrumentation
-  include ::Datadog::Contrib::Rake::Instrumentation::InstanceMethods
+  include ::Datadog::Tracing::Contrib::Rake::Instrumentation
+  include ::Datadog::Tracing::Contrib::Rake::Instrumentation::InstanceMethods
 end
 
 class Rake::TaskLib
@@ -8142,243 +8744,6 @@ end
 class RedcarpetCompat
   EXTENSION_MAP = ::T.let(nil, ::T.untyped)
   RENDERER_OPTIONS = ::T.let(nil, ::T.untyped)
-end
-
-class Regexp
-  TOKEN_KEYS = ::T.let(nil, ::T.untyped)
-end
-
-Regexp::Expression::Alternation::OPERAND = Regexp::Expression::Alternative
-
-Regexp::Expression::Anchor::BOL = Regexp::Expression::Anchor::BeginningOfLine
-
-Regexp::Expression::Anchor::BOS = Regexp::Expression::Anchor::BeginningOfString
-
-Regexp::Expression::Anchor::EOL = Regexp::Expression::Anchor::EndOfLine
-
-Regexp::Expression::Anchor::EOS = Regexp::Expression::Anchor::EndOfString
-
-Regexp::Expression::Anchor::EOSobEOL = Regexp::Expression::Anchor::EndOfStringOrBeforeEndOfLine
-
-Regexp::Expression::CharacterSet::Intersection::OPERAND = Regexp::Expression::CharacterSet::IntersectedSequence
-
-Regexp::Expression::MatchLength = Regexp::MatchLength
-
-class Regexp::Expression::Quantifier
-  MODES = ::T.let(nil, ::T.untyped)
-end
-
-class Regexp::Lexer
-  CLOSING_TOKENS = ::T.let(nil, ::T.untyped)
-  OPENING_TOKENS = ::T.let(nil, ::T.untyped)
-end
-
-class Regexp::Parser
-  ENC_FLAGS = ::T.let(nil, ::T.untyped)
-  MOD_FLAGS = ::T.let(nil, ::T.untyped)
-  VERSION = ::T.let(nil, ::T.untyped)
-end
-
-Regexp::Parser::UPTokens = Regexp::Syntax::Token::UnicodeProperty
-
-module Regexp::Syntax
-  VERSION_CONST_REGEXP = ::T.let(nil, ::T.untyped)
-  VERSION_FORMAT = ::T.let(nil, ::T.untyped)
-  VERSION_REGEXP = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token
-  All = ::T.let(nil, ::T.untyped)
-  Map = ::T.let(nil, ::T.untyped)
-  Types = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Anchor
-  All = ::T.let(nil, ::T.untyped)
-  Basic = ::T.let(nil, ::T.untyped)
-  Extended = ::T.let(nil, ::T.untyped)
-  MatchStart = ::T.let(nil, ::T.untyped)
-  String = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Assertion
-  All = ::T.let(nil, ::T.untyped)
-  Lookahead = ::T.let(nil, ::T.untyped)
-  Lookbehind = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Backreference
-  All = ::T.let(nil, ::T.untyped)
-  Name = ::T.let(nil, ::T.untyped)
-  Number = ::T.let(nil, ::T.untyped)
-  RecursionLevel = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::CharacterSet
-  All = ::T.let(nil, ::T.untyped)
-  Basic = ::T.let(nil, ::T.untyped)
-  Extended = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::CharacterType
-  All = ::T.let(nil, ::T.untyped)
-  Basic = ::T.let(nil, ::T.untyped)
-  Clustered = ::T.let(nil, ::T.untyped)
-  Extended = ::T.let(nil, ::T.untyped)
-  Hex = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Conditional
-  All = ::T.let(nil, ::T.untyped)
-  Condition = ::T.let(nil, ::T.untyped)
-  Delimiters = ::T.let(nil, ::T.untyped)
-  Separator = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Escape
-  ASCII = ::T.let(nil, ::T.untyped)
-  All = ::T.let(nil, ::T.untyped)
-  Basic = ::T.let(nil, ::T.untyped)
-  Control = ::T.let(nil, ::T.untyped)
-  Hex = ::T.let(nil, ::T.untyped)
-  Meta = ::T.let(nil, ::T.untyped)
-  Octal = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-  Unicode = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::FreeSpace
-  All = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Group
-  All = ::T.let(nil, ::T.untyped)
-  Atomic = ::T.let(nil, ::T.untyped)
-  Basic = ::T.let(nil, ::T.untyped)
-  Comment = ::T.let(nil, ::T.untyped)
-  Extended = ::T.let(nil, ::T.untyped)
-  Named = ::T.let(nil, ::T.untyped)
-  Passive = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-  V1_8_6 = ::T.let(nil, ::T.untyped)
-  V2_4_1 = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Keep
-  All = ::T.let(nil, ::T.untyped)
-  Mark = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Literal
-  All = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Meta
-  All = ::T.let(nil, ::T.untyped)
-  Basic = ::T.let(nil, ::T.untyped)
-  Extended = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::PosixClass
-  All = ::T.let(nil, ::T.untyped)
-  Extensions = ::T.let(nil, ::T.untyped)
-  NonType = ::T.let(nil, ::T.untyped)
-  Standard = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::Quantifier
-  All = ::T.let(nil, ::T.untyped)
-  Greedy = ::T.let(nil, ::T.untyped)
-  Interval = ::T.let(nil, ::T.untyped)
-  IntervalAll = ::T.let(nil, ::T.untyped)
-  IntervalPossessive = ::T.let(nil, ::T.untyped)
-  IntervalReluctant = ::T.let(nil, ::T.untyped)
-  Possessive = ::T.let(nil, ::T.untyped)
-  Reluctant = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::SubexpressionCall
-  All = ::T.let(nil, ::T.untyped)
-  Name = ::T.let(nil, ::T.untyped)
-  Number = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::UnicodeProperty
-  Age = ::T.let(nil, ::T.untyped)
-  Age_V1_9_3 = ::T.let(nil, ::T.untyped)
-  Age_V2_0_0 = ::T.let(nil, ::T.untyped)
-  Age_V2_2_0 = ::T.let(nil, ::T.untyped)
-  Age_V2_3_0 = ::T.let(nil, ::T.untyped)
-  Age_V2_4_0 = ::T.let(nil, ::T.untyped)
-  Age_V2_5_0 = ::T.let(nil, ::T.untyped)
-  Age_V2_6_0 = ::T.let(nil, ::T.untyped)
-  Age_V2_6_2 = ::T.let(nil, ::T.untyped)
-  Age_V2_6_3 = ::T.let(nil, ::T.untyped)
-  All = ::T.let(nil, ::T.untyped)
-  CharType_V1_9_0 = ::T.let(nil, ::T.untyped)
-  CharType_V2_5_0 = ::T.let(nil, ::T.untyped)
-  Derived = ::T.let(nil, ::T.untyped)
-  Derived_V1_9_0 = ::T.let(nil, ::T.untyped)
-  Derived_V2_0_0 = ::T.let(nil, ::T.untyped)
-  Derived_V2_4_0 = ::T.let(nil, ::T.untyped)
-  Derived_V2_5_0 = ::T.let(nil, ::T.untyped)
-  Emoji = ::T.let(nil, ::T.untyped)
-  Emoji_V2_5_0 = ::T.let(nil, ::T.untyped)
-  NonType = ::T.let(nil, ::T.untyped)
-  POSIX = ::T.let(nil, ::T.untyped)
-  Script = ::T.let(nil, ::T.untyped)
-  Script_V1_9_0 = ::T.let(nil, ::T.untyped)
-  Script_V1_9_3 = ::T.let(nil, ::T.untyped)
-  Script_V2_0_0 = ::T.let(nil, ::T.untyped)
-  Script_V2_2_0 = ::T.let(nil, ::T.untyped)
-  Script_V2_3_0 = ::T.let(nil, ::T.untyped)
-  Script_V2_4_0 = ::T.let(nil, ::T.untyped)
-  Script_V2_5_0 = ::T.let(nil, ::T.untyped)
-  Script_V2_6_0 = ::T.let(nil, ::T.untyped)
-  Script_V2_6_2 = ::T.let(nil, ::T.untyped)
-  Type = ::T.let(nil, ::T.untyped)
-  UnicodeBlock = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V1_9_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_0_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_2_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_3_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_4_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_5_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_6_0 = ::T.let(nil, ::T.untyped)
-  UnicodeBlock_V2_6_2 = ::T.let(nil, ::T.untyped)
-  V1_9_0 = ::T.let(nil, ::T.untyped)
-  V1_9_3 = ::T.let(nil, ::T.untyped)
-  V2_0_0 = ::T.let(nil, ::T.untyped)
-  V2_2_0 = ::T.let(nil, ::T.untyped)
-  V2_3_0 = ::T.let(nil, ::T.untyped)
-  V2_4_0 = ::T.let(nil, ::T.untyped)
-  V2_5_0 = ::T.let(nil, ::T.untyped)
-  V2_6_0 = ::T.let(nil, ::T.untyped)
-  V2_6_2 = ::T.let(nil, ::T.untyped)
-  V2_6_3 = ::T.let(nil, ::T.untyped)
-end
-
-module Regexp::Syntax::Token::UnicodeProperty::Category
-  All = ::T.let(nil, ::T.untyped)
-  Codepoint = ::T.let(nil, ::T.untyped)
-  Letter = ::T.let(nil, ::T.untyped)
-  Mark = ::T.let(nil, ::T.untyped)
-  Number = ::T.let(nil, ::T.untyped)
-  Punctuation = ::T.let(nil, ::T.untyped)
-  Separator = ::T.let(nil, ::T.untyped)
-  Symbol = ::T.let(nil, ::T.untyped)
 end
 
 module Reline
@@ -9171,70 +9536,6 @@ module Reline
   def self.vi_editing_mode?(*args, &block); end
 end
 
-class Resolv::DNS
-  def extract_resources(msg, name, typeclass); end
-  RequestID = ::T.let(nil, ::T.untyped)
-  RequestIDMutex = ::T.let(nil, ::T.untyped)
-end
-
-class Resolv::DNS::Config
-  def initialize(config_info=T.unsafe(nil)); end
-end
-
-class Resolv::DNS::Label::Str
-  def initialize(string); end
-end
-
-class Resolv::DNS::Message
-  def initialize(id=T.unsafe(nil)); end
-end
-
-class Resolv::DNS::Message::MessageDecoder
-  def initialize(data); end
-end
-
-class Resolv::DNS::Requester::ConnectedUDP
-  def initialize(host, port=T.unsafe(nil)); end
-
-  def lazy_initialize(); end
-end
-
-class Resolv::DNS::Requester::Sender
-  def initialize(msg, data, sock); end
-end
-
-class Resolv::DNS::Requester::TCP
-  def initialize(host, port=T.unsafe(nil)); end
-end
-
-class Resolv::DNS::Requester::UnconnectedUDP
-  def initialize(*nameserver_port); end
-
-  def lazy_initialize(); end
-end
-
-class Resolv::DNS::Requester::UnconnectedUDP::Sender
-  def initialize(msg, data, sock, host, port); end
-end
-
-class Resolv::DNS::Resource
-  ClassValue = ::T.let(nil, ::T.untyped)
-end
-
-class Resolv::DNS::Resource::LOC
-  def initialize(version, ssize, hprecision, vprecision, latitude, longitude, altitude); end
-end
-
-class Resolv::DNS
-  def self.allocate_request_id(host, port); end
-
-  def self.bind_random_port(udpsock, bind_host=T.unsafe(nil)); end
-
-  def self.free_request_id(host, port, id); end
-
-  def self.random(arg); end
-end
-
 class Ripper
   def column(); end
 
@@ -9741,15 +10042,6 @@ class Ripper::SexpBuilder
   def on_zsuper(*args); end
 end
 
-class Ripper::SexpBuilder
-end
-
-class Ripper::SexpBuilderPP
-end
-
-class Ripper::SexpBuilderPP
-end
-
 class Ripper::TokenPattern
   def initialize(pattern); end
 
@@ -9811,3583 +10103,6 @@ end
 
 class RspecN::Formatters::FileFormatter
   BASE_FILE_NAME = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::Builder
-  NODE_MAP = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::Node
-  ARGUMENT_TYPES = ::T.let(nil, ::T.untyped)
-  ASSIGNMENTS = ::T.let(nil, ::T.untyped)
-  BASIC_CONDITIONALS = ::T.let(nil, ::T.untyped)
-  BASIC_LITERALS = ::T.let(nil, ::T.untyped)
-  COMPARISON_OPERATORS = ::T.let(nil, ::T.untyped)
-  COMPOSITE_LITERALS = ::T.let(nil, ::T.untyped)
-  CONDITIONALS = ::T.let(nil, ::T.untyped)
-  EQUALS_ASSIGNMENTS = ::T.let(nil, ::T.untyped)
-  FALSEY_LITERALS = ::T.let(nil, ::T.untyped)
-  IMMUTABLE_LITERALS = ::T.let(nil, ::T.untyped)
-  KEYWORDS = ::T.let(nil, ::T.untyped)
-  LITERALS = ::T.let(nil, ::T.untyped)
-  LOOP_TYPES = ::T.let(nil, ::T.untyped)
-  MUTABLE_LITERALS = ::T.let(nil, ::T.untyped)
-  OPERATOR_KEYWORDS = ::T.let(nil, ::T.untyped)
-  POST_CONDITION_LOOP_TYPES = ::T.let(nil, ::T.untyped)
-  REFERENCES = ::T.let(nil, ::T.untyped)
-  SHORTHAND_ASSIGNMENTS = ::T.let(nil, ::T.untyped)
-  SPECIAL_KEYWORDS = ::T.let(nil, ::T.untyped)
-  TRUTHY_LITERALS = ::T.let(nil, ::T.untyped)
-  VARIABLES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern
-  VAR = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug
-  def comments(*args, &block); end
-
-  def node_ids(); end
-
-  def tokens(*args, &block); end
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::Colorizer
-  def compiler(); end
-
-  def initialize(pattern, compiler: T.unsafe(nil)); end
-
-  def node_pattern(); end
-
-  def pattern(); end
-
-  def test(ruby, trace: T.unsafe(nil)); end
-  COLOR_SCHEME = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::Colorizer::Result
-  def color_map(color_scheme=T.unsafe(nil)); end
-
-  def colorize(color_scheme=T.unsafe(nil)); end
-
-  def colorizer(); end
-
-  def colorizer=(_); end
-
-  def match_map(); end
-
-  def matched?(node); end
-
-  def returned(); end
-
-  def returned=(_); end
-
-  def ruby_ast(); end
-
-  def ruby_ast=(_); end
-
-  def trace(); end
-
-  def trace=(_); end
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::Colorizer::Result
-  def self.[](*arg); end
-
-  def self.members(); end
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::Colorizer
-end
-
-module RuboCop::AST::NodePattern::Compiler::Debug::InstrumentationSubcompiler
-  def do_compile(); end
-end
-
-module RuboCop::AST::NodePattern::Compiler::Debug::InstrumentationSubcompiler
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::NodePatternSubcompiler
-  include ::RuboCop::AST::NodePattern::Compiler::Debug::InstrumentationSubcompiler
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::NodePatternSubcompiler
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::SequenceSubcompiler
-  include ::RuboCop::AST::NodePattern::Compiler::Debug::InstrumentationSubcompiler
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::SequenceSubcompiler
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::Trace
-  def enter(node_id); end
-
-  def matched?(node_id); end
-
-  def success(node_id); end
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug::Trace
-end
-
-class RuboCop::AST::NodePattern::Compiler::Debug
-end
-
-class RuboCop::AST::NodePattern::Compiler::SequenceSubcompiler
-  DELTA = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::LexerRex
-  CALL = ::T.let(nil, ::T.untyped)
-  CONST_NAME = ::T.let(nil, ::T.untyped)
-  IDENTIFIER = ::T.let(nil, ::T.untyped)
-  NODE_TYPE = ::T.let(nil, ::T.untyped)
-  REGEXP = ::T.let(nil, ::T.untyped)
-  REGEXP_BODY = ::T.let(nil, ::T.untyped)
-  SYMBOL_NAME = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::Node
-  MAP = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::Node::Repetition
-  ARITIES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::Parser
-  Racc_arg = ::T.let(nil, ::T.untyped)
-  Racc_debug_parser = ::T.let(nil, ::T.untyped)
-  Racc_token_to_s_table = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern::Parser::WithMeta
-  def comments(); end
-
-  def tokens(); end
-end
-
-class RuboCop::AST::NodePattern::Parser::WithMeta::Builder
-  def emit_atom(type, token); end
-
-  def emit_call(type, selector_t, args=T.unsafe(nil)); end
-
-  def emit_list(type, begin_t, children, end_t); end
-
-  def emit_unary_op(type, operator_t=T.unsafe(nil), *children); end
-end
-
-class RuboCop::AST::NodePattern::Parser::WithMeta::Builder
-end
-
-class RuboCop::AST::NodePattern::Parser::WithMeta::Lexer
-  def initialize(str_or_buffer); end
-
-  def pos(); end
-end
-
-class RuboCop::AST::NodePattern::Parser::WithMeta::Lexer
-end
-
-class RuboCop::AST::NodePattern::Parser::WithMeta
-end
-
-module RuboCop::AST::NodePattern::Sets
-  MAX = ::T.let(nil, ::T.untyped)
-  REGISTRY = ::T.let(nil, ::T.untyped)
-  SET_0_1 = ::T.let(nil, ::T.untyped)
-  SET_0_1_2 = ::T.let(nil, ::T.untyped)
-  SET_10_10 = ::T.let(nil, ::T.untyped)
-  SET_1_1 = ::T.let(nil, ::T.untyped)
-  SET_1_2 = ::T.let(nil, ::T.untyped)
-  SET_ADD_DEPENDENCY_ADD_RUNTIME_DEPENDENCY_ADD_DEVELOPMENT_DEPENDENCY = ::T.let(nil, ::T.untyped)
-  SET_ALL_CONTEXT = ::T.let(nil, ::T.untyped)
-  SET_AND_RETURN_AND_RAISE_AND_THROW_ETC = ::T.let(nil, ::T.untyped)
-  SET_ATTR_READER_ATTR_WRITER_ATTR_ACCESSOR_ATTR = ::T.let(nil, ::T.untyped)
-  SET_BACKGROUND_SCENARIO_XSCENARIO_ETC = ::T.let(nil, ::T.untyped)
-  SET_BEFORE_AFTER = ::T.let(nil, ::T.untyped)
-  SET_BE_EQ_EQL_EQUAL = ::T.let(nil, ::T.untyped)
-  SET_BE_TRUTHY_BE_FALSEY_BE_FALSY_ETC = ::T.let(nil, ::T.untyped)
-  SET_BRANCH_REF_TAG = ::T.let(nil, ::T.untyped)
-  SET_CALLER_CALLER_LOCATIONS = ::T.let(nil, ::T.untyped)
-  SET_CALL_RUN = ::T.let(nil, ::T.untyped)
-  SET_CAPTURE2_CAPTURE2E_CAPTURE3_ETC = ::T.let(nil, ::T.untyped)
-  SET_CIPHER_DIGEST = ::T.let(nil, ::T.untyped)
-  SET_CLASS_EVAL_INSTANCE_EVAL = ::T.let(nil, ::T.untyped)
-  SET_CLASS_EVAL_MODULE_EVAL = ::T.let(nil, ::T.untyped)
-  SET_CLASS_MODULE = ::T.let(nil, ::T.untyped)
-  SET_CLASS_MODULE_STRUCT = ::T.let(nil, ::T.untyped)
-  SET_CONTEXT_SHARED_CONTEXT = ::T.let(nil, ::T.untyped)
-  SET_COUNT_LENGTH_SIZE = ::T.let(nil, ::T.untyped)
-  SET_DEFINE_METHOD = ::T.let(nil, ::T.untyped)
-  SET_DEFINE_METHOD_DEFINE_SINGLETON_METHOD = ::T.let(nil, ::T.untyped)
-  SET_DESCRIBE_FEATURE = ::T.let(nil, ::T.untyped)
-  SET_DOUBLE_SPY = ::T.let(nil, ::T.untyped)
-  SET_DOWNCASE_UPCASE = ::T.let(nil, ::T.untyped)
-  SET_EACH_EXAMPLE = ::T.let(nil, ::T.untyped)
-  SET_EACH_WITH_INDEX_WITH_INDEX = ::T.let(nil, ::T.untyped)
-  SET_EACH_WITH_OBJECT_WITH_OBJECT = ::T.let(nil, ::T.untyped)
-  SET_ENUMERATOR_RATIONAL_COMPLEX_THREAD = ::T.let(nil, ::T.untyped)
-  SET_EQL_EQ_BE = ::T.let(nil, ::T.untyped)
-  SET_ESCAPE_ENCODE_UNESCAPE_DECODE = ::T.let(nil, ::T.untyped)
-  SET_EXACTLY_AT_LEAST_AT_MOST = ::T.let(nil, ::T.untyped)
-  SET_EXPECT_ALLOW = ::T.let(nil, ::T.untyped)
-  SET_FACTORYGIRL_FACTORYBOT = ::T.let(nil, ::T.untyped)
-  SET_FIRST_LAST__ETC = ::T.let(nil, ::T.untyped)
-  SET_FIXNUM_BIGNUM = ::T.let(nil, ::T.untyped)
-  SET_FLATTEN_FLATTEN = ::T.let(nil, ::T.untyped)
-  SET_FORMAT_SPRINTF_PRINTF = ::T.let(nil, ::T.untyped)
-  SET_GEMCUTTER_RUBYGEMS_RUBYFORGE = ::T.let(nil, ::T.untyped)
-  SET_GSUB_GSUB = ::T.let(nil, ::T.untyped)
-  SET_GSUB_GSUB_SUB_SUB = ::T.let(nil, ::T.untyped)
-  SET_INCLUDE_EXTEND_PREPEND = ::T.let(nil, ::T.untyped)
-  SET_INCLUDE_MEMBER = ::T.let(nil, ::T.untyped)
-  SET_INSTANCE_EVAL_CLASS_EVAL_MODULE_EVAL = ::T.let(nil, ::T.untyped)
-  SET_INSTANCE_EXEC_CLASS_EXEC_MODULE_EXEC = ::T.let(nil, ::T.untyped)
-  SET_IO_FILE = ::T.let(nil, ::T.untyped)
-  SET_IS_EXPECTED_SHOULD_SHOULD_NOT = ::T.let(nil, ::T.untyped)
-  SET_KEYS_VALUES = ::T.let(nil, ::T.untyped)
-  SET_KEY_HAS_KEY_FETCH_ETC = ::T.let(nil, ::T.untyped)
-  SET_LAST_FIRST = ::T.let(nil, ::T.untyped)
-  SET_LENGTH_SIZE = ::T.let(nil, ::T.untyped)
-  SET_LOAD_RESTORE = ::T.let(nil, ::T.untyped)
-  SET_MAP_COLLECT = ::T.let(nil, ::T.untyped)
-  SET_MATCH_MATCH = ::T.let(nil, ::T.untyped)
-  SET_MATCH__MATCH = ::T.let(nil, ::T.untyped)
-  SET_NEW_COMPILE = ::T.let(nil, ::T.untyped)
-  SET_NEW_OPEN = ::T.let(nil, ::T.untyped)
-  SET_NIL_ = ::T.let(nil, ::T.untyped)
-  SET_PIPELINE_PIPELINE_R_PIPELINE_RW_ETC = ::T.let(nil, ::T.untyped)
-  SET_PRIVATE_PROTECTED = ::T.let(nil, ::T.untyped)
-  SET_PRIVATE_PROTECTED_PUBLIC = ::T.let(nil, ::T.untyped)
-  SET_PROC_LAMBDA = ::T.let(nil, ::T.untyped)
-  SET_PUBLIC_CONSTANT_PRIVATE_CONSTANT = ::T.let(nil, ::T.untyped)
-  SET_PUBLIC_PROTECTED_PRIVATE_MODULE_FUNCTION = ::T.let(nil, ::T.untyped)
-  SET_RAISE_ERROR_RAISE_EXCEPTION = ::T.let(nil, ::T.untyped)
-  SET_RAISE_FAIL = ::T.let(nil, ::T.untyped)
-  SET_RAISE_FAIL_THROW_ETC = ::T.let(nil, ::T.untyped)
-  SET_RECEIVE_HAVE_RECEIVED = ::T.let(nil, ::T.untyped)
-  SET_RECEIVE_MESSAGE_CHAIN_STUB_CHAIN = ::T.let(nil, ::T.untyped)
-  SET_RECEIVE_RECEIVE_MESSAGES_RECEIVE_MESSAGE_CHAIN_HAVE_RECEIVED = ::T.let(nil, ::T.untyped)
-  SET_RECEIVE_RECEIVE_MESSAGE_CHAIN = ::T.let(nil, ::T.untyped)
-  SET_REDUCE_INJECT = ::T.let(nil, ::T.untyped)
-  SET_REJECT_REJECT = ::T.let(nil, ::T.untyped)
-  SET_REQUIRE_REQUIRE_RELATIVE = ::T.let(nil, ::T.untyped)
-  SET_SELECT_FILTER_FIND_ALL_REJECT = ::T.let(nil, ::T.untyped)
-  SET_SELECT_SELECT = ::T.let(nil, ::T.untyped)
-  SET_SEND_PUBLIC_SEND___SEND__ = ::T.let(nil, ::T.untyped)
-  SET_SHOULD_SHOULD_NOT = ::T.let(nil, ::T.untyped)
-  SET_SKIP_PENDING = ::T.let(nil, ::T.untyped)
-  SET_SORT_BY_SORT = ::T.let(nil, ::T.untyped)
-  SET_SORT_MIN_MAX = ::T.let(nil, ::T.untyped)
-  SET_SPAWN_SYSTEM = ::T.let(nil, ::T.untyped)
-  SET_SPRINTF_FORMAT = ::T.let(nil, ::T.untyped)
-  SET_START_WITH_END_WITH = ::T.let(nil, ::T.untyped)
-  SET_START_WITH_STARTS_WITH_END_WITH_ENDS_WITH = ::T.let(nil, ::T.untyped)
-  SET_STRUCT_CLASS = ::T.let(nil, ::T.untyped)
-  SET_SUCC_PRED_NEXT = ::T.let(nil, ::T.untyped)
-  SET_TEMPFILE_STRINGIO = ::T.let(nil, ::T.untyped)
-  SET_TO_ENUM_ENUM_FOR = ::T.let(nil, ::T.untyped)
-  SET_TO_I_TO_F_TO_C = ::T.let(nil, ::T.untyped)
-  SET_TRUE_FALSE = ::T.let(nil, ::T.untyped)
-  SET_ZERO_POSITIVE_NEGATIVE = ::T.let(nil, ::T.untyped)
-  SET__ = ::T.let(nil, ::T.untyped)
-  SET__AT_SLICE = ::T.let(nil, ::T.untyped)
-  SET__EQUAL_EQL = ::T.let(nil, ::T.untyped)
-  SET__GLOB = ::T.let(nil, ::T.untyped)
-  SET___ = ::T.let(nil, ::T.untyped)
-  SET___2 = ::T.let(nil, ::T.untyped)
-  SET___3 = ::T.let(nil, ::T.untyped)
-  SET___4 = ::T.let(nil, ::T.untyped)
-  SET___5 = ::T.let(nil, ::T.untyped)
-  SET___6 = ::T.let(nil, ::T.untyped)
-  SET___7 = ::T.let(nil, ::T.untyped)
-  SET___8 = ::T.let(nil, ::T.untyped)
-  SET___EQL = ::T.let(nil, ::T.untyped)
-  SET___METHOD_____CALLEE__ = ::T.let(nil, ::T.untyped)
-  SET____ = ::T.let(nil, ::T.untyped)
-  SET____ETC = ::T.let(nil, ::T.untyped)
-  SET____ETC_2 = ::T.let(nil, ::T.untyped)
-  SET____ETC_3 = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::ProcessedSource
-  STRING_SOURCE_NAME = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::AST::RuboCopCompatibility
-  INCOMPATIBLE_COPS = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::AST::Traversal
-  TYPE_TO_METHOD = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::AST::Version
-  STRING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::CLI
-  DEFAULT_PARALLEL_OPTIONS = ::T.let(nil, ::T.untyped)
-  STATUS_ERROR = ::T.let(nil, ::T.untyped)
-  STATUS_INTERRUPTED = ::T.let(nil, ::T.untyped)
-  STATUS_OFFENSES = ::T.let(nil, ::T.untyped)
-  STATUS_SUCCESS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::CLI::Command::AutoGenerateConfig
-  AUTO_GENERATED_FILE = ::T.let(nil, ::T.untyped)
-  PHASE_1 = ::T.let(nil, ::T.untyped)
-  PHASE_1_DISABLED = ::T.let(nil, ::T.untyped)
-  PHASE_1_OVERRIDDEN = ::T.let(nil, ::T.untyped)
-  PHASE_2 = ::T.let(nil, ::T.untyped)
-  YAML_OPTIONAL_DOC_START = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::CLI::Command::ExecuteRunner
-  INTEGRATION_FORMATTERS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::CLI::Command::InitDotfile
-  DOTFILE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::CLI::Command::SuggestExtensions
-  INCLUDED_FORMATTERS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Config
-  DEFAULT_RAILS_VERSION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigLoader
-  DEFAULT_FILE = ::T.let(nil, ::T.untyped)
-  DOTFILE = ::T.let(nil, ::T.untyped)
-  RUBOCOP_HOME = ::T.let(nil, ::T.untyped)
-  XDG_CONFIG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigLoader
-  extend ::RuboCop::FileFinder
-end
-
-class RuboCop::ConfigObsoletion
-  COP_RULE_CLASSES = ::T.let(nil, ::T.untyped)
-  DEFAULT_RULES_FILE = ::T.let(nil, ::T.untyped)
-  PARAMETER_RULE_CLASSES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigObsoletion::ChangedEnforcedStyles
-  BASE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigObsoletion::ChangedParameter
-  BASE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigObsoletion::RemovedCop
-  BASE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigRegeneration
-  AUTO_GENERATED_FILE = ::T.let(nil, ::T.untyped)
-  COMMAND_REGEX = ::T.let(nil, ::T.untyped)
-  DEFAULT_OPTIONS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ConfigValidator
-  COMMON_PARAMS = ::T.let(nil, ::T.untyped)
-  INTERNAL_PARAMS = ::T.let(nil, ::T.untyped)
-  NEW_COPS_VALUES = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Alignment
-  SPACE = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::AllowedIdentifiers
-  SIGILS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::AmbiguousCopName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Base
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Bundler::DuplicatedGem
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Bundler::GemComment
-  CHECKED_OPTIONS_CONFIG = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICTIVE_VERSION_PATTERN = ::T.let(nil, ::T.untyped)
-  RESTRICTIVE_VERSION_SPECIFIERS_OPTION = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  VERSION_SPECIFIERS_OPTION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Bundler::GemFilename
-  GEMFILE_FILES = ::T.let(nil, ::T.untyped)
-  GEMS_RB_FILES = ::T.let(nil, ::T.untyped)
-  MSG_GEMFILE_MISMATCHED = ::T.let(nil, ::T.untyped)
-  MSG_GEMFILE_REQUIRED = ::T.let(nil, ::T.untyped)
-  MSG_GEMS_RB_MISMATCHED = ::T.let(nil, ::T.untyped)
-  MSG_GEMS_RB_REQUIRED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Bundler::GemVersion
-  FORBIDDEN_MSG = ::T.let(nil, ::T.untyped)
-  REQUIRED_MSG = ::T.let(nil, ::T.untyped)
-  VERSION_SPECIFICATION_REGEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Bundler::InsecureProtocolSource
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Bundler::OrderedGems
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::CodeLength
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::ConfigurableNaming
-  FORMATS = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::ConfigurableNumbering
-  FORMATS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Corrector
-  NOOP_CONSUMER = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::DefNode
-  NON_PUBLIC_MODIFIERS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::EachToForCorrector
-  CORRECTION_WITHOUT_ARGUMENTS = ::T.let(nil, ::T.untyped)
-  CORRECTION_WITH_ARGUMENTS = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::EndKeywordAlignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::ForToEachCorrector
-  CORRECTION = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::FrozenStringLiteral
-  FROZEN_STRING_LITERAL = ::T.let(nil, ::T.untyped)
-  FROZEN_STRING_LITERAL_ENABLED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Gemspec::DateAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Gemspec::DuplicatedAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Gemspec::OrderedDependencies
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Gemspec::RequiredRubyVersion
-  MISSING_MSG = ::T.let(nil, ::T.untyped)
-  NOT_EQUAL_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Gemspec::RubyVersionGlobalsUsage
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Generator
-  CONFIGURATION_ADDED_MESSAGE = ::T.let(nil, ::T.untyped)
-  SOURCE_TEMPLATE = ::T.let(nil, ::T.untyped)
-  SPEC_TEMPLATE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Generator::ConfigurationInjector
-  TEMPLATE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Generator::RequireFileInjector
-  REQUIRE_PATH = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::HashTransformMethod
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Heredoc
-  OPENING_DELIMITER = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::AccessModifierIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ArgumentAlignment
-  ALIGN_PARAMS_MSG = ::T.let(nil, ::T.untyped)
-  FIXED_INDENT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ArrayAlignment
-  ALIGN_ELEMENTS_MSG = ::T.let(nil, ::T.untyped)
-  FIXED_INDENT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::AssignmentIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::BeginEndAlignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::BlockAlignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::BlockEndNewline
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::CaseIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ClassStructure
-  HUMANIZED_NODE_TYPE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ClosingHeredocIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_ARG = ::T.let(nil, ::T.untyped)
-  SIMPLE_HEREDOC = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ClosingParenthesisIndentation
-  MSG_ALIGN = ::T.let(nil, ::T.untyped)
-  MSG_INDENT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::CommentIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ConditionPosition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::DefEndAlignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ElseAlignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyComment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLineAfterGuardClause
-  END_OF_HEREDOC_LINE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLineAfterMagicComment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLineAfterMultilineCondition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLineBetweenDefs
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLines
-  LINE_OFFSET = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundAccessModifier
-  MSG_AFTER = ::T.let(nil, ::T.untyped)
-  MSG_AFTER_FOR_ONLY_BEFORE = ::T.let(nil, ::T.untyped)
-  MSG_BEFORE_AND_AFTER = ::T.let(nil, ::T.untyped)
-  MSG_BEFORE_FOR_ONLY_BEFORE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundArguments
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundAttributeAccessor
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundBeginBody
-  KIND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundBlockBody
-  KIND = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Layout::EmptyLinesAroundBody
-  MSG_DEFERRED = ::T.let(nil, ::T.untyped)
-  MSG_EXTRA = ::T.let(nil, ::T.untyped)
-  MSG_MISSING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundClassBody
-  KIND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundExceptionHandlingKeywords
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundMethodBody
-  KIND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EmptyLinesAroundModuleBody
-  KIND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::EndOfLine
-  MSG_DETECTED = ::T.let(nil, ::T.untyped)
-  MSG_MISSING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ExtraSpacing
-  MSG_UNALIGNED_ASGN = ::T.let(nil, ::T.untyped)
-  MSG_UNNECESSARY = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstArgumentIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstArrayElementIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstArrayElementLineBreak
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstHashElementIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstHashElementLineBreak
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstMethodArgumentLineBreak
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstMethodParameterLineBreak
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::FirstParameterIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::HashAlignment
-  MESSAGES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::HeredocArgumentClosingParenthesis
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::HeredocIndentation
-  TYPE_MSG = ::T.let(nil, ::T.untyped)
-  WIDTH_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::IndentationConsistency
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::IndentationStyle
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::IndentationWidth
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::InitialIndentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::LeadingCommentSpace
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::LeadingEmptyLines
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::LineEndStringConcatenationIndentation
-  MSG_ALIGN = ::T.let(nil, ::T.untyped)
-  MSG_INDENT = ::T.let(nil, ::T.untyped)
-  PARENT_TYPES_FOR_INDENTED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::LineLength
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineArrayBraceLayout
-  ALWAYS_NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  ALWAYS_SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineArrayLineBreaks
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineAssignmentLayout
-  NEW_LINE_OFFENSE = ::T.let(nil, ::T.untyped)
-  SAME_LINE_OFFENSE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineBlockLayout
-  ARG_MSG = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  PIPE_SIZE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineHashBraceLayout
-  ALWAYS_NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  ALWAYS_SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineHashKeyLineBreaks
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineMethodArgumentLineBreaks
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineMethodCallBraceLayout
-  ALWAYS_NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  ALWAYS_SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::MultilineMethodDefinitionBraceLayout
-  ALWAYS_NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  ALWAYS_SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  NEW_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-  SAME_LINE_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::ParameterAlignment
-  ALIGN_PARAMS_MSG = ::T.let(nil, ::T.untyped)
-  FIXED_INDENT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::RedundantLineBreak
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::RescueEnsureAlignment
-  ALTERNATIVE_ACCESS_MODIFIERS = ::T.let(nil, ::T.untyped)
-  ANCESTOR_TYPES = ::T.let(nil, ::T.untyped)
-  ANCESTOR_TYPES_WITH_ACCESS_MODIFIERS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SingleLineBlockChain
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAfterColon
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAfterMethodName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAfterNot
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAroundEqualsInParameterDefault
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAroundKeyword
-  ACCEPT_LEFT_PAREN = ::T.let(nil, ::T.untyped)
-  ACCEPT_LEFT_SQUARE_BRACKET = ::T.let(nil, ::T.untyped)
-  ACCEPT_NAMESPACE_OPERATOR = ::T.let(nil, ::T.untyped)
-  DO = ::T.let(nil, ::T.untyped)
-  MSG_AFTER = ::T.let(nil, ::T.untyped)
-  MSG_BEFORE = ::T.let(nil, ::T.untyped)
-  NAMESPACE_OPERATOR = ::T.let(nil, ::T.untyped)
-  SAFE_NAVIGATION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAroundMethodCallOperator
-  MSG = ::T.let(nil, ::T.untyped)
-  SPACES_REGEXP = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceAroundOperators
-  EXCESSIVE_SPACE = ::T.let(nil, ::T.untyped)
-  IRREGULAR_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceBeforeBlockBraces
-  DETECTED_MSG = ::T.let(nil, ::T.untyped)
-  MISSING_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceBeforeBrackets
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceBeforeComment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceBeforeFirstArg
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInLambdaLiteral
-  MSG_REQUIRE_NO_SPACE = ::T.let(nil, ::T.untyped)
-  MSG_REQUIRE_SPACE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideArrayLiteralBrackets
-  EMPTY_MSG = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideArrayPercentLiteral
-  MSG = ::T.let(nil, ::T.untyped)
-  MULTIPLE_SPACES_BETWEEN_ITEMS_REGEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideHashLiteralBraces
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideParens
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_SPACE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsidePercentLiteralDelimiters
-  BEGIN_REGEX = ::T.let(nil, ::T.untyped)
-  END_REGEX = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideRangeLiteral
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideReferenceBrackets
-  EMPTY_MSG = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::SpaceInsideStringInterpolation
-  NO_SPACE_MSG = ::T.let(nil, ::T.untyped)
-  SPACE_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Layout::TrailingWhitespace
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::AmbiguousAssignment
-  MISTAKES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  SIMPLE_ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::AmbiguousBlockAssociation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::AmbiguousOperator
-  AMBIGUITIES = ::T.let(nil, ::T.untyped)
-  MSG_FORMAT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::AmbiguousRange
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::AmbiguousRegexpLiteral
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::AssignmentInCondition
-  ASGN_TYPES = ::T.let(nil, ::T.untyped)
-  MSG_WITHOUT_SAFE_ASSIGNMENT_ALLOWED = ::T.let(nil, ::T.untyped)
-  MSG_WITH_SAFE_ASSIGNMENT_ALLOWED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::BigDecimalNew
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::BinaryOperatorWithIdenticalOperands
-  ALLOWED_MATH_OPERATORS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::BooleanSymbol
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::CircularArgumentReference
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ConstantDefinitionInBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ConstantResolution
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::Debugger
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DeprecatedClassMethods
-  CLASS_METHOD_DELIMETER = ::T.let(nil, ::T.untyped)
-  DEPRECATED_METHODS_OBJECT = ::T.let(nil, ::T.untyped)
-  INSTANCE_METHOD_DELIMETER = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DeprecatedConstants
-  DO_NOT_USE_MSG = ::T.let(nil, ::T.untyped)
-  SUGGEST_GOOD_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DeprecatedOpenSSLConstant
-  MSG = ::T.let(nil, ::T.untyped)
-  NO_ARG_ALGORITHM = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DisjunctiveAssignmentInConstructor
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateBranch
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateCaseCondition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateElsifCondition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateHashKey
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateMethods
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateRegexpCharacterClassElement
-  MSG_REPEATED_ELEMENT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateRequire
-  MSG = ::T.let(nil, ::T.untyped)
-  REQUIRE_METHODS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::DuplicateRescueException
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EachWithObjectArgument
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ElseLayout
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyClass
-  CLASS_MSG = ::T.let(nil, ::T.untyped)
-  METACLASS_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyConditionalBody
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyEnsure
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyExpression
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyFile
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyInPattern
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyInterpolation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EmptyWhen
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::EnsureReturn
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ErbNewArguments
-  MESSAGES = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::FlipFlop
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::FloatComparison
-  EQUALITY_METHODS = ::T.let(nil, ::T.untyped)
-  FLOAT_INSTANCE_METHODS = ::T.let(nil, ::T.untyped)
-  FLOAT_RETURNING_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::FloatOutOfRange
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::FormatParameterMismatch
-  KERNEL = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_INVALID = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  SHOVEL = ::T.let(nil, ::T.untyped)
-  STRING_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::HashCompareByIdentity
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::HeredocMethodCallPosition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::IdentityComparison
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ImplicitStringConcatenation
-  FOR_ARRAY = ::T.let(nil, ::T.untyped)
-  FOR_METHOD = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::IneffectiveAccessModifier
-  ALTERNATIVE_PRIVATE = ::T.let(nil, ::T.untyped)
-  ALTERNATIVE_PROTECTED = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::InheritException
-  ILLEGAL_CLASSES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  PREFERRED_BASE_CLASS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::InterpolationCheck
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::LambdaWithoutLiteralBlock
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::LiteralAsCondition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::LiteralInInterpolation
-  COMPOSITE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::Loop
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::MissingCopEnableDirective
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_BOUND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::MissingSuper
-  CALLBACKS = ::T.let(nil, ::T.untyped)
-  CALLBACK_MSG = ::T.let(nil, ::T.untyped)
-  CLASS_LIFECYCLE_CALLBACKS = ::T.let(nil, ::T.untyped)
-  CONSTRUCTOR_MSG = ::T.let(nil, ::T.untyped)
-  METHOD_LIFECYCLE_CALLBACKS = ::T.let(nil, ::T.untyped)
-  STATELESS_CLASSES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::MixedRegexpCaptureTypes
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::MultipleComparison
-  COMPARISON_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  SET_OPERATION_OPERATORS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NestedMethodDefinition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NestedPercentLiteral
-  MSG = ::T.let(nil, ::T.untyped)
-  PERCENT_LITERAL_TYPES = ::T.let(nil, ::T.untyped)
-  REGEXES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NextWithoutAccumulator
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NoReturnInBeginEndBlocks
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NonDeterministicRequireOrder
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NonLocalExitFromIterator
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NumberConversion
-  CONVERSION_METHOD_CLASS_MAPPING = ::T.let(nil, ::T.untyped)
-  METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::NumberedParameterAssignment
-  LVAR_MSG = ::T.let(nil, ::T.untyped)
-  NUMBERED_PARAMETER_RANGE = ::T.let(nil, ::T.untyped)
-  NUM_PARAM_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::OrAssignmentToConstant
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::OrderedMagicComments
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::OutOfRangeRegexpRef
-  MSG = ::T.let(nil, ::T.untyped)
-  REGEXP_ARGUMENT_METHODS = ::T.let(nil, ::T.untyped)
-  REGEXP_CAPTURE_METHODS = ::T.let(nil, ::T.untyped)
-  REGEXP_RECEIVER_METHODS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ParenthesesAsGroupedExpression
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::PercentStringArray
-  LEADING_QUOTE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  QUOTES_AND_COMMAS = ::T.let(nil, ::T.untyped)
-  TRAILING_QUOTE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::PercentSymbolArray
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RaiseException
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RandOne
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantCopDisableDirective
-  COP_NAME = ::T.let(nil, ::T.untyped)
-  DEPARTMENT_MARKER = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantCopEnableDirective
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantDirGlobSort
-  GLOB_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantRequireStatement
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantSafeNavigation
-  MSG = ::T.let(nil, ::T.untyped)
-  NIL_SPECIFIC_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantSplatExpansion
-  ARRAY_PARAM_MSG = ::T.let(nil, ::T.untyped)
-  ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  PERCENT_CAPITAL_I = ::T.let(nil, ::T.untyped)
-  PERCENT_CAPITAL_W = ::T.let(nil, ::T.untyped)
-  PERCENT_I = ::T.let(nil, ::T.untyped)
-  PERCENT_W = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantStringCoercion
-  MSG_DEFAULT = ::T.let(nil, ::T.untyped)
-  MSG_SELF = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantWithIndex
-  MSG_EACH_WITH_INDEX = ::T.let(nil, ::T.untyped)
-  MSG_WITH_INDEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RedundantWithObject
-  MSG_EACH_WITH_OBJECT = ::T.let(nil, ::T.untyped)
-  MSG_WITH_OBJECT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RegexpAsCondition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RequireParentheses
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RescueException
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::RescueType
-  INVALID_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ReturnInVoidContext
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SafeNavigationChain
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SafeNavigationConsistency
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SafeNavigationWithEmpty
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ScriptPermission
-  MSG = ::T.let(nil, ::T.untyped)
-  SHEBANG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SelfAssignment
-  ASSIGNMENT_TYPE_TO_RHS_TYPE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SendWithMixinArgument
-  MIXIN_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  SEND_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ShadowedArgument
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ShadowedException
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ShadowingOuterLocalVariable
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::StructNewOverride
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  STRUCT_MEMBER_NAME_TYPES = ::T.let(nil, ::T.untyped)
-  STRUCT_METHOD_NAMES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SuppressedException
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::SymbolConversion
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_CONSISTENCY = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ToEnumArguments
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::ToJSON
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::TopLevelReturnWithArgument
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::TrailingCommaInAttributeDeclaration
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::TripleQuotes
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UnderscorePrefixedVariableName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UnexpectedBlockArity
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UnifiedInteger
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UnmodifiedReduceAccumulator
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_INDEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UnreachableCode
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UnreachableLoop
-  CONTINUE_KEYWORDS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UriEscapeUnescape
-  ALTERNATE_METHODS_OF_URI_ESCAPE = ::T.let(nil, ::T.untyped)
-  ALTERNATE_METHODS_OF_URI_UNESCAPE = ::T.let(nil, ::T.untyped)
-  METHOD_NAMES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UriRegexp
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  URI_CONSTANTS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UselessAccessModifier
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UselessAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UselessElseWithoutRescue
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UselessMethodDefinition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UselessSetterCall
-  ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::UselessTimes
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Lint::Void
-  BINARY_OPERATORS = ::T.let(nil, ::T.untyped)
-  DEFINED_MSG = ::T.let(nil, ::T.untyped)
-  LIT_MSG = ::T.let(nil, ::T.untyped)
-  NONMUTATING_METHODS = ::T.let(nil, ::T.untyped)
-  NONMUTATING_MSG = ::T.let(nil, ::T.untyped)
-  OPERATORS = ::T.let(nil, ::T.untyped)
-  OP_MSG = ::T.let(nil, ::T.untyped)
-  SELF_MSG = ::T.let(nil, ::T.untyped)
-  UNARY_OPERATORS = ::T.let(nil, ::T.untyped)
-  VAR_MSG = ::T.let(nil, ::T.untyped)
-  VOID_CONTEXT_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::AbcSize
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::BlockLength
-  LABEL = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::BlockNesting
-  NESTING_BLOCKS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::CyclomaticComplexity
-  COUNTED_NODES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::MethodLength
-  LABEL = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::ParameterLists
-  MSG = ::T.let(nil, ::T.untyped)
-  OPTIONAL_PARAMETERS_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::PerceivedComplexity
-  COUNTED_NODES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Metrics::Utils::AbcSizeCalculator
-  include ::RuboCop::Cop::Metrics::Utils::RepeatedAttributeDiscount
-  include ::RuboCop::AST::Sexp
-end
-
-module RuboCop::Cop::Metrics::Utils::IteratingBlock
-  KNOWN_ITERATING_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Metrics::Utils::RepeatedAttributeDiscount
-  VAR_SETTER_TO_GETTER = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Migration::DepartmentName
-  DISABLE_COMMENT_FORMAT = ::T.let(nil, ::T.untyped)
-  DISABLING_COPS_CONTENT_TOKEN = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::MultilineExpressionIndentation
-  ASSIGNMENT_MESSAGE_TAIL = ::T.let(nil, ::T.untyped)
-  DEFAULT_MESSAGE_TAIL = ::T.let(nil, ::T.untyped)
-  KEYWORD_ANCESTOR_TYPES = ::T.let(nil, ::T.untyped)
-  KEYWORD_MESSAGE_TAIL = ::T.let(nil, ::T.untyped)
-  UNALIGNED_RHS_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::AccessorMethodName
-  MSG_READER = ::T.let(nil, ::T.untyped)
-  MSG_WRITER = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::AsciiIdentifiers
-  CONSTANT_MSG = ::T.let(nil, ::T.untyped)
-  IDENTIFIER_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::BinaryOperatorParameterName
-  EXCLUDED = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  OP_LIKE_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::ClassAndModuleCamelCase
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::ConstantName
-  MSG = ::T.let(nil, ::T.untyped)
-  SNAKE_CASE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::FileName
-  MSG_NO_DEFINITION = ::T.let(nil, ::T.untyped)
-  MSG_REGEX = ::T.let(nil, ::T.untyped)
-  MSG_SNAKE_CASE = ::T.let(nil, ::T.untyped)
-  SNAKE_CASE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::HeredocDelimiterCase
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::HeredocDelimiterNaming
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::InclusiveLanguage
-  EMPTY_ARRAY = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::MemoizedInstanceVariableName
-  DYNAMIC_DEFINE_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  UNDERSCORE_REQUIRED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::MethodName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::RescuedExceptionsVariableName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::VariableName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Naming::VariableNumber
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::NegativeConditional
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Offense
-  COMPARISON_ATTRIBUTES = ::T.let(nil, ::T.untyped)
-  NO_LOCATION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::AncestorsInclude
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::ArraySemiInfiniteRangeSlice
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  SLICE_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::BigDecimalWithNumericArgument
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::BindCall
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::BlockGivenWithExplicitBlock
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Caller
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Casecmp
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::ChainArrayAllocation
-  RETURNS_NEW_ARRAY = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::CollectionLiteralInLoop
-  ARRAY_METHODS = ::T.let(nil, ::T.untyped)
-  ENUMERABLE_METHOD_NAMES = ::T.let(nil, ::T.untyped)
-  HASH_METHODS = ::T.let(nil, ::T.untyped)
-  LOOP_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  NONMUTATING_ARRAY_METHODS = ::T.let(nil, ::T.untyped)
-  NONMUTATING_HASH_METHODS = ::T.let(nil, ::T.untyped)
-  POST_CONDITION_LOOP_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::ConstantRegexp
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Count
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::DeletePrefix
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::DeleteSuffix
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Detect
-  CANDIDATE_METHODS = ::T.let(nil, ::T.untyped)
-  INDEX_MSG = ::T.let(nil, ::T.untyped)
-  INDEX_REVERSE_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::EndWith
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::FixedSize
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::FlatMap
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::InefficientHashSearch
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::IoReadlines
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::MapCompact
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::MethodObjectAsBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::OpenStruct
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RangeInclude
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RedundantEqualityComparisonBlock
-  COMPARISON_METHODS = ::T.let(nil, ::T.untyped)
-  IS_A_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  TARGET_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RedundantMatch
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RedundantMerge
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RedundantSortBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RedundantSplitRegexpArgument
-  DETERMINISTIC_REGEX = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  STR_SPECIAL_CHARS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::RedundantStringChars
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::ReverseEach
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::ReverseFirst
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::SelectMap
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Size
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::SortReverse
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Squeeze
-  MSG = ::T.let(nil, ::T.untyped)
-  PREFERRED_METHODS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::StartWith
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::StringInclude
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::StringReplacement
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::Sum
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_IF_NO_INIT_VALUE = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::TimesMap
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::UnfreezeString
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Performance::UriDefaultParser
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::PreferredDelimiters
-  PERCENT_LITERAL_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::AlignLeftLetBrace
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::AlignRightLetBrace
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::AnyInstance
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::AroundBlock
-  MSG_NO_ARG = ::T.let(nil, ::T.untyped)
-  MSG_UNUSED_ARG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Be
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::BeEql
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::BeforeAfterAll
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Capybara::CurrentPathExpectation
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Capybara::FeatureMethods
-  MAP = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Capybara::VisibilityMatcher
-  CAPYBARA_MATCHER_METHODS = ::T.let(nil, ::T.untyped)
-  MSG_FALSE = ::T.let(nil, ::T.untyped)
-  MSG_TRUE = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ContextMethod
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ContextWording
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::DescribeClass
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::DescribeMethod
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::DescribeSymbol
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::DescribedClass
-  DESCRIBED_CLASS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::DescribedClassModuleWrapping
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Dialect
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyExampleGroup
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyHook
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyLineAfterExample
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyLineAfterExampleGroup
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyLineAfterFinalLet
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyLineAfterHook
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::EmptyLineAfterSubject
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExampleLength
-  LABEL = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExampleWithoutDescription
-  MSG_ADD_DESCRIPTION = ::T.let(nil, ::T.untyped)
-  MSG_DEFAULT_ARGUMENT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExampleWording
-  IT_PREFIX = ::T.let(nil, ::T.untyped)
-  MSG_IT = ::T.let(nil, ::T.untyped)
-  MSG_SHOULD = ::T.let(nil, ::T.untyped)
-  SHOULD_PREFIX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExpectActual
-  COMPLEX_LITERALS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  SIMPLE_LITERALS = ::T.let(nil, ::T.untyped)
-  SUPPORTED_MATCHERS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExpectChange
-  MSG_BLOCK = ::T.let(nil, ::T.untyped)
-  MSG_CALL = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExpectInHook
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ExpectOutput
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::RSpec::ExplicitHelper
-  BUILT_IN_MATCHERS = ::T.let(nil, ::T.untyped)
-  MSG_EXPLICIT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::FactoryBot::AttributeDefinedStatically
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::FactoryBot::CreateList
-  MSG_CREATE_LIST = ::T.let(nil, ::T.untyped)
-  MSG_N_TIMES = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::FactoryBot::FactoryClassName
-  ALLOWED_CONSTANTS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::FilePath
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Focus
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::HookArgument
-  EXPLICIT_MSG = ::T.let(nil, ::T.untyped)
-  IMPLICIT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::HooksBeforeExamples
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::IdenticalEqualityAssertion
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ImplicitBlockExpectation
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ImplicitExpect
-  ENFORCED_REPLACEMENTS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ImplicitSubject
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::RSpec::InflectedHelper
-  MSG_INFLECTED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::InstanceSpy
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::InstanceVariable
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ItBehavesLike
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::IteratedExpectation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::LeadingSubject
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::LeakyConstantDeclaration
-  MSG_CLASS = ::T.let(nil, ::T.untyped)
-  MSG_CONST = ::T.let(nil, ::T.untyped)
-  MSG_MODULE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::LetBeforeExamples
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::LetSetup
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MessageChain
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MessageExpectation
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  SUPPORTED_STYLES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MessageSpies
-  MSG_HAVE_RECEIVED = ::T.let(nil, ::T.untyped)
-  MSG_RECEIVE = ::T.let(nil, ::T.untyped)
-  SUPPORTED_STYLES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MissingExampleGroupArgument
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MultipleDescribes
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MultipleExpectations
-  ANYTHING = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  TRUE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MultipleMemoizedHelpers
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::MultipleSubjects
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::NamedSubject
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::NestedGroups
-  DEPRECATED_MAX_KEY = ::T.let(nil, ::T.untyped)
-  DEPRECATION_WARNING = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::NotToNot
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::OverwritingSetup
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Pending
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Rails::AvoidSetupHook
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ReceiveCounts
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ReceiveNever
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::RepeatedDescription
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::RepeatedExample
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::RepeatedExampleGroupBody
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::RepeatedExampleGroupDescription
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::RepeatedIncludeExample
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ReturnFromStub
-  MSG_AND_RETURN = ::T.let(nil, ::T.untyped)
-  MSG_BLOCK = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ReturnFromStub::BlockBodyCorrector
-  NULL_BLOCK_BODY = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ScatteredLet
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::ScatteredSetup
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::SharedContext
-  MSG_CONTEXT = ::T.let(nil, ::T.untyped)
-  MSG_EXAMPLES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::SharedExamples::Checker
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::SingleArgumentMessageChain
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::StubbedMock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::SubjectStub
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::UnspecifiedException
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::RSpec::Variable::Helpers
-end
-
-module RuboCop::Cop::RSpec::Variable::Helpers
-  def self.all(element); end
-end
-
-module RuboCop::Cop::RSpec::Variable::Subjects
-end
-
-module RuboCop::Cop::RSpec::Variable::Subjects
-  def self.all(element); end
-end
-
-class RuboCop::Cop::RSpec::VariableDefinition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::VariableName
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::VerifiedDoubles
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::VoidExpect
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::RSpec::Yield
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::RangeHelp
-  BYTE_ORDER_MARK = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Security::Eval
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Security::JSONLoad
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Security::MarshalLoad
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Security::Open
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Security::YAMLLoad
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Severity
-  CODE_TABLE = ::T.let(nil, ::T.untyped)
-  NAMES = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::SpaceAfterPunctuation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::SpaceBeforePunctuation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::AccessModifierDeclarations
-  GROUP_STYLE_MESSAGE = ::T.let(nil, ::T.untyped)
-  INLINE_STYLE_MESSAGE = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::AccessorGrouping
-  ACCESSOR_METHODS = ::T.let(nil, ::T.untyped)
-  GROUPED_MSG = ::T.let(nil, ::T.untyped)
-  SEPARATED_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Alias
-  MSG_ALIAS = ::T.let(nil, ::T.untyped)
-  MSG_ALIAS_METHOD = ::T.let(nil, ::T.untyped)
-  MSG_SYMBOL_ARGS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::AndOr
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ArgumentsForwarding
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ArrayCoercion
-  CHECK_MSG = ::T.let(nil, ::T.untyped)
-  SPLAT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ArrayJoin
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::AsciiComments
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Attr
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::AutoResourceCleanup
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  TARGET_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::BarePercentLiterals
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::BeginBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::BisectedAttrAccessor
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::BlockComments
-  BEGIN_LENGTH = ::T.let(nil, ::T.untyped)
-  END_LENGTH = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::BlockDelimiters
-  ALWAYS_BRACES_MESSAGE = ::T.let(nil, ::T.untyped)
-  BRACES_REQUIRED_MESSAGE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CaseCorrector
-  extend ::RuboCop::Cop::Style::ConditionalAssignmentHelper
-  extend ::RuboCop::Cop::Style::ConditionalCorrectorHelper
-end
-
-class RuboCop::Cop::Style::CaseEquality
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CaseLikeIf
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CharacterLiteral
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ClassAndModuleChildren
-  COMPACT_MSG = ::T.let(nil, ::T.untyped)
-  NESTED_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ClassCheck
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ClassEqualityComparison
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ClassMethods
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ClassMethodsDefinitions
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_SCLASS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ClassVars
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CollectionCompact
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CollectionMethods
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ColonMethodCall
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ColonMethodDefinition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CombinableLoops
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CommandLiteral
-  MSG_USE_BACKTICKS = ::T.let(nil, ::T.untyped)
-  MSG_USE_PERCENT_X = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CommentAnnotation
-  MISSING_NOTE = ::T.let(nil, ::T.untyped)
-  MSG_COLON_STYLE = ::T.let(nil, ::T.untyped)
-  MSG_SPACE_STYLE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::CommentedKeyword
-  ALLOWED_COMMENTS = ::T.let(nil, ::T.untyped)
-  ALLOWED_COMMENT_REGEXES = ::T.let(nil, ::T.untyped)
-  KEYWORDS = ::T.let(nil, ::T.untyped)
-  KEYWORD_REGEXES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ConditionalAssignment
-  ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  ASSIGN_TO_CONDITION_MSG = ::T.let(nil, ::T.untyped)
-  ENABLED = ::T.let(nil, ::T.untyped)
-  INDENTATION_WIDTH = ::T.let(nil, ::T.untyped)
-  LINE_LENGTH = ::T.let(nil, ::T.untyped)
-  MAX = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  SINGLE_LINE_CONDITIONS_ONLY = ::T.let(nil, ::T.untyped)
-  VARIABLE_ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  WIDTH = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Style::ConditionalAssignmentHelper
-  ALIGN_WITH = ::T.let(nil, ::T.untyped)
-  END_ALIGNMENT = ::T.let(nil, ::T.untyped)
-  EQUAL = ::T.let(nil, ::T.untyped)
-  KEYWORD = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ConstantVisibility
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Copyright
-  AUTOCORRECT_EMPTY_WARNING = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DateTime
-  CLASS_MSG = ::T.let(nil, ::T.untyped)
-  COERCION_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DefWithParentheses
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Dir
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DisableCopsWithinSourceCodeDirective
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_FOR_COPS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DocumentDynamicEvalDefinition
-  BLOCK_COMMENT_REGEXP = ::T.let(nil, ::T.untyped)
-  COMMENT_REGEXP = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Documentation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DocumentationMethod
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DoubleCopDisableDirective
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::DoubleNegation
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EachForSimpleLoop
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EachWithObject
-  METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EmptyBlockParameter
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EmptyCaseCondition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EmptyElse
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EmptyLambdaParameter
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EmptyLiteral
-  ARR_MSG = ::T.let(nil, ::T.untyped)
-  HASH_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  STR_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EmptyMethod
-  MSG_COMPACT = ::T.let(nil, ::T.untyped)
-  MSG_EXPANDED = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Encoding
-  ENCODING_PATTERN = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  SHEBANG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EndBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EndlessMethod
-  CORRECTION_STYLES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_MULTI_LINE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EvalWithLocation
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_EVAL = ::T.let(nil, ::T.untyped)
-  MSG_INCORRECT_FILE = ::T.let(nil, ::T.untyped)
-  MSG_INCORRECT_LINE = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::EvenOdd
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ExpandPathArguments
-  MSG = ::T.let(nil, ::T.untyped)
-  PATHNAME_MSG = ::T.let(nil, ::T.untyped)
-  PATHNAME_NEW_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ExplicitBlockArgument
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ExponentialNotation
-  MESSAGES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::FloatDivision
-  MESSAGES = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::For
-  EACH_LENGTH = ::T.let(nil, ::T.untyped)
-  PREFER_EACH = ::T.let(nil, ::T.untyped)
-  PREFER_FOR = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::FormatString
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::FrozenStringLiteralComment
-  MSG_DISABLED = ::T.let(nil, ::T.untyped)
-  MSG_MISSING = ::T.let(nil, ::T.untyped)
-  MSG_MISSING_TRUE = ::T.let(nil, ::T.untyped)
-  MSG_UNNECESSARY = ::T.let(nil, ::T.untyped)
-  SHEBANG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::GlobalStdStream
-  MSG = ::T.let(nil, ::T.untyped)
-  STD_STREAMS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::GlobalVars
-  BUILT_IN_VARS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::GuardClause
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::HashConversion
-  MSG_LITERAL_HASH_ARG = ::T.let(nil, ::T.untyped)
-  MSG_LITERAL_MULTI_ARG = ::T.let(nil, ::T.untyped)
-  MSG_SPLAT = ::T.let(nil, ::T.untyped)
-  MSG_TO_H = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::HashEachMethods
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::HashExcept
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::HashLikeCase
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::HashSyntax
-  MSG_19 = ::T.let(nil, ::T.untyped)
-  MSG_HASH_ROCKETS = ::T.let(nil, ::T.untyped)
-  MSG_NO_MIXED_KEYS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IdenticalConditionalBranches
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IfCorrector
-  extend ::RuboCop::Cop::Style::ConditionalAssignmentHelper
-  extend ::RuboCop::Cop::Style::ConditionalCorrectorHelper
-end
-
-class RuboCop::Cop::Style::IfInsideElse
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IfUnlessModifier
-  MSG_USE_MODIFIER = ::T.let(nil, ::T.untyped)
-  MSG_USE_NORMAL = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IfUnlessModifierOfIfUnless
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IfWithBooleanLiteralBranches
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_FOR_ELSIF = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IfWithSemicolon
-  MSG_IF_ELSE = ::T.let(nil, ::T.untyped)
-  MSG_TERNARY = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ImplicitRuntimeError
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::InPatternThen
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::InfiniteLoop
-  LEADING_SPACE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::InlineComment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::InverseMethods
-  CAMEL_CASE = ::T.let(nil, ::T.untyped)
-  CLASS_COMPARISON_METHODS = ::T.let(nil, ::T.untyped)
-  EQUALITY_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  NEGATED_EQUALITY_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::IpAddresses
-  IPV6_MAX_SIZE = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::KeywordParametersOrder
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Lambda
-  LITERAL_MESSAGE = ::T.let(nil, ::T.untyped)
-  METHOD_MESSAGE = ::T.let(nil, ::T.untyped)
-  OFFENDING_SELECTORS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::LambdaCall
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::LineEndConcatenation
-  COMPLEX_STRING_BEGIN_TOKEN = ::T.let(nil, ::T.untyped)
-  COMPLEX_STRING_END_TOKEN = ::T.let(nil, ::T.untyped)
-  CONCAT_TOKEN_TYPES = ::T.let(nil, ::T.untyped)
-  HIGH_PRECEDENCE_OP_TOKEN_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  QUOTE_DELIMITERS = ::T.let(nil, ::T.untyped)
-  SIMPLE_STRING_TOKEN_TYPE = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Style::MethodCallWithArgsParentheses::OmitParentheses
-  TRAILING_WHITESPACE_REGEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MethodCallWithoutArgsParentheses
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MethodCalledOnDoEndBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MethodDefParentheses
-  MSG_MISSING = ::T.let(nil, ::T.untyped)
-  MSG_PRESENT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MinMax
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MissingElse
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_EMPTY = ::T.let(nil, ::T.untyped)
-  MSG_NIL = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MissingRespondToMissing
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MixinGrouping
-  MIXIN_METHODS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MixinUsage
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ModuleFunction
-  EXTEND_SELF_MSG = ::T.let(nil, ::T.untyped)
-  FORBIDDEN_MSG = ::T.let(nil, ::T.untyped)
-  MODULE_FUNCTION_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineBlockChain
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineIfModifier
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineIfThen
-  MSG = ::T.let(nil, ::T.untyped)
-  NON_MODIFIER_THEN = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineInPatternThen
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineMemoization
-  BRACES_MSG = ::T.let(nil, ::T.untyped)
-  KEYWORD_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineMethodSignature
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineTernaryOperator
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultilineWhenThen
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MultipleComparison
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::MutableConstant
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NegatedIfElseCondition
-  MSG = ::T.let(nil, ::T.untyped)
-  NEGATED_EQUALITY_METHODS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NestedModifier
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NestedParenthesizedCalls
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NestedTernaryOperator
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Next
-  EXIT_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NilComparison
-  EXPLICIT_MSG = ::T.let(nil, ::T.untyped)
-  PREDICATE_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NilLambda
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NonNilCheck
-  MSG_FOR_REDUNDANCY = ::T.let(nil, ::T.untyped)
-  MSG_FOR_REPLACEMENT = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Not
-  MSG = ::T.let(nil, ::T.untyped)
-  OPPOSITE_METHODS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NumericLiteralPrefix
-  BINARY_MSG = ::T.let(nil, ::T.untyped)
-  BINARY_REGEX = ::T.let(nil, ::T.untyped)
-  DECIMAL_MSG = ::T.let(nil, ::T.untyped)
-  DECIMAL_REGEX = ::T.let(nil, ::T.untyped)
-  HEX_MSG = ::T.let(nil, ::T.untyped)
-  HEX_REGEX = ::T.let(nil, ::T.untyped)
-  OCTAL_MSG = ::T.let(nil, ::T.untyped)
-  OCTAL_REGEX = ::T.let(nil, ::T.untyped)
-  OCTAL_ZERO_ONLY_MSG = ::T.let(nil, ::T.untyped)
-  OCTAL_ZERO_ONLY_REGEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NumericLiterals
-  DELIMITER_REGEXP = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::NumericPredicate
-  MSG = ::T.let(nil, ::T.untyped)
-  REPLACEMENTS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::OneLineConditional
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::OptionHash
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::OptionalArguments
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::OptionalBooleanParameter
-  BOOLEAN_TYPES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::OrAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ParallelAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::PercentQLiterals
-  LOWER_CASE_Q_MSG = ::T.let(nil, ::T.untyped)
-  UPPER_CASE_Q_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::PerlBackrefs
-  MESSAGE_FORMAT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::PreferredHashMethods
-  MSG = ::T.let(nil, ::T.untyped)
-  OFFENDING_SELECTORS = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Proc
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::QuotedSymbols
-  MSG_DOUBLE = ::T.let(nil, ::T.untyped)
-  MSG_SINGLE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RaiseArgs
-  COMPACT_MSG = ::T.let(nil, ::T.untyped)
-  EXPLODED_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RandomWithOffset
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantArgument
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantBegin
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantCapitalW
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantCondition
-  MSG = ::T.let(nil, ::T.untyped)
-  REDUNDANT_CONDITION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantConditional
-  COMPARISON_OPERATOR_MATCHER = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantException
-  MSG_1 = ::T.let(nil, ::T.untyped)
-  MSG_2 = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantFetchBlock
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantFileExtensionInRequire
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantFreeze
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantInterpolation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantPercentQ
-  DYNAMIC_MSG = ::T.let(nil, ::T.untyped)
-  EMPTY = ::T.let(nil, ::T.untyped)
-  ESCAPED_NON_BACKSLASH = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  PERCENT_CAPITAL_Q = ::T.let(nil, ::T.untyped)
-  PERCENT_Q = ::T.let(nil, ::T.untyped)
-  QUOTE = ::T.let(nil, ::T.untyped)
-  SINGLE_QUOTE = ::T.let(nil, ::T.untyped)
-  STRING_INTERPOLATION_REGEXP = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantRegexpCharacterClass
-  MSG_REDUNDANT_CHARACTER_CLASS = ::T.let(nil, ::T.untyped)
-  REQUIRES_ESCAPE_OUTSIDE_CHAR_CLASS_CHARS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantRegexpEscape
-  ALLOWED_ALWAYS_ESCAPES = ::T.let(nil, ::T.untyped)
-  ALLOWED_OUTSIDE_CHAR_CLASS_METACHAR_ESCAPES = ::T.let(nil, ::T.untyped)
-  ALLOWED_WITHIN_CHAR_CLASS_METACHAR_ESCAPES = ::T.let(nil, ::T.untyped)
-  MSG_REDUNDANT_ESCAPE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantReturn
-  MSG = ::T.let(nil, ::T.untyped)
-  MULTI_RETURN_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantSelf
-  KERNEL_METHODS = ::T.let(nil, ::T.untyped)
-  KEYWORDS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantSelfAssignment
-  ASSIGNMENT_TYPE_TO_RECEIVER_TYPE = ::T.let(nil, ::T.untyped)
-  METHODS_RETURNING_SELF = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantSelfAssignmentBranch
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantSort
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RedundantSortBy
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RegexpLiteral
-  MSG_USE_PERCENT_R = ::T.let(nil, ::T.untyped)
-  MSG_USE_SLASHES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RescueModifier
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::RescueStandardError
-  MSG_EXPLICIT = ::T.let(nil, ::T.untyped)
-  MSG_IMPLICIT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ReturnNil
-  RETURN_MSG = ::T.let(nil, ::T.untyped)
-  RETURN_NIL_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SafeNavigation
-  LOGIC_JUMP_KEYWORDS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Sample
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SelfAssignment
-  MSG = ::T.let(nil, ::T.untyped)
-  OPS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Semicolon
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Send
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SignalException
-  FAIL_MSG = ::T.let(nil, ::T.untyped)
-  RAISE_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SingleArgumentDig
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SingleLineBlockParams
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SingleLineMethods
-  MSG = ::T.let(nil, ::T.untyped)
-  NOT_SUPPORTED_ENDLESS_METHOD_BODY_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SlicingWithRange
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SoleNestedConditional
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SpecialGlobalVars
-  ENGLISH_VARS = ::T.let(nil, ::T.untyped)
-  LIBRARY_NAME = ::T.let(nil, ::T.untyped)
-  MSG_BOTH = ::T.let(nil, ::T.untyped)
-  MSG_ENGLISH = ::T.let(nil, ::T.untyped)
-  MSG_REGULAR = ::T.let(nil, ::T.untyped)
-  NON_ENGLISH_VARS = ::T.let(nil, ::T.untyped)
-  PERL_VARS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StabbyLambdaParentheses
-  MSG_NO_REQUIRE = ::T.let(nil, ::T.untyped)
-  MSG_REQUIRE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StaticClass
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StderrPuts
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StringChars
-  BAD_ARGUMENTS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StringConcatenation
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StringHashKeys
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StringLiterals
-  MSG_INCONSISTENT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StringMethods
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::Strip
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::StructInheritance
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SwapValues
-  MSG = ::T.let(nil, ::T.untyped)
-  SIMPLE_ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SymbolArray
-  ARRAY_MSG = ::T.let(nil, ::T.untyped)
-  PERCENT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SymbolLiteral
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::SymbolProc
-  MSG = ::T.let(nil, ::T.untyped)
-  SUPER_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TernaryCorrector
-  extend ::RuboCop::Cop::Style::ConditionalAssignmentHelper
-  extend ::RuboCop::Cop::Style::ConditionalCorrectorHelper
-end
-
-class RuboCop::Cop::Style::TernaryParentheses
-  MSG = ::T.let(nil, ::T.untyped)
-  MSG_COMPLEX = ::T.let(nil, ::T.untyped)
-  NON_COMPLEX_TYPES = ::T.let(nil, ::T.untyped)
-  VARIABLE_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TopLevelMethodDefinition
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrailingBodyOnClass
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrailingBodyOnMethodDefinition
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrailingBodyOnModule
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrailingCommaInBlockArgs
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrailingMethodEndStatement
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrailingUnderscoreVariable
-  MSG = ::T.let(nil, ::T.untyped)
-  UNDERSCORE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::TrivialAccessors
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::UnlessElse
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::UnlessLogicalOperators
-  FORBID_LOGICAL_OPERATORS = ::T.let(nil, ::T.untyped)
-  FORBID_MIXED_LOGICAL_OPERATORS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::UnpackFirst
-  MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::VariableInterpolation
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::WhenThen
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::WhileUntilDo
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::WhileUntilModifier
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::WordArray
-  ARRAY_MSG = ::T.let(nil, ::T.untyped)
-  PERCENT_MSG = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::YodaCondition
-  EQUALITY_OPERATORS = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  NONCOMMUTATIVE_OPERATORS = ::T.let(nil, ::T.untyped)
-  PROGRAM_NAMES = ::T.let(nil, ::T.untyped)
-  REVERSE_COMPARISON = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Style::ZeroLengthPredicate
-  NONZERO_MSG = ::T.let(nil, ::T.untyped)
-  RESTRICT_ON_SEND = ::T.let(nil, ::T.untyped)
-  ZERO_MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::SurroundingSpace
-  NO_SPACE_COMMAND = ::T.let(nil, ::T.untyped)
-  SINGLE_SPACE_REGEXP = ::T.let(nil, ::T.untyped)
-  SPACE_COMMAND = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::TrailingComma
-  MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::UncommunicativeName
-  CASE_MSG = ::T.let(nil, ::T.untyped)
-  FORBIDDEN_MSG = ::T.let(nil, ::T.untyped)
-  LENGTH_MSG = ::T.let(nil, ::T.untyped)
-  NUM_MSG = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::Util
-  LITERAL_REGEX = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::Utils::FormatString
-  DIGIT_DOLLAR = ::T.let(nil, ::T.untyped)
-  FLAG = ::T.let(nil, ::T.untyped)
-  NAME = ::T.let(nil, ::T.untyped)
-  NUMBER = ::T.let(nil, ::T.untyped)
-  NUMBER_ARG = ::T.let(nil, ::T.untyped)
-  PRECISION = ::T.let(nil, ::T.untyped)
-  SEQUENCE = ::T.let(nil, ::T.untyped)
-  TEMPLATE_NAME = ::T.let(nil, ::T.untyped)
-  TYPE = ::T.let(nil, ::T.untyped)
-  WIDTH = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::VariableForce
-  ARGUMENT_DECLARATION_TYPES = ::T.let(nil, ::T.untyped)
-  LOGICAL_OPERATOR_ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  LOOP_TYPES = ::T.let(nil, ::T.untyped)
-  MULTIPLE_ASSIGNMENT_TYPE = ::T.let(nil, ::T.untyped)
-  OPERATOR_ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  POST_CONDITION_LOOP_TYPES = ::T.let(nil, ::T.untyped)
-  REGEXP_NAMED_CAPTURE_TYPE = ::T.let(nil, ::T.untyped)
-  RESCUE_TYPE = ::T.let(nil, ::T.untyped)
-  SCOPE_TYPES = ::T.let(nil, ::T.untyped)
-  SEND_TYPE = ::T.let(nil, ::T.untyped)
-  TWISTED_SCOPE_TYPES = ::T.let(nil, ::T.untyped)
-  VARIABLE_ASSIGNMENT_TYPE = ::T.let(nil, ::T.untyped)
-  VARIABLE_ASSIGNMENT_TYPES = ::T.let(nil, ::T.untyped)
-  VARIABLE_REFERENCE_TYPE = ::T.let(nil, ::T.untyped)
-  ZERO_ARITY_SUPER_TYPE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::VariableForce::Assignment
-  MULTIPLE_LEFT_HAND_SIDE_TYPE = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::VariableForce::Branch
-  CLASSES_BY_TYPE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::VariableForce::Reference
-  VARIABLE_REFERENCE_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::VariableForce::Scope
-  OUTER_SCOPE_CHILD_INDICES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Cop::VariableForce::Variable
-  VARIABLE_DECLARATION_TYPES = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::Cop::VisibilityHelp
-  VISIBILITY_SCOPES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::DirectiveComment
-  COPS_PATTERN = ::T.let(nil, ::T.untyped)
-  COP_NAMES_PATTERN = ::T.let(nil, ::T.untyped)
-  COP_NAME_PATTERN = ::T.let(nil, ::T.untyped)
-  DIRECTIVE_COMMENT_REGEXP = ::T.let(nil, ::T.untyped)
-  REDUNDANT_DIRECTIVE_COP = ::T.let(nil, ::T.untyped)
-  REDUNDANT_DIRECTIVE_COP_DEPARTMENT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::ClangStyleFormatter
-  ELLIPSES = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::DisabledConfigFormatter
-  HEADING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::FormatterSet
-  BUILTIN_FORMATTERS_FOR_KEYS = ::T.let(nil, ::T.untyped)
-  FORMATTER_APIS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::FuubarStyleFormatter
-  RESET_SEQUENCE = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::GitHubActionsFormatter
-  ESCAPE_MAP = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::HTMLFormatter
-  ELLIPSES = ::T.let(nil, ::T.untyped)
-  TEMPLATE_PATH = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::HTMLFormatter::ERBContext
-  LOGO_IMAGE_PATH = ::T.let(nil, ::T.untyped)
-  SEVERITY_COLORS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::PacmanFormatter
-  FALLBACK_TERMINAL_WIDTH = ::T.let(nil, ::T.untyped)
-  GHOST = ::T.let(nil, ::T.untyped)
-  PACDOT = ::T.let(nil, ::T.untyped)
-  PACMAN = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::ProgressFormatter
-  DOT = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Formatter::SimpleTextFormatter
-  COLOR_FOR_SEVERITY = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::MagicComment
-  KEYWORDS = ::T.let(nil, ::T.untyped)
-  TOKEN = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::MagicComment::EmacsComment
-  FORMAT = ::T.let(nil, ::T.untyped)
-  OPERATOR = ::T.let(nil, ::T.untyped)
-  REGEXP = ::T.let(nil, ::T.untyped)
-  SEPARATOR = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::MagicComment::VimComment
-  FORMAT = ::T.let(nil, ::T.untyped)
-  KEYWORDS = ::T.let(nil, ::T.untyped)
-  OPERATOR = ::T.let(nil, ::T.untyped)
-  REGEXP = ::T.let(nil, ::T.untyped)
-  SEPARATOR = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::AST::NodePattern
-end
-
-RuboCop::NodePattern::Builder = RuboCop::AST::NodePattern::Builder
-
-class RuboCop::AST::NodePattern::Compiler
-end
-
-RuboCop::NodePattern::Compiler::Debug = RuboCop::AST::NodePattern::Compiler::Debug
-
-class RuboCop::AST::NodePattern::Compiler
-end
-
-class RuboCop::AST::NodePattern::Lexer
-end
-
-RuboCop::NodePattern::Lexer::Error = RuboCop::AST::NodePattern::LexerRex::ScanError
-
-class RuboCop::AST::NodePattern::Lexer
-end
-
-class RuboCop::AST::NodePattern
-end
-
-class RuboCop::Options
-  DEFAULT_MAXIMUM_EXCLUSION_ITEMS = ::T.let(nil, ::T.untyped)
-  EXITING_OPTIONS = ::T.let(nil, ::T.untyped)
-  E_STDIN_NO_PATH = ::T.let(nil, ::T.untyped)
-end
-
-module RuboCop::OptionsHelp
-  FORMATTER_OPTION_LIST = ::T.let(nil, ::T.untyped)
-  MAX_EXCL = ::T.let(nil, ::T.untyped)
-  TEXT = ::T.let(nil, ::T.untyped)
-end
-
-RuboCop::ProcessedSource = RuboCop::AST::ProcessedSource
-
-module RuboCop::RSpec::Version
-  STRING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::RemoteConfig
-  CACHE_LIFETIME = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::ResultCache
-  NON_CHANGING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::Runner
-  MAX_ITERATIONS = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::TargetFinder
-  HIDDEN_PATH_SUBSTRING = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::TargetRuby
-  DEFAULT_VERSION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::TargetRuby::GemspecFile
-  GEMSPEC_EXTENSION = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::TargetRuby::RubyVersionFile
-  RUBY_VERSION_FILENAME = ::T.let(nil, ::T.untyped)
-  RUBY_VERSION_PATTERN = ::T.let(nil, ::T.untyped)
-end
-
-class RuboCop::TargetRuby::ToolVersionsFile
-  TOOL_VERSIONS_FILENAME = ::T.let(nil, ::T.untyped)
-  TOOL_VERSIONS_PATTERN = ::T.let(nil, ::T.untyped)
-end
-
-RuboCop::Token = RuboCop::AST::Token
-
-module RuboCop::Version
-  CANONICAL_FEATURE_NAMES = ::T.let(nil, ::T.untyped)
-  MSG = ::T.let(nil, ::T.untyped)
-  STRING = ::T.let(nil, ::T.untyped)
 end
 
 class RubyLex
@@ -13669,10 +10384,6 @@ class Set
   def ==(other); end
 
   def ===(o); end
-
-  def compare_by_identity(); end
-
-  def compare_by_identity?(); end
 
   def divide(&func); end
 
@@ -13961,6 +10672,27 @@ class Spoom::Cli::Run
   SORT_LOC = ::T.let(nil, ::T.untyped)
 end
 
+class Spoom::Color
+  BLACK = ::T.let(nil, ::T.untyped)
+  BLUE = ::T.let(nil, ::T.untyped)
+  BOLD = ::T.let(nil, ::T.untyped)
+  CLEAR = ::T.let(nil, ::T.untyped)
+  CYAN = ::T.let(nil, ::T.untyped)
+  GREEN = ::T.let(nil, ::T.untyped)
+  LIGHT_BLACK = ::T.let(nil, ::T.untyped)
+  LIGHT_BLUE = ::T.let(nil, ::T.untyped)
+  LIGHT_CYAN = ::T.let(nil, ::T.untyped)
+  LIGHT_GREEN = ::T.let(nil, ::T.untyped)
+  LIGHT_MAGENTA = ::T.let(nil, ::T.untyped)
+  LIGHT_RED = ::T.let(nil, ::T.untyped)
+  LIGHT_WHITE = ::T.let(nil, ::T.untyped)
+  LIGHT_YELLOW = ::T.let(nil, ::T.untyped)
+  MAGENTA = ::T.let(nil, ::T.untyped)
+  RED = ::T.let(nil, ::T.untyped)
+  WHITE = ::T.let(nil, ::T.untyped)
+  YELLOW = ::T.let(nil, ::T.untyped)
+end
+
 class Spoom::Coverage::Cards::Card
   TEMPLATE = ::T.let(nil, ::T.untyped)
 end
@@ -13993,10 +10725,14 @@ module Spoom::Sorbet
   BIN_PATH = ::T.let(nil, ::T.untyped)
   CONFIG_PATH = ::T.let(nil, ::T.untyped)
   GEM_PATH = ::T.let(nil, ::T.untyped)
+  SEGFAULT_CODE = ::T.let(nil, ::T.untyped)
+end
+
+module Spoom::Sorbet::Errors
+  DEFAULT_ERROR_URL_BASE = ::T.let(nil, ::T.untyped)
 end
 
 class Spoom::Sorbet::Errors::Parser
-  ERROR_LINE_MATCH_REGEX = ::T.let(nil, ::T.untyped)
   HEADER = ::T.let(nil, ::T.untyped)
 end
 
@@ -14021,9 +10757,19 @@ end
 
 class String
   include ::JSON::Ext::Generator::GeneratorMethods::String
+  def funcall_style(); end
+
+  def quote(); end
+
+  def sans_arguments(); end
+
   def shellescape(); end
 
   def shellsplit(); end
+
+  def tr_cpp(); end
+
+  def unspace(); end
 end
 
 class StringIO
@@ -14121,8 +10867,6 @@ end
 
 class Tempfile
   def _close(); end
-
-  def inspect(); end
   RUBYGEMS_ACTIVATION_MONITOR = ::T.let(nil, ::T.untyped)
 end
 
@@ -14184,7 +10928,11 @@ class URI::File
 end
 
 class URI::HTTP
+  def authority(); end
+
   def buffer_open(buf, proxy, options); end
+
+  def origin(); end
 end
 
 class URI::LDAP
@@ -14248,26 +10996,46 @@ module URI::Util
   def self.make_components_hash(klass, array_hash); end
 end
 
+class URI::WS
+  def request_uri(); end
+  COMPONENT = ::T.let(nil, ::T.untyped)
+  DEFAULT_PORT = ::T.let(nil, ::T.untyped)
+end
+
+class URI::WS
+end
+
 module URI
-  extend ::URI::Escape
+  def self.for(scheme, *arguments, default: T.unsafe(nil)); end
+
   def self.get_encoding(label); end
 
   def self.open(name, *rest, &block); end
-end
 
-class Unicode::DisplayWidth
-  DATA_DIRECTORY = ::T.let(nil, ::T.untyped)
-  DEPTHS = ::T.let(nil, ::T.untyped)
-  INDEX = ::T.let(nil, ::T.untyped)
-  INDEX_FILENAME = ::T.let(nil, ::T.untyped)
-  UNICODE_VERSION = ::T.let(nil, ::T.untyped)
-  VERSION = ::T.let(nil, ::T.untyped)
+  def self.register_scheme(scheme, klass); end
 end
 
 module UnicodeNormalize
 end
 
 module UnicodeNormalize
+end
+
+WEBrick::HTTPAuth::Authenticator::AuthException = WEBrick::HTTPStatus::Unauthorized
+
+WEBrick::HTTPAuth::ProxyAuthenticator::AuthException = WEBrick::HTTPStatus::ProxyAuthenticationRequired
+
+class WEBrick::HTTPRequest
+  def version_supplied(); end
+
+  def version_supplied=(version_supplied); end
+
+  def xhr?(); end
+  MAX_HEADER_LENGTH = ::T.let(nil, ::T.untyped)
+end
+
+class WEBrick::HTTPServlet::CGIHandler
+  CGIRunnerArray = ::T.let(nil, ::T.untyped)
 end
 
 module Warning::Processor
@@ -14669,8 +11437,6 @@ class YARD::CodeObjects::NamespaceObject
   def instance_mixins(); end
 
   def meths(opts=T.unsafe(nil)); end
-
-  def mixins(*scopes); end
 end
 
 class YARD::CodeObjects::Proxy
@@ -14679,8 +11445,6 @@ class YARD::CodeObjects::Proxy
   def ===(other); end
 
   def equal?(other); end
-
-  def initialize(namespace, name, type=T.unsafe(nil)); end
 
   def instance_of?(klass); end
 
@@ -14969,6 +11733,13 @@ end
 class YARD::Handlers::Ruby::ClassConditionHandler
 end
 
+class YARD::Handlers::Ruby::ClassHandler
+  include ::YARD::Handlers::Ruby::StructHandlerMethods
+end
+
+class YARD::Handlers::Ruby::ClassHandler
+end
+
 class YARD::Handlers::Ruby::ClassVariableHandler
 end
 
@@ -15174,6 +11945,8 @@ class YARD::Handlers::Ruby::MixinHandler
 end
 
 class YARD::Handlers::Ruby::ModuleFunctionHandler
+  include ::YARD::Handlers::Ruby::DecoratorHandlerMethods
+  def make_module_function(instance_method, namespace); end
 end
 
 class YARD::Handlers::Ruby::ModuleFunctionHandler
@@ -15203,6 +11976,32 @@ class YARD::Handlers::Ruby::PublicClassMethodHandler
 end
 
 class YARD::Handlers::Ruby::PublicClassMethodHandler
+end
+
+module YARD::Handlers::Ruby::StructHandlerMethods
+  include ::YARD::CodeObjects
+  def add_reader_tags(klass, new_method, member); end
+
+  def add_writer_tags(klass, new_method, member); end
+
+  def create_attributes(klass, members); end
+
+  def create_class(classname, superclass); end
+
+  def create_member_method?(klass, member, type=T.unsafe(nil)); end
+
+  def create_reader(klass, member); end
+
+  def create_writer(klass, member); end
+
+  def member_tag_for_member(klass, member, type=T.unsafe(nil)); end
+
+  def members_from_tags(klass); end
+
+  def return_type_from_tag(member_tag); end
+end
+
+module YARD::Handlers::Ruby::StructHandlerMethods
 end
 
 class YARD::Handlers::Ruby::VisibilityHandler
@@ -15296,7 +12095,50 @@ class YARD::I18n::Text
 end
 
 class YARD::Logger
+  def <<(msg=T.unsafe(nil)); end
+
+  def backtrace(exc, level_meth=T.unsafe(nil)); end
+
+  def capture(msg, nontty_log=T.unsafe(nil)); end
+
+  def clear_progress(); end
+
+  def debug(*args); end
+
+  def enter_level(new_level=T.unsafe(nil)); end
+
+  def initialize(pipe, *args); end
+
+  def io(); end
+
+  def io=(pipe); end
+
+  def print(msg=T.unsafe(nil)); end
+
+  def progress(msg, nontty_log=T.unsafe(nil)); end
+
+  def puts(msg=T.unsafe(nil)); end
+
+  def show_backtraces(); end
+
+  def show_backtraces=(show_backtraces); end
+
+  def show_progress(); end
+
+  def show_progress=(show_progress); end
+
+  def warn(*args); end
+
+  def warn_no_continuations(); end
+
+  def warned(); end
+
+  def warned=(warned); end
   PROGRESS_INDICATORS = ::T.let(nil, ::T.untyped)
+end
+
+class YARD::Logger
+  def self.instance(pipe=T.unsafe(nil)); end
 end
 
 module YARD::Parser::Ruby::Legacy::RubyToken
