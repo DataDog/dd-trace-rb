@@ -5,7 +5,9 @@ require 'set'
 require 'datadog/core/configuration/settings'
 require 'datadog/tracing/contrib'
 
+# Datadog
 module Datadog
+  # Datadog tracing
   module Tracing
     module Contrib
       # Extensions that can be added to the base library
@@ -181,4 +183,7 @@ module Datadog
       end
     end
   end
+
+  # Load built-in Datadog integrations
+  Tracing::Contrib::Extensions.extend!
 end

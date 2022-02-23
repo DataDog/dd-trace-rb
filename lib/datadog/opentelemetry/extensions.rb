@@ -2,7 +2,9 @@
 require 'datadog/tracing/span_operation'
 require 'datadog/opentelemetry/span'
 
+# Datadog
 module Datadog
+  # Defines OpenTelemetry behavior
   module OpenTelemetry
     # Defines extensions to ddtrace for OpenTelemetry support
     module Extensions
@@ -11,4 +13,7 @@ module Datadog
       end
     end
   end
+
+  # Load and extend OpenTelemetry compatibility by default
+  extend OpenTelemetry::Extensions
 end

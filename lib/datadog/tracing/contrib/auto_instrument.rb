@@ -1,29 +1,27 @@
 # typed: false
+require 'datadog/tracing/contrib'
+require 'datadog/tracing/contrib/extensions'
 
 module Datadog
   module Tracing
+    # Out-of-the-box instrumentation for tracing
     module Contrib
+      # Auto-activate instrumentation
+      def self.auto_instrument!
+        require 'datadog/tracing/contrib/rails/utils'
+
+        # Defer to Rails if this is a Rails application
+        if Datadog::Tracing::Contrib::Rails::Utils.railtie_supported?
+          require 'datadog/tracing/contrib/rails/auto_instrument_railtie'
+        else
+          AutoInstrument.patch_all!
+        end
+      end
+
       # Extensions for auto instrumentation added to the base library
       # AutoInstrumentation enables all integration
       module AutoInstrument
-        def self.extended(base)
-          base.extend(Patch)
-        end
-
-        # Patch adds method for invoking auto_instrumentation
-        module Patch
-          def add_auto_instrument
-            super
-
-            if Contrib::Rails::Utils.railtie_supported?
-              require 'datadog/tracing/contrib/rails/auto_instrument_railtie'
-            else
-              AutoInstrument.patch_all
-            end
-          end
-        end
-
-        def self.patch_all
+        def self.patch_all!
           integrations = []
 
           Contrib::REGISTRY.each do |integration|
@@ -48,3 +46,5 @@ module Datadog
     end
   end
 end
+
+Datadog::Tracing::Contrib.auto_instrument!

@@ -1,6 +1,7 @@
 # typed: false
 require 'datadog/core'
 require 'datadog/tracing'
+require 'datadog/tracing/contrib'
 
 module Datadog
   # Namespace for Datadog CI instrumentation:
