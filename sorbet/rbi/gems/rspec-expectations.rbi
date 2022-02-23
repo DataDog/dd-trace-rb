@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/rspec-expectations/all/rspec-expectations.rbi
 #
-# rspec-expectations-3.10.1
+# rspec-expectations-3.11.0
 
 module RSpec
 end
@@ -174,6 +174,7 @@ class RSpec::Matchers::BuiltIn::BaseMatcher
   def self.matcher_name; end
   def self.underscore(camel_cased_word); end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   include RSpec::Matchers::BuiltIn::BaseMatcher::DefaultFailureMessages
   include RSpec::Matchers::BuiltIn::BaseMatcher::HashFormatting
   include RSpec::Matchers::Composable
@@ -219,6 +220,7 @@ module RSpec::Matchers::DSL::DefaultImplementations
   def diffable?; end
   def expects_call_stack_jump?; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   include RSpec::Matchers::BuiltIn::BaseMatcher::DefaultFailureMessages
 end
 class RSpec::Matchers::DSL::Matcher
@@ -294,6 +296,12 @@ module RSpec::Expectations::ExpectationTarget::InstanceMethods
   def prevent_operator_matchers(verb); end
   def to(matcher = nil, message = nil, &block); end
   def to_not(matcher = nil, message = nil, &block); end
+end
+class RSpec::Expectations::ValueExpectationTarget < RSpec::Expectations::ExpectationTarget
+  def enforce_value_expectation(matcher); end
+  def not_to(matcher = nil, message = nil, &block); end
+  def supports_value_expectations?(matcher); end
+  def to(matcher = nil, message = nil, &block); end
 end
 class RSpec::Expectations::BlockExpectationTarget < RSpec::Expectations::ExpectationTarget
   def enforce_block_expectation(matcher); end
@@ -620,6 +628,7 @@ class RSpec::Matchers::BuiltIn::Change < RSpec::Matchers::BuiltIn::BaseMatcher
   def positive_failure_reason; end
   def raise_block_syntax_error; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   def to(value); end
 end
 class RSpec::Matchers::BuiltIn::ChangeRelatively < RSpec::Matchers::BuiltIn::BaseMatcher
@@ -630,6 +639,7 @@ class RSpec::Matchers::BuiltIn::ChangeRelatively < RSpec::Matchers::BuiltIn::Bas
   def initialize(change_details, expected_delta, relativity, &comparer); end
   def matches?(event_proc); end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
 end
 class RSpec::Matchers::BuiltIn::SpecificValuesChange < RSpec::Matchers::BuiltIn::BaseMatcher
   def after_value_failure; end
@@ -644,6 +654,7 @@ class RSpec::Matchers::BuiltIn::SpecificValuesChange < RSpec::Matchers::BuiltIn:
   def not_given_a_block_failure; end
   def perform_change(event_proc); end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
 end
 class RSpec::Matchers::BuiltIn::ChangeFromValue < RSpec::Matchers::BuiltIn::SpecificValuesChange
   def change_description; end
@@ -669,6 +680,8 @@ class RSpec::Matchers::BuiltIn::ChangeDetails
   def perform_change(event_proc); end
   def value_representation; end
 end
+module RSpec::Matchers::BuiltIn::ChangeDetails::UNDEFINED
+end
 class RSpec::Matchers::BuiltIn::Compound < RSpec::Matchers::BuiltIn::BaseMatcher
   def compound_failure_message; end
   def description; end
@@ -689,7 +702,9 @@ class RSpec::Matchers::BuiltIn::Compound < RSpec::Matchers::BuiltIn::BaseMatcher
   def matcher_2_matches?; end
   def matcher_is_diffable?(matcher); end
   def matcher_supports_block_expectations?(matcher); end
+  def matcher_supports_value_expectations?(matcher); end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
 end
 class RSpec::Matchers::BuiltIn::Compound::SequentialEvaluator
   def initialize(actual, *arg1); end
@@ -974,6 +989,7 @@ class RSpec::Matchers::BuiltIn::Output < RSpec::Matchers::BuiltIn::BaseMatcher
   def negative_failure_reason; end
   def positive_failure_reason; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   def to_stderr; end
   def to_stderr_from_any_process; end
   def to_stdout; end
@@ -1005,6 +1021,7 @@ class RSpec::Matchers::BuiltIn::CaptureStreamToTempfile < Anonymous_Struct_5
   def capture(block); end
 end
 class RSpec::Matchers::BuiltIn::RaiseError
+  def actual_error_message; end
   def block_matches?; end
   def description; end
   def does_not_match?(given_proc); end
@@ -1024,6 +1041,7 @@ class RSpec::Matchers::BuiltIn::RaiseError
   def raise_message_already_set; end
   def ready_to_eval_block?; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   def verify_message; end
   def warn_about_bare_error!; end
   def warn_about_bare_error?; end
@@ -1086,6 +1104,7 @@ class RSpec::Matchers::BuiltIn::ThrowSymbol
   def initialize(expected_symbol = nil, expected_arg = nil); end
   def matches?(given_proc); end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   def throw_description(symbol, arg); end
   include RSpec::Matchers::Composable
 end
@@ -1111,6 +1130,7 @@ class RSpec::Matchers::BuiltIn::YieldControl < RSpec::Matchers::BuiltIn::BaseMat
   def failure_reason; end
   def matches?(block); end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
   include RSpec::Matchers::BuiltIn::CountExpectation
 end
 class RSpec::Matchers::BuiltIn::YieldWithNoArgs < RSpec::Matchers::BuiltIn::BaseMatcher
@@ -1121,6 +1141,7 @@ class RSpec::Matchers::BuiltIn::YieldWithNoArgs < RSpec::Matchers::BuiltIn::Base
   def negative_failure_reason; end
   def positive_failure_reason; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
 end
 class RSpec::Matchers::BuiltIn::YieldWithArgs < RSpec::Matchers::BuiltIn::BaseMatcher
   def all_args_match?; end
@@ -1135,6 +1156,7 @@ class RSpec::Matchers::BuiltIn::YieldWithArgs < RSpec::Matchers::BuiltIn::BaseMa
   def negative_failure_reason; end
   def positive_failure_reason; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
 end
 class RSpec::Matchers::BuiltIn::YieldSuccessiveArgs < RSpec::Matchers::BuiltIn::BaseMatcher
   def description; end
@@ -1147,4 +1169,5 @@ class RSpec::Matchers::BuiltIn::YieldSuccessiveArgs < RSpec::Matchers::BuiltIn::
   def negative_failure_reason; end
   def positive_failure_reason; end
   def supports_block_expectations?; end
+  def supports_value_expectations?; end
 end

@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/benchmark-ips/all/benchmark-ips.rbi
 #
-# benchmark-ips-2.9.1
+# benchmark-ips-2.10.0
 
 module Benchmark
   extend Benchmark::Compare
@@ -23,7 +23,7 @@ module Benchmark::Timing
   def self.variance(samples, m = nil); end
 end
 module Benchmark::Compare
-  def compare(*entries); end
+  def compare(*entries, order: nil); end
 end
 module Benchmark::IPS
   def ips(*args); end
@@ -42,6 +42,7 @@ class Benchmark::IPS::Stats::SD
   def initialize(samples); end
   def samples; end
   def slowdown(baseline); end
+  def speedup(baseline); end
   include Benchmark::IPS::Stats::StatsMetric
 end
 class Benchmark::IPS::Stats::Bootstrap
@@ -53,6 +54,7 @@ class Benchmark::IPS::Stats::Bootstrap
   def initialize(samples, confidence); end
   def samples; end
   def slowdown(baseline); end
+  def speedup(baseline); end
   include Benchmark::IPS::Stats::StatsMetric
 end
 class Benchmark::IPS::Report
@@ -61,7 +63,7 @@ class Benchmark::IPS::Report
   def entries; end
   def generate_json(path); end
   def initialize; end
-  def run_comparison; end
+  def run_comparison(order); end
 end
 class Benchmark::IPS::Report::Entry
   def body; end
@@ -94,7 +96,7 @@ end
 class Benchmark::IPS::Job
   def all_results_have_been_run?; end
   def clear_held_results; end
-  def compare!; end
+  def compare!(order: nil); end
   def compare; end
   def compare?; end
   def confidence; end

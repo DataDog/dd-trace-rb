@@ -610,19 +610,3 @@ class REXML::Document < REXML::Element
   def write(*arguments); end
   def xml_decl; end
 end
-module REXML::StreamListener
-  def attlistdecl(element_name, attributes, raw_content); end
-  def cdata(content); end
-  def comment(comment); end
-  def doctype(name, pub_sys, long_name, uri); end
-  def doctype_end; end
-  def elementdecl(content); end
-  def entity(content); end
-  def entitydecl(content); end
-  def instruction(name, instruction); end
-  def notationdecl(content); end
-  def tag_end(name); end
-  def tag_start(name, attrs); end
-  def text(text); end
-  def xmldecl(version, encoding, standalone); end
-end

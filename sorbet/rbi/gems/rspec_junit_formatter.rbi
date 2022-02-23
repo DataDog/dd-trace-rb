@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/rspec_junit_formatter/all/rspec_junit_formatter.rbi
 #
-# rspec_junit_formatter-0.4.1
+# rspec_junit_formatter-0.5.1
 
 class RSpecJUnitFormatter < RSpec::Core::Formatters::BaseFormatter
   def classname_for(notification); end
@@ -15,6 +15,7 @@ class RSpecJUnitFormatter < RSpec::Core::Formatters::BaseFormatter
   def dump_summary(notification); end
   def duration; end
   def duration_for(notification); end
+  def error_count; end
   def escape(text); end
   def example_count; end
   def example_group_file_path_for(notification); end

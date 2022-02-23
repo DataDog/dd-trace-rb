@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/dogstatsd-ruby/all/dogstatsd-ruby.rbi
 #
-# dogstatsd-ruby-5.2.0
+# dogstatsd-ruby-5.3.3
 
 module Datadog
 end
@@ -24,7 +24,7 @@ class Datadog::Statsd
   def histogram(stat, value, opts = nil); end
   def host; end
   def increment(stat, opts = nil); end
-  def initialize(host = nil, port = nil, socket_path: nil, namespace: nil, tags: nil, sample_rate: nil, buffer_max_payload_size: nil, buffer_max_pool_size: nil, buffer_overflowing_stategy: nil, logger: nil, single_thread: nil, telemetry_enable: nil, telemetry_flush_interval: nil); end
+  def initialize(host = nil, port = nil, socket_path: nil, namespace: nil, tags: nil, sample_rate: nil, buffer_max_payload_size: nil, buffer_max_pool_size: nil, buffer_overflowing_stategy: nil, buffer_flush_interval: nil, sender_queue_size: nil, logger: nil, single_thread: nil, telemetry_enable: nil, telemetry_flush_interval: nil); end
   def namespace; end
   def now; end
   def port; end
@@ -44,22 +44,28 @@ class Datadog::Statsd
 end
 class Datadog::Statsd::Connection
   def close; end
+  def connect; end
   def initialize(telemetry: nil, logger: nil); end
   def logger; end
-  def socket; end
+  def reset_telemetry; end
   def telemetry; end
   def write(payload); end
 end
 class Datadog::Statsd::Telemetry
   def bytes_dropped; end
+  def bytes_dropped_queue; end
+  def bytes_dropped_writer; end
   def bytes_sent; end
-  def dropped(bytes: nil, packets: nil); end
+  def dropped_queue(bytes: nil, packets: nil); end
+  def dropped_writer(bytes: nil, packets: nil); end
   def events; end
   def flush; end
   def initialize(flush_interval, global_tags: nil, transport_type: nil); end
   def metrics; end
   def now_in_s; end
   def packets_dropped; end
+  def packets_dropped_queue; end
+  def packets_dropped_writer; end
   def packets_sent; end
   def pattern; end
   def reset; end
@@ -70,6 +76,7 @@ class Datadog::Statsd::Telemetry
   def would_fit_in?(max_buffer_payload_size); end
 end
 class Datadog::Statsd::UDPConnection < Datadog::Statsd::Connection
+  def close; end
   def connect; end
   def host; end
   def initialize(host, port, **kwargs); end
@@ -77,6 +84,7 @@ class Datadog::Statsd::UDPConnection < Datadog::Statsd::Connection
   def send_message(message); end
 end
 class Datadog::Statsd::UDSConnection < Datadog::Statsd::Connection
+  def close; end
   def connect; end
   def initialize(socket_path, **kwargs); end
   def send_message(message); end
@@ -84,10 +92,23 @@ class Datadog::Statsd::UDSConnection < Datadog::Statsd::Connection
 end
 class Datadog::Statsd::UDSConnection::BadSocketError < StandardError
 end
+class Datadog::Statsd::ConnectionCfg
+  def host; end
+  def initialize(host: nil, port: nil, socket_path: nil); end
+  def initialize_with_constructor_args(host: nil, port: nil, socket_path: nil); end
+  def initialize_with_defaults; end
+  def initialize_with_env_vars; end
+  def make_connection(**params); end
+  def port; end
+  def socket_path; end
+  def transport_type; end
+  def try_initialize_with(host: nil, port: nil, socket_path: nil, not_both_error_message: nil); end
+end
 class Datadog::Statsd::MessageBuffer
   def add(message); end
   def buffer; end
   def bytesize_threshold; end
+  def clear_buffer; end
   def connection; end
   def ensure_sendable!(message_size); end
   def flush; end
@@ -96,6 +117,7 @@ class Datadog::Statsd::MessageBuffer
   def max_pool_size; end
   def overflowing_stategy; end
   def preemptive_flush?; end
+  def reset; end
   def should_flush?(message_size); end
 end
 module Datadog::Statsd::Serialization
@@ -143,7 +165,7 @@ end
 class Datadog::Statsd::Sender
   def add(message); end
   def flush(sync: nil); end
-  def initialize(message_buffer); end
+  def initialize(message_buffer, telemetry: nil, queue_size: nil, logger: nil, flush_interval: nil, queue_class: nil, thread_class: nil); end
   def message_buffer; end
   def message_queue; end
   def rendez_vous; end
@@ -155,19 +177,20 @@ end
 class Datadog::Statsd::SingleThreadSender
   def add(message); end
   def flush(*arg0); end
-  def initialize(message_buffer); end
+  def forked?; end
+  def initialize(message_buffer, logger: nil, flush_interval: nil); end
   def rendez_vous; end
   def start; end
   def stop; end
+  def update_fork_pid; end
 end
 class Datadog::Statsd::Forwarder
-  def buffer; end
   def close; end
   def connection; end
   def do_flush_telemetry; end
   def flush(flush_telemetry: nil, sync: nil); end
   def host; end
-  def initialize(host: nil, port: nil, socket_path: nil, buffer_max_payload_size: nil, buffer_max_pool_size: nil, buffer_overflowing_stategy: nil, telemetry_flush_interval: nil, global_tags: nil, single_thread: nil, logger: nil); end
+  def initialize(connection_cfg: nil, buffer_max_payload_size: nil, buffer_max_pool_size: nil, buffer_overflowing_stategy: nil, buffer_flush_interval: nil, sender_queue_size: nil, telemetry_flush_interval: nil, global_tags: nil, single_thread: nil, logger: nil); end
   def port; end
   def send_message(message); end
   def sender; end
@@ -176,6 +199,13 @@ class Datadog::Statsd::Forwarder
   def telemetry; end
   def tick_telemetry; end
   def transport_type; end
+end
+class Datadog::Statsd::Timer
+  def current_time; end
+  def initialize(interval, &callback); end
+  def start; end
+  def stop; end
+  def stop?; end
 end
 class Datadog::Statsd::Error < StandardError
 end

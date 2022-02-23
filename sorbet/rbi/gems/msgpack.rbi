@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/msgpack/all/msgpack.rbi
 #
-# msgpack-1.4.2
+# msgpack-1.4.5
 
 module MessagePack
   def dump(v, *rest); end
@@ -50,6 +50,7 @@ class MessagePack::Packer
   def register_type(*arg0); end
   def registered_types; end
   def registered_types_internal; end
+  def reset; end
   def size; end
   def to_a; end
   def to_s; end

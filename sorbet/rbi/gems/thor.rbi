@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/thor/all/thor.rbi
 #
-# thor-1.1.0
+# thor-1.2.1
 
 class Thor
   def help(command = nil, subcommand = nil); end
@@ -110,6 +110,7 @@ class Thor::CoreExt::HashWithIndifferentAccess < Hash
   def []=(key, value); end
   def convert_key(key); end
   def delete(key); end
+  def except(*keys); end
   def fetch(key, *args); end
   def initialize(hash = nil); end
   def key?(key); end
@@ -253,8 +254,10 @@ class Thor::Options < Thor::Arguments
   def peek; end
   def remaining; end
   def self.to_switches(options); end
+  def shift; end
   def switch?(arg); end
   def switch_option(arg); end
+  def unshift(arg, is_value: nil); end
 end
 module Thor::Base
   def args; end
@@ -282,6 +285,7 @@ module Thor::Shell
   def print_table(*args, &block); end
   def print_wrapped(*args, &block); end
   def say(*args, &block); end
+  def say_error(*args, &block); end
   def say_status(*args, &block); end
   def set_color(*args, &block); end
   def shell; end
