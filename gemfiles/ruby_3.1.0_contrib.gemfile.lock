@@ -1549,10 +1549,10 @@ GEM
       rake (~> 12.3)
       serverengine (~> 2.1.0)
       thor
-    sorbet (0.5.9120)
-      sorbet-static (= 0.5.9120)
+    sorbet (0.5.9672)
+      sorbet-static (= 0.5.9672)
     sorbet-runtime (0.5.9358)
-    sorbet-static (0.5.9120-x86_64-linux)
+    sorbet-static (0.5.9672-x86_64-linux)
     sorted_set (1.0.3)
       rbtree
       set (~> 1.0)
@@ -1665,7 +1665,7 @@ DEPENDENCIES
   simplecov!
   sinatra
   sneakers (>= 2.12.0)
-  sorbet (= 0.5.9120)
+  sorbet (= 0.5.9672)
   spoom (~> 1.1)
   sqlite3 (>= 1.4.2)
   sucker_punch
