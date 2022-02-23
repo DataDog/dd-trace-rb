@@ -1,4 +1,4 @@
-# typed: false
+# typed: true
 require 'uri'
 
 require 'datadog/core/configuration/settings'

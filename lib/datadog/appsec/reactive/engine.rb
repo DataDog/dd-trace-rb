@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/appsec/reactive/address_hash'
 require 'datadog/appsec/reactive/subscriber'
 

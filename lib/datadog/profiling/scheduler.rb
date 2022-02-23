@@ -1,4 +1,4 @@
-# typed: false
+# typed: true
 require 'datadog/core/utils/time'
 
 require 'datadog/core/worker'

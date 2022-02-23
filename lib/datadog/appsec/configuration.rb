@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/appsec/configuration/settings'
 
 module Datadog

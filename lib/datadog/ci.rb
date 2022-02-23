@@ -1,4 +1,4 @@
-# typed: false
+# typed: strict
 require 'datadog/core'
 require 'datadog/tracing'
 

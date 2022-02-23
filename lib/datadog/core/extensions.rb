@@ -1,4 +1,4 @@
-# typed: strict
+# typed: true
 require 'datadog/core/configuration'
 
 # Global namespace that includes all Datadog functionality.
