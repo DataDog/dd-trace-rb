@@ -88,6 +88,6 @@ end
 # version and bump it from time to time.
 # Also, there's no support for windows
 if RUBY_VERSION >= '2.4.0' && !Gem.win_platform?
-  gem 'sorbet', '= 0.5.9120'
+  gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
