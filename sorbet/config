@@ -3,7 +3,4 @@
 --ignore=/.git
 --ignore=/integration
 --ignore=/yard
---ignore=/lib
---ignore=/spec
---ignore=/benchmarks
 --ignore=/vendor/bundle
