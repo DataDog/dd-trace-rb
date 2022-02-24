@@ -17,7 +17,7 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,opentelemetry,auto_instrument}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,auto_instrument}/**/*_spec.rb,'\
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
@@ -30,11 +30,6 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:opentracer) do |t, args|
     t.pattern = 'spec/datadog/opentracer/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end
-
-  RSpec::Core::RakeTask.new(:opentelemetry) do |t, args|
-    t.pattern = 'spec/datadog/opentelemetry/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -246,7 +241,6 @@ task :ci do
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ jruby' => 'bundle exec appraisal core-old rake spec:main'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ jruby' => 'bundle exec rake spec:appsec:main'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ jruby' => 'bundle exec rake spec:contrib'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ jruby' => 'bundle exec rake spec:opentelemetry'
   declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ jruby' => 'bundle exec rake spec:opentracer'
 
   # Contrib specs

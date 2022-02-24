@@ -405,7 +405,6 @@ end
 
 | `0.x require path`          | `1.0 require path`          |
 |-----------------------------|-----------------------------|
-| `ddtrace/opentelemetry`     | `datadog/opentelemetry`     |
 | `ddtrace/opentracer`        | `datadog/opentracer`        |
 | `ddtrace/profiling/preload` | `datadog/profiling/preload` |
 
