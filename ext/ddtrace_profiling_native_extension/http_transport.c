@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <ruby/thread.h>
 #include <ddprof/ffi.h>
 
 // Used to report profiling data to Datadog.
@@ -10,6 +11,12 @@
 static VALUE exporter_class = Qnil;
 
 #define byte_slice_from_literal(string) ((ddprof_ffi_ByteSlice) {.ptr = (uint8_t *) "" string, .len = sizeof("" string) - 1})
+
+struct call_exporter_without_gvl_arguments {
+  ddprof_ffi_ProfileExporterV3 *exporter;
+  ddprof_ffi_Request *request;
+  ddprof_ffi_SendResult result;
+};
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array);
@@ -31,6 +38,19 @@ static VALUE _native_do_export(
   VALUE code_provenance_file_name,
   VALUE code_provenance_data
 );
+static ddprof_ffi_Request *build_request(
+  ddprof_ffi_ProfileExporterV3 *exporter,
+  VALUE upload_timeout_milliseconds,
+  VALUE start_timespec_seconds,
+  VALUE start_timespec_nanoseconds,
+  VALUE finish_timespec_seconds,
+  VALUE finish_timespec_nanoseconds,
+  VALUE pprof_file_name,
+  VALUE pprof_data,
+  VALUE code_provenance_file_name,
+  VALUE code_provenance_data
+);
+static void *call_exporter_without_gvl(void *exporter_and_request);
 
 void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
@@ -160,6 +180,53 @@ static VALUE _native_do_export(
   VALUE code_provenance_data
 ) {
   Check_TypedStruct(libddprof_exporter, &exporter_as_ruby_object);
+
+  ddprof_ffi_ProfileExporterV3 *exporter;
+  TypedData_Get_Struct(libddprof_exporter, ddprof_ffi_ProfileExporterV3, &exporter_as_ruby_object, exporter);
+
+  ddprof_ffi_Request *request =
+    build_request(
+      exporter,
+      upload_timeout_milliseconds,
+      start_timespec_seconds,
+      start_timespec_nanoseconds,
+      finish_timespec_seconds,
+      finish_timespec_nanoseconds,
+      pprof_file_name,
+      pprof_data,
+      code_provenance_file_name,
+      code_provenance_data
+    );
+
+  // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
+  // is pending
+  struct call_exporter_without_gvl_arguments args = {.exporter = exporter, .request = request};
+  rb_thread_call_without_gvl(call_exporter_without_gvl, &args, NULL, NULL); // TODO: How to interrupt!?
+  ddprof_ffi_SendResult result = args.result;
+
+  // TODO: Validate that request is being correctly freed, not entirely convinced that libddprof does it automatically
+
+  if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
+    VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
+    ddprof_ffi_Buffer_reset(&result.failure); // Clean up result
+    rb_raise(rb_eRuntimeError, "Failed to report profile: %+"PRIsVALUE, failure_details);
+  }
+
+  return UINT2NUM(result.http_response.code);
+}
+
+static ddprof_ffi_Request *build_request(
+  ddprof_ffi_ProfileExporterV3 *exporter,
+  VALUE upload_timeout_milliseconds,
+  VALUE start_timespec_seconds,
+  VALUE start_timespec_nanoseconds,
+  VALUE finish_timespec_seconds,
+  VALUE finish_timespec_nanoseconds,
+  VALUE pprof_file_name,
+  VALUE pprof_data,
+  VALUE code_provenance_file_name,
+  VALUE code_provenance_data
+) {
   Check_Type(upload_timeout_milliseconds, T_FIXNUM);
   Check_Type(start_timespec_seconds, T_FIXNUM);
   Check_Type(start_timespec_nanoseconds, T_FIXNUM);
@@ -169,9 +236,6 @@ static VALUE _native_do_export(
   Check_Type(pprof_data, T_STRING);
   Check_Type(code_provenance_file_name, T_STRING);
   Check_Type(code_provenance_data, T_STRING);
-
-  ddprof_ffi_ProfileExporterV3 *exporter;
-  TypedData_Get_Struct(libddprof_exporter, ddprof_ffi_ProfileExporterV3, &exporter_as_ruby_object, exporter);
 
   uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
 
@@ -197,27 +261,20 @@ static VALUE _native_do_export(
   };
   ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = (sizeof(files) / sizeof(ddprof_ffi_File))};
 
-  // Build the request to be sent
   ddprof_ffi_Request *request =
     ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, timeout_milliseconds);
 
-  // Free resources not needed anymore (libddprof copies them)
+  // At this point, the request contains copies of all data from the Ruby side, so we can clean up
   ddprof_ffi_Buffer_free(pprof_buffer);
   ddprof_ffi_Buffer_free(code_provenance_buffer);
-  pprof_buffer = NULL;
-  code_provenance_buffer= NULL;
 
-  // TODO: Release gil (how to interrupt libddprof send?)
-  ddprof_ffi_SendResult result = ddprof_ffi_ProfileExporterV3_send(exporter, request);
+  return request;
+}
 
-  request = NULL; // send consumes and takes care of cleaning up request
-  // TODO: Validate that request is being correctly freed, not entirely convinced
+static void *call_exporter_without_gvl(void *exporter_and_request) {
+  struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) exporter_and_request;
 
-  if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
-    VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    ddprof_ffi_Buffer_reset(&result.failure); // Clean up result
-    rb_raise(rb_eRuntimeError, "Failed to report profile: %+"PRIsVALUE, failure_details);
-  }
+  args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request);
 
-  return UINT2NUM(result.http_response.code);
+  return NULL; // Unused
 }
