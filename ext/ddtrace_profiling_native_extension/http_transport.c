@@ -97,7 +97,7 @@ static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_a
   if (exporter_result.tag != DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) {
     VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
     ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result); // Clean up result
-    rb_raise(rb_eRuntimeError, "Failed to initialize libddprof: %+"PRIsVALUE, failure_details);
+    rb_raise(rb_eRuntimeError, "Failed to create libddprof exporter: %+"PRIsVALUE, failure_details);
   }
 
   VALUE exporter = exporter_to_ruby_object(exporter_result.ok);
@@ -213,9 +213,9 @@ static VALUE _native_do_export(
   request = NULL; // send consumes and takes care of cleaning up request
   // TODO: Validate that request is being correctly freed, not entirely convinced
 
-  if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
+  if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
     VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    ddprof_ffi_Buffer_free(&result.failure); // Clean up result
+    ddprof_ffi_Buffer_reset(&result.failure); // Clean up result
     rb_raise(rb_eRuntimeError, "Failed to report profile: %+"PRIsVALUE, failure_details);
   }
 
