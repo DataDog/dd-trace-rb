@@ -180,29 +180,44 @@ static VALUE _native_do_export(
   ddprof_ffi_Timespec finish =
     {.seconds = NUM2LONG(finish_timespec_seconds), .nanoseconds = NUM2UINT(finish_timespec_nanoseconds)};
 
-  ddprof_ffi_Buffer pprof_buffer =
-    {.ptr = (uint8_t *) StringValuePtr(pprof_data), .len = RSTRING_LEN(pprof_data), .capacity = 0}; // FIXME Should I be using this?
-  ddprof_ffi_Buffer code_provenance_buffer =
-    {.ptr = (uint8_t *) StringValuePtr(code_provenance_data), .len = RSTRING_LEN(code_provenance_data), .capacity = 0}; // FIXME Should I be using this?
+  ddprof_ffi_Buffer *pprof_buffer =
+    ddprof_ffi_Buffer_from_byte_slice((ddprof_ffi_ByteSlice) {
+      .ptr = (uint8_t *) StringValuePtr(pprof_data),
+      .len = RSTRING_LEN(pprof_data)
+    });
+  ddprof_ffi_Buffer *code_provenance_buffer =
+    ddprof_ffi_Buffer_from_byte_slice((ddprof_ffi_ByteSlice) {
+      .ptr = (uint8_t *) StringValuePtr(code_provenance_data),
+      .len = RSTRING_LEN(code_provenance_data)
+    });
 
   const ddprof_ffi_File files[] = {
-    {.name = byte_slice_from_ruby_string(pprof_file_name), .file = &pprof_buffer}, // TODO: Hardcode to avoid referencing Ruby string?
-    {.name = byte_slice_from_ruby_string(code_provenance_file_name), .file = &code_provenance_buffer}
+    {.name = byte_slice_from_ruby_string(pprof_file_name), .file = pprof_buffer},
+    {.name = byte_slice_from_ruby_string(code_provenance_file_name), .file = code_provenance_buffer}
   };
   ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = (sizeof(files) / sizeof(ddprof_ffi_File))};
 
+  // Build the request to be sent
   ddprof_ffi_Request *request =
     ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, timeout_milliseconds);
 
+  // Free resources not needed anymore (libddprof copies them)
+  ddprof_ffi_Buffer_free(pprof_buffer);
+  ddprof_ffi_Buffer_free(code_provenance_buffer);
+  pprof_buffer = NULL;
+  code_provenance_buffer= NULL;
+
+  // TODO: Release gil (how to interrupt libddprof send?)
   ddprof_ffi_SendResult result = ddprof_ffi_ProfileExporterV3_send(exporter, request);
+
   request = NULL; // send consumes and takes care of cleaning up request
+  // TODO: Validate that request is being correctly freed, not entirely convinced
 
   if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
     VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    // TODO: Missing clean up of error string?
+    ddprof_ffi_Buffer_free(&result.failure); // Clean up result
     rb_raise(rb_eRuntimeError, "Failed to report profile: %+"PRIsVALUE, failure_details);
   }
 
-  // TODO: Release gil (how to interrupt libddprof send?)
   return UINT2NUM(result.http_response.code);
 }
