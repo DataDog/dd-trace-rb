@@ -186,7 +186,7 @@ static VALUE _native_do_export(
     {.ptr = (uint8_t *) StringValuePtr(code_provenance_data), .len = RSTRING_LEN(code_provenance_data), .capacity = 0}; // FIXME Should I be using this?
 
   const ddprof_ffi_File files[] = {
-    {.name = byte_slice_from_ruby_string(pprof_file_name), .file = &pprof_buffer},
+    {.name = byte_slice_from_ruby_string(pprof_file_name), .file = &pprof_buffer}, // TODO: Hardcode to avoid referencing Ruby string?
     {.name = byte_slice_from_ruby_string(code_provenance_file_name), .file = &code_provenance_buffer}
   };
   ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = (sizeof(files) / sizeof(ddprof_ffi_File))};
