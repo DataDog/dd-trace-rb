@@ -21,9 +21,15 @@ module Datadog
               end
 
               # DEV: Alias to Datadog::Tracing::Contrib::Extensions::Configuration::Settings#instrument.
-              # DEV: Should be removed when `c.ci.instrument` namespacing is complete.
+              # DEV: Should be removed when CI implement its own `c.ci.instrument`.
               define_method(:instrument) do |integration_name, options = {}, &block|
-                Datadog.configuration.send(:instrument, integration_name, options, &block)
+                Datadog.configuration.tracing.instrument(integration_name, options, &block)
+              end
+
+              # DEV: Alias to Datadog::Tracing::Contrib::Extensions::Configuration::Settings#instrument.
+              # DEV: Should be removed when CI implement its own `c.ci[]`.
+              define_method(:[]) do |integration_name, key = :default|
+                Datadog.configuration.tracing[integration_name, key]
               end
 
               # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose

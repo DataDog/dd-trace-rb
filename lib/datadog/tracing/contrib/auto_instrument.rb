@@ -36,8 +36,10 @@ module Datadog
           end
 
           Datadog.configure do |c|
-            c.reduce_log_verbosity
-            # This will activate auto-instrumentation for Rails
+            # Ignore any instrumentation load errors (otherwise it might spam logs)
+            c.tracing.ignore_integration_load_errors = true
+
+            # Activate instrumentation for each integration
             integrations.each do |integration_name|
               c.tracing.instrument integration_name
             end
