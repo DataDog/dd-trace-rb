@@ -185,7 +185,7 @@ RSpec.describe Datadog::CI::Test do
           span_op.get_tag(Datadog::CI::Ext::Test::TAG_OS_ARCHITECTURE)
         end
 
-        it { is_expected.to eq('x86_64').or eq('i686').or start_with('arm') }
+        it { is_expected.to eq('x86_64').or eq('i686').or eq('aarch64').or start_with('arm') }
       end
 
       context 'for the OS platform' do
