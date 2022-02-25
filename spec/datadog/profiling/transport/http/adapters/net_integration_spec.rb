@@ -140,7 +140,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
 
           code_provenance_data = JSON.parse(
             Datadog::Core::Utils::Compression.gunzip(
-              body.fetch('data[code_provenance.json]')
+              body.fetch('data[code-provenance.json]')
             )
           )
 
