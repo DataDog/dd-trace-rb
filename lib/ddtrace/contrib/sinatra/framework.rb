@@ -10,9 +10,7 @@ module Datadog
         def self.setup
           Datadog.configure do |datadog_config|
             sinatra_config = config_with_defaults(datadog_config)
-            unless Datadog.configuration.instrumented_integrations.key?(:rack)
-              activate_rack!(datadog_config, sinatra_config)
-            end
+            activate_rack!(datadog_config, sinatra_config)
           end
         end
 
@@ -33,6 +31,28 @@ module Datadog
         def self.add_middleware(middleware, builder, *args, &block)
           insert_middleware(builder, middleware, args, block) do |proc_, use|
             use.insert(0, proc_)
+          end
+        end
+
+        # Add Rack middleware before another in the stack
+        def self.add_middleware_before(before, middleware, builder, *args, &block)
+          index = middlewares(builder).index(before)
+
+          raise "middleware #{before} not found" unless index
+
+          insert_middleware(builder, middleware, args, block) do |proc_, use|
+            use.insert(index, proc_)
+          end
+        end
+
+        # Add Rack middleware after another in the the stack
+        def self.add_middleware_after(after, middleware, builder, *args, &block)
+          index = middlewares(builder).index(after)
+
+          raise "middleware #{after} not found" unless index
+
+          insert_middleware(builder, middleware, args, block) do |proc_, use|
+            use.insert(index + 1, proc_)
           end
         end
 
@@ -57,6 +77,10 @@ module Datadog
 
             yield(wrapped, use)
           end
+        end
+
+        def self.include_middleware?(middleware, builder)
+          middlewares(builder).include?(middleware)
         end
 
         # Introspect middlewares from a builder

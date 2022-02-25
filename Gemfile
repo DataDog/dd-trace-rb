@@ -89,9 +89,3 @@ if RUBY_VERSION >= '2.4.0' && !Gem.win_platform?
   gem 'sorbet', '= 0.5.9120'
   gem 'spoom', '~> 1.1'
 end
-
-# type checking with steep
-if RUBY_VERSION >= '2.6.0' && RUBY_PLATFORM != 'java'
-  gem 'rbs'
-  gem 'steep', '~> 0.42.0'
-end
