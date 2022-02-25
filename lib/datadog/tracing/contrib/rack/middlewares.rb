@@ -1,4 +1,5 @@
 # typed: false
+
 require 'date'
 
 require 'datadog/core/environment/variable_helpers'

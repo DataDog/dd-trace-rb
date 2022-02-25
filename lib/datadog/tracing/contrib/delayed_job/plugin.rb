@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'delayed/plugin'
 
 require 'datadog/tracing'

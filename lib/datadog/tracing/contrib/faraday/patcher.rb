@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/faraday/connection'
 require 'datadog/tracing/contrib/faraday/ext'
 require 'datadog/tracing/contrib/faraday/integration'

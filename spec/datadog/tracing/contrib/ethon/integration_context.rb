@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'webrick'
 require 'spec/support/thread_helpers'
 

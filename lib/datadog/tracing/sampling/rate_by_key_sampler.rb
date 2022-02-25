@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/sampling/sampler'
 require 'datadog/tracing/sampling/rate_sampler'
 

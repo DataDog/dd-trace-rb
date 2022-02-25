@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'json'
 require 'stringio'
 require 'typhoeus'

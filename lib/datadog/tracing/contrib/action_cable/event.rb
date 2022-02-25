@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing'
 require 'datadog/tracing/context'
 require 'datadog/tracing/contrib/analytics'

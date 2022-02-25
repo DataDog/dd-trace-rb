@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/utils/only_once'
 require 'datadog/profiling'
 require 'datadog/profiling/ext/forking'

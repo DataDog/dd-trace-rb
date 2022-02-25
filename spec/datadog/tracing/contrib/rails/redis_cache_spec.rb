@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/rails/rails_helper'
 

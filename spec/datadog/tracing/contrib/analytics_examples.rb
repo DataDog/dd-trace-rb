@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/metadata/ext'
 
 RSpec.shared_examples_for 'analytics for integration' do |options = { ignore_global_flag: true }|

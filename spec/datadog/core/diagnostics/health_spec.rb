@@ -1,4 +1,5 @@
 # typed: false
+
 require 'spec_helper'
 require 'ddtrace'
 require 'datadog/core/diagnostics/health'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/environment/identity'
 require 'datadog/core/environment/socket'
 require 'datadog/core/runtime/ext'

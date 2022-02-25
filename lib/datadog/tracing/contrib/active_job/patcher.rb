@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/active_job/ext'
 require 'datadog/tracing/contrib/active_job/events'

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/profiling/native_extension'
 
 RSpec.describe Datadog::Profiling::NativeExtension do

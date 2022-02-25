@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing'
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/active_support/notifications/event'

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/action_cable/event'
 require 'datadog/tracing/contrib/action_cable/events/broadcast'
 require 'datadog/tracing/contrib/action_cable/events/perform_action'

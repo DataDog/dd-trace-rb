@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/active_record/configuration/resolver'
 require 'datadog/tracing/contrib/active_record/configuration/settings'
 require 'datadog/tracing/contrib/active_record/events'

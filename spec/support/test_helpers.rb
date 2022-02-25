@@ -1,4 +1,5 @@
 # typed: false
+
 module TestHelpers
   module_function
 

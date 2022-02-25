@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/analytics'
 
 module Datadog

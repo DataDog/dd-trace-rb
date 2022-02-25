@@ -1,4 +1,5 @@
 # typed: false
+
 require 'spec_helper'
 
 require 'datadog/core/diagnostics/environment_logger'

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'English'
 
 module SynchronizationHelpers

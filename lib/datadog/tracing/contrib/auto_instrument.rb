@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib'
 require 'datadog/tracing/contrib/extensions'
 

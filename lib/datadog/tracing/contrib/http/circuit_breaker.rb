@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing'
 require 'ddtrace/transport/ext'
 

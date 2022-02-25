@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'datadog/tracing/contrib/rails/rails_helper'
 
 RSpec.describe 'Rails Log Auto Injection' do

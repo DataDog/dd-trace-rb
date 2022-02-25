@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/dalli/ext'
 require 'datadog/tracing/contrib/dalli/instrumentation'
 require 'datadog/tracing/contrib/dalli/integration'

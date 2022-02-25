@@ -1,4 +1,5 @@
 # typed: false
+
 require 'sucker_punch'
 
 require 'datadog/tracing'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/configuration/agent_settings_resolver'
 require 'ddtrace/transport/http/adapters/registry'
 require 'ddtrace/transport/http/api/map'

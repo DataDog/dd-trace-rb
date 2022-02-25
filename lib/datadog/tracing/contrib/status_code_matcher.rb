@@ -1,4 +1,5 @@
 # typed: true
+
 require 'set'
 
 require 'datadog/core'

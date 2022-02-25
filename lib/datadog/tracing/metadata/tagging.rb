@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/error'
 require 'datadog/core/environment/ext'
 

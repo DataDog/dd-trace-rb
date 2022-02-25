@@ -1,4 +1,5 @@
 # typed: false
+
 RSpec.shared_examples 'rails sub-gem auto_instrument?' do
   context 'auto_instrument?' do
     subject(:auto_instrument?) { integration.auto_instrument? }

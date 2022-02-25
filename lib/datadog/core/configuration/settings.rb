@@ -1,4 +1,5 @@
 # typed: false
+
 require 'logger'
 
 require 'datadog/core/configuration/base'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/analytics'
 require 'datadog/tracing/contrib/mongodb/ext'
 require 'datadog/tracing/contrib/mongodb/parsers'

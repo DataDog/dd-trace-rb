@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/buffer/thread_safe'
 require 'datadog/core/utils/object_set'
 require 'datadog/core/utils/string_table'

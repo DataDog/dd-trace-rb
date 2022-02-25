@@ -1,4 +1,5 @@
 # typed: false
+
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/patcher'

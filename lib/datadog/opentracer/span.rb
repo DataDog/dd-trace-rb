@@ -1,4 +1,5 @@
 # typed: true
+
 require 'time'
 
 require 'datadog/tracing/metadata/ext'

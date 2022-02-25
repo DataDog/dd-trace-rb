@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/analytics'
 require 'datadog/tracing/contrib/active_support/notifications/event'
 require 'datadog/tracing/contrib/kafka/ext'

@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module Tracing
     module Contrib

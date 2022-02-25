@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'ddtrace'
 require 'mongo'
 

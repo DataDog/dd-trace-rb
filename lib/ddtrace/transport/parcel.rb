@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module Transport
     # Data transfer object for generic data

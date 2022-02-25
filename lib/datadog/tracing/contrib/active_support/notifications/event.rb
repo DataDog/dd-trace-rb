@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/active_support/notifications/subscriber'
 
 module Datadog

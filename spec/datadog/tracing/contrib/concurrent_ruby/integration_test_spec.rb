@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'concurrent/future'
 
 require 'datadog/tracing/contrib/support/spec_helper'

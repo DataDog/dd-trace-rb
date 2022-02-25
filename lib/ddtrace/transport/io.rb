@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/encoding'
 require 'ddtrace/transport/io/client'
 require 'ddtrace/transport/io/traces'

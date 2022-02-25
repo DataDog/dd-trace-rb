@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/configuration/settings'
 

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/shoryuken/tracer'
 
 module Datadog

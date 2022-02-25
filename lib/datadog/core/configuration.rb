@@ -1,4 +1,5 @@
 # typed: true
+
 require 'forwardable'
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'

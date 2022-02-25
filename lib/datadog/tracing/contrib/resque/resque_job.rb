@@ -1,4 +1,5 @@
 # typed: false
+
 require 'resque'
 
 require 'datadog/tracing'

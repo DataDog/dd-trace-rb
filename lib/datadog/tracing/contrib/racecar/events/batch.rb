@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/racecar/ext'
 require 'datadog/tracing/contrib/racecar/event'
 

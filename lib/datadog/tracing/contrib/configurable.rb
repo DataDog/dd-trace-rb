@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/configuration/resolver'
 require 'datadog/tracing/contrib/configuration/settings'
 

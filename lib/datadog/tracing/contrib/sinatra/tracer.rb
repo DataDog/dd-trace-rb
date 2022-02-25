@@ -1,4 +1,5 @@
 # typed: false
+
 require 'sinatra/base'
 
 require 'datadog/core/utils/only_once'

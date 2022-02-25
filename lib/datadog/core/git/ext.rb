@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module Core
     module Git

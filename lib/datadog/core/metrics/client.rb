@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/utils/time'
 require 'datadog/core/utils/only_once'
 

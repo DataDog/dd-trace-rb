@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module Profiling
     # Entity class used to represent an entry in a stack trace.

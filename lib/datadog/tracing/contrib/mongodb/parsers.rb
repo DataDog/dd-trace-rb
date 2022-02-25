@@ -1,6 +1,7 @@
 require 'datadog/tracing/contrib/utils/quantization/hash'
 
 # typed: true
+
 module Datadog
   module Tracing
     module Contrib

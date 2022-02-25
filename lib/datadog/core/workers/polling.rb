@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/workers/async'
 require 'datadog/core/workers/interval_loop'
 

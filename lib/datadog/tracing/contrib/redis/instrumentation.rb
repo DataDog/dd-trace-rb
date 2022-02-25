@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/redis/configuration/resolver'

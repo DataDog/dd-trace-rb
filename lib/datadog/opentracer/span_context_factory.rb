@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module OpenTracer
     # Creates new Datadog::OpenTracer::SpanContext

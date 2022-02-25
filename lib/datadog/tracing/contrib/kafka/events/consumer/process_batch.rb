@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/kafka/ext'
 require 'datadog/tracing/contrib/kafka/event'
 require 'datadog/tracing/contrib/kafka/consumer_event'

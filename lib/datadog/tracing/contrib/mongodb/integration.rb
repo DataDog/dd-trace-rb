@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/integration'
 require 'datadog/tracing/contrib/configuration/resolvers/pattern_resolver'
 require 'datadog/tracing/contrib/mongodb/configuration/settings'

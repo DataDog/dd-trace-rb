@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/action_mailer/configuration/settings'
 require 'datadog/tracing/contrib/action_mailer/patcher'
 require 'datadog/tracing/contrib/integration'

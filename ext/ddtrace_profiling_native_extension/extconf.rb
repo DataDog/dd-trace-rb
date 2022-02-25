@@ -1,4 +1,5 @@
 # typed: ignore
+
 # rubocop:disable Style/StderrPuts
 
 # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach

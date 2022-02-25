@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/configuration/resolver'
 require 'datadog/tracing/contrib/active_record/vendor/connection_specification'
 require_relative 'makara_resolver'

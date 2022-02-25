@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/appsec'
 require 'datadog/appsec/reactive/engine'
 

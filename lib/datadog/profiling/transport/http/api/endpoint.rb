@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/utils/compression'
 require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
 require 'datadog/profiling/ext'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/active_support/cache/patcher'
 
 module Datadog

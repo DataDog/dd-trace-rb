@@ -1,4 +1,5 @@
 # typed: false
+
 require 'stringio'
 
 # rubocop:disable Metrics/ModuleLength

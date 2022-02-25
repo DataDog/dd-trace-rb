@@ -1,4 +1,5 @@
 # typed: strict
+
 require 'opentracing'
 require 'opentracing/carrier'
 require 'datadog/tracing'

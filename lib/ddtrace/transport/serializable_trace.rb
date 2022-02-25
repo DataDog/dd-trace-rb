@@ -1,4 +1,5 @@
 # typed: true
+
 require 'json'
 require 'msgpack'
 

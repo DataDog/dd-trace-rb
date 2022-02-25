@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/contrib/active_job/ext'
 require 'datadog/tracing/contrib/configuration/settings'

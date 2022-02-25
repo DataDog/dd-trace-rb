@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'

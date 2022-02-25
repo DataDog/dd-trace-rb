@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/configuration/option_set'
 require 'datadog/core/configuration/option_definition'
 require 'datadog/core/configuration/option_definition_set'

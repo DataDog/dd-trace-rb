@@ -1,4 +1,5 @@
 # typed: false
+
 require 'forwardable'
 require 'ddtrace/transport/response'
 

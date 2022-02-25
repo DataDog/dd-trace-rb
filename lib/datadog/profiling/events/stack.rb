@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/profiling/event'
 
 module Datadog

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'active_record'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/mysql2/instrumentation'
 

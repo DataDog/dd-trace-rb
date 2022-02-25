@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/active_support/notifications/event'
 
 module Datadog

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/redis/vendor/resolver'
 
 module Datadog

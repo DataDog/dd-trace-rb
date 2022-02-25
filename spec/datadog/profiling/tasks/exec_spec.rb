@@ -1,4 +1,5 @@
 # typed: false
+
 require 'spec_helper'
 require 'datadog/profiling/tasks/exec'
 

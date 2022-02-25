@@ -1,4 +1,5 @@
 # typed: false
+
 require 'forwardable'
 require 'set'
 

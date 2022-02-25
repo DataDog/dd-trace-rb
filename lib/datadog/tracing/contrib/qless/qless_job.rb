@@ -1,4 +1,5 @@
 # typed: false
+
 require 'qless'
 
 require 'datadog/tracing'

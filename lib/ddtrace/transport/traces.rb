@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/chunker'
 require 'ddtrace/transport/parcel'
 require 'ddtrace/transport/request'

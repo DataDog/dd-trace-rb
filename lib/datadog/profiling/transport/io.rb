@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/profiling/transport/io/client'
 require 'datadog/profiling/encoding/profile'
 

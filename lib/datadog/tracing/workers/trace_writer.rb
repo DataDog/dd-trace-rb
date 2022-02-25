@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core'
 require 'datadog/core/worker'
 require 'datadog/core/workers/async'

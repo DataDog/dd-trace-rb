@@ -1,4 +1,5 @@
 # typed: true
+
 # frozen_string_literal: true
 
 require 'datadog/profiling/flush'
