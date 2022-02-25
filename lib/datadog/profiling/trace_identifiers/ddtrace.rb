@@ -1,6 +1,5 @@
-# typed: true
-
 # frozen_string_literal: true
+# typed: true
 
 require 'datadog/tracing'
 require 'datadog/tracing/metadata/ext'

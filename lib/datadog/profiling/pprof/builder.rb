@@ -1,6 +1,5 @@
-# typed: true
-
 # frozen_string_literal: true
+# typed: true
 
 require 'datadog/profiling/flush'
 require 'datadog/profiling/pprof/message_set'
