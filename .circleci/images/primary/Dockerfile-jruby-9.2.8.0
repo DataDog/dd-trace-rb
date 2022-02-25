@@ -1,5 +1,5 @@
-# Current version: https://github.com/cpuguy83/docker-jruby/blob/db08637839406420a254a9c825d94994cded5021/9000/jre/Dockerfile
-FROM jruby:9.2.0.0
+# https://hub.docker.com/layers/jruby/library/jruby/9.2.8.0/images/sha256-09853d6cde79a53d89049ba6e0f22625c1c0a425f4f72b9982cbd81653df2ca0
+FROM jruby@sha256:09853d6cde79a53d89049ba6e0f22625c1c0a425f4f72b9982cbd81653df2ca0
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
