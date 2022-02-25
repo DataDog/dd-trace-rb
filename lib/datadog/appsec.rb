@@ -1,3 +1,5 @@
+# typed: false
+
 require 'datadog/appsec/configuration'
 require 'datadog/appsec/extensions'
 

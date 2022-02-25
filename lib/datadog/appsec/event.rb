@@ -1,3 +1,5 @@
+# typed: false
+
 require 'datadog/appsec/contrib/rack/request'
 require 'datadog/appsec/contrib/rack/response'
 require 'datadog/appsec/rate_limiter'

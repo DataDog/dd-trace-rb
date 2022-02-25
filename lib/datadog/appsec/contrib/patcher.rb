@@ -1,3 +1,5 @@
+# typed: strict
+
 module Datadog
   module AppSec
     module Contrib

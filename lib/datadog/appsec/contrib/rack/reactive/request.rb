@@ -1,3 +1,5 @@
+# typed: true
+
 require 'datadog/appsec/contrib/rack/request'
 
 module Datadog

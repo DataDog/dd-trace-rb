@@ -1,3 +1,5 @@
+# typed: false
+
 require 'ddtrace/configuration/base'
 
 module Datadog

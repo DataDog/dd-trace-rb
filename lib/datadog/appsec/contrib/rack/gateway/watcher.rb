@@ -1,3 +1,5 @@
+# typed: false
+
 require 'datadog/appsec/instrumentation/gateway'
 require 'datadog/appsec/reactive/operation'
 require 'datadog/appsec/contrib/rack/reactive/request'
