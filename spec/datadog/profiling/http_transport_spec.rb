@@ -55,8 +55,10 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_data: code_provenance_data,
     )
   end
-  let(:start)  { Time.iso8601("2022-02-07T15:59:53.987654321Z") }
-  let(:finish) { Time.iso8601("2023-11-11T16:00:00.123456789Z") }
+  let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }
+  let(:end_timestamp) { '2023-11-11T16:00:00.123456789Z' }
+  let(:start)  { Time.iso8601(start_timestamp) }
+  let(:finish) { Time.iso8601(end_timestamp) }
   let(:pprof_file_name) { 'the_pprof_file_name.pprof' }
   let(:pprof_data) { 'the_pprof_data' }
   let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
@@ -132,7 +134,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       before { expect(agent_settings).to receive(:port).and_return(1_000_000_000.to_s) }
 
       it do
-        expect { http_transport }.to raise_error(RuntimeError, /Failed to initialize libddprof/)
+        expect { http_transport }.to raise_error(RuntimeError, /Failed to create/)
       end
     end
   end
@@ -176,7 +178,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         )
       end
       let(:hostname) { '127.0.0.1' }
-      let(:port) { 6218 }
+      let(:port) { 6006 }
       let(:log) { WEBrick::Log.new(log_buffer) }
       let(:log_buffer) { StringIO.new }
       let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
@@ -211,30 +213,89 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     let(:request) { messages.first }
 
-    context 'when in agent mode' do
-      let(:agent_settings) do
-        instance_double(
-          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
-          adapter: adapter,
-          ssl: ssl,
-          hostname: '127.0.0.1',
-          port: '6128',
-          deprecated_for_removal_transport_configuration_proc: nil,
-        )
+    let(:agent_settings) do
+      instance_double(
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+        adapter: adapter,
+        ssl: ssl,
+        hostname: '127.0.0.1',
+        port: '6006',
+        deprecated_for_removal_transport_configuration_proc: nil,
+      )
+    end
+
+    it 'exports data successfully to the datadog agent' do
+      http_status_code = http_transport.export(flush)
+
+      expect(http_status_code).to be 200
+      expect(request.request_uri.to_s).to eq 'http://127.0.0.1:6006/profiling/v1/input'
+
+      expect(request.header).to include(
+        'content-type' => [%r{^multipart/form-data; boundary=(.+)}],
+      )
+
+      # check body
+      boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+      body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+      expect(body).to include(
+        'version' => '3',
+        'family' => 'ruby',
+        'start' => start_timestamp,
+        'end' => end_timestamp,
+        "data[#{pprof_file_name}]" => pprof_data,
+        "data[#{code_provenance_file_name}]" => code_provenance_data,
+      )
+
+      tags = body['tags[]'].list
+      expect(tags).to include('tag_a:value_a', 'tag_b:value_b')
+    end
+
+    context 'when agent is down' do
+      before do
+        server.shutdown
+        @server_thread.join
       end
 
-      it 'can export data successfully to the datadog agent' do
-        http_transport.export(flush)
-
-        # TODO
+      it do # TODO: Improve?
+        expect { http_transport.export(flush) }.to raise_error(RuntimeError, /Failed to report profile/)
       end
     end
 
-    context 'when in agentless mode' do
-      xit 'can export data successfully to the profiling backend' do
-        http_transport.export(flush)
+    context 'when request times out' do
+      let(:upload_timeout_seconds) { 0.001 }
+      let(:server_proc) do
+        proc do |req, res|
+          sleep 0.05
+        end
+      end
 
-        # TODO
+      it do # TODO: Improve?
+        expect { http_transport.export(flush) }.to raise_error(RuntimeError, /operation timed out/)
+      end
+    end
+
+    context 'when server returns a 4xx failure' do
+      let(:server_proc) do
+        proc do |req, res|
+          res.status = 418
+        end
+      end
+
+      it do # TODO: Improve
+        expect(http_transport.export(flush)).to be 418
+      end
+    end
+
+    context 'when server returns a 5xx failure' do
+      let(:server_proc) do
+        proc do |req, res|
+          res.status = 503
+        end
+      end
+
+      it do # TODO: Improve
+        expect(http_transport.export(flush)).to be 503
       end
     end
   end
