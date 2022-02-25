@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/os/all/os.rbi
 #
-# os-1.1.1
+# os-1.1.4
 
 class OS
   def config; end

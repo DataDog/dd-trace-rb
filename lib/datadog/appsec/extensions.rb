@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 require 'forwardable'
 require 'datadog/appsec/configuration'
 

@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module AppSec
     # Instrumentation for AppSec

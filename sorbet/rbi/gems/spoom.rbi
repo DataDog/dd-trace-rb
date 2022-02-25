@@ -7,10 +7,22 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/spoom/all/spoom.rbi
 #
-# spoom-1.1.2
+# spoom-1.1.8
 
 module Spoom
   def self.exec(*args, &blk); end
+  extend T::Private::Methods::MethodHooks
+  extend T::Private::Methods::SingletonMethodHooks
+  extend T::Sig
+end
+class Spoom::Color < T::Enum
+  def ansi_code(*args, &blk); end
+  extend T::Private::Methods::MethodHooks
+  extend T::Private::Methods::SingletonMethodHooks
+  extend T::Sig
+end
+module Spoom::Colorize
+  def set_color(*args, &blk); end
   extend T::Private::Methods::MethodHooks
   extend T::Private::Methods::SingletonMethodHooks
   extend T::Sig
@@ -48,6 +60,7 @@ end
 class Spoom::Sorbet::Errors::Parser
   def append_error(*args, &blk); end
   def close_error(*args, &blk); end
+  def error_line_match_regexp(*args, &blk); end
   def initialize(*args, &blk); end
   def match_error_line(*args, &blk); end
   def open_error(*args, &blk); end
@@ -108,6 +121,7 @@ class Spoom::Printer
   extend T::Private::Methods::MethodHooks
   extend T::Private::Methods::SingletonMethodHooks
   extend T::Sig
+  include Spoom::Colorize
 end
 module Spoom::LSP::PrintableSymbol
   def accept_printer(*args, &blk); end
@@ -348,8 +362,10 @@ module Spoom::Cli
 end
 module Spoom::Cli::Helper
   def blue(*args, &blk); end
+  def check_sorbet_segfault(*args, &blk); end
   def color?(*args, &blk); end
   def colorize(*args, &blk); end
+  def cyan(*args, &blk); end
   def exec_path(*args, &blk); end
   def gray(*args, &blk); end
   def green(*args, &blk); end
@@ -366,7 +382,7 @@ module Spoom::Cli::Helper
   extend T::Private::Methods::MethodHooks
   extend T::Private::Methods::SingletonMethodHooks
   extend T::Sig
-  include Thor::Shell
+  include Spoom::Colorize
 end
 class Spoom::Cli::Bump < Thor
   def bump(*args, &blk); end

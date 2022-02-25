@@ -1,3 +1,4 @@
+# typed: false
 require 'pathname'
 
 module Datadog

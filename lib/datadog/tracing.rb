@@ -1,3 +1,4 @@
+# typed: false
 require 'datadog/core'
 require 'datadog/tracing/pipeline'
 

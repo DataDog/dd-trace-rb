@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/warning/all/warning.rbi
 #
-# warning-1.2.0
+# warning-1.2.1
 
 module Warning
   extend Warning::Processor

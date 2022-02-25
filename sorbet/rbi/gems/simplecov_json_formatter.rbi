@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/simplecov_json_formatter/all/simplecov_json_formatter.rbi
 #
-# simplecov_json_formatter-0.1.3
+# simplecov_json_formatter-0.1.4
 
 module SimpleCovJSONFormatter
 end
@@ -23,6 +23,8 @@ class SimpleCovJSONFormatter::SourceFileFormatter
 end
 class SimpleCovJSONFormatter::ResultHashFormatter
   def format; end
+  def format_files; end
+  def format_groups; end
   def format_source_file(source_file); end
   def formatted_result; end
   def initialize(result); end

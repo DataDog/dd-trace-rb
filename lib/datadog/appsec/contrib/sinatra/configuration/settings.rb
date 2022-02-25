@@ -1,3 +1,4 @@
+# typed: false
 require 'datadog/appsec/contrib/configuration/settings'
 require 'datadog/appsec/contrib/sinatra/ext'
 

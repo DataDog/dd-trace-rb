@@ -30,7 +30,7 @@ gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", "~> 2.2", require: false
 gem "dogstatsd-ruby", "~> 4"
 gem "opentracing", ">= 0.4.1"
-gem "sorbet", "= 0.5.9120"
+gem "sorbet", "= 0.5.9672"
 gem "spoom", "~> 1.1"
 gem "msgpack", "< 1.4.3"
 

@@ -1,3 +1,4 @@
+# typed: true
 module Datadog
   module AppSec
     # Simple per-thread rate limiter

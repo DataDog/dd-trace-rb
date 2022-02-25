@@ -1,3 +1,4 @@
+# typed: strict
 # Load tracing
 require 'datadog/tracing'
 require 'datadog/tracing/contrib'

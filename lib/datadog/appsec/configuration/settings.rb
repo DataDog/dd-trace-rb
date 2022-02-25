@@ -1,3 +1,4 @@
+# typed: false
 module Datadog
   module AppSec
     module Configuration

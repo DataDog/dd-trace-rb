@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/appsec/contrib/rack/response'
 
 module Datadog

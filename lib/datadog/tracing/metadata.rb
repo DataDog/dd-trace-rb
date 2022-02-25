@@ -1,3 +1,4 @@
+# typed: true
 require 'datadog/tracing/metadata/analytics'
 require 'datadog/tracing/metadata/tagging'
 

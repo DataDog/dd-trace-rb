@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/rspec-core/all/rspec-core.rbi
 #
-# rspec-core-3.10.1
+# rspec-core-3.11.0
 
 module RSpec
   def self.clear_examples; end
@@ -18,6 +18,8 @@ module RSpec
   def self.context(*args, &example_group_block); end
   def self.current_example; end
   def self.current_example=(example); end
+  def self.current_scope; end
+  def self.current_scope=(scope); end
   def self.describe(*args, &example_group_block); end
   def self.example_group(*args, &example_group_block); end
   def self.fcontext(*args, &example_group_block); end
@@ -483,8 +485,10 @@ end
 module RSpec::Core::MemoizedHelpers
   def __init_memoized; end
   def __memoized; end
+  def enforce_value_expectation(matcher, method_name); end
   def initialize(*arg0); end
   def is_expected; end
+  def matcher_supports_value_expectations?(matcher); end
   def self.define_helpers_on(example_group); end
   def self.get_constant_or_yield(example_group, name); end
   def self.module_for(example_group); end
@@ -753,6 +757,7 @@ class RSpec::Core::Formatters::Loader
   def existing_formatter_implements?(notification); end
   def find_formatter(formatter_to_use); end
   def formatters; end
+  def has_matching_output?(formatter, new_formatter); end
   def initialize(reporter); end
   def notifications_for(formatter_class); end
   def open_stream(path_or_wrapper); end
@@ -776,6 +781,9 @@ class RSpec::Core::Ordering::Random
   def jenkins_hash_digest(string); end
   def order(items); end
   def used?; end
+end
+class RSpec::Core::Ordering::RecentlyModified
+  def order(list); end
 end
 class RSpec::Core::Ordering::Custom
   def initialize(callable); end
@@ -825,6 +833,8 @@ class RSpec::Core::World
   def report_filter_message(message); end
   def reporter; end
   def reset; end
+  def rspec_is_quitting; end
+  def rspec_is_quitting=(arg0); end
   def shared_example_group_registry; end
   def source_from_file(path); end
   def syntax_highlighter; end

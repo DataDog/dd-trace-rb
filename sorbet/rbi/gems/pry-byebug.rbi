@@ -7,7 +7,7 @@
 #
 #   https://github.com/sorbet/sorbet-typed/new/master?filename=lib/pry-byebug/all/pry-byebug.rbi
 #
-# pry-byebug-3.8.0
+# pry-byebug-3.9.0
 
 module PryByebug
   def check_file_context(target, msg = nil); end
