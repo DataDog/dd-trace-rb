@@ -491,10 +491,10 @@ job_configuration:
     resource_class_to_use: xlarge # Temporary, see https://github.com/DataDog/dd-trace-rb/issues/1791
     # ADD NEW RUBIES HERE
   # JRuby
-  - &config-jruby-9_2_0_0 # Oldest supported version
+  - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
     <<: *filters_all_branches_and_tags
-    ruby_version: 'jruby-9.2.0.0'
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_0_0
+    ruby_version: 'jruby-9.2.8.0'
+    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_8_0
     resource_class_to_use: medium+
   - &config-jruby-9_2-latest # More recent release of 9.2
     <<: *filters_all_branches_and_tags
@@ -535,7 +535,7 @@ workflows:
             - test-3.0
             - test-3.1
             # ADD NEW RUBIES HERE
-            - test-jruby-9.2.0.0
+            - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
       - orb/changelog:
@@ -676,13 +676,13 @@ workflows:
       # ADD NEW RUBIES HERE
       # JRuby
       - orb/build:
-          <<: *config-jruby-9_2_0_0
-          name: build-jruby-9.2.0.0
+          <<: *config-jruby-9_2_8_0
+          name: build-jruby-9.2.8.0
       - orb/test:
-          <<: *config-jruby-9_2_0_0
-          name: test-jruby-9.2.0.0
+          <<: *config-jruby-9_2_8_0
+          name: test-jruby-9.2.8.0
           requires:
-            - build-jruby-9.2.0.0
+            - build-jruby-9.2.8.0
       - orb/build:
           <<: *config-jruby-9_2-latest
           name: build-jruby-9.2-latest
@@ -717,7 +717,7 @@ workflows:
             - test-3.0
             - test-3.1
             # ADD NEW RUBIES HERE
-            - test-jruby-9.2.0.0
+            - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
       - "deploy release":
@@ -735,7 +735,7 @@ workflows:
             - test-3.0
             - test-3.1
             # ADD NEW RUBIES HERE
-            - test-jruby-9.2.0.0
+            - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
             # soon™️ - test-truffleruby-21.0.0
   # This workflow runs the same `build` and `test` jobs as above on a schedule.
@@ -880,13 +880,13 @@ workflows:
       # ADD NEW RUBIES HERE
       # JRuby
       - orb/build:
-          <<: *config-jruby-9_2_0_0
-          name: build-jruby-9.2.0.0
+          <<: *config-jruby-9_2_8_0
+          name: build-jruby-9.2.8.0
       - orb/test:
-          <<: *config-jruby-9_2_0_0
-          name: test-jruby-9.2.0.0
+          <<: *config-jruby-9_2_8_0
+          name: test-jruby-9.2.8.0
           requires:
-            - build-jruby-9.2.0.0
+            - build-jruby-9.2.8.0
       - orb/build:
           <<: *config-jruby-9_2-latest
           name: build-jruby-9.2-latest
