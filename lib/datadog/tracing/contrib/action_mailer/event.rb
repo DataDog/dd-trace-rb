@@ -24,7 +24,7 @@ module Datadog
             end
 
             def configuration
-              Datadog.configuration[:action_mailer]
+              Datadog.configuration.tracing[:action_mailer]
             end
 
             def process(span, event, _id, payload)

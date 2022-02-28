@@ -37,7 +37,7 @@ RSpec.describe 'Sequel configuration' do
     end
 
     describe 'when configured' do
-      after { Datadog.configuration[:sequel].reset! }
+      after { Datadog.configuration.tracing[:sequel].reset! }
 
       context 'only with defaults' do
         # Expect it to be the normalized adapter name.

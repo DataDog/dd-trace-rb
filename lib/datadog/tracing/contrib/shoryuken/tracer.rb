@@ -52,7 +52,7 @@ module Datadog
           end
 
           def configuration
-            Datadog.configuration[:shoryuken]
+            Datadog.configuration.tracing[:shoryuken]
           end
         end
       end

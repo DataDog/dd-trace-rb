@@ -44,7 +44,7 @@ module Datadog
             private
 
             def datadog_configuration
-              Datadog.configuration[:mysql2]
+              Datadog.configuration.tracing[:mysql2]
             end
 
             def analytics_enabled?

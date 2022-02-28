@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
     skip('Rake integration incompatible.') unless Datadog::Tracing::Contrib::Rake::Integration.compatible?
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:rake].reset!
+    Datadog.configuration.tracing[:rake].reset!
 
     # Patch Rake
     Datadog.configure do |c|

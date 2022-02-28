@@ -71,7 +71,7 @@ module Datadog
           end
 
           def self.configuration
-            Datadog.configuration[:delayed_job]
+            Datadog.configuration.tracing[:delayed_job]
           end
 
           def self.job_name(job)

@@ -20,7 +20,7 @@ module Datadog
           end
 
           def self.config_with_defaults(datadog_config)
-            datadog_config[:sinatra]
+            datadog_config.tracing[:sinatra]
           end
 
           # Apply relevant configuration from Sinatra to Rack

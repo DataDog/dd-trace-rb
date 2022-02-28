@@ -24,7 +24,7 @@ module Datadog
             end
 
             def configuration
-              Datadog.configuration[:active_job]
+              Datadog.configuration.tracing[:active_job]
             end
 
             def set_common_tags(span, payload)

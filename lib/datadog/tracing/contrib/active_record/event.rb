@@ -20,7 +20,7 @@ module Datadog
             end
 
             def configuration
-              Datadog.configuration[:active_record]
+              Datadog.configuration.tracing[:active_record]
             end
           end
         end

@@ -16,7 +16,7 @@ module Datadog
             return unless Tracing.enabled?
 
             service = Datadog.configuration_for(event.address, :service_name) \
-                      || Datadog.configuration[:mongo, event.address.seed][:service_name]
+                      || Datadog.configuration.tracing[:mongo, event.address.seed][:service_name]
 
             # start a trace and store it in the current thread; using the `operation_id`
             # is safe since it's a unique id used to link events together. Also only one
@@ -112,7 +112,7 @@ module Datadog
           end
 
           def datadog_configuration
-            Datadog.configuration[:mongo]
+            Datadog.configuration.tracing[:mongo]
           end
         end
       end

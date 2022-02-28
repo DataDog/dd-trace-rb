@@ -59,7 +59,7 @@ module Datadog
           private
 
           def configuration
-            Datadog.configuration[:sidekiq]
+            Datadog.configuration.tracing[:sidekiq]
           end
 
           def worker_config(resource, key)

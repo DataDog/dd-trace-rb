@@ -39,31 +39,31 @@ module Datadog
               # By default, default service would be guessed from the script
               # being executed, but here we know better, get it from Rails config.
               # Don't set this if service has been explicitly provided by the user.
-              rails_service_name = Datadog.configuration[:rails][:service_name] \
+              rails_service_name = Datadog.configuration.tracing[:rails][:service_name] \
                                     || Datadog.configuration.service_without_fallback \
                                     || Utils.app_name
 
               datadog_config.service ||= rails_service_name
             end
 
-            Datadog.configure do |trace_config|
-              rails_config = trace_config[:rails]
+            Datadog.configure do |datadog_config|
+              rails_config = datadog_config.tracing[:rails]
 
-              activate_rack!(trace_config, rails_config)
-              activate_action_cable!(trace_config, rails_config)
-              activate_action_mailer!(trace_config, rails_config)
-              activate_active_support!(trace_config, rails_config)
-              activate_action_pack!(trace_config, rails_config)
-              activate_action_view!(trace_config, rails_config)
-              activate_active_job!(trace_config, rails_config)
-              activate_active_record!(trace_config, rails_config)
-              activate_lograge!(trace_config, rails_config)
-              activate_semantic_logger!(trace_config, rails_config)
+              activate_rack!(datadog_config, rails_config)
+              activate_action_cable!(datadog_config, rails_config)
+              activate_action_mailer!(datadog_config, rails_config)
+              activate_active_support!(datadog_config, rails_config)
+              activate_action_pack!(datadog_config, rails_config)
+              activate_action_view!(datadog_config, rails_config)
+              activate_active_job!(datadog_config, rails_config)
+              activate_active_record!(datadog_config, rails_config)
+              activate_lograge!(datadog_config, rails_config)
+              activate_semantic_logger!(datadog_config, rails_config)
             end
           end
 
-          def self.activate_rack!(trace_config, rails_config)
-            trace_config.tracing.instrument(
+          def self.activate_rack!(datadog_config, rails_config)
+            datadog_config.tracing.instrument(
               :rack,
               application: ::Rails.application,
               service_name: rails_config[:service_name],
@@ -72,75 +72,75 @@ module Datadog
             )
           end
 
-          def self.activate_active_support!(trace_config, rails_config)
+          def self.activate_active_support!(datadog_config, rails_config)
             return unless defined?(::ActiveSupport)
 
-            trace_config.tracing.instrument(:active_support)
+            datadog_config.tracing.instrument(:active_support)
           end
 
-          def self.activate_action_cable!(trace_config, rails_config)
+          def self.activate_action_cable!(datadog_config, rails_config)
             return unless defined?(::ActionCable)
 
-            trace_config.tracing.instrument(:action_cable)
+            datadog_config.tracing.instrument(:action_cable)
           end
 
-          def self.activate_action_mailer!(trace_config, rails_config)
+          def self.activate_action_mailer!(datadog_config, rails_config)
             return unless defined?(::ActionMailer)
 
-            trace_config.tracing.instrument(
+            datadog_config.tracing.instrument(
               :action_mailer,
               service_name: rails_config[:service_name]
             )
           end
 
-          def self.activate_action_pack!(trace_config, rails_config)
+          def self.activate_action_pack!(datadog_config, rails_config)
             return unless defined?(::ActionPack)
 
-            trace_config.tracing.instrument(
+            datadog_config.tracing.instrument(
               :action_pack,
               service_name: rails_config[:service_name]
             )
           end
 
-          def self.activate_action_view!(trace_config, rails_config)
+          def self.activate_action_view!(datadog_config, rails_config)
             return unless defined?(::ActionView)
 
-            trace_config.tracing.instrument(
+            datadog_config.tracing.instrument(
               :action_view,
               service_name: rails_config[:service_name]
             )
           end
 
-          def self.activate_active_job!(trace_config, rails_config)
+          def self.activate_active_job!(datadog_config, rails_config)
             return unless defined?(::ActiveJob)
 
-            trace_config.tracing.instrument(
+            datadog_config.tracing.instrument(
               :active_job,
               service_name: rails_config[:service_name]
             )
           end
 
-          def self.activate_active_record!(trace_config, rails_config)
+          def self.activate_active_record!(datadog_config, rails_config)
             return unless defined?(::ActiveRecord)
 
-            trace_config.tracing.instrument(:active_record)
+            datadog_config.tracing.instrument(:active_record)
           end
 
-          def self.activate_lograge!(trace_config, rails_config)
+          def self.activate_lograge!(datadog_config, rails_config)
             return unless defined?(::Lograge)
 
-            if trace_config.tracing.log_injection
-              trace_config.tracing.instrument(
+            if datadog_config.tracing.log_injection
+              datadog_config.tracing.instrument(
                 :lograge
               )
             end
           end
 
-          def self.activate_semantic_logger!(trace_config, rails_config)
+          def self.activate_semantic_logger!(datadog_config, rails_config)
             return unless defined?(::SemanticLogger)
 
-            if trace_config.tracing.log_injection
-              trace_config.tracing.instrument(
+            if datadog_config.tracing.log_injection
+              datadog_config.tracing.instrument(
                 :semantic_logger
               )
             end

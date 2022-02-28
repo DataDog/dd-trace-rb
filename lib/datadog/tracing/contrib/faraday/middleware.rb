@@ -84,7 +84,7 @@ module Datadog
           end
 
           def datadog_configuration(host = :default)
-            Datadog.configuration[:faraday, host]
+            Datadog.configuration.tracing[:faraday, host]
           end
         end
       end

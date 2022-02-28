@@ -101,7 +101,7 @@ module Datadog
               end
 
               def datadog_configuration
-                Datadog.configuration[:elasticsearch]
+                Datadog.configuration.tracing[:elasticsearch]
               end
             end
             # rubocop:enable Metrics/BlockLength

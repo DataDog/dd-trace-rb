@@ -60,7 +60,7 @@ module Datadog
             private
 
             def configuration
-              Datadog.configuration[:rspec]
+              Datadog.configuration.ci[:rspec]
             end
           end
         end

@@ -49,7 +49,7 @@ module Datadog
           private
 
           def configuration
-            Datadog.configuration[:sneakers]
+            Datadog.configuration.tracing[:sneakers]
           end
         end
       end

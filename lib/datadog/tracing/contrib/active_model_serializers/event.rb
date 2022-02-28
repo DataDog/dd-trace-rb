@@ -25,7 +25,7 @@ module Datadog
             end
 
             def configuration
-              Datadog.configuration[:active_model_serializers]
+              Datadog.configuration.tracing[:active_model_serializers]
             end
 
             def set_common_tags(span, payload)
