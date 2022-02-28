@@ -149,10 +149,14 @@ Check out the table below for a list of common mappings:
 | `tracer.transport_options(options)`    | Removed                       |
 | `tracer.writer`                        | `tracing.writer`              |
 | `tracer.writer_options`                | `tracing.writer_options`      |
+| `use`                                  | `tracing.instrument`          |
 
 <h3 id="1.0-configuration-instrumentation">Activating instrumentation</h3>
 
-The `use` function has been renamed to `instrument`. Also, `instrument` has been namespaced to the specific feature:
+ - The `use` function has been renamed to `instrument`.
+ - `instrument` has been namespaced within the feature to which it belongs.
+
+As an example:
 
 ```ruby
 ### Old 0.x ###
@@ -173,6 +177,18 @@ Datadog.configure do |c|
   # CI instrumentation
   c.ci.instrument :cucumber
 end
+```
+
+Similarly, if you were accessing configuration for instrumentation, you will need to use the appropriate namespace:
+
+```ruby
+### Old 0.x ###
+Datadog.configuration[:rails][:service_name]
+Datadog.configuration[:cucumber][:service_name]
+
+### New 1.0 ###
+Datadog.configuration.tracing[:rails][:service_name]
+Datadog.configuration.ci[:cucumber][:service_name]
 ```
 
 <h2 id="1.0-instrumentation">Instrumentation</h2>
