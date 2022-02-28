@@ -1,4 +1,5 @@
-# typed: false
+# typed: ignore
+
 require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
 require 'libddprof'
 
