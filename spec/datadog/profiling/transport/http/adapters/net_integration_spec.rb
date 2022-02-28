@@ -12,7 +12,7 @@ require 'datadog/profiling/transport/http'
 require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net profiling integration tests' do
-  before { skip_if_profiling_not_supported(self) }
+  #before { skip_if_profiling_not_supported(self) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
@@ -194,6 +194,51 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           expect(request.header).to include(
             'dd-api-key' => [api_key]
           )
+        end
+      end
+    end
+
+    context 'via unix domain socket' do
+      let(:temporary_directory) { Dir.mktmpdir }
+      let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
+      let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
+      let(:server) do
+        server = WEBrick::HTTPServer.new(
+          DoNotListen: true,
+          Logger: log,
+          AccessLog: access_log,
+          StartCallback: -> { init_signal.push(1) }
+        )
+        server.listeners << unix_domain_socket
+        server
+      end
+
+      before do
+        settings.tracing.transport_options = proc { |t| t.adapter(:unix, socket_path) }
+      end
+
+      after do
+        begin
+          FileUtils.remove_entry(temporary_directory)
+        rescue Errno::ENOENT => _e
+          # Do nothing, it's ok
+        end
+      end
+
+      let(:client) do
+        Datadog::Profiling::Transport::HTTP.default(
+          profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+          agent_settings: agent_settings
+        )
+      end
+
+      let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings) }
+
+      it_behaves_like 'profile HTTP request' do
+        it 'is formatted for the agent' do
+          client.send_profiling_flush(flush)
+          expect(request.path).to eq('/profiling/v1/input')
+          expect(request.header).to_not include('dd-api-key')
         end
       end
     end

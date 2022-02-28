@@ -5,6 +5,7 @@ require 'datadog/profiling/http_transport'
 require 'datadog/profiling'
 
 require 'webrick'
+require 'socket'
 
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
@@ -31,6 +32,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     instance_double(
       Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
       adapter: adapter,
+      uds_path: nil,
       ssl: ssl,
       hostname: '192.168.0.1',
       port: '12345',
@@ -86,7 +88,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         end
       end
 
-      context 'when agent_settings requests an unix domain socket' do
+      xcontext 'when agent_settings requests an unix domain socket' do
         let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
 
         it do
@@ -217,6 +219,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       instance_double(
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
         adapter: adapter,
+        uds_path: nil,
         ssl: ssl,
         hostname: '127.0.0.1',
         port: '6006',
@@ -249,6 +252,64 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       tags = body['tags[]'].list
       expect(tags).to include('tag_a:value_a', 'tag_b:value_b')
+    end
+
+    context 'via unix domain socket' do
+      let(:temporary_directory) { Dir.mktmpdir }
+      let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
+      let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
+      let(:server) do
+        server = WEBrick::HTTPServer.new(
+          DoNotListen: true,
+          Logger: log,
+          AccessLog: access_log,
+          StartCallback: -> { init_signal.push(1) }
+        )
+        server.listeners << unix_domain_socket
+        server
+      end
+      let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
+      let(:agent_settings) do
+        instance_double(
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+          uds_path: socket_path,
+          deprecated_for_removal_transport_configuration_proc: nil,
+        )
+      end
+
+      after do
+        begin
+          FileUtils.remove_entry(temporary_directory)
+        rescue Errno::ENOENT => _e
+          # Do nothing, it's ok
+        end
+      end
+
+      it 'exports data successfully to the datadog agent' do
+        http_status_code = http_transport.export(flush)
+
+        expect(http_status_code).to be 200
+
+        expect(request.header).to include(
+          'content-type' => [%r{^multipart/form-data; boundary=(.+)}],
+        )
+
+        # check body
+        boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+        expect(body).to include(
+          'version' => '3',
+          'family' => 'ruby',
+          'start' => start_timestamp,
+          'end' => end_timestamp,
+          "data[#{pprof_file_name}]" => pprof_data,
+          "data[#{code_provenance_file_name}]" => code_provenance_data,
+        )
+
+        tags = body['tags[]'].list
+        expect(tags).to include('tag_a:value_a', 'tag_b:value_b')
+      end
     end
 
     context 'when agent is down' do

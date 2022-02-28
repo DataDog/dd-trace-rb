@@ -44,17 +44,17 @@ module Datadog
       private
 
       def base_url_from(agent_settings)
-        "#{agent_settings.ssl ? 'https' : 'http'}://#{agent_settings.hostname}:#{agent_settings.port}/"
+        if agent_settings.uds_path
+          "unix://#{agent_settings.uds_path}"
+        else
+          "#{agent_settings.ssl ? 'https' : 'http'}://#{agent_settings.hostname}:#{agent_settings.port}/"
+        end
       end
 
       # FIXME: Re-evaluate our plans for these before merging this anywhere. We should at least provide clearer error
-      # messages and next steps for customers, the current messages are too cryptic. Ideally, we would still support
+      # messages and next steps for customers; the current messages are too cryptic. Ideally, we would still support
       # Unix Domain Socket for reporting data.
       def validate_agent_settings(agent_settings)
-        if agent_settings.adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
-          raise ArgumentError, 'Unsupported agent configuration for profiling: Unix Domain Sockets are currently unsupported.'
-        end
-
         if agent_settings.deprecated_for_removal_transport_configuration_proc
           raise ArgumentError, 'Unsupported agent configuration for profiling: custom c.tracer.transport_options is currently unsupported.'
         end
