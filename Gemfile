@@ -81,7 +81,6 @@ if RUBY_PLATFORM != 'java'
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
   end
 end
-gem 'libddprof', '= 0.4.0.1.0.beta1'
 
 # For type checking
 # Sorbet releases almost daily, with new checks introduced that can make a
