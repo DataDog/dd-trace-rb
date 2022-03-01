@@ -4,7 +4,8 @@
 require_relative 'native_extension_helpers'
 
 def skip_building_extension!(reason)
-  $stderr.puts(reason)
+  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(**reason))
+
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   exit
 end
@@ -66,18 +67,7 @@ end
 # If we got here, libddprof is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
 unless pkg_config('ddprof_ffi_with_rpath')
-  skip_building_extension!(%(
-+------------------------------------------------------------------------------+
-| Skipping build of profiling native extension:                                |
-| failed to configure `libddprof` for compilation.                             |
-|                                                                              |
-| The Datadog Continuous Profiler will not be available,                       |
-| but all other ddtrace features will work fine!                               |
-|                                                                              |
-| For help solving this issue, please contact Datadog support at               |
-| <https://docs.datadoghq.com/help/>.                                          |
-+------------------------------------------------------------------------------+
-))
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
 end
 
 # Tag the native extension library with the Ruby version and Ruby platform.
@@ -98,19 +88,7 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   original_common_headers = MakeMakefile::COMMON_HEADERS
   MakeMakefile::COMMON_HEADERS = ''.freeze
   unless have_macro('RUBY_MJIT_H', mjit_header_file_name)
-    skip_building_extension!(%(
-+------------------------------------------------------------------------------+
-| WARNING: Unable to compile a needed component for ddtrace native extension.  |
-| Your C compiler or Ruby VM just-in-time compiler seems to be broken.         |
-|                                                                              |
-| The Datadog Continuous Profiler will not be available,                       |
-| but all other ddtrace features will work fine!                               |
-|                                                                              |
-| For help solving this issue, please contact Datadog support at               |
-| <https://docs.datadoghq.com/help/>.                                          |
-+------------------------------------------------------------------------------+
-
-))
+    skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILATION_BROKEN)
   end
   MakeMakefile::COMMON_HEADERS = original_common_headers
 
