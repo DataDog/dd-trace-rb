@@ -1,5 +1,7 @@
 # typed: ignore
 
+require 'libddprof'
+
 module Datadog
   module Profiling
     module NativeExtensionHelpers
@@ -62,12 +64,6 @@ module Datadog
         end
 
         private_class_method def self.libddprof_not_usable?
-          begin
-            require 'libddprof'
-          rescue LoadError
-            return LIBDDPROF_NOT_AVAILABLE
-          end
-
           return LIBDDPROF_NO_BINARIES unless Libddprof.binaries?
 
           unless Libddprof.pkgconfig_folder
@@ -154,16 +150,6 @@ module Datadog
 | Your Ruby has been compiled without JIT support (--disable-jit-support).     |
 | The profiling native extension requires a Ruby compiled with JIT support,    |
 | even if the JIT is not in use by the application itself.                     |
-|                                                                              |
-| The Datadog Continuous Profiler will not be available,                       |
-| but all other ddtrace features will work fine!                               |
-+------------------------------------------------------------------------------+
-).freeze
-
-        LIBDDPROF_NOT_AVAILABLE = %(
-+------------------------------------------------------------------------------+
-| Skipping build of profiling native extension:                                |
-| `libddprof` gem is not available.                                            |
 |                                                                              |
 | The Datadog Continuous Profiler will not be available,                       |
 | but all other ddtrace features will work fine!                               |
