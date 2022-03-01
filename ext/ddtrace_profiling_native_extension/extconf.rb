@@ -3,14 +3,14 @@
 
 require_relative 'native_extension_helpers'
 
-def skip_building_extension!
+def skip_building_extension!(reason)
+  $stderr.puts(reason)
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   exit
 end
 
 unless Datadog::Profiling::NativeExtensionHelpers::Supported.supported?
-  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
-  skip_building_extension!
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
 end
 
 $stderr.puts(%(
@@ -66,7 +66,7 @@ end
 # If we got here, libddprof is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
 unless pkg_config('ddprof_ffi_with_rpath')
-  $stderr.puts(%(
+  skip_building_extension!(%(
 +------------------------------------------------------------------------------+
 | Skipping build of profiling native extension:                                |
 | failed to configure `libddprof` for compilation.                             |
@@ -78,7 +78,6 @@ unless pkg_config('ddprof_ffi_with_rpath')
 | <https://docs.datadoghq.com/help/>.                                          |
 +------------------------------------------------------------------------------+
 ))
-  skip_building_extension!
 end
 
 # Tag the native extension library with the Ruby version and Ruby platform.
@@ -99,7 +98,7 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   original_common_headers = MakeMakefile::COMMON_HEADERS
   MakeMakefile::COMMON_HEADERS = ''.freeze
   unless have_macro('RUBY_MJIT_H', mjit_header_file_name)
-    $stderr.puts(%(
+    skip_building_extension!(%(
 +------------------------------------------------------------------------------+
 | WARNING: Unable to compile a needed component for ddtrace native extension.  |
 | Your C compiler or Ruby VM just-in-time compiler seems to be broken.         |
@@ -112,7 +111,6 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
 +------------------------------------------------------------------------------+
 
 ))
-    skip_building_extension!
   end
   MakeMakefile::COMMON_HEADERS = original_common_headers
 
