@@ -1,4 +1,5 @@
 # typed: ignore
+
 LogHelpers.without_warnings do
   require 'graphql'
 end

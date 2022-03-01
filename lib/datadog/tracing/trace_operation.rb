@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core'
 require 'datadog/core/environment/identity'
 require 'datadog/core/utils'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/grape/endpoint'
 require 'datadog/tracing/contrib/grape/ext'
 require 'datadog/tracing/contrib/grape/instrumentation'

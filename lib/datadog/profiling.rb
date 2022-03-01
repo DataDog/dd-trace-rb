@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core'
 require 'datadog/core/environment/variable_helpers'
 require 'datadog/core/utils/only_once'

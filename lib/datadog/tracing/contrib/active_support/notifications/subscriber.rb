@@ -1,4 +1,5 @@
 # typed: true
+
 require 'set'
 require 'datadog/tracing/contrib/active_support/notifications/subscription'
 

@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'datadog/core/utils/only_once'
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/rack/middlewares'

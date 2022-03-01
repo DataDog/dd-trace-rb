@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/context'
 require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/trace_operation'

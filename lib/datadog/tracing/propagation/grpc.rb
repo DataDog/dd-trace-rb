@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_digest'

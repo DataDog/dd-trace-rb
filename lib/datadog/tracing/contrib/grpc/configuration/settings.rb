@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/contrib/configuration/settings'
 require 'datadog/tracing/contrib/grpc/ext'

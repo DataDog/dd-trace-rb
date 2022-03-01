@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/metrics/ext'
 require 'datadog/core/environment/ext'
 require 'datadog/core/environment/identity'

@@ -1,5 +1,6 @@
-# typed: false
 # frozen_string_literal: true
+
+# typed: false
 
 require 'datadog/tracing/contrib/que/integration'
 require 'datadog/tracing/contrib/que/tracer'

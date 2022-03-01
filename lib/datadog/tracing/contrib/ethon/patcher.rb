@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/ethon/integration'
 require 'datadog/tracing/contrib/patcher'
 

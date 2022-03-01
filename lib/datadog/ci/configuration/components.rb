@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/ci/flush'
 
 module Datadog

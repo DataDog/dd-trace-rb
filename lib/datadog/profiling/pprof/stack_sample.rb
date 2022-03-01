@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/profiling/ext'
 require 'datadog/profiling/events/stack'
 require 'datadog/profiling/pprof/builder'

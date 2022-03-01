@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/utils/only_once'
 require 'datadog/tracing/contrib/httpclient/instrumentation'
 require 'datadog/tracing/contrib/patcher'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core'
 require 'datadog/core/environment/ext'
 require 'datadog/core/buffer/thread_safe'

@@ -1,5 +1,6 @@
-# typed: false
 # frozen_string_literal: true
+
+# typed: false
 
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/sneakers/integration'

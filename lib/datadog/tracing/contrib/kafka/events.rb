@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/kafka/events/connection/request'
 require 'datadog/tracing/contrib/kafka/events/consumer/process_batch'
 require 'datadog/tracing/contrib/kafka/events/consumer/process_message'

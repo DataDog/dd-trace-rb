@@ -1,4 +1,5 @@
 # typed: true
+
 require 'ddtrace/transport/http/api/map'
 require 'datadog/profiling/encoding/profile'
 require 'datadog/profiling/transport/http/api/spec'

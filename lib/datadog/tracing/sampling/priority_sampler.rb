@@ -1,4 +1,5 @@
 # typed: true
+
 require 'forwardable'
 
 require 'datadog/tracing/sampling/ext'

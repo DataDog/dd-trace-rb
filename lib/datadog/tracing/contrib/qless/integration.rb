@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/integration'
 require 'datadog/tracing/contrib/qless/configuration/settings'
 require 'datadog/tracing/contrib/qless/patcher'

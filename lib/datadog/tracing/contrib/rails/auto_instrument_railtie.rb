@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'datadog/tracing/contrib/auto_instrument'
 
 # Railtie to include AutoInstrumentation in rails loading

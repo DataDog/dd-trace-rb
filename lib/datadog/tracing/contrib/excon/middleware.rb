@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'excon'
 
 require 'datadog/core'

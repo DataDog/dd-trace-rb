@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/utils/forking'
 
 module Datadog

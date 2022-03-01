@@ -1,4 +1,5 @@
 # typed: true
+
 require 'yaml'
 
 require 'datadog/core'

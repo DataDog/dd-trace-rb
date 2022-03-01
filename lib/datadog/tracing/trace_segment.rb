@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/runtime/ext'
 
 require 'datadog/tracing/sampling/ext'

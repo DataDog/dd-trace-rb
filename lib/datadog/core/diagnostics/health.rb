@@ -1,4 +1,5 @@
 # typed: strict
+
 require 'datadog/core/diagnostics/ext'
 require 'datadog/core/metrics/client'
 

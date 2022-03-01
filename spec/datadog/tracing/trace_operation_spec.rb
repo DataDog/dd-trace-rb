@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'spec_helper'
 
 require 'time'

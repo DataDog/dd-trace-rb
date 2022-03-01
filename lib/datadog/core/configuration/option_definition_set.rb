@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/configuration/dependency_resolver'
 
 module Datadog

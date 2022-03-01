@@ -1,4 +1,5 @@
 # typed: false
+
 require 'time'
 require 'net/http'
 require 'spec/support/synchronization_helpers'

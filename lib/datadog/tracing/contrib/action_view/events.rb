@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/action_view/events/render_partial'
 require 'datadog/tracing/contrib/action_view/events/render_template'
 

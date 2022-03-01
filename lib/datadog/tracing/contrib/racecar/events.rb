@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/racecar/events/batch'
 require 'datadog/tracing/contrib/racecar/events/message'
 require 'datadog/tracing/contrib/racecar/events/consume'

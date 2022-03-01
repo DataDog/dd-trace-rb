@@ -1,4 +1,5 @@
 # typed: false
+
 require 'socket'
 require 'datadog/core/utils/forking'
 

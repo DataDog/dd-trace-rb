@@ -1,5 +1,6 @@
-# typed: true
 # frozen_string_literal: true
+
+# typed: true
 
 require 'datadog/core/git/ext'
 

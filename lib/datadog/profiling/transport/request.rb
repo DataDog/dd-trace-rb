@@ -1,4 +1,5 @@
 # typed: true
+
 require 'ddtrace/transport/request'
 require 'datadog/profiling/transport/parcel'
 

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/action_mailer/events/process'
 require 'datadog/tracing/contrib/action_mailer/events/deliver'
 

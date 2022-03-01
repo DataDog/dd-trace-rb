@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/action_pack/configuration/settings'
 require 'datadog/tracing/contrib/action_pack/patcher'
 require 'datadog/tracing/contrib/integration'

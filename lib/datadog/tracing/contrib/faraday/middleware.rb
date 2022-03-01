@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'faraday'
 
 require 'datadog/tracing'

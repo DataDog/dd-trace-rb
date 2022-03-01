@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module Profiling
     # Describes a sample of some data obtained from the runtime.

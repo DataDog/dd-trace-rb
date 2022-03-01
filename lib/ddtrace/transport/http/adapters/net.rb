@@ -1,4 +1,5 @@
 # typed: true
+
 require 'ddtrace/transport/response'
 require 'datadog/core/vendor/multipart-post/net/http/post/multipart'
 

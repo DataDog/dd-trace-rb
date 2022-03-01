@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/metrics/metric'
 require 'datadog/core/diagnostics/health'
 

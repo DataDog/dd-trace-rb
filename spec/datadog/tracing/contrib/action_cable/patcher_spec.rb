@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'logger'
 
 require 'datadog/tracing'

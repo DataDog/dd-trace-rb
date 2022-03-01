@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'securerandom'
 require 'rack/test'
 require 'sinatra/base'

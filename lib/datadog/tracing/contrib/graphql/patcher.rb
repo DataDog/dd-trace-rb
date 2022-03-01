@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/analytics'
 require 'datadog/tracing/contrib/graphql/integration'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'ddtrace/transport/http/api/spec'
 
 module Datadog

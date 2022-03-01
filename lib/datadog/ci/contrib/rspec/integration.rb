@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/integration'
 
 require 'datadog/ci/contrib/rspec/configuration/settings'

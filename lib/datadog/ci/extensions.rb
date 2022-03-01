@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/configuration/settings'
 require 'datadog/core/configuration/components'
 

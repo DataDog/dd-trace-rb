@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/environment/variable_helpers'
 require 'datadog/core/configuration/options'
 

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/ci/test'
 
 require 'datadog/ci/ext/app_types'

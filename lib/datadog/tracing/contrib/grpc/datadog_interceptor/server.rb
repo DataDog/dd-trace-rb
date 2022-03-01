@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'datadog/tracing'
 require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/metadata/ext'

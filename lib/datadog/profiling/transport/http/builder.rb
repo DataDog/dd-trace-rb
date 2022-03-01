@@ -1,4 +1,5 @@
 # typed: true
+
 require 'ddtrace/transport/http/builder'
 
 require 'datadog/profiling/transport/http/api'

@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/environment/ext'
 
 module Datadog

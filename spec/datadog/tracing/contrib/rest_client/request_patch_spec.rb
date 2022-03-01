@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'rest_client'
 require 'restclient/request'
 

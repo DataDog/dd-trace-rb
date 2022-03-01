@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/integration'
 require 'datadog/tracing/contrib/concurrent_ruby/patcher'
 require 'datadog/tracing/contrib/concurrent_ruby/configuration/settings'

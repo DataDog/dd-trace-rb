@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/profiling/buffer'
 require 'datadog/profiling/flush'
 

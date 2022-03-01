@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core'
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/action_view/events'

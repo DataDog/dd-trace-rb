@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'datadog/core/utils'
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/sidekiq/client_tracer'

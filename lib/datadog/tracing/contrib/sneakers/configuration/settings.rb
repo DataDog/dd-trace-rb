@@ -1,5 +1,6 @@
-# typed: false
 # frozen_string_literal: true
+
+# typed: false
 
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/contrib/configuration/settings'

@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'http'
 require 'json'
 require 'stringio'

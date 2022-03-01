@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/mongodb/ext'
 require 'datadog/tracing/contrib/mongodb/instrumentation'

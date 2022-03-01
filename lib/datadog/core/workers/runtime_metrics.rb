@@ -1,4 +1,5 @@
 # typed: false
+
 require 'forwardable'
 
 require 'datadog/core/runtime/metrics'

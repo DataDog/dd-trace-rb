@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core/utils/object_set'
 
 module Datadog

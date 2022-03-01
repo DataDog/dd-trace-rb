@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/action_pack/utils'
 

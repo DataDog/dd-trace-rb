@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/active_model_serializers/events/render'
 require 'datadog/tracing/contrib/active_model_serializers/events/serialize'
 

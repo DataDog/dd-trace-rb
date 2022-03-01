@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/profiling/pprof/payload'
 require 'datadog/profiling/pprof/message_set'
 require 'datadog/profiling/pprof/builder'

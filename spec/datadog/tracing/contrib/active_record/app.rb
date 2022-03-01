@@ -1,4 +1,5 @@
 # typed: ignore
+
 require 'active_record'
 
 if PlatformHelpers.jruby?

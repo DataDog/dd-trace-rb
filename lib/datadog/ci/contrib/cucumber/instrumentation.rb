@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/ci/contrib/cucumber/formatter'
 
 module Datadog

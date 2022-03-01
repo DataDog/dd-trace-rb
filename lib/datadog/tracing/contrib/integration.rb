@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/contrib/configurable'
 require 'datadog/tracing/contrib/patchable'
 require 'datadog/tracing/contrib/registerable'

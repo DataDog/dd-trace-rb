@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/configuration/base'
 require 'datadog/core/utils/only_once'
 

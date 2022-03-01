@@ -1,4 +1,5 @@
 # typed: true
+
 module DDTrace
   module VERSION
     MAJOR = 1

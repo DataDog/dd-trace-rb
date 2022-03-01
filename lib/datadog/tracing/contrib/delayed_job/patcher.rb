@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/delayed_job/integration'
 require 'datadog/tracing/contrib/patcher'
 

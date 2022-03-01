@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/integration'
 require 'datadog/tracing/contrib/shoryuken/ext'
 require 'datadog/tracing/contrib/shoryuken/configuration/settings'

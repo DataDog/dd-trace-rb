@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/profiling/trace_identifiers/ddtrace'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_operation'

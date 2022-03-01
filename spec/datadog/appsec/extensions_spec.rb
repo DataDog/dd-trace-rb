@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::Extensions do

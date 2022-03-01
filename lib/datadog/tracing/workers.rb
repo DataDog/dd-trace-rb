@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/core'
 
 require 'datadog/tracing/buffer'

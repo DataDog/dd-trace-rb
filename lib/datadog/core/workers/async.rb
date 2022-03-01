@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/core/logger'
 
 module Datadog

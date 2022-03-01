@@ -1,4 +1,5 @@
 # typed: strict
+
 require 'datadog/core/utils/string_table'
 
 module Datadog

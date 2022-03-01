@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/contrib/active_record/events/instantiation'
 require 'datadog/tracing/contrib/active_record/events/sql'
 

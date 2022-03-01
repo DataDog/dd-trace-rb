@@ -1,4 +1,5 @@
 # typed: strict
+
 require 'ddtrace/transport/io/response'
 require 'datadog/profiling/transport/response'
 

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'json'
 
 require 'ddtrace/transport/traces'

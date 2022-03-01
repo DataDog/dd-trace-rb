@@ -1,4 +1,5 @@
 # typed: true
+
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scope management

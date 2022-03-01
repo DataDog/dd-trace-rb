@@ -1,4 +1,5 @@
 # typed: true
+
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/flush'
 
