@@ -7,12 +7,13 @@ require 'datadog/profiling/collectors/code_provenance'
 
 RSpec.describe Datadog::Profiling::Recorder do
   subject(:recorder) do
-    described_class.new(event_classes, max_size, code_provenance_collector: code_provenance_collector)
+    described_class.new(event_classes, max_size, code_provenance_collector: code_provenance_collector, **options)
   end
 
   let(:event_classes) { [] }
   let(:max_size) { 0 }
   let(:code_provenance_collector) { nil }
+  let(:options) { {} }
 
   shared_context 'test buffer' do
     let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
@@ -116,6 +117,7 @@ RSpec.describe Datadog::Profiling::Recorder do
     include_context 'test buffer'
 
     let(:events) { [] }
+    let(:options) { { minimum_duration: 0 } } # Override the minimum duration to avoid needing to mock Time
 
     subject(:flush) { recorder.flush }
 
@@ -128,64 +130,108 @@ RSpec.describe Datadog::Profiling::Recorder do
       context 'whose buffer returns events' do
         let(:events) { [event_class.new, event_class.new] }
 
-        it { is_expected.to be_a_kind_of(Datadog::Profiling::OldFlush) }
+        before do
+          allow(Datadog::Profiling::Encoding::Profile::Protobuf).to receive(:encode)
+        end
 
-        it do
+        it 'returns a flush with the profiling data' do
           is_expected.to have_attributes(
             start: kind_of(Time),
             finish: kind_of(Time),
-            event_groups: array_including(Datadog::Profiling::EventGroup),
-            event_count: 2
+            pprof_file_name: 'rubyprofile.pprof.gz',
+            code_provenance_file_name: 'code-provenance.json.gz',
+            tags_as_array: array_including(%w[language ruby], ['pid', Process.pid.to_s]),
           )
         end
 
-        it { expect(flush.event_groups).to be_a_kind_of(Array) }
-        it { expect(flush.event_groups).to have(1).item }
-        it { expect(flush.start).to be < flush.finish }
+        it 'calls the protobuf encoder with the events' do
+          expected_event_group = instance_double(Datadog::Profiling::EventGroup)
 
-        it 'produces a flush with the events' do
-          expect(flush.event_groups.first).to have_attributes(
-            event_class: event_class,
-            events: events
+          expect(Datadog::Profiling::EventGroup)
+            .to receive(:new).with(event_class, events).and_return(expected_event_group)
+          expect(Datadog::Profiling::Encoding::Profile::Protobuf).to receive(:encode).with(
+            start: kind_of(Time),
+            finish: kind_of(Time),
+            event_groups: [expected_event_group],
+            event_count: 2,
           )
+
+          flush
+        end
+
+        it 'returns a flush with gzip-compressed pprof data' do
+          expect(Datadog::Profiling::Encoding::Profile::Protobuf).to receive(:encode).and_return('dummy pprof data')
+
+          flush
+
+          expect(Datadog::Core::Utils::Compression.gunzip(flush.pprof_data)).to eq 'dummy pprof data'
+        end
+
+        context 'called back to back' do
+          subject(:flush) { Array.new(3) { recorder.flush } }
+
+          it 'has its start and end times line up' do
+            expect(flush[0].start).to be < flush[0].finish
+            expect(flush[0].finish).to eq flush[1].start
+            expect(flush[1].finish).to eq flush[2].start
+            expect(flush[2].start).to be < flush[2].finish
+          end
+        end
+
+        context 'when code_provenance_collector is nil' do
+          let(:code_provenance_collector) { nil }
+
+          it 'returns a flush without code provenance data' do
+            expect(flush.code_provenance_data).to be nil
+          end
+        end
+
+        context 'when code_provenance_collector is available' do
+          let(:code_provenance_collector) do
+            collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance)
+            allow(collector).to receive(:refresh).and_return(collector)
+            collector
+          end
+          let(:code_provenance) { 'dummy code provenance data' }
+
+          it 'returns a flush with gzip-compressed code provenance data' do
+            expect(Datadog::Core::Utils::Compression.gunzip(flush.code_provenance_data)).to eq code_provenance
+          end
+        end
+
+        context 'when duration of profile is below 1s' do
+          let(:finish_time) { Time.utc(2021) }
+          let(:options) { { last_flush_time: finish_time - 0.9 } }
+
+          before do
+            expect(Time).to receive(:now).and_return(finish_time)
+          end
+
+          it { is_expected.to be nil }
+
+          it 'logs a debug message' do
+            expect(Datadog.logger).to receive(:debug) do |&message|
+              expect(message.call).to include 'Skipped exporting'
+            end
+
+            flush
+          end
+        end
+
+        context 'when duration of profile is at least 1s' do
+          let(:finish_time) { Time.utc(2021) }
+          let(:options) { { last_flush_time: finish_time - 1 } }
+
+          before do
+            expect(Time).to receive(:now).and_return(finish_time)
+          end
+
+          it { is_expected.to_not be nil }
         end
       end
 
       context 'whose buffer returns no events' do
-        it { is_expected.to be_a_kind_of(Datadog::Profiling::OldFlush) }
-        it { expect(flush.event_groups).to be_empty }
-      end
-
-      context 'called back to back' do
-        subject(:flush) { Array.new(3) { recorder.flush } }
-
-        it 'has its start and end times line up' do
-          expect(flush[0].start).to be < flush[0].finish
-          expect(flush[0].finish).to eq(flush[1].start)
-          expect(flush[1].finish).to eq(flush[2].start)
-          expect(flush[2].start).to be < flush[2].finish
-        end
-      end
-    end
-
-    context 'when code_provenance_collector is nil' do
-      let(:code_provenance_collector) { nil }
-
-      it 'returns a flush without code_provenance' do
-        expect(flush.code_provenance).to be nil
-      end
-    end
-
-    context 'when code_provenance_collector is available' do
-      let(:code_provenance_collector) do
-        collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance)
-        allow(collector).to receive(:refresh).and_return(collector)
-        collector
-      end
-      let(:code_provenance) { double('code_provenance') }
-
-      it 'returns a flush with code_provenance' do
-        expect(flush.code_provenance).to be code_provenance
+        it { is_expected.to be nil }
       end
     end
   end

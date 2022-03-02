@@ -938,39 +938,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       shared_examples_for 'profiler with default recorder' do
-        subject(:recorder) { profiler.scheduler.recorder }
+        subject(:recorder) { profiler.scheduler.send(:recorder) }
 
         it do
           is_expected.to have_attributes(max_size: settings.profiling.advanced.max_events)
-        end
-      end
-
-      shared_examples_for 'profiler with default exporters' do
-        subject(:http_exporter) { profiler.scheduler.exporters.first }
-
-        before do
-          allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(false)
-        end
-
-        it 'has an HTTP exporter' do
-          expect(profiler.scheduler.exporters).to have(1).item
-          expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
-          is_expected.to have_attributes(
-            transport: kind_of(Datadog::Profiling::Transport::HTTP::Client)
-          )
-
-          # Should be configured for agent transport
-          default_api = Datadog::Profiling::Transport::HTTP::API::V1
-          expect(http_exporter.transport.api).to have_attributes(
-            adapter: kind_of(Datadog::Transport::HTTP::Adapters::Net),
-            spec: Datadog::Profiling::Transport::HTTP::API.agent_defaults[default_api]
-          )
-          expect(http_exporter.transport.api.adapter).to have_attributes(
-            hostname: agent_settings.hostname,
-            port: agent_settings.port,
-            ssl: agent_settings.ssl,
-            timeout: settings.profiling.upload.timeout_seconds
-          )
         end
       end
 
@@ -995,12 +966,32 @@ RSpec.describe Datadog::Core::Configuration::Components do
           it_behaves_like 'profiler with default collectors'
           it_behaves_like 'profiler with default scheduler'
           it_behaves_like 'profiler with default recorder'
-          it_behaves_like 'profiler with default exporters'
 
           it 'runs the setup task to set up any needed extensions for profiling' do
             expect(profiler_setup_task).to receive(:run)
 
             build_profiler
+          end
+
+          it 'builds an HttpTransport with the current settings' do
+            expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
+              agent_settings: agent_settings,
+              site: settings.site,
+              api_key: settings.api_key,
+              upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+            )
+
+            build_profiler
+          end
+
+          it 'creates a scheduler with an HttpTransport' do
+            http_transport = instance_double(Datadog::Profiling::HttpTransport)
+
+            expect(Datadog::Profiling::HttpTransport).to receive(:new).and_return(http_transport)
+
+            build_profiler
+
+            expect(profiler.scheduler.send(:transport)).to be http_transport
           end
 
           [true, false].each do |value|
@@ -1039,8 +1030,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         context 'and :transport' do
           context 'is given' do
-            # Must be a kind of Datadog::Profiling::Transport::Client
-            let(:transport) { Class.new { include Datadog::Profiling::Transport::Client }.new }
+            let(:transport) { double('Custom transport') }
 
             before do
               allow(settings.profiling.exporter)
@@ -1053,13 +1043,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             it_behaves_like 'profiler with default recorder'
 
             it 'uses the custom transport' do
-              expect(profiler.scheduler.exporters).to have(1).item
-              expect(profiler.scheduler.exporters).to include(kind_of(Datadog::Profiling::Exporter))
-              http_exporter = profiler.scheduler.exporters.first
-
-              expect(http_exporter).to have_attributes(
-                transport: transport
-              )
+              expect(profiler.scheduler.send(:transport)).to be transport
             end
           end
         end

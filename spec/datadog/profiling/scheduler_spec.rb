@@ -6,27 +6,21 @@ require 'datadog/profiling/recorder'
 require 'datadog/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Scheduler do
-  subject(:scheduler) { described_class.new(recorder, exporters, **options) }
+  subject(:scheduler) { described_class.new(recorder: recorder, transport: transport, **options) }
 
   let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
-  let(:exporters) { [instance_double(Datadog::Profiling::Exporter)] }
+  let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
   let(:options) { {} }
 
-  describe '::new' do
-    it 'with default settings' do
-      is_expected.to have_attributes(
-        enabled?: true,
-        exporters: exporters,
-        fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
-        loop_base_interval: described_class.const_get(:DEFAULT_INTERVAL_SECONDS),
-        recorder: recorder
-      )
-    end
-
-    context 'given a single exporter' do
-      let(:exporters) { instance_double(Datadog::Profiling::Exporter) }
-
-      it { is_expected.to have_attributes(exporters: [exporters]) }
+  describe '.new' do
+    describe 'default settings' do
+      it do
+        is_expected.to have_attributes(
+          enabled?: true,
+          fork_policy: Datadog::Core::Workers::Async::Thread::FORK_POLICY_RESTART,
+          loop_base_interval: 60, # seconds
+        )
+      end
     end
   end
 
@@ -136,99 +130,61 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '#flush_events' do
     subject(:flush_events) { scheduler.send(:flush_events) }
 
-    let(:flush_start) { Time.now }
-    let(:flush_finish) { flush_start + 1 }
-    let(:flush) do
-      instance_double(Datadog::Profiling::OldFlush, event_count: event_count, start: flush_start, finish: flush_finish)
-    end
+    let(:flush) { instance_double(Datadog::Profiling::Flush) }
 
     before { expect(recorder).to receive(:flush).and_return(flush) }
 
-    context 'when no events are available' do
-      let(:event_count) { 0 }
+    it 'exports the profiling data' do
+      expect(transport).to receive(:export).with(flush)
 
-      it 'does not export' do
-        exporters.each do |exporter|
-          expect(exporter).to_not receive(:export)
-        end
+      flush_events
+    end
 
-        is_expected.to be flush
+    context 'when transport fails' do
+      before do
+        expect(transport).to receive(:export) { raise 'Kaboom' }
+      end
+
+      it 'gracefully handles the exception, logging it' do
+        expect(Datadog.logger).to receive(:error).with(/Kaboom/)
+
+        flush_events
       end
     end
 
-    context 'when events are available' do
-      let(:event_count) { 4 }
+    context 'when the flush does not contain enough data' do
+      let(:flush) { nil }
 
-      context 'and all the exporters succeed' do
-        it 'returns the flush' do
-          expect(exporters).to all(receive(:export).with(flush))
+      it 'does not try to export the profiling data' do
+        expect(transport).to_not receive(:export)
 
-          is_expected.to be flush
-        end
+        flush_events
       end
+    end
 
-      context 'and one of the exporters fail' do
-        before do
-          allow(exporters.first).to receive(:export)
-            .and_raise(StandardError)
+    context 'when being run in a loop' do
+      before { allow(scheduler).to receive(:run_loop?).and_return(true) }
 
-          expect(Datadog.logger).to receive(:error)
-            .with(/Unable to export \d+ profiling events/)
-            .exactly(1).time
+      it 'sleeps for up to DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS seconds before reporting' do
+        expect(scheduler).to receive(:sleep) do |sleep_amount|
+          expect(sleep_amount).to be < described_class.const_get(:DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS)
+          expect(sleep_amount).to be_a_kind_of(Float)
+          expect(transport).to receive(:export)
         end
 
-        it 'returns the number of events flushed' do
-          is_expected.to be flush
-
-          expect(exporters).to all(have_received(:export).with(flush))
-        end
+        flush_events
       end
+    end
 
-      context 'when the flush contains less than 1s of profiling data' do
-        let(:flush_finish) { super() - 0.01 }
+    context 'when being run as a one-off' do
+      before { allow(scheduler).to receive(:run_loop?).and_return(false) }
 
-        it 'does not export' do
-          exporters.each do |exporter|
-            expect(exporter).to_not receive(:export)
-          end
+      it 'does not sleep before reporting' do
+        expect(scheduler).to_not receive(:sleep)
 
-          flush_events
-        end
+        expect(transport).to receive(:export)
 
-        it 'logs a debug message' do
-          expect(Datadog.logger).to receive(:debug) do |&message|
-            expect(message.call).to include 'Skipped exporting'
-          end
-
-          flush_events
-        end
-      end
-
-      context 'when being run in a loop' do
-        before { allow(scheduler).to receive(:run_loop?).and_return(true) }
-
-        it 'sleeps for up to DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS seconds before reporting' do
-          expect(scheduler).to receive(:sleep) do |sleep_amount|
-            expect(sleep_amount).to be < described_class.const_get(:DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS)
-            expect(sleep_amount).to be_a_kind_of(Float)
-          end
-
-          expect(exporters).to all(receive(:export).with(flush))
-
-          flush_events
-        end
-      end
-
-      context 'when being run as a one-off' do
-        before { allow(scheduler).to receive(:run_loop?).and_return(false) }
-
-        it 'does not sleep before reporting' do
-          expect(scheduler).to_not receive(:sleep)
-
-          expect(exporters).to all(receive(:export).with(flush))
-
-          flush_events
-        end
+        flush_events
       end
     end
   end

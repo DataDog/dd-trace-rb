@@ -230,8 +230,8 @@ module Datadog
 
             recorder = build_profiler_recorder(settings, code_provenance_collector)
             collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
-            exporters = build_profiler_exporters(settings, agent_settings)
-            scheduler = build_profiler_scheduler(settings, recorder, exporters)
+            transport = build_profiler_transport(settings, agent_settings)
+            scheduler = build_profiler_scheduler(settings, recorder, transport)
 
             Profiling::Profiler.new(collectors, scheduler)
           end
@@ -287,20 +287,18 @@ module Datadog
             ]
           end
 
-          def build_profiler_exporters(settings, agent_settings)
-            transport =
-              settings.profiling.exporter.transport || Profiling::Transport::HTTP.default(
+          def build_profiler_transport(settings, agent_settings)
+            settings.profiling.exporter.transport ||
+              Profiling::HttpTransport.new(
                 agent_settings: agent_settings,
                 site: settings.site,
                 api_key: settings.api_key,
-                profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
+                upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
               )
-
-            [Profiling::Exporter.new(transport)]
           end
 
-          def build_profiler_scheduler(settings, recorder, exporters)
-            Profiling::Scheduler.new(recorder, exporters)
+          def build_profiler_scheduler(_settings, recorder, transport)
+            Profiling::Scheduler.new(recorder: recorder, transport: transport)
           end
         end
 

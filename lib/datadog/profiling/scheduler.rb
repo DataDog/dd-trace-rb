@@ -6,36 +6,35 @@ require 'datadog/core/workers/polling'
 
 module Datadog
   module Profiling
-    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes data from the `Recorder` and pushes them to all configured
-    # `Exporter`s. Runs on its own background thread.
+    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes data from the `Recorder` and reports them using the configured
+    # transport. Runs on its own background thread.
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
       DEFAULT_INTERVAL_SECONDS = 60
       MINIMUM_INTERVAL_SECONDS = 0
 
-      # Profiles with duration less than this will not be reported
-      PROFILE_DURATION_THRESHOLD_SECONDS = 1
-
       # We sleep for at most this duration seconds before reporting data to avoid multi-process applications all
       # reporting profiles at the exact same time
       DEFAULT_FLUSH_JITTER_MAXIMUM_SECONDS = 3
 
-      private_constant :DEFAULT_INTERVAL_SECONDS, :MINIMUM_INTERVAL_SECONDS, :PROFILE_DURATION_THRESHOLD_SECONDS
+      private
 
       attr_reader \
-        :exporters,
-        :recorder
+        :recorder,
+        :transport
+
+      public
 
       def initialize(
-        recorder,
-        exporters,
+        recorder:,
+        transport:,
         fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
         interval: DEFAULT_INTERVAL_SECONDS,
         enabled: true
       )
         @recorder = recorder
-        @exporters = [exporters].flatten
+        @transport = transport
 
         # Workers::Async::Thread settings
         self.fork_policy = fork_policy
@@ -99,16 +98,10 @@ module Datadog
       end
 
       def flush_events
-        # Get events from recorder
+        # Collect data to be exported
         flush = recorder.flush
 
-        if duration_below_threshold?(flush)
-          Datadog.logger.debug do
-            "Skipped exporting profiling events as profile duration is below minimum (#{flush.event_count} events skipped)"
-          end
-
-          return flush
-        end
+        return false unless flush
 
         # Sleep for a bit to cause misalignment between profilers in multi-process applications
         #
@@ -126,24 +119,13 @@ module Datadog
           sleep(jitter_seconds)
         end
 
-        # Send events to each exporter
-        if flush.event_count > 0
-          exporters.each do |exporter|
-            begin
-              exporter.export(flush)
-            rescue StandardError => e
-              Datadog.logger.error(
-                "Unable to export #{flush.event_count} profiling events. Cause: #{e} Location: #{Array(e.backtrace).first}"
-              )
-            end
-          end
+        begin
+          transport.export(flush)
+        rescue StandardError => e
+          Datadog.logger.error("Unable to report profile. Cause: #{e} Location: #{Array(e.backtrace).first}")
         end
 
-        flush
-      end
-
-      def duration_below_threshold?(flush)
-        (flush.finish - flush.start) < PROFILE_DURATION_THRESHOLD_SECONDS
+        true
       end
     end
   end
