@@ -9,9 +9,6 @@ module Datadog
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
 
-    SKIPPED_NATIVE_EXTENSION_ONLY_ONCE = Core::Utils::OnlyOnce.new
-    private_constant :SKIPPED_NATIVE_EXTENSION_ONLY_ONCE
-
     def self.supported?
       unsupported_reason.nil?
     end
@@ -20,7 +17,7 @@ module Datadog
       # NOTE: Only the first matching reason is returned, so try to keep a nice order on reasons -- e.g. tell users
       # first that they can't use this on JRuby before telling them that they are missing protobuf
 
-      ruby_engine_unsupported? ||
+      native_library_compilation_skipped? ||
         native_library_failed_to_load? ||
         protobuf_gem_unavailable? ||
         protobuf_version_unsupported? ||
@@ -43,8 +40,24 @@ module Datadog
       !!profiler
     end
 
-    private_class_method def self.ruby_engine_unsupported?
-      'JRuby is not supported' if RUBY_ENGINE == 'jruby'
+    private_class_method def self.native_library_compilation_skipped?
+      skipped_reason = try_reading_skipped_reason_file
+
+      "Your ddtrace installation is missing support for the Continuous Profiler because #{skipped_reason}" if skipped_reason
+    end
+
+    private_class_method def self.try_reading_skipped_reason_file(file_api = File)
+      # This file, if it exists, is recorded by extconf.rb during compilation of the native extension
+      skipped_reason_file = "#{__dir__}/../../ext/ddtrace_profiling_native_extension/skipped_reason.txt"
+
+      begin
+        return unless file_api.exist?(skipped_reason_file)
+
+        contents = file_api.read(skipped_reason_file).strip
+        contents unless contents.empty?
+      rescue StandardError => _e
+        # Do nothing
+      end
     end
 
     private_class_method def self.protobuf_gem_unavailable?
@@ -96,8 +109,7 @@ module Datadog
           'This can happen when google-protobuf is missing its native components. ' \
           'To fix this, try removing and reinstalling the gem, forcing it to recompile the components: ' \
           '`gem uninstall google-protobuf -a; BUNDLE_FORCE_RUBY_PLATFORM=true bundle install`. ' \
-          'If the error persists, please contact support via <https://docs.datadoghq.com/help/> or ' \
-          'file a bug at <https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug>.'
+          'If the error persists, please contact Datadog support at <https://docs.datadoghq.com/help/>.'
         )
         @protobuf_loaded = false
       end
@@ -112,26 +124,12 @@ module Datadog
           "'#{exception.message}' at '#{exception.backtrace.first}'"
         else
           'The profiling native extension did not load correctly. ' \
-          'If the error persists, please contact support via <https://docs.datadoghq.com/help/> or ' \
-          'file a bug at <https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug>.'
+          'For help solving this issue, please contact Datadog support at <https://docs.datadoghq.com/help/>.' \
         end
       end
     end
 
     private_class_method def self.try_loading_native_library
-      if Core::Environment::VariableHelpers.env_to_bool('DD_PROFILING_NO_EXTENSION', false)
-        SKIPPED_NATIVE_EXTENSION_ONLY_ONCE.run do
-          Kernel.warn(
-            '[DDTRACE] Skipped loading of profiling native extension due to DD_PROFILING_NO_EXTENSION environment ' \
-            'variable being set. ' \
-            'This option is experimental and will lead to the profiler not working in future releases. ' \
-            'If you needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.'
-          )
-        end
-
-        return [true, nil]
-      end
-
       begin
         require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
         success =
@@ -162,6 +160,6 @@ module Datadog
       true
     end
 
-    load_profiling if supported?
+    load_profiling
   end
 end

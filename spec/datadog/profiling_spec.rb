@@ -13,7 +13,7 @@ RSpec.describe Datadog::Profiling do
     end
 
     context 'with the profiler instance available' do
-      let(:result) { instance_double(Datadog::Profiling::Profiler) }
+      let(:result) { instance_double('Datadog::Profiling::Profiler') }
       it 'starts the profiler instance' do
         expect(result).to receive(:start)
         is_expected.to be(true)
@@ -45,14 +45,18 @@ RSpec.describe Datadog::Profiling do
   describe '::unsupported_reason' do
     subject(:unsupported_reason) { described_class.unsupported_reason }
 
-    context 'when JRuby is used' do
-      before { stub_const('RUBY_ENGINE', 'jruby') }
+    context 'when the profiling native library was not compiled' do
+      before do
+        expect(described_class).to receive(:try_reading_skipped_reason_file).and_return('fake skipped reason')
+      end
 
-      it { is_expected.to include 'JRuby' }
+      it { is_expected.to include 'missing support for the Continuous Profiler' }
     end
 
-    context 'when not using JRuby' do
-      before { stub_const('RUBY_ENGINE', 'ruby') }
+    context 'when the profiling native library was compiled' do
+      before do
+        expect(described_class).to receive(:try_reading_skipped_reason_file).and_return nil
+      end
 
       context 'when the profiling native library fails to be loaded with a exception' do
         let(:loaderror) do
@@ -72,7 +76,7 @@ RSpec.describe Datadog::Profiling do
 
       context "when the profiling native library fails to be loaded but there's no exception" do
         before do
-          expect(described_class).to receive(:try_loading_native_library).and_return [false, nil]
+          expect(described_class).to receive(:try_loading_native_library).and_return([false, nil])
         end
 
         it { is_expected.to include 'profiling native extension did not load correctly' }
@@ -80,7 +84,7 @@ RSpec.describe Datadog::Profiling do
 
       context "when the profiling native library is available and 'google-protobuf'" do
         before do
-          expect(described_class).to receive(:try_loading_native_library).and_return [true, nil]
+          expect(described_class).to receive(:try_loading_native_library).and_return([true, nil])
         end
 
         context 'is not available' do
@@ -177,8 +181,6 @@ RSpec.describe Datadog::Profiling do
 
     let(:native_extension_require) { "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}" }
 
-    around { |example| ClimateControl.modify('DD_PROFILING_NO_EXTENSION' => nil) { example.run } }
-
     context 'when the profiling native library loads successfully' do
       before do
         expect(described_class)
@@ -220,33 +222,56 @@ RSpec.describe Datadog::Profiling do
 
       it { is_expected.to eq [false, nil] }
     end
+  end
 
-    context "when DD_PROFILING_NO_EXTENSION is set to 'true'" do
+  describe '::try_reading_skipped_reason_file' do
+    subject(:try_reading_skipped_reason_file) { described_class.send(:try_reading_skipped_reason_file, file_api) }
+
+    let(:file_api) { class_double(File, exist?: exist?, read: read) }
+    let(:exist?) { true }
+    let(:read) { '' }
+
+    it 'tries to read the skipped_reason.txt file in the native extension folder' do
+      expected_path = File.expand_path('../../ext/ddtrace_profiling_native_extension/skipped_reason.txt', __dir__)
+
+      expect(file_api).to receive(:exist?) do |path|
+        expect(File.expand_path(path)).to eq expected_path
+      end.and_return(true)
+
+      expect(file_api).to receive(:read) do |path|
+        expect(File.expand_path(path)).to eq expected_path
+      end.and_return('')
+
+      try_reading_skipped_reason_file
+    end
+
+    context 'when file does not exist' do
+      let(:exist?) { false }
+
+      it { is_expected.to be nil }
+    end
+
+    context 'when file fails to open' do
+      let(:exist?) { true }
+
       before do
-        allow(Kernel).to receive(:warn)
-        described_class.const_get(:SKIPPED_NATIVE_EXTENSION_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
+        expect(file_api).to receive(:read) { File.open('this-will-fail') }
       end
 
-      around { |example| ClimateControl.modify('DD_PROFILING_NO_EXTENSION' => 'true') { example.run } }
+      it { is_expected.to be nil }
+    end
 
-      it { is_expected.to eq [true, nil] }
+    context 'when file is empty' do
+      let(:read) { " \t\n" }
 
-      it 'logs a warning' do
-        expect(Kernel).to receive(:warn).with(/DD_PROFILING_NO_EXTENSION/)
+      it { is_expected.to be nil }
+    end
 
-        try_loading_native_library
-      end
+    context 'when file exists and has content' do
+      let(:read) { 'skipped reason content' }
 
-      it 'does not try to require the native extension' do
-        expect(described_class).to_not receive(:require)
-
-        try_loading_native_library
-      end
-
-      it 'does not try to call NativeExtension.native_working?' do
-        stub_const('Datadog::Profiling::NativeExtension', double('native_extension double which should not be used'))
-
-        try_loading_native_library
+      it 'returns the content' do
+        is_expected.to eq 'skipped reason content'
       end
     end
   end
