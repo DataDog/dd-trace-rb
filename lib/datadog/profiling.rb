@@ -156,6 +156,8 @@ module Datadog
       require 'datadog/profiling/native_extension'
       require 'datadog/profiling/trace_identifiers/helper'
       require 'datadog/profiling/pprof/pprof_pb'
+      require 'datadog/profiling/http_transport'
+      require 'datadog/profiling/tag_builder'
 
       true
     end
