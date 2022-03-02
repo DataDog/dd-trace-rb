@@ -108,7 +108,9 @@ static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tag
 
 static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array) {
   long tags_count = rb_array_len(tags_as_array);
-  ddprof_ffi_Tag converted_tags[tags_count];
+
+  ddprof_ffi_Tag* converted_tags = xcalloc(tags_count, sizeof(ddprof_ffi_Tag));
+  if (converted_tags == NULL) rb_raise(rb_eNoMemError, "Failed to allocate memory for storing tags");
 
   convert_tags(converted_tags, tags_count, tags_as_array);
 
@@ -118,6 +120,8 @@ static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_a
       (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
       endpoint
     );
+
+  xfree(converted_tags);
 
   if (exporter_result.tag != DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) {
     VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
