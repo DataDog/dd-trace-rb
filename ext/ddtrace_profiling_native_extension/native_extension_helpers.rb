@@ -29,6 +29,7 @@ module Datadog
             on_jruby? ||
             on_truffleruby? ||
             on_windows? ||
+            on_macos? ||
             on_unknown_os? ||
             not_on_amd64_or_arm64? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
@@ -122,6 +123,17 @@ module Datadog
           )
 
           windows_not_supported if Gem.win_platform?
+        end
+
+        private_class_method def self.on_macos?
+          macos_not_supported = explain_issue(
+            'macOS is currently not supported by the Datadog Continuous Profiler.',
+            suggested: GET_IN_TOUCH,
+          )
+          # For development only; not supported otherwise
+          macos_testing_override = ENV['DD_PROFILING_MACOS_TESTING'] == 'true'
+
+          macos_not_supported if RUBY_PLATFORM.include?('darwin') && !macos_testing_override
         end
 
         private_class_method def self.on_unknown_os?

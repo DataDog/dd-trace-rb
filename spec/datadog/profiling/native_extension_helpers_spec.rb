@@ -57,10 +57,24 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         it { is_expected.to include 'Windows' }
       end
 
-      context 'when not on Windows' do
+      context 'when on macOS' do
+        around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => nil) { example.run } }
+
+        before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+
+        it { is_expected.to include 'macOS' }
+
+        context 'when macOS testing override is enabled' do
+          around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => 'true') { example.run } }
+
+          it { is_expected.to be nil }
+        end
+      end
+
+      context 'when not on Windows or macOS' do
         before { expect(Gem).to receive(:win_platform?).and_return(false) }
 
-        context 'when not on macOS or Linux' do
+        context 'when not on Linux' do
           before { stub_const('RUBY_PLATFORM', 'sparc-opensolaris') }
 
           it { is_expected.to include 'operating system is not supported' }
