@@ -1,4 +1,4 @@
-# typed: ignore
+# typed: false
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
@@ -45,37 +45,24 @@ class ProfilerSubmission
     :tags
   )
 
-  def create_profiler
-    @adapter_buffer = []
-
-    Datadog.configure do |c|
-      c.profiling.enabled = true
-      c.tracing.transport_options = proc { |t| t.adapter :test, @adapter_buffer }
-    end
-
-    # Stop background threads
-    Datadog.shutdown!
-
-    # Call exporter directly
-    @exporter = Datadog.send(:components).profiler.scheduler.exporters.first
-
+  def initialize
     # @ivoanjo: Hack to allow unmarshalling the old data; this will all need to be redesigned once we start using
     # libddprof for profile encoding, so I decided to take a shorter route for now.
-    original_flush_class = defined?(Datadog::Profiling::Flush) && Datadog::Profiling::Flush
+    original_flush_class = Datadog::Profiling::Flush
     Datadog::Profiling.const_set(:Flush, OldFlush)
-    @flush = Marshal.load(
+    flush = Marshal.load(
       Zlib::GzipReader.new(File.open(ENV['FLUSH_DUMP_FILE'] || 'benchmarks/data/profiler-submission-marshal.gz'))
     )
     Datadog::Profiling.const_set(:Flush, original_flush_class)
+
+    @profiling_data = {event_count: flush.event_count, event_groups: flush.event_groups, start: flush.start, finish: flush.finish}
   end
 
   def check_valid_pprof
-    output_pprof = @adapter_buffer.last[:form]["data[rubyprofile.pprof]"].io
-
     expected_hashes = [
       "395dd7e65b35be6eede78ac9be072df8d6d79653f8c248691ad9bdd1d8b507de",
     ]
-    current_hash = Digest::SHA256.hexdigest(Zlib::GzipReader.new(output_pprof).read)
+    current_hash = Digest::SHA256.hexdigest(Datadog::Core::Utils::Compression.gunzip(@output_pprof))
 
     if expected_hashes.include?(current_hash)
       puts "Output hash #{current_hash} matches known signature"
@@ -88,7 +75,7 @@ class ProfilerSubmission
   def run_benchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 70, warmup: 2}
-      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission_v2'))
+      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_submission_v3'))
 
       x.report("exporter #{ENV['CONFIG']}") do
         run_once
@@ -107,15 +94,14 @@ class ProfilerSubmission
   end
 
   def run_once
-    @adapter_buffer.clear
-    @exporter.export(@flush)
+    @output_pprof =
+      Datadog::Core::Utils::Compression.gzip(Datadog::Profiling::Encoding::Profile::Protobuf.encode(**@profiling_data))
   end
 end
 
 puts "Current pid is #{Process.pid}"
 
 ProfilerSubmission.new.instance_exec do
-  create_profiler
   run_once
   check_valid_pprof
 
