@@ -10,13 +10,13 @@ JRuby or TruffleRuby. When below we say "Ruby", read it as "MRI Ruby".
 
 ## Disabling
 
-The profiling native extension can be disabled by setting `DD_PROFILING_NO_EXTENSION=true` when installing or running
+The profiling native extension can be disabled by setting `DD_PROFILING_NO_EXTENSION=true` when installing
 the gem. Setting `DD_PROFILING_NO_EXTENSION` at installation time skips compilation of the extension entirely.
 
 (If you're a customer and needed to use this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>.)
 
-Currently the profiler can still "limp along" when the native extension is disabled, but the plan is to require it
-in future releases -- e.g. disabling the extension will disable profiling entirely.
+In past releases, it was possible for the profiler to run without the native extension, but that's no longer the case,
+and disabling the extension will disable profiling.
 
 ## Safety
 
@@ -66,7 +66,6 @@ Thus, even though a regular Ruby installation does not include these files, we c
 ## Feature: Getting thread CPU-time clock_ids
 
 * **OS support**: Linux
-* **Ruby support**: 2.6+
 
 To enable CPU-time profiling, we use the `pthread_getcpuclockid(pthread_t thread, clockid_t *clockid)` C function to
 obtain a `clockid_t` that can then be used with the `Process.clock_gettime` method (or directly with the

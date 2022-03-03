@@ -11,23 +11,22 @@ Components below live inside <../lib/datadog/profiling>:
 * `Collectors::Stack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
 * `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code, from libraries, from the standard library, etc).
-* `Encoding::Profile`: Encodes gathered data into the pprof format.
+* `Encoding::Profile::Protobuf`: Encodes gathered data into the pprof format.
 * `Events::Stack`, `Events::StackSample`: Entity classes used to represent stacks.
 * `Ext::Forking`: Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
   profiling abilities after the VM forks (such as re-instrumenting the main thread, and restarting profiler threads).
-* `Pprof::*` (in <../lib/datadog/profiling/pprof>): Converts samples captured in the `Recorder` into the pprof format.
-* `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle fork().
-* `Transport::*` (in <../lib/datadog/profiling/transport>): Implements transmission of profiling payloads to the Datadog agent
-  or backend.
+* `Pprof::*` (in <../lib/datadog/profiling/pprof>): Used by `Encoding::Profile::Protobuf` to convert samples captured in
+  the `Recorder` into the pprof format.
+* `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle `fork()`.
+* `HttpTransport`: Implements transmission of profiling payloads to the Datadog agent or backend.
 * `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
 * `BacktraceLocation`: Entity class used to represent an entry in a stack trace.
 * `Buffer`: Bounded buffer used to store profiling events.
-* `Exporter`: Writes profiling data to a given transport.
-* `Flush`: Entity class used to represent metadata for a given profile.
+* `Flush`: Entity class used to represent the payload to be reported for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
 * `Recorder`: Stores profiling events gathered by `Collector`s.
-* `Scheduler`: Periodically (every 1 minute) takes data from the `Recorder` and pushes them to all configured
-  `Exporter`s. Runs on its own background thread.
+* `Scheduler`: Periodically (every 1 minute) takes data from the `Recorder` and pushes them to the configured transport.
+  Runs on its own background thread.
 
 ## Initialization
 
@@ -35,11 +34,10 @@ When started via `ddtracerb exec` (together with `DD_PROFILING_ENABLED=true`), i
 flow:
 
 1. <../lib/datadog/profiling/preload.rb> triggers the creation of the profiler instance by calling the method `Datadog::Profiling.start_if_enabled`
-2. The profiler instance is handled by `Datadog::Configuration`, which triggers the configuration of `ddtrace` components
-   in `#build_components`
-3. Inside `Datadog::Components`, the `build_profiler` method triggers the execution of the `Tasks::Setup`
-4. The `Setup` task activates our extensions
-    * `Datadog::Profiling::Ext::Forking`
+2. Creation of the profiler instance is handled by `Datadog::Configuration`, which triggers the configuration of all
+  `ddtrace` components in `#build_components`
+3. Inside `Datadog::Components`, the `build_profiler` method triggers the execution of the `Tasks::Setup` task
+4. The `Setup` task activates our extensions (`Datadog::Profiling::Ext::Forking`)
 5. Still inside `Datadog::Components`, the `build_profiler` method then creates and wires up the Profiler as such:
     ```asciiflow
             +------------+
@@ -52,9 +50,9 @@ flow:
     +---------+--+  +-+-------+-+
               |       |       |
               v       |       v
-        +-----+-+     |  +----+------+
-        | Stack |     |  | Exporters |
-        +-----+-+     |  +-----------+
+        +-----+-+     |  +----+----------+
+        | Stack |     |  | HttpTransport |
+        +-----+-+     |  +---------------+
               |       |
               v       v
             +-+-------+-+
@@ -75,9 +73,9 @@ During run-time, the `Scheduler` and the `Collectors::Stack` each execute on the
 The `Collectors::Stack` samples stack traces of threads, capturing both CPU-time (if available) and wall-clock, storing
 them in the `Recorder`.
 
-The `Scheduler` wakes up every 1 minute to flush the results of the `Recorder` into one or more `exporter`s.
-Usually only one exporter is in use. By default, the `Exporter` delegates to the default `Transport::HTTP` transport, which
-takes care of encoding the data and reporting it to the datadog agent (or to the API, when running without an agent).
+The `Scheduler` wakes up every 1 minute to flush the results of the `Recorder` into the transport.
+By default, the `Scheduler` gets created with the default `HttpTransport`, which
+takes care of encoding the data and reporting it to the Datadog agent.
 
 ## How CPU-time profiling works
 
