@@ -14,7 +14,6 @@ module Datadog
           module_function
 
           def encode(event_count:, event_groups:, start:, finish:)
-
             # Create a pprof template from the list of event types
             event_classes = event_groups.collect(&:event_class).uniq
             template = Pprof::Template.for_event_classes(event_classes)

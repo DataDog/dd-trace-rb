@@ -4,41 +4,6 @@ require 'datadog/profiling'
 module ProfileHelpers
   include Kernel
 
-  def get_test_profiling_flush(code_provenance: nil)
-    stack_one = Array(Thread.current.backtrace_locations).first(3)
-    stack_two = Array(Thread.current.backtrace_locations).first(3)
-
-    stack_samples = [
-      build_stack_sample(
-        locations: stack_one, thread_id: 100, root_span_id: 0, span_id: 0, cpu_time_ns: 100, wall_time_ns: 100
-      ),
-      build_stack_sample(
-        locations: stack_two, thread_id: 100, root_span_id: 0, span_id: 0, cpu_time_ns: 200, wall_time_ns: 200
-      ),
-      build_stack_sample(
-        locations: stack_one, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 400, wall_time_ns: 400
-      ),
-      build_stack_sample(
-        locations: stack_two, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 800, wall_time_ns: 800
-      ),
-      build_stack_sample(
-        locations: stack_two, thread_id: 101, root_span_id: 0, span_id: 0, cpu_time_ns: 1600, wall_time_ns: 1600
-      )
-    ]
-
-    start = Time.now.utc
-    finish = start + 10
-    event_groups = [Datadog::Profiling::EventGroup.new(Datadog::Profiling::Events::StackSample, stack_samples)]
-
-    Datadog::Profiling::OldFlush.new(
-      start: start,
-      finish: finish,
-      event_groups: event_groups,
-      event_count: stack_samples.length,
-      code_provenance: code_provenance,
-    )
-  end
-
   def build_stack_sample(
     locations: nil,
     thread_id: nil,

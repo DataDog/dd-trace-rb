@@ -2,24 +2,7 @@
 require 'datadog/profiling/native_extension'
 
 RSpec.describe Datadog::Profiling::NativeExtension do
-  before do
-    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
-
-    begin
-      require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
-    rescue LoadError
-      if PlatformHelpers.mac?
-        skip 'Skipping profiling native extension specs: extension does not seem' \
-          'to be available. (Note that on macOS the extension can only be built if ' \
-          'libddprof is also manually rebuilt from source, since there are no ' \
-          'precompiled macOS binaries for libddprof).'
-      else
-        raise 'Profiling native extension does not seem to be compiled. ' \
-          'Try running `bundle exec rake compile` before running this test.'
-      end
-    end
-  end
+  before { skip_if_profiling_not_supported(self) }
 
   describe '.working?' do
     subject(:working?) { described_class.send(:working?) }
