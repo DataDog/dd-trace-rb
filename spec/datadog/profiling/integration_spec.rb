@@ -109,17 +109,11 @@ RSpec.describe 'profiling integration test' do
         )
       )
     end
-    let(:out) { instance_double(IO) }
-    let(:scheduler) do
-      Datadog::Profiling::Scheduler.new(
-        recorder,
-        exporter,
-        enabled: true
-      )
-    end
+    let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
+    let(:scheduler) { Datadog::Profiling::Scheduler.new(recorder: recorder, transport: transport) }
 
     it 'produces a profile' do
-      expect(out).to receive(:puts)
+      expect(transport).to receive(:export)
 
       collector.collect_events
       scheduler.send(:flush_events)
@@ -138,13 +132,15 @@ RSpec.describe 'profiling integration test' do
       let(:tracer) { Datadog::Tracing.send(:tracer) }
 
       before do
-        expect(recorder)
-          .to receive(:flush)
-          .and_wrap_original do |m, *args|
-            flush = m.call(*args)
+        expect(Datadog::Profiling::Encoding::Profile::Protobuf)
+          .to receive(:encode)
+          .and_wrap_original do |m, **args|
+            encoded_pprof = m.call(**args)
+
+            event_groups = args.fetch(:event_groups)
 
             # Verify that all the stack samples for this test received the same non-zero trace and span ID
-            stack_sample_group = flush.event_groups.find { |g| g.event_class == Datadog::Profiling::Events::StackSample }
+            stack_sample_group = event_groups.find { |g| g.event_class == Datadog::Profiling::Events::StackSample }
             stack_samples = stack_sample_group.events.select { |e| e.thread_id == Thread.current.object_id }
 
             raise 'No stack samples matching current thread!' if stack_samples.empty?
@@ -154,12 +150,12 @@ RSpec.describe 'profiling integration test' do
               expect(stack_sample.span_id).to eq(@current_span.span_id)
             end
 
-            flush
+            encoded_pprof
           end
       end
 
       it 'produces a profile including tracing data' do
-        expect(out).to receive(:puts)
+        expect(transport).to receive(:export)
 
         collector.collect_events
         scheduler.send(:flush_events)

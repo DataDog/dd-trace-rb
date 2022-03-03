@@ -13,9 +13,15 @@ require_relative 'dogstatsd_reporter'
 # This benchmark measures the performance of the main stack sampling loop of the profiler
 
 class ProfilerSampleLoopBenchmark
+  class MockProfilerTransport
+    def export(_flush)
+    end
+  end
+
   def create_profiler
     Datadog.configure do |c|
       c.profiling.enabled = true
+      c.profiling.exporter.transport = MockProfilerTransport.new
       c.tracing.transport_options = proc { |t| t.adapter :test }
     end
 

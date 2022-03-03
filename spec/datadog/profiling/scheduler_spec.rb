@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/profiling/exporter'
+require 'datadog/profiling/http_transport'
 require 'datadog/profiling/recorder'
 require 'datadog/profiling/scheduler'
 
