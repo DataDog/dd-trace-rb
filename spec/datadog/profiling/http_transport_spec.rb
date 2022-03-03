@@ -320,6 +320,30 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       expect(request.request_uri.to_s).to eq 'http://127.0.0.1:6006/profiling/v1/input'
     end
 
+    context 'when code provenance data is not available' do
+      let(:code_provenance_data) { nil }
+
+      it 'correctly reports profiling data but does not include code provenance' do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        # check body
+        boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+        expect(body).to include(
+          'version' => '3',
+          'family' => 'ruby',
+          'start' => start_timestamp,
+          'end' => end_timestamp,
+          "data[#{pprof_file_name}]" => pprof_data,
+        )
+
+        expect(body["data[#{code_provenance_file_name}]"]).to be nil
+      end
+    end
+
     context 'via unix domain socket' do
       before { pending 'Support for reporting via unix domain socket in libddprof is still work in progress' }
 
