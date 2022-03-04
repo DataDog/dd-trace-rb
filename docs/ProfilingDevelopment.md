@@ -16,7 +16,7 @@ Components below live inside <../lib/datadog/profiling>:
 * `Ext::Forking`: Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
   profiling abilities after the VM forks (such as re-instrumenting the main thread, and restarting profiler threads).
 * `Pprof::*` (in <../lib/datadog/profiling/pprof>): Used by `Encoding::Profile::Protobuf` to convert samples captured in
-  the `Recorder` into the pprof format.
+  the `OldRecorder` into the pprof format.
 * `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle `fork()`.
 * `HttpTransport`: Implements transmission of profiling payloads to the Datadog agent or backend.
 * `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
@@ -24,7 +24,8 @@ Components below live inside <../lib/datadog/profiling>:
 * `Buffer`: Bounded buffer used to store profiling events.
 * `Flush`: Entity class used to represent the payload to be reported for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
-* `Recorder`: Stores profiling events gathered by `Collector`s.
+* `OldRecorder`: Stores profiling events gathered by the `Collector::Stack`. (To be removed after migration to libddprof aggregation)
+* `Recorder`: Gathers data from `OldRecorder` and `Collector::CodeProvenance` to be reported as a profile.
 * `Scheduler`: Periodically (every 1 minute) takes data from the `Recorder` and pushes them to the configured transport.
   Runs on its own background thread.
 
@@ -52,15 +53,15 @@ flow:
               v       |       v
         +-----+-+     |  +----+----------+
         | Stack |     |  | HttpTransport |
-        +-----+-+     |  +---------------+
-              |       |
-              v       v
-            +-+-------+-+
-            | Recorder  |
-            +-----------+
-              |
-              v
-        +-----------------+
+        +--+----+     |  +---------------+
+           |          |
+           v          v
++-------------+     +-+---------+
+| OldRecorder |<----| Recorder  |
++-------------+     +-+---------+
+                      |
+                      v
+        +-------------+---+
         | Code Provenance |
         +-----------------+
     ```

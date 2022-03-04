@@ -58,13 +58,13 @@ class ProfilerSampleLoopBenchmark
       x.compare!
     end
 
-    @recorder.flush
+    @recorder.serialize
   end
 
   def run_forever
     while true
       1000.times { @stack_collector.collect_and_wait }
-      @recorder.flush
+      @recorder.serialize
       print '.'
     end
   end

@@ -22,21 +22,18 @@ module Datadog
       attr_reader \
         :pprof_collector,
         :code_provenance_collector,
-        :minimum_duration,
-        :logger
+        :minimum_duration
 
       public
 
       def initialize(
         pprof_collector:,
         code_provenance_collector:,
-        minimum_duration: PROFILE_DURATION_THRESHOLD_SECONDS,
-        logger: Datadog.logger
+        minimum_duration: PROFILE_DURATION_THRESHOLD_SECONDS
       )
         @pprof_collector = pprof_collector
         @code_provenance_collector = code_provenance_collector
         @minimum_duration = minimum_duration
-        @logger = logger
       end
 
       def flush
@@ -45,7 +42,7 @@ module Datadog
         return if uncompressed_pprof.nil? # We don't want to report empty profiles
 
         if duration_below_threshold?(start, finish)
-          logger.debug('Skipped exporting profiling events as profile duration is below minimum')
+          Datadog.logger.debug('Skipped exporting profiling events as profile duration is below minimum')
           return
         end
 

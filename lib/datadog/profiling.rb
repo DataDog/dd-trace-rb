@@ -147,6 +147,7 @@ module Datadog
       require 'datadog/profiling/collectors/code_provenance'
       require 'datadog/profiling/collectors/stack'
       require 'datadog/profiling/old_recorder'
+      require 'datadog/profiling/recorder'
       require 'datadog/profiling/scheduler'
       require 'datadog/profiling/tasks/setup'
       require 'datadog/profiling/profiler'

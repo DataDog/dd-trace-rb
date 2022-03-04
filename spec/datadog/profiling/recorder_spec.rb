@@ -7,24 +7,21 @@ require 'datadog/core/logger'
 
 RSpec.describe Datadog::Profiling::Recorder do
   subject(:recorder) do
-    described_class.new(
-      pprof_collector: pprof_collector,
-      code_provenance_collector: code_provenance_collector,
-      logger: logger,
-    )
+    described_class.new(pprof_collector: pprof_collector, code_provenance_collector: code_provenance_collector)
   end
 
   let(:start) { Time.now }
   let(:finish) { start + 60 }
   let(:pprof_data) { 'dummy pprof data' }
   let(:code_provenance_data) { 'dummy code provenance data' }
-  let(:pprof_collector) { instance_double(Datadog::Profiling::OldRecorder, serialize: [start, finish, pprof_data]) }
+  let(:pprof_collector_serialize) { [start, finish, pprof_data] }
+  let(:pprof_collector) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_collector_serialize) }
   let(:code_provenance_collector) do
     collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
     allow(collector).to receive(:refresh).and_return(collector)
     collector
   end
-  let(:logger) { instance_double(Datadog::Core::Logger) }
+  let(:logger) { Datadog.logger }
 
   describe '#flush' do
     subject(:flush) { recorder.flush }
@@ -42,7 +39,7 @@ RSpec.describe Datadog::Profiling::Recorder do
     end
 
     context 'when pprof collector has no data' do
-      let(:pprof_data) { nil }
+      let(:pprof_collector_serialize) { nil }
 
       it { is_expected.to be nil }
     end

@@ -221,15 +221,9 @@ module Datadog
               endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
             )
 
-            # TODO: It's a bit weird to treat this collector differently from others. See the TODO on the
-            # Datadog::Profiling::OldRecorder class for a discussion of this choice.
-            if settings.profiling.advanced.code_provenance_enabled
-              code_provenance_collector =
-                Profiling::Collectors::CodeProvenance.new
-            end
-
-            recorder = build_profiler_recorder(settings, code_provenance_collector)
-            collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
+            old_recorder = build_profiler_old_recorder(settings)
+            recorder = build_profiler_recorder(settings, old_recorder)
+            collectors = build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
             transport = build_profiler_transport(settings, agent_settings)
             scheduler = build_profiler_scheduler(settings, recorder, transport)
 
@@ -265,13 +259,24 @@ module Datadog
             Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
           end
 
-          def build_profiler_recorder(settings, code_provenance_collector)
+          def build_profiler_old_recorder(settings)
             event_classes = [Profiling::Events::StackSample]
 
             Profiling::OldRecorder.new(
               event_classes,
               settings.profiling.advanced.max_events,
-              code_provenance_collector: code_provenance_collector
+            )
+          end
+
+          def build_profiler_recorder(settings, old_recorder)
+            code_provenance_collector =
+              (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
+
+            Profiling::Recorder.new(
+              # NOTE: Using the OldRecorder as a pprof_collector is temporary and will be removed once libpprof is
+              # being used for aggregation
+              pprof_collector: old_recorder,
+              code_provenance_collector: code_provenance_collector,
             )
           end
 

@@ -2,13 +2,13 @@
 require 'spec_helper'
 
 require 'datadog/profiling/http_transport'
-require 'datadog/profiling/old_recorder'
+require 'datadog/profiling/recorder'
 require 'datadog/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Scheduler do
   subject(:scheduler) { described_class.new(recorder: recorder, transport: transport, **options) }
 
-  let(:recorder) { instance_double(Datadog::Profiling::OldRecorder) }
+  let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
   let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
   let(:options) { {} }
 

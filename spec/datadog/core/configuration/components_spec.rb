@@ -927,7 +927,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       shared_examples_for 'profiler with default recorder' do
-        subject(:recorder) { profiler.scheduler.send(:recorder) }
+        subject(:old_recorder) { profiler.scheduler.send(:recorder).send(:pprof_collector) }
 
         it do
           is_expected.to have_attributes(max_size: settings.profiling.advanced.max_events)
@@ -997,7 +997,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'initializes the recorder with a code provenance collector' do
-            expect(Datadog::Profiling::OldRecorder).to receive(:new) do |*_args, code_provenance_collector:|
+            expect(Datadog::Profiling::Recorder).to receive(:new) do |code_provenance_collector:, **_|
               expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
             end.and_call_original
 
@@ -1008,7 +1008,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             before { settings.profiling.advanced.code_provenance_enabled = false }
 
             it 'initializes the recorder with a nil code provenance collector' do
-              expect(Datadog::Profiling::OldRecorder).to receive(:new) do |*_args, code_provenance_collector:|
+              expect(Datadog::Profiling::Recorder).to receive(:new) do |code_provenance_collector:, **_|
                 expect(code_provenance_collector).to be nil
               end.and_call_original
 
