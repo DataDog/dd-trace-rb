@@ -222,7 +222,7 @@ module Datadog
             )
 
             # TODO: It's a bit weird to treat this collector differently from others. See the TODO on the
-            # Datadog::Profiling::Recorder class for a discussion of this choice.
+            # Datadog::Profiling::OldRecorder class for a discussion of this choice.
             if settings.profiling.advanced.code_provenance_enabled
               code_provenance_collector =
                 Profiling::Collectors::CodeProvenance.new
@@ -268,7 +268,7 @@ module Datadog
           def build_profiler_recorder(settings, code_provenance_collector)
             event_classes = [Profiling::Events::StackSample]
 
-            Profiling::Recorder.new(
+            Profiling::OldRecorder.new(
               event_classes,
               settings.profiling.advanced.max_events,
               code_provenance_collector: code_provenance_collector

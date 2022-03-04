@@ -83,7 +83,7 @@ RSpec.describe 'profiling integration test' do
 
   describe 'profiling' do
     let(:recorder) do
-      Datadog::Profiling::Recorder.new(
+      Datadog::Profiling::OldRecorder.new(
         [Datadog::Profiling::Events::StackSample],
         100000,
         code_provenance_collector: nil,

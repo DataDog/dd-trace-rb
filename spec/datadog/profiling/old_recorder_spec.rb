@@ -1,11 +1,11 @@
 # typed: false
 require 'spec_helper'
 
-require 'datadog/profiling/recorder'
+require 'datadog/profiling/old_recorder'
 require 'datadog/profiling/event'
 require 'datadog/profiling/collectors/code_provenance'
 
-RSpec.describe Datadog::Profiling::Recorder do
+RSpec.describe Datadog::Profiling::OldRecorder do
   subject(:recorder) do
     described_class.new(event_classes, max_size, code_provenance_collector: code_provenance_collector, **options)
   end
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Profiling::Recorder do
 
     before { allow(buffer).to receive(:pop).and_return(events) }
 
-    context 'when the Recorder has a registered event class' do
+    context 'when the OldRecorder has a registered event class' do
       let(:event_classes) { [event_class] }
       let(:event_class) { Class.new(Datadog::Profiling::Event) }
 

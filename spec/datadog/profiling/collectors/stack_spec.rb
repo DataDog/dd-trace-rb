@@ -4,14 +4,14 @@ require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling/collectors/stack'
 require 'datadog/profiling/trace_identifiers/helper'
-require 'datadog/profiling/recorder'
+require 'datadog/profiling/old_recorder'
 require 'set'
 require 'timeout'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collector) { described_class.new(recorder, **options) }
 
-  let(:recorder) { instance_double(Datadog::Profiling::Recorder) }
+  let(:recorder) { instance_double(Datadog::Profiling::OldRecorder) }
   let(:options) { { max_frames: 50, trace_identifiers_helper: trace_identifiers_helper } }
 
   let(:buffer) { instance_double(Datadog::Profiling::Buffer) }

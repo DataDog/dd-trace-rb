@@ -63,7 +63,7 @@ Lint/MissingSuper:
     - 'lib/datadog/profiling/collectors/stack.rb'
     - 'lib/datadog/profiling/pprof/converter.rb'
     - 'lib/datadog/profiling/pprof/template.rb'
-    - 'lib/datadog/profiling/recorder.rb'
+    - 'lib/datadog/profiling/old_recorder.rb'
     - 'lib/datadog/profiling/scheduler.rb'
     - 'lib/datadog/profiling/transport/http/api/instance.rb'
     - 'lib/datadog/profiling/transport/http/api/spec.rb'
