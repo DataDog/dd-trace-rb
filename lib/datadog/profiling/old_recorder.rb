@@ -9,25 +9,25 @@ require 'datadog/profiling/tag_builder'
 module Datadog
   module Profiling
     # Stores profiling events gathered by `Collector`s
-    class Recorder
+    class OldRecorder
       attr_reader :max_size
 
       # Profiles with duration less than this will not be reported
       PROFILE_DURATION_THRESHOLD_SECONDS = 1
 
-      # TODO: Why does the Recorder directly reference the `code_provenance_collector`?
+      # TODO: Why does the OldRecorder directly reference the `code_provenance_collector`?
       #
       # For starters, this is weird/a problem because the relationship is supposed to go in the other direction:
-      # collectors are supposed to record their results in the `Recorder`, rather than the `Recorder` having to know
+      # collectors are supposed to record their results in the `OldRecorder`, rather than the `OldRecorder` having to know
       # about individual collectors.
       #
       # But the `code_provenance_collector` is different from other existing and potential collectors because it is not
       # asynchronous. It does not gather data over time and record it as it goes. Instead, you call it once per profile,
       # synchronously, and just use what it spits out.
       #
-      # The current design of the `Recorder` is quite tied to the asynchronous model. Modifying our current design
+      # The current design of the `OldRecorder` is quite tied to the asynchronous model. Modifying our current design
       # to support synchronous collectors is non-trivial, and I decided not to go through with it because we're
-      # soon going to replace the `Recorder` and many other existing classes with a
+      # soon going to replace the `OldRecorder` and many other existing classes with a
       # [libddprof](https://github.com/datadog/libddprof)-based implementation, and thus I don't think massive refactors
       # are worth it before moving to libddprof.
 
@@ -121,7 +121,7 @@ module Datadog
         @buffers.values.all?(&:empty?)
       end
 
-      # Error when event of an unknown type is used with the Recorder
+      # Error when event of an unknown type is used with the OldRecorder
       class UnknownEventError < StandardError
         attr_reader :event_class
 
