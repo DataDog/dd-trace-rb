@@ -259,6 +259,7 @@ module Datadog
           logger.warn(message) if logger
         end
 
+        # Represents a given configuration value and where we got it from
         class DetectedConfiguration
           attr_reader :friendly_name, :value
 
