@@ -31,13 +31,13 @@ RSpec.describe Datadog::Transport::HTTP do
 
   describe '.default' do
     subject(:default) { described_class.default }
-    let(:env_agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS }
+    let(:env_agent_settings) { described_class::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS }
 
     # This test changes based on the environment tests are running. We have other
     # tests around each specific environment scenario, while this one specifically
     # ensures that we are matching the default environment settings.
     #
-    # TODO: we should deprecate the use of Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS
+    # TODO: we should deprecate the use of DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS
     # and thus remove this test scenario.
     it 'returns a transport with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Transport::Traces::Transport)
@@ -206,12 +206,12 @@ RSpec.describe Datadog::Transport::HTTP do
 
     before do
       stub_const(
-        'Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
+        'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
         instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
       )
     end
 
-    it 'returns the hostname from the ENVIRONMENT_AGENT_SETTINGS object' do
+    it 'returns the hostname from the DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS object' do
       expect(default_hostname).to eq 'example-hostname'
     end
 
@@ -229,12 +229,12 @@ RSpec.describe Datadog::Transport::HTTP do
 
     before do
       stub_const(
-        'Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS',
+        'Datadog::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
         instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
       )
     end
 
-    it 'returns the port from the ENVIRONMENT_AGENT_SETTINGS object' do
+    it 'returns the port from the DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS object' do
       expect(default_port).to eq 12345
     end
 
