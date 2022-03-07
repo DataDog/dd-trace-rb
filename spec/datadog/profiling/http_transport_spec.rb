@@ -111,8 +111,21 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       context 'when agent_settings includes a deprecated_for_removal_transport_configuration_proc' do
         let(:deprecated_for_removal_transport_configuration_proc) { instance_double(Proc, 'Configuration proc') }
 
-        it do
-          expect { http_transport }.to raise_error(ArgumentError, /c.tracer.transport_options is currently unsupported/)
+        it 'logs a warning message' do
+          expect(Datadog.logger).to receive(:warn)
+
+          http_transport
+        end
+
+        it 'creates an agent exporter with the rest of the settings in the agent_settings object' do
+          allow(Datadog.logger).to receive(:warn)
+
+          expect(described_class)
+            .to receive(:_native_create_agent_exporter)
+            .with('http://192.168.0.1:12345/', tags_as_array)
+            .and_return([:ok, :dummy_exporter])
+
+          http_transport
         end
       end
 
