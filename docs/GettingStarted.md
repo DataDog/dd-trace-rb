@@ -1953,9 +1953,7 @@ Datadog.logger.info { "this is typically called by tracing code" }
 
 #### Environment and tags
 
-By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file, see our [environments tutorial](https://app.datadoghq.com/apm/docs/tutorials/environments) for details.
-
-You can configure the application to automatically tag your traces and metrics, using the following environment variables:
+By default, the trace agent (not this library, but the program running in the background collecting data from various clients) uses the tags set in the agent config file. You can configure the application to automatically tag your traces and metrics, using the following environment variables:
 
  - `DD_ENV`: Your application environment (e.g. `production`, `staging`, etc.)
  - `DD_SERVICE`: Your application's default service name (e.g. `billing-api`)
