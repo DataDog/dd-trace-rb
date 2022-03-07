@@ -132,44 +132,33 @@ module Datadog
         def configured_port
           return @configured_port if defined?(@configured_port)
 
-          parsed_port_from_env =
-            try_parsing_as_integer(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
-            )
-
-          parsed_settings_tracer_port =
+          @configured_port = pick_from(
             try_parsing_as_integer(
               friendly_name: '"c.agent.port"',
               value: settings.agent.port,
-            )
-
-          @configured_port = pick_from(
-            DetectedConfiguration.new(
-              friendly_name: '"c.agent.port"',
-              value: parsed_settings_tracer_port,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
               value: parsed_url && parsed_url.port,
             ),
-            DetectedConfiguration.new(
+            try_parsing_as_integer(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
-              value: parsed_port_from_env,
+              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
             )
           )
         end
 
         def try_parsing_as_integer(value:, friendly_name:)
-          return unless value
+          value =
+            begin
+              Integer(value) if value
+            rescue ArgumentError, TypeError
+              log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
 
-          begin
-            Integer(value)
-          rescue ArgumentError, TypeError
-            log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
+              nil
+            end
 
-            nil
-          end
+          DetectedConfiguration.new(friendly_name: friendly_name, value: value)
         end
 
         def ssl?
