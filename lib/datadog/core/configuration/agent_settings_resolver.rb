@@ -221,6 +221,8 @@ module Datadog
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
+          unparsed_url_from_env = ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL]
+
           @parsed_url =
             if unparsed_url_from_env
               parsed = URI.parse(unparsed_url_from_env)
@@ -239,12 +241,6 @@ module Datadog
                 nil
               end
             end
-        end
-
-        # NOTE: This should only be used AFTER parsing, via `#parsed_url`. The only other use-case where this can be used
-        # directly without parsing, is when displaying in warning messages, to show users what it actually contains.
-        def unparsed_url_from_env
-          @unparsed_url_from_env ||= ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL]
         end
 
         def pick_from(*configurations_in_priority_order)
