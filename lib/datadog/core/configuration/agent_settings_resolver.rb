@@ -274,9 +274,12 @@ module Datadog
           logger.warn(message) if logger
         end
 
-        DetectedConfiguration = Struct.new(:friendly_name, :value) do
+        class DetectedConfiguration
+          attr_reader :friendly_name, :value
+
           def initialize(friendly_name:, value:)
-            super(friendly_name, value)
+            @friendly_name = friendly_name
+            @value = value
             freeze
           end
 
