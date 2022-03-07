@@ -54,6 +54,9 @@ module Datadog
 
             # Returns a frozen copy of this struct
             # with the provided +member_values+ modified.
+            #
+            # TODO: This is only used when configuring profiling, and can be removed once
+            # https://github.com/DataDog/dd-trace-rb/pull/1924 is merged
             def merge(**member_values)
               new_struct = dup
 
