@@ -80,12 +80,10 @@ module Datadog
             ' is not supported'
         end
 
-        # FIXME: Currently the transport_configuration_proc is the only public API available for enable reporting
-        # via unix domain sockets. Not supporting it means not supporting Unix Domain Sockets in practice.
-        # This will need to be fixed before we make HttpTransport the default option for reporting profiles.
         if agent_settings.deprecated_for_removal_transport_configuration_proc
-          raise ArgumentError,
-                'Unsupported agent configuration for profiling: custom c.tracer.transport_options is currently unsupported.'
+          Datadog.logger.warn(
+            'Ignoring custom c.tracing.transport_options setting as the profiler does not support it.'
+          )
         end
       end
 
