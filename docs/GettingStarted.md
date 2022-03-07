@@ -26,9 +26,12 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
  - [Compatibility](#compatibility)
  - [Installation](#installation)
-     - [Quickstart for Rails applications](#quickstart-for-rails-applications)
-     - [Quickstart for Ruby applications](#quickstart-for-ruby-applications)
-     - [Quickstart for OpenTracing](#quickstart-for-opentracing)
+     - [Setup the Datadog Agent for tracing](#setup-the-datadog-agent-for-tracing)
+     - [Instrument your application](#instrument-your-application)
+        - [Rails applications](#rails-applications)
+        - [Ruby applications](#ruby-applications)
+        - [Configuring OpenTracing](#configuring-opentracing)
+     - [Connect your application to the Datadog Agent](#connect-your-application-to-the-datadog-agent)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
      - [Action Cable](#action-cable)
@@ -75,11 +78,10 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Sinatra](#sinatra)
      - [Sneakers](#sneakers)
      - [Sucker Punch](#sucker-punch)
- - [Advanced configuration](#advanced-configuration)
-     - [Tracer settings](#tracer-settings)
+ - [Additional configuration](#additional-configuration)
      - [Custom logging](#custom-logging)
      - [Environment and tags](#environment-and-tags)
-     - [Environment variables](#environment-variables)
+     - [Debugging and diagnostics](#debugging-and-diagnostics)
      - [Sampling](#sampling)
          - [Application-side sampling](#application-side-sampling)
          - [Priority sampling](#priority-sampling)
@@ -152,26 +154,59 @@ but will consider them as having low priority.
 
 ## Installation
 
-The following steps will help you quickly start tracing your Ruby application.
+Adding tracing to your Ruby application only takes a few quick steps:
 
-### Configure the Datadog Agent for APM
+1. Setup the Datadog Agent for tracing
+2. Instrument your application
+3. Connect your application to the Datadog Agent
 
-Before downloading tracing on your application, [install the Datadog Agent on the host](https://docs.datadoghq.com/agent/). The Ruby APM tracer sends trace data through the Datadog Agent.
+### Setup the Datadog Agent for tracing
 
-Install and configure the Datadog Agent to receive traces from your now instrumented application. By default the Datadog Agent is enabled in your `datadog.yaml` file under `apm_enabled: true` and listens for trace traffic at `localhost:8126`. For containerized environments, follow the steps below to enable trace collection within the Datadog Agent.
+Before installing `ddtrace`, [install the Datadog Agent](https://docs.datadoghq.com/agent/), to which `ddtrace` will send trace data.
 
-#### Containers
+Then configure the Datadog Agent to accept traces. To do this, either:
 
-1. Set `apm_non_local_traffic: true` in your main [`datadog.yaml` configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/#agent-main-configuration-file).
+ - Set `DD_APM_ENABLED=true` in the agent's environment
 
-2. See the specific setup instructions for [Docker](https://docs.datadoghq.com/agent/docker/apm/?tab=ruby), [Kubernetes](https://docs.datadoghq.com/agent/kubernetes/apm/?tab=helm), [Amazon ECS](https://docs.datadoghq.com/agent/amazon_ecs/apm/?tab=ruby) or [Fargate](https://docs.datadoghq.com/integrations/ecs_fargate/#trace-collection) to ensure that the Agent is configured to receive traces in a containerized environment:
+OR
 
-3. After having instrumented your application, the tracing client sends traces to `localhost:8126` by default.  If this is not the correct host and port change it by setting the env variables `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT`.
+ - Add `apm_enabled: true` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
 
+*Additionally, in containerized environments...*
 
-### Quickstart for Rails applications
+ - Set `DD_APM_NON_LOCAL_TRAFFIC=true` in the agent's environment
 
-#### Automatic instrumentation
+OR
+
+ - Add `apm_non_local_traffic: true` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file).
+
+See the specific setup instructions for [Docker](https://docs.datadoghq.com/agent/docker/apm/?tab=ruby), [Kubernetes](https://docs.datadoghq.com/agent/kubernetes/apm/?tab=helm), [Amazon ECS](https://docs.datadoghq.com/agent/amazon_ecs/apm/?tab=ruby) or [Fargate](https://docs.datadoghq.com/integrations/ecs_fargate/#trace-collection) to ensure that the Agent is configured to receive traces in a containerized environment.
+
+#### Configuring trace data ingestion
+
+The Datadog agent will listen for traces via HTTP on port `8126` by default.
+
+You may change the protocol or port the agent listens for trace data using the following:
+
+**For HTTP over TCP**:
+
+ - Set `DD_APM_RECEIVER_PORT=<port>` in the agent's environment
+
+OR
+
+ - Add `apm_config: receiver_port: <port>` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
+
+ **For Unix Domain Socket (UDS)**:
+
+ - Set `DD_APM_RECEIVER_SOCKET=<path-to-socket-file>`
+
+OR
+
+ - Add `apm_config: receiver_socket: <path-to-socket-file>` to the [agent's configuration file](https://docs.datadoghq.com/agent/guide/agent-configuration-files/?tab=agentv6v7#agent-main-configuration-file)
+
+### Instrument your application
+
+#### Rails applications
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -182,9 +217,21 @@ Install and configure the Datadog Agent to receive traces from your now instrume
 
 2. Install the gem with `bundle install`
 
-3. You can configure, override, or disable any specific integration settings by also adding a Rails manual instrumentation configuration file (next).
+3. Create a `config/initializers/datadog.rb` file containing:
 
-#### Manual instrumentation
+    ```ruby
+    Datadog.configure do |c|
+      # Add additional configuration here.
+      # Activate integrations, change tracer settings, etc...
+    end
+    ```
+
+    Using this block you can:
+
+      - [Add additional configuration settings](#additional-configuration)
+      - [Activate or reconfigure instrumentation](#integration-instrumentation)
+
+#### Ruby applications
 
 1. Add the `ddtrace` gem to your Gemfile:
 
@@ -194,24 +241,8 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     ```
 
 2. Install the gem with `bundle install`
-3. Create a `config/initializers/datadog.rb` file containing:
-
-    ```ruby
-    Datadog.configure do |c|
-      # This will activate auto-instrumentation for Rails
-      c.tracing.instrument :rails
-    end
-    ```
-
-    You can also activate additional integrations here (see [Integration instrumentation](#integration-instrumentation))
-
-### Quickstart for Ruby applications
-
-#### Automatic instrumentation
-
-1. Install the gem with `gem install ddtrace`
-2. Requiring any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented.
-3. Add `require 'ddtrace/auto_instrument'` to your application. _Note:_ This must be done _after_ requiring any supported libraries or frameworks.
+3. `require` any [supported libraries or frameworks](#integration-instrumentation) that should be instrumented.
+4. Add `require 'ddtrace/auto_instrument'` to your application. _Note:_ This must be done _after_ requiring any supported libraries or frameworks.
 
     ```ruby
     # Example frameworks and libraries
@@ -222,30 +253,31 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     require 'ddtrace/auto_instrument'
     ```
 
-    You can configure, override, or disable any specific integration settings by also adding a Ruby manual configuration block (next).
-
-#### Manual instrumentation
-
-1. Install the gem with `gem install ddtrace`
-2. Add a configuration block to your Ruby application:
+5. Add a configuration block to your application:
 
     ```ruby
-    require 'ddtrace'
     Datadog.configure do |c|
-      # Configure the tracer here.
+      # Add additional configuration here.
       # Activate integrations, change tracer settings, etc...
-      # By default without additional configuration, nothing will be traced.
     end
     ```
 
-3. Add or activate instrumentation by doing either of the following:
-    - Activate integration instrumentation (see [Integration instrumentation](#integration-instrumentation))
-    - Add manual instrumentation around your code (see [Manual instrumentation](#manual-instrumentation))
+    Using this block you can:
 
-### Quickstart for OpenTracing
+      - [Add additional configuration settings](#additional-configuration)
+      - [Activate or reconfigure instrumentation](#integration-instrumentation)
 
-1. Install the gem with `gem install ddtrace`
-2. To your OpenTracing configuration file, add the following:
+#### Configuring OpenTracing
+
+1. Add the `ddtrace` gem to your Gemfile:
+
+    ```ruby
+    source 'https://rubygems.org'
+    gem 'ddtrace'
+    ```
+
+2. Install the gem with `bundle install`
+3. To your OpenTracing configuration file, add the following:
 
     ```ruby
     require 'opentracing'
@@ -256,7 +288,7 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
     ```
 
-3. (Optional) Add a configuration block to your Ruby application to configure Datadog with:
+4. Add a configuration block to your application:
 
     ```ruby
     Datadog.configure do |c|
@@ -268,9 +300,25 @@ Install and configure the Datadog Agent to receive traces from your now instrume
     end
     ```
 
-4. (Optional) Add or activate additional instrumentation by doing either of the following:
-    - Activate Datadog integration instrumentation (see [Integration instrumentation](#integration-instrumentation))
-    - Add Datadog manual instrumentation around your code (see [Manual instrumentation](#manual-instrumentation))
+     Using this block you can:
+
+      - [Add additional Datadog configuration settings](#additional-configuration)
+      - [Activate or reconfigure Datadog instrumentation](#integration-instrumentation)
+
+### Connect your application to the Datadog Agent
+
+By default, `ddtrace` will connect to the agent using the first available settings in the listed priority:
+
+1. Via any explicitly provided configuration settings (hostname/port/transport)
+2. Via Unix Domain Socket (UDS) located at `/var/run/datadog/apm.socket`
+3. Via HTTP over TCP to `127.0.0.1:8126`
+
+If your Datadog Agent is listening at any of these locations, no further configuration should be required.
+
+If your agent runs on a different host or container than your application, or you would like to send traces via a different protocol, you will need to configure your application accordingly.
+
+  - [How to send trace data via HTTP over TCP to agent](#changing-default-agent-hostname-and-port)
+  - [How to send trace data via Unix Domain Socket (UDS) to agent](#using-the-unix-domain-socket-uds-adapter)
 
 ### Final steps for installation
 
@@ -1897,41 +1945,50 @@ end
 LogJob.perform_async('login')
 ```
 
-## Advanced configuration
+## Additional configuration
 
-### Environment variables
-
-- `DD_AGENT_HOST`: Hostname of agent to where traces will be sent. See [Tracer settings](#tracer-settings) for more details.
-- `DD_ENV`: Your application environment. See [Environment and tags](#environment-and-tags) for more details.
-- `DD_LOGS_INJECTION`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`. Valid values are: `true` (default) or `false`. e.g. `DD_LOGS_INJECTION=false`.
-- `DD_PROPAGATION_STYLE_EXTRACT`: Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.
-- `DD_PROPAGATION_STYLE_INJECT`: Distributed tracing header formats to inject. See [Distributed Tracing](#distributed-tracing) for more details.
-- `DD_SERVICE`: Your application's default service name. See [Environment and tags](#environment-and-tags) for more details.
-- `DD_TAGS`: Custom tags for telemetry produced by your application. See [Environment and tags](#environment-and-tags) for more details.
-- `DD_TRACE_<INTEGRATION>_ENABLED`: Enables or disables an **activated** integration. Defaults to `true`.. e.g. `DD_TRACE_RAILS_ENABLED=false`. This option has no effects on integrations that have not been explicitly activated (e.g. `Datadog.configure { |c| c.tracing.instrument :integration }`).on code. This environment variable can only be used to disable an integration.
-- `DD_TRACE_AGENT_PORT`: Port to where traces will be sent. See [Tracer settings](#tracer-settings) for more details.
-- `DD_TRACE_AGENT_URL`: Sets the URL endpoint where traces are sent. Has priority over `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT` if set. e.g. `DD_TRACE_AGENT_URL=http://localhost:8126`.
-- `DD_TRACE_ANALYTICS_ENABLED`: Enables or disables trace analytics. See [Sampling](#sampling) for more details.
-- `DD_TRACE_RATE_LIMIT`: Sets a rate limit for sampling. See [Sampling](#sampling) for more details.
-- `DD_TRACE_REPORT_HOSTNAME`: Enables ot disables hostname tags on traces.
-- `DD_TRACE_SAMPLE_RATE`: Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
-- `DD_TRACE_TEST_MODE_ENABLED`: Enables or disables test mode, for use of tracing in test suites.
-- `DD_VERSION`: Your application version. See [Environment and tags](#environment-and-tags) for more details.
-
-### Global settings
+To change the default behavior of Datadog tracing, you can set environment variables, or provide custom options inside a `Datadog.configure` block, e.g.:
 
 ```ruby
-# config/initializers/datadog-tracer.rb
 Datadog.configure do |c|
-  c.agent.host = 'custom-agent-host'
-  c.agent.port = 8126
+  c.service = 'billing-api'
+  c.env = ENV['RACK_ENV']
+
+  c.tracing.report_hostname = true
+  c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
 end
 ```
 
-Available options are:
+**Available configuration options:**
 
-- `agent.host`: set the hostname of the trace agent. Defaults to `127.0.0.1`.
-- `agent.port`: set the APM TCP port the Datadog Agent listening on. Defaults to `8126`.
+| Setting                                                 | Env Var                        | Default                                                           | Description                                                                                                                                                                                                                               |
+|---------------------------------------------------------|--------------------------------|-------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Global**                                              |                                |                                                                   |                                                                                                                                                                                                                                           |
+| `agent.host`                                            | `DD_AGENT_HOST`                | `127.0.0.1`                                                       | Hostname of agent to where trace data will be sent.                                                                                                                                                                                       |
+| `agent.port`                                            | `DD_TRACE_AGENT_PORT`          | `8126`                                                            | Port of agent host to where trace data will be sent.                                                                                                                                                                                      |
+|                                                         | `DD_TRACE_AGENT_URL`           | `nil`                                                             | Sets the URL endpoint where traces are sent. Has priority over `agent.host` and `agent.port`.                                                                                                                                             |
+| `diagnostics.debug`                                     | `DD_TRACE_DEBUG`               | `false`                                                           | Enables or disables debug mode. Prints verbose logs. **NOT recommended for production or other sensitive environments.** See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                    |
+| `diagnostics.startup_logs.enabled`                      | `DD_TRACE_STARTUP_LOGS`        | `nil`                                                             | Prints startup configuration and diagnostics to log. For assessing state of tracing at application startup. See [Debugging and diagnostics](#debugging-and-diagnostics) for more details.                                                 |
+| `env`                                                   | `DD_ENV`                       | `nil`                                                             | Your application environment. (e.g. `production`, `staging`, etc.) This value is set as a tag on all traces.                                                                                                                              |
+| `service`                                               | `DD_SERVICE`                   | *Ruby filename*                                                   | Your application's default service name. (e.g. `billing-api`) This value is set as a tag on all traces.                                                                                                                                   |
+| `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
+| `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#Setting the time provider) for more details.                                                                                                                              |
+| `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
+| **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
+| `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`   | `nil`                                                             | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                          |
+| `tracing.distributed_tracing.propagation_extract_style` | `DD_PROPAGATION_STYLE_EXTRACT` | `['Datadog','B3','B3 single header']`                             | Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                          |
+| `tracing.distributed_tracing.propagation_inject_style`  | `DD_PROPAGATION_STYLE_INJECT`  | `['Datadog']`                                                     | Distributed tracing header formats to inject. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                           |
+| `tracing.enabled`                                       | `DD_TRACE_ENABLED`             | `true`                                                            | Enables or disables tracing. If set to `false` instrumentation will still run, but no traces are sent to the trace agent.                                                                                                                 |
+| `tracing.instrument(<integration-name>, <options...>)`  |                                |                                                                   | Activates instrumentation for a specific library. See [Integration instrumentation](#integration-instrumentation) for more details.                                                                                                       |
+| `tracing.log_injection`                                 | `DD_LOGS_INJECTION`            | `true`                                                            | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                   |
+| `tracing.partial_flush.enabled`                         |                                | `false`                                                           | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                  |
+| `tracing.partial_flush.min_spans_threshold`             |                                | `500`                                                             | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                              |
+| `tracing.sampler`                                       |                                | `nil`                                                             | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details. |
+| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%, recommended). See [Application-side sampling](#application-side-sampling) for details.                                                                                   |
+| `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100`                                                             | Sets a rate limit for sampling. See [Sampling](#sampling) for more details.                                                                                                                                                               |
+| `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`     | `false`                                                           | Adds hostname tag to traces.                                                                                                                                                                                                              |
+| `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`   | `false`                                                           | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                         |
+| `tracing.test_mode.trace_flush`                         |                                | `nil`                                                             | Object that determines trace flushing behavior.                                                                                                                                                                                           |
 
 #### Custom logging
 
@@ -1981,57 +2038,31 @@ Tags can also be set directly on individual spans, which will supersede any conf
 
 #### Debugging and diagnostics
 
-You can activate debugging features by using `Datadog.configure`:
+There are two different suggested means of producing diagnostics for tracing:
+
+##### Enabling debug mode
+
+Switching the library into debug mode will produce verbose, detailed logs about tracing activity, including any suppressed errors. This output can be helpful in identifying errors, or confirming trace output to the agent.
+
+You can enable this via `diagnostics.debug = true` or `DD_TRACE_DEBUG`.
 
 ```ruby
-# config/initializers/datadog-tracer.rb
-
-# Global settings are set here:
-Datadog.configure do |c|
-  # To enable debug mode
-  c.diagnostics.debug = true
-end
+Datadog.configure { |c| c.diagnostics.debug = true }
 ```
 
-Available options are:
+**We do NOT recommend use of this feature in production or other sensitive environments**, as it can be very verbose under load. It's best to use this in a controlled environment where you can control application load.
 
- - `diagnostics.debug`: set to true to enable debug logging. Can be configured through the `DD_TRACE_DEBUG` environment variable. Defaults to `false`.
- - `diagnostics.startup_logs.enabled`: Startup configuration and diagnostic log. Defaults to `true`. Can be configured through the `DD_TRACE_STARTUP_LOGS` environment variable.
- - `time_now_provider`: when testing, it might be helpful to use a different time provider. For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time. Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting. Defaults to `->{ Time.now }`.
+##### Enabling startup logs
 
-### Tracer settings
+Startup logs produce a report of tracing state when the application is initially configured. This can be helpful for confirming that configuration and instrumentation is activated correctly.
 
-To change the default behavior of the Datadog tracer, you can provide custom options inside the `Datadog.configure` block as in:
+You can enable this via `diagnostics.startup_logs.enabled = true` or `DD_TRACE_STARTUP_LOGS`.
 
 ```ruby
-# config/initializers/datadog-tracer.rb
-# Tracer settings are set here:
-Datadog.configure do |c|
-  c.tracing.enabled = true
-
-  # Ensure all traces are ingested by Datadog
-  c.tracing.sampling.default_rate = 1.0 # Recommended
-  c.tracing.sampling.rate_limit = 200
-  # or provide a custom implementation (overrides c.tracing.sampling settings)
-  c.tracing.sampler = Datadog::Tracing::Sampling::AllSampler.new
-
-  # Breaks down very large traces into smaller batches
-  c.tracing.partial_flush.enabled = false
-
-  # You can specify your own tracer
-  c.tracing.instance = Datadog::Tracing::Tracer.new
-end
+Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
 ```
 
-Available options are:
-
- - `tracing.log_injection`: Injects [Trace Correlation](#trace-correlation) information into Rails logs, if present. Defaults to `true`.
- - `sampling.default_rate`: default tracer sampling rate, between `0.0` (0%) and `1.0` (100%, recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will keep an intelligent assortment of diverse traces.
- - `sampling.rate_limit`: maximum number of traces per second to sample. Defaults to 100 per second.
- - `tracing.enabled`: defines if the `tracer` is enabled or not. If set to `false` instrumentation will still run, but no spans are sent to the trace agent. Can be configured through the `DD_TRACE_ENABLED` environment variable. Defaults to `true`.
- - `tracing.instance`: set to a custom `Datadog::Tracer` instance. If provided, other trace settings are ignored (you must configure it manually.)
- - `tracing.partial_flush.enabled`: set to `true` to enable partial trace flushing (for long running traces.) Disabled by default. *Experimental.*
- - `tracing.sampler`: set to a custom `Datadog::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior.
+By default, this will be activated whenever `ddtrace` detects the application is running in a non-development environment.
 
 ### Sampling
 
@@ -2045,9 +2076,13 @@ App Analytics, previously configured with the `tracing.analytics.enabled` settin
 
 While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
 
-This will **reduce visibility and is not recommended**. See [DD_TRACE_SAMPLE_RATE](#environment-variables) for the recommended sampling approach.
+This will **reduce visibility and is not recommended**. 
 
-`Datadog::Tracing::Sampling::RateSampler` samples a ratio of the traces. For example:
+The default sampling rate can be set between `0.0` (0%) and `1.0` (100%$ recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will automatically select an assortment of diverse traces.
+
+Set this value via `DD_TRACE_SAMPLE_RATE` or `Datadog.configure { |c| c.tracing.sampling.default_rate = <value> }`.
+
+Alternatively, you may provide your own sampler. The `Datadog::Tracing::Sampling::RateSampler` samples a ratio of the traces. For example:
 
 ```ruby
 # Sample rate is between 0 (nothing sampled) to 1 (everything sampled).
@@ -2057,6 +2092,8 @@ Datadog.configure do |c|
   c.tracing.sampler = sampler
 end
 ```
+
+See [Additional Configuration](#additional-configuration) for more details about these settings.
 
 #### Priority sampling
 
@@ -2407,11 +2444,28 @@ Datadog::Tracing.trace('my.operation') { logger.warn('This is a traced operation
 
 ### Configuring the transport layer
 
-By default, the tracer submits trace data using the Unix socket `/var/run/datadog/apm.socket`, if one is created by the Agent. Otherwise, it connects via HTTP to `127.0.0.1:8126`, the default TCP location the Agent listens on.
+By default, `ddtrace` will connect to the agent using the first available settings in the listed priority:
+
+1. Via any explicitly provided configuration settings (hostname/port/transport)
+2. Via Unix Domain Socket (UDS) located at `/var/run/datadog/apm.socket`
+3. Via HTTP over TCP to `127.0.0.1:8126`
 
 However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
 
-Some basic settings, such as hostname and port, can be configured using [tracer settings](#tracer-settings).
+#### Changing default agent hostname and port
+
+To change the agent host or port, provide `DD_AGENT_HOST` and `DD_TRACE_AGENT_PORT`.
+
+OR within a `Datadog.configure` block, provide the following settings:
+
+```ruby
+Datadog.configure do |c|
+  c.agent.host = '127.0.0.1'
+  c.agent.port = 8126
+end
+```
+
+See [Additional Configuration](#additional-configuration) for more details.
 
 #### Using the Net::HTTP adapter
 
@@ -2426,7 +2480,7 @@ Datadog.configure do |c|
 end
 ```
 
-#### Using the Unix socket adapter
+#### Using the Unix Domain Socket (UDS) adapter
 
 The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
 
@@ -2471,6 +2525,23 @@ Datadog.configure do |c|
   }
 end
 ```
+
+### Setting the time provider
+
+By default, tracing uses a monotonic clock to measure the duration of spans, and timestamps (`->{ Time.now }`) for the start and end time.
+
+When testing, it might be helpful to use a different time provider.
+
+To change the function that provides timestamps, configure the following:
+
+```ruby
+Datadog.configure do |c|
+  # For Timecop, for example, `->{ Time.now_without_mock_time }` allows the tracer to use the real wall time.
+  c.time_now_provider = -> { Time.now_without_mock_time }
+end
+```
+
+Span duration calculation will still use the system monotonic clock when available, thus not being affected by this setting.
 
 ### Metrics
 
@@ -2536,7 +2607,7 @@ The underlying Datadog tracer can be configured by passing options (which match 
 OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new(**options)
 ```
 
-It can also be configured by using `Datadog.configure` described in the [Tracer settings](#tracer-settings) section.
+It can also be configured by using `Datadog.configure` described in the [Additional Configuration](#additional-configuration) section.
 
 **Activating and configuring integrations**
 
@@ -2578,11 +2649,11 @@ Without this flag, profiles for short-lived Resque jobs will not be available as
 
 By default, Datadog limits the size of trace payloads to prevent memory overhead within instrumented applications. As a result, traces containing thousands of operations may not be sent to Datadog.
 
-If traces are missing, enable [debug mode](#tracer-settings) to check if messages containing `"Dropping trace. Payload too large"` are logged.
+If traces are missing, enable [debug mode](#debugging-and-diagnostics) to check if messages containing `"Dropping trace. Payload too large"` are logged.
 
-Since debug mode is verbose, Datadog does not recommend leaving this enabled or enabling this in production. Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
+Since debug mode is verbose, **Datadog does not recommend leaving this enabled or enabling this in production.** Disable it after confirming. You can inspect the [Datadog Agent logs](https://docs.datadoghq.com/agent/guide/agent-log-files/) for similar messages.
 
-If you have confirmed that traces are dropped due to large payloads, then enable the [partial_flush](#tracer-settings) setting to break down large traces into smaller chunks.
+If you have confirmed that traces are dropped due to large payloads, then enable the [partial_flush](#additional-configuration) setting to break down large traces into smaller chunks.
 
 ### Stack level too deep
 
@@ -2592,7 +2663,7 @@ In Ruby version 1.9.3 and earlier, "monkey-patching" often involved the use of [
 
 In Ruby 2.0, the [`Module#prepend`](https://ruby-doc.org/core-3.0.0/Module.html#method-i-prepend) feature was introduced. This feature avoids destructive method rewriting and allows multiple "monkey patches" on the same method. Consequently, it has become the safest, preferred means to "monkey patch" code.
 
-Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some libraries (typically those supporting Ruby < 2.0) still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
+Datadog instrumentation almost exclusively uses the `Module#prepend` feature to add instrumentation non-destructively. However, some other libraries (typically those supporting Ruby < 2.0) still use `alias_method` which can create conflicts with Datadog instrumentation, often resulting in `SystemStackError` or `stack level too deep` errors.
 
 As the implementation of `alias_method` exists within those libraries, Datadog generally cannot fix them. However, some libraries have known workarounds:
 
