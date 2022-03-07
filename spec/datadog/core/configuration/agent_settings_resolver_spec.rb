@@ -57,7 +57,13 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:port) { nil }
 
       it 'configures the agent to connect to unix:/var/run/datadog/apm.socket' do
-        expect(resolver).to have_attributes settings
+        expect(resolver).to have_attributes(
+          **settings,
+          adapter: :unix,
+          uds_path: '/var/run/datadog/apm.socket',
+          hostname: nil,
+          port: nil,
+        )
       end
     end
   end
@@ -89,7 +95,28 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       end
     end
 
+    context 'when a custom hostname is specified via code using "tracing.transport_options =" (positional args variant)' do
+      before do
+        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, 'custom-hostname') }
+      end
+
+      it 'contacts the agent using the http adapter, using the custom hostname' do
+        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
+      end
+    end
+
+    context 'when a custom hostname is specified via code using "tracing.transport_options =" (keyword args variant)' do
+      before do
+        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, hostname: 'custom-hostname') }
+      end
+
+      it 'contacts the agent using the http adapter, using the custom hostname' do
+        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
+      end
+    end
+
     describe 'priority' do
+      let(:with_transport_options) { nil }
       let(:with_agent_host) { nil }
       let(:with_trace_agent_url) { nil }
       let(:with_environment_agent_host) { nil }
@@ -104,10 +131,31 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       before do
         allow(logger).to receive(:warn)
+        if with_transport_options
+          ddtrace_settings.tracing.transport_options =
+            proc { |t| t.adapter(:net_http, hostname: with_transport_options) }
+        end
         (ddtrace_settings.agent.host = with_agent_host) if with_agent_host
       end
 
-      context 'when all of agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
+      context 'when tracing.transport_options, agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
+        let(:with_transport_options) { 'custom-hostname-1' }
+        let(:with_agent_host) { 'custom-hostname-2' }
+        let(:with_trace_agent_url) { 'custom-hostname-3' }
+        let(:with_environment_agent_host) { 'custom-hostname-4' }
+
+        it 'prioritizes the tracing.transport_options' do
+          expect(resolver).to have_attributes(hostname: 'custom-hostname-1')
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'when agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
         let(:with_agent_host) { 'custom-hostname-2' }
         let(:with_trace_agent_url) { 'custom-hostname-3' }
         let(:with_environment_agent_host) { 'custom-hostname-4' }
@@ -157,6 +205,52 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   describe 'http adapter port' do
+    shared_examples_for "parsing of port when it's not an integer" do
+      context 'when the port is specified as a string instead of a number' do
+        let(:port_value_to_parse) { '1234' }
+
+        it 'contacts the agent using the http adapter, using the custom port' do
+          expect(resolver).to have_attributes(**settings, port: 1234)
+        end
+      end
+
+      context 'when the port is an invalid string value' do
+        let(:port_value_to_parse) { 'kaboom' }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+
+      context 'when the port is an invalid object' do
+        let(:port_value_to_parse) { Object.new }
+
+        before do
+          allow(logger).to receive(:warn)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Invalid value/)
+
+          resolver
+        end
+
+        it 'falls back to the defaults' do
+          expect(resolver).to have_attributes settings
+        end
+      end
+    end
+
     context 'when a custom port is specified via the DD_TRACE_AGENT_PORT environment variable' do
       let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
 
@@ -192,49 +286,9 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         expect(resolver).to have_attributes(**settings, port: 1234)
       end
 
-      context 'when the port is specified as a string instead of a number' do
+      it_behaves_like "parsing of port when it's not an integer" do
         before do
-          ddtrace_settings.agent.port = '1234'
-        end
-
-        it 'contacts the agent using the http adapter, using the custom port' do
-          expect(resolver).to have_attributes(**settings, port: 1234)
-        end
-      end
-
-      context 'when the port is an invalid string value' do
-        before do
-          ddtrace_settings.agent.port = 'kaboom'
-
-          allow(logger).to receive(:warn)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Invalid value/)
-
-          resolver
-        end
-
-        it 'falls back to the defaults' do
-          expect(resolver).to have_attributes settings
-        end
-      end
-
-      context 'when the port is an invalid object' do
-        before do
-          ddtrace_settings.agent.port = Object.new
-
-          allow(logger).to receive(:warn)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Invalid value/)
-
-          resolver
-        end
-
-        it 'falls back to the defaults' do
-          expect(resolver).to have_attributes settings
+          ddtrace_settings.agent.port = port_value_to_parse
         end
       end
     end
@@ -244,6 +298,40 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it 'contacts the agent using the http adapter, using the custom port' do
         expect(resolver).to have_attributes(**settings, port: 1234)
+      end
+    end
+
+    context 'when a custom port is specified via code using "tracing.transport_options =" (positional args variant)' do
+      before do
+        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, nil, 1234) }
+      end
+
+      it 'contacts the agent using the http adapter, using the custom port' do
+        expect(resolver).to have_attributes(**settings, port: 1234)
+      end
+
+      it_behaves_like "parsing of port when it's not an integer" do
+        before do
+          port = port_value_to_parse
+          ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, nil, port) }
+        end
+      end
+    end
+
+    context 'when a custom port is specified via code using "tracing.transport_options =" (keyword args variant)' do
+      before do
+        ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, port: 1234) }
+      end
+
+      it 'contacts the agent using the http adapter, using the custom port' do
+        expect(resolver).to have_attributes(**settings, port: 1234)
+      end
+
+      it_behaves_like "parsing of port when it's not an integer" do
+        before do
+          port = port_value_to_parse
+          ddtrace_settings.tracing.transport_options = proc { |t| t.adapter(:net_http, port: port) }
+        end
       end
     end
 
@@ -354,17 +442,121 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   context 'when a proc is configured in tracer.transport_options' do
-    let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
-
     before do
-      ddtrace_settings.tracing.transport_options = deprecated_for_removal_transport_configuration_proc
+      ddtrace_settings.tracing.transport_options = transport_options
     end
 
-    it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do
-      expect(resolver).to have_attributes(
-        **settings,
-        deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc
-      )
+    context 'when the proc does not configure the :net_http or :unix adapters' do
+      let(:transport_options) { proc {} }
+
+      it 'includes the given proc in the resolved settings as the deprecated_for_removal_transport_configuration_proc' do
+        expect(resolver).to have_attributes(
+          **settings,
+          deprecated_for_removal_transport_configuration_proc: transport_options
+        )
+      end
+    end
+
+    context 'when the proc requests the :net_http adapter' do
+      let(:transport_options) do
+        proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: false) }
+      end
+
+      it 'contacts the agent using the http adapter, using the requested configuration' do
+        expect(resolver).to have_attributes(
+          **settings,
+          ssl: false,
+          hostname: 'custom-hostname',
+          port: 1234,
+          timeout_seconds: 42,
+        )
+      end
+
+      context 'with ssl' do
+        let(:transport_options) do
+          proc { |t| t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: true) }
+        end
+
+        it 'contacts the agent using the http adapter, using the requested configuration' do
+          expect(resolver).to have_attributes(
+            **settings,
+            ssl: true,
+            hostname: 'custom-hostname',
+            port: 1234,
+            timeout_seconds: 42,
+          )
+        end
+      end
+
+      context 'when the proc tries to set any other option' do
+        let(:transport_options) do
+          proc do |t|
+            t.adapter(:net_http, hostname: 'custom-hostname', port: 1234, timeout: 42, ssl: true)
+            t.another_option = 2
+          end
+        end
+
+        before do
+          allow(logger).to receive(:debug)
+        end
+
+        it 'includes the given proc in the resolved settings as the ' \
+        'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
+          expect(resolver).to have_attributes(
+            **settings,
+            deprecated_for_removal_transport_configuration_proc: transport_options
+          )
+        end
+
+        it 'logs a debug message' do
+          expect(logger).to receive(:debug)
+
+          resolver
+        end
+      end
+    end
+
+    context 'when the proc requests the :unix adapter' do
+      let(:transport_options) do
+        proc { |t| t.adapter(:unix, uds_path: '/custom/uds/path') }
+      end
+
+      it 'configures the agent to connect via a unix domain socket' do
+        expect(resolver).to have_attributes(
+          **settings,
+          adapter: :unix,
+          uds_path: '/custom/uds/path',
+          hostname: nil,
+          port: nil,
+        )
+      end
+
+      context 'when the proc tries to set any other option' do
+        let(:transport_options) do
+          proc do |t|
+            t.adapter(:unix, uds_path: '/custom/uds/path')
+            t.another_option = 2
+          end
+        end
+
+        before do
+          allow(logger).to receive(:debug)
+        end
+
+        it 'includes the given proc in the resolved settings as the ' \
+          'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
+          expect(resolver).to have_attributes(
+            **settings,
+            deprecated_for_removal_transport_configuration_proc: transport_options
+          )
+        end
+
+        it 'logs a debug message' do
+          expect(logger).to receive(:debug)
+
+          resolver
+        end
+      end
     end
   end
 
