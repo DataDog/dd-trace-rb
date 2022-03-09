@@ -248,7 +248,8 @@ static ddprof_ffi_Request *build_request(
   Check_Type(code_provenance_file_name, T_STRING);
 
   // Code provenance can be disabled and in that case will be set to nil
-  if (!NIL_P(code_provenance_data)) Check_Type(code_provenance_data, T_STRING);
+  bool have_code_provenance = !NIL_P(code_provenance_data);
+  if (have_code_provenance) Check_Type(code_provenance_data, T_STRING);
 
   uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
 
@@ -257,33 +258,23 @@ static ddprof_ffi_Request *build_request(
   ddprof_ffi_Timespec finish =
     {.seconds = NUM2LONG(finish_timespec_seconds), .nanoseconds = NUM2UINT(finish_timespec_nanoseconds)};
 
-  int files_to_report = 1 + (NIL_P(code_provenance_data) ? 0 : 1);
-
+  int files_to_report = 1 + (have_code_provenance ? 1 : 0);
   ddprof_ffi_File files[files_to_report];
   ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = files_to_report};
 
-  ddprof_ffi_Buffer *pprof_buffer =
-    ddprof_ffi_Buffer_from_byte_slice((ddprof_ffi_ByteSlice) {
-      .ptr = (uint8_t *) StringValuePtr(pprof_data),
-      .len = RSTRING_LEN(pprof_data)
-    });
-
-  files[0] = (ddprof_ffi_File) {.name = byte_slice_from_ruby_string(pprof_file_name), .file = pprof_buffer};
-
-  if (!NIL_P(code_provenance_data)) {
-    ddprof_ffi_Buffer *code_provenance_buffer =
-      ddprof_ffi_Buffer_from_byte_slice((ddprof_ffi_ByteSlice) {
-        .ptr = (uint8_t *) StringValuePtr(code_provenance_data),
-        .len = RSTRING_LEN(code_provenance_data)
-      });
-
-    files[1] = (ddprof_ffi_File) {.name = byte_slice_from_ruby_string(code_provenance_file_name), .file = code_provenance_buffer};
+  files[0] = (ddprof_ffi_File) {
+    .name = byte_slice_from_ruby_string(pprof_file_name),
+    .file = byte_slice_from_ruby_string(pprof_data)
+  };
+  if (have_code_provenance) {
+    files[1] = (ddprof_ffi_File) {
+      .name = byte_slice_from_ruby_string(code_provenance_file_name),
+      .file = byte_slice_from_ruby_string(code_provenance_data)
+    };
   }
 
   ddprof_ffi_Request *request =
     ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, timeout_milliseconds);
-
-  // We don't need to free pprof_buffer nor code_provenance_buffer because libddprof takes care of it.
 
   return request;
 }
