@@ -22,7 +22,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       agent_settings: agent_settings,
       site: site,
       api_key: api_key,
-      tags: tags,
       upload_timeout_seconds: upload_timeout_seconds,
     )
   end
@@ -46,7 +45,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:deprecated_for_removal_transport_configuration_proc) { nil }
   let(:site) { nil }
   let(:api_key) { nil }
-  let(:tags) { { 'tag_a' => 'value_a', 'tag_b' => 'value_b' } }
   let(:upload_timeout_seconds) { 123 }
 
   let(:flush) do
@@ -57,6 +55,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       pprof_data: pprof_data,
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
+      tags_as_array: tags_as_array,
     )
   end
   let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }
@@ -67,16 +66,15 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:pprof_data) { 'the_pprof_data' }
   let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
   let(:code_provenance_data) { 'the_code_provenance_data' }
+  let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
 
   describe '#initialize' do
-    let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
-
     context 'when agent_settings are provided' do
-      it 'creates an agent exporter with the given settings' do
+      it 'picks the :agent working mode for the exporter' do
         expect(described_class)
-          .to receive(:_native_create_agent_exporter)
-          .with('http://192.168.0.1:12345/', tags_as_array)
-          .and_return([:ok, :dummy_exporter])
+          .to receive(:_native_validate_exporter)
+          .with([:agent, 'http://192.168.0.1:12345/'])
+          .and_return([:ok, nil])
 
         http_transport
       end
@@ -84,11 +82,11 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       context 'when ssl is enabled' do
         let(:ssl) { true }
 
-        it 'creates an agent exporter that reports over https' do
+        it 'picks the :agent working mode with https reporting' do
           expect(described_class)
-            .to receive(:_native_create_agent_exporter)
-            .with('https://192.168.0.1:12345/', tags_as_array)
-            .and_return([:ok, :dummy_exporter])
+            .to receive(:_native_validate_exporter)
+            .with([:agent, 'https://192.168.0.1:12345/'])
+            .and_return([:ok, nil])
 
           http_transport
         end
@@ -98,11 +96,11 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         let(:adapter) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
         let(:uds_path) { '/var/run/datadog/apm.socket' }
 
-        it 'creates an agent exporter that reports over a unix domain socket' do
+        it 'picks the :agent working mode with unix domain stocket reporting' do
           expect(described_class)
-            .to receive(:_native_create_agent_exporter)
-            .with('unix:///var/run/datadog/apm.socket', tags_as_array)
-            .and_return([:ok, :dummy_exporter])
+            .to receive(:_native_validate_exporter)
+            .with([:agent, 'unix:///var/run/datadog/apm.socket'])
+            .and_return([:ok, nil])
 
           http_transport
         end
@@ -117,13 +115,13 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           http_transport
         end
 
-        it 'creates an agent exporter with the rest of the settings in the agent_settings object' do
+        it 'picks working mode from the agent_settings object' do
           allow(Datadog.logger).to receive(:warn)
 
           expect(described_class)
-            .to receive(:_native_create_agent_exporter)
-            .with('http://192.168.0.1:12345/', tags_as_array)
-            .and_return([:ok, :dummy_exporter])
+            .to receive(:_native_validate_exporter)
+            .with([:agent, 'http://192.168.0.1:12345/'])
+            .and_return([:ok, nil])
 
           http_transport
         end
@@ -142,11 +140,11 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:site) { 'test.datadoghq.com' }
       let(:api_key) { SecureRandom.uuid }
 
-      it 'ignores them and creates an agent exporter using the agent_settings' do
+      it 'ignores them and picks the :agent working mode using the agent_settings' do
         expect(described_class)
-          .to receive(:_native_create_agent_exporter)
-          .with('http://192.168.0.1:12345/', tags_as_array)
-          .and_return([:ok, :dummy_exporter])
+          .to receive(:_native_validate_exporter)
+          .with([:agent, 'http://192.168.0.1:12345/'])
+          .and_return([:ok, nil])
 
         http_transport
       end
@@ -158,11 +156,11 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           end
         end
 
-        it 'creates an agentless exporter with the given site and api key' do
+        it 'picks the :agentless working mode with the given site and api key' do
           expect(described_class)
-            .to receive(:_native_create_agentless_exporter)
-            .with(site, api_key, tags_as_array)
-            .and_return([:ok, :dummy_exporter])
+            .to receive(:_native_validate_exporter)
+            .with([:agentless, site, api_key])
+            .and_return([:ok, nil])
 
           http_transport
         end
@@ -190,7 +188,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_nanoseconds = 123456789
 
       expect(described_class).to receive(:_native_do_export).with(
-        kind_of(Datadog::Profiling::HttpTransport::Exporter),
+        kind_of(Array), # exporter_configuration
         upload_timeout_milliseconds,
         start_timespec_seconds,
         start_timespec_nanoseconds,
@@ -199,7 +197,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         pprof_file_name,
         pprof_data,
         code_provenance_file_name,
-        code_provenance_data
+        code_provenance_data,
+        tags_as_array
       ).and_return([:ok, 200])
 
       export

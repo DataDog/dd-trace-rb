@@ -15,7 +15,7 @@ require_relative 'dogstatsd_reporter'
 # This benchmark measures the performance of the http_transport class used for reporting profiling data
 #
 # Note when running on macOS: If the benchmark starts failing with a timeout after around ~16k requests, try
-# lowering the timeout for keeping ports in the TIME_WAIT state by using sudo sysctl -w net.inet.tcp.msl=1.
+# lowering the timeout for keeping ports in the TIME_WAIT state by using `sudo sysctl -w net.inet.tcp.msl=1`.
 #
 # The default on my machine is 15000 (15 seconds) which trips this bug quite easily.
 # This doesn't seem to be clearly documented anywhere, you just see people rediscovering it on the web, for instance
@@ -41,7 +41,6 @@ class ProfilerHttpTransportBenchmark
       ),
       site: nil,
       api_key: nil,
-      tags: [],
       upload_timeout_seconds: 10,
     )
     flush_finish = Time.now.utc
@@ -52,6 +51,7 @@ class ProfilerHttpTransportBenchmark
       pprof_data: '', # Random.new(0).bytes(32_000),
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '', # Random.new(1).bytes(4_000),
+      tags_as_array: [],
     )
   end
 

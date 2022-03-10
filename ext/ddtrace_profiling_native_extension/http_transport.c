@@ -5,13 +5,11 @@
 // Used to report profiling data to Datadog.
 // This file implements the native bits of the Datadog::Profiling::HttpTransport class
 
-// Datadog::Profiling::HttpTransport::Exporter
-// This is used to wrap a native pointer to a libddprof exporter as a Ruby object of this class;
-// see exporter_as_ruby_object below for more details
-static VALUE exporter_class = Qnil;
-
 static VALUE ok_symbol = Qnil; // :ok in Ruby
 static VALUE error_symbol = Qnil; // :error in Ruby
+
+static ID agentless_id; // id of :agentless in Ruby
+static ID agent_id; // id of :agent in Ruby
 
 #define byte_slice_from_literal(string) ((ddprof_ffi_ByteSlice) {.ptr = (uint8_t *) "" string, .len = sizeof("" string) - 1})
 
@@ -22,15 +20,14 @@ struct call_exporter_without_gvl_arguments {
 };
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
-static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array);
-static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array);
-static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array);
+static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
+static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
+static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result);
+static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration);
 static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array);
-static void exporter_as_ruby_object_free(void *data);
-static VALUE exporter_to_ruby_object(ddprof_ffi_ProfileExporterV3* exporter);
 static VALUE _native_do_export(
   VALUE self,
-  VALUE libddprof_exporter,
+  VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
@@ -39,7 +36,8 @@ static VALUE _native_do_export(
   VALUE pprof_file_name,
   VALUE pprof_data,
   VALUE code_provenance_file_name,
-  VALUE code_provenance_data
+  VALUE code_provenance_data,
+  VALUE tags_as_array
 );
 static ddprof_ffi_Request *build_request(
   ddprof_ffi_ProfileExporterV3 *exporter,
@@ -58,22 +56,13 @@ static void *call_exporter_without_gvl(void *exporter_and_request);
 void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
-  rb_define_singleton_method(
-    http_transport_class, "_native_create_agentless_exporter",  _native_create_agentless_exporter, 3
-  );
-  rb_define_singleton_method(
-    http_transport_class, "_native_create_agent_exporter",  _native_create_agent_exporter, 2
-  );
-  rb_define_singleton_method(
-    http_transport_class, "_native_do_export",  _native_do_export, 10
-  );
+  rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 11);
 
-  exporter_class = rb_define_class_under(http_transport_class, "Exporter", rb_cObject);
-  // This prevents creation of the exporter class outside of our extension, see https://bugs.ruby-lang.org/issues/18007
-  rb_undef_alloc_func(exporter_class);
-
-  ok_symbol = ID2SYM(rb_intern("ok"));
-  error_symbol = ID2SYM(rb_intern("error"));
+  ok_symbol = ID2SYM(rb_intern_const("ok"));
+  error_symbol = ID2SYM(rb_intern_const("error"));
+  agentless_id = rb_intern_const("agentless");
+  agent_id = rb_intern_const("agent");
 }
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
@@ -82,57 +71,72 @@ inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   return byte_slice;
 }
 
-static VALUE _native_create_agentless_exporter(VALUE self, VALUE site, VALUE api_key, VALUE tags_as_array) {
-  Check_Type(site, T_STRING);
-  Check_Type(api_key, T_STRING);
-  Check_Type(tags_as_array, T_ARRAY);
+static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration) {
+  Check_Type(exporter_configuration, T_ARRAY);
+  ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, rb_ary_new());
 
-  return create_exporter(
-    ddprof_ffi_EndpointV3_agentless(
-      byte_slice_from_ruby_string(site),
-      byte_slice_from_ruby_string(api_key)
-    ),
-    tags_as_array
-  );
+  VALUE failure_tuple = handle_exporter_failure(exporter_result);
+  if (!NIL_P(failure_tuple)) return failure_tuple;
+
+  // We don't actually need the exporter for now -- we just wanted to validate that we could create it with the
+  // settings we were given
+  ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result);
+
+  return rb_ary_new_from_args(2, ok_symbol, Qnil);
 }
 
-static VALUE _native_create_agent_exporter(VALUE self, VALUE base_url, VALUE tags_as_array) {
-  Check_Type(base_url, T_STRING);
+static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
+  Check_Type(exporter_configuration, T_ARRAY);
   Check_Type(tags_as_array, T_ARRAY);
 
-  return create_exporter(
-    ddprof_ffi_EndpointV3_agent(byte_slice_from_ruby_string(base_url)),
-    tags_as_array
-  );
-}
-
-static VALUE create_exporter(struct ddprof_ffi_EndpointV3 endpoint, VALUE tags_as_array) {
   long tags_count = rb_array_len(tags_as_array);
-
   ddprof_ffi_Tag* converted_tags = xcalloc(tags_count, sizeof(ddprof_ffi_Tag));
   if (converted_tags == NULL) rb_raise(rb_eNoMemError, "Failed to allocate memory for storing tags");
-
   convert_tags(converted_tags, tags_count, tags_as_array);
 
-  struct ddprof_ffi_NewProfileExporterV3Result exporter_result =
-    ddprof_ffi_ProfileExporterV3_new(
-      byte_slice_from_literal("ruby"),
-      (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
-      endpoint
-    );
+  ddprof_ffi_NewProfileExporterV3Result exporter_result = ddprof_ffi_ProfileExporterV3_new(
+    byte_slice_from_literal("ruby"),
+    (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
+    endpoint_from(exporter_configuration)
+  );
 
   xfree(converted_tags);
 
-  if (exporter_result.tag != DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) {
-    VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
-    ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result); // Clean up result
-    return rb_ary_new_from_args(2, error_symbol, failure_details);
+  return exporter_result;
+}
+
+static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result) {
+  if (exporter_result.tag == DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) return Qnil;
+
+  VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
+
+  ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result);
+
+  return rb_ary_new_from_args(2, error_symbol, failure_details);
+}
+
+static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
+  Check_Type(exporter_configuration, T_ARRAY);
+
+  ID working_mode = SYM2ID(rb_ary_entry(exporter_configuration, 0)); // SYMID verifies its input so we can do this safely
+
+  if (working_mode != agentless_id && working_mode != agent_id) {
+    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
 
-  VALUE exporter = exporter_to_ruby_object(exporter_result.ok);
-  // No need to call the result dtor, since the only heap-allocated part is the exporter and we like that part
+  if (working_mode == agentless_id) {
+    VALUE site = rb_ary_entry(exporter_configuration, 1);
+    VALUE api_key = rb_ary_entry(exporter_configuration, 2);
+    Check_Type(site, T_STRING);
+    Check_Type(api_key, T_STRING);
 
-  return rb_ary_new_from_args(2, ok_symbol, exporter);
+    return ddprof_ffi_EndpointV3_agentless(byte_slice_from_ruby_string(site), byte_slice_from_ruby_string(api_key));
+  } else { // agent_id
+    VALUE base_url = rb_ary_entry(exporter_configuration, 1);
+    Check_Type(base_url, T_STRING);
+
+    return ddprof_ffi_EndpointV3_agent(byte_slice_from_ruby_string(base_url));
+  }
 }
 
 static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array) {
@@ -155,29 +159,9 @@ static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE 
   }
 }
 
-// This structure is used to define a Ruby object that stores a pointer to a ddprof_ffi_ProfileExporterV3 instance
-// See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
-static const rb_data_type_t exporter_as_ruby_object = {
-  .wrap_struct_name = "Datadog::Profiling::HttpTransport::Exporter",
-  .function = {
-    .dfree = exporter_as_ruby_object_free,
-    .dsize = NULL, // We don't track exporter memory usage
-    // No need to provide dmark nor dcompact because we don't reference Ruby VALUEs from inside this object
-  },
-  .flags = RUBY_TYPED_FREE_IMMEDIATELY
-};
-
-static void exporter_as_ruby_object_free(void *data) {
-  ddprof_ffi_ProfileExporterV3_delete((ddprof_ffi_ProfileExporterV3 *) data);
-}
-
-static VALUE exporter_to_ruby_object(ddprof_ffi_ProfileExporterV3* exporter) {
-  return TypedData_Wrap_Struct(exporter_class, &exporter_as_ruby_object, exporter);
-}
-
 static VALUE _native_do_export(
   VALUE self,
-  VALUE libddprof_exporter,
+  VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
@@ -186,12 +170,15 @@ static VALUE _native_do_export(
   VALUE pprof_file_name,
   VALUE pprof_data,
   VALUE code_provenance_file_name,
-  VALUE code_provenance_data
+  VALUE code_provenance_data,
+  VALUE tags_as_array
 ) {
-  Check_TypedStruct(libddprof_exporter, &exporter_as_ruby_object);
+  ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, tags_as_array);
 
-  ddprof_ffi_ProfileExporterV3 *exporter;
-  TypedData_Get_Struct(libddprof_exporter, ddprof_ffi_ProfileExporterV3, &exporter_as_ruby_object, exporter);
+  VALUE failure_tuple = handle_exporter_failure(exporter_result);
+  if (!NIL_P(failure_tuple)) return failure_tuple;
+
+  ddprof_ffi_ProfileExporterV3 *exporter = exporter_result.ok;
 
   ddprof_ffi_Request *request =
     build_request(
@@ -215,10 +202,14 @@ static VALUE _native_do_export(
   rb_thread_call_without_gvl(call_exporter_without_gvl, &args, NULL, NULL);
   ddprof_ffi_SendResult result = args.result;
 
-  // The request does not need to be freed as libddprof takes care of it.
+  // Dispose of the exporter
+  ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result);
+
+  // The request itself does not need to be freed as libddprof takes care of it.
 
   if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
     VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
+    // FIXME: Should this be a free?
     ddprof_ffi_Buffer_reset(&result.failure); // Clean up result
     return rb_ary_new_from_args(2, error_symbol, failure_details);
   }

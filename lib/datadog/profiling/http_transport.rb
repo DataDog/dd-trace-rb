@@ -5,30 +5,26 @@ module Datadog
     # Used to report profiling data to Datadog.
     # Methods prefixed with _native_ are implemented in `http_transport.c`
     class HttpTransport
-      def initialize(agent_settings:, site:, api_key:, tags:, upload_timeout_seconds:)
+      def initialize(agent_settings:, site:, api_key:, upload_timeout_seconds:)
         @upload_timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
 
         validate_agent_settings(agent_settings)
 
-        tags_as_array = tags.to_a
-
-        status, result =
-          if site && api_key && agentless_allowed?
-            create_agentless_exporter(site, api_key, tags_as_array)
+        @exporter_configuration =
+          if agentless?(site, api_key)
+            [:agentless, site, api_key]
           else
-            create_agent_exporter(base_url_from(agent_settings), tags_as_array)
+            [:agent, base_url_from(agent_settings)]
           end
 
-        if status == :ok
-          @libddprof_exporter = result
-        else # :error
-          raise(ArgumentError, "Failed to initialize transport: #{result}")
-        end
+        status, result = validate_exporter(@exporter_configuration)
+
+        raise(ArgumentError, "Failed to initialize transport: #{result}") if status == :error
       end
 
       def export(flush)
         status, result = do_export(
-          libddprof_exporter: @libddprof_exporter,
+          exporter_configuration: @exporter_configuration,
           upload_timeout_milliseconds: @upload_timeout_milliseconds,
 
           # why "timespec"?
@@ -44,6 +40,8 @@ module Datadog
           pprof_data: flush.pprof_data,
           code_provenance_file_name: flush.code_provenance_file_name,
           code_provenance_data: flush.code_provenance_data,
+
+          tags_as_array: flush.tags_as_array,
         )
 
         if status == :ok
@@ -87,20 +85,16 @@ module Datadog
         end
       end
 
-      def agentless_allowed?
-        Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
+      def agentless?(site, api_key)
+        site && api_key && Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
       end
 
-      def create_agentless_exporter(site, api_key, tags_as_array)
-        self.class._native_create_agentless_exporter(site, api_key, tags_as_array)
-      end
-
-      def create_agent_exporter(base_url, tags_as_array)
-        self.class._native_create_agent_exporter(base_url, tags_as_array)
+      def validate_exporter(exporter_configuration)
+        self.class._native_validate_exporter(exporter_configuration)
       end
 
       def do_export(
-        libddprof_exporter:,
+        exporter_configuration:,
         upload_timeout_milliseconds:,
         start_timespec_seconds:,
         start_timespec_nanoseconds:,
@@ -109,10 +103,11 @@ module Datadog
         pprof_file_name:,
         pprof_data:,
         code_provenance_file_name:,
-        code_provenance_data:
+        code_provenance_data:,
+        tags_as_array:
       )
         self.class._native_do_export(
-          libddprof_exporter,
+          exporter_configuration,
           upload_timeout_milliseconds,
           start_timespec_seconds,
           start_timespec_nanoseconds,
@@ -122,6 +117,7 @@ module Datadog
           pprof_data,
           code_provenance_file_name,
           code_provenance_data,
+          tags_as_array,
         )
       end
     end

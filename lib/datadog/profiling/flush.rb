@@ -74,7 +74,8 @@ module Datadog
         :pprof_file_name,
         :pprof_data, # gzipped pprof bytes
         :code_provenance_file_name,
-        :code_provenance_data # gzipped json bytes
+        :code_provenance_data, # gzipped json bytes
+        :tags_as_array
 
       def initialize(
         start:,
@@ -82,7 +83,8 @@ module Datadog
         pprof_file_name:,
         pprof_data:,
         code_provenance_file_name:,
-        code_provenance_data:
+        code_provenance_data:,
+        tags_as_array:
       )
         @start = start
         @finish = finish
@@ -90,6 +92,7 @@ module Datadog
         @pprof_data = pprof_data
         @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
+        @tags_as_array = tags_as_array
       end
     end
   end
