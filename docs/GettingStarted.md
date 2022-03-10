@@ -31,6 +31,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
         - [Rails applications](#rails-applications)
         - [Ruby applications](#ruby-applications)
         - [Configuring OpenTracing](#configuring-opentracing)
+        - [Configuring OpenTelemetry](#configuring-opentelemetry)
      - [Connect your application to the Datadog Agent](#connect-your-application-to-the-datadog-agent)
  - [Manual instrumentation](#manual-instrumentation)
  - [Integration instrumentation](#integration-instrumentation)
@@ -304,6 +305,10 @@ OR
 
       - [Add additional Datadog configuration settings](#additional-configuration)
       - [Activate or reconfigure Datadog instrumentation](#integration-instrumentation)
+
+#### Configuring OpenTelemetry
+
+You can send OpenTelemetry traces directly to the Datadog agent (without `ddtrace`) by using OTLP. Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.
 
 ### Connect your application to the Datadog Agent
 
@@ -2596,7 +2601,7 @@ In addition, all metrics include the following tags:
 
 ### OpenTracing
 
-For setting up Datadog with OpenTracing, see out [Quickstart for OpenTracing](#quickstart-for-opentracing) section for details.
+For setting up Datadog with OpenTracing, see our [Configuring OpenTracing](#configuring-opentracing) section for details.
 
 **Configuring Datadog tracer settings**
 
