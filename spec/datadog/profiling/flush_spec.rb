@@ -107,6 +107,7 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:pprof_data) { 'the_pprof_data' }
     let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
     let(:code_provenance_data) { 'the_code_provenance_data' }
+    let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
 
     subject(:flush) do
       described_class.new(
@@ -116,6 +117,7 @@ RSpec.describe Datadog::Profiling::Flush do
         pprof_data: pprof_data,
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
+        tags_as_array: tags_as_array,
       )
     end
 
@@ -127,6 +129,7 @@ RSpec.describe Datadog::Profiling::Flush do
         pprof_data: pprof_data,
         code_provenance_file_name: code_provenance_file_name,
         code_provenance_data: code_provenance_data,
+        tags_as_array: tags_as_array,
       )
     end
   end
