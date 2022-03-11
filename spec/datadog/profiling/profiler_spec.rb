@@ -7,7 +7,7 @@ require 'datadog/profiling/profiler'
 RSpec.describe Datadog::Profiling::Profiler do
   subject(:profiler) { described_class.new(collectors, scheduler) }
 
-  let(:collectors) { Array.new(2) { instance_double(Datadog::Profiling::Collectors::Stack) } }
+  let(:collectors) { Array.new(2) { instance_double(Datadog::Profiling::Collectors::OldStack) } }
   let(:scheduler) { instance_double(Datadog::Profiling::Scheduler) }
 
   describe '::new' do

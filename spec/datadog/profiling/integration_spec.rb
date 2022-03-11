@@ -91,7 +91,7 @@ RSpec.describe 'profiling integration test' do
     end
     let(:recorder) { Datadog::Profiling::Recorder.new(pprof_collector: old_recorder, code_provenance_collector: nil) }
     let(:collector) do
-      Datadog::Profiling::Collectors::Stack.new(
+      Datadog::Profiling::Collectors::OldStack.new(
         old_recorder,
         trace_identifiers_helper:
           Datadog::Profiling::TraceIdentifiers::Helper.new(

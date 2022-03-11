@@ -5,7 +5,9 @@ require 'datadog/profiling/encoding/profile'
 
 module Datadog
   module Profiling
-    # Stores profiling events gathered by the `Stack` collector
+    # Stores profiling events gathered by the `OldStack` collector
+    #
+    # This class has the prefix "Old" because it will be deprecated by the new native CPU Profiler
     class OldRecorder
       attr_reader :max_size
 

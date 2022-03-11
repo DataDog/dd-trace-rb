@@ -900,9 +900,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
       shared_examples_for 'profiler with default collectors' do
         subject(:stack_collector) { profiler.collectors.first }
 
-        it 'has a Stack collector' do
+        it 'has a OldStack collector' do
           expect(profiler.collectors).to have(1).item
-          expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::Stack))
+          expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::OldStack))
           is_expected.to have_attributes(
             enabled?: true,
             started?: false,

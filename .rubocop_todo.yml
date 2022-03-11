@@ -60,7 +60,7 @@ Lint/MissingSuper:
     - 'lib/datadog/opentracer/scope.rb'
     - 'lib/datadog/opentracer/span.rb'
     - 'lib/datadog/opentracer/span_context.rb'
-    - 'lib/datadog/profiling/collectors/stack.rb'
+    - 'lib/datadog/profiling/collectors/old_stack.rb'
     - 'lib/datadog/profiling/pprof/converter.rb'
     - 'lib/datadog/profiling/pprof/template.rb'
     - 'lib/datadog/profiling/old_recorder.rb'
