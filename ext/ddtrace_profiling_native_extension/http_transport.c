@@ -209,7 +209,9 @@ static VALUE _native_do_export(
 
   if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
     VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    // FIXME: Should this be a free?
+    // TODO: This is needed until a proper dtor gets added in libddprof for SendResult; note that the Buffer
+    // itself is stack-allocated (so there's nothing to free/clean up there), so we only need to make sure its contents
+    // aren't leaked
     ddprof_ffi_Buffer_reset(&result.failure); // Clean up result
     return rb_ary_new_from_args(2, error_symbol, failure_details);
   }
