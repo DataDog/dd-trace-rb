@@ -1,5 +1,8 @@
 {
-  "version": "2.1",
+  "version": "2.2",
+  "metadata": {
+    "rules_version": "1.2.6"
+  },
   "rules": [
     {
       "id": "crs-921-130",
@@ -1254,7 +1257,8 @@
         }
       ],
       "transformers": [
-        "lowercase"
+        "lowercase",
+        "normalizePath"
       ]
     },
     {
@@ -1434,6 +1438,83 @@
       "transformers": [
         "lowercase"
       ]
+    },
+    {
+      "id": "crs-942-140",
+      "name": "SQL Injection Attack: Common DB Names Detected",
+      "tags": {
+        "type": "sql_injection",
+        "crs_id": "942140",
+        "category": "attack_attempt"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.cookies"
+              },
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              }
+            ],
+            "regex": "\\b(?:(?:m(?:s(?:ys(?:ac(?:cess(?:objects|storage|xml)|es)|(?:relationship|object|querie)s|modules2?)|db)|aster\\.\\.sysdatabases|ysql\\.db)|pg_(?:catalog|toast)|information_schema|northwind|tempdb)\\b|s(?:(?:ys(?:\\.database_name|aux)|qlite(?:_temp)?_master)\\b|chema(?:_name\\b|\\W*\\())|d(?:atabas|b_nam)e\\W*\\()",
+            "options": {
+              "min_length": 4
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "crs-942-220",
+      "name": "Looking for integer overflow attacks",
+      "tags": {
+        "type": "sql_injection",
+        "crs_id": "942220",
+        "category": "attack_attempt"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.cookies"
+              },
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              }
+            ],
+            "regex": "^(?i:-0000023456|4294967295|4294967296|2147483648|2147483647|0000012345|-2147483648|-2147483649|0000023456|2.2250738585072007e-308|2.2250738585072011e-308|1e309)$",
+            "options": {
+              "case_sensitive": true,
+              "min_length": 5
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
     }
   ]
 }
