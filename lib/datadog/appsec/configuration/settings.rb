@@ -94,7 +94,7 @@ module Datadog
 
         ENVS = {
           'DD_APPSEC_ENABLED' => [:enabled, Settings.boolean],
-          'DD_APPSEC_RULESET' => [:ruleset, Settings.string],
+          'DD_APPSEC_RULES' => [:ruleset, Settings.string],
           'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, Settings.duration(:us)],
           'DD_APPSEC_WAF_DEBUG' => [:waf_debug, Settings.boolean],
           'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, Settings.integer],
