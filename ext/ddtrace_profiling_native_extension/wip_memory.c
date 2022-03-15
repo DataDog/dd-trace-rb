@@ -11,8 +11,11 @@ static VALUE missing_string = Qnil;
 VALUE create_stack_collector();
 void collector_add(VALUE collector, ddprof_ffi_Sample sample);
 
+// Hack  -- this is not on the public Ruby headers
+extern size_t rb_obj_memsize_of(VALUE);
+
 static void on_newobj_event(VALUE tracepoint_info, void *_unused);
-static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer);
+static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer, int size_bytes);
 static VALUE get_allocation_count(VALUE self);
 static VALUE get_current_collector(VALUE self);
 static VALUE start_allocation_tracing(VALUE self);
@@ -46,6 +49,8 @@ void wip_memory_init(VALUE profiling_module) {
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   allocation_count++;
 
+  rb_trace_arg_t *tparg = rb_tracearg_from_tracepoint(tracepoint_info);
+
   int buffer_max_size = 1024;
   VALUE stack_buffer[buffer_max_size];
   int lines_buffer[buffer_max_size];
@@ -57,10 +62,13 @@ static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
     lines_buffer
   );
 
-  record_sample(stack_depth, stack_buffer, lines_buffer);
+  VALUE allocated_object = rb_tracearg_object(tparg);
+  record_sample(stack_depth, stack_buffer, lines_buffer, rb_obj_memsize_of(allocated_object));
+
+  // track_heap(rb_tracearg_object(tracepoint_info));
 }
 
-static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer) {
+static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer, int size_bytes) {
   struct ddprof_ffi_Location locations[stack_depth];
   struct ddprof_ffi_Line lines[stack_depth];
 
@@ -84,11 +92,12 @@ static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffe
     };
   }
 
-  int64_t metric = 1;
+  int64_t count = 1; // single object allocated
+  int64_t metrics[] = {count, size_bytes};
 
   struct ddprof_ffi_Sample sample = {
     .locations = {locations, stack_depth},
-    .values = {&metric, 1}
+    .values = {metrics, 2}
   };
 
   collector_add(current_collector, sample);
@@ -114,4 +123,8 @@ static VALUE stop_allocation_tracing(VALUE self) {
   // if (!ddprof_ffi_Profile_reset(allocation_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 
   return Qtrue;
+}
+
+static void track_heap(VALUE newobject) {
+
 }

@@ -16,7 +16,7 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define ALLOC_SPACE_VALUE {.type_ = slice_char_from_literal("alloc-space"), .unit = slice_char_from_literal("bytes")}
 #define HEAP_SPACE_VALUE {.type_ = slice_char_from_literal("heap-space"), .unit = slice_char_from_literal("bytes")}
 
-const static ddprof_ffi_ValueType enabled_value_types[] = {ALLOC_SAMPLES_VALUE}; //, ALLOC_SPACE_VALUE, HEAP_SPACE_VALUE};
+const static ddprof_ffi_ValueType enabled_value_types[] = {ALLOC_SAMPLES_VALUE, ALLOC_SPACE_VALUE}; //, ALLOC_SPACE_VALUE, HEAP_SPACE_VALUE};
 
 static VALUE collectors_stack_class = Qnil;
 
