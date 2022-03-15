@@ -157,6 +157,7 @@ module Datadog
       require 'datadog/profiling/pprof/pprof_pb'
       require 'datadog/profiling/tag_builder'
       require 'datadog/profiling/http_transport'
+      require 'datadog/profiling/wip_memory'
 
       true
     end
