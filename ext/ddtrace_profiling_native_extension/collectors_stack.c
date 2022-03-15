@@ -16,7 +16,7 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define ALLOC_SPACE_VALUE {.type_ = slice_char_from_literal("alloc-space"), .unit = slice_char_from_literal("bytes")}
 #define HEAP_SPACE_VALUE {.type_ = slice_char_from_literal("heap-space"), .unit = slice_char_from_literal("bytes")}
 
-const static ddprof_ffi_ValueType enabled_value_types[] = {CPU_TIME_VALUE};
+const static ddprof_ffi_ValueType enabled_value_types[] = {ALLOC_SAMPLES_VALUE}; //, ALLOC_SPACE_VALUE, HEAP_SPACE_VALUE};
 
 static VALUE collectors_stack_class = Qnil;
 
@@ -27,6 +27,8 @@ static VALUE _native_serialize(VALUE self, VALUE stack_instance);
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
+
+  rb_define_singleton_method(collectors_stack_class, "_native_serialize", _native_serialize, 1);
 
   // Instances of this class MUST be created via native code because this the Collectors::Stack class is used as a
   // "TypedData" object. A "TypedData" object in Ruby is a special object that contains inside itself a pointer to
@@ -65,7 +67,7 @@ static void collectors_stack_ddprof_ffi_Profile_free(void *data) {
 }
 
 static VALUE _native_serialize(VALUE self, VALUE stack_instance) {
-  Check_TypedStruct(stack_instance, &collectors_stack_ddprof_ffi_Profile_free);
+  Check_TypedStruct(stack_instance, &collectors_stack_ddprof_ffi_Profile);
 
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(stack_instance, ddprof_ffi_Profile, &collectors_stack_ddprof_ffi_Profile, profile);
@@ -74,11 +76,27 @@ static VALUE _native_serialize(VALUE self, VALUE stack_instance) {
   if (serialized_profile == NULL) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to serialize profile"));
 
   VALUE encoded_pprof = rb_str_new((char *) serialized_profile->buffer.ptr, serialized_profile->buffer.len);
-  VALUE start = /* FIXME */ Qnil;
-  VALUE finish = /* FIXME */ Qnil;
+  VALUE start = rb_time_nano_new(serialized_profile->start.seconds, serialized_profile->start.nanoseconds);
+  VALUE finish = rb_time_nano_new(serialized_profile->end.seconds, serialized_profile->end.nanoseconds);
 
   ddprof_ffi_EncodedProfile_delete(serialized_profile);
-  if (!ddprof_ffi_Profile_reset(profile)) return /** FIXME: Why/when would this ever fail? sus API... **/
 
-  return Qnil;
+  if (!ddprof_ffi_Profile_reset(profile)) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));/** FIXME: Why/when would this ever fail? sus API... **/
+
+  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
+}
+
+VALUE create_stack_collector() {
+  return _native_new(collectors_stack_class);
+}
+
+void collector_add(VALUE collector, ddprof_ffi_Sample sample) {
+  Check_TypedStruct(collector, &collectors_stack_ddprof_ffi_Profile);
+
+  ddprof_ffi_Profile *profile;
+  TypedData_Get_Struct(collector, ddprof_ffi_Profile, &collectors_stack_ddprof_ffi_Profile, profile);
+
+  printf("Added sample to profile!\n");
+
+  ddprof_ffi_Profile_add(profile, sample);
 }

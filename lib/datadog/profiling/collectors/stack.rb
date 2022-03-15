@@ -9,7 +9,11 @@ module Datadog
         def serialize
           status, result = self.class._native_serialize(self)
 
-          #[start, finish, encoded_pprof]
+          raise("Failed to serialize: #{result.inspect}") if (status == :error)
+
+          start, finish, encoded_pprof = result
+
+          [start, finish, encoded_pprof]
         end
       end
     end
