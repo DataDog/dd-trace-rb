@@ -17,7 +17,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
     Article.count
 
     # Reset options (that might linger from other tests)
-    Datadog.configuration[:active_record].reset!
+    Datadog.configuration.tracing[:active_record].reset!
 
     Datadog.configure do |c|
       c.tracing.instrument :active_record, configuration_options

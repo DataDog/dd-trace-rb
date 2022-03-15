@@ -7,7 +7,7 @@ RSpec.describe 'Rails tracer' do
 
   before { app }
 
-  let(:config) { Datadog.configuration[:rails] }
+  let(:config) { Datadog.configuration.tracing[:rails] }
 
   it 'configurations application correctly' do
     expect(config[:template_base_path]).to eq('views/')

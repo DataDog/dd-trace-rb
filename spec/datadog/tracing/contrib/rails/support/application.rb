@@ -24,9 +24,9 @@ RSpec.shared_context 'Rails test application' do
     end
 
     without_warnings { Datadog.configuration.reset! }
-    Datadog.configuration[:rails].reset_options!
-    Datadog.configuration[:rack].reset_options!
-    Datadog.configuration[:redis].reset_options!
+    Datadog.configuration.tracing[:rails].reset_options!
+    Datadog.configuration.tracing[:rack].reset_options!
+    Datadog.configuration.tracing[:redis].reset_options!
   end
 
   let(:app) do

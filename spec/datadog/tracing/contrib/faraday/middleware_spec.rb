@@ -310,7 +310,7 @@ RSpec.describe 'Faraday middleware' do
     let(:service_name) { 'faraday-global' }
 
     before do
-      @old_service_name = Datadog.configuration[:faraday][:service_name]
+      @old_service_name = Datadog.configuration.tracing[:faraday][:service_name]
       Datadog.configure { |c| c.tracing.instrument :faraday, service_name: service_name }
     end
 

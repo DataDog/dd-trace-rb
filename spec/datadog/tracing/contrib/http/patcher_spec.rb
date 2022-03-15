@@ -17,7 +17,7 @@ RSpec.describe 'net/http patcher' do
 
     stub_request(:any, host)
 
-    Datadog.configuration[:http].reset!
+    Datadog.configuration.tracing[:http].reset!
     Datadog.configure do |c|
       c.tracing.instrument :http
     end

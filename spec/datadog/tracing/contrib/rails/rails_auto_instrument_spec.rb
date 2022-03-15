@@ -21,7 +21,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument' do
       skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
     end
 
-    let(:config) { Datadog.configuration[:rails] }
+    let(:config) { Datadog.configuration.tracing[:rails] }
 
     it 'configurations application correctly' do
       expect_in_fork do

@@ -23,7 +23,12 @@ module Datadog
         def self.extend!
           Datadog.singleton_class.prepend Helpers
           Datadog.singleton_class.prepend Configuration
-          Core::Configuration::Settings.include Configuration::Settings
+
+          # DEV: We want settings to only apply to the `tracing` subgroup.
+          #      Until we have a better API of accessing that settings class,
+          #      we have to dig into it like this.
+          settings_class = Core::Configuration::Settings.options[:tracing].default.call.class
+          settings_class.include(Configuration::Settings)
         end
 
         # Helper methods for Datadog module.
@@ -63,10 +68,15 @@ module Datadog
             super(&block)
 
             # Activate integrations
-            configuration = self.configuration
+            configuration = self.configuration.tracing
 
             if configuration.respond_to?(:integrations_pending_activation)
-              reduce_verbosity = configuration.respond_to?(:reduce_verbosity?) ? configuration.reduce_verbosity? : false
+              ignore_integration_load_errors = if configuration.respond_to?(:ignore_integration_load_errors?)
+                                                 configuration.ignore_integration_load_errors?
+                                               else
+                                                 false
+                                               end
+
               configuration.integrations_pending_activation.each do |integration|
                 next unless integration.respond_to?(:patch)
 
@@ -77,7 +87,7 @@ module Datadog
 
                 # if patching failed, only log output if verbosity is unset
                 # or if patching failure is due to compatibility or integration specific reasons
-                next unless !reduce_verbosity ||
+                next unless !ignore_integration_load_errors ||
                             ((patch_results[:available] && patch_results[:loaded]) &&
                             (!patch_results[:compatible] || !patch_results[:patchable]))
 
@@ -100,37 +110,52 @@ module Datadog
           module Settings
             InvalidIntegrationError = Class.new(StandardError)
 
+            # Applies instrumentation for the provided `integration_name`.
+            #
+            # Options may be provided, that are specific to that instrumentation.
+            # See the instrumentation's settings file for a list of available options.
+            #
+            # @example
+            #   Datadog.configure { |c| c.tracing.instrument :integration_name }
+            # @example
+            #   Datadog.configure { |c| c.tracing.instrument :integration_name, option_key: :option_value }
+            # @param [Symbol] integration_name the integration name
+            # @param [Hash] options the integration-specific configuration settings
+            # @return [Datadog::Tracing::Contrib::Integration]
+            def instrument(integration_name, options = {}, &block)
+              integration = fetch_integration(integration_name)
+
+              unless integration.nil? || !integration.default_configuration.enabled
+                configuration_name = options[:describes] || :default
+                filtered_options = options.reject { |k, _v| k == :describes }
+                integration.configure(configuration_name, filtered_options, &block)
+                instrumented_integrations[integration_name] = integration
+
+                # Add to activation list
+                integrations_pending_activation << integration
+              end
+
+              integration
+            end
+
+            # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
+            alias_method :use, :instrument
+
             # For the provided `integration_name`, resolves a matching configuration
             # for the provided integration from an integration-specific `key`.
             #
             # How the matching is performed is integration-specific.
             #
             # @example
-            #   Datadog.configuration[:integration_name]
+            #   Datadog.configuration.tracing[:integration_name]
             # @example
-            #   Datadog.configuration[:integration_name][:sub_configuration]
+            #   Datadog.configuration.tracing[:integration_name][:sub_configuration]
             # @param [Symbol] integration_name the integration name
             # @param [Object] key the integration-specific lookup key
             # @return [Datadog::Tracing::Contrib::Configuration::Settings]
             def [](integration_name, key = :default)
               integration = fetch_integration(integration_name)
               integration.resolve(key) unless integration.nil?
-            end
-
-            # For the provided `integration_name`, retrieves a configuration previously
-            # stored by `#instrument`. Specifically, `describes` should be
-            # the same value provided in the `describes:` option for `#instrument`.
-            #
-            # If no `describes` value is provided, the default configuration is returned.
-            #
-            # @param [Symbol] integration_name the integration name
-            # @param [Object] describes the previously configured `describes:` object. If `nil`,
-            #   fetches the default configuration
-            # @return [Datadog::Tracing::Contrib::Configuration::Settings]
-            # @!visibility private
-            def configuration(integration_name, describes = nil)
-              integration = fetch_integration(integration_name)
-              integration.configuration(describes) unless integration.nil?
             end
 
             # @!visibility private
@@ -156,28 +181,12 @@ module Datadog
             end
 
             # @!visibility private
-            def reduce_verbosity?
-              defined?(@reduce_verbosity) ? @reduce_verbosity : false
+            def ignore_integration_load_errors?
+              defined?(@ignore_integration_load_errors) ? @ignore_integration_load_errors == true : false
             end
 
-            def reduce_log_verbosity
-              @reduce_verbosity ||= true
-            end
-
-            private
-
-            def instrument(integration_name, options = {}, &block)
-              integration = fetch_integration(integration_name)
-
-              unless integration.nil? || !integration.default_configuration.enabled
-                configuration_name = options[:describes] || :default
-                filtered_options = options.reject { |k, _v| k == :describes }
-                integration.configure(configuration_name, filtered_options, &block)
-                instrumented_integrations[integration_name] = integration
-
-                # Add to activation list
-                integrations_pending_activation << integration
-              end
+            def ignore_integration_load_errors=(value)
+              @ignore_integration_load_errors = value
             end
           end
         end

@@ -85,7 +85,7 @@ module Datadog
           private
 
           def configuration
-            Datadog.configuration[:cucumber]
+            Datadog.configuration.ci[:cucumber]
           end
         end
       end

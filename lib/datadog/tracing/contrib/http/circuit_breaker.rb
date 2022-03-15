@@ -35,7 +35,7 @@ module Datadog
           def should_skip_distributed_tracing?(client_config)
             return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
-            !Datadog.configuration[:http][:distributed_tracing]
+            !Datadog.configuration.tracing[:http][:distributed_tracing]
           end
         end
       end

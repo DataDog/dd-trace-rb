@@ -30,7 +30,7 @@ module Datadog
           end
 
           def get_option(option)
-            Datadog.configuration[:qless].get_option(option)
+            Datadog.configuration.tracing[:qless].get_option(option)
           end
         end
       end

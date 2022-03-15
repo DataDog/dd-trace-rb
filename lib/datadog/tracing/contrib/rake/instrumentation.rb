@@ -87,7 +87,7 @@ module Datadog
             end
 
             def configuration
-              Datadog.configuration[:rake]
+              Datadog.configuration.tracing[:rake]
             end
           end
         end

@@ -36,7 +36,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceMiddleware do
 
       before do
         # Raise error at first line of #call
-        expect(Datadog.configuration[:rack]).to receive(:[]).and_raise(fatal_error)
+        expect(Datadog.configuration.tracing[:rack]).to receive(:[]).and_raise(fatal_error)
       end
 
       it 'reraises exception' do

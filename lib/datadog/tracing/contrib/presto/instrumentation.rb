@@ -76,7 +76,7 @@ module Datadog
               private
 
               def datadog_configuration
-                Datadog.configuration[:presto]
+                Datadog.configuration.tracing[:presto]
               end
 
               def decorate!(span, operation)

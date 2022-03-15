@@ -28,7 +28,7 @@ module Datadog
               # DEV: env['sinatra.route'] already exists with very similar information,
               # DEV: but doesn't account for our `resource_script_names` logic.
               #
-              @datadog_route = if Datadog.configuration[:sinatra][:resource_script_names]
+              @datadog_route = if Datadog.configuration.tracing[:sinatra][:resource_script_names]
                                  "#{request.script_name}#{action}"
                                else
                                  action
@@ -105,7 +105,7 @@ module Datadog
             # This method yields directly to user code.
             # rubocop:disable Metrics/MethodLength
             def route_eval
-              configuration = Datadog.configuration[:sinatra]
+              configuration = Datadog.configuration.tracing[:sinatra]
               return super unless Tracing.enabled?
 
               Tracing.trace(

@@ -59,7 +59,7 @@ module Datadog
             # Instrumentation for Channel hooks.
             class Tracer
               def self.trace(channel, hook)
-                configuration = Datadog.configuration[:action_cable]
+                configuration = Datadog.configuration.tracing[:action_cable]
 
                 Tracing.trace("action_cable.#{hook}") do |span|
                   span.service = configuration[:service_name] if configuration[:service_name]

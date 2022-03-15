@@ -76,7 +76,7 @@ RSpec.describe 'Rack integration configuration' do
         is_expected.to be_ok
         expect(spans).to have(2).items
 
-        web_service_name = Datadog.configuration[:rack][:web_service_name]
+        web_service_name = Datadog.configuration.tracing[:rack][:web_service_name]
         expect(queue_span.name).to eq('http_server.queue')
         expect(queue_span.span_type).to eq('proxy')
         expect(queue_span.service).to eq(web_service_name)

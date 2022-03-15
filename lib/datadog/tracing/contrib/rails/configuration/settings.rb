@@ -33,7 +33,7 @@ module Datadog
               o.lazy
               o.on_set do |value|
                 # Update ActionPack analytics too
-                Datadog.configuration[:action_pack][:analytics_enabled] = value
+                Datadog.configuration.tracing[:action_pack][:analytics_enabled] = value
               end
             end
 
@@ -42,7 +42,7 @@ module Datadog
               o.lazy
               o.on_set do |value|
                 # Update ActionPack analytics too
-                Datadog.configuration[:action_pack][:analytics_sample_rate] = value
+                Datadog.configuration.tracing[:action_pack][:analytics_sample_rate] = value
               end
             end
 
@@ -50,7 +50,7 @@ module Datadog
             option :exception_controller do |o|
               o.on_set do |value|
                 # Update ActionPack exception controller too
-                Datadog.configuration[:action_pack][:exception_controller] = value
+                Datadog.configuration.tracing[:action_pack][:exception_controller] = value
               end
             end
 
@@ -60,7 +60,7 @@ module Datadog
               o.default 'views/'
               o.on_set do |value|
                 # Update ActionView template base path too
-                Datadog.configuration[:action_view][:template_base_path] = value
+                Datadog.configuration.tracing[:action_view][:template_base_path] = value
               end
             end
           end

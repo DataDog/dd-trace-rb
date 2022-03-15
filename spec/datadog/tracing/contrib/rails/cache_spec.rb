@@ -12,11 +12,11 @@ RSpec.describe 'Rails cache' do
   include_context 'Rails test application'
 
   before do
-    Datadog.configuration[:active_support][:cache_service] = 'rails-cache'
+    Datadog.configuration.tracing[:active_support][:cache_service] = 'rails-cache'
   end
 
   after do
-    Datadog.configuration[:active_support].reset!
+    Datadog.configuration.tracing[:active_support].reset!
   end
 
   before { app }
@@ -131,7 +131,7 @@ RSpec.describe 'Rails cache' do
     end
 
     context 'with custom cache_service' do
-      before { Datadog.configuration[:active_support][:cache_service] = 'service-cache' }
+      before { Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache' }
 
       it 'uses the proper service name' do
         write
@@ -184,7 +184,7 @@ RSpec.describe 'Rails cache' do
       end
 
       context 'with custom cache_service' do
-        before { Datadog.configuration[:active_support][:cache_service] = 'service-cache' }
+        before { Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache' }
 
         it 'uses the proper service name' do
           write_multi

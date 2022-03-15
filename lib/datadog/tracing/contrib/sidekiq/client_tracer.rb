@@ -44,7 +44,7 @@ module Datadog
           private
 
           def configuration
-            Datadog.configuration[:sidekiq]
+            Datadog.configuration.tracing[:sidekiq]
           end
         end
       end

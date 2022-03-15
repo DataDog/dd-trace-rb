@@ -29,7 +29,7 @@ module Datadog
           end
 
           def get_option(option)
-            Datadog.configuration[:sucker_punch].get_option(option)
+            Datadog.configuration.tracing[:sucker_punch].get_option(option)
           end
         end
       end
