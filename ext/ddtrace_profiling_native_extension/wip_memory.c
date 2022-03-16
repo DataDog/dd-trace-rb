@@ -71,6 +71,16 @@ static void gc_mark(void *_) {
   st_foreach(tracked_objects, tracked_objects_mark_stack, NULL);
 }
 
+static VALUE lines_as_ruby_array(int stack_depth, int *lines_buffer) {
+  VALUE result = rb_ary_new_capa(stack_depth);
+
+  for (int i = 0; i < stack_depth; i++) {
+    rb_ary_push(result, ULONG2NUM(lines_buffer[i]));
+  }
+
+  return result;
+}
+
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   allocation_count++;
 
@@ -91,7 +101,15 @@ static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   record_sample(stack_depth, stack_buffer, lines_buffer, rb_obj_memsize_of(allocated_object));
 
   VALUE stack_as_ruby_array = rb_ary_new_from_values(stack_depth, stack_buffer);
-  track_object(allocated_object, stack_as_ruby_array);
+
+  track_object(
+    allocated_object,
+    rb_ary_new_from_args(
+      2,
+      stack_as_ruby_array,
+      lines_as_ruby_array(stack_depth, lines_buffer)
+    )
+  );
 }
 
 static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer, int size_bytes) {
@@ -130,13 +148,16 @@ static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffe
 }
 
 static void record_sample_from_array(VALUE array, uint64_t size_bytes) {
-  int stack_depth = rb_array_len(array);
+  VALUE stack_as_ruby_array = rb_ary_entry(array, 0);
+  VALUE lines_as_ruby_array = rb_ary_entry(array, 1);
+
+  int stack_depth = rb_array_len(stack_as_ruby_array);
 
   ddprof_ffi_Location locations[stack_depth];
   ddprof_ffi_Line lines[stack_depth];
 
   for (int i = 0; i < stack_depth; i++) {
-    VALUE current_pos = rb_ary_entry(array, i);
+    VALUE current_pos = rb_ary_entry(stack_as_ruby_array, i);
 
     VALUE name = rb_profile_frame_full_label(current_pos);
     VALUE filename = rb_profile_frame_absolute_path(current_pos);
@@ -153,7 +174,7 @@ static void record_sample_from_array(VALUE array, uint64_t size_bytes) {
         .name = {StringValuePtr(name), RSTRING_LEN(name)},
         .filename = {StringValuePtr(filename), RSTRING_LEN(filename)}
       },
-      .line = -1,
+      .line = NUM2ULONG(rb_ary_entry(lines_as_ruby_array, i)),
     };
   }
 
