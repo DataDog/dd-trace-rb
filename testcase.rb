@@ -11,6 +11,7 @@ raise(Datadog::Profiling.unsupported_reason) unless Datadog::Profiling.supported
 def main
   puts "Starting testcase!"
   wip_memory = Datadog::Profiling::WipMemory
+  wip_memory.configure_profiling(0.5, 20)
 
   tp = wip_memory.start_allocation_tracing
 

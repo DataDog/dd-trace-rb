@@ -20,6 +20,7 @@ void collector_add(VALUE collector, ddprof_ffi_Sample sample);
 // Hack -- this is not on the public Ruby headers
 extern size_t rb_obj_memsize_of(VALUE);
 
+static VALUE configure_profiling(VALUE self, VALUE sampling_probability, VALUE maximum_tracked);
 static int tracked_objects_mark_stack(st_data_t key, st_data_t value, st_data_t data);
 static void gc_mark(void *_);
 static void on_newobj_event(VALUE tracepoint_info, void *_unused);
@@ -42,6 +43,7 @@ void wip_memory_init(VALUE profiling_module) {
   rb_define_singleton_method(wip_memory_module, "allocation_count", get_allocation_count, 0);
   rb_define_singleton_method(wip_memory_module, "current_collector", get_current_collector, 0);
   rb_define_singleton_method(wip_memory_module, "flush_heap_to_collector", flush_heap_to_collector, 0);
+  rb_define_singleton_method(wip_memory_module, "configure_profiling", configure_profiling, 2);
 
   current_collector = create_stack_collector();
   tracked_objects = rb_st_init_numtable(); // Hashmap with "numbers" as keys
@@ -62,6 +64,13 @@ void wip_memory_init(VALUE profiling_module) {
   // Idea borrowed from stackprof
   gc_hook = Data_Wrap_Struct(rb_cObject, gc_mark, NULL, NULL);
   rb_global_variable(&gc_hook);
+}
+
+static VALUE configure_profiling(VALUE self, VALUE sampling_probability, VALUE maximum_tracked) {
+  allocation_sampling_probability = NUM2DBL(sampling_probability);
+  maximum_tracked_objects = NUM2INT(maximum_tracked);
+
+  return Qtrue;
 }
 
 static int tracked_objects_mark_stack(st_data_t key, st_data_t value, st_data_t data) {
@@ -220,7 +229,17 @@ static VALUE stop_allocation_tracing(VALUE self) {
 }
 
 static void track_object(VALUE newobject, VALUE stack_trace) {
+  // TODO: This is an awful approach to doing this!
+  if (tracked_objects->num_entries >= maximum_tracked_objects) {
+
+    st_data_t flushed_object_id;
+    rb_st_shift(tracked_objects, &flushed_object_id, 0);
+
+    printf("Maximum tracked objects hit; flushing old object %lu to make space\n", flushed_object_id);
+  }
+
   VALUE object_id = rb_obj_id(newobject);
+  printf("Tracking object %lu\n", NUM2ULONG(object_id));
 
   // TODO: Is NUM2ULONG safe for all possible object_id values? Test what happens for really large values (and negative ones)
   rb_st_insert(tracked_objects, NUM2ULONG(object_id), (st_data_t) stack_trace);

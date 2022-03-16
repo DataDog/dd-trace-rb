@@ -96,7 +96,7 @@ void collector_add(VALUE collector, ddprof_ffi_Sample sample) {
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(collector, ddprof_ffi_Profile, &collectors_stack_ddprof_ffi_Profile, profile);
 
-  printf("Added sample to profile!\n");
+  // printf("Added sample to profile!\n");
 
   ddprof_ffi_Profile_add(profile, sample);
 }
