@@ -13,10 +13,8 @@ static VALUE gc_hook = Qnil;
 VALUE create_stack_collector();
 void collector_add(VALUE collector, ddprof_ffi_Sample sample);
 
-// Hack  -- this is not on the public Ruby headers
+// Hack -- this is not on the public Ruby headers
 extern size_t rb_obj_memsize_of(VALUE);
-extern int rb_objspace_garbage_object_p(VALUE obj);
-extern const struct st_hash_type rb_hashtype_ident;
 
 static int tracked_objects_mark_stack(st_data_t key, st_data_t value, st_data_t data);
 static void gc_mark(void *_);
@@ -68,7 +66,7 @@ static int tracked_objects_mark_stack(st_data_t key, st_data_t value, st_data_t 
 }
 
 static void gc_mark(void *_) {
-  st_foreach(tracked_objects, tracked_objects_mark_stack, NULL);
+  st_foreach(tracked_objects, tracked_objects_mark_stack, (st_data_t) NULL);
 }
 
 static VALUE lines_as_ruby_array(int stack_depth, int *lines_buffer) {
@@ -205,8 +203,6 @@ static VALUE start_allocation_tracing(VALUE self) {
 static VALUE stop_allocation_tracing(VALUE self) {
   rb_tracepoint_disable(allocation_tracepoint);
 
-  // if (!ddprof_ffi_Profile_reset(allocation_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
-
   return Qtrue;
 }
 
@@ -221,19 +217,19 @@ static VALUE maybe_get_size(VALUE object_id) {
   return rb_funcall(wip_memory_module, rb_intern_const("maybe_get_size"), 1, object_id);
 }
 
-static int flush_object_to_collector(st_data_t key, st_data_t value, st_data_t data) {
+static int flush_object_to_collector(st_data_t key, st_data_t value, st_data_t _unused) {
   VALUE object_id = ULONG2NUM(key);
   VALUE stack_array = (VALUE) value;
 
   VALUE object_size_if_alive = maybe_get_size(object_id);
 
   if (!RTEST(object_size_if_alive)) {
-    printf("Object with id %u is no longer alive\n", key);
+    printf("Object with id %lu is no longer alive\n", key);
     return ST_DELETE; // Object is no longer alive
   }
 
   // add sample to collector
-  printf("Will add object with id %u and size %u to collector\n", key, NUM2ULONG(object_size_if_alive));
+  printf("Will add object with id %lu and size %lu to collector\n", key, NUM2ULONG(object_size_if_alive));
 
   record_sample_from_array(stack_array, NUM2ULONG(object_size_if_alive));
 
@@ -241,12 +237,13 @@ static int flush_object_to_collector(st_data_t key, st_data_t value, st_data_t d
 }
 
 static VALUE flush_heap_to_collector(VALUE self) {
-  // TODO: Without this flushing fails; need to make flush not allocate at all
-  stop_allocation_tracing(NULL);
+  // TODO: Right now flush_object_to_collector can still trigger allocations (via id2ref) and we don't care about them
+  // (they will be GC shortly), so we need to turn off allocation tracing during flush
+  stop_allocation_tracing(Qnil);
 
-  rb_st_foreach(tracked_objects, flush_object_to_collector, NULL);
+  rb_st_foreach(tracked_objects, flush_object_to_collector, (st_data_t) NULL);
 
-  start_allocation_tracing(NULL);
+  start_allocation_tracing(Qnil);
 
   return Qtrue;
 }
