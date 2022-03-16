@@ -7,6 +7,7 @@ static VALUE current_collector = Qnil;
 static VALUE allocation_tracepoint = Qnil;
 static VALUE missing_string = Qnil;
 static VALUE wip_memory_module = Qnil;
+static VALUE gc_hook = Qnil;
 
 // collectors_stack.c
 VALUE create_stack_collector();
@@ -17,6 +18,8 @@ extern size_t rb_obj_memsize_of(VALUE);
 extern int rb_objspace_garbage_object_p(VALUE obj);
 extern const struct st_hash_type rb_hashtype_ident;
 
+static int tracked_objects_mark_stack(st_data_t key, st_data_t value, st_data_t data);
+static void gc_mark(void *_);
 static void on_newobj_event(VALUE tracepoint_info, void *_unused);
 static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffer, int size_bytes);
 static VALUE get_allocation_count(VALUE self);
@@ -27,7 +30,6 @@ static VALUE flush_heap_to_collector(VALUE self);
 static void track_object(VALUE newobject, VALUE stack_trace);
 
 static st_table *tracked_objects = NULL;
-static VALUE tracked_stacks = Qnil;
 
 void wip_memory_init(VALUE profiling_module) {
   wip_memory_module = rb_define_module_under(profiling_module, "WipMemory");
@@ -41,7 +43,6 @@ void wip_memory_init(VALUE profiling_module) {
 
   current_collector = create_stack_collector();
   tracked_objects = rb_st_init_numtable(); // Hashmap with "numbers" as keys
-  tracked_stacks = rb_ary_new(); // Temporary hack
 
   allocation_tracepoint = rb_tracepoint_new(
     0, // all threads
@@ -52,10 +53,22 @@ void wip_memory_init(VALUE profiling_module) {
 
   rb_global_variable(&current_collector);
   rb_global_variable(&allocation_tracepoint);
-  rb_global_variable(&tracked_stacks);
 
   missing_string = rb_str_new2("(nil)");
   rb_global_variable(&missing_string);
+
+  // Idea borrowed from stackprof
+  gc_hook = Data_Wrap_Struct(rb_cObject, gc_mark, NULL, NULL);
+  rb_global_variable(&gc_hook);
+}
+
+static int tracked_objects_mark_stack(st_data_t key, st_data_t value, st_data_t data) {
+  rb_gc_mark((VALUE) value);
+  return ST_CONTINUE;
+}
+
+static void gc_mark(void *_) {
+  st_foreach(tracked_objects, tracked_objects_mark_stack, NULL);
 }
 
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
@@ -78,8 +91,6 @@ static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   record_sample(stack_depth, stack_buffer, lines_buffer, rb_obj_memsize_of(allocated_object));
 
   VALUE stack_as_ruby_array = rb_ary_new_from_values(stack_depth, stack_buffer);
-  rb_ary_push(tracked_stacks, stack_as_ruby_array);
-
   track_object(allocated_object, stack_as_ruby_array);
 }
 
@@ -197,9 +208,6 @@ static int flush_object_to_collector(st_data_t key, st_data_t value, st_data_t d
 
   if (!RTEST(object_size_if_alive)) {
     printf("Object with id %u is no longer alive\n", key);
-
-    rb_ary_delete(tracked_stacks, stack_array);
-
     return ST_DELETE; // Object is no longer alive
   }
 
@@ -216,6 +224,8 @@ static VALUE flush_heap_to_collector(VALUE self) {
   stop_allocation_tracing(NULL);
 
   rb_st_foreach(tracked_objects, flush_object_to_collector, NULL);
+
+  start_allocation_tracing(NULL);
 
   return Qtrue;
 }
