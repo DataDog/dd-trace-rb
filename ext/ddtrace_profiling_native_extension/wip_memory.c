@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include <ddprof/ffi.h>
+#include <stdlib.h>
 
 static unsigned long allocation_count = 0;
 static VALUE current_collector = Qnil;
@@ -8,6 +9,9 @@ static VALUE allocation_tracepoint = Qnil;
 static VALUE missing_string = Qnil;
 static VALUE wip_memory_module = Qnil;
 static VALUE gc_hook = Qnil;
+
+static int maximum_tracked_objects = 3000;
+static double allocation_sampling_probability = 1.0;
 
 // collectors_stack.c
 VALUE create_stack_collector();
@@ -79,8 +83,17 @@ static VALUE lines_as_ruby_array(int stack_depth, int *lines_buffer) {
   return result;
 }
 
+static bool should_sample() {
+  return (((double) rand()) / RAND_MAX) <= allocation_sampling_probability;
+}
+
 static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   allocation_count++;
+
+  if (!should_sample()) {
+    printf("Skipping sampling...\n");
+    return;
+  }
 
   rb_trace_arg_t *tparg = rb_tracearg_from_tracepoint(tracepoint_info);
 
