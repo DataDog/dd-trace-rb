@@ -34,8 +34,8 @@ module Datadog
           FORM_FIELD_TAG_SERVICE = 'service'.freeze
           FORM_FIELD_TAG_VERSION = 'version'.freeze
 
-          PPROF_DEFAULT_FILENAME = 'rubyprofile.pprof.gz'.freeze
-          CODE_PROVENANCE_FILENAME = 'code-provenance.json.gz'.freeze
+          PPROF_DEFAULT_FILENAME = 'rubyprofile.pprof'.freeze
+          CODE_PROVENANCE_FILENAME = 'code-provenance.json'.freeze
         end
       end
     end
