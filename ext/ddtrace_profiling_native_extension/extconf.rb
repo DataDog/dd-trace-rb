@@ -64,6 +64,8 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
+#add_compiler_flag '-g3 -O0'
+
 if RUBY_PLATFORM.include?('linux')
   # Supposedly, the correct way to do this is
   # ```

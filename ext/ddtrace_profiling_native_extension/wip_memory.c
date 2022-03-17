@@ -11,7 +11,7 @@ static VALUE wip_memory_module = Qnil;
 static VALUE gc_hook = Qnil;
 
 static int maximum_tracked_objects = 3000;
-static double allocation_sampling_probability = 1.0;
+static double allocation_sampling_probability = 0.001;
 
 // collectors_stack.c
 VALUE create_stack_collector();
@@ -62,7 +62,9 @@ void wip_memory_init(VALUE profiling_module) {
   rb_global_variable(&missing_string);
 
   // Idea borrowed from stackprof
-  gc_hook = Data_Wrap_Struct(rb_cObject, gc_mark, NULL, NULL);
+  // The 0xDEADDEAD comes from us not actually wanting to wrap anything, but if we put in NULL then Ruby doesn't
+  // actually ever call the gc_mark function
+  gc_hook = Data_Wrap_Struct(rb_cObject, gc_mark, NULL, (void *) 0xDEADDEAD);
   rb_global_variable(&gc_hook);
 }
 
@@ -100,7 +102,7 @@ static void on_newobj_event(VALUE tracepoint_info, void *_unused) {
   allocation_count++;
 
   if (!should_sample()) {
-    printf("Skipping sampling...\n");
+    // printf("Skipping sampling...\n");
     return;
   }
 
@@ -168,8 +170,13 @@ static void record_sample(int stack_depth, VALUE *stack_buffer, int *lines_buffe
 }
 
 static void record_sample_from_array(VALUE array, uint64_t size_bytes) {
+  Check_Type(array, T_ARRAY);
+
   VALUE stack_as_ruby_array = rb_ary_entry(array, 0);
   VALUE lines_as_ruby_array = rb_ary_entry(array, 1);
+
+  Check_Type(stack_as_ruby_array, T_ARRAY);
+  Check_Type(lines_as_ruby_array, T_ARRAY);
 
   int stack_depth = rb_array_len(stack_as_ruby_array);
 
@@ -235,11 +242,11 @@ static void track_object(VALUE newobject, VALUE stack_trace) {
     st_data_t flushed_object_id;
     rb_st_shift(tracked_objects, &flushed_object_id, 0);
 
-    printf("Maximum tracked objects hit; flushing old object %lu to make space\n", flushed_object_id);
+    // printf("Maximum tracked objects hit; flushing old object %lu to make space\n", flushed_object_id);
   }
 
   VALUE object_id = rb_obj_id(newobject);
-  printf("Tracking object %lu\n", NUM2ULONG(object_id));
+  // printf("Tracking object %lu\n", NUM2ULONG(object_id));
 
   // TODO: Is NUM2ULONG safe for all possible object_id values? Test what happens for really large values (and negative ones)
   rb_st_insert(tracked_objects, NUM2ULONG(object_id), (st_data_t) stack_trace);
@@ -256,12 +263,12 @@ static int flush_object_to_collector(st_data_t key, st_data_t value, st_data_t _
   VALUE object_size_if_alive = maybe_get_size(object_id);
 
   if (!RTEST(object_size_if_alive)) {
-    printf("Object with id %lu is no longer alive\n", key);
+    // printf("Object with id %lu is no longer alive\n", key);
     return ST_DELETE; // Object is no longer alive
   }
 
   // add sample to collector
-  printf("Will add object with id %lu and size %lu to collector\n", key, NUM2ULONG(object_size_if_alive));
+  // printf("Will add object with id %lu and size %lu to collector\n", key, NUM2ULONG(object_size_if_alive));
 
   record_sample_from_array(stack_array, NUM2ULONG(object_size_if_alive));
 

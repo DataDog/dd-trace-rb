@@ -42,6 +42,9 @@ module Datadog
           code_provenance_data: flush.code_provenance_data,
 
           tags_as_array: flush.tags_as_array,
+
+          extra_pprof_file_name: flush.extra_pprof_file_name,
+          extra_pprof_data: flush.extra_pprof_data,
         )
 
         if status == :ok
@@ -104,7 +107,9 @@ module Datadog
         pprof_data:,
         code_provenance_file_name:,
         code_provenance_data:,
-        tags_as_array:
+        tags_as_array:,
+        extra_pprof_file_name:,
+        extra_pprof_data:
       )
         self.class._native_do_export(
           exporter_configuration,
@@ -118,6 +123,8 @@ module Datadog
           code_provenance_file_name,
           code_provenance_data,
           tags_as_array,
+          extra_pprof_file_name,
+          extra_pprof_data,
         )
       end
     end

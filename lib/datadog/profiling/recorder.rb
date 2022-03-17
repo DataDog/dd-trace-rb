@@ -48,6 +48,14 @@ module Datadog
 
         uncompressed_code_provenance = code_provenance_collector.refresh.generate_json if code_provenance_collector
 
+        uncompressed_memory_pprof =
+          if ENV['DD_PROFILING_WIPMEMORY'] == 'true'
+            Datadog.logger.debug("Observed #{Datadog::Profiling::WipMemory.allocation_count} allocation events")
+
+            Datadog::Profiling::WipMemory.flush_heap_to_collector
+            Datadog::Profiling::WipMemory.current_collector.serialize.last # this returns start, finish, encoded_pprof and we only want the latter
+          end
+
         Flush.new(
           start: start,
           finish: finish,
@@ -57,6 +65,9 @@ module Datadog
           code_provenance_data:
             (Datadog::Core::Utils::Compression.gzip(uncompressed_code_provenance) if uncompressed_code_provenance),
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
+          extra_pprof_file_name: 'memory.pprof.gz',
+          extra_pprof_data:
+            (Datadog::Core::Utils::Compression.gzip(uncompressed_memory_pprof) if uncompressed_memory_pprof),
         )
       end
 

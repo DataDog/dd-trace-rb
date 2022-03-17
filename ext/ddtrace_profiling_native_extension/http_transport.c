@@ -37,7 +37,9 @@ static VALUE _native_do_export(
   VALUE pprof_data,
   VALUE code_provenance_file_name,
   VALUE code_provenance_data,
-  VALUE tags_as_array
+  VALUE tags_as_array,
+  VALUE extra_pprof_file_name,
+  VALUE extra_pprof_data
 );
 static ddprof_ffi_Request *build_request(
   ddprof_ffi_ProfileExporterV3 *exporter,
@@ -49,7 +51,9 @@ static ddprof_ffi_Request *build_request(
   VALUE pprof_file_name,
   VALUE pprof_data,
   VALUE code_provenance_file_name,
-  VALUE code_provenance_data
+  VALUE code_provenance_data,
+  VALUE extra_pprof_file_name,
+  VALUE extra_pprof_data
 );
 static void *call_exporter_without_gvl(void *exporter_and_request);
 
@@ -57,7 +61,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 11);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 13);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -171,7 +175,9 @@ static VALUE _native_do_export(
   VALUE pprof_data,
   VALUE code_provenance_file_name,
   VALUE code_provenance_data,
-  VALUE tags_as_array
+  VALUE tags_as_array,
+  VALUE extra_pprof_file_name,
+  VALUE extra_pprof_data
 ) {
   ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, tags_as_array);
 
@@ -191,7 +197,9 @@ static VALUE _native_do_export(
       pprof_file_name,
       pprof_data,
       code_provenance_file_name,
-      code_provenance_data
+      code_provenance_data,
+      extra_pprof_file_name,
+      extra_pprof_data
     );
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
@@ -227,7 +235,9 @@ static ddprof_ffi_Request *build_request(
   VALUE pprof_file_name,
   VALUE pprof_data,
   VALUE code_provenance_file_name,
-  VALUE code_provenance_data
+  VALUE code_provenance_data,
+  VALUE extra_pprof_file_name,
+  VALUE extra_pprof_data
 ) {
   Check_Type(upload_timeout_milliseconds, T_FIXNUM);
   Check_Type(start_timespec_seconds, T_FIXNUM);
@@ -242,6 +252,12 @@ static ddprof_ffi_Request *build_request(
   bool have_code_provenance = !NIL_P(code_provenance_data);
   if (have_code_provenance) Check_Type(code_provenance_data, T_STRING);
 
+  bool have_extra_pprof_data = !NIL_P(extra_pprof_data);
+  if (have_extra_pprof_data) {
+    Check_Type(extra_pprof_file_name, T_STRING);
+    Check_Type(extra_pprof_data, T_STRING);
+  }
+
   uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
 
   ddprof_ffi_Timespec start =
@@ -249,7 +265,7 @@ static ddprof_ffi_Request *build_request(
   ddprof_ffi_Timespec finish =
     {.seconds = NUM2LONG(finish_timespec_seconds), .nanoseconds = NUM2UINT(finish_timespec_nanoseconds)};
 
-  int files_to_report = 1 + (have_code_provenance ? 1 : 0);
+  int files_to_report = 1 + (have_code_provenance ? 1 : 0) + (have_extra_pprof_data ? 1 : 0);
   ddprof_ffi_File files[files_to_report];
   ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = files_to_report};
 
@@ -262,6 +278,13 @@ static ddprof_ffi_Request *build_request(
       .name = byte_slice_from_ruby_string(code_provenance_file_name),
       .file = byte_slice_from_ruby_string(code_provenance_data)
     };
+
+    if (have_extra_pprof_data) {
+      files[2] = (ddprof_ffi_File) {
+        .name = byte_slice_from_ruby_string(extra_pprof_file_name),
+        .file = byte_slice_from_ruby_string(extra_pprof_data)
+      };
+    }
   }
 
   ddprof_ffi_Request *request =
