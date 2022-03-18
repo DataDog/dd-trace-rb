@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.0.0.beta1)
       debase-ruby_core_source (<= 0.10.14)
-      libddwaf (~> 1.0.14.2.0.a)
+      libddwaf (~> 1.2.1.0.0.a)
       msgpack
 
 GEM
@@ -115,7 +115,7 @@ GEM
     jdbc-postgres (42.2.14)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddwaf (1.0.14.2.0.beta1)
+    libddwaf (1.2.1.0.0.beta1)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)

@@ -3,7 +3,7 @@ PATH
   specs:
     ddtrace (1.0.0.beta1)
       debase-ruby_core_source (<= 0.10.14)
-      libddwaf (~> 1.0.14.2.0.a)
+      libddwaf (~> 1.2.1.0.0.a)
       msgpack
 
 GEM
@@ -40,7 +40,7 @@ GEM
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddwaf (1.0.14.2.0.beta1-x86_64-linux)
+    libddwaf (1.2.1.0.0.beta1-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (0.9.2)
