@@ -589,6 +589,21 @@ RSpec.describe 'Grape instrumentation' do
         expect(trace.resource).to eq('TestingAPI GET /span_resource/span_resource')
       end
     end
+
+    context 'when tracing is disabled' do
+      subject(:response) { get '/base/success' }
+
+      before do
+        Datadog.configure { |c| c.tracing.enabled = false }
+        expect(Datadog.logger).to_not receive(:error)
+      end
+
+      it 'runs the endpoint request without tracing' do
+        is_expected.to be_ok
+        expect(response.body).to eq('OK')
+        expect(spans.length).to eq(0)
+      end
+    end
   end
 
   context 'with rack' do
