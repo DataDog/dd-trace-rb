@@ -65,7 +65,7 @@ module Datadog
           code_provenance_data:
             (Datadog::Core::Utils::Compression.gzip(uncompressed_code_provenance) if uncompressed_code_provenance),
           tags_as_array: Datadog::Profiling::TagBuilder.call(settings: Datadog.configuration).to_a,
-          extra_pprof_file_name: 'memory.pprof.gz',
+          extra_pprof_file_name: 'memory.pprof',
           extra_pprof_data:
             (Datadog::Core::Utils::Compression.gzip(uncompressed_memory_pprof) if uncompressed_memory_pprof),
         )
