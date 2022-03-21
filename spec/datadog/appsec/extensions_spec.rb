@@ -60,9 +60,7 @@ RSpec.describe Datadog::AppSec::Extensions do
 
       describe '#enabled=' do
         subject(:enabled_) { settings.enabled = false }
-        it do
-          expect { enabled_ }.to change { settings.enabled }.from(true).to(false)
-        end
+        it { expect { enabled_ }.to change { settings.enabled }.from(true).to(false) }
       end
 
       describe '#ruleset' do
@@ -71,8 +69,8 @@ RSpec.describe Datadog::AppSec::Extensions do
       end
 
       describe '#ruleset=' do
-        subject(:ruleset_) { settings.ruleset = :expert }
-        it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:expert) }
+        subject(:ruleset_) { settings.ruleset = :risky }
+        it { expect { ruleset_ }.to change { settings.ruleset }.from(:recommended).to(:risky) }
       end
 
       describe '#waf_timeout' do
