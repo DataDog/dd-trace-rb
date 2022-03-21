@@ -44,7 +44,10 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
       context 'agent' do
         let(:options) do
           {
-            agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::ENVIRONMENT_AGENT_SETTINGS
+            agent_settings: Datadog::Core::Configuration::AgentSettingsResolver.call(
+              Datadog::Core::Configuration::Settings.new,
+              logger: nil,
+            )
           }
         end
 
