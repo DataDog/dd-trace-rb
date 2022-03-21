@@ -84,6 +84,19 @@ module Datadog
         end
 
         def call
+          # A transport_options proc configured for unix domain socket overrides most of the logic on this file
+          if transport_options.adapter == Transport::Ext::UnixSocket::ADAPTER
+            return AgentSettings.new(
+              adapter: Transport::Ext::UnixSocket::ADAPTER,
+              ssl: false,
+              hostname: nil,
+              port: nil,
+              uds_path: transport_options.uds_path,
+              timeout_seconds: timeout_seconds,
+              deprecated_for_removal_transport_configuration_proc: nil,
+            )
+          end
+
           AgentSettings.new(
             adapter: adapter,
             ssl: ssl?,
@@ -115,6 +128,10 @@ module Datadog
 
           @configured_hostname = pick_from(
             DetectedConfiguration.new(
+              friendly_name: "'c.tracing.transport_options'",
+              value: transport_options.hostname,
+            ),
+            DetectedConfiguration.new(
               friendly_name: "'c.agent.host'",
               value: settings.agent.host
             ),
@@ -133,6 +150,10 @@ module Datadog
           return @configured_port if defined?(@configured_port)
 
           @configured_port = pick_from(
+            try_parsing_as_integer(
+              friendly_name: "'c.tracing.transport_options'",
+              value: transport_options.port,
+            ),
             try_parsing_as_integer(
               friendly_name: '"c.agent.port"',
               value: settings.agent.port,
@@ -162,7 +183,8 @@ module Datadog
         end
 
         def ssl?
-          !parsed_url.nil? && parsed_url.scheme == 'https'
+          transport_options.ssl ||
+            (!parsed_url.nil? && parsed_url.scheme == 'https')
         end
 
         def hostname
@@ -181,11 +203,15 @@ module Datadog
         # Defaults to +nil+, letting the adapter choose what default
         # works best in their case.
         def timeout_seconds
-          nil
+          transport_options.timeout_seconds
         end
 
+        # In transport_options, we try to invoke the transport_options proc and get its configuration. In case that
+        # doesn't work, we include the proc directly in the agent settings result.
         def deprecated_for_removal_transport_configuration_proc
-          settings.tracing.transport_options if settings.tracing.transport_options.is_a?(Proc)
+          if settings.tracing.transport_options.is_a?(Proc) && transport_options.adapter.nil?
+            settings.tracing.transport_options
+          end
         end
 
         # We only use the default unix socket if it is already present.
@@ -259,6 +285,37 @@ module Datadog
           logger.warn(message) if logger
         end
 
+        # The settings.tracing.transport_options allows users to have full control over the settings used to
+        # communicate with the agent. In the general case, we can't extract the configuration from this proc, but
+        # in the specific case of the http and unix socket adapters we can, and we use this method together with the
+        # `TransportOptionsResolver` to call the proc and extract its information.
+        def transport_options
+          return @transport_options if defined?(@transport_options)
+
+          transport_options_proc = settings.tracing.transport_options
+
+          @transport_options = TransportOptions.new
+
+          if transport_options_proc.is_a?(Proc)
+            begin
+              transport_options_proc.call(TransportOptionsResolver.new(@transport_options))
+            rescue NoMethodError => e
+              if logger
+                logger.debug do
+                  'Could not extract configuration from transport_options proc. ' \
+                  "Cause: #{e.message} Source: #{Array(e.backtrace).first}"
+                end
+              end
+
+              # Reset the object; we shouldn't return the same one we passed into the proc as it may have
+              # some partial configuration and we want all-or-nothing.
+              @transport_options = TransportOptions.new
+            end
+          end
+
+          @transport_options.freeze
+        end
+
         # Represents a given configuration value and where we got it from
         class DetectedConfiguration
           attr_reader :friendly_name, :value
@@ -274,6 +331,33 @@ module Datadog
           end
         end
         private_constant :DetectedConfiguration
+
+        # Used to contain information extracted from the transport_options proc (see #transport_options above)
+        TransportOptions = Struct.new(:adapter, :hostname, :port, :timeout_seconds, :ssl, :uds_path)
+        private_constant :TransportOptions
+
+        # Used to extract information from the transport_options proc (see #transport_options above)
+        class TransportOptionsResolver
+          def initialize(transport_options)
+            @transport_options = transport_options
+          end
+
+          def adapter(kind_or_custom_adapter, *args, **kwargs)
+            case kind_or_custom_adapter
+            when Datadog::Transport::Ext::HTTP::ADAPTER
+              @transport_options.adapter = Datadog::Transport::Ext::HTTP::ADAPTER
+              @transport_options.hostname = args[0] || kwargs[:hostname]
+              @transport_options.port = args[1] || kwargs[:port]
+              @transport_options.timeout_seconds = kwargs[:timeout]
+              @transport_options.ssl = kwargs[:ssl]
+            when Datadog::Transport::Ext::UnixSocket::ADAPTER
+              @transport_options.adapter = Datadog::Transport::Ext::UnixSocket::ADAPTER
+              @transport_options.uds_path = args[0] || kwargs[:uds_path]
+            end
+
+            nil
+          end
+        end
       end
       # rubocop:enable Metrics/ClassLength
     end
