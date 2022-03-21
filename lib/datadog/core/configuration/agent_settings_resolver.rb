@@ -54,6 +54,9 @@ module Datadog
 
             # Returns a frozen copy of this struct
             # with the provided +member_values+ modified.
+            #
+            # TODO: This is only used when configuring profiling, and can be removed once
+            # https://github.com/DataDog/dd-trace-rb/pull/1924 is merged
             def merge(**member_values)
               new_struct = dup
 
@@ -129,44 +132,33 @@ module Datadog
         def configured_port
           return @configured_port if defined?(@configured_port)
 
-          parsed_port_from_env =
-            try_parsing_as_integer(
-              friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
-              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
-            )
-
-          parsed_settings_tracer_port =
+          @configured_port = pick_from(
             try_parsing_as_integer(
               friendly_name: '"c.agent.port"',
               value: settings.agent.port,
-            )
-
-          @configured_port = pick_from(
-            DetectedConfiguration.new(
-              friendly_name: '"c.agent.port"',
-              value: parsed_settings_tracer_port,
             ),
             DetectedConfiguration.new(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL} environment variable",
               value: parsed_url && parsed_url.port,
             ),
-            DetectedConfiguration.new(
+            try_parsing_as_integer(
               friendly_name: "#{Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT} environment variable",
-              value: parsed_port_from_env,
+              value: ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_PORT],
             )
           )
         end
 
         def try_parsing_as_integer(value:, friendly_name:)
-          return unless value
+          value =
+            begin
+              Integer(value) if value
+            rescue ArgumentError, TypeError
+              log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
 
-          begin
-            Integer(value)
-          rescue ArgumentError, TypeError
-            log_warning("Invalid value for #{friendly_name} (#{value.inspect}). Ignoring this configuration.")
+              nil
+            end
 
-            nil
-          end
+          DetectedConfiguration.new(friendly_name: friendly_name, value: value)
         end
 
         def ssl?
@@ -218,6 +210,8 @@ module Datadog
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
+          unparsed_url_from_env = ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL]
+
           @parsed_url =
             if unparsed_url_from_env
               parsed = URI.parse(unparsed_url_from_env)
@@ -236,12 +230,6 @@ module Datadog
                 nil
               end
             end
-        end
-
-        # NOTE: This should only be used AFTER parsing, via `#parsed_url`. The only other use-case where this can be used
-        # directly without parsing, is when displaying in warning messages, to show users what it actually contains.
-        def unparsed_url_from_env
-          @unparsed_url_from_env ||= ENV[Datadog::Tracing::Configuration::Ext::Transport::ENV_DEFAULT_URL]
         end
 
         def pick_from(*configurations_in_priority_order)
@@ -271,9 +259,13 @@ module Datadog
           logger.warn(message) if logger
         end
 
-        DetectedConfiguration = Struct.new(:friendly_name, :value) do
+        # Represents a given configuration value and where we got it from
+        class DetectedConfiguration
+          attr_reader :friendly_name, :value
+
           def initialize(friendly_name:, value:)
-            super(friendly_name, value)
+            @friendly_name = friendly_name
+            @value = value
             freeze
           end
 

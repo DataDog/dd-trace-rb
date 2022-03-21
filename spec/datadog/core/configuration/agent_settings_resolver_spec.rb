@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   describe 'http adapter hostname' do
-    context 'when a custom hostname is specified via environment variable' do
+    context 'when a custom hostname is specified via the DD_AGENT_HOST environment variable' do
       let(:environment) { { 'DD_AGENT_HOST' => 'custom-hostname' } }
 
       it 'contacts the agent using the http adapter, using the custom hostname' do
@@ -79,16 +79,41 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       it 'contacts the agent using the http adapter, using the custom hostname' do
         expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
       end
+    end
 
-      context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
-        let(:environment) { { 'DD_AGENT_HOST' => 'this-is-a-different-hostname' } }
+    context 'when a custom hostname is specified via the DD_TRACE_AGENT_URL environment variable' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => "http://custom-hostname:#{port}" } }
 
-        before do
-          allow(logger).to receive(:warn)
-        end
+      it 'contacts the agent using the http adapter, using the custom hostname' do
+        expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
+      end
+    end
 
-        it 'prioritizes the hostname specified via code' do
-          expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
+    describe 'priority' do
+      let(:with_agent_host) { nil }
+      let(:with_trace_agent_url) { nil }
+      let(:with_environment_agent_host) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_TRACE_AGENT_URL'] = "http://#{with_trace_agent_url}:1234") if with_trace_agent_url
+        (environment['DD_AGENT_HOST'] = with_environment_agent_host) if with_environment_agent_host
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.host = with_agent_host) if with_agent_host
+      end
+
+      context 'when all of agent.host, DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
+        let(:with_agent_host) { 'custom-hostname-2' }
+        let(:with_trace_agent_url) { 'custom-hostname-3' }
+        let(:with_environment_agent_host) { 'custom-hostname-4' }
+
+        it 'prioritizes the agent.port' do
+          expect(resolver).to have_attributes(hostname: 'custom-hostname-2')
         end
 
         it 'logs a warning' do
@@ -98,19 +123,32 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         end
       end
 
-      context 'and a different hostname is also specified via the DD_TRACE_AGENT_URL environment variable' do
-        let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://this-is-a-different-hostname:8126' } }
+      context 'when DD_TRACE_AGENT_URL, DD_AGENT_HOST are provided' do
+        let(:with_trace_agent_url) { 'custom-hostname-3' }
+        let(:with_environment_agent_host) { 'custom-hostname-4' }
 
-        before do
-          allow(logger).to receive(:warn)
-        end
-
-        it 'prioritizes the hostname specified via code' do
-          expect(resolver).to have_attributes(**settings, hostname: 'custom-hostname')
+        it 'prioritizes the DD_TRACE_AGENT_URL' do
+          expect(resolver).to have_attributes(hostname: 'custom-hostname-3')
         end
 
         it 'logs a warning' do
           expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      # This somewhat duplicates some of the testing above, but it's still helpful to validate that the test is correct
+      # (otherwise it may pass due to bugs, not due to right priority being used)
+      context 'when only DD_AGENT_HOST is provided' do
+        let(:with_environment_agent_host) { 'custom-hostname-4' }
+
+        it 'uses the DD_AGENT_HOST' do
+          expect(resolver).to have_attributes(hostname: 'custom-hostname-4')
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
 
           resolver
         end
@@ -119,7 +157,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   end
 
   describe 'http adapter port' do
-    context 'when a custom port is specified via environment variable' do
+    context 'when a custom port is specified via the DD_TRACE_AGENT_PORT environment variable' do
       let(:environment) { { 'DD_TRACE_AGENT_PORT' => '1234' } }
 
       it 'contacts the agent using the http adapter, using the custom port' do
@@ -152,42 +190,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
       it 'contacts the agent using the http adapter, using the custom port' do
         expect(resolver).to have_attributes(**settings, port: 1234)
-      end
-
-      context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
-        let(:environment) { { 'DD_TRACE_AGENT_PORT' => '5678' } }
-
-        before do
-          allow(logger).to receive(:warn)
-        end
-
-        it 'prioritizes the port specified via code' do
-          expect(resolver).to have_attributes(**settings, port: 1234)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
-        end
-      end
-
-      context 'and a different port is also specified via the DD_TRACE_AGENT_URL environment variable' do
-        let(:environment) { { 'DD_TRACE_AGENT_URL' => 'http://127.0.0.1:5678' } }
-
-        before do
-          allow(logger).to receive(:warn)
-        end
-
-        it 'prioritizes the port specified via code' do
-          expect(resolver).to have_attributes(**settings, port: 1234)
-        end
-
-        it 'logs a warning' do
-          expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-          resolver
-        end
       end
 
       context 'when the port is specified as a string instead of a number' do
@@ -236,6 +238,80 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         end
       end
     end
+
+    context 'when a custom port is specified via the DD_TRACE_AGENT_URL environment variable' do
+      let(:environment) { { 'DD_TRACE_AGENT_URL' => "http://#{hostname}:1234" } }
+
+      it 'contacts the agent using the http adapter, using the custom port' do
+        expect(resolver).to have_attributes(**settings, port: 1234)
+      end
+    end
+
+    describe 'priority' do
+      let(:with_agent_port) { nil }
+      let(:with_trace_agent_url) { nil }
+      let(:with_trace_agent_port) { nil }
+      let(:environment) do
+        environment = {}
+
+        (environment['DD_TRACE_AGENT_URL'] = "http://custom-hostname:#{with_trace_agent_url}") if with_trace_agent_url
+        (environment['DD_TRACE_AGENT_PORT'] = with_trace_agent_port.to_s) if with_trace_agent_port
+
+        environment
+      end
+
+      before do
+        allow(logger).to receive(:warn)
+        (ddtrace_settings.agent.port = with_agent_port) if with_agent_port
+      end
+
+      context 'when all of agent.port, DD_TRACE_AGENT_URL, DD_TRACE_AGENT_PORT are provided' do
+        let(:with_agent_port) { 2 }
+        let(:with_trace_agent_url) { 3 }
+        let(:with_trace_agent_port) { 4 }
+
+        it 'prioritizes the agent.port' do
+          expect(resolver).to have_attributes(port: 2)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      context 'when DD_TRACE_AGENT_URL, DD_TRACE_AGENT_PORT are provided' do
+        let(:with_trace_agent_url) { 3 }
+        let(:with_trace_agent_port) { 4 }
+
+        it 'prioritizes the DD_TRACE_AGENT_URL' do
+          expect(resolver).to have_attributes(port: 3)
+        end
+
+        it 'logs a warning' do
+          expect(logger).to receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+
+      # This somewhat duplicates some of the testing above, but it's still helpful to validate that the test is correct
+      # (otherwise it may pass due to bugs, not due to right priority being used)
+      context 'when only DD_TRACE_AGENT_PORT is provided' do
+        let(:with_trace_agent_port) { 4 }
+
+        it 'uses the DD_TRACE_AGENT_PORT' do
+          expect(resolver).to have_attributes(port: 4)
+        end
+
+        it 'does not log any warning' do
+          expect(logger).to_not receive(:warn).with(/Configuration mismatch/)
+
+          resolver
+        end
+      end
+    end
   end
 
   context 'when a custom url is specified via environment variable' do
@@ -248,52 +324,6 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         hostname: 'custom-hostname',
         port: 1234
       )
-    end
-
-    context 'and a different hostname is also specified via the DD_AGENT_HOST environment variable' do
-      let(:environment) do
-        {
-          'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
-          'DD_AGENT_HOST' => 'this-is-a-different-hostname'
-        }
-      end
-
-      before do
-        allow(logger).to receive(:warn)
-      end
-
-      it 'prioritizes the hostname specified via DD_TRACE_AGENT_URL' do
-        expect(resolver).to have_attributes(hostname: 'custom-hostname')
-      end
-
-      it 'logs a warning' do
-        expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-        resolver
-      end
-    end
-
-    context 'and a different port is also specified via the DD_TRACE_AGENT_PORT environment variable' do
-      let(:environment) do
-        {
-          'DD_TRACE_AGENT_URL' => 'http://custom-hostname:1234',
-          'DD_TRACE_AGENT_PORT' => '5678'
-        }
-      end
-
-      before do
-        allow(logger).to receive(:warn)
-      end
-
-      it 'prioritizes the port specified via DD_TRACE_AGENT_URL' do
-        expect(resolver).to have_attributes(port: 1234)
-      end
-
-      it 'logs a warning' do
-        expect(logger).to receive(:warn).with(/Configuration mismatch/)
-
-        resolver
-      end
     end
 
     context 'when the uri scheme is https' do
