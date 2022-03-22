@@ -237,7 +237,8 @@ module Datadog
             end
 
             def enabled?
-              datadog_configuration[:enabled] == true
+              Datadog.configuration.tracing.enabled && \
+                datadog_configuration[:enabled] == true
             end
 
             def datadog_configuration
