@@ -385,6 +385,20 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
         it_behaves_like 'a successful single task execution'
         it_behaves_like 'a failed single task execution'
       end
+
+      context 'when tracing is disabled' do
+        before do
+          Datadog.configure { |c| c.tracing.enabled = false }
+          expect(Datadog.logger).to_not receive(:error)
+          expect(Datadog::Tracing).to_not receive(:trace)
+          expect(spy).to receive(:call)
+        end
+
+        it 'runs the task without tracing' do
+          expect { invoke }.to_not raise_error
+          expect(spans.length).to eq(0)
+        end
+      end
     end
   end
 end
