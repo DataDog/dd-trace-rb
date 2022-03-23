@@ -37,9 +37,9 @@ module Datadog
 
           # Set analytics sample rate
           if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-            Contrib::Analytics.set_measured(span)
             Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
           end
+          Contrib::Analytics.set_measured(span)
 
           span.set_tag(Ext::TAG_AGENT, Ext::TAG_DEFAULT_AGENT)
           span.set_tag(Ext::TAG_OPERATION, context.safely(:operation))
