@@ -22,8 +22,18 @@ module Datadog
 
             if libddwaf_required?
               Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
-              Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
-              @waf = Datadog::AppSec::WAF::Handle.new(waf_rules)
+              ruleset_setting = Datadog::AppSec.settings.ruleset
+              begin
+                ruleset = waf_rules(ruleset_setting)
+              rescue StandardError => e
+                Datadog.logger.warn do
+                  "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error:#{e.inspect}"
+                end
+                Datadog.logger.warn { 'AppSec is disabled' }
+              else
+                Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
+                @waf = Datadog::AppSec::WAF::Handle.new(ruleset) if ruleset
+              end
             else
               Datadog.logger.warn do
                 "libddwaf failed to load, installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}"
@@ -32,8 +42,7 @@ module Datadog
             end
           end
 
-          def waf_rules
-            ruleset_setting = Datadog::AppSec.settings.ruleset
+          def waf_rules(ruleset_setting)
             case ruleset_setting
             when :recommended, :risky, :strict
               @waf_rules ||= JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
@@ -49,7 +58,7 @@ module Datadog
           end
 
           def call(env)
-            return @app.call(env) unless libddwaf_required?
+            return @app.call(env) unless libddwaf_required? && waf?
 
             # TODO: handle exceptions, except for @app.call
 
@@ -84,6 +93,10 @@ module Datadog
 
           def libddwaf_required?
             defined?(Datadog::AppSec::WAF)
+          end
+
+          def waf?
+            !@waf.nil?
           end
 
           def require_libddwaf
