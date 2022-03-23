@@ -79,7 +79,8 @@ module Datadog
             end
 
             def enabled?
-              configuration[:enabled] == true
+              Datadog.configuration.tracing.enabled && \
+                configuration[:enabled] == true
             end
 
             def span_options
