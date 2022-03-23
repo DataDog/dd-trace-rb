@@ -38,7 +38,7 @@ RSpec.describe 'AWS instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Aws::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'measured span for integration'
       it_behaves_like 'a peer service span'
 
       it 'generates a span' do
@@ -54,7 +54,6 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('host')).to eq('sts.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.get_metric('_dd.measured')).to eq(1.0)
       end
 
       it 'returns an unmodified response' do
@@ -78,7 +77,7 @@ RSpec.describe 'AWS instrumentation' do
         let(:analytics_sample_rate_var) { Datadog::Contrib::Aws::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'measured span for integration', false
+      it_behaves_like 'measured span for integration'
 
       it 'generates a span' do
         expect(span.name).to eq('aws.command')
@@ -93,7 +92,6 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.get_metric('_dd.measured')).to eq(1.0)
       end
 
       it_behaves_like 'a peer service span'
