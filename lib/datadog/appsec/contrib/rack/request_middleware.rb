@@ -1,6 +1,7 @@
 # typed: ignore
 
 require 'datadog/appsec/instrumentation/gateway'
+require 'datadog/appsec/processor'
 require 'datadog/appsec/assets'
 
 module Datadog
@@ -13,56 +14,15 @@ module Datadog
           def initialize(app, opt = {})
             @app = app
 
-            # TODO: move to integration? (may be too early)
-            require_libddwaf
-
-            libddwaf_spec = Gem.loaded_specs['libddwaf']
-            libddwaf_platform = libddwaf_spec ? libddwaf_spec.platform.to_s : 'unknown'
-            ruby_platforms = Gem.platforms.map(&:to_s)
-
-            if libddwaf_required?
-              Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
-              ruleset_setting = Datadog::AppSec.settings.ruleset
-              begin
-                ruleset = waf_rules(ruleset_setting)
-              rescue StandardError => e
-                Datadog.logger.warn do
-                  "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error:#{e.inspect}"
-                end
-                Datadog.logger.warn { 'AppSec is disabled' }
-              else
-                Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
-                @waf = Datadog::AppSec::WAF::Handle.new(ruleset) if ruleset
-              end
-            else
-              Datadog.logger.warn do
-                "libddwaf failed to load, installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms}"
-              end
-              Datadog.logger.warn { 'AppSec is disabled' }
-            end
-          end
-
-          def waf_rules(ruleset_setting)
-            case ruleset_setting
-            when :recommended, :risky, :strict
-              @waf_rules ||= JSON.parse(Datadog::AppSec::Assets.waf_rules(ruleset_setting))
-            when String
-              # TODO: handle file missing
-              filename = ruleset_setting
-              ruleset = File.read(filename)
-              @waf_rules ||= JSON.parse(ruleset)
-            else
-              # TODO: use a proper exception class
-              raise "unsupported value for :ruleset: #{ruleset_setting.inspect}"
-            end
+            @processor = Datadog::AppSec::Processor.new
           end
 
           def call(env)
-            return @app.call(env) unless libddwaf_required? && waf?
+            return @app.call(env) unless @processor.ready?
 
             # TODO: handle exceptions, except for @app.call
 
-            context = Datadog::AppSec::WAF::Context.new(@waf)
+            context = @processor.context
 
             env['datadog.waf.context'] = context
             request = ::Rack::Request.new(env)
