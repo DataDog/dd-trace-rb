@@ -114,13 +114,13 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
             end
           end
 
-          context 'when Ruby CAN NOT use the MJIT header' do
+          context 'on a Ruby version where we CAN NOT use the MJIT header' do
             before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
 
             include_examples 'libddprof usable'
           end
 
-          context 'when Ruby CAN use the MJIT header' do
+          context 'on a Ruby version where we CAN use the MJIT header' do
             before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
 
             context 'but DOES NOT have MJIT support' do
