@@ -82,29 +82,19 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
 
         shared_examples 'mjit header validation' do
           shared_examples 'libddprof usable' do
-            context 'when libddprof DOES NOT have binaries' do
-              before { expect(Libddprof).to receive(:binaries?).and_return(false) }
+            context 'when libddprof DOES NOT HAVE binaries for the current platform' do
+              before do
+                expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
+                expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+              end
 
-              it { is_expected.to include 'gem installed on your system is missing platform-specific' }
+              it { is_expected.to include 'platform variant' }
             end
 
-            context 'when libddprof and DOES have binaries' do
-              before { expect(Libddprof).to receive(:binaries?).and_return(true) }
+            context 'when libddprof HAS BINARIES for the current platform' do
+              before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
 
-              context 'but DOES NOT HAVE binaries for the current platform' do
-                before do
-                  expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
-                  expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
-                end
-
-                it { is_expected.to include 'platform variant' }
-              end
-
-              context 'and HAS BINARIES for the current platform' do
-                before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
-
-                it { is_expected.to be nil }
-              end
+              it('marks the native extension as supported') { is_expected.to be nil }
             end
           end
 
