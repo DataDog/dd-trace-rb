@@ -11,8 +11,6 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 static ID agentless_id; // id of :agentless in Ruby
 static ID agent_id; // id of :agent in Ruby
 
-#define byte_slice_from_literal(string) ((ddprof_ffi_ByteSlice) {.ptr = (uint8_t *) "" string, .len = sizeof("" string) - 1})
-
 struct call_exporter_without_gvl_arguments {
   ddprof_ffi_ProfileExporterV3 *exporter;
   ddprof_ffi_Request *request;
@@ -20,6 +18,7 @@ struct call_exporter_without_gvl_arguments {
 };
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
+inline static ddprof_ffi_CharSlice char_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
 static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
 static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result);
@@ -71,6 +70,12 @@ inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   return byte_slice;
 }
 
+inline static ddprof_ffi_CharSlice char_slice_from_ruby_string(VALUE string) {
+  Check_Type(string, T_STRING);
+  ddprof_ffi_CharSlice char_slice = {.ptr = StringValuePtr(string), .len = RSTRING_LEN(string)};
+  return char_slice;
+}
+
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration) {
   Check_Type(exporter_configuration, T_ARRAY);
   ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, rb_ary_new());
@@ -95,7 +100,7 @@ static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_conf
   convert_tags(converted_tags, tags_count, tags_as_array);
 
   ddprof_ffi_NewProfileExporterV3Result exporter_result = ddprof_ffi_ProfileExporterV3_new(
-    byte_slice_from_literal("ruby"),
+    DDPROF_FFI_CHARSLICE_C("ruby"),
     (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
     endpoint_from(exporter_configuration)
   );
@@ -130,12 +135,12 @@ static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
     Check_Type(site, T_STRING);
     Check_Type(api_key, T_STRING);
 
-    return ddprof_ffi_EndpointV3_agentless(byte_slice_from_ruby_string(site), byte_slice_from_ruby_string(api_key));
+    return ddprof_ffi_EndpointV3_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
   } else { // agent_id
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
     Check_Type(base_url, T_STRING);
 
-    return ddprof_ffi_EndpointV3_agent(byte_slice_from_ruby_string(base_url));
+    return ddprof_ffi_EndpointV3_agent(char_slice_from_ruby_string(base_url));
   }
 }
 
@@ -153,8 +158,8 @@ static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE 
     Check_Type(tag_value, T_STRING);
 
     converted_tags[i] = (ddprof_ffi_Tag) {
-      .name = byte_slice_from_ruby_string(tag_name),
-      .value = byte_slice_from_ruby_string(tag_value)
+      .name = char_slice_from_ruby_string(tag_name),
+      .value = char_slice_from_ruby_string(tag_value)
     };
   }
 }
@@ -256,12 +261,12 @@ static ddprof_ffi_Request *build_request(
   ddprof_ffi_Slice_file slice_files = {.ptr = files, .len = files_to_report};
 
   files[0] = (ddprof_ffi_File) {
-    .name = byte_slice_from_ruby_string(pprof_file_name),
+    .name = char_slice_from_ruby_string(pprof_file_name),
     .file = byte_slice_from_ruby_string(pprof_data)
   };
   if (have_code_provenance) {
     files[1] = (ddprof_ffi_File) {
-      .name = byte_slice_from_ruby_string(code_provenance_file_name),
+      .name = char_slice_from_ruby_string(code_provenance_file_name),
       .file = byte_slice_from_ruby_string(code_provenance_data)
     };
   }

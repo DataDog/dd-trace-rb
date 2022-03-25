@@ -168,7 +168,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
 
     context 'when an invalid configuration is provided' do
-      let(:port) { 1_000_000_000.to_s }
+      let(:hostname) { 'this:is:not:a:valid:hostname!!!!' }
 
       it do
         expect { http_transport }.to raise_error(ArgumentError, /Failed to initialize transport/)
@@ -344,8 +344,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
 
     context 'via unix domain socket' do
-      before { pending 'Support for reporting via unix domain socket in libddprof is still work in progress' }
-
       let(:temporary_directory) { Dir.mktmpdir }
       let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
       let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
