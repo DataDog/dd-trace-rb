@@ -63,22 +63,16 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
 
         it { is_expected.to include 'macOS' }
-
-        context 'when macOS testing override is enabled' do
-          around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => 'true') { example.run } }
-
-          it { is_expected.to be nil }
-        end
       end
 
-      context 'when not on Windows or macOS' do
+      context 'when not on Linux' do
+        before { stub_const('RUBY_PLATFORM', 'sparc-opensolaris') }
+
+        it { is_expected.to include 'operating system is not supported' }
+      end
+
+      context 'when on Linux or on macOS with testing override enabled' do
         before { expect(Gem).to receive(:win_platform?).and_return(false) }
-
-        context 'when not on Linux' do
-          before { stub_const('RUBY_PLATFORM', 'sparc-opensolaris') }
-
-          it { is_expected.to include 'operating system is not supported' }
-        end
 
         context 'when not on amd64 or arm64' do
           before { stub_const('RUBY_PLATFORM', 'mipsel-linux') }
@@ -145,6 +139,12 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
 
         context 'when on arm64 (aarch64) linux' do
           before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
+
+          include_examples 'mjit header validation'
+        end
+
+        context 'when macOS testing override is enabled' do
+          around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => 'true') { example.run } }
 
           include_examples 'mjit header validation'
         end
