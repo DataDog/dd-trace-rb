@@ -168,24 +168,16 @@ module Datadog
         end
 
         private_class_method def self.libddprof_not_usable?
-          libddprof_no_binaries = explain_issue(
-            'the `libddprof` gem installed on your system is missing platform-specific',
-            'binaries. Make sure you install a platform-specific version of the gem,',
-            'and that you are not enabling the `force_ruby_platform` bundler option,',
-            'nor the `BUNDLE_FORCE_RUBY_PLATFORM` environment variable.',
+          no_binaries_for_current_platform = explain_issue(
+            'the `libddprof` gem installed on your system is missing binaries for your',
+            'platform variant.',
+            "(Your platform: `#{Gem::Platform.local}`)",
+            "(Available binaries: ",
+            "`#{Libddprof.available_binaries.join('`, `')}`)",
             suggested: CONTACT_SUPPORT,
           )
-          return libddprof_no_binaries unless Libddprof.binaries?
 
-          unless Libddprof.pkgconfig_folder
-            explain_issue(
-              'the `libddprof` gem installed on your system is missing binaries for your',
-              'platform variant.',
-              "(Your platform: `#{Gem::Platform.local}`)",
-              "(Available binaries: `#{Libddprof.available_binaries})",
-              suggested: CONTACT_SUPPORT,
-            )
-          end
+          no_binaries_for_current_platform unless Libddprof.pkgconfig_folder
         end
       end
       # rubocop:enable Metrics/ModuleLength
