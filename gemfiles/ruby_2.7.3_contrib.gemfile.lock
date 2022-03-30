@@ -1468,7 +1468,7 @@ GEM
       pry (~> 0.13)
     qless (0.10.0)
       redis (>= 2.2)
-    que (2.0.0.beta1)
+    que (1.4.0)
     racc (1.6.0)
     racecar (2.7.0)
       king_konf (~> 1.0.0)
@@ -1672,7 +1672,7 @@ DEPENDENCIES
   pry-byebug
   pry-stack_explorer
   qless
-  que (>= 1.0.0.beta2)
+  que (>= 1.0.0)
   racecar (>= 0.3.5)
   rack
   rack-test

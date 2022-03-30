@@ -304,7 +304,7 @@ elsif ruby_version?('2.2')
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0.beta2'
+    gem 'que', '>= 1.0.0'
   end
 
   appraise 'core-old' do
@@ -490,7 +490,7 @@ elsif ruby_version?('2.3')
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0.beta2'
+    gem 'que', '>= 1.0.0'
   end
 
   appraise 'contrib-old' do
@@ -608,7 +608,7 @@ elsif ruby_version?('2.4')
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0.beta2'
+    gem 'que', '>= 1.0.0'
   end
 
   appraise 'contrib-old' do
@@ -855,7 +855,7 @@ elsif ruby_version?('2.5')
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0.beta2'
+    gem 'que', '>= 1.0.0'
   end
 
   appraise 'contrib-old' do
@@ -1058,7 +1058,7 @@ elsif ruby_version?('2.6')
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '>= 1.0.0.beta2'
+      gem 'que', '>= 1.0.0'
     end
 
     appraise 'contrib-old' do
@@ -1261,7 +1261,7 @@ elsif ruby_version?('2.7')
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '>= 1.0.0.beta2'
+      gem 'que', '>= 1.0.0'
     end
 
     appraise 'contrib-old' do
@@ -1375,7 +1375,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'sqlite3', '>= 1.4.2'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0.beta2'
+    gem 'que', '>= 1.0.0'
     gem 'net-smtp'
   end
 

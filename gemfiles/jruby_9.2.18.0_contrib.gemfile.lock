@@ -1657,7 +1657,7 @@ DEPENDENCIES
   pry
   pry-debugger-jruby
   qless (= 0.10.0)
-  que (>= 1.0.0.beta2)
+  que (>= 1.0.0)
   racecar (>= 0.3.5)
   rack
   rack-test
