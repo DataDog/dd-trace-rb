@@ -18,6 +18,10 @@ RSpec.describe Datadog::Core::Error do
     # Empty strings were being interpreted as ASCII strings breaking `msgpack`
     # decoding on the agent-side.
     it 'encodes default values in UTF-8' do
+      if PlatformHelpers.jruby? && JRUBY_VERSION.start_with?('9.3')
+        skip('Test flaky on JRuby 9.3, see https://github.com/jruby/jruby/issues/7166')
+      end
+
       error = described_class.new
 
       expect(error.type.encoding).to eq(::Encoding::UTF_8)
