@@ -76,6 +76,6 @@ gem "sqlite3", "~> 1.4.1", platform: :ruby
 gem "jdbc-sqlite3", ">= 3.28", platform: :jruby
 gem "sucker_punch"
 gem "typhoeus"
-gem "que", ">= 1.0.0.beta2"
+gem "que", ">= 1.0.0"
 
 gemspec path: "../"
