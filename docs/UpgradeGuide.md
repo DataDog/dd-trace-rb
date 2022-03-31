@@ -104,7 +104,7 @@ end
 ### New 1.0 ###
 Datadog.configure do |c|
   # Global settings
-  c.agent.hostname = '127.0.0.1'
+  c.agent.host = '127.0.0.1'
   c.agent.port = 8126
   c.runtime_metrics.enabled = true
   c.service = 'billing-api'
@@ -143,7 +143,7 @@ Check out the table below for a list of common mappings:
 | `tracer.debug`                         | `diagnostics.debug`             |
 | `tracer.enabled`                       | `tracing.enabled`               |
 | `tracer.env`                           | `env`                           |
-| `tracer.hostname`                      | `agent.hostname`                |
+| `tracer.hostname`                      | `agent.host`                    |
 | `tracer.instance`                      | `tracing.instance`              |
 | `tracer.log`                           | `logger.instance`               |
 | `tracer.partial_flush`                 | `tracing.partial_flush.enabled` |
