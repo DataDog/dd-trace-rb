@@ -134,7 +134,7 @@ RSpec.describe Datadog::Core::Error do
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
           end
 
-          it 'reports errors only once', if: (RUBY_VERSION >= '2.6.0' && !PlatformHelpers.truffleruby?) do
+          it 'reports errors only once', if: (RUBY_VERSION >= '2.6.0' && PlatformHelpers.mri?) do
             expect(error.type).to eq('ArgumentError')
             expect(error.message).to eq('circular causes')
 
@@ -143,6 +143,17 @@ RSpec.describe Datadog::Core::Error do
             # Expect 2 "first-class" exception lines: 'circular causes' and 'first error'.
             # Ruby doesn't report 'second error' as it was never successfully set as the cause of 'first error'.
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
+          end
+
+          it 'reports errors only once', if: (RUBY_VERSION >= '2.6.0' && PlatformHelpers.jruby?) do
+            expect(error.type).to eq('RuntimeError')
+            expect(error.message).to eq('circular causes')
+
+            expect(error.backtrace)
+              .to match(/circular causes \(RuntimeError\).*first error \(RuntimeError\)/m)
+
+            # Expect 3 "first-class" exception lines: 'circular causes', 'first error' and 'second error'.
+            expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(3).items
           end
         end
 
