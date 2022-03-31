@@ -184,7 +184,7 @@ RSpec.describe Datadog::Core::Error do
         end
 
         context 'benchmark' do
-          before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+          before { skip('Benchmark not run by default') }
 
           it do
             require 'benchmark/ips'
