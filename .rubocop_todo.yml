@@ -263,7 +263,6 @@ RSpec/VerifiedDoubles:
     - 'spec/datadog/profiling/collectors/old_stack_spec.rb'
     - 'spec/datadog/profiling/encoding/profile_spec.rb'
     - 'spec/datadog/profiling/events/stack_spec.rb'
-    - 'spec/datadog/profiling/old_exporter_spec.rb'
     - 'spec/datadog/profiling/ext/cthread_spec.rb'
     - 'spec/datadog/profiling/ext/forking_spec.rb'
     - 'spec/datadog/profiling/flush_spec.rb'
