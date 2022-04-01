@@ -7,15 +7,15 @@ require 'datadog/core/logger'
 
 RSpec.describe Datadog::Profiling::Exporter do
   subject(:exporter) do
-    described_class.new(pprof_collector: pprof_collector, code_provenance_collector: code_provenance_collector)
+    described_class.new(pprof_recorder: pprof_recorder, code_provenance_collector: code_provenance_collector)
   end
 
   let(:start) { Time.now }
   let(:finish) { start + 60 }
   let(:pprof_data) { 'dummy pprof data' }
   let(:code_provenance_data) { 'dummy code provenance data' }
-  let(:pprof_collector_serialize) { [start, finish, pprof_data] }
-  let(:pprof_collector) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_collector_serialize) }
+  let(:pprof_recorder_serialize) { [start, finish, pprof_data] }
+  let(:pprof_recorder) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_recorder_serialize) }
   let(:code_provenance_collector) do
     collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
     allow(collector).to receive(:refresh).and_return(collector)
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   describe '#flush' do
     subject(:flush) { exporter.flush }
 
-    it 'returns a flush containing the data from the collectors' do
+    it 'returns a flush containing the data from the recorders' do
       expect(flush).to have_attributes(
         start: start,
         finish: finish,
@@ -38,8 +38,8 @@ RSpec.describe Datadog::Profiling::Exporter do
       expect(Datadog::Core::Utils::Compression.gunzip(flush.code_provenance_data)).to eq code_provenance_data
     end
 
-    context 'when pprof collector has no data' do
-      let(:pprof_collector_serialize) { nil }
+    context 'when pprof recorder has no data' do
+      let(:pprof_recorder_serialize) { nil }
 
       it { is_expected.to be nil }
     end
@@ -74,8 +74,8 @@ RSpec.describe Datadog::Profiling::Exporter do
   end
 
   describe '#empty?' do
-    it 'delegates to the pprof_collector' do
-      expect(pprof_collector).to receive(:empty?).and_return(:empty_result)
+    it 'delegates to the pprof_recorder' do
+      expect(pprof_recorder).to receive(:empty?).and_return(:empty_result)
 
       expect(exporter.empty?).to be :empty_result
     end

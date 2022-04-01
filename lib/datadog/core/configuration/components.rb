@@ -292,9 +292,9 @@ module Datadog
               (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
             Profiling::Exporter.new(
-              # NOTE: Using the OldRecorder as a pprof_collector is temporary and will be removed once libpprof is
+              # NOTE: Using the OldRecorder as a pprof_recorder is temporary and will be removed once libpprof is
               # being used for aggregation
-              pprof_collector: old_recorder,
+              pprof_recorder: old_recorder,
               code_provenance_collector: code_provenance_collector,
             )
           end

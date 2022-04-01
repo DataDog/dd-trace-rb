@@ -14,6 +14,7 @@ module Datadog
       #
       # This metadata powers grouping and categorization of stack trace data.
       #
+      # This class acts both as a collector (collecting data) as well as a recorder (records/serializes it)
       class CodeProvenance
         def initialize(standard_library_path: RbConfig::CONFIG.fetch('rubylibdir'))
           @libraries_by_name = {}

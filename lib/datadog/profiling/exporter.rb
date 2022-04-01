@@ -6,12 +6,12 @@ require 'datadog/profiling/tag_builder'
 
 module Datadog
   module Profiling
-    # Exports profiling data gathered by the multiple collectors in a `Flush`.
+    # Exports profiling data gathered by the multiple recorders in a `Flush`.
     #
-    # @ivoanjo: Note that the collector that gathers pprof data is special, since we use its start/finish/empty? to
+    # @ivoanjo: Note that the recorders that gathers pprof data is special, since we use its start/finish/empty? to
     # decide if there's data to flush, as well as the timestamp for that data.
     # I could've made the whole design more generic, but I'm unsure if we'll ever have more than a handful of
-    # collectors, so I've decided to make it specific until we actually need to support more collectors.
+    # recorders, so I've decided to make it specific until we actually need to support more recorders.
     #
     class Exporter
       # Profiles with duration less than this will not be reported
@@ -20,24 +20,24 @@ module Datadog
       private
 
       attr_reader \
-        :pprof_collector,
-        :code_provenance_collector,
+        :pprof_recorder,
+        :code_provenance_collector, # The code provenance collector acts both as collector and as a recorder
         :minimum_duration
 
       public
 
       def initialize(
-        pprof_collector:,
+        pprof_recorder:,
         code_provenance_collector:,
         minimum_duration: PROFILE_DURATION_THRESHOLD_SECONDS
       )
-        @pprof_collector = pprof_collector
+        @pprof_recorder = pprof_recorder
         @code_provenance_collector = code_provenance_collector
         @minimum_duration = minimum_duration
       end
 
       def flush
-        start, finish, uncompressed_pprof = pprof_collector.serialize
+        start, finish, uncompressed_pprof = pprof_recorder.serialize
 
         return if uncompressed_pprof.nil? # We don't want to report empty profiles
 
@@ -61,7 +61,7 @@ module Datadog
       end
 
       def empty?
-        pprof_collector.empty?
+        pprof_recorder.empty?
       end
 
       private

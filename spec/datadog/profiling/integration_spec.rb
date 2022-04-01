@@ -90,7 +90,7 @@ RSpec.describe 'profiling integration test' do
         last_flush_time: Time.now.utc - 5
       )
     end
-    let(:exporter) { Datadog::Profiling::Exporter.new(pprof_collector: old_recorder, code_provenance_collector: nil) }
+    let(:exporter) { Datadog::Profiling::Exporter.new(pprof_recorder: old_recorder, code_provenance_collector: nil) }
     let(:collector) do
       Datadog::Profiling::Collectors::OldStack.new(
         old_recorder,
