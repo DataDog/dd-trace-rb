@@ -935,7 +935,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       shared_examples_for 'profiler with default recorder' do
-        subject(:old_recorder) { profiler.scheduler.send(:recorder).send(:pprof_collector) }
+        subject(:old_recorder) { profiler.scheduler.send(:exporter).send(:pprof_collector) }
 
         it do
           is_expected.to have_attributes(max_size: settings.profiling.advanced.max_events)

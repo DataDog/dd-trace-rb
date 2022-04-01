@@ -103,7 +103,7 @@ RSpec.describe 'profiling integration test' do
       )
     end
     let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
-    let(:scheduler) { Datadog::Profiling::Scheduler.new(recorder: exporter, transport: transport) }
+    let(:scheduler) { Datadog::Profiling::Scheduler.new(exporter: exporter, transport: transport) }
 
     it 'produces a profile' do
       expect(transport).to receive(:export)

@@ -7,8 +7,8 @@ require 'datadog/core/workers/polling'
 
 module Datadog
   module Profiling
-    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes data from the `Recorder` and reports them using the configured
-    # transport. Runs on its own background thread.
+    # Periodically (every DEFAULT_INTERVAL_SECONDS) takes a profile from the `Exporter` and reports it using the
+    # configured transport. Runs on its own background thread.
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
@@ -22,19 +22,19 @@ module Datadog
       private
 
       attr_reader \
-        :recorder,
+        :exporter,
         :transport
 
       public
 
       def initialize(
-        recorder:,
+        exporter:,
         transport:,
         fork_policy: Core::Workers::Async::Thread::FORK_POLICY_RESTART, # Restart in forks by default
         interval: DEFAULT_INTERVAL_SECONDS,
         enabled: true
       )
-        @recorder = recorder
+        @exporter = exporter
         @transport = transport
 
         # Workers::Async::Thread settings
@@ -67,23 +67,22 @@ module Datadog
       end
 
       def after_fork
-        # Clear recorder's buffers by flushing events.
-        # Objects from parent process will copy-on-write,
-        # and we don't want to send events for the wrong process.
-        recorder.flush
+        # Clear any existing profiling state.
+        # We don't want the child process to report profiling data from its parent.
+        exporter.flush
       end
 
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts
       #
       # When a scheduler gets created (or reset), we don't want it to immediately try to flush; we want it to wait for
       # the loop wait time first. This avoids an issue where the scheduler reported a mostly-empty profile if the
-      # application just started but this thread took a bit longer so there's already samples in the recorder.
+      # application just started but this thread took a bit longer so there's already profiling data in the exporter.
       def loop_wait_before_first_iteration?
         true
       end
 
       def work_pending?
-        !recorder.empty?
+        !exporter.empty?
       end
 
       private
@@ -100,7 +99,7 @@ module Datadog
 
       def flush_events
         # Collect data to be exported
-        flush = recorder.flush
+        flush = exporter.flush
 
         return false unless flush
 
