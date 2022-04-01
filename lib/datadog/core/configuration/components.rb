@@ -241,10 +241,10 @@ module Datadog
             )
 
             old_recorder = build_profiler_old_recorder(settings)
-            recorder = build_profiler_recorder(settings, old_recorder)
+            exporter = build_profiler_exporter(settings, old_recorder)
             collectors = build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
             transport = build_profiler_transport(settings, agent_settings)
-            scheduler = build_profiler_scheduler(settings, recorder, transport)
+            scheduler = build_profiler_scheduler(settings, exporter, transport)
 
             Profiling::Profiler.new(collectors, scheduler)
           end
@@ -287,11 +287,11 @@ module Datadog
             )
           end
 
-          def build_profiler_recorder(settings, old_recorder)
+          def build_profiler_exporter(settings, old_recorder)
             code_provenance_collector =
               (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
-            Profiling::Recorder.new(
+            Profiling::Exporter.new(
               # NOTE: Using the OldRecorder as a pprof_collector is temporary and will be removed once libpprof is
               # being used for aggregation
               pprof_collector: old_recorder,
@@ -299,10 +299,10 @@ module Datadog
             )
           end
 
-          def build_profiler_collectors(settings, recorder, trace_identifiers_helper)
+          def build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
             [
               Profiling::Collectors::OldStack.new(
-                recorder,
+                old_recorder,
                 trace_identifiers_helper: trace_identifiers_helper,
                 max_frames: settings.profiling.advanced.max_frames
                 # TODO: Provide proc that identifies Datadog worker threads?
@@ -321,8 +321,8 @@ module Datadog
               )
           end
 
-          def build_profiler_scheduler(_settings, recorder, transport)
-            Profiling::Scheduler.new(recorder: recorder, transport: transport)
+          def build_profiler_scheduler(_settings, exporter, transport)
+            Profiling::Scheduler.new(recorder: exporter, transport: transport)
           end
         end
 

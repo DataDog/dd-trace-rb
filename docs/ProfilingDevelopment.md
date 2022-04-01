@@ -25,8 +25,8 @@ Components below live inside <../lib/datadog/profiling>:
 * `Flush`: Entity class used to represent the payload to be reported for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
 * `OldRecorder`: Stores profiling events gathered by the `Collector::OldStack`. (To be removed after migration to libddprof aggregation)
-* `Recorder`: Gathers data from `OldRecorder` and `Collector::CodeProvenance` to be reported as a profile.
-* `Scheduler`: Periodically (every 1 minute) takes data from the `Recorder` and pushes them to the configured transport.
+* `Exporter`: Gathers data from `OldRecorder` and `Collectors::CodeProvenance` to be reported as a profile.
+* `Scheduler`: Periodically (every 1 minute) takes data from the `Exporter` and pushes them to the configured transport.
   Runs on its own background thread.
 
 ## Initialization
@@ -56,9 +56,9 @@ flow:
      +--------+-+     |  +---------------+
               |       |
               v       v
-    +---------+---+  ++----------+
-    | OldRecorder |<-| Recorder  |
-    +-------------+  +-+---------+
+    +---------+---+  ++---------+
+    | OldRecorder |<-| Exporter |
+    +-------------+  +-+--------+
                        |
                        v
         +--------------+--+
@@ -72,9 +72,9 @@ flow:
 During run-time, the `Scheduler` and the `Collectors::OldStack` each execute on their own background thread.
 
 The `Collectors::OldStack` samples stack traces of threads, capturing both CPU-time (if available) and wall-clock, storing
-them in the `Recorder`.
+them in the `OldRecorder`.
 
-The `Scheduler` wakes up every 1 minute to flush the results of the `Recorder` into the transport.
+The `Scheduler` wakes up every 1 minute to flush the results of the `Exporter` into the transport.
 By default, the `Scheduler` gets created with the default `HttpTransport`, which
 takes care of encoding the data and reporting it to the Datadog agent.
 

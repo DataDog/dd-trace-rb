@@ -6,14 +6,14 @@ require 'datadog/profiling/tag_builder'
 
 module Datadog
   module Profiling
-    # Records profiling data gathered by the multiple collectors in a `Flush`.
+    # Exports profiling data gathered by the multiple collectors in a `Flush`.
     #
     # @ivoanjo: Note that the collector that gathers pprof data is special, since we use its start/finish/empty? to
     # decide if there's data to flush, as well as the timestamp for that data.
     # I could've made the whole design more generic, but I'm unsure if we'll ever have more than a handful of
     # collectors, so I've decided to make it specific until we actually need to support more collectors.
     #
-    class Recorder
+    class Exporter
       # Profiles with duration less than this will not be reported
       PROFILE_DURATION_THRESHOLD_SECONDS = 1
 

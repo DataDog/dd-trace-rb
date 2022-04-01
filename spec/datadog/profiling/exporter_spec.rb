@@ -1,12 +1,12 @@
 # typed: false
 
-require 'datadog/profiling/recorder'
+require 'datadog/profiling/exporter'
 require 'datadog/profiling/old_recorder'
 require 'datadog/profiling/collectors/code_provenance'
 require 'datadog/core/logger'
 
-RSpec.describe Datadog::Profiling::Recorder do
-  subject(:recorder) do
+RSpec.describe Datadog::Profiling::Exporter do
+  subject(:exporter) do
     described_class.new(pprof_collector: pprof_collector, code_provenance_collector: code_provenance_collector)
   end
 
@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::Recorder do
   let(:logger) { Datadog.logger }
 
   describe '#flush' do
-    subject(:flush) { recorder.flush }
+    subject(:flush) { exporter.flush }
 
     it 'returns a flush containing the data from the collectors' do
       expect(flush).to have_attributes(
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Profiling::Recorder do
     it 'delegates to the pprof_collector' do
       expect(pprof_collector).to receive(:empty?).and_return(:empty_result)
 
-      expect(recorder.empty?).to be :empty_result
+      expect(exporter.empty?).to be :empty_result
     end
   end
 end
