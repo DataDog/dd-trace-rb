@@ -109,7 +109,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
 | ----- | -------------------------- | -----   | ------------------------------------ | ------------------- |
-| MRI   | https://www.ruby-lang.org/ | 3.0     | Full                                 | Latest              |
+| MRI   | https://www.ruby-lang.org/ | 3.1     | Full                                 | Latest              |
+|       |                            | 3.0     | Full                                 | Latest              |
 |       |                            | 2.7     | Full                                 | Latest              |
 |       |                            | 2.6     | Full                                 | Latest              |
 |       |                            | 2.5     | Full                                 | Latest              |
