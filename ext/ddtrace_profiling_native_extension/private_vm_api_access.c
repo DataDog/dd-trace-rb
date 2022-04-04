@@ -23,11 +23,11 @@
 //
 // Note that beyond returning the rb_thread_struct*, rb_check_typeddata() raises an exception
 // if the argument passed in is not actually a `Thread` instance.
-static inline struct rb_thread_struct *thread_struct_from_object(VALUE thread) {
+static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
   if (thread_data_type == NULL) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
 
-  return (struct rb_thread_struct *) rb_check_typeddata(thread, thread_data_type);
+  return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }
 
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
