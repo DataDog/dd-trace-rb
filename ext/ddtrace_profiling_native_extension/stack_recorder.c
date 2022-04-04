@@ -1,6 +1,4 @@
 #include <ruby.h>
-#include <ruby/debug.h>
-#include <ddprof/ffi.h>
 #include "stack_recorder.h"
 
 // Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
