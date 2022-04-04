@@ -1990,8 +1990,8 @@ end
 | `tracing.partial_flush.enabled`                         |                                | `false`                                                           | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                  |
 | `tracing.partial_flush.min_spans_threshold`             |                                | `500`                                                             | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                              |
 | `tracing.sampler`                                       |                                | `nil`                                                             | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details. |
-| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%, recommended). See [Application-side sampling](#application-side-sampling) for details.                                                                                   |
-| `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100`                                                             | Sets a rate limit for sampling. See [Sampling](#sampling) for more details.                                                                                                                                                               |
+| `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                  |
+| `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100` (per second)                                                | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                    |
 | `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`     | `false`                                                           | Adds hostname tag to traces.                                                                                                                                                                                                              |
 | `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`   | `false`                                                           | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                         |
 | `tracing.test_mode.trace_flush`                         |                                | `nil`                                                             | Object that determines trace flushing behavior.                                                                                                                                                                                           |
@@ -2070,19 +2070,11 @@ By default, this will be activated whenever `ddtrace` detects the application is
 
 ### Sampling
 
-Datadog's Tracing without Limits™ allows you to send all of your traffic and [configure retention within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/).
-
-We recommend setting the environment variable `DD_TRACE_SAMPLE_RATE=1.0` in all new applications using `ddtrace`.
-
-App Analytics, previously configured with the `tracing.analytics.enabled` setting, is deprecated in favor of Tracing without Limits™. Documentation for this [deprecated configuration is still available](https://docs.datadoghq.com/tracing/legacy_app_analytics/).
-
 #### Application-side sampling
 
 While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
 
-This will **reduce visibility and is not recommended**. 
-
-The default sampling rate can be set between `0.0` (0%) and `1.0` (100%$ recommended). `1.0` or Tracing without Limits™, allows you to send all of your traffic and retention can be [configured within the Datadog app](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/). When this configuration is not set, the Datadog agent will automatically select an assortment of diverse traces.
+The default sampling rate can be set between `0.0` (0%) and `1.0` (100%). Configure the rate in order to control the volume of traces sent to Datadog. When this configuration is not set, the Datadog agent will distribute a default sampling rate of 10 traces per second.
 
 Set this value via `DD_TRACE_SAMPLE_RATE` or `Datadog.configure { |c| c.tracing.sampling.default_rate = <value> }`.
 
