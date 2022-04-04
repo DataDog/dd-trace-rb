@@ -956,6 +956,28 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  describe '#set_user' do
+    it 'sets user on trace' do
+      trace_op.measure('root') do
+        trace_op.set_user(id: '42')
+      end
+      trace = trace_op.flush!
+      expect(trace.tags).to include('usr.id' => '42')
+    end
+
+    it 'enforces :id presence' do
+      trace_op.measure('root') do
+        expect { trace_op.set_user(foo: 'bar') }.to raise_error(ArgumentError)
+      end
+    end
+
+    it 'enforces String values' do
+      trace_op.measure('root') do
+        expect { trace_op.set_user(id: 42) }.to raise_error(TypeError)
+      end
+    end
+  end
+
   describe '#build_span' do
     subject(:build_span) { trace_op.build_span(span_name, **span_options) }
     let(:span_name) { 'web.request' }
