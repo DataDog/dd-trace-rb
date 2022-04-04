@@ -2068,6 +2068,8 @@ Datadog.configure { |c| c.diagnostics.startup_logs.enabled = true }
 
 By default, this will be activated whenever `ddtrace` detects the application is running in a non-development environment.
 
+### Sampling
+
 #### Application-side sampling
 
 While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
