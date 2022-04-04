@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.2.6"
+    "rules_version": "1.2.7"
   },
   "rules": [
     {
@@ -16,9 +16,6 @@
         {
           "parameters": {
             "inputs": [
-              {
-                "address": "server.request.cookies"
-              },
               {
                 "address": "server.request.query"
               },
@@ -55,7 +52,7 @@
           "parameters": {
             "inputs": [
               {
-                "address": "server.request.cookies"
+                "address": "server.request.query"
               }
             ],
             "list": [
@@ -1307,9 +1304,6 @@
           "parameters": {
             "inputs": [
               {
-                "address": "server.request.cookies"
-              },
-              {
                 "address": "server.request.query"
               },
               {
@@ -1343,9 +1337,6 @@
           "parameters": {
             "inputs": [
               {
-                "address": "server.request.cookies"
-              },
-              {
                 "address": "server.request.query"
               },
               {
@@ -1377,9 +1368,6 @@
         {
           "parameters": {
             "inputs": [
-              {
-                "address": "server.request.cookies"
-              },
               {
                 "address": "server.request.query"
               },
@@ -1413,9 +1401,6 @@
         {
           "parameters": {
             "inputs": [
-              {
-                "address": "server.request.cookies"
-              },
               {
                 "address": "server.request.query"
               },
@@ -1452,9 +1437,6 @@
           "parameters": {
             "inputs": [
               {
-                "address": "server.request.cookies"
-              },
-              {
                 "address": "server.request.query"
               },
               {
@@ -1489,9 +1471,6 @@
         {
           "parameters": {
             "inputs": [
-              {
-                "address": "server.request.cookies"
-              },
               {
                 "address": "server.request.query"
               },
