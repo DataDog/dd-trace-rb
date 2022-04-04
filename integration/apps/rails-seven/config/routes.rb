@@ -1,6 +1,12 @@
 Rails.application.routes.draw do
-  # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
+  get '/', to: 'basic#default'
+  get 'health', to: 'health#check'
+  get 'health/detailed', to: 'health#detailed_check'
 
-  # Defines the root path route ("/")
-  # root "articles#index"
+  # Basic test scenarios
+  get 'basic/default', to: 'basic#default'
+  get 'basic/fibonacci', to: 'basic#fibonacci'
+
+  # Job test scenarios
+  post 'jobs', to: 'jobs#create'
 end

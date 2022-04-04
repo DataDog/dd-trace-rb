@@ -1,25 +1,28 @@
-# SQLite. Versions 3.8.0 and up are supported.
-#   gem install sqlite3
-#
-#   Ensure the SQLite 3 gem is defined in your Gemfile
-#   gem "sqlite3"
-#
+<% mysql = URI(ENV['DATABASE_URL'] || 'mysql2://user:user@mysql:3306') %>
+
 default: &default
-  adapter: sqlite3
+  adapter: mysql2
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   timeout: 5000
 
+# Comment to activate sharding
 development:
   <<: *default
-  database: db/development.sqlite3
+  adapter: <%= mysql.scheme %>
+  database: acme_development
+  host: <%= mysql.host %>
+  username,: <%= mysql.user %>
 
-# Warning: The database defined as "test" will be erased and
-# re-generated from your development database when you run "rake".
-# Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: db/test.sqlite3
+  adapter: <%= mysql.scheme %>
+  database: acme_test
+  host: <%= mysql.host %>
+  username,: <%= mysql.user %>
 
 production:
   <<: *default
-  database: db/production.sqlite3
+  adapter: <%= mysql.scheme %>
+  database: acme_production
+  host: <%= mysql.host %>
+  username,: <%= mysql.user %>
