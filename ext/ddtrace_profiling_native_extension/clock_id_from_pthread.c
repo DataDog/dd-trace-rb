@@ -9,15 +9,7 @@
 #include <errno.h>
 
 #include <ruby.h>
-
-#ifdef RUBY_2_1_WORKAROUND
-#include <thread_native.h>
-#else
-#include <ruby/thread_native.h>
-#endif
-
 #include "private_vm_api_access.h"
-
 #include "clock_id.h"
 
 // Validate that our home-cooked pthread_id_for() matches pthread_self() for the current thread
