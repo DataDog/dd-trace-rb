@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <ddprof/ffi.h>
+#include "libddprof_helpers.h"
 
 // Used to report profiling data to Datadog.
 // This file implements the native bits of the Datadog::Profiling::HttpTransport class
@@ -24,7 +25,6 @@ struct call_exporter_without_gvl_arguments {
 };
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
-inline static ddprof_ffi_CharSlice char_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
 static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
 static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result);
@@ -76,12 +76,6 @@ inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   Check_Type(string, T_STRING);
   ddprof_ffi_ByteSlice byte_slice = {.ptr = (uint8_t *) StringValuePtr(string), .len = RSTRING_LEN(string)};
   return byte_slice;
-}
-
-inline static ddprof_ffi_CharSlice char_slice_from_ruby_string(VALUE string) {
-  Check_Type(string, T_STRING);
-  ddprof_ffi_CharSlice char_slice = {.ptr = StringValuePtr(string), .len = RSTRING_LEN(string)};
-  return char_slice;
 }
 
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration) {
