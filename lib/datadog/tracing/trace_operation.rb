@@ -63,7 +63,8 @@ module Datadog
         sample_rate: nil,
         sampled: nil,
         sampling_priority: nil,
-        service: nil
+        service: nil,
+        tags: nil
       )
         # Attributes
         @events = events || Events.new
@@ -84,6 +85,9 @@ module Datadog
         @sampling_priority = sampling_priority
         @service = service
 
+        # Generic tags
+        @tags = set_tags(tags)
+
         # State
         @root_span = nil
         @active_span = nil
@@ -103,10 +107,6 @@ module Datadog
 
       def finished?
         @finished == true
-      end
-
-      def started?
-        !@root_span.nil?
       end
 
       def sampled?
@@ -243,7 +243,7 @@ module Datadog
           trace_resource: @resource,
           trace_runtime_id: Core::Environment::Identity.id,
           trace_sampling_priority: @sampling_priority,
-          trace_service: @service
+          trace_service: @service,
         ).freeze
       end
 
@@ -265,7 +265,8 @@ module Datadog
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: (@service && @service.dup)
+          service: (@service && @service.dup),
+          tags: @tags.dup
         )
       end
 
@@ -322,11 +323,16 @@ module Datadog
         :events,
         :root_span
 
-      def set_tag(key, value = nil)
-        raise UnstartedError unless started?
-        raise FinishedError if finished?
+      def tags
+        @tags ||= {}
+      end
 
-        @root_span.set_tag(key, value)
+      def set_tag(key, value = nil)
+        tags[key] = value
+      end
+
+      def set_tags(tags)
+        (tags || {}).each { |k, v| set_tag(k, v) }
       end
 
       def activate_span!(span_op)
@@ -415,22 +421,9 @@ module Datadog
           name: @name,
           resource: @resource,
           service: @service,
+          tags: !partial ? @tags : nil,
           root_span_id: !partial ? @root_span && @root_span.id : nil
         )
-      end
-
-      # Error when an action is attempted that needs an active trace
-      class UnstartedError < StandardError
-        def message
-          'Trace not started'.freeze
-        end
-      end
-
-      # Error when an action is attempted that needs an active trace
-      class FinishedError < StandardError
-        def message
-          'Trace finished'.freeze
-        end
       end
     end
     # rubocop:enable Metrics/ClassLength

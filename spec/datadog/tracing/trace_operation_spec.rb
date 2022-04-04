@@ -776,15 +776,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe '#set_tag' do
-    it 'needs a started trace' do
-      expect { trace_op.send(:set_tag, 'foo', 'bar') }.to raise_error(Datadog::Tracing::TraceOperation::UnstartedError)
-    end
-
-    it 'needs an unfinished trace' do
-      trace_op.measure('top') {}
-      expect { trace_op.send(:set_tag, 'foo', 'bar') }.to raise_error(Datadog::Tracing::TraceOperation::FinishedError)
-    end
-
     it 'sets tag on trace from a measurement' do
       trace_op.measure('top') do
         trace_op.send(:set_tag, 'foo', 'bar')
@@ -792,7 +783,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       trace = trace_op.flush!
 
-      expect(trace.spans.find { |span| span.name == 'top' }.meta).to include('foo' => 'bar')
+      expect(trace.tags).to include('foo' => 'bar')
     end
 
     it 'sets tag on trace from a nested measurement' do
@@ -806,7 +797,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       expect(trace.spans).to have(2).items
       expect(trace.spans.map(&:name)).to include('parent')
-      expect(trace.spans.find { |span| span.name == 'grandparent' }.meta).to include('foo' => 'bar')
+      expect(trace.tags).to include('foo' => 'bar')
     end
 
     context 'with partial flushing' do
@@ -823,12 +814,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(trace.spans).to have(1).items
         expect(trace.spans.map(&:name)).to include('parent')
-        expect(trace.spans.map(&:meta)).to_not include('foo' => 'bar')
+        expect(trace.tags).to_not include('foo' => 'bar')
 
         final_flush = trace_op.flush!
         expect(final_flush.spans).to have(1).items
         expect(final_flush.spans.map(&:name)).to include('grandparent')
-        expect(final_flush.spans.map(&:meta)).to include('foo' => 'bar')
+        expect(final_flush.tags).to include('foo' => 'bar')
       end
     end
   end

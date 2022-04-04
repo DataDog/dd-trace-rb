@@ -32,6 +32,11 @@ module Datadog
         # trace metadata, we must put our trace
         # metadata on the root span. This "root span"
         # is needed by the agent/API to ingest the trace.
+
+        # Apply generic trace tags. Any more specific value will be overridden
+        # by the subsequent calls below.
+        set_trace_tags!
+
         set_resource!
 
         tag_agent_sample_rate!
@@ -57,6 +62,10 @@ module Datadog
         return if trace.resource.nil? || !@found_root_span
 
         root_span.resource = trace.resource
+      end
+
+      def set_trace_tags!
+        root_span.set_tags(trace.tags)
       end
 
       def tag_agent_sample_rate!

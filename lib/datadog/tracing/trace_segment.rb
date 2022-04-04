@@ -49,12 +49,13 @@ module Datadog
         runtime_id: nil,
         sample_rate: nil,
         sampling_priority: nil,
-        service: nil
+        service: nil,
+        tags: nil
       )
         @id = id
         @root_span_id = root_span_id
         @spans = spans || []
-        @tags = {}
+        @tags = tags || {}
 
         # Set well-known tags
         self.agent_sample_rate = agent_sample_rate

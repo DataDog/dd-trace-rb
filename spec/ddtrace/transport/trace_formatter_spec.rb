@@ -16,6 +16,10 @@ RSpec.describe Datadog::Transport::TraceFormatter do
   let(:trace_options) { {} }
 
   shared_context 'trace metadata' do
+    let(:trace_tags) do
+      nil
+    end
+
     let(:trace_options) do
       {
         resource: resource,
@@ -28,7 +32,8 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         rule_sample_rate: rule_sample_rate,
         runtime_id: runtime_id,
         sample_rate: sample_rate,
-        sampling_priority: sampling_priority
+        sampling_priority: sampling_priority,
+        tags: trace_tags
       }
     end
 
@@ -43,6 +48,17 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:runtime_id) { 'trace.runtime_id' }
     let(:sample_rate) { rand }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+  end
+
+  shared_context 'trace metadata with tags' do
+    include_context 'trace metadata'
+
+    let(:trace_tags) do
+      {
+        'foo' => 'bar',
+        'baz' => 42
+      }
+    end
   end
 
   shared_context 'no root span' do
@@ -139,6 +155,16 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         end
       end
 
+      shared_examples 'root span with generic tags' do
+        context 'metrics' do
+          it { expect(root_span.metrics).to include({ 'baz' => 42 }) }
+        end
+
+        context 'meta' do
+          it { expect(root_span.meta).to include({ 'foo' => 'bar' }) }
+        end
+      end
+
       context 'with no root span' do
         include_context 'no root span'
 
@@ -158,6 +184,16 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           it { expect(root_span.resource).to eq('my.job') }
 
           it_behaves_like 'root span with tags'
+        end
+
+        context 'when trace has metadata set with generic tags' do
+          include_context 'trace metadata with tags'
+
+          it { is_expected.to be(trace) }
+          it { expect(root_span.resource).to eq('my.job') }
+
+          it_behaves_like 'root span with tags'
+          it_behaves_like 'root span with generic tags'
         end
       end
 
@@ -180,6 +216,16 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           it { expect(root_span.resource).to eq('my.job') }
 
           it_behaves_like 'root span with tags'
+        end
+
+        context 'when trace has metadata set with generic tags' do
+          include_context 'trace metadata with tags'
+
+          it { is_expected.to be(trace) }
+          it { expect(root_span.resource).to eq('my.job') }
+
+          it_behaves_like 'root span with tags'
+          it_behaves_like 'root span with generic tags'
         end
       end
 
