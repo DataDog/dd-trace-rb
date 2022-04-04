@@ -12,13 +12,16 @@ module Datadog
         def rewind; end
 
         def self.===(other)
-          instance_methods.reduce(true) { |ok, meth| ok && other.respond_to?(meth) }
+          instance_methods.all? { |meth| other.respond_to?(meth) }
         end
       end
 
       def initialize
+        @ruleset = nil
+        @handle = nil
+
         unless load_libddwaf && load_ruleset && create_waf_handle
-          Datadog.logger.warn { 'appsec is disabled, cause: errors' }
+          Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
         end
       end
 
@@ -26,7 +29,7 @@ module Datadog
         !@ruleset.nil? && !@handle.nil?
       end
 
-      def context
+      def new_context
         Datadog::AppSec::WAF::Context.new(@handle)
       end
 
@@ -56,7 +59,7 @@ module Datadog
           true
         rescue StandardError => e
           Datadog.logger.error do
-            "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error:#{e.inspect}"
+            "libddwaf ruleset failed to load, ruleset: #{ruleset_setting.inspect} error: #{e.inspect}"
           end
 
           false

@@ -22,7 +22,7 @@ module Datadog
 
             # TODO: handle exceptions, except for @app.call
 
-            context = @processor.context
+            context = @processor.new_context
 
             env['datadog.waf.context'] = context
             request = ::Rack::Request.new(env)
@@ -49,20 +49,6 @@ module Datadog
             AppSec::Event.record(*both_response.map { |_action, event| event }) if both_response.any?
 
             request_return
-          end
-
-          def libddwaf_required?
-            defined?(Datadog::AppSec::WAF)
-          end
-
-          def waf?
-            !@waf.nil?
-          end
-
-          def require_libddwaf
-            require 'libddwaf'
-          rescue LoadError => e
-            Datadog.logger.warn { "LoadError: libddwaf failed to load: #{e.message}" }
           end
         end
       end

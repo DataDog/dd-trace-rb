@@ -31,19 +31,19 @@ RSpec.describe Datadog::AppSec::Processor do
     end
 
     it 'reports via return of libddwaf loading failure' do
-      allow(Object).to receive(:require).with('libddwaf').and_raise(LoadError)
+      allow(described_class).to receive(:require).with('libddwaf').and_raise(LoadError)
 
       expect(described_class.require_libddwaf).to be false
     end
 
     it 'reports via return of libddwaf loading success (first require)' do
-      allow(Object).to receive(:require).with('libddwaf').and_return(true)
+      allow(described_class).to receive(:require).with('libddwaf').and_return(true)
 
       expect(described_class.require_libddwaf).to be true
     end
 
     it 'reports via return of libddwaf loading success (second require)' do
-      allow(Object).to receive(:require).with('libddwaf').and_return(false)
+      allow(described_class).to receive(:require).with('libddwaf').and_return(false)
 
       expect(described_class.require_libddwaf).to be true
     end
@@ -102,6 +102,10 @@ RSpec.describe Datadog::AppSec::Processor do
     context 'when ruleset is default' do
       let(:ruleset) { :recommended }
 
+      before do
+        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
+      end
+
       it { expect(described_class.new.send(:load_ruleset)).to be true }
     end
 
@@ -145,6 +149,10 @@ RSpec.describe Datadog::AppSec::Processor do
 
     context 'when ruleset is default' do
       let(:ruleset) { :recommended }
+
+      before do
+        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original
+      end
 
       it { expect(described_class.new.send(:create_waf_handle)).to be true }
     end
@@ -218,6 +226,7 @@ RSpec.describe Datadog::AppSec::Processor do
 
     context 'when things are OK' do
       before do
+        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original
         expect(Datadog.logger).to_not receive(:warn)
       end
 
