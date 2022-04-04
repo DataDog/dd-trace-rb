@@ -105,6 +105,10 @@ module Datadog
         @finished == true
       end
 
+      def started?
+        !@root_span.nil?
+      end
+
       def sampled?
         @sampled == true || (!@sampling_priority.nil? && @sampling_priority > 0)
       end
@@ -318,6 +322,13 @@ module Datadog
         :events,
         :root_span
 
+      def set_tag(key, value = nil)
+        raise UnstartedError unless started?
+        raise FinishedError if finished?
+
+        @root_span.set_tag(key, value)
+      end
+
       def activate_span!(span_op)
         parent = @active_span
 
@@ -406,6 +417,20 @@ module Datadog
           service: @service,
           root_span_id: !partial ? @root_span && @root_span.id : nil
         )
+      end
+
+      # Error when an action is attempted that needs an active trace
+      class UnstartedError < StandardError
+        def message
+          'Trace not started'.freeze
+        end
+      end
+
+      # Error when an action is attempted that needs an active trace
+      class FinishedError < StandardError
+        def message
+          'Trace finished'.freeze
+        end
       end
     end
     # rubocop:enable Metrics/ClassLength
