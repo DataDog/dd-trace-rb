@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require 'spec_helper'
 
@@ -18,6 +18,10 @@ RSpec.describe Datadog::Core::Error do
     # Empty strings were being interpreted as ASCII strings breaking `msgpack`
     # decoding on the agent-side.
     it 'encodes default values in UTF-8' do
+      if PlatformHelpers.jruby? && JRUBY_VERSION.start_with?('9.3')
+        skip('Test flaky on JRuby 9.3, see https://github.com/jruby/jruby/issues/7166')
+      end
+
       error = described_class.new
 
       expect(error.type.encoding).to eq(::Encoding::UTF_8)
@@ -134,7 +138,7 @@ RSpec.describe Datadog::Core::Error do
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
           end
 
-          it 'reports errors only once', if: (RUBY_VERSION >= '2.6.0' && !PlatformHelpers.truffleruby?) do
+          it 'reports errors only once', if: (RUBY_VERSION >= '2.6.0' && PlatformHelpers.mri?) do
             expect(error.type).to eq('ArgumentError')
             expect(error.message).to eq('circular causes')
 
@@ -143,6 +147,17 @@ RSpec.describe Datadog::Core::Error do
             # Expect 2 "first-class" exception lines: 'circular causes' and 'first error'.
             # Ruby doesn't report 'second error' as it was never successfully set as the cause of 'first error'.
             expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(2).items
+          end
+
+          it 'reports errors only once', if: (RUBY_VERSION >= '2.6.0' && PlatformHelpers.jruby?) do
+            expect(error.type).to eq('RuntimeError')
+            expect(error.message).to eq('circular causes')
+
+            expect(error.backtrace)
+              .to match(/circular causes \(RuntimeError\).*first error \(RuntimeError\)/m)
+
+            # Expect 3 "first-class" exception lines: 'circular causes', 'first error' and 'second error'.
+            expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(3).items
           end
         end
 
@@ -169,7 +184,7 @@ RSpec.describe Datadog::Core::Error do
         end
 
         context 'benchmark' do
-          before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+          before { skip('Benchmark not run by default') }
 
           it do
             require 'benchmark/ips'

@@ -10,6 +10,7 @@ TRACER_VERSIONS = %w[
   3.1
   jruby-9.2.8.0
   jruby-9.2-latest
+  jruby-9.3-latest
 ].freeze
 # ADD NEW RUBIES HERE
 
