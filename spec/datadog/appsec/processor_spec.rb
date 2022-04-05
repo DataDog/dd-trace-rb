@@ -5,6 +5,9 @@ require 'datadog/appsec/processor'
 
 RSpec.describe Datadog::AppSec::Processor do
   before do
+    # libddwaf is not available yet for JRuby
+    # These specs could be made to pass still via mocking and stubbing, but
+    # they'd require extensive mocking for little benefit
     skip 'disabled for Java' if RUBY_PLATFORM.include?('java')
 
     logger = double(Datadog::Core::Logger)
@@ -21,13 +24,13 @@ RSpec.describe Datadog::AppSec::Processor do
     it 'detects if the WAF is unavailable' do
       hide_const('Datadog::AppSec::WAF')
 
-      expect(described_class.libddwaf_required?).to be false
+      expect(described_class.libddwaf_provides_waf?).to be false
     end
 
     it 'detects if the WAF is available' do
       stub_const('Datadog::AppSec::WAF', Module.new)
 
-      expect(described_class.libddwaf_required?).to be true
+      expect(described_class.libddwaf_provides_waf?).to be true
     end
 
     it 'reports via return of libddwaf loading failure' do
@@ -186,7 +189,7 @@ RSpec.describe Datadog::AppSec::Processor do
     context 'when libddwaf fails to provide WAF' do
       before do
         expect(described_class).to receive(:require_libddwaf).and_return(true)
-        expect(described_class).to receive(:libddwaf_required?).and_return(false)
+        expect(described_class).to receive(:libddwaf_provides_waf?).and_return(false)
 
         expect(Datadog.logger).to receive(:warn)
       end

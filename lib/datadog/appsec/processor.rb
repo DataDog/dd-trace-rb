@@ -36,7 +36,7 @@ module Datadog
       private
 
       def load_libddwaf
-        Processor.require_libddwaf && Processor.libddwaf_required?
+        Processor.require_libddwaf && Processor.libddwaf_provides_waf?
       end
 
       def load_ruleset
@@ -67,7 +67,9 @@ module Datadog
       end
 
       def create_waf_handle
+        # TODO: this may need to be reset if the main Datadog logging level changes after initialization
         Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
+
         @handle = Datadog::AppSec::WAF::Handle.new(@ruleset)
 
         true
@@ -80,10 +82,13 @@ module Datadog
       end
 
       class << self
-        def libddwaf_required?
+        # check whether libddwaf is required *and* able to provide the needed feature
+        def libddwaf_provides_waf?
           defined?(Datadog::AppSec::WAF) ? true : false
         end
 
+        # libddwaf raises a LoadError on unsupported platforms; it may at some
+        # point succeed in being required yet not provide a specific needed feature.
         def require_libddwaf
           Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
 
