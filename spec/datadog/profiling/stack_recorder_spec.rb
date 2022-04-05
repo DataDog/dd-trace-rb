@@ -31,13 +31,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(start).to be <= finish
       end
 
-      it 'returns an empty pprof profile' do
+      it 'returns a pprof with the configured sample types' do
         expect(sample_types_from(decoded_profile)).to eq(
           'cpu-time' => 'nanoseconds',
           'cpu-samples' => 'count',
           'wall-time' => 'nanoseconds',
         )
+      end
 
+      it 'returns an empty pprof' do
         expect(decoded_profile).to have_attributes(
           sample: [],
           mapping: [],
@@ -55,6 +57,54 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       def sample_types_from(decoded_profile)
         strings = decoded_profile.string_table
         decoded_profile.sample_type.map { |sample_type| [strings[sample_type.type], strings[sample_type.unit]] }.to_h
+      end
+    end
+
+    context 'when profile has a sample' do
+      let(:collectors_stack) { Datadog::Profiling::Collectors::Stack.new }
+
+      let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b'}.to_a }
+
+      before do
+        collectors_stack.sample(Thread.current, stack_recorder, metric_values, labels)
+        expect(decoded_profile.sample.size).to be 1
+      end
+
+      it 'encodes the sample with the metrics provided' do
+        sample = decoded_profile.sample.first
+        strings = decoded_profile.string_table
+
+        decoded_metric_values =
+          sample.value.map.with_index { |value, index| [strings[decoded_profile.sample_type[index].type], value] }.to_h
+
+        expect(decoded_metric_values).to eq metric_values
+      end
+
+      it 'encodes the sample with the labels provided' do
+        sample = decoded_profile.sample.first
+        strings = decoded_profile.string_table
+
+        decoded_labels = sample.label.map { |label| [strings[label.key], strings[label.str]] }
+
+        expect(decoded_labels).to eq labels
+      end
+
+      it 'encodes a single empty mapping' do
+        expect(decoded_profile.mapping.size).to be 1
+
+        expect(decoded_profile.mapping.first).to have_attributes(
+          id: 1,
+          memory_start: 0,
+          memory_limit: 0,
+          file_offset: 0,
+          filename: 0,
+          build_id: 0,
+          has_functions: false,
+          has_filenames: false,
+          has_line_numbers: false,
+          has_inline_frames: false,
+        )
       end
     end
 
