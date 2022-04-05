@@ -34,7 +34,14 @@ source 'https://rubygems.org' do
 
   gem 'dogstatsd-ruby'
   gem 'ffi'
-  gem 'google-protobuf', *google_protobuf_versions
+
+  # Needed for ddtrace profiling
+  if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.4')
+    gem 'google-protobuf', *google_protobuf_versions
+  else
+    # Bundler resolves incorrect version (too new, incompatible with Ruby <= 2.3)
+    gem 'google-protobuf', '< 3.19.2'
+  end
 
   # Fixes conflict with profiling (patch overwrite in Thread)
   # Upgrade this to latest when this patch is merged & released.
