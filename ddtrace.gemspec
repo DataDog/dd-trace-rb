@@ -50,7 +50,7 @@ Gem::Specification.new do |spec|
   #
   # Because we only use this for older Rubies, and we consider it "feature-complete" for those older Rubies,
   # we're pinning it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '<= 0.10.14'
+  spec.add_dependency 'debase-ruby_core_source', '<= 0.10.15'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.2.1.0.0.a'
