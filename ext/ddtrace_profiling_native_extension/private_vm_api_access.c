@@ -63,11 +63,13 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
 
 // Taken from upstream vm_core.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada
+// to support our custom rb_profile_frames (see below)
 // Modifications: None
 #define ISEQ_BODY(iseq) ((iseq)->body)
 
 // Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
+// to support our custom rb_profile_frames (see below)
 // Modifications: None
 inline static int
 calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
@@ -115,6 +117,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 
 // Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
+// to support our custom rb_profile_frames (see below)
 // Modifications: None
 inline static int
 calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
@@ -129,6 +132,30 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // Modifications:
 // * Renamed rb_profile_frames => ddtrace_rb_profile_frames
 // * Add thread argument
+//
+// What is rb_profile_frames?
+// `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
+// Its main other user is the stackprof profiler: https://github.com/tmm1/stackprof .
+//
+// Why do we need a custom version of rb_profile_frames?
+//
+// There are a few reasons:
+// 1. To backport improved behavior to older Rubies. Prior to Ruby 3.0 (https://github.com/ruby/ruby/pull/3299),
+//    rb_profile_frames skipped CFUNC frames, aka frames that are implemented with native code, and thus the resulting
+//    stacks were quite incomplete as a big part of the Ruby standard library is implemented with native code.
+//
+// 2. To extend this function to work with any thread. The upstream rb_profile_frames function only targets the current
+//    thread, and to support wall-clock profiling we require sampling other threads. This is only safe because of the
+//    Global VM Lock. (We don't yet support sampling Ractors beyond the main one; we'll need to find a way to do it
+//    safely first.)
+//
+// 3. To get more information out of the Ruby VM. The Ruby VM has a lot more information than is exposed through
+//    rb_profile_frames, and by making our own copy of this function we can extract more of this information.
+//    See for backtracie gem (https://github.com/ivoanjo/backtracie) for an exploration of what can potentially be done.
+//
+// 4. Because we haven't yet submitted patches to upstream Ruby. As with any changes on the `private_vm_api_access.c`,
+//    our medium/long-term plan is to contribute upstream changes and make it so that we don't need any of this
+//    on modern Rubies.
 int
 ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines)
 {
