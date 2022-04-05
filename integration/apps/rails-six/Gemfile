@@ -37,6 +37,12 @@ source 'https://rubygems.org' do
   gem 'multi_json'
   gem 'oj', platform: :ruby
 
+  # Need to add these because ActionMailer is broken in 6.1.5
+  # https://github.com/rails/rails/pull/44697
+  gem 'net-smtp'
+  gem 'net-imap'
+  gem 'net-pop'
+
   gem 'active_model_serializers'
   gem 'activerecord-import' # Speeds up mass imports
   gem 'aws-sdk'

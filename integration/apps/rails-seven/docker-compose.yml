@@ -76,7 +76,8 @@ services:
       #   source: /sys/fs/cgroup/
       #   target: /host/sys/fs/cgroup:ro
   mysql:
-    image: mysql:5.7
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_DATABASE=acme_production
       - MYSQL_ROOT_PASSWORD=root
