@@ -1,5 +1,6 @@
 require 'datadog/statsd'
 require 'ddtrace'
+require 'datadog/appsec'
 
 Datadog.configure do |c|
   c.env = 'integration'
@@ -13,6 +14,12 @@ Datadog.configure do |c|
     c.tracing.instrument :rails
     c.tracing.instrument :redis, service_name: 'acme-redis'
     c.tracing.instrument :resque
+  end
+
+  if Datadog::DemoEnv.feature?('appsec')
+    c.appsec.enabled = true
+
+    c.appsec.instrument :rails
   end
 
   if Datadog::DemoEnv.feature?('profiling')
