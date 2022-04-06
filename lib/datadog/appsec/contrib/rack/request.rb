@@ -45,6 +45,10 @@ module Datadog
           def self.cookies(request)
             request.cookies
           end
+
+          def self.form_hash(request)
+            request.env['rack.request.form_hash']
+          end
         end
       end
     end

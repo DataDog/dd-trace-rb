@@ -5,6 +5,7 @@ require 'datadog/appsec/contrib/integration'
 require 'datadog/appsec/contrib/rack/configuration/settings'
 require 'datadog/appsec/contrib/rack/patcher'
 require 'datadog/appsec/contrib/rack/request_middleware'
+require 'datadog/appsec/contrib/rack/request_body_middleware'
 
 module Datadog
   module AppSec
