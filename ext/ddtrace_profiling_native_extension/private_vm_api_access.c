@@ -202,3 +202,101 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
     return i;
 }
+
+#ifdef USE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME
+
+// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 1993-2012 Yukihiro Matsumoto
+// to support our custom rb_profile_frame_method_name (see below)
+// Modifications: None
+static VALUE
+id2str(ID id)
+{
+    VALUE str = rb_id2str(id);
+    if (!str) return Qnil;
+    return str;
+}
+#define rb_id2str(id) id2str(id)
+
+// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 1993-2012 Yukihiro Matsumoto
+// to support our custom rb_profile_frame_method_name (see below)
+// Modifications: None
+static const rb_iseq_t *
+frame2iseq(VALUE frame)
+{
+    if (NIL_P(frame)) return NULL;
+
+    if (RB_TYPE_P(frame, T_IMEMO)) {
+    switch (imemo_type(frame)) {
+      case imemo_iseq:
+        return (const rb_iseq_t *)frame;
+      case imemo_ment:
+        {
+        const rb_callable_method_entry_t *cme = (rb_callable_method_entry_t *)frame;
+        switch (cme->def->type) {
+          case VM_METHOD_TYPE_ISEQ:
+            return cme->def->body.iseq.iseqptr;
+          default:
+            return NULL;
+        }
+        }
+      default:
+        break;
+    }
+    }
+    rb_bug("frame2iseq: unreachable");
+}
+
+// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 1993-2012 Yukihiro Matsumoto
+// to support our custom rb_profile_frame_method_name (see below)
+// Modifications: None
+static const rb_callable_method_entry_t *
+cframe(VALUE frame)
+{
+    if (NIL_P(frame)) return NULL;
+
+    if (RB_TYPE_P(frame, T_IMEMO)) {
+    switch (imemo_type(frame)) {
+      case imemo_ment:
+            {
+        const rb_callable_method_entry_t *cme = (rb_callable_method_entry_t *)frame;
+        switch (cme->def->type) {
+          case VM_METHOD_TYPE_CFUNC:
+            return cme;
+          default:
+            return NULL;
+        }
+            }
+          default:
+            return NULL;
+        }
+    }
+
+    return NULL;
+}
+
+// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 1993-2012 Yukihiro Matsumoto
+//
+// Ruby 3.0 finally added support for showing CFUNC frames (frames for methods written using native code)
+// in stack traces gathered via `rb_profile_frames` (https://github.com/ruby/ruby/pull/3299).
+// To access this information on older Rubies, beyond using our custom `ddtrace_rb_profile_frames` above, we also need
+// to backport the Ruby 3.0+ version of `rb_profile_frame_method_name`.
+//
+// Modifications:
+// * Renamed rb_profile_frame_method_name => ddtrace_rb_profile_frame_method_name
+VALUE
+ddtrace_rb_profile_frame_method_name(VALUE frame)
+{
+    const rb_callable_method_entry_t *cme = cframe(frame);
+    if (cme) {
+        ID mid = cme->def->original_id;
+        return id2str(mid);
+    }
+    const rb_iseq_t *iseq = frame2iseq(frame);
+    return iseq ? rb_iseq_method_name(iseq) : Qnil;
+}
+
+#endif // USE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME

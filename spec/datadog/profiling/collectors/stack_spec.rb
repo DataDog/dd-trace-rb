@@ -44,8 +44,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it 'matches the Ruby backtrace API' do
-      pending 'Missing more backported rb_profile_frames functionality' if RUBY_VERSION < '3'
-
       expect(gathered_stack).to eq reference_stack
     end
   end

@@ -112,7 +112,7 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
       filename = rb_profile_frame_path(buffer->stack_buffer[i]);
       line = buffer->lines_buffer[i];
     } else {
-      name = rb_profile_frame_method_name(buffer->stack_buffer[i]);
+      name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);
       filename = NIL_P(last_ruby_frame) ? Qnil : rb_profile_frame_path(last_ruby_frame);
       line = last_ruby_line;
     }
