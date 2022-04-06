@@ -776,6 +776,24 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe '#set_tag' do
+    it 'sets tag on trace before a measurement' do
+      trace_op.send(:set_tag, 'foo', 'bar')
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include('foo' => 'bar')
+    end
+
+    it 'sets tag on trace after a measurement' do
+      trace_op.measure('top') {}
+      trace_op.send(:set_tag, 'foo', 'bar')
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include('foo' => 'bar')
+    end
+
     it 'sets tag on trace from a measurement' do
       trace_op.measure('top') do
         trace_op.send(:set_tag, 'foo', 'bar')
