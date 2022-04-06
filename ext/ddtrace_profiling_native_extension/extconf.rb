@@ -109,6 +109,14 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
+# The native extension is not intended to expose any symbols/functions for other native libraries to use;
+# the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
+# it `dlopen`s the library.
+#
+# By setting this compiler flag, we tell it to assume that everything is private unless explicitly stated.
+# For more details see https://gcc.gnu.org/wiki/Visibility
+add_compiler_flag '-fvisibility=hidden'
+
 if RUBY_PLATFORM.include?('linux')
   # Supposedly, the correct way to do this is
   # ```

@@ -4,7 +4,7 @@
 
 static VALUE native_working_p(VALUE self);
 
-void Init_ddtrace_profiling_native_extension(void) {
+void __attribute__ ((visibility ("default"))) Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
