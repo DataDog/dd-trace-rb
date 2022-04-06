@@ -7,4 +7,4 @@
 #endif
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines);
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);

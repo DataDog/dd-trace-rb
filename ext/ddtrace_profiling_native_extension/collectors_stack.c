@@ -14,6 +14,7 @@ typedef struct sampling_buffer {
   int max_frames;
   VALUE *stack_buffer;
   int *lines_buffer;
+  bool *is_ruby_frame;
   ddprof_ffi_Location *locations;
   ddprof_ffi_Line *lines;
 } sampling_buffer;
@@ -82,11 +83,39 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
 }
 
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
-  int captured_frames = ddtrace_rb_profile_frames(thread, 0 /* stack starting depth */, buffer->max_frames, buffer->stack_buffer, buffer->lines_buffer);
+  int captured_frames = ddtrace_rb_profile_frames(
+    thread,
+    0 /* stack starting depth */,
+    buffer->max_frames,
+    buffer->stack_buffer,
+    buffer->lines_buffer,
+    buffer->is_ruby_frame
+  );
 
-  for (int i = 0; i < captured_frames; i++) {
-    VALUE name = rb_profile_frame_base_label(buffer->stack_buffer[i]);
-    VALUE filename = rb_profile_frame_path(buffer->stack_buffer[i]);
+  // Ruby does not give us path and line number for methods implemented using native code.
+  // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
+  // on the stack that is below (e.g. directly or indirectly has called) the native method.
+  // Thus, we keep that frame here to able to replicate that behavior.
+  // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame)
+  VALUE last_ruby_frame = Qnil;
+  int last_ruby_line = 0;
+
+  for (int i = captured_frames - 1; i >= 0; i--) {
+    VALUE name, filename;
+    int line;
+
+    if (buffer->is_ruby_frame[i]) {
+      last_ruby_frame = buffer->stack_buffer[i];
+      last_ruby_line = buffer->lines_buffer[i];
+
+      name = rb_profile_frame_base_label(buffer->stack_buffer[i]);
+      filename = rb_profile_frame_path(buffer->stack_buffer[i]);
+      line = buffer->lines_buffer[i];
+    } else {
+      name = rb_profile_frame_method_name(buffer->stack_buffer[i]);
+      filename = NIL_P(last_ruby_frame) ? Qnil : rb_profile_frame_path(last_ruby_frame);
+      line = last_ruby_line;
+    }
 
     name = NIL_P(name) ? missing_string : name;
     filename = NIL_P(filename) ? missing_string : filename;
@@ -96,7 +125,7 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
         .name = char_slice_from_ruby_string(name),
         .filename = char_slice_from_ruby_string(filename)
       },
-      .line = buffer->lines_buffer[i],
+      .line = line,
     };
 
     buffer->locations[i] = (ddprof_ffi_Location) {.lines = (ddprof_ffi_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
@@ -118,16 +147,18 @@ sampling_buffer *sampling_buffer_new(int max_frames) {
 
   buffer->max_frames = max_frames;
 
-  buffer->stack_buffer = xcalloc(max_frames, sizeof(VALUE));
-  buffer->lines_buffer = xcalloc(max_frames, sizeof(int));
-  buffer->locations    = xcalloc(max_frames, sizeof(ddprof_ffi_Location));
-  buffer->lines        = xcalloc(max_frames, sizeof(ddprof_ffi_Line));
+  buffer->stack_buffer  = xcalloc(max_frames, sizeof(VALUE));
+  buffer->lines_buffer  = xcalloc(max_frames, sizeof(int));
+  buffer->is_ruby_frame = xcalloc(max_frames, sizeof(bool));
+  buffer->locations     = xcalloc(max_frames, sizeof(ddprof_ffi_Location));
+  buffer->lines         = xcalloc(max_frames, sizeof(ddprof_ffi_Line));
 
   if (
-    buffer->stack_buffer == NULL ||
-    buffer->lines_buffer == NULL ||
-    buffer->locations    == NULL ||
-    buffer->lines        == NULL
+    buffer->stack_buffer  == NULL ||
+    buffer->lines_buffer  == NULL ||
+    buffer->is_ruby_frame == NULL ||
+    buffer->locations     == NULL ||
+    buffer->lines         == NULL
   ) {
     sampling_buffer_free(buffer);
     rb_raise(rb_eNoMemError, "Failed to allocate memory for components of sampling buffer");
@@ -141,10 +172,11 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   // can be assumed to be not-null.
   // Having these if tests here enables us to use this function also in sampling_buffer_new; otherwise we could do
   // without them.
-  if (buffer->stack_buffer != NULL) xfree(buffer->stack_buffer);
-  if (buffer->lines_buffer != NULL) xfree(buffer->lines_buffer);
-  if (buffer->locations    != NULL) xfree(buffer->locations);
-  if (buffer->lines        != NULL) xfree(buffer->lines);
+  if (buffer->stack_buffer  != NULL) xfree(buffer->stack_buffer);
+  if (buffer->lines_buffer  != NULL) xfree(buffer->lines_buffer);
+  if (buffer->is_ruby_frame != NULL) xfree(buffer->is_ruby_frame);
+  if (buffer->locations     != NULL) xfree(buffer->locations);
+  if (buffer->lines         != NULL) xfree(buffer->lines);
 
   xfree(buffer);
 }
