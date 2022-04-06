@@ -327,6 +327,10 @@ module Datadog
         @tags ||= {}
       end
 
+      def get_tag(key)
+        tags[key]
+      end
+
       def set_tag(key, value = nil)
         tags[key] = value
       end

@@ -775,6 +775,20 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  describe '#get_tag' do
+    before do
+      trace_op.send(:set_tag, 'foo', 'bar')
+    end
+
+    it 'gets tag set on trace' do
+      expect(trace_op.send(:get_tag, 'foo')).to eq('bar')
+    end
+
+    it 'gets unset tag as nil' do
+      expect(trace_op.send(:get_tag, 'unset')).to be_nil
+    end
+  end
+
   describe '#set_tag' do
     it 'sets tag on trace before a measurement' do
       trace_op.send(:set_tag, 'foo', 'bar')
