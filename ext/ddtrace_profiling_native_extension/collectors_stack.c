@@ -4,12 +4,13 @@
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 
-static VALUE missing_string = Qnil;
-
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
+static VALUE missing_string = Qnil;
+
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array);
+void sample(VALUE thread, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -20,8 +21,6 @@ void collectors_stack_init(VALUE profiling_module) {
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
 }
-
-void sample(VALUE thread, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 
 // This method exists only to enable testing Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
