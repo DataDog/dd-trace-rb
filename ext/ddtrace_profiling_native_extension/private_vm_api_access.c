@@ -8,7 +8,7 @@
 //
 // In the meanwhile, be very careful when changing things here :)
 
-#ifdef USE_MJIT_HEADER
+#ifdef RUBY_MJIT_HEADER
 // Pick up internal structures from the private Ruby MJIT header file
 #include RUBY_MJIT_HEADER
 #else

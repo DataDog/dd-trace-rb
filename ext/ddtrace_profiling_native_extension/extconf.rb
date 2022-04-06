@@ -131,24 +131,10 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   end
   MakeMakefile::COMMON_HEADERS = original_common_headers
 
-  $defs << '-DUSE_MJIT_HEADER'
+  $defs << "-DRUBY_MJIT_HEADER='\"#{mjit_header_file_name}\"'"
 
   # NOTE: This needs to come after all changes to $defs
   create_header
-
-  # The MJIT header is always (afaik?) suffixed with the exact Ruby VM version,
-  # including patch (e.g. 2.7.2). Thus, we add to the header file a definition
-  # containing the exact file, so that it can be used in a #include in the C code.
-  header_contents =
-    File.read($extconf_h)
-        .sub('#endif',
-             <<-EXTCONF_H.strip
-#define RUBY_MJIT_HEADER "#{mjit_header_file_name}"
-
-#endif
-             EXTCONF_H
-            )
-  File.open($extconf_h, 'w') { |file| file.puts(header_contents) }
 
   create_makefile EXTENSION_NAME
 else
