@@ -138,6 +138,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Renamed rb_profile_frames => ddtrace_rb_profile_frames
 // * Add thread argument
 // * Add is_ruby_frame argument
+// * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -187,7 +188,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
                 buff[i] = (VALUE)cfp->iseq;
             }
 
-            if (lines) lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+            lines[i] = calc_lineno(cfp->iseq, cfp->pc);
             is_ruby_frame[i] = true;
             i++;
         }
@@ -195,7 +196,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
             cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
                 buff[i] = (VALUE)cme;
-                if (lines) lines[i] = 0;
+                lines[i] = 0;
                 is_ruby_frame[i] = false;
                 i++;
             }
