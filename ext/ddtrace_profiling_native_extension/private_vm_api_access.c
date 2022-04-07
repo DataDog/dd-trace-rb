@@ -9,12 +9,15 @@
 // In the meanwhile, be very careful when changing things here :)
 
 #ifdef RUBY_MJIT_HEADER
-// Pick up internal structures from the private Ruby MJIT header file
-#include RUBY_MJIT_HEADER
+  // Pick up internal structures from the private Ruby MJIT header file
+  #include RUBY_MJIT_HEADER
 #else
-// On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
-#include <vm_core.h>
+  // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
+  #include <vm_core.h>
 #endif
+
+#define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
+#include "private_vm_api_access.h"
 
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.

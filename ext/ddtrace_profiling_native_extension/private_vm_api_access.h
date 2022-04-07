@@ -1,9 +1,14 @@
 #pragma once
 
-#ifdef RUBY_2_1_WORKAROUND
-#include <thread_native.h>
-#else
-#include <ruby/thread_native.h>
+// The private_vm_api_access.c includes the RUBY_MJIT_HEADER which replaces and conflicts with any other Ruby headers;
+// so we use PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES to be able to include private_vm_api_access.h on that file
+// without also dragging the incompatible includes
+#ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
+  #ifdef RUBY_2_1_WORKAROUND
+    #include <thread_native.h>
+  #else
+    #include <ruby/thread_native.h>
+  #endif
 #endif
 
 #include "extconf.h"
