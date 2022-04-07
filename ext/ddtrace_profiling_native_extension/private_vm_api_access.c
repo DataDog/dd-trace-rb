@@ -14,6 +14,7 @@
 #else
   // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
   #include <vm_core.h>
+  #include <iseq.h>
 #endif
 
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
@@ -304,3 +305,79 @@ ddtrace_rb_profile_frame_method_name(VALUE frame)
 }
 
 #endif // USE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME
+
+// Support code for older Rubies that cannot use the MJIT header
+#ifndef RUBY_MJIT_HEADER
+
+#define MJIT_STATIC // No-op on older Rubies
+
+// Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
+// to support our custom rb_profile_frames (see above).
+// Modifications: None
+#ifndef FALSE
+# define FALSE false
+#elif FALSE
+# error FALSE must be false
+#endif
+
+#ifndef TRUE
+# define TRUE true
+#elif ! TRUE
+# error TRUE must be true
+#endif
+
+// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 2007 Koichi Sasada
+// to support our custom rb_profile_frames (see above).
+// Modifications: None
+PUREFUNC(static rb_callable_method_entry_t *check_method_entry(VALUE obj, int can_be_svar));
+static rb_callable_method_entry_t *
+check_method_entry(VALUE obj, int can_be_svar)
+{
+    if (obj == Qfalse) return NULL;
+
+#if VM_CHECK_MODE > 0
+    if (!RB_TYPE_P(obj, T_IMEMO)) rb_bug("check_method_entry: unknown type: %s", rb_obj_info(obj));
+#endif
+
+    switch (imemo_type(obj)) {
+      case imemo_ment:
+        return (rb_callable_method_entry_t *)obj;
+      case imemo_cref:
+        return NULL;
+      case imemo_svar:
+        if (can_be_svar) {
+            return check_method_entry(((struct vm_svar *)obj)->cref_or_me, FALSE);
+        }
+      default:
+#if VM_CHECK_MODE > 0
+        rb_bug("check_method_entry: svar should not be there:");
+#endif
+        return NULL;
+    }
+}
+
+// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 2007 Koichi Sasada
+// to support our custom rb_profile_frames (see above).
+//
+// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
+// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
+//
+// Modifications: None
+MJIT_STATIC const rb_callable_method_entry_t *
+rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+{
+    const VALUE *ep = cfp->ep;
+    rb_callable_method_entry_t *me;
+
+    while (!VM_ENV_LOCAL_P(ep)) {
+        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
+        ep = VM_ENV_PREV_EP(ep);
+    }
+
+    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+}
+
+#endif // RUBY_MJIT_HEADER

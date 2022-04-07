@@ -155,7 +155,10 @@ else
   dir_config('ruby') # allow user to pass in non-standard core include directory
 
   Debase::RubyCoreSource
-    .create_makefile_with_core(proc { have_header('vm_core.h') && thread_native_for_ruby_2_1.call }, EXTENSION_NAME)
+    .create_makefile_with_core(
+      proc { have_header('vm_core.h') && have_header('iseq.h') && thread_native_for_ruby_2_1.call },
+      EXTENSION_NAME,
+    )
 end
 
 # rubocop:enable Style/GlobalVars

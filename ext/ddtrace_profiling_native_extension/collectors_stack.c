@@ -40,22 +40,22 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
   Check_Type(metric_values_hash, T_HASH);
   Check_Type(labels_array, T_ARRAY);
 
-  if (rb_hash_size_num(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
+  if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
     rb_raise(
       rb_eArgError,
       "Mismatched values for metrics; expected %lu values and got %lu instead",
       ENABLED_VALUE_TYPES_COUNT,
-      rb_hash_size_num(metric_values_hash)
+      RHASH_SIZE(metric_values_hash)
     );
   }
 
   int64_t metric_values[ENABLED_VALUE_TYPES_COUNT];
-  for (int i = 0; i < ENABLED_VALUE_TYPES_COUNT; i++) {
+  for (unsigned int i = 0; i < ENABLED_VALUE_TYPES_COUNT; i++) {
     VALUE metric_value = rb_hash_fetch(metric_values_hash, rb_str_new_cstr(enabled_value_types[i].type_.ptr));
     metric_values[i] = NUM2LONG(metric_value);
   }
 
-  int labels_count = RARRAY_LEN(labels_array);
+  long labels_count = RARRAY_LEN(labels_array);
   ddprof_ffi_Label labels[labels_count];
 
   for (int i = 0; i < labels_count; i++) {
