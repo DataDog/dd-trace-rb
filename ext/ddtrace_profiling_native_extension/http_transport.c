@@ -89,7 +89,7 @@ static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_conf
   Check_Type(exporter_configuration, T_ARRAY);
   Check_Type(tags_as_array, T_ARRAY);
 
-  long tags_count = rb_array_len(tags_as_array);
+  long tags_count = RARRAY_LEN(tags_as_array);
   ddprof_ffi_Tag* converted_tags = xcalloc(tags_count, sizeof(ddprof_ffi_Tag));
   if (converted_tags == NULL) rb_raise(rb_eNoMemError, "Failed to allocate memory for storing tags");
   convert_tags(converted_tags, tags_count, tags_as_array);
