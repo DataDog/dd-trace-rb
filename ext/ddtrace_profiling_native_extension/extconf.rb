@@ -97,6 +97,11 @@ if RUBY_VERSION < '3'
   $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME'
 end
 
+# On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
+if RUBY_VERSION < '2.5'
+  $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT'
+end
+
 # For REALLY OLD Rubies...
 if RUBY_VERSION < '2.3'
   # ...there was no rb_time_timespec_new function
