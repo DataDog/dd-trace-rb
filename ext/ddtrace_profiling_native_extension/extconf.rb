@@ -102,9 +102,12 @@ if RUBY_VERSION < '2.5'
   $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT'
 end
 
-# On older Rubies, we need to use RUBY_VM_NORMAL_ISEQ_P instead of VM_FRAME_RUBYFRAME_P
+# On older Rubies...
 if RUBY_VERSION < '2.4'
+  # ...we need to use RUBY_VM_NORMAL_ISEQ_P instead of VM_FRAME_RUBYFRAME_P
   $defs << '-DUSE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P'
+  # ...we use a legacy copy of rb_vm_frame_method_entry
+  $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
 end
 
 # For REALLY OLD Rubies...

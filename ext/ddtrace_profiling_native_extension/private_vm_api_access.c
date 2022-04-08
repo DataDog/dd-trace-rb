@@ -346,7 +346,6 @@ ddtrace_rb_profile_frame_method_name(VALUE frame)
 // Copyright (C) 2007 Koichi Sasada
 // to support our custom rb_profile_frames (see above).
 // Modifications: None
-PUREFUNC(static rb_callable_method_entry_t *check_method_entry(VALUE obj, int can_be_svar));
 static rb_callable_method_entry_t *
 check_method_entry(VALUE obj, int can_be_svar)
 {
@@ -373,26 +372,50 @@ check_method_entry(VALUE obj, int can_be_svar)
     }
 }
 
-// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
-// Copyright (C) 2007 Koichi Sasada
-// to support our custom rb_profile_frames (see above).
-//
-// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
-// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
-//
-// Modifications: None
-MJIT_STATIC const rb_callable_method_entry_t *
-rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
-{
-    const VALUE *ep = cfp->ep;
-    rb_callable_method_entry_t *me;
+#ifndef USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
+  // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+  // Copyright (C) 2007 Koichi Sasada
+  // to support our custom rb_profile_frames (see above).
+  //
+  // While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
+  // `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
+  //
+  // Modifications: None
+  MJIT_STATIC const rb_callable_method_entry_t *
+  rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+  {
+      const VALUE *ep = cfp->ep;
+      rb_callable_method_entry_t *me;
 
-    while (!VM_ENV_LOCAL_P(ep)) {
-        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
-        ep = VM_ENV_PREV_EP(ep);
-    }
+      while (!VM_ENV_LOCAL_P(ep)) {
+          if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
+          ep = VM_ENV_PREV_EP(ep);
+      }
 
-    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
-}
+      return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+  }
+#else
+  // Taken from upstream vm_insnhelper.c at commit 556e9f726e2b80f6088982c6b43abfe68bfad591 (October 2018, ruby_2_3 branch)
+  // Copyright (C) 2007 Koichi Sasada
+  // to support our custom rb_profile_frames (see above).
+  //
+  // Quite a few macros in this function changed after Ruby 2.3. Rather than trying to fix the Ruby 3.2 version to work
+  // with 2.3 constants, I decided to import the Ruby 2.3 version.
+  //
+  // Modifications: None
+  const rb_callable_method_entry_t *
+  rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+  {
+      VALUE *ep = cfp->ep;
+      rb_callable_method_entry_t *me;
+
+      while (!VM_EP_LEP_P(ep)) {
+          if ((me = check_method_entry(ep[-1], FALSE)) != NULL) return me;
+          ep = VM_EP_PREV_EP(ep);
+      }
+
+      return check_method_entry(ep[-1], TRUE);
+  }
+#endif // USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
 
 #endif // RUBY_MJIT_HEADER
