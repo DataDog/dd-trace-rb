@@ -74,7 +74,7 @@ RSpec.describe 'Server tracer' do
         include Sidekiq::Worker
 
         def self.datadog_tracer_config
-          { service_name: 'sidekiq-slow', tag_args: true, quantize: { args: { exclude: [:secret] } } }
+          { service_name: 'sidekiq-slow', tag_args: true, quantize: { args: { show: :all, exclude: [:secret] } } }
         end
 
         def perform(id, secret = nil) end
