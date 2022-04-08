@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include <ruby/debug.h>
+#include "extconf.h"
 #include "libddprof_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
@@ -112,7 +113,18 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
       filename = rb_profile_frame_path(buffer->stack_buffer[i]);
       line = buffer->lines_buffer[i];
     } else {
+      // **IMPORTANT**: Be very careful when calling any `rb_profile_frame_...` API with a non-Ruby frame, as legacy
+      // Rubies may assume that what's in a buffer will lead to a Ruby frame.
+      //
+      // In particular for Ruby 2.2 and below the buffer contains a Ruby string (see the notes on our custom
+      // rb_profile_frames for Ruby 2.2 and below) and CALLING **ANY** OF THOSE APIs ON IT WILL CAUSE INSTANT VM CRASHES
+
+#ifndef USE_LEGACY_RB_PROFILE_FRAMES // Modern Rubies
       name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);
+#else // Ruby < 2.3
+      name = buffer->stack_buffer[i];
+#endif
+
       filename = NIL_P(last_ruby_frame) ? Qnil : rb_profile_frame_path(last_ruby_frame);
       line = last_ruby_line;
     }

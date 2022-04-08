@@ -444,6 +444,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add thread argument
 // * Add is_ruby_frame argument
 // * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
+// * Added support for getting the name from native methods by getting inspiration from `backtrace_each` in
+//   `vm_backtrace.c`. Note that unlike the `rb_profile_frames` for modern Rubies, this version actually returns the
+//   method name as as `VALUE` containing a Ruby string in the `buff`.
 //
 // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2 AND BELOW; SEE ABOVE FOR THE FUNCTION THAT GETS
 // USED FOR MODERN RUBIES**
@@ -451,10 +454,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
 // I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
 // anew from the Ruby 2.2 version of the function, applying some of the same fixes that we have for the modern version.
-//
-// This approach seems to mostly work (with our specs mostly passing). The big exception is that I have not tried to
-// backport the support for gathering frame information for native methods, which does mean that on these older Rubies
-// gathered stacks will be missing these methods.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
 {
     int i;
@@ -472,6 +471,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
             buff[i] = cfp->iseq->self;
             lines[i] = calc_lineno(cfp->iseq, cfp->pc);
             is_ruby_frame[i] = true;
+            i++;
+        } else if (RUBYVM_CFUNC_FRAME_P(cfp)) {
+            ID mid = cfp->me->def ? cfp->me->def->original_id : cfp->me->called_id;
+            buff[i] = rb_id2str(mid);
+            lines[i] = 0;
+            is_ruby_frame[i] = false;
             i++;
         }
         cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
