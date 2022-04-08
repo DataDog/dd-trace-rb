@@ -73,7 +73,7 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
 // Modifications: None
 #define ISEQ_BODY(iseq) ((iseq)->body)
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
@@ -121,7 +121,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
     }
 }
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
@@ -133,7 +133,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
     return 0;
 }
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // Modifications:
 // * Renamed rb_profile_frames => ddtrace_rb_profile_frames
@@ -225,7 +225,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
 #ifdef USE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frame_method_name (see below)
 // Modifications: None
@@ -238,7 +238,7 @@ id2str(ID id)
 }
 #define rb_id2str(id) id2str(id)
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frame_method_name (see below)
 // Modifications: None
@@ -268,7 +268,7 @@ frame2iseq(VALUE frame)
     rb_bug("frame2iseq: unreachable");
 }
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frame_method_name (see below)
 // Modifications: None
@@ -297,7 +297,7 @@ cframe(VALUE frame)
     return NULL;
 }
 
-// Taken from upstream vm_bactrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 //
 // Ruby 3.0 finally added support for showing CFUNC frames (frames for methods written using native code)
@@ -328,7 +328,7 @@ ddtrace_rb_profile_frame_method_name(VALUE frame)
 
 // Taken from upstream include/ruby/backward/2/bool.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) Ruby developers <ruby-core@ruby-lang.org>
-// to support our custom rb_profile_frames (see above).
+// to support our custom rb_profile_frames (see above)
 // Modifications: None
 #ifndef FALSE
 # define FALSE false
@@ -344,7 +344,7 @@ ddtrace_rb_profile_frame_method_name(VALUE frame)
 
 // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 2007 Koichi Sasada
-// to support our custom rb_profile_frames (see above).
+// to support our custom rb_profile_frames (see above)
 // Modifications: None
 static rb_callable_method_entry_t *
 check_method_entry(VALUE obj, int can_be_svar)
@@ -375,7 +375,7 @@ check_method_entry(VALUE obj, int can_be_svar)
 #ifndef USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
   // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
   // Copyright (C) 2007 Koichi Sasada
-  // to support our custom rb_profile_frames (see above).
+  // to support our custom rb_profile_frames (see above)
   //
   // While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
   // `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
@@ -397,7 +397,7 @@ check_method_entry(VALUE obj, int can_be_svar)
 #else
   // Taken from upstream vm_insnhelper.c at commit 556e9f726e2b80f6088982c6b43abfe68bfad591 (October 2018, ruby_2_3 branch)
   // Copyright (C) 2007 Koichi Sasada
-  // to support our custom rb_profile_frames (see above).
+  // to support our custom rb_profile_frames (see above)
   //
   // Quite a few macros in this function changed after Ruby 2.3. Rather than trying to fix the Ruby 3.2 version to work
   // with 2.3 constants, I decided to import the Ruby 2.3 version.
