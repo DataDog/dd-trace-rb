@@ -74,16 +74,16 @@ RSpec.describe 'Server tracer' do
         include Sidekiq::Worker
 
         def self.datadog_tracer_config
-          { service_name: 'sidekiq-slow', tag_args: true }
+          { service_name: 'sidekiq-slow', tag_args: true, quantize: { args: { exclude: [:secret] } } }
         end
 
-        def perform(_) end
+        def perform(id, secret = nil) end
       end)
     end
 
     it 'traces async job run' do
       perform_async
-      CustomWorker.perform_async('random_id')
+      CustomWorker.perform_async('random_id', 'secret')
 
       expect(spans).to have(4).items
 
