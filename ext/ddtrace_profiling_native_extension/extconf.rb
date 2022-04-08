@@ -38,10 +38,14 @@ $stderr.puts(%(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
-# IMPORTANT: When adding flags, remember that our customers compile with a wide range of gcc/clang versions, so
-# doublecheck that what you're adding can be reasonably expected to work on their systems.
+# mkmf on modern Rubies actually has an append_cflags that does something similar
+# (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
 def add_compiler_flag(flag)
-  $CFLAGS << ' ' << flag
+  if try_cflags(flag)
+    $CFLAGS << ' ' << flag
+  else
+    $stderr.puts("WARNING: '#{flag}' not accepted by compiler, skipping it")
+  end
 end
 
 # Gets really noisy when we include the MJIT header, let's omit it
