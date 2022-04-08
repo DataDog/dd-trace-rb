@@ -102,6 +102,11 @@ if RUBY_VERSION < '2.5'
   $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT'
 end
 
+# On older Rubies, we need to use RUBY_VM_NORMAL_ISEQ_P instead of VM_FRAME_RUBYFRAME_P
+if RUBY_VERSION < '2.4'
+  $defs << '-DUSE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P'
+end
+
 # For REALLY OLD Rubies...
 if RUBY_VERSION < '2.3'
   # ...there was no rb_time_timespec_new function

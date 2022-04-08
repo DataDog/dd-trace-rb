@@ -142,6 +142,11 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
 // * Support Ruby < 2.5 by using rb_thread_t instead of rb_execution_context_t (which did not exist and was just
 //   part of rb_thread_t)
+// * Support Ruby < 2.4 by using `RUBY_VM_NORMAL_ISEQ_P(cfp->iseq)` instead of `VM_FRAME_RUBYFRAME_P(cfp)`.
+//   Given that the Ruby 2.3 version of `rb_profile_frames` did not support native methods and thus did not need this
+//   check, how did I figure out what to replace it with? I did it by looking at other places in the VM code where the
+//   code looks exactly the same but Ruby 2.4 uses `VM_FRAME_RUBYFRAME_P` whereas Ruby 2.3 used `RUBY_VM_NORMAL_ISEQ_P`.
+//   Examples of these are `errinfo_place` in `eval.c`, `rb_vm_get_ruby_level_next_cfp` (among others) in `vm.c`, etc.
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -180,7 +185,11 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     const rb_callable_method_entry_t *cme;
 
     for (i=0; i<limit && cfp != end_cfp;) {
+#ifndef USE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P // Modern Rubies
         if (VM_FRAME_RUBYFRAME_P(cfp)) {
+#else // Ruby < 2.4
+        if (RUBY_VM_NORMAL_ISEQ_P(cfp->iseq)) {
+#endif
             if (start > 0) {
                 start--;
                 continue;
