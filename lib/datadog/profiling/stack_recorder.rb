@@ -20,6 +20,12 @@ module Datadog
           nil
         end
       end
+
+      # Used only for Ruby 2.2 and below which don't have the native `rb_time_timespec_new` API
+      # Called from native code
+      def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
+        Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
+      end
     end
   end
 end

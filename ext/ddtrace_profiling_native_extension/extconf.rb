@@ -92,6 +92,12 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
+# For REALLY OLD Rubies...
+if RUBY_VERSION < '2.3'
+  # ...there was no rb_time_timespec_new function
+  $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
+end
+
 # If we got here, libddprof is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
 unless pkg_config('ddprof_ffi_with_rpath')
