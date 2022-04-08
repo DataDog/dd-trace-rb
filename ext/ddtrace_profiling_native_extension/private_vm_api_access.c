@@ -67,6 +67,8 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
 // OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 // SUCH DAMAGE.
 
+#ifndef USE_LEGACY_RB_PROFILE_FRAMES // Modern Rubies
+
 // Taken from upstream vm_core.h at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada
 // to support our custom rb_profile_frames (see below)
@@ -147,6 +149,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   check, how did I figure out what to replace it with? I did it by looking at other places in the VM code where the
 //   code looks exactly the same but Ruby 2.4 uses `VM_FRAME_RUBYFRAME_P` whereas Ruby 2.3 used `RUBY_VM_NORMAL_ISEQ_P`.
 //   Examples of these are `errinfo_place` in `eval.c`, `rb_vm_get_ruby_level_next_cfp` (among others) in `vm.c`, etc.
+//
+// **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
+// RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -419,3 +424,60 @@ check_method_entry(VALUE obj, int can_be_svar)
 #endif // USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
 
 #endif // RUBY_MJIT_HEADER
+
+#else // USE_LEGACY_RB_PROFILE_FRAMES, Ruby < 2.3
+
+// Taken from upstream vm_backtrace.c at commit bbda1a027475bf7ce5e1a9583a7b55d0be71c8fe (March 2018, ruby_2_2 branch)
+// Copyright (C) 1993-2012 Yukihiro Matsumoto
+// to support our custom rb_profile_frames (see below)
+// Modifications: None
+inline static int
+calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
+{
+    return rb_iseq_line_no(iseq, pc - iseq->iseq_encoded);
+}
+
+// Taken from upstream vm_backtrace.c at commit bbda1a027475bf7ce5e1a9583a7b55d0be71c8fe (March 2018, ruby_2_2 branch)
+// Copyright (C) 1993-2012 Yukihiro Matsumoto
+// Modifications:
+// * Renamed rb_profile_frames => ddtrace_rb_profile_frames
+// * Add thread argument
+// * Add is_ruby_frame argument
+// * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
+//
+// **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2 AND BELOW; SEE ABOVE FOR THE FUNCTION THAT GETS
+// USED FOR MODERN RUBIES**
+//
+// The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
+// I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
+// anew from the Ruby 2.2 version of the function, applying some of the same fixes that we have for the modern version.
+//
+// This approach seems to mostly work (with our specs mostly passing). The big exception is that I have not tried to
+// backport the support for gathering frame information for native methods, which does mean that on these older Rubies
+// gathered stacks will be missing these methods.
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
+{
+    int i;
+    rb_thread_t *th = thread_struct_from_object(thread);
+    rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
+
+    for (i=0; i<limit && cfp != end_cfp;) {
+        if (cfp->iseq && cfp->pc) { /* should be NORMAL_ISEQ */
+            if (start > 0) {
+                start--;
+                continue;
+            }
+
+            /* record frame info */
+            buff[i] = cfp->iseq->self;
+            lines[i] = calc_lineno(cfp->iseq, cfp->pc);
+            is_ruby_frame[i] = true;
+            i++;
+        }
+        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
+    }
+
+    return i;
+}
+
+#endif // USE_LEGACY_RB_PROFILE_FRAMES

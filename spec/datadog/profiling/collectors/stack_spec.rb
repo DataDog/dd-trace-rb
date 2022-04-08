@@ -43,8 +43,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       another_thread.join
     end
 
-    it 'matches the Ruby backtrace API' do
+    it 'matches the Ruby backtrace API', if: RUBY_VERSION >= '2.3' do
       expect(gathered_stack).to eq reference_stack
+    end
+
+    it 'matches the Ruby backtrace API, minus the native sleep and call methods', if: RUBY_VERSION < '2.3' do
+      expect(gathered_stack).to eq reference_stack.reject { |frame| ['sleep', 'call'].include?(frame.fetch(:base_label)) }
     end
   end
 
