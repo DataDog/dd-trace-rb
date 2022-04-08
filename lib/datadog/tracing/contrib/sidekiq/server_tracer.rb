@@ -5,6 +5,7 @@ require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/analytics'
 require 'datadog/tracing/contrib/sidekiq/ext'
 require 'datadog/tracing/contrib/sidekiq/tracing'
+require 'datadog/tracing/contrib/utils/quantization/hash'
 
 module Datadog
   module Tracing
@@ -50,13 +51,20 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
               span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
               span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
-              span.set_tag(Ext::TAG_JOB_ARGS, job['args']) if tag_args && !job['args'].nil? && !job['args'].empty?
+              if tag_args && !job['args'].nil? && !job['args'].empty?
+                span.set_tag(Ext::TAG_JOB_ARGS, quantize_args(job['args']))
+              end
 
               yield
             end
           end
 
           private
+
+          def quantize_args(args)
+            quantize_options = configuration[:quantize][:args]
+            Contrib::Utils::Quantization::Hash.format(args, quantize_options)
+          end
 
           def configuration
             Datadog.configuration.tracing[:sidekiq]
