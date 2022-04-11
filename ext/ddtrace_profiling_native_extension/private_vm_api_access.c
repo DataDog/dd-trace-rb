@@ -448,14 +448,14 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   `vm_backtrace.c`. Note that unlike the `rb_profile_frames` for modern Rubies, this version actually returns the
 //   method name as as `VALUE` containing a Ruby string in the `buff`.
 //
-// **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2 AND BELOW; SEE ABOVE FOR THE FUNCTION THAT GETS
-// USED FOR MODERN RUBIES**
-//
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
 // I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
 // anew from the Ruby 2.2 version of the function, applying some of the same fixes that we have for the modern version.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
 {
+    // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2 AND BELOW;
+    // SEE ABOVE FOR THE FUNCTION THAT GETS USED FOR MODERN RUBIES**
+
     int i;
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
