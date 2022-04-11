@@ -90,6 +90,55 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  context 'when sampling a thread with a stack that is deeper than the configured max_frames' do
+    let(:max_frames) { 5 }
+    let(:target_stack_depth) { 100 }
+    let(:thread_with_deep_stack) { thread_with_stack_depth(target_stack_depth) }
+
+    let!(:stacks) { {reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames)} }
+
+    after do
+      thread_with_deep_stack.kill
+      thread_with_deep_stack.join
+    end
+
+    it 'gathers exactly max_frames frames' do
+      expect(gathered_stack.size).to be max_frames
+    end
+
+    it 'matches the Ruby backtrace API up to max_frames - 1' do
+      expect(gathered_stack[0..(max_frames - 1)]).to eq reference_stack[0..(max_frames - 1)]
+    end
+
+    it 'includes a placeholder frame including the number of skipped frames' do
+      pending 'Placeholder frame not yet implemented'
+
+      placeholder = 1
+      omitted_frames = target_stack_depth - max_frames - placeholder
+
+      expect(gathered_stack.last).to match(hash_including({base_label: '', path: "#{omitted_frames} frames omitted", lineno: 0}))
+    end
+
+    def thread_with_stack_depth(depth)
+      ready_queue = Queue.new
+
+      deep_stack = proc do
+        if Thread.current.backtrace.size < depth
+          deep_stack.call
+        else
+          ready_queue << :ready
+          sleep
+        end
+      end
+
+      thread = Thread.new(&deep_stack)
+      thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
+      ready_queue.pop
+
+      thread
+    end
+  end
+
   context 'when sampling a dead thread' do
     let(:dead_thread) { Thread.new { }.tap(&:join) }
 
@@ -155,8 +204,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  def sample_and_decode(thread)
-    collectors_stack.sample(thread, recorder, metric_values, labels)
+  def sample_and_decode(thread, max_frames: 400)
+    collectors_stack.sample(thread, recorder, metric_values, labels, max_frames: max_frames)
 
     expect(decoded_profile.sample.size).to be 1
     sample = decoded_profile.sample.first
