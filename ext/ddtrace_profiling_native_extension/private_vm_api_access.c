@@ -193,6 +193,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
+    // Without this check, we get a VM crash if we try to sample a dead thread
     if (end_cfp == NULL) return 0;
 
     // Fix: Skip dummy frame that shows up in main thread.
@@ -485,6 +486,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
 
+    // Without this check, we get a VM crash if we try to sample a dead thread
     if (end_cfp == NULL) return 0;
 
     // Fix: Skip dummy frame that shows up in main thread.
