@@ -22,6 +22,7 @@ typedef struct sampling_buffer {
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
+void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 sampling_buffer *sampling_buffer_new(int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
 
@@ -111,6 +112,11 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
   VALUE last_ruby_frame = Qnil;
   int last_ruby_line = 0;
 
+  if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
+    record_placeholder_stack_in_native_code(recorder_instance, metric_values, labels);
+    return;
+  }
+
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
     int line;
@@ -157,6 +163,47 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
     recorder_instance,
     (ddprof_ffi_Sample) {
       .locations = (ddprof_ffi_Slice_location) {.ptr = buffer->locations, .len = captured_frames},
+      .values = metric_values,
+      .labels = labels,
+    }
+  );
+}
+
+// Our custom rb_profile_frames returning PLACEHOLDER_STACK_IN_NATIVE_CODE is equivalent to when the
+// Ruby `Thread#backtrace` API returns an empty array: we know that a thread is alive but we don't know what it's doing:
+//
+// 1. It can be starting up
+//    ```
+//    > Thread.new { sleep }.backtrace
+//    => [] # <-- note the thread hasn't actually started running sleep yet, we got there first
+//    ```
+// 2. It can be running native code
+//    ```
+//    > t = Process.detach(fork { sleep })
+//    => #<Process::Waiter:0x00007ffe7285f7a0 run>
+//    > t.backtrace
+//    => [] # <-- this can happen even minutes later, e.g. it's not a race as in 1.
+//    ```
+//    This effect has been observed in threads created by the Iodine web server and the ffi gem,
+//    see for instance https://github.com/ffi/ffi/pull/883 and https://github.com/DataDog/dd-trace-rb/pull/1719 .
+//
+// To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
+// with one containing a placeholder frame, so that these threads are properly represented in the UX.
+void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
+  ddprof_ffi_Line placeholder_stack_in_native_code_line = {
+    .function = (ddprof_ffi_Function) {
+      .name = DDPROF_FFI_CHARSLICE_C(""),
+      .filename = DDPROF_FFI_CHARSLICE_C("In native code")
+    },
+    .line = 0
+  };
+  ddprof_ffi_Location placeholder_stack_in_native_code_location =
+    {.lines = (ddprof_ffi_Slice_line) {.ptr = &placeholder_stack_in_native_code_line, .len = 1}};
+
+  record_sample(
+    recorder_instance,
+    (ddprof_ffi_Sample) {
+      .locations = (ddprof_ffi_Slice_location) {.ptr = &placeholder_stack_in_native_code_location, .len = 1},
       .values = metric_values,
       .labels = labels,
     }

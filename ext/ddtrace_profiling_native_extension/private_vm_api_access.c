@@ -153,6 +153,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
+// * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
+//   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
+//   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 //
 // **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
 // RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
@@ -209,7 +212,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // are computed in a different way, so the two calls really are equivalent to one here.
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
-    if (end_cfp <= cfp) return 0;
+    // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
+    if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     for (i=0; i<limit && cfp != end_cfp;) {
 #ifndef USE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P // Modern Rubies
@@ -473,6 +477,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
 //   absent from `rb_profile_frames`. Oversight?
+// * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
+//   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
+//   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
 // I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
@@ -502,7 +509,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // are computed in a different way, so the two calls really are equivalent to one here.
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
 
-    if (end_cfp <= cfp) return 0;
+    // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
+    if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     for (i=0; i<limit && cfp != end_cfp;) {
         if (cfp->iseq && cfp->pc) { /* should be NORMAL_ISEQ */

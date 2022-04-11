@@ -100,6 +100,56 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+
+  context 'when sampling a thread with empty locations' do
+    let(:ready_pipe) { IO.pipe }
+    let(:finish_pipe) { IO.pipe }
+
+    let(:thread_with_empty_locations) do
+      read_ready_pipe, write_ready_pipe = ready_pipe
+      read_finish_pipe, write_finish_pipe = finish_pipe
+
+      Process.detach(
+        fork do
+          # Signal ready to parent
+          read_ready_pipe.close
+          write_ready_pipe.write('ready')
+          write_ready_pipe.close
+
+          # Wait for parent to signal we can exit
+          write_finish_pipe.close
+          read_finish_pipe.read
+          read_finish_pipe.close
+        end
+      )
+    end
+
+    before do
+      thread_with_empty_locations
+
+      # Wait for child to signal ready
+      read_ready_pipe, write_ready_pipe = ready_pipe
+      write_ready_pipe.close
+      expect(read_ready_pipe.read).to eq 'ready'
+      read_ready_pipe.close
+
+      expect(reference_stack).to be_empty
+    end
+
+    after do
+      # Signal child to exit
+      finish_pipe.map(&:close)
+
+      thread_with_empty_locations.join
+    end
+
+    let!(:stacks) { {reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations)} }
+
+    it 'gathers a one-element stack with a "In native code" placeholder' do
+      expect(gathered_stack).to contain_exactly({base_label: '', path: 'In native code', lineno: 0})
+    end
+  end
+
   def sample_and_decode(thread)
     collectors_stack.sample(thread, recorder, metric_values, labels)
 
