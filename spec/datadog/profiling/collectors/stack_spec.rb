@@ -90,6 +90,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  context 'when sampling a dead thread' do
+    let(:dead_thread) { Thread.new { }.tap(&:join) }
+
+    let!(:stacks) { {reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread)} }
+
+    it 'gathers an empty stack' do
+      expect(gathered_stack).to be_empty
+    end
+  end
+
   def sample_and_decode(thread)
     collectors_stack.sample(thread, recorder, metric_values, labels)
 
