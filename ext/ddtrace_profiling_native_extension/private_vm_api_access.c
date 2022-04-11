@@ -150,6 +150,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   code looks exactly the same but Ruby 2.4 uses `VM_FRAME_RUBYFRAME_P` whereas Ruby 2.3 used `RUBY_VM_NORMAL_ISEQ_P`.
 //   Examples of these are `errinfo_place` in `eval.c`, `rb_vm_get_ruby_level_next_cfp` (among others) in `vm.c`, etc.
 // * Skip dummy frame that shows up in main thread
+// * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
+//   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
+//   absent from `rb_profile_frames`. Oversight?
 //
 // **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
 // RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
@@ -190,6 +193,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
+    if (end_cfp == NULL) return 0;
+
     // Fix: Skip dummy frame that shows up in main thread.
     //
     // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
@@ -202,6 +207,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
     // are computed in a different way, so the two calls really are equivalent to one here.
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+    if (end_cfp <= cfp) return 0;
 
     for (i=0; i<limit && cfp != end_cfp;) {
 #ifndef USE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P // Modern Rubies
@@ -462,6 +469,9 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   `vm_backtrace.c`. Note that unlike the `rb_profile_frames` for modern Rubies, this version actually returns the
 //   method name as as `VALUE` containing a Ruby string in the `buff`.
 // * Skip dummy frame that shows up in main thread
+// * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
+//   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
+//   absent from `rb_profile_frames`. Oversight?
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
 // I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
@@ -475,6 +485,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
 
+    if (end_cfp == NULL) return 0;
+
     // Fix: Skip dummy frame that shows up in main thread.
     //
     // According to a comment in `backtrace_each` (`vm_backtrace.c`), there's two dummy frames that we should ignore
@@ -487,6 +499,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // Note that in `backtrace_each` there's two calls to `RUBY_VM_NEXT_CONTROL_FRAME`, but the loop bounds there
     // are computed in a different way, so the two calls really are equivalent to one here.
     end_cfp = RUBY_VM_NEXT_CONTROL_FRAME(end_cfp);
+
+    if (end_cfp <= cfp) return 0;
 
     for (i=0; i<limit && cfp != end_cfp;) {
         if (cfp->iseq && cfp->pc) { /* should be NORMAL_ISEQ */
