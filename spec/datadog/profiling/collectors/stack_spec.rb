@@ -150,6 +150,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  context 'when trying to sample something which is not a thread' do
+    it 'raises a TypeError' do
+      expect { collectors_stack.sample(:not_a_thread, recorder, metric_values, labels) }.to raise_error(TypeError)
+    end
+  end
+
   def sample_and_decode(thread)
     collectors_stack.sample(thread, recorder, metric_values, labels)
 
