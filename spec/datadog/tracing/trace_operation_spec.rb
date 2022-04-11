@@ -789,6 +789,28 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  describe '#set_metric' do
+    it 'sets metrics' do
+      trace_op.send(:set_metric, 'foo', 42)
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include('foo' => 42)
+    end
+  end
+
+  describe '#set_error' do
+    it 'sets errors' do
+      trace_op.send(:set_error, Exception.new('foo'))
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include('error.msg' => 'foo', 'error.type' => 'Exception')
+    end
+  end
+
   describe '#set_tag' do
     it 'sets tag on trace before a measurement' do
       trace_op.send(:set_tag, 'foo', 'bar')
@@ -830,6 +852,33 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       expect(trace.spans).to have(2).items
       expect(trace.spans.map(&:name)).to include('parent')
       expect(trace.tags).to include('foo' => 'bar')
+    end
+
+    it 'sets metrics' do
+      trace_op.send(:set_tag, 'foo', 42)
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include('foo' => 42)
+    end
+
+    it 'sets analytics enabled' do
+      trace_op.send(:set_tag, Datadog::Tracing::Metadata::Ext::Analytics::TAG_ENABLED, true)
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE => 1.0)
+    end
+
+    it 'sets analytics sample rate' do
+      trace_op.send(:set_tag, Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE, 42)
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.tags).to include(Datadog::Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE => 42.0)
     end
 
     context 'with partial flushing' do

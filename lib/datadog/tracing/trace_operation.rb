@@ -9,6 +9,7 @@ require 'datadog/tracing/event'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/metadata'
 
 module Datadog
   module Tracing
@@ -24,6 +25,8 @@ module Datadog
     # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
+      include Metadata
+
       DEFAULT_MAX_LENGTH = 100_000
 
       attr_accessor \
@@ -86,7 +89,7 @@ module Datadog
         @service = service
 
         # Generic tags
-        @tags = set_tags(tags)
+        set_tags(tags) if tags
 
         # State
         @root_span = nil
@@ -323,22 +326,6 @@ module Datadog
         :events,
         :root_span
 
-      def tags
-        @tags ||= {}
-      end
-
-      def get_tag(key)
-        tags[key]
-      end
-
-      def set_tag(key, value = nil)
-        tags[key] = value
-      end
-
-      def set_tags(tags)
-        (tags || {}).each { |k, v| set_tag(k, v) }
-      end
-
       def activate_span!(span_op)
         parent = @active_span
 
@@ -425,7 +412,7 @@ module Datadog
           name: @name,
           resource: @resource,
           service: @service,
-          tags: !partial ? @tags : nil,
+          tags: !partial ? meta.merge(metrics) : nil,
           root_span_id: !partial ? @root_span && @root_span.id : nil
         )
       end
