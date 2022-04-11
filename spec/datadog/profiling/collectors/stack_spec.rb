@@ -28,8 +28,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   # do correctly overcome this.
   context 'when sampling a sleeping thread' do
     let(:ready_queue) { Queue.new }
-    let(:stacks) { { reference: another_thread.backtrace_locations, gathered: sample_and_decode(another_thread) } }
-    let(:another_thread) do
+    let(:stacks) { { reference: sleeping_thread.backtrace_locations, gathered: sample_and_decode(sleeping_thread) } }
+    let(:sleeping_thread) do
       Thread.new(ready_queue) do |ready_queue|
         ready_queue << true
         sleep
@@ -37,13 +37,13 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     before do
-      another_thread
+      sleeping_thread
       ready_queue.pop
     end
 
     after do
-      another_thread.kill
-      another_thread.join
+      sleeping_thread.kill
+      sleeping_thread.join
     end
 
     it 'matches the Ruby backtrace API' do
@@ -99,7 +99,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       expect(gathered_stack).to be_empty
     end
   end
-
 
   context 'when sampling a thread with empty locations' do
     let(:ready_pipe) { IO.pipe }
