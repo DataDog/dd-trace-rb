@@ -51,7 +51,42 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it 'has a sleeping frame at the top of the stack' do
-      expect(gathered_stack.first).to match(hash_including(base_label: 'sleep'))
+      expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
+    end
+  end
+
+  # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
+  # main thread than the reference Ruby API. This is almost-surely a bug in rb_profile_frames, since the same frame
+  # gets excluded from the reference Ruby API.
+  context 'when sampling the main thread' do
+    let!(:stacks) { {reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current)} }
+
+    let(:reference_stack) do
+      # To make the stacks comparable we slice off the actual Ruby `Thread#backtrace_locations` frame since that part
+      # will necessarily be different
+      expect(super().first).to match(hash_including(base_label: 'backtrace_locations'))
+      super()[1..-1]
+    end
+
+    let(:gathered_stack) do
+      # To make the stacks comparable we slice off everything starting from `sample_and_decode` since that part will
+      # also necessarily be different
+      expect(super()[0..2]).to match(
+        [
+          hash_including(base_label: '_native_sample'),
+          hash_including(base_label: 'sample'),
+          hash_including(base_label: 'sample_and_decode'),
+        ]
+      )
+      super()[3..-1]
+    end
+
+    before do
+      expect(Thread.current).to be(Thread.main), 'Unexpected: RSpec is not running on the main thread'
+    end
+
+    it 'matches the Ruby backtrace API' do
+      expect(gathered_stack).to eq reference_stack
     end
   end
 
