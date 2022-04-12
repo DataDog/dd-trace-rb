@@ -2,6 +2,7 @@
 
 require 'datadog/tracing/metadata/analytics'
 require 'datadog/tracing/metadata/tagging'
+require 'datadog/tracing/metadata/errors'
 
 module Datadog
   module Tracing
@@ -9,6 +10,7 @@ module Datadog
     module Metadata
       def self.included(base)
         base.include(Metadata::Tagging)
+        base.include(Metadata::Errors)
 
         # Additional extensions
         base.prepend(Metadata::Analytics)

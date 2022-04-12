@@ -1,6 +1,5 @@
 # typed: false
 
-require 'datadog/core/error'
 require 'datadog/core/environment/ext'
 
 require 'datadog/tracing/metadata/ext'
@@ -94,15 +93,6 @@ module Datadog
         # This method removes a metric for the given key. It acts like {#clear_tag}.
         def clear_metric(key)
           metrics.delete(key)
-        end
-
-        # Mark the span with the given error.
-        def set_error(e)
-          e = Core::Error.build_from(e)
-
-          set_tag(Ext::Errors::TAG_TYPE, e.type) unless e.type.empty?
-          set_tag(Ext::Errors::TAG_MSG, e.message) unless e.message.empty?
-          set_tag(Ext::Errors::TAG_STACK, e.backtrace) unless e.backtrace.empty?
         end
 
         protected
