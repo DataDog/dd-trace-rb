@@ -165,6 +165,16 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         end
       end
 
+      shared_examples 'root span without generic tags' do
+        context 'metrics' do
+          it { expect(root_span.metrics).to_not include({ 'baz' => 42 }) }
+        end
+
+        context 'meta' do
+          it { expect(root_span.meta).to_not include({ 'foo' => 'bar' }) }
+        end
+      end
+
       context 'with no root span' do
         include_context 'no root span'
 
@@ -193,7 +203,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           it { expect(root_span.resource).to eq('my.job') }
 
           it_behaves_like 'root span with tags'
-          it_behaves_like 'root span with generic tags'
+          it_behaves_like 'root span without generic tags'
         end
       end
 
@@ -225,7 +235,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           it { expect(root_span.resource).to eq('my.job') }
 
           it_behaves_like 'root span with tags'
-          it_behaves_like 'root span with generic tags'
+          it_behaves_like 'root span without generic tags'
         end
       end
 
@@ -248,6 +258,16 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           it { expect(root_span.resource).to eq(resource) }
 
           it_behaves_like 'root span with tags'
+        end
+
+        context 'when trace has metadata set with generic tags' do
+          include_context 'trace metadata with tags'
+
+          it { is_expected.to be(trace) }
+          it { expect(root_span.resource).to eq(resource) }
+
+          it_behaves_like 'root span with tags'
+          it_behaves_like 'root span with generic tags'
         end
       end
     end

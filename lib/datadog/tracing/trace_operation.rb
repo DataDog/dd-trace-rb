@@ -412,7 +412,7 @@ module Datadog
           name: @name,
           resource: @resource,
           service: @service,
-          tags: !partial ? meta.merge(metrics) : nil,
+          tags: meta.merge(metrics),
           root_span_id: !partial ? @root_span && @root_span.id : nil
         )
       end

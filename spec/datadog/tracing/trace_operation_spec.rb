@@ -895,7 +895,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(trace.spans).to have(1).items
         expect(trace.spans.map(&:name)).to include('parent')
-        expect(trace.tags).to_not include('foo' => 'bar')
+        expect(trace.tags).to include('foo' => 'bar')
 
         final_flush = trace_op.flush!
         expect(final_flush.spans).to have(1).items

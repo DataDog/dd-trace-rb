@@ -65,6 +65,11 @@ module Datadog
       end
 
       def set_trace_tags!
+        # If the root span wasn't specified, don't set this. We don't want to
+        # misset or overwrite the tags of a span that is in the middle of the
+        # trace.
+        return if !@found_root_span
+
         root_span.set_tags(trace.tags)
       end
 
@@ -168,6 +173,8 @@ module Datadog
         root_span_id = trace.send(:root_span_id)
         root_span = trace.spans.find { |s| s.id == root_span_id } if root_span_id
         @found_root_span = !root_span.nil?
+
+        # when root span is not found, fall back to last span (partial flush)
         root_span || trace.spans.last
       end
     end
