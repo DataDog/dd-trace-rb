@@ -96,7 +96,7 @@ module Datadog
           trace.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
 
           trace_tags.each do |key, value|
-            trace.set_tag(key, value.is_a?(String) ? value.encode('UTF-8') : value)
+            trace.set_tag(key, value)
           end
         end
       end
