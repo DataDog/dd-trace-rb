@@ -208,6 +208,18 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  context 'when max_frames is too small' do
+    it 'raises an ArgumentError' do
+      expect { collectors_stack.sample(Thread.current, recorder, metric_values, labels, max_frames: 4) }.to raise_error(ArgumentError)
+    end
+  end
+
+  context 'when max_frames is too large' do
+    it 'raises an ArgumentError' do
+      expect { collectors_stack.sample(Thread.current, recorder, metric_values, labels, max_frames: 10_001) }.to raise_error(ArgumentError)
+    end
+  end
+
   def sample_and_decode(thread, max_frames: 400)
     collectors_stack.sample(thread, recorder, metric_values, labels, max_frames: max_frames)
 

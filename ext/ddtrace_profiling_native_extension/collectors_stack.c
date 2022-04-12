@@ -12,7 +12,7 @@ static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
 typedef struct sampling_buffer {
-  int max_frames;
+  unsigned int max_frames;
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
@@ -23,7 +23,7 @@ typedef struct sampling_buffer {
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
-sampling_buffer *sampling_buffer_new(int max_frames);
+sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
 
 void collectors_stack_init(VALUE profiling_module) {
@@ -69,7 +69,10 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
     };
   }
 
-  sampling_buffer *buffer = sampling_buffer_new(NUM2INT(max_frames));
+  int max_frames_requested = NUM2INT(max_frames);
+  if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
+
+  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
   sample(
     thread,
@@ -210,9 +213,11 @@ void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi
   );
 }
 
-sampling_buffer *sampling_buffer_new(int max_frames) {
+sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   sampling_buffer* buffer = xcalloc(1, sizeof(sampling_buffer));
   if (buffer == NULL) rb_raise(rb_eNoMemError, "Failed to allocate memory for sampling buffer");
+  if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
+  if (max_frames > 10000) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= 10_000");
 
   buffer->max_frames = max_frames;
 
