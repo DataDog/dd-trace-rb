@@ -125,31 +125,36 @@ end
 
 Check out the table below for a list of common mappings:
 
-| 0.x setting                            | 1.0 setting                   |
-|----------------------------------------|-------------------------------|
-| `analytics.enabled`                    | `tracing.analytics.enabled`   |
-| `ci_mode.context_flush`                | `ci.context_flush`            |
-| `ci_mode.enabled`                      | `ci.enabled`                  |
-| `ci_mode.writer_options`               | `ci.writer_options`           |
-| `distributed_tracing`                  | `tracing.distributed_tracing` |
-| `logger=`                              | `logger.instance=`            |
-| `profiling.exporter.transport_options` | Removed                       |
-| `report_hostname`                      | `tracing.report_hostname`     |
-| `runtime_metrics_enabled`              | `runtime_metrics.enabled`     |
-| `runtime_metrics(options)`             | Removed                       |
-| `sampling`                             | `tracing.sampling`            |
-| `test_mode`                            | `tracing.test_mode`           |
-| `tracer.enabled`                       | `tracing.enabled`             |
-| `tracer.hostname`                      | `agent.hostname`              |
-| `tracer.instance`                      | `tracing.instance`            |
-| `tracer.partial_flush`                 | `tracing.partial_flush`       |
-| `tracer.port`                          | `agent.port`                  |
-| `tracer.sampler`                       | `tracing.sampler`             |
-| `tracer.transport_options`             | `tracing.transport_options`   |
-| `tracer.transport_options(options)`    | Removed                       |
-| `tracer.writer`                        | `tracing.writer`              |
-| `tracer.writer_options`                | `tracing.writer_options`      |
-| `use`                                  | `tracing.instrument`          |
+| 0.x setting                            | 1.0 setting                     |
+|----------------------------------------|---------------------------------|
+| `analytics.enabled`                    | `tracing.analytics.enabled`     |
+| `ci_mode.context_flush`                | `ci.context_flush`              |
+| `ci_mode.enabled`                      | `ci.enabled`                    |
+| `ci_mode.writer_options`               | `ci.writer_options`             |
+| `distributed_tracing`                  | `tracing.distributed_tracing`   |
+| `logger=`                              | `logger.instance=`              |
+| `profiling.exporter.transport_options` | Removed                         |
+| `report_hostname`                      | `tracing.report_hostname`       |
+| `runtime_metrics_enabled`              | `runtime_metrics.enabled`       |
+| `runtime_metrics(options)`             | Removed                         |
+| `sampling`                             | `tracing.sampling`              |
+| `test_mode`                            | `tracing.test_mode`             |
+| `tracer=`                              | Removed                         |
+| `tracer.debug`                         | `diagnostics.debug`             |
+| `tracer.enabled`                       | `tracing.enabled`               |
+| `tracer.env`                           | `env`                           |
+| `tracer.hostname`                      | `agent.hostname`                |
+| `tracer.instance`                      | `tracing.instance`              |
+| `tracer.log`                           | `logger.instance`               |
+| `tracer.partial_flush`                 | `tracing.partial_flush.enabled` |
+| `tracer.port`                          | `agent.port`                    |
+| `tracer.sampler`                       | `tracing.sampler`               |
+| `tracer.tags`                          | `tags`                          |
+| `tracer.transport_options`             | `tracing.transport_options`     |
+| `tracer.transport_options(options)`    | Removed                         |
+| `tracer.writer`                        | `tracing.writer`                |
+| `tracer.writer_options`                | `tracing.writer_options`        |
+| `use`                                  | `tracing.instrument`            |
 
 <h3 id="1.0-configuration-instrumentation">Activating instrumentation</h3>
 
