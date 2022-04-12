@@ -777,7 +777,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
   describe '#get_tag' do
     before do
-      trace_op.send(:set_tag, 'foo', 'bar')
+      trace_op.set_tag('foo', 'bar')
     end
 
     it 'gets tag set on trace' do
@@ -791,7 +791,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
   describe '#set_metric' do
     it 'sets metrics' do
-      trace_op.send(:set_metric, 'foo', 42)
+      trace_op.set_metric('foo', 42)
       trace_op.measure('top') {}
 
       trace = trace_op.flush!
@@ -802,7 +802,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
   describe '#set_tag' do
     it 'sets tag on trace before a measurement' do
-      trace_op.send(:set_tag, 'foo', 'bar')
+      trace_op.set_tag('foo', 'bar')
       trace_op.measure('top') {}
 
       trace = trace_op.flush!
@@ -812,7 +812,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it 'sets tag on trace after a measurement' do
       trace_op.measure('top') {}
-      trace_op.send(:set_tag, 'foo', 'bar')
+      trace_op.set_tag('foo', 'bar')
 
       trace = trace_op.flush!
 
@@ -821,7 +821,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it 'sets tag on trace from a measurement' do
       trace_op.measure('top') do
-        trace_op.send(:set_tag, 'foo', 'bar')
+        trace_op.set_tag('foo', 'bar')
       end
 
       trace = trace_op.flush!
@@ -832,7 +832,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     it 'sets tag on trace from a nested measurement' do
       trace_op.measure('grandparent') do
         trace_op.measure('parent') do
-          trace_op.send(:set_tag, 'foo', 'bar')
+          trace_op.set_tag('foo', 'bar')
         end
       end
 
@@ -844,7 +844,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     it 'sets metrics' do
-      trace_op.send(:set_tag, 'foo', 42)
+      trace_op.set_tag('foo', 42)
       trace_op.measure('top') {}
 
       trace = trace_op.flush!
@@ -859,7 +859,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       it 'sets tag on trace from a nested measurement' do
         trace_op.measure('grandparent') do
           trace_op.measure('parent') do
-            trace_op.send(:set_tag, 'foo', 'bar')
+            trace_op.set_tag('foo', 'bar')
           end
           flush!
         end

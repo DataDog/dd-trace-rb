@@ -93,10 +93,10 @@ module Datadog
 
           # complex types are unsupported, we need to serialize to a string
           triggers = trace_tags.delete('_dd.appsec.triggers')
-          trace.send(:set_tag, '_dd.appsec.json', JSON.dump({ triggers: triggers }))
+          trace.set_tag('_dd.appsec.json', JSON.dump({ triggers: triggers }))
 
           trace_tags.each do |key, value|
-            trace.send(:set_tag, key, value.is_a?(String) ? value.encode('UTF-8') : value)
+            trace.set_tag(key, value.is_a?(String) ? value.encode('UTF-8') : value)
           end
         end
       end
