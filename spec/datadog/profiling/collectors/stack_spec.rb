@@ -3,6 +3,10 @@
 require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/stack'
 
+# This file has a few lines that cannot be broken because we want some things to have the same line number when looking
+# at their stack traces. Hence, we disable Rubocop's complaints here.
+#
+# rubocop:disable Layout/LineLength
 RSpec.describe Datadog::Profiling::Collectors::Stack do
   before { skip_if_profiling_not_supported(self) }
 
@@ -59,7 +63,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   # main thread than the reference Ruby API. This is almost-surely a bug in rb_profile_frames, since the same frame
   # gets excluded from the reference Ruby API.
   context 'when sampling the main thread' do
-    let!(:stacks) { {reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current)} }
+    let(:stacks) { { reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current) } }
 
     let(:reference_stack) do
       # To make the stacks comparable we slice off the actual Ruby `Thread#backtrace_locations` frame since that part
@@ -95,7 +99,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:target_stack_depth) { 100 }
     let(:thread_with_deep_stack) { thread_with_stack_depth(target_stack_depth) }
 
-    let!(:stacks) { {reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames)} }
+    let(:stacks) { { reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames) } }
 
     after do
       thread_with_deep_stack.kill
@@ -116,7 +120,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       placeholder = 1
       omitted_frames = target_stack_depth - max_frames - placeholder
 
-      expect(gathered_stack.last).to match(hash_including({base_label: '', path: "#{omitted_frames} frames omitted", lineno: 0}))
+      expect(gathered_stack.last)
+        .to match(hash_including({ base_label: '', path: "#{omitted_frames} frames omitted", lineno: 0 }))
     end
 
     def thread_with_stack_depth(depth)
@@ -140,9 +145,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   context 'when sampling a dead thread' do
-    let(:dead_thread) { Thread.new { }.tap(&:join) }
+    let(:dead_thread) { Thread.new {}.tap(&:join) }
 
-    let!(:stacks) { {reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread)} }
+    let(:stacks) { { reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread) } }
 
     it 'gathers an empty stack' do
       expect(gathered_stack).to be_empty
@@ -151,6 +156,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   context 'when sampling a thread with empty locations' do
     let(:ready_pipe) { IO.pipe }
+    let(:stacks) { { reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations) } }
     let(:finish_pipe) { IO.pipe }
 
     let(:thread_with_empty_locations) do
@@ -191,10 +197,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       thread_with_empty_locations.join
     end
 
-    let!(:stacks) { {reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations)} }
-
     it 'gathers a one-element stack with a "In native code" placeholder' do
-      expect(gathered_stack).to contain_exactly({base_label: '', path: 'In native code', lineno: 0})
+      expect(gathered_stack).to contain_exactly({ base_label: '', path: 'In native code', lineno: 0 })
     end
   end
 
@@ -223,3 +227,4 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
   end
 end
+# rubocop:enable Layout/LineLength

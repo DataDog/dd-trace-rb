@@ -93,14 +93,10 @@ if RUBY_PLATFORM.include?('linux')
 end
 
 # On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
-if RUBY_VERSION < '3'
-  $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME'
-end
+$defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 
 # On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
-if RUBY_VERSION < '2.5'
-  $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT'
-end
+$defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
 
 # On older Rubies...
 if RUBY_VERSION < '2.4'
