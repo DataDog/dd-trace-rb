@@ -34,6 +34,7 @@ else
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.7 -t datadog/dd-apm-demo:rb-2.7-rack .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.0 -t datadog/dd-apm-demo:rb-3.0-rack .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.1 -t datadog/dd-apm-demo:rb-3.1-rack .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.2 -t datadog/dd-apm-demo:rb-3.2-rack .
   # ADD NEW RUBIES HERE
 fi
 echo "== Done building Rack images. =="

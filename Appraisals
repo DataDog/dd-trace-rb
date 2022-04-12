@@ -1402,6 +1402,119 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'core-old' do
     gem 'dogstatsd-ruby', '~> 4'
   end
+# ----------------------------------------------------------------------------------------------------------------------
+elsif ruby_version?('3.2')
+  appraise 'rails61-mysql2' do
+    gem 'rails', '~> 6.1.0'
+    # gem 'mysql2', '~> 0.5', platform: :ruby # broken on Ruby 3.2.0-preview1
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
+  end
+
+  appraise 'rails61-postgres' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
+  end
+
+  appraise 'rails61-postgres-redis' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'redis', '>= 4.2.5'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+    gem 'net-smtp'
+  end
+
+  appraise 'rails61-postgres-sidekiq' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sidekiq', '>= 6.1.2'
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
+    gem 'rails_semantic_logger', '~> 4.0'
+    gem 'net-smtp'
+  end
+
+  appraise 'rails61-semantic-logger' do
+    gem 'rails', '~> 6.1.0'
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'sprockets', '< 4'
+    gem 'rails_semantic_logger', '~> 4.0'
+    gem 'net-smtp'
+  end
+
+  appraise 'resque2-redis3' do
+    gem 'redis', '< 4.0'
+    gem 'resque', '>= 2.0'
+  end
+
+  appraise 'resque2-redis4' do
+    gem 'redis', '>= 4.0'
+    gem 'resque', '>= 2.0'
+  end
+
+  (3..5).each { |v| gem_cucumber(v) }
+
+  appraise 'contrib' do
+    gem 'actionpack'
+    gem 'actionview'
+    gem 'active_model_serializers', '>= 0.10.0'
+    gem 'activerecord'
+    gem 'aws-sdk'
+    gem 'concurrent-ruby'
+    gem 'cucumber'
+    gem 'dalli', '>= 3.0.0'
+    gem 'delayed_job'
+    gem 'delayed_job_active_record'
+    gem 'elasticsearch-transport'
+    gem 'ethon'
+    gem 'excon'
+    gem 'grape'
+    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+    gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
+    gem 'hiredis'
+    gem 'http'
+    gem 'httpclient'
+    # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
+    gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
+    gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+    # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
+    gem 'pg', '>= 1.1', platform: :ruby
+    gem 'presto-client', '>=  0.5.14'
+    gem 'qless'
+    # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
+    gem 'rack'
+    gem 'rack-test'
+    gem 'rake', '>= 12.3'
+    gem 'redis', '< 4.0'
+    gem 'rest-client'
+    gem 'resque'
+    gem 'ruby-kafka', '>= 0.7.10'
+    gem 'rspec', '>= 3.0.0'
+    gem 'semantic_logger', '~> 4.0'
+    gem 'sequel'
+    gem 'shoryuken'
+    gem 'sidekiq'
+    gem 'sinatra'
+    gem 'sneakers', '>= 2.12.0'
+    gem 'sqlite3', '>= 1.4.2'
+    gem 'sucker_punch'
+    gem 'typhoeus'
+    gem 'que', '>= 1.0.0'
+    gem 'net-smtp'
+  end
+
+  appraise 'contrib-old' do
+    gem 'dalli', '< 3.0.0'
+  end
+
+  appraise 'core-old' do
+    gem 'dogstatsd-ruby', '~> 4'
+  end
 end
 # ADD NEW RUBIES HERE
 

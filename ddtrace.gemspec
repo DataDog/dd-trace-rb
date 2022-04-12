@@ -7,7 +7,13 @@ require 'ddtrace/version'
 Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
   spec.version               = DDTrace::VERSION::STRING
-  spec.required_ruby_version = [">= #{DDTrace::VERSION::MINIMUM_RUBY_VERSION}", "< #{DDTrace::VERSION::MAXIMUM_RUBY_VERSION}"]
+  if RUBY_DESCRIPTION.include?('3.2.0preview1')
+    # Workaround to enable testing with preview releases. We explicitly set this here to '= 3.2.0' so that gems
+    # packaged in 3.2.0preview1 are not picked up/usable on other releases (just in case we accidentally push them).
+    spec.required_ruby_version = ["= 3.2.0"]
+  else
+    spec.required_ruby_version = [">= #{DDTrace::VERSION::MINIMUM_RUBY_VERSION}", "< #{DDTrace::VERSION::MAXIMUM_RUBY_VERSION}"]
+  end
   spec.required_rubygems_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']

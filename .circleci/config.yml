@@ -489,6 +489,10 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '3.1'
     image: ivoanjo/docker-library:ddtrace_rb_3_1_1
+  - &config-3_2
+    <<: *filters_all_branches_and_tags
+    ruby_version: '3.2'
+    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview1
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
     <<: *filters_all_branches_and_tags
@@ -538,6 +542,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
@@ -597,6 +602,11 @@ workflows:
           integration_apps: 'rack rails-six rails-seven'
           ruby_version: '3.1'
           <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.2
+          integration_apps: 'rack rails-six rails-seven'
+          ruby_version: '3.2'
+          <<: *filters_all_branches_and_tags
       # ADD NEW RUBIES HERE
       # MRI
       - orb/build:
@@ -676,6 +686,14 @@ workflows:
           name: test-3.1
           requires:
             - build-3.1
+      - orb/build:
+          <<: *config-3_2
+          name: build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2_8_0
@@ -726,6 +744,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
@@ -745,6 +764,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
@@ -785,30 +805,33 @@ workflows:
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-2.5
-          integration_apps: 'rack rails-five'
+          integration_apps: 'rack rails-five rails-six'
           ruby_version: '2.5'
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-2.6
-          integration_apps: 'rack rails-five'
+          integration_apps: 'rack rails-five rails-six'
           ruby_version: '2.6'
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-2.7
-          integration_apps: 'rack rails-five'
+          integration_apps: 'rack rails-five rails-six rails-seven'
           ruby_version: '2.7'
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-3.0
-          # Note: Ruby 3 is not supported by Rails 5, hence we skip it
-          integration_apps: 'rack'
+          integration_apps: 'rack rails-six rails-seven'
           ruby_version: '3.0'
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-3.1
-          # Note: Ruby 3 is not supported by Rails 5, hence we skip it
-          integration_apps: 'rack'
+          integration_apps: 'rack rails-six rails-seven'
           ruby_version: '3.1'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.2
+          integration_apps: 'rack rails-six rails-seven'
+          ruby_version: '3.2'
           <<: *filters_all_branches_and_tags
       # ADD NEW RUBIES HERE
       # MRI
@@ -889,6 +912,14 @@ workflows:
           name: test-3.1
           requires:
             - build-3.1
+      - orb/build:
+          <<: *config-3_2
+          name: build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2_8_0
