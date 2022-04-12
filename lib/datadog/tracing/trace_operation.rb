@@ -9,7 +9,7 @@ require 'datadog/tracing/event'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/metadata'
+require 'datadog/tracing/metadata/tagging'
 
 module Datadog
   module Tracing
@@ -25,7 +25,7 @@ module Datadog
     # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
-      include Metadata
+      include Metadata::Tagging
 
       DEFAULT_MAX_LENGTH = 100_000
 
