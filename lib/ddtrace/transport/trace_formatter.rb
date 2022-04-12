@@ -59,7 +59,7 @@ module Datadog
         # If the trace resource is undefined, or the root span wasn't
         # specified, don't set this. We don't want to overwrite the
         # resource of a span that is in the middle of the trace.
-        return if trace.resource.nil? || !@found_root_span
+        return if trace.resource.nil? || partial?
 
         root_span.resource = trace.resource
       end
@@ -68,7 +68,7 @@ module Datadog
         # If the root span wasn't specified, don't set this. We don't want to
         # misset or overwrite the tags of a span that is in the middle of the
         # trace.
-        return if !@found_root_span
+        return if partial?
 
         root_span.set_tags(trace.send(:meta).merge(trace.send(:metrics)))
       end
@@ -164,6 +164,10 @@ module Datadog
       end
 
       private
+
+      def partial?
+        !@found_root_span
+      end
 
       def find_root_span(trace)
         # TODO: Should we memoize this?
