@@ -70,7 +70,7 @@ module Datadog
         # trace.
         return if !@found_root_span
 
-        root_span.set_tags(trace.tags)
+        root_span.set_tags(trace.send(:meta).merge(trace.send(:metrics)))
       end
 
       def tag_agent_sample_rate!

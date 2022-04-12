@@ -45,8 +45,15 @@ RSpec.describe Datadog::Tracing::TraceSegment do
           sampling_priority: nil,
           service: nil,
           spans: spans,
-          tags: {}
         )
+      end
+
+      it do
+        expect(subject.send(:meta)).to eq({})
+      end
+
+      it do
+        expect(subject.send(:metrics)).to eq({})
       end
     end
 
@@ -118,7 +125,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:options) { { runtime_id: runtime_id } }
         let(:runtime_id) { Datadog::Core::Environment::Identity.id }
 
-        it { is_expected.to have_attributes(runtime_id: be(runtime_id)) }
+        it { is_expected.to have_attributes(runtime_id: runtime_id) }
       end
 
       context ':sample_rate' do

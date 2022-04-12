@@ -781,11 +781,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     it 'gets tag set on trace' do
-      expect(trace_op.send(:get_tag, 'foo')).to eq('bar')
+      expect(trace_op.get_tag('foo')).to eq('bar')
     end
 
     it 'gets unset tag as nil' do
-      expect(trace_op.send(:get_tag, 'unset')).to be_nil
+      expect(trace_op.get_tag('unset')).to be_nil
     end
   end
 
@@ -796,7 +796,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       trace = trace_op.flush!
 
-      expect(trace.tags).to include('foo' => 42)
+      expect(trace.get_metric('foo')).to eq(42)
     end
   end
 
@@ -807,7 +807,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       trace = trace_op.flush!
 
-      expect(trace.tags).to include('foo' => 'bar')
+      expect(trace.get_tag('foo')).to eq('bar')
     end
 
     it 'sets tag on trace after a measurement' do
@@ -816,7 +816,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       trace = trace_op.flush!
 
-      expect(trace.tags).to include('foo' => 'bar')
+      expect(trace.get_tag('foo')).to eq('bar')
     end
 
     it 'sets tag on trace from a measurement' do
@@ -826,7 +826,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       trace = trace_op.flush!
 
-      expect(trace.tags).to include('foo' => 'bar')
+      expect(trace.get_tag('foo')).to eq('bar')
     end
 
     it 'sets tag on trace from a nested measurement' do
@@ -840,7 +840,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       expect(trace.spans).to have(2).items
       expect(trace.spans.map(&:name)).to include('parent')
-      expect(trace.tags).to include('foo' => 'bar')
+      expect(trace.get_tag('foo')).to eq('bar')
     end
 
     it 'sets metrics' do
@@ -849,7 +849,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       trace = trace_op.flush!
 
-      expect(trace.tags).to include('foo' => 42)
+      expect(trace.get_metric('foo')).to eq(42)
     end
 
     context 'with partial flushing' do
@@ -866,12 +866,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(trace.spans).to have(1).items
         expect(trace.spans.map(&:name)).to include('parent')
-        expect(trace.tags).to include('foo' => 'bar')
+        expect(trace.get_tag('foo')).to eq('bar')
 
         final_flush = trace_op.flush!
         expect(final_flush.spans).to have(1).items
         expect(final_flush.spans.map(&:name)).to include('grandparent')
-        expect(final_flush.tags).to include('foo' => 'bar')
+        expect(final_flush.get_tag('foo')).to eq('bar')
       end
     end
   end
