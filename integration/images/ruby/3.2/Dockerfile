@@ -1,4 +1,5 @@
-FROM ruby:3.2
+# TODO: Replace this with 3.2 once the 3.2.0 stable release is out!
+FROM ruby:3.2-rc
 
 ENV DEBIAN_FRONTEND=noninteractive
 
