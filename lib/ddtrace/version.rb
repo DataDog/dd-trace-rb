@@ -11,16 +11,15 @@ module DDTrace
 
     MINIMUM_RUBY_VERSION = '2.1.0'.freeze
 
-    # Ruby 3.2 is not supported: Ruby 3.x support as implemented using *args
-    # needs ruby2_keywords to continue working, yet the scheduled removal of
-    # ruby2_keywords when Ruby 2.6 is EOL'd (i.e on Ruby 3.2 release) would
-    # leave the code with no option, other than to move to *args, **kwargs.
+    # A maximum version was initially added in https://github.com/DataDog/dd-trace-rb/pull/1495 because we expected
+    # the `ruby2_keywords` method to be removed (see the PR for the discussion).
     #
-    # See https://www.ruby-lang.org/en/news/2019/12/12/separation-of-positional-and-keyword-arguments-in-ruby-3-0/
+    # Now Ruby 3.2.0-preview1 is out and `ruby2_keywords` are still there, and there's even a recent change for it
+    # in https://github.com/ruby/ruby/pull/5684 that is documented as "ruby2_keywords needed in 3.2+".
     #
-    # This constraint can only be removed when the dependency on ruby2_keywords is
-    # dropped. An allowance is nonetheless made to test prerelease versions.
-    # The version constraint may be bumped if the removal is postponed.
-    MAXIMUM_RUBY_VERSION = '3.2'.freeze
+    # So for now let's bump the maximum version to < 3.3 to allow the Ruby 3.2 series to be supported and we can keep
+    # an eye on the Ruby 3.2 test releases to see if anything changes. (Otherwise, once Ruby 3.2.0 stable is out, we
+    # should probably bump this to 3.4, and so on...)
+    MAXIMUM_RUBY_VERSION = '3.3'.freeze
   end
 end
