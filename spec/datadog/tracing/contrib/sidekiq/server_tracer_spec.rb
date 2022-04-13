@@ -74,36 +74,55 @@ RSpec.describe 'Server tracer' do
         include Sidekiq::Worker
 
         def self.datadog_tracer_config
-          { service_name: 'sidekiq-slow', tag_args: true, quantize: { args: { show: :all, exclude: [:secret] } } }
+          { service_name: 'sidekiq-slow', quantize: quantize }
         end
 
-        def perform(id, secret = nil) end
+        def perform(id) end
       end)
     end
 
-    it 'traces async job run' do
-      perform_async
-      CustomWorker.perform_async('random_id', 'secret')
+    context 'with default quantization' do
+      let(:quantize) { {} }
 
-      expect(spans).to have(4).items
+      it 'traces async job run' do
+        perform_async
+        CustomWorker.perform_async('random_id')
 
-      custom, empty, _push, _push = spans
+        expect(spans).to have(4).items
 
-      expect(empty.service).to eq(tracer.default_service)
-      expect(empty.resource).to eq('EmptyWorker')
-      expect(empty.get_tag('sidekiq.job.queue')).to eq('default')
-      expect(empty.get_tag('sidekiq.job.delay')).to_not be_nil
-      expect(empty.status).to eq(0)
-      expect(empty).to be_root_span
-      expect(empty.get_metric('_dd.measured')).to eq(1.0)
+        custom, _empty, _push, _push = spans
 
-      expect(custom.service).to eq('sidekiq-slow')
-      expect(custom.resource).to eq('CustomWorker')
-      expect(custom.get_tag('sidekiq.job.queue')).to eq('default')
-      expect(custom.status).to eq(0)
-      expect(custom).to be_root_span
-      expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
-      expect(custom.get_metric('_dd.measured')).to eq(1.0)
+        expect(custom.get_tag('sidekiq.job.args')).to eq(['?'].to_s)
+      end
+    end
+
+    context 'with quantization showing all' do
+      let(:quantize) { { args: { show: :all } } }
+
+      it 'traces async job run' do
+        perform_async
+        CustomWorker.perform_async('random_id')
+
+        expect(spans).to have(4).items
+
+        custom, empty, _push, _push = spans
+
+        expect(empty.service).to eq(tracer.default_service)
+        expect(empty.resource).to eq('EmptyWorker')
+        expect(empty.get_tag('sidekiq.job.queue')).to eq('default')
+        expect(empty.get_tag('sidekiq.job.delay')).to_not be_nil
+        expect(empty.status).to eq(0)
+        expect(empty).to be_root_span
+        expect(empty.get_metric('_dd.measured')).to eq(1.0)
+
+        expect(custom.service).to eq('sidekiq-slow')
+        expect(custom.resource).to eq('CustomWorker')
+        expect(custom.get_tag('sidekiq.job.queue')).to eq('default')
+        expect(custom.status).to eq(0)
+        expect(custom).to be_root_span
+        expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
+        expect(custom.get_metric('_dd.measured')).to eq(1.0)
+      end
     end
   end
 

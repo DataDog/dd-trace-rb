@@ -27,6 +27,7 @@ module Datadog
               o.lazy
             end
 
+            # @deprecated Use :quantize instead.
             option :tag_args do |o|
               o.default { env_to_bool(Ext::ENV_TAG_JOB_ARGS, false) }
               o.lazy

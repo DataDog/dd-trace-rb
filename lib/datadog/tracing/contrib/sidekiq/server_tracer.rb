@@ -24,7 +24,6 @@ module Datadog
             resource = job_resource(job)
 
             service = worker_config(resource, :service_name) || @sidekiq_service
-            tag_args = worker_config(resource, :tag_args) || configuration[:tag_args]
 
             Datadog::Tracing.trace(
               Ext::SPAN_JOB,
@@ -51,9 +50,7 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_QUEUE, job['queue'])
               span.set_tag(Ext::TAG_JOB_WRAPPER, job['class']) if job['wrapped']
               span.set_tag(Ext::TAG_JOB_DELAY, 1000.0 * (Time.now.utc.to_f - job['enqueued_at'].to_f))
-              if tag_args && !job['args'].nil? && !job['args'].empty?
-                span.set_tag(Ext::TAG_JOB_ARGS, quantize_args(job['args']))
-              end
+              span.set_tag(Ext::TAG_JOB_ARGS, quantize_args(job['args'])) if !job['args'].nil? && !job['args'].empty?
 
               yield
             end
@@ -62,7 +59,7 @@ module Datadog
           private
 
           def quantize_args(args)
-            quantize_options = configuration[:quantize][:args]
+            quantize_options = configuration[:quantize][:args] || {}
             Contrib::Utils::Quantization::Hash.format(args, quantize_options)
           end
 
