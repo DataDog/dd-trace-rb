@@ -25,6 +25,7 @@ typedef struct sampling_buffer {
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
+void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer);
 void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
@@ -165,6 +166,10 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
     buffer->locations[i] = (ddprof_ffi_Location) {.lines = (ddprof_ffi_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
   }
 
+  // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
+  // with that info.
+  if (captured_frames == buffer->max_frames) maybe_add_placeholder_frames_omitted(thread, buffer);
+
   record_sample(
     recorder_instance,
     (ddprof_ffi_Sample) {
@@ -173,6 +178,28 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
       .labels = labels,
     }
   );
+}
+
+void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer) {
+  int frames_omitted = stack_depth_for(thread) - buffer->max_frames;
+
+  if (frames_omitted == 0) return; // Perfect fit!
+
+  // The placeholder frame takes over a space, so if 10 frames were left out and we consume one other space for the
+  // placeholder, then 11 frames are omitted in total
+  frames_omitted++;
+
+  const int message_size = sizeof(MAX_FRAMES_LIMIT_AS_STRING " frames omitted");
+  char frames_omitted_message[message_size];
+  snprintf(frames_omitted_message, message_size, "%d frames omitted", frames_omitted);
+
+  buffer->lines[buffer->max_frames - 1] = (ddprof_ffi_Line) {
+    .function = (ddprof_ffi_Function) {
+      .name = DDPROF_FFI_CHARSLICE_C(""),
+      .filename = ((ddprof_ffi_CharSlice) {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)})
+    },
+    .line = 0,
+  };
 }
 
 // Our custom rb_profile_frames returning PLACEHOLDER_STACK_IN_NATIVE_CODE is equivalent to when the

@@ -111,32 +111,77 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it 'matches the Ruby backtrace API up to max_frames - 1' do
-      expect(gathered_stack[0..(max_frames - 1)]).to eq reference_stack[0..(max_frames - 1)]
+      expect(gathered_stack[0...(max_frames - 1)]).to eq reference_stack[0...(max_frames - 1)]
     end
 
     it 'includes a placeholder frame including the number of skipped frames' do
-      pending 'Placeholder frame not yet implemented'
-
       placeholder = 1
-      omitted_frames = target_stack_depth - max_frames - placeholder
+      omitted_frames = target_stack_depth - max_frames + placeholder
 
+      expect(omitted_frames).to be 96
       expect(gathered_stack.last)
-        .to match(hash_including({ base_label: '', path: "#{omitted_frames} frames omitted", lineno: 0 }))
+        .to match(hash_including({ base_label: '', path: "96 frames omitted", lineno: 0 }))
+    end
+
+    context 'when stack is exactly 1 item deeper than the configured max_frames' do
+      let(:target_stack_depth) { 6 }
+
+      it 'includes a placeholder frame stating that 2 frames were omitted' do
+        # Why 2 frames omitted and not 1? That's because the placeholder takes over 1 space in the buffer, so
+        # if there were 6 frames on the stack and the limit is 5, then 4 of those frames will be present in the output
+        expect(gathered_stack.last)
+          .to match(hash_including({ base_label: '', path: '2 frames omitted', lineno: 0 }))
+      end
+    end
+
+    context 'when stack is exactly as deep as the configured max_frames' do
+      let(:target_stack_depth) { 5 }
+
+      it 'matches the Ruby backtrace API' do
+        pending 'Broken due to unexpected extra frame showing up on stack trace'
+
+        expect(gathered_stack).to eq reference_stack
+      end
+    end
+
+    class DeepStackSimulator
+      def initialize(target_depth:, ready_queue:)
+        @target_depth = target_depth
+        @ready_queue = ready_queue
+
+        define_methods(target_depth)
+      end
+
+      # We use this weird approach to both get an exact depth, as well as have a method with a unique name for
+      # each depth
+      def define_methods(target_depth)
+        (1..target_depth).each do |depth|
+          next if respond_to?(:"deep_stack_#{depth}")
+
+          eval(%(
+            def deep_stack_#{depth}
+              if Thread.current.backtrace.size < @target_depth
+                deep_stack_#{depth+1}
+              else
+                @ready_queue << :ready
+                sleep
+              end
+            end
+          ))
+        end
+      end
     end
 
     def thread_with_stack_depth(depth)
       ready_queue = Queue.new
 
-      deep_stack = proc do
-        if Thread.current.backtrace.size < depth
-          deep_stack.call
-        else
-          ready_queue << :ready
-          sleep
-        end
-      end
+      # In spec_helper.rb we have a DatadogThreadDebugger which is used to help us debug specs that leak threads.
+      # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
+      # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
+      first_method =
+        defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger) ? :deep_stack_2 : :deep_stack_1
 
-      thread = Thread.new(&deep_stack)
+      thread = Thread.new(&DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).method(first_method))
       thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
       ready_queue.pop
 
