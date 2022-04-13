@@ -13,6 +13,8 @@ module DDTrace
 
     # A maximum version was initially added in https://github.com/DataDog/dd-trace-rb/pull/1495 because we expected
     # the `ruby2_keywords` method to be removed (see the PR for the discussion).
+    # That is because Ruby 3.x support as implemented using `*args` needs `ruby2_keywords` to continue working,
+    # but if `ruby2_keywords` gets removed we would need to change the code to use `*args, **kwargs`.
     #
     # Now Ruby 3.2.0-preview1 is out and `ruby2_keywords` are still there, and there's even a recent change for it
     # in https://github.com/ruby/ruby/pull/5684 that is documented as "ruby2_keywords needed in 3.2+".
