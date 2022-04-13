@@ -81,7 +81,7 @@ RSpec.describe 'Server tracer' do
     end
 
     context 'with default quantization' do
-      let(:sidekiq_options) { { service_name: 'sidekiq-slow' } }
+      let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: {} } }
 
       it 'traces async job run' do
         perform_async
@@ -106,7 +106,6 @@ RSpec.describe 'Server tracer' do
 
         custom, empty, _push, _push = spans
 
-        expect(empty.service).to eq(tracer.default_service)
         expect(empty.resource).to eq('EmptyWorker')
         expect(empty.get_tag('sidekiq.job.queue')).to eq('default')
         expect(empty.get_tag('sidekiq.job.delay')).to_not be_nil
