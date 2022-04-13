@@ -69,20 +69,18 @@ RSpec.describe 'Server tracer' do
   end
 
   context 'with custom job' do
-    before do
-      stub_const('CustomWorker', Class.new do
-        include Sidekiq::Worker
-
-        def self.datadog_tracer_config
-          { service_name: 'sidekiq-slow', quantize: quantize }
-        end
-
-        def perform(id) end
-      end)
-    end
-
     context 'with default quantization' do
-      let(:quantize) { {} }
+      before do
+        stub_const('CustomWorker', Class.new do
+          include Sidekiq::Worker
+
+          def self.datadog_tracer_config
+            { service_name: 'sidekiq-slow' }
+          end
+
+          def perform(id) end
+        end)
+      end
 
       it 'traces async job run' do
         perform_async
@@ -97,7 +95,17 @@ RSpec.describe 'Server tracer' do
     end
 
     context 'with quantization showing all' do
-      let(:quantize) { { args: { show: :all } } }
+      before do
+        stub_const('CustomWorker', Class.new do
+          include Sidekiq::Worker
+
+          def self.datadog_tracer_config
+            { service_name: 'sidekiq-slow', quantize: { args: { show: :all } } }
+          end
+
+          def perform(id) end
+        end)
+      end
 
       it 'traces async job run' do
         perform_async
