@@ -66,17 +66,6 @@ module Datadog
           def configuration
             Datadog.configuration.tracing[:sidekiq]
           end
-
-          def worker_config(resource, key)
-            # Try to get the Ruby class from the resource name.
-            worker_klass = begin
-              Object.const_get(resource)
-            rescue NameError
-              nil
-            end
-
-            worker_klass.datadog_tracer_config[key] if worker_klass.respond_to?(:datadog_tracer_config)
-          end
         end
       end
     end
