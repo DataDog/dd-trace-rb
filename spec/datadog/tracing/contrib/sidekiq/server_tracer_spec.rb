@@ -9,7 +9,7 @@ RSpec.describe 'Server tracer' do
   subject(:perform_async) { job_class.perform_async }
 
   let(:job_class) { EmptyWorker }
-  let(:sidekiq_options) { { sidekiq: {} } }
+  let(:sidekiq_options) { {} }
 
   before do
     Sidekiq::Testing.server_middleware.clear
@@ -71,7 +71,7 @@ RSpec.describe 'Server tracer' do
 
   context 'with custom job' do
     before do
-      allow(Datadog.configuration).to receive(:tracing).and_return(sidekiq_options)
+      allow(Datadog.configuration).to receive(:tracing).and_return({ sidekiq: sidekiq_options })
 
       stub_const('CustomWorker', Class.new do
         include Sidekiq::Worker
@@ -81,7 +81,7 @@ RSpec.describe 'Server tracer' do
     end
 
     context 'with default quantization' do
-      let(:sidekiq_options) { { sidekiq: { service_name: 'sidekiq-slow' } } }
+      let(:sidekiq_options) { { service_name: 'sidekiq-slow' } }
 
       it 'traces async job run' do
         perform_async
@@ -96,7 +96,7 @@ RSpec.describe 'Server tracer' do
     end
 
     context 'with quantization showing all' do
-      let(:sidekiq_options) { { sidekiq: { service_name: 'sidekiq-slow', quantize: { args: { show: :all } } } } }
+      let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: { args: { show: :all } } } }
 
       it 'traces async job run' do
         perform_async

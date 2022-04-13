@@ -23,11 +23,9 @@ module Datadog
           def call(worker, job, queue)
             resource = job_resource(job)
 
-            service = worker_config(resource, :service_name) || @sidekiq_service
-
             Datadog::Tracing.trace(
               Ext::SPAN_JOB,
-              service: service,
+              service: @sidekiq_service,
               span_type: Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER,
               on_error: @error_handler
             ) do |span|
