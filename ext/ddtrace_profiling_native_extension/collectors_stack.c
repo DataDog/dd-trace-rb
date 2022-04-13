@@ -8,6 +8,9 @@
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
 
+#define MAX_FRAMES_LIMIT            10000
+#define MAX_FRAMES_LIMIT_AS_STRING "10000"
+
 static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
@@ -217,7 +220,7 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   sampling_buffer* buffer = xcalloc(1, sizeof(sampling_buffer));
   if (buffer == NULL) rb_raise(rb_eNoMemError, "Failed to allocate memory for sampling buffer");
   if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
-  if (max_frames > 10000) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= 10_000");
+  if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
 
   buffer->max_frames = max_frames;
 
