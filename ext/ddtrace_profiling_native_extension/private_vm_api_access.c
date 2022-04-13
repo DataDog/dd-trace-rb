@@ -176,6 +176,8 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
 //   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
 //   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
+// * Skip frames where `cfp->iseq && !cfp->pc`. These seem to be internal and are skipped by `backtrace_each` in
+//   `vm_backtrace.c`.
 //
 // **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
 // RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
@@ -236,10 +238,16 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
     for (i=0; i<limit && cfp != end_cfp;) {
+        if (cfp->iseq && !cfp->pc) {
+          // Fix: Do nothing -- this frame should not be used
+          //
+          // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
+          // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
+        }
 #ifndef USE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P // Modern Rubies
-        if (VM_FRAME_RUBYFRAME_P(cfp)) {
+        else if (VM_FRAME_RUBYFRAME_P(cfp)) {
 #else // Ruby < 2.4
-        if (RUBY_VM_NORMAL_ISEQ_P(cfp->iseq)) {
+        else if (RUBY_VM_NORMAL_ISEQ_P(cfp->iseq)) {
 #endif
             if (start > 0) {
                 start--;

@@ -138,8 +138,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:target_stack_depth) { 5 }
 
       it 'matches the Ruby backtrace API' do
-        pending 'Broken due to unexpected extra frame showing up on stack trace'
-
         expect(gathered_stack).to eq reference_stack
       end
     end
