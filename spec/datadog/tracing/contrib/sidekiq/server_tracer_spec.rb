@@ -71,7 +71,7 @@ RSpec.describe 'Server tracer' do
 
   context 'with custom job' do
     before do
-      allow(Datadog.configuration).to receive(:tracing).and_return({ sidekiq: sidekiq_options })
+      allow(Datadog.configuration.tracing).to receive(:[]).with(:sidekiq).and_return(sidekiq_options)
 
       stub_const('CustomWorker', Class.new do
         include Sidekiq::Worker
