@@ -21,7 +21,6 @@ module Datadog
         :spans,
         :agent_sample_rate,
         :hostname,
-        :id,
         :lang,
         :name,
         :origin,
@@ -47,6 +46,8 @@ module Datadog
         using RefineNil
       end
 
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
       def initialize(
         spans,
         agent_sample_rate: nil,
@@ -93,6 +94,8 @@ module Datadog
 
         clear_known_tags
       end
+      # rubocop:enable Metrics/PerceivedComplexity
+      # rubocop:enable Metrics/CyclomaticComplexity
 
       def any?
         @spans.any?
