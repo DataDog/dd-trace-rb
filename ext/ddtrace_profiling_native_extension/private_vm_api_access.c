@@ -178,6 +178,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
 // * Skip frames where `cfp->iseq && !cfp->pc`. These seem to be internal and are skipped by `backtrace_each` in
 //   `vm_backtrace.c`.
+// * Check thread status and do not sample if thread has been killed.
 //
 // **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
 // RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
@@ -210,16 +211,21 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     int i;
     // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
     // support sampling any thread (including the current) passed as an argument
+    rb_thread_t *th = thread_struct_from_object(thread);
 #ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
-    const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
+    const rb_execution_context_t *ec = th->ec;
 #else // Ruby < 2.5
-    const rb_thread_t *ec = thread_struct_from_object(thread);
+    const rb_thread_t *ec = th;
 #endif
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
 
-    // Without this check, we get a VM crash if we try to sample a dead thread
+    // `vm_backtrace.c` includes this check in several methods, and I think this happens on either dead or newly-created
+    // threads, but I'm not entirely sure
     if (end_cfp == NULL) return 0;
+
+    // Avoid sampling dead threads
+    if (th->status == THREAD_KILLED) return 0;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
@@ -508,6 +514,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Distinguish between `end_cfp == NULL` (dead thread or some other error, returns 0) and `end_cfp <= cfp`
 //   (alive thread which may just be executing native code and has not pushed anything on the Ruby stack, returns
 //   PLACEHOLDER_STACK_IN_NATIVE_CODE). See comments on `record_placeholder_stack_in_native_code` for more details.
+// * Check thread status and do not sample if thread has been killed.
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
 // I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
@@ -521,8 +528,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     rb_thread_t *th = thread_struct_from_object(thread);
     rb_control_frame_t *cfp = th->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(th);
 
-    // Without this check, we get a VM crash if we try to sample a dead thread
+    // `vm_backtrace.c` includes this check in several methods, and I think this happens on either dead or newly-created
+    // threads, but I'm not entirely sure
     if (end_cfp == NULL) return 0;
+
+    // Avoid sampling dead threads
+    if (th->status == THREAD_KILLED) return 0;
 
     // Fix: Skip dummy frame that shows up in main thread.
     //
