@@ -168,7 +168,7 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
 
   // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
   // with that info.
-  if (captured_frames == buffer->max_frames) maybe_add_placeholder_frames_omitted(thread, buffer);
+  if (captured_frames == (long) buffer->max_frames) maybe_add_placeholder_frames_omitted(thread, buffer);
 
   record_sample(
     recorder_instance,
@@ -181,7 +181,7 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
 }
 
 void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer) {
-  int frames_omitted = stack_depth_for(thread) - buffer->max_frames;
+  ptrdiff_t frames_omitted = stack_depth_for(thread) - buffer->max_frames;
 
   if (frames_omitted == 0) return; // Perfect fit!
 
@@ -191,7 +191,7 @@ void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer)
 
   const int message_size = sizeof(MAX_FRAMES_LIMIT_AS_STRING " frames omitted");
   char frames_omitted_message[message_size];
-  snprintf(frames_omitted_message, message_size, "%d frames omitted", frames_omitted);
+  snprintf(frames_omitted_message, message_size, "%td frames omitted", frames_omitted);
 
   buffer->lines[buffer->max_frames - 1] = (ddprof_ffi_Line) {
     .function = (ddprof_ffi_Function) {
