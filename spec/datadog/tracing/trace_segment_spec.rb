@@ -291,31 +291,33 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
   describe '#sampled?' do
     subject(:sampled?) { trace_segment.sampled? }
+    let(:options) { { sampling_priority: sampling_priority } }
+    let(:sampling_priority) { nil }
 
     context 'when sampling priority is not set' do
       it { is_expected.to be false }
     end
 
     context 'when sampling priority is set to AUTO_KEEP' do
-      before { trace_segment.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
+      let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
 
       it { is_expected.to be true }
     end
 
     context 'when sampling priority is set to USER_KEEP' do
-      before { trace_segment.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+      let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
 
       it { is_expected.to be true }
     end
 
     context 'when sampling priority is set to AUTO_REJECT' do
-      before { trace_segment.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
+      let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
 
       it { is_expected.to be false }
     end
 
     context 'when sampling priority is set to USER_REJECT' do
-      before { trace_segment.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
+      let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
 
       it { is_expected.to be false }
     end
