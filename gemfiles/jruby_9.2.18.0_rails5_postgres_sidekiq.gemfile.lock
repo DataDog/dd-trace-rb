@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.0.0.beta1)
-      debase-ruby_core_source (<= 0.10.14)
+    ddtrace (1.0.0.beta2)
+      debase-ruby_core_source (<= 0.10.15)
       libddwaf (~> 1.2.1.0.0.a)
       msgpack
 
@@ -85,7 +85,7 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
-    debase-ruby_core_source (0.10.14)
+    debase-ruby_core_source (0.10.15)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.4.0)
@@ -116,7 +116,7 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.2)
     minitest (5.15.0)
-    msgpack (1.4.5-java)
+    msgpack (1.5.1-java)
     nio4r (2.5.8-java)
     nokogiri (1.12.5-java)
       racc (~> 1.4)

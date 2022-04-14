@@ -51,7 +51,7 @@ gem "excon"
 gem "faraday"
 gem "grape"
 gem "graphql", ">= 1.12.0", "< 1.13.0"
-gem "grpc"
+gem "grpc", platform: :ruby
 gem "hiredis"
 gem "http"
 gem "httpclient"
@@ -59,9 +59,11 @@ gem "lograge", "~> 0.11"
 gem "makara"
 gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "mysql2", "< 1", platform: :ruby
+gem "activerecord-jdbcmysql-adapter", platform: :jruby
 gem "pg", platform: :ruby
+gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "presto-client", ">=  0.5.14"
-gem "qless"
+gem "qless", ">= 0"
 gem "racecar", ">= 0.3.5"
 gem "rack"
 gem "rack-test"
@@ -75,7 +77,8 @@ gem "shoryuken"
 gem "sidekiq"
 gem "sinatra", ">= 1.4"
 gem "sneakers", ">= 2.12.0"
-gem "sqlite3", "~> 1.4.1"
+gem "sqlite3", "~> 1.4.1", platform: :ruby
+gem "jdbc-sqlite3", ">= 3.28", platform: :jruby
 gem "sucker_punch"
 gem "typhoeus"
 gem "que", ">= 1.0.0"
