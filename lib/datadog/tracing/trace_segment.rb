@@ -79,8 +79,6 @@ module Datadog
         @sample_rate = sample_rate || sample_rate_tag
         @sampling_priority = sampling_priority || sampling_priority_tag
         @service = Core::Utils::SafeDup.frozen_or_dup(service || service_tag)
-
-        clear_known_tags
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity
@@ -202,22 +200,6 @@ module Datadog
 
       def service_tag
         meta[TAG_SERVICE]
-      end
-
-      def clear_known_tags
-        metrics.delete(Metadata::Ext::Sampling::TAG_AGENT_RATE)
-        meta.delete(Metadata::Ext::NET::TAG_HOSTNAME)
-        meta.delete(Core::Runtime::Ext::TAG_LANG)
-        meta.delete(TAG_NAME)
-        meta.delete(Metadata::Ext::Distributed::TAG_ORIGIN)
-        meta.delete(Core::Runtime::Ext::TAG_PID)
-        metrics.delete(Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE)
-        meta.delete(TAG_RESOURCE)
-        metrics.delete(Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE)
-        meta.delete(Core::Runtime::Ext::TAG_ID)
-        metrics.delete(Metadata::Ext::Sampling::TAG_SAMPLE_RATE)
-        meta.delete(Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY)
-        meta.delete(TAG_SERVICE)
       end
     end
     # rubocop:enable Metrics/ClassLength
