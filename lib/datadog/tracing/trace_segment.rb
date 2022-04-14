@@ -12,8 +12,6 @@ module Datadog
     # @public_api
     # rubocop:disable Metrics/ClassLength
     class TraceSegment
-      include Metadata::Tagging
-
       TAG_NAME = 'name'.freeze
       TAG_RESOURCE = 'resource'.freeze
       TAG_SERVICE = 'service'.freeze
@@ -59,7 +57,10 @@ module Datadog
         @root_span_id = root_span_id
         @spans = spans || []
 
-        set_tags((tags || {}).merge(metrics || {}))
+        # Does not make an effort to move metrics out of tags
+        # The caller is expected to have done that
+        @meta = tags || {}
+        @metrics = metrics || {}
 
         # Set well-known tags
         self.agent_sample_rate = agent_sample_rate
@@ -98,172 +99,172 @@ module Datadog
       end
 
       def agent_sample_rate
-        get_metric(Metadata::Ext::Sampling::TAG_AGENT_RATE)
+        metrics[Metadata::Ext::Sampling::TAG_AGENT_RATE]
       end
 
       def agent_sample_rate=(value)
         if value.nil?
-          clear_metric(Metadata::Ext::Sampling::TAG_AGENT_RATE)
+          metrics.delete(Metadata::Ext::Sampling::TAG_AGENT_RATE)
           return
         end
 
-        set_metric(Metadata::Ext::Sampling::TAG_AGENT_RATE, value)
+        metrics[Metadata::Ext::Sampling::TAG_AGENT_RATE] = value
       end
 
       def hostname
-        get_tag(Metadata::Ext::NET::TAG_HOSTNAME)
+        meta[Metadata::Ext::NET::TAG_HOSTNAME]
       end
 
       def hostname=(value)
         if value.nil?
-          clear_tag(Metadata::Ext::NET::TAG_HOSTNAME)
+          meta.delete(Metadata::Ext::NET::TAG_HOSTNAME)
           return
         end
 
-        set_tag(Metadata::Ext::NET::TAG_HOSTNAME, value)
+        meta[Metadata::Ext::NET::TAG_HOSTNAME] = value
       end
 
       def lang
-        get_tag(Core::Runtime::Ext::TAG_LANG)
+        meta[Core::Runtime::Ext::TAG_LANG]
       end
 
       def lang=(value)
         if value.nil?
-          clear_tag(Core::Runtime::Ext::TAG_LANG)
+          meta.delete(Core::Runtime::Ext::TAG_LANG)
           return
         end
 
-        set_tag(Core::Runtime::Ext::TAG_LANG, value)
+        meta[Core::Runtime::Ext::TAG_LANG] = value
       end
 
       def name
-        get_tag(TAG_NAME)
+        meta[TAG_NAME]
       end
 
       def name=(value)
         if value.nil?
-          clear_tag(TAG_NAME)
+          meta.delete(TAG_NAME)
           return
         end
 
-        set_tag(TAG_NAME, value)
+        meta[TAG_NAME] = value
       end
 
       def origin
-        get_tag(Metadata::Ext::Distributed::TAG_ORIGIN)
+        meta[Metadata::Ext::Distributed::TAG_ORIGIN]
       end
 
       def origin=(value)
         if value.nil?
-          clear_tag(Metadata::Ext::Distributed::TAG_ORIGIN)
+          meta.delete(Metadata::Ext::Distributed::TAG_ORIGIN)
           return
         end
 
-        set_tag(Metadata::Ext::Distributed::TAG_ORIGIN, value)
+        meta[Metadata::Ext::Distributed::TAG_ORIGIN] = value
       end
 
       def process_id
-        get_tag(Core::Runtime::Ext::TAG_PID)
+        meta[Core::Runtime::Ext::TAG_PID]
       end
 
       def process_id=(value)
         if value.nil?
-          clear_tag(Core::Runtime::Ext::TAG_PID)
+          meta.delete(Core::Runtime::Ext::TAG_PID)
           return
         end
 
-        set_tag(Core::Runtime::Ext::TAG_PID, value)
+        meta[Core::Runtime::Ext::TAG_PID] = value
       end
 
       def rate_limiter_rate
-        get_metric(Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE)
+        metrics[Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE]
       end
 
       def rate_limiter_rate=(value)
         if value.nil?
-          clear_metric(Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE)
+          metrics.delete(Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE)
           return
         end
 
-        set_metric(Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE, value)
+        metrics[Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE] = value
       end
 
       def resource
-        get_tag(TAG_RESOURCE)
+        meta[TAG_RESOURCE]
       end
 
       def resource=(value)
         if value.nil?
-          clear_tag(TAG_RESOURCE)
+          meta.delete(TAG_RESOURCE)
           return
         end
 
-        set_tag(TAG_RESOURCE, value)
+        meta[TAG_RESOURCE] = value
       end
 
       def rule_sample_rate
-        get_metric(Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE)
+        metrics[Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE]
       end
 
       def rule_sample_rate=(value)
         if value.nil?
-          clear_metric(Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE)
+          metrics.delete(Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE)
           return
         end
 
-        set_metric(Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE, value)
+        metrics[Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE] = value
       end
 
       def runtime_id
-        get_tag(Core::Runtime::Ext::TAG_ID)
+        meta[Core::Runtime::Ext::TAG_ID]
       end
 
       def runtime_id=(value)
         if value.nil?
-          clear_tag(Core::Runtime::Ext::TAG_ID)
+          meta.delete(Core::Runtime::Ext::TAG_ID)
           return
         end
 
-        set_tag(Core::Runtime::Ext::TAG_ID, value)
+        meta[Core::Runtime::Ext::TAG_ID] = value
       end
 
       def sample_rate
-        get_metric(Metadata::Ext::Sampling::TAG_SAMPLE_RATE)
+        metrics[Metadata::Ext::Sampling::TAG_SAMPLE_RATE]
       end
 
       def sample_rate=(value)
         if value.nil?
-          clear_metric(Metadata::Ext::Sampling::TAG_SAMPLE_RATE)
+          metrics.delete(Metadata::Ext::Sampling::TAG_SAMPLE_RATE)
           return
         end
 
-        set_metric(Metadata::Ext::Sampling::TAG_SAMPLE_RATE, value)
+        metrics[Metadata::Ext::Sampling::TAG_SAMPLE_RATE] = value
       end
 
       def sampling_priority
-        get_tag(Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY)
+        meta[Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY]
       end
 
       def sampling_priority=(value)
         if value.nil?
-          clear_tag(Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY)
+          meta.delete(Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY)
           return
         end
 
-        set_tag(Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY, value)
+        meta[Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY] = value
       end
 
       def service
-        get_tag(TAG_SERVICE)
+        meta[TAG_SERVICE]
       end
 
       def service=(value)
         if value.nil?
-          clear_tag(TAG_SERVICE)
+          meta.delete(TAG_SERVICE)
           return
         end
 
-        set_tag(TAG_SERVICE, value)
+        meta[TAG_SERVICE] = value
       end
 
       # If an active trace is present, forces it to be retained by the Datadog backend.
@@ -292,7 +293,9 @@ module Datadog
       protected
 
       attr_reader \
-        :root_span_id
+        :root_span_id,
+        :meta,
+        :metrics
     end
     # rubocop:enable Metrics/ClassLength
   end

@@ -70,7 +70,8 @@ module Datadog
         # trace.
         return if partial?
 
-        root_span.set_tags(trace.send(:meta).merge(trace.send(:metrics)))
+        root_span.set_tags(trace.send(:meta))
+        root_span.set_tags(trace.send(:metrics))
       end
 
       def tag_agent_sample_rate!
