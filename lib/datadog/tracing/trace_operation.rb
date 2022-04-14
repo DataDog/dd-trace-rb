@@ -67,7 +67,8 @@ module Datadog
         sampled: nil,
         sampling_priority: nil,
         service: nil,
-        tags: nil
+        tags: nil,
+        metrics: nil
       )
         # Attributes
         @events = events || Events.new
@@ -90,6 +91,7 @@ module Datadog
 
         # Generic tags
         set_tags(tags) if tags
+        set_tags(metrics) if metrics
 
         # State
         @root_span = nil
@@ -269,7 +271,8 @@ module Datadog
           sampled: @sampled,
           sampling_priority: @sampling_priority,
           service: (@service && @service.dup),
-          tags: @tags.dup
+          tags: meta.dup,
+          metrics: metrics.dup
         )
       end
 

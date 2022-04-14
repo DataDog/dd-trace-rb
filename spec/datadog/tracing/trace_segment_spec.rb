@@ -148,6 +148,20 @@ RSpec.describe Datadog::Tracing::TraceSegment do
 
         it { is_expected.to have_attributes(service: be_a_copy_of(service)) }
       end
+
+      context ':tags' do
+        let(:options) { { tags: tags } }
+        let(:tags) { { 'foo' => 'bar' } }
+
+        it { expect(trace_segment.send(:meta)).to eq({ 'foo' => 'bar' }) }
+      end
+
+      context ':metrics' do
+        let(:options) { { metrics: metrics } }
+        let(:metrics) { { 'foo' => 42.0 } }
+
+        it { expect(trace_segment.send(:metrics)).to eq({ 'foo' => 42.0 }) }
+      end
     end
 
     context 'given tags' do
