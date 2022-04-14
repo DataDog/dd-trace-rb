@@ -18,20 +18,7 @@ module Datadog
 
       attr_reader \
         :id,
-        :spans,
-        :agent_sample_rate,
-        :hostname,
-        :lang,
-        :name,
-        :origin,
-        :process_id,
-        :rate_limiter_rate,
-        :resource,
-        :rule_sample_rate,
-        :runtime_id,
-        :sample_rate,
-        :sampling_priority,
-        :service
+        :spans
 
       if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
         # Ensures #initialize can call nil.dup safely
@@ -78,24 +65,74 @@ module Datadog
         @metrics = metrics || {}
 
         # Set well-known tags, defaulting to getting the values from tags
-        @agent_sample_rate = agent_sample_rate || agent_sample_rate_tag
-        @hostname = hostname || hostname_tag
-        @lang = lang || lang_tag
-        @name = (name || name_tag).tap { |v| break (v.frozen? ? v : v.dup) }
-        @origin = (origin || origin_tag).tap { |v| break (v.frozen? ? v : v.dup) }
-        @process_id = process_id || process_id_tag
-        @rate_limiter_rate = rate_limiter_rate || rate_limiter_rate_tag
-        @resource = (resource || resource_tag).tap { |v| break (v.frozen? ? v : v.dup) }
-        @rule_sample_rate = rule_sample_rate_tag || rule_sample_rate
-        @runtime_id = runtime_id || runtime_id_tag
-        @sample_rate = sample_rate || sample_rate_tag
-        @sampling_priority = sampling_priority || sampling_priority_tag
-        @service = (service || service_tag).tap { |v| break (v.frozen? ? v : v.dup) }
-
-        clear_known_tags
+        @agent_sample_rate = agent_sample_rate
+        @hostname = hostname
+        @lang = lang
+        @name = name.tap { |v| break (v.frozen? ? v : v.dup) }
+        @origin = origin.tap { |v| break (v.frozen? ? v : v.dup) }
+        @process_id = process_id
+        @rate_limiter_rate = rate_limiter_rate
+        @resource = resource.tap { |v| break (v.frozen? ? v : v.dup) }
+        @rule_sample_rate = rule_sample_rate
+        @runtime_id = runtime_id
+        @sample_rate = sample_rate
+        @sampling_priority = sampling_priority
+        @service = service.tap { |v| break (v.frozen? ? v : v.dup) }
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity
+
+      def agent_sample_rate
+        @agent_sample_rate ||= agent_sample_rate_tag
+      end
+
+      def hostname
+        @hostname ||= hostname_tag
+      end
+
+      def lang
+        @lang ||= lang_tag
+      end
+
+      def name
+        @name ||= name_tag.tap { |v| break (v.frozen? ? v : v.dup) }
+      end
+
+      def origin
+        @origin ||= origin_tag.tap { |v| break (v.frozen? ? v : v.dup) }
+      end
+
+      def process_id
+        @process_id ||= process_id_tag
+      end
+
+      def rate_limiter_rate
+        @rate_limiter_rate ||= rate_limiter_rate_tag
+      end
+
+      def resource
+        @resource ||= resource_tag.tap { |v| break (v.frozen? ? v : v.dup) }
+      end
+
+      def rule_sample_rate
+        @rule_sample_rate ||= rule_sample_rate_tag
+      end
+
+      def runtime_id
+        @runtime_id ||= runtime_id_tag
+      end
+
+      def sample_rate
+        @sample_rate ||= sample_rate_tag
+      end
+
+      def sampling_priority
+        @sampling_priority ||= sampling_priority_tag
+      end
+
+      def service
+        @service ||= service_tag.tap { |v| break (v.frozen? ? v : v.dup) }
+      end
 
       def any?
         @spans.any?
@@ -152,7 +189,6 @@ module Datadog
       attr_writer \
         :agent_sample_rate,
         :hostname,
-        :id,
         :lang,
         :name,
         :origin,
