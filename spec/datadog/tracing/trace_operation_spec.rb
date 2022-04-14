@@ -30,7 +30,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         sample_rate: sample_rate,
         sampled: sampled,
         sampling_priority: sampling_priority,
-        service: service
+        service: service,
+        tags: tags,
+        metrics: metrics
       }
     end
 
@@ -46,6 +48,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:sampled) { true }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
     let(:service) { 'billing-api' }
+    let(:tags) { { 'foo' => 'bar' } }
+    let(:metrics) { { 'baz' => 42.0 } }
   end
 
   shared_examples 'a span with default events' do
@@ -72,6 +76,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           sampling_priority: nil,
           service: nil
         )
+      end
+
+      it do
+        expect(trace_op.send(:meta)).to eq({})
+      end
+
+      it do
+        expect(trace_op.send(:metrics)).to eq({})
       end
     end
 
@@ -172,6 +184,20 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         let(:service) { 'billing-worker' }
 
         it { expect(trace_op.service).to eq(service) }
+      end
+
+      context ':tags' do
+        subject(:options) { { tags: tags } }
+        let(:tags) { { 'foo' => 'bar' } }
+
+        it { expect(trace_op.send(:meta)).to eq({ 'foo' => 'bar' }) }
+      end
+
+      context ':metrics' do
+        subject(:options) { { metrics: metrics } }
+        let(:metrics) { { 'baz' => 42.0 } }
+
+        it { expect(trace_op.send(:metrics)).to eq({ 'baz' => 42.0 }) }
       end
     end
   end
@@ -771,6 +797,107 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect { reject! }
           .to_not change { trace_op.sampled? }
           .from(false)
+      end
+    end
+  end
+
+  describe '#get_tag' do
+    before do
+      trace_op.set_tag('foo', 'bar')
+    end
+
+    it 'gets tag set on trace' do
+      expect(trace_op.get_tag('foo')).to eq('bar')
+    end
+
+    it 'gets unset tag as nil' do
+      expect(trace_op.get_tag('unset')).to be_nil
+    end
+  end
+
+  describe '#set_metric' do
+    it 'sets metrics' do
+      trace_op.set_metric('foo', 42)
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:metrics)['foo']).to eq(42)
+    end
+  end
+
+  describe '#set_tag' do
+    it 'sets tag on trace before a measurement' do
+      trace_op.set_tag('foo', 'bar')
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:meta)['foo']).to eq('bar')
+    end
+
+    it 'sets tag on trace after a measurement' do
+      trace_op.measure('top') {}
+      trace_op.set_tag('foo', 'bar')
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:meta)['foo']).to eq('bar')
+    end
+
+    it 'sets tag on trace from a measurement' do
+      trace_op.measure('top') do
+        trace_op.set_tag('foo', 'bar')
+      end
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:meta)['foo']).to eq('bar')
+    end
+
+    it 'sets tag on trace from a nested measurement' do
+      trace_op.measure('grandparent') do
+        trace_op.measure('parent') do
+          trace_op.set_tag('foo', 'bar')
+        end
+      end
+
+      trace = trace_op.flush!
+
+      expect(trace.spans).to have(2).items
+      expect(trace.spans.map(&:name)).to include('parent')
+      expect(trace.send(:meta)['foo']).to eq('bar')
+    end
+
+    it 'sets metrics' do
+      trace_op.set_tag('foo', 42)
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:metrics)['foo']).to eq(42)
+    end
+
+    context 'with partial flushing' do
+      subject(:flush!) { trace_op.flush! }
+      let(:trace) { flush! }
+
+      it 'sets tag on trace from a nested measurement' do
+        trace_op.measure('grandparent') do
+          trace_op.measure('parent') do
+            trace_op.set_tag('foo', 'bar')
+          end
+          flush!
+        end
+
+        expect(trace.spans).to have(1).items
+        expect(trace.spans.map(&:name)).to include('parent')
+        expect(trace.send(:meta)['foo']).to eq('bar')
+
+        final_flush = trace_op.flush!
+        expect(final_flush.spans).to have(1).items
+        expect(final_flush.spans.map(&:name)).to include('grandparent')
+        expect(final_flush.send(:meta)['foo']).to eq('bar')
       end
     end
   end
@@ -1669,6 +1796,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             )
           end
 
+          it 'maintains the same tags' do
+            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+          end
+
+          it 'maintains the same metrics' do
+            expect(new_trace_op.send(:metrics)).to eq({ 'baz' => 42.0 })
+          end
+
           it 'maintains the same events' do
             old_events = trace_op.send(:events)
             new_events = new_trace_op.send(:events)
@@ -1731,6 +1866,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           )
         end
 
+        it 'maintains the same tags' do
+          expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+        end
+
+        it 'maintains the same metrics' do
+          expect(new_trace_op.send(:metrics)).to eq({ 'baz' => 42.0 })
+        end
+
         context 'and :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
           let(:parent_span_id) { Datadog::Core::Utils.next_id }
@@ -1771,6 +1914,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               service: be_a_copy_of(service)
             )
           end
+
+          it 'maintains the same tags' do
+            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+          end
+
+          it 'maintains the same metrics' do
+            expect(new_trace_op.send(:metrics)).to eq({ 'baz' => 42.0 })
+          end
         end
 
         context 'that has started' do
@@ -1802,6 +1953,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               service: be_a_copy_of(service)
             )
           end
+
+          it 'maintains the same tags' do
+            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+          end
+
+          it 'maintains the same metrics' do
+            expect(new_trace_op.send(:metrics)).to eq({ 'baz' => 42.0 })
+          end
         end
 
         context 'that has finished' do
@@ -1832,6 +1991,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service)
             )
+          end
+
+          it 'maintains the same tags' do
+            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+          end
+
+          it 'maintains the same metrics' do
+            expect(new_trace_op.send(:metrics)).to eq({ 'baz' => 42.0 })
           end
         end
       end
@@ -1873,6 +2040,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             sampling_priority: sampling_priority,
             service: be_a_copy_of(service)
           )
+        end
+
+        it 'maintains the same tags' do
+          expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+        end
+
+        it 'maintains the same metrics' do
+          expect(new_trace_op.send(:metrics)).to eq({ 'baz' => 42.0 })
         end
 
         context 'and :parent_span_id has been defined' do

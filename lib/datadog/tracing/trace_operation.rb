@@ -9,6 +9,7 @@ require 'datadog/tracing/event'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/metadata/tagging'
 
 module Datadog
   module Tracing
@@ -24,6 +25,8 @@ module Datadog
     # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
+      include Metadata::Tagging
+
       DEFAULT_MAX_LENGTH = 100_000
 
       attr_accessor \
@@ -63,7 +66,9 @@ module Datadog
         sample_rate: nil,
         sampled: nil,
         sampling_priority: nil,
-        service: nil
+        service: nil,
+        tags: nil,
+        metrics: nil
       )
         # Attributes
         @events = events || Events.new
@@ -83,6 +88,10 @@ module Datadog
         @sample_rate = sample_rate
         @sampling_priority = sampling_priority
         @service = service
+
+        # Generic tags
+        set_tags(tags) if tags
+        set_tags(metrics) if metrics
 
         # State
         @root_span = nil
@@ -239,7 +248,7 @@ module Datadog
           trace_resource: @resource,
           trace_runtime_id: Core::Environment::Identity.id,
           trace_sampling_priority: @sampling_priority,
-          trace_service: @service
+          trace_service: @service,
         ).freeze
       end
 
@@ -261,7 +270,9 @@ module Datadog
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: (@service && @service.dup)
+          service: (@service && @service.dup),
+          tags: meta.dup,
+          metrics: metrics.dup
         )
       end
 
@@ -404,6 +415,8 @@ module Datadog
           name: @name,
           resource: @resource,
           service: @service,
+          tags: meta,
+          metrics: metrics,
           root_span_id: !partial ? @root_span && @root_span.id : nil
         )
       end
