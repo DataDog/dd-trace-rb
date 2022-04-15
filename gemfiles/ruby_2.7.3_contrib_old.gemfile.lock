@@ -11,8 +11,8 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.0.0.beta1)
-      debase-ruby_core_source (<= 0.10.14)
+    ddtrace (1.0.0.beta2)
+      debase-ruby_core_source (<= 0.10.15)
       libddwaf (~> 1.2.1.0.0.a)
       msgpack
 
@@ -40,7 +40,7 @@ GEM
       rexml
     cri (2.15.11)
     dalli (2.7.11)
-    debase-ruby_core_source (0.10.14)
+    debase-ruby_core_source (0.10.15)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -52,11 +52,11 @@ GEM
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddwaf (1.2.1.0.0.beta1)
+    libddwaf (1.2.1.0.0.beta1-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
-    msgpack (1.4.5)
+    msgpack (1.5.1)
     multipart-post (2.1.1)
     opentracing (0.5.0)
     os (1.1.4)
