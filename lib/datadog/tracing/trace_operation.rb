@@ -370,7 +370,7 @@ module Datadog
           deactivate_span!(span_op)
 
           # Set finished, to signal root span has completed.
-          @finished = true if span_op == @root_span
+          @finished = true if span_op == root_span
 
           # Update active span count
           @active_span_count -= 1
@@ -417,7 +417,7 @@ module Datadog
           service: @service,
           tags: meta,
           metrics: metrics,
-          root_span_id: !partial ? @root_span && @root_span.id : nil
+          root_span_id: !partial ? root_span && root_span.id : nil
         )
       end
     end
