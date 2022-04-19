@@ -14,6 +14,7 @@ env:
 jobs:
   system-tests:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - library: ruby
