@@ -6,6 +6,7 @@ require 'datadog/appsec/contrib/patcher'
 require 'datadog/appsec/contrib/rails/integration'
 require 'datadog/appsec/contrib/rails/framework'
 require 'datadog/appsec/contrib/rack/request_middleware'
+require 'datadog/appsec/contrib/rack/request_body_middleware'
 
 require 'datadog/tracing/contrib/rack/middlewares'
 
@@ -49,6 +50,7 @@ module Datadog
               # Otherwise the middleware stack will be frozen.
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
+              patch_process_action
             end
           end
 
@@ -60,6 +62,41 @@ module Datadog
             else
               app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             end
+          end
+
+          # Hook into ActionController::Instrumentation#process_action, which encompasses action filters
+          module ProcessActionPatch
+            def process_action(*args)
+              env = request.env
+
+              context = env['datadog.waf.context']
+
+              return super unless context
+
+              # TODO: handle exceptions, except for super
+
+              request_return, request_response = Instrumentation.gateway.push('rack.request.body', request) do
+                super
+              end
+
+              if request_response && request_response.any? { |action, _event| action == :block }
+                @_response = ::ActionDispatch::Response.new(403,
+                                                            { 'Content-Type' => 'text/html' },
+                                                            [Datadog::AppSec::Assets.blocked])
+                request_return = @_response.body
+              end
+
+              # record or stack for request?
+              if request_response && request_response.any?
+                AppSec::Event.record(*request_response.map { |_action, event| event })
+              end
+
+              request_return
+            end
+          end
+
+          def patch_process_action
+            ActionController::Instrumentation.prepend(ProcessActionPatch)
           end
 
           def include_middleware?(middleware, app)
