@@ -801,6 +801,60 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  shared_examples 'root span derived attribute' do |attribute_name|
+    subject(:attribute) { trace_op.send(attribute_name) }
+
+    context 'when nothing is set' do
+      it { is_expected.to be nil }
+    end
+
+    context "when the trace has a root span with a #{attribute_name}" do
+      let(:root_span_value) { "root_span.#{attribute_name}" }
+
+      before do
+        trace_op.measure('web.request') do |span|
+          span.send("#{attribute_name}=", root_span_value)
+        end
+      end
+
+      it { is_expected.to eq root_span_value }
+    end
+
+    context "when #{attribute_name} is set" do
+      let(:trace_value) { "trace.#{attribute_name}" }
+
+      before { trace_op.send("#{attribute_name}=", trace_value) }
+
+      it { is_expected.to eq trace_value }
+    end
+
+    context "when #{attribute_name} is set and root span has been added" do
+      let(:trace_value) { "trace.#{attribute_name}" }
+      let(:root_span_value) { "root_span.#{attribute_name}" }
+
+      before do
+        trace_op.send("#{attribute_name}=", trace_value)
+        trace_op.measure('web.request') do |span|
+          span.send("#{attribute_name}=", root_span_value)
+        end
+      end
+
+      it { is_expected.to eq trace_value }
+    end
+  end
+
+  describe '#name' do
+    it_behaves_like 'root span derived attribute', :name
+  end
+
+  describe '#resource' do
+    it_behaves_like 'root span derived attribute', :resource
+  end
+
+  describe '#service' do
+    it_behaves_like 'root span derived attribute', :service
+  end
+
   describe '#get_tag' do
     before do
       trace_op.set_tag('foo', 'bar')
@@ -1359,6 +1413,78 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_id: trace_op.id,
             type: nil
           )
+        end
+      end
+
+      context 'resource' do
+        let(:trace_steps) { {} }
+
+        context 'is inherited from the root span' do
+          it 'is visible at any point in the trace' do
+            expect(trace_op.resource).to be nil
+
+            trace_op.measure('web.request') do |root_span|
+              expect(trace_op.resource).to eq('web.request')
+              expect(root_span.resource).to eq('web.request')
+
+              root_span.resource = '/articles/?'
+
+              expect(trace_op.resource).to eq('/articles/?')
+              expect(root_span.resource).to eq('/articles/?')
+
+              trace_op.measure('controller.action') do |child_span|
+                expect(trace_op.resource).to eq('/articles/?')
+                expect(child_span.resource).to eq('controller.action')
+
+                child_span.resource = 'Articles#show'
+
+                expect(trace_op.resource).to eq('/articles/?')
+                expect(child_span.resource).to eq('Articles#show')
+              end
+
+              expect(trace_op.resource).to eq('/articles/?')
+              expect(root_span.resource).to eq('/articles/?')
+            end
+
+            expect(trace_op.resource).to eq('/articles/?')
+          end
+        end
+
+        context 'is overridden by the child span' do
+          it 'child span resource is persisted on the trace' do
+            expect(trace_op.resource).to be nil
+
+            trace_op.measure('web.request') do |root_span|
+              expect(trace_op.resource).to eq('web.request')
+              expect(root_span.resource).to eq('web.request')
+
+              root_span.resource = '/articles/?'
+
+              expect(trace_op.resource).to eq('/articles/?')
+              expect(root_span.resource).to eq('/articles/?')
+
+              trace_op.measure('controller.action') do |child_span|
+                expect(trace_op.resource).to eq('/articles/?')
+                expect(child_span.resource).to eq('controller.action')
+
+                child_span.resource = 'Articles#show'
+
+                expect(trace_op.resource).to eq('/articles/?')
+                expect(child_span.resource).to eq('Articles#show')
+
+                # Override the trace resource
+                trace_op.resource = child_span.resource
+
+                expect(trace_op.resource).to eq('Articles#show')
+                expect(child_span.resource).to eq('Articles#show')
+              end
+
+              expect(trace_op.resource).to eq('Articles#show')
+              expect(root_span.resource).to eq('/articles/?')
+            end
+
+            expect(trace_op.resource).to eq('Articles#show')
+          end
         end
       end
     end
