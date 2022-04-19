@@ -47,7 +47,7 @@ module Datadog
           end
 
           def self.form_hash(request)
-            request.env['rack.request.form_hash']
+            request.env['rack.request.form_hash'] || request.env['action_dispatch.request.request_parameters']
           end
         end
       end

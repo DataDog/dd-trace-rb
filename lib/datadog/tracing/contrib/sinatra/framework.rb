@@ -39,6 +39,17 @@ module Datadog
             end
           end
 
+          class << self
+            alias_method :unshift_middleare, :add_middleware
+          end
+
+          # Add Rack middleware at the top of the stack
+          def self.append_middleware(middleware, builder, *args, &block)
+            insert_middleware(builder, middleware, args, block) do |proc_, use|
+              use.append(proc_)
+            end
+          end
+
           # Add Rack middleware before another in the stack
           def self.add_middleware_before(before, middleware, builder, *args, &block)
             index = middlewares(builder).index(before)
