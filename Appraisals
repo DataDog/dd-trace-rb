@@ -276,7 +276,7 @@ elsif ruby_version?('2.2')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+    gem 'graphql'
     gem 'grpc', '~> 1.19.0' # Last version to support Ruby < 2.3 & google-protobuf < 3.7
     gem 'hiredis'
     gem 'http'
@@ -459,7 +459,7 @@ elsif ruby_version?('2.3')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+    gem 'graphql'
     gem 'grpc'
     gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
     gem 'hiredis'
@@ -577,7 +577,7 @@ elsif ruby_version?('2.4')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+    gem 'graphql', '>= 2.0'
     gem 'grpc'
     gem 'google-protobuf', '~> 3.11.0' # Last version to support Ruby < 2.5
     gem 'hiredis'
@@ -613,6 +613,7 @@ elsif ruby_version?('2.4')
 
   appraise 'contrib-old' do
     gem 'faraday', '0.17'
+    gem 'graphql', '>= 1.12.0', '< 2.0'
   end
 
   appraise 'core-old' do
@@ -821,7 +822,7 @@ elsif ruby_version?('2.5')
     gem 'excon'
     gem 'faraday'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+    gem 'graphql', '>= 2.0'
     gem 'grpc', platform: :ruby
     gem 'hiredis'
     gem 'http'
@@ -859,8 +860,9 @@ elsif ruby_version?('2.5')
   end
 
   appraise 'contrib-old' do
-    gem 'faraday', '0.17'
     gem 'dalli', '< 3.0.0'
+    gem 'faraday', '0.17'
+    gem 'graphql', '>= 1.12.0', '< 2.0'
   end
 
   appraise 'core-old' do
@@ -1044,7 +1046,7 @@ elsif ruby_version?('2.6')
       gem 'excon'
       gem 'faraday'
       gem 'grape'
-      gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+      gem 'graphql', '>= 2.0'
       gem 'grpc', platform: :ruby
       gem 'hiredis'
       gem 'http'
@@ -1081,8 +1083,9 @@ elsif ruby_version?('2.6')
     end
 
     appraise 'contrib-old' do
-      gem 'faraday', '0.17'
       gem 'dalli', '< 3.0.0'
+      gem 'faraday', '0.17'
+      gem 'graphql', '>= 1.12.0', '< 2.0'
     end
 
     appraise 'core-old' do
@@ -1248,7 +1251,7 @@ elsif ruby_version?('2.7')
       gem 'ethon'
       gem 'excon'
       gem 'grape'
-      gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+      gem 'graphql', '>= 2.0'
       gem 'grpc'
       gem 'hiredis'
       gem 'http'
@@ -1282,8 +1285,9 @@ elsif ruby_version?('2.7')
     end
 
     appraise 'contrib-old' do
-      gem 'faraday', '0.17'
       gem 'dalli', '< 3.0.0'
+      gem 'faraday', '0.17'
+      gem 'graphql', '>= 1.12.0', '< 2.0'
     end
 
     appraise 'core-old' do
@@ -1361,7 +1365,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'ethon'
     gem 'excon'
     gem 'grape'
-    gem 'graphql', '>= 1.12.0', '< 1.13.0' # Newer versions are broken, needs to be investigated, see https://github.com/DataDog/dd-trace-rb/issues/1866
+    gem 'graphql', '>= 2.0'
     gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
     gem 'hiredis'
     gem 'http'
@@ -1397,6 +1401,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
 
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
+    gem 'graphql', '>= 1.12.0', '< 2.0'
   end
 
   appraise 'core-old' do
