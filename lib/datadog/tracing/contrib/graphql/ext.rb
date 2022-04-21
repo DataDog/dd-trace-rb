@@ -12,7 +12,6 @@ module Datadog
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE'.freeze
           SERVICE_NAME = 'graphql'.freeze
           TAG_COMPONENT = 'graphql'.freeze
-          TAG_OPERATION_ENDPOINT_RUN = 'endpoint_run'.freeze
         end
       end
     end
