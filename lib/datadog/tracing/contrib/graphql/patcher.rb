@@ -58,7 +58,7 @@ module Datadog
           end
 
           # TODO: insert graphql PR number below
-          # Before https://github.com/rmosolgo/graphql-ruby/pull/XXX was introduced,
+          # Before https://github.com/rmosolgo/graphql-ruby/pull/4038 was introduced,
           # we were left with incompatibilities between ddtrace 1.0 and older graphql gem versions.
           def patch_legacy_gem!
             return unless Gem::Version.new(::GraphQL::VERSION) <= Gem::Version.new('2.0.6')
@@ -72,7 +72,7 @@ module Datadog
 
           # TODO: insert graphql PR number below
           # Patches the graphql gem to support ddtrace 1.0.
-          # This is not necessary in versions containing https://github.com/rmosolgo/graphql-ruby/pull/XXX.
+          # This is not necessary in versions containing https://github.com/rmosolgo/graphql-ruby/pull/4038.
           module PatchLegacyGem
             # Ensure invocation to #trace method targets the new namespaced public API object,
             # instead of the old global Datadog.trace.
