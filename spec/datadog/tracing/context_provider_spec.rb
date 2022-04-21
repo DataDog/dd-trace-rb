@@ -7,7 +7,7 @@ require 'datadog/tracing/context'
 
 RSpec.describe Datadog::Tracing::DefaultContextProvider do
   let(:provider) { described_class.new }
-  let(:local_context) { instance_double(Datadog::Tracing::ThreadLocalContext) }
+  let(:local_context) { instance_double(Datadog::Tracing::FiberLocalContext) }
   let(:trace_context) { Datadog::Tracing::Context.new }
 
   describe '#context=' do
@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
 
     let(:ctx) { double }
 
-    before { expect(Datadog::Tracing::ThreadLocalContext).to receive(:new).and_return(local_context) }
+    before { expect(Datadog::Tracing::FiberLocalContext).to receive(:new).and_return(local_context) }
 
     it do
       expect(local_context).to receive(:local=).with(ctx)
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
   describe '#context' do
     subject(:context) { provider.context }
 
-    before { expect(Datadog::Tracing::ThreadLocalContext).to receive(:new).and_return(local_context) }
+    before { expect(Datadog::Tracing::FiberLocalContext).to receive(:new).and_return(local_context) }
 
     context 'when given no arguments' do
       it do
@@ -92,12 +92,12 @@ RSpec.describe Datadog::Tracing::DefaultContextProvider do
   end
 end
 
-RSpec.describe Datadog::Tracing::ThreadLocalContext do
-  subject(:thread_local_context) { described_class.new }
+RSpec.describe Datadog::Tracing::FiberLocalContext do
+  subject(:fiber_local_context) { described_class.new }
 
   describe '#initialize' do
-    it 'create one thread-local variable' do
-      expect { thread_local_context }.to change { Thread.current.keys.size }.by(1)
+    it 'create one fiber-local variable' do
+      expect { fiber_local_context }.to change { Thread.current.keys.size }.by(1)
     end
   end
 
@@ -106,59 +106,74 @@ RSpec.describe Datadog::Tracing::ThreadLocalContext do
   end
 
   describe '#local' do
-    subject(:local) { thread_local_context.local }
+    subject(:local) { fiber_local_context.local }
 
-    context 'with a second ThreadLocalContext' do
-      let(:thread_local_context2) { described_class.new }
+    context 'with a second FiberLocalContext' do
+      let(:fiber_local_context2) { described_class.new }
 
-      it 'does not interfere with other ThreadLocalContext' do
-        local_context = thread_local_context.local
-        local_context2 = thread_local_context2.local
+      it 'does not interfere with other FiberLocalContext' do
+        local_context = fiber_local_context.local
+        local_context2 = fiber_local_context2.local
 
         expect(local_context).to_not eq(local_context2)
-        expect(thread_local_context.local).to eq(local_context)
-        expect(thread_local_context2.local).to eq(local_context2)
+        expect(fiber_local_context.local).to eq(local_context)
+        expect(fiber_local_context2.local).to eq(local_context2)
+      end
+    end
+
+    context 'in another fiber' do
+      it 'create one fiber-local variable per fiber' do
+        context = fiber_local_context.local
+
+        Fiber.new do
+          expect { @fiber_context = fiber_local_context.local }
+            .to change { thread_contexts.size }.from(0).to(1)
+
+          expect(@fiber_context).to be_a Datadog::Tracing::Context
+        end.resume
+
+        expect(@fiber_context).to_not eq(context)
       end
     end
 
     context 'in another thread' do
-      it 'create one thread-local variable per thread' do
-        context = thread_local_context.local
+      it 'create one fiber-local variable per thread' do
+        context = fiber_local_context.local
 
         Thread.new do
-          expect { @thread_context = thread_local_context.local }
+          expect { @fiber_context = fiber_local_context.local }
             .to change { thread_contexts.size }.from(0).to(1)
 
-          expect(@thread_context).to be_a Datadog::Tracing::Context
+          expect(@fiber_context).to be_a Datadog::Tracing::Context
         end.join
 
-        expect(@thread_context).to_not eq(context)
+        expect(@fiber_context).to_not eq(context)
       end
     end
 
     context 'given a thread' do
-      subject(:local) { thread_local_context.local(thread) }
+      subject(:local) { fiber_local_context.local(thread) }
 
       let(:thread) { Thread.new {} }
 
       it 'retrieves the context for the provided thread' do
         is_expected.to be_a_kind_of(Datadog::Tracing::Context)
-        expect(local).to_not be(thread_local_context.local)
+        expect(local).to_not be(fiber_local_context.local)
       end
     end
   end
 
   describe '#local=' do
-    subject(:set_local) { thread_local_context.local = context }
+    subject(:set_local) { fiber_local_context.local = context }
 
     let(:context) { double }
 
-    before { thread_local_context } # Force initialization
+    before { fiber_local_context } # Force initialization
 
-    it 'overrides thread-local variable' do
+    it 'overrides fiber-local variable' do
       expect { set_local }.to_not(change { thread_contexts.size })
 
-      expect(thread_local_context.local).to eq(context)
+      expect(fiber_local_context.local).to eq(context)
     end
   end
 end
