@@ -13,7 +13,9 @@ module Datadog
       module Rack
         module Gateway
           # Watcher for Rack gateway events
+          # rubocop:disable Metrics/ModuleLength
           module Watcher
+            # rubocop:disable Metrics/AbcSize
             # rubocop:disable Metrics/MethodLength
             def self.watch
               Instrumentation.gateway.watch('rack.request') do |stack, request|
@@ -98,19 +100,8 @@ module Datadog
                 waf_context = request.env['datadog.waf.context']
 
                 AppSec::Reactive::Operation.new('rack.request.body') do |op|
-                  # TODO: factor out
-                  if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
-                    active_trace = Datadog::Tracing.active_trace
-                    root_span = active_trace.send(:root_span) if active_trace
-                    active_span = Datadog::Tracing.active_span
-
-                    Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
-
-                    if active_span
-                      active_span.set_tag('_dd.appsec.enabled', 1)
-                      active_span.set_tag('_dd.runtime_family', 'ruby')
-                    end
-                  end
+                  trace = active_trace
+                  span = active_span
 
                   Rack::Reactive::RequestBody.subscribe(op, waf_context) do |action, result, _block|
                     record = [:block, :monitor].include?(action)
@@ -118,9 +109,8 @@ module Datadog
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
-                        trace: active_trace,
-                        root_span: root_span,
-                        span: active_span,
+                        trace: trace,
+                        span: span,
                         request: request,
                         action: action
                       }
@@ -143,6 +133,7 @@ module Datadog
               end
             end
             # rubocop:enable Metrics/MethodLength
+            # rubocop:enable Metrics/AbcSize
 
             class << self
               private
@@ -164,6 +155,7 @@ module Datadog
               end
             end
           end
+          # rubocop:enable Metrics/ModuleLength
         end
       end
     end
