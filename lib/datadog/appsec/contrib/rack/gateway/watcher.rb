@@ -32,9 +32,9 @@ module Datadog
 
                     Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
 
-                    if active_span
-                      active_span.set_tag('_dd.appsec.enabled', 1)
-                      active_span.set_tag('_dd.runtime_family', 'ruby')
+                    if active_trace
+                      active_trace.set_tag('_dd.appsec.enabled', 1)
+                      active_trace.set_tag('_dd.runtime_family', 'ruby')
                     end
                   end
 
@@ -80,9 +80,9 @@ module Datadog
 
                     Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
 
-                    if active_span
-                      active_span.set_tag('_dd.appsec.enabled', 1)
-                      active_span.set_tag('_dd.runtime_family', 'ruby')
+                    if active_trace
+                      active_trace.set_tag('_dd.appsec.enabled', 1)
+                      active_trace.set_tag('_dd.runtime_family', 'ruby')
                     end
                   end
 
@@ -124,14 +124,13 @@ module Datadog
                   # TODO: factor out
                   if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
                     active_trace = Datadog::Tracing.active_trace
-                    root_span = active_trace.send(:root_span) if active_trace
                     active_span = Datadog::Tracing.active_span
 
                     Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
 
-                    if active_span
-                      active_span.set_tag('_dd.appsec.enabled', 1)
-                      active_span.set_tag('_dd.runtime_family', 'ruby')
+                    if active_trace
+                      active_trace.set_tag('_dd.appsec.enabled', 1)
+                      active_trace.set_tag('_dd.runtime_family', 'ruby')
                     end
                   end
 
@@ -142,7 +141,6 @@ module Datadog
                       event = {
                         waf_result: result,
                         trace: active_trace,
-                        root_span: root_span,
                         span: active_span,
                         request: request,
                         action: action
