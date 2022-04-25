@@ -5,6 +5,7 @@ require 'rspec/core/rake_task'
 require 'rake/extensiontask'
 require 'appraisal'
 require 'yard'
+require 'os'
 
 Dir.glob('tasks/*.rake').each { |r| import r }
 
@@ -21,8 +22,8 @@ namespace :spec do
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
-  if RUBY_ENGINE == 'ruby' && RUBY_PLATFORM.start_with?('x86_64-linux')
-    # "bundle exec rake compile" currently only works on MRI+x86_64-linux
+  if RUBY_ENGINE == 'ruby' && OS.linux?
+    # "bundle exec rake compile" currently only works on MRI Ruby on Linux
     Rake::Task[:main].enhance([:compile])
   end
 
