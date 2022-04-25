@@ -8,6 +8,7 @@ TRACER_VERSIONS = %w[
   2.7
   3.0
   3.1
+  3.2
   jruby-9.2.8.0
   jruby-9.2-latest
   jruby-9.3-latest
