@@ -101,7 +101,7 @@ RSpec.describe Datadog::Tracing::FiberLocalContext do
     end
   end
 
-  def thread_contexts
+  def fiber_contexts
     Thread.current.keys.select { |k| k.to_s.start_with?('datadog_context_') }
   end
 
@@ -123,31 +123,31 @@ RSpec.describe Datadog::Tracing::FiberLocalContext do
 
     context 'in another fiber' do
       it 'create one fiber-local variable per fiber' do
-        context = fiber_local_context.local
+        main_fiber_context = fiber_local_context.local
+        other_fiber_context = nil
 
         Fiber.new do
-          expect { @fiber_context = fiber_local_context.local }
-            .to change { thread_contexts.size }.from(0).to(1)
-
-          expect(@fiber_context).to be_a Datadog::Tracing::Context
+          expect { other_fiber_context = fiber_local_context.local }
+            .to change { fiber_contexts.size }.from(0).to(1)
         end.resume
 
-        expect(@fiber_context).to_not eq(context)
+        expect(other_fiber_context).to be_a Datadog::Tracing::Context
+        expect(other_fiber_context).to_not eq(main_fiber_context)
       end
     end
 
     context 'in another thread' do
       it 'create one fiber-local variable per thread' do
-        context = fiber_local_context.local
+        main_thread_context = fiber_local_context.local
+        other_thread_context = nil
 
         Thread.new do
-          expect { @fiber_context = fiber_local_context.local }
-            .to change { thread_contexts.size }.from(0).to(1)
-
-          expect(@fiber_context).to be_a Datadog::Tracing::Context
+          expect { other_thread_context = fiber_local_context.local }
+            .to change { fiber_contexts.size }.from(0).to(1)
         end.join
 
-        expect(@fiber_context).to_not eq(context)
+        expect(other_thread_context).to be_a Datadog::Tracing::Context
+        expect(other_thread_context).to_not eq(main_thread_context)
       end
     end
 
@@ -171,7 +171,7 @@ RSpec.describe Datadog::Tracing::FiberLocalContext do
     before { fiber_local_context } # Force initialization
 
     it 'overrides fiber-local variable' do
-      expect { set_local }.to_not(change { thread_contexts.size })
+      expect { set_local }.to_not(change { fiber_contexts.size })
 
       expect(fiber_local_context.local).to eq(context)
     end
