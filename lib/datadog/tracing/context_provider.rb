@@ -38,17 +38,12 @@ module Datadog
     end
 
     # FiberLocalContext can be used as a tracer global reference to create
-    # a different {Datadog::Tracing::Context} for each fiber. In synchronous tracer, this
-    # is required to prevent multiple fibers sharing the same {Datadog::Tracing::Context}
-    # in different executions.
+    # a different {Datadog::Tracing::Context} for each fiber. This allows for the tracer
+    # to create a serial execution graph regardless of any concurrent execution: each
+    # concurrent execution path creates a new trace graph.
     #
     # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
     class FiberLocalContext
-      # FiberLocalContext can be used as a tracer global reference to create
-      # a different {Datadog::Tracing::Context} for each fiber. In synchronous tracer, this
-      # is required to prevent multiple fivers sharing the same {Datadog::Tracing::Context}
-      # in different executions.
-      #
       # To support multiple tracers simultaneously, each {Datadog::Tracing::FiberLocalContext}
       # instance has its own fiber-local variable.
       def initialize
