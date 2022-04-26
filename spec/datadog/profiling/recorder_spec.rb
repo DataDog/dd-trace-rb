@@ -139,8 +139,8 @@ RSpec.describe Datadog::Profiling::Recorder do
           is_expected.to have_attributes(
             start: kind_of(Time),
             finish: kind_of(Time),
-            pprof_file_name: 'rubyprofile.pprof.gz',
-            code_provenance_file_name: 'code-provenance.json.gz',
+            pprof_file_name: 'rubyprofile.pprof',
+            code_provenance_file_name: 'code-provenance.json',
             tags_as_array: array_including(%w[language ruby], ['process_id', Process.pid.to_s]),
           )
         end
