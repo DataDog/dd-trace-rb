@@ -113,11 +113,11 @@ static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_conf
 static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result) {
   if (exporter_result.tag == DDPROF_FFI_NEW_PROFILE_EXPORTER_V3_RESULT_OK) return Qnil;
 
-  VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
+  VALUE err_details = ruby_string_from_vec_u8(exporter_result.err);
 
   ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
 
-  return rb_ary_new_from_args(2, error_symbol, failure_details);
+  return rb_ary_new_from_args(2, error_symbol, err_details);
 }
 
 static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
@@ -173,10 +173,10 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
       ddprof_ffi_Vec_tag_push(&tags, char_slice_from_ruby_string(tag_name), char_slice_from_ruby_string(tag_value));
 
     if (push_result.tag == DDPROF_FFI_PUSH_TAG_RESULT_ERR) {
-      VALUE failure_details = rb_str_new((char *) push_result.err.ptr, push_result.err.len);
+      VALUE err_details = ruby_string_from_vec_u8(push_result.err);
       // libddprof validates tags and may catch invalid tags that ddtrace didn't actually catch.
       // We warn users about such tags, and then just ignore them.
-      rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, failure_details);
+      rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, err_details);
     }
 
     ddprof_ffi_PushTagResult_drop(push_result);
@@ -251,8 +251,7 @@ static VALUE _native_do_export(
       ruby_result = UINT2NUM(result.http_response.code);
     } else {
       ruby_status = error_symbol;
-      VALUE err_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-      ruby_result = err_details;
+      ruby_result = ruby_string_from_vec_u8(result.failure);
     }
   } else {
     // According to the Ruby VM documentation, rb_thread_call_without_gvl2 checks for interrupts before doing anything
