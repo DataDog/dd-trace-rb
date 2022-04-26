@@ -97,7 +97,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when sampling a thread with a stack that is deeper than the configured max_frames' do
     let(:max_frames) { 5 }
     let(:target_stack_depth) { 100 }
-    let(:thread_with_deep_stack) { thread_with_stack_depth(target_stack_depth) }
+    let(:thread_with_deep_stack) { DeepStackSimulator.thread_with_stack_depth(target_stack_depth) }
 
     let(:stacks) { { reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames) } }
 
@@ -120,7 +120,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
       expect(omitted_frames).to be 96
       expect(gathered_stack.last)
-        .to match(hash_including({ base_label: '', path: "96 frames omitted", lineno: 0 }))
+        .to match(hash_including({ base_label: '', path: '96 frames omitted', lineno: 0 }))
     end
 
     context 'when stack is exactly 1 item deeper than the configured max_frames' do
@@ -140,50 +140,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       it 'matches the Ruby backtrace API' do
         expect(gathered_stack).to eq reference_stack
       end
-    end
-
-    class DeepStackSimulator
-      def initialize(target_depth:, ready_queue:)
-        @target_depth = target_depth
-        @ready_queue = ready_queue
-
-        define_methods(target_depth)
-      end
-
-      # We use this weird approach to both get an exact depth, as well as have a method with a unique name for
-      # each depth
-      def define_methods(target_depth)
-        (1..target_depth).each do |depth|
-          next if respond_to?(:"deep_stack_#{depth}")
-
-          eval(%(
-            def deep_stack_#{depth}
-              if Thread.current.backtrace.size < @target_depth
-                deep_stack_#{depth+1}
-              else
-                @ready_queue << :ready
-                sleep
-              end
-            end
-          ))
-        end
-      end
-    end
-
-    def thread_with_stack_depth(depth)
-      ready_queue = Queue.new
-
-      # In spec_helper.rb we have a DatadogThreadDebugger which is used to help us debug specs that leak threads.
-      # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
-      # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
-      first_method =
-        defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger) ? :deep_stack_2 : :deep_stack_1
-
-      thread = Thread.new(&DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).method(first_method))
-      thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
-      ready_queue.pop
-
-      thread
     end
   end
 
@@ -280,6 +236,52 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     function = decoded_profile.function.find { |func| func.id == line_entry.function_id }
 
     { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
+  end
+end
+
+class DeepStackSimulator
+  def self.thread_with_stack_depth(depth)
+    ready_queue = Queue.new
+
+    # In spec_helper.rb we have a DatadogThreadDebugger which is used to help us debug specs that leak threads.
+    # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
+    # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
+    first_method =
+      defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger) ? :deep_stack_2 : :deep_stack_1
+
+    thread = Thread.new(&DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).method(first_method))
+    thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)
+    ready_queue.pop
+
+    thread
+  end
+
+  def initialize(target_depth:, ready_queue:)
+    @target_depth = target_depth
+    @ready_queue = ready_queue
+
+    define_methods(target_depth)
+  end
+
+  # We use this weird approach to both get an exact depth, as well as have a method with a unique name for
+  # each depth
+  def define_methods(target_depth)
+    (1..target_depth).each do |depth|
+      next if respond_to?(:"deep_stack_#{depth}")
+
+      # rubocop:disable Security/Eval
+      eval(%(
+        def deep_stack_#{depth}                               # def deep_stack_1
+          if Thread.current.backtrace.size < @target_depth    #   if Thread.current.backtrace.size < @target_depth
+            deep_stack_#{depth + 1}                           #     deep_stack_2
+          else                                                #   else
+            @ready_queue << :read_ready_pipe                  #     @ready_queue << :read_ready_pipe
+            sleep                                             #     sleep
+          end                                                 #   end
+        end                                                   # end
+      ), binding, __FILE__, __LINE__ - 9)
+      # rubocop:enable Security/Eval
+    end
   end
 end
 # rubocop:enable Layout/LineLength
