@@ -18,6 +18,7 @@ static VALUE http_transport_class = Qnil;
 struct call_exporter_without_gvl_arguments {
   ddprof_ffi_ProfileExporterV3 *exporter;
   ddprof_ffi_Request *request;
+  ddprof_ffi_CancellationToken *cancel_token;
   ddprof_ffi_SendResult result;
 };
 
@@ -55,6 +56,7 @@ static ddprof_ffi_Request *build_request(
   VALUE code_provenance_data
 );
 static void *call_exporter_without_gvl(void *exporter_and_request);
+static void interrupt_exporter_call(void *cancel_token);
 
 void http_transport_init(VALUE profiling_module) {
   http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
@@ -196,6 +198,7 @@ static VALUE _native_do_export(
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
   ddprof_ffi_ProfileExporterV3 *exporter = exporter_result.ok;
+  ddprof_ffi_CancellationToken *cancel_token = ddprof_ffi_CancellationToken_new();
 
   ddprof_ffi_Request *request =
     build_request(
@@ -213,24 +216,42 @@ static VALUE _native_do_export(
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_exporter_without_gvl_arguments args = {.exporter = exporter, .request = request};
-  // TODO: We don't provide a function to interrupt reporting, which means this thread will be blocked until
-  // call_exporter_without_gvl returns.
-  rb_thread_call_without_gvl(call_exporter_without_gvl, &args, NULL, NULL);
+  struct call_exporter_without_gvl_arguments args =
+    {.exporter = exporter, .request = request, .cancel_token = cancel_token};
+
+  // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the former does not process pending
+  // interrupts before returning.
+  //
+  // Aka with rb_thread_call_without_gvl if someone calls Thread#kill on the current thread, rb_thread_call_without_gvl
+  // will never return because Thread#kill causes an exception to be raised, and Ruby will longjmp to the exception
+  // handler which is outside of our code.
+  // This is problematic because we will leak the exporter, cancel_token, etc.
+  //
+  // Instead, with rb_thread_call_without_gvl2, if someone calls Thread#kill, rb_thread_call_without_gvl2 will still
+  // return as usual AND the exception will not be raised until we return from this function (as long as we don't
+  // call any Ruby API that triggers interrupt checking), which means we get to make an orderly exit.
+  rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
   ddprof_ffi_SendResult result = args.result;
 
-  // Dispose of the exporter
+  ddprof_ffi_CancellationToken_drop(cancel_token);
   ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
-
   // The request itself does not need to be freed as libddprof takes care of it.
 
-  if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
-    VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    ddprof_ffi_SendResult_drop(result); // Clean up result
-    return rb_ary_new_from_args(2, error_symbol, failure_details);
+  VALUE ruby_status;
+  VALUE ruby_result;
+
+  if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
+    ruby_status = ok_symbol;
+    ruby_result = UINT2NUM(result.http_response.code);
+  } else {
+    ruby_status = error_symbol;
+    VALUE err_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
+    ruby_result = err_details;
   }
 
-  return rb_ary_new_from_args(2, ok_symbol, UINT2NUM(result.http_response.code));
+  ddprof_ffi_SendResult_drop(result);
+
+  return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }
 
 static ddprof_ffi_Request *build_request(
@@ -290,7 +311,12 @@ static ddprof_ffi_Request *build_request(
 static void *call_exporter_without_gvl(void *exporter_and_request) {
   struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) exporter_and_request;
 
-  args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request, /* TODO: use cancel token */ NULL);
+  args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request, args->cancel_token);
 
   return NULL; // Unused
+}
+
+// Called by Ruby when it wants to interrupt call_exporter_without_gvl above, e.g. when the app wants to exit cleanly
+static void interrupt_exporter_call(void *cancel_token) {
+  ddprof_ffi_CancellationToken_cancel((ddprof_ffi_CancellationToken *) cancel_token);
 }

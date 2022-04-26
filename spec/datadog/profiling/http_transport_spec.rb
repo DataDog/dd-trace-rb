@@ -440,5 +440,39 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         http_transport.export(flush)
       end
     end
+
+    describe 'cancellation behavior' do
+      let!(:request_received_queue) { Queue.new }
+      let!(:request_finish_queue) { Queue.new }
+
+      let(:upload_timeout_seconds) { 123_456_789 } # Set on purpose so this test will either pass or hang
+      let(:server_proc) do
+        proc do
+          request_received_queue << true
+          request_finish_queue.pop
+        end
+      end
+
+      after do
+        request_finish_queue << true
+      end
+
+      # As the describe above says, here we're testing the cancellation behavior. If cancellation is not correctly
+      # implemented, then `ddprof_ffi_ProfileExporterV3_send` will block until `upload_timeout_seconds` is hit and
+      # nothing we could do on the Ruby VM side will interrupt it.
+      # If it is correctly implemented, then the `exporter_thread.kill` will cause
+      # `ddprof_ffi_ProfileExporterV3_send` to return immediately and this test will quickly finish.
+      it 'can be interrupted' do
+        exporter_thread = Thread.new { http_transport.export(flush) }
+        request_received_queue.pop
+
+        expect(exporter_thread.status).to eq 'sleep'
+
+        exporter_thread.kill
+        exporter_thread.join
+
+        expect(exporter_thread.status).to be false
+      end
+    end
   end
 end
