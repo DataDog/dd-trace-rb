@@ -76,15 +76,19 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
 
-  // TODO: Update this after https://github.com/DataDog/libddprof/pull/42 gets merged
-  ddprof_ffi_EncodedProfile *serialized_profile = ddprof_ffi_Profile_serialize(profile);
-  if (serialized_profile == NULL) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to serialize profile"));
+  ddprof_ffi_SerializeResult serialized_profile = ddprof_ffi_Profile_serialize(profile);
 
-  VALUE encoded_pprof = rb_str_new((char *) serialized_profile->buffer.ptr, serialized_profile->buffer.len);
-  VALUE start = ruby_time_from(serialized_profile->start);
-  VALUE finish = ruby_time_from(serialized_profile->end);
+  if (serialized_profile.tag == DDPROF_FFI_SERIALIZE_RESULT_ERR) {
+    VALUE err_details = rb_str_new((char *) serialized_profile.err.ptr, serialized_profile.err.len);
+    ddprof_ffi_SerializeResult_drop(serialized_profile);
+    return rb_ary_new_from_args(2, error_symbol, err_details);
+  }
 
-  ddprof_ffi_EncodedProfile_delete(serialized_profile);
+  VALUE encoded_pprof = rb_str_new((char *) serialized_profile.ok.buffer.ptr, serialized_profile.ok.buffer.len);
+  VALUE start = ruby_time_from(serialized_profile.ok.start);
+  VALUE finish = ruby_time_from(serialized_profile.ok.end);
+
+  ddprof_ffi_SerializeResult_drop(serialized_profile);
   if (!ddprof_ffi_Profile_reset(profile)) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
