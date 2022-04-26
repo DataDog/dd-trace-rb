@@ -11,6 +11,10 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 static ID agentless_id; // id of :agentless in Ruby
 static ID agent_id; // id of :agent in Ruby
 
+static ID log_failure_to_process_tag_id; // id of :log_failure_to_process_tag in Ruby
+
+static VALUE http_transport_class = Qnil;
+
 struct call_exporter_without_gvl_arguments {
   ddprof_ffi_ProfileExporterV3 *exporter;
   ddprof_ffi_Request *request;
@@ -23,7 +27,7 @@ static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration)
 static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
 static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result);
 static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration);
-static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array);
+static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array);
 static VALUE _native_do_export(
   VALUE self,
   VALUE exporter_configuration,
@@ -53,7 +57,7 @@ static ddprof_ffi_Request *build_request(
 static void *call_exporter_without_gvl(void *exporter_and_request);
 
 void http_transport_init(VALUE profiling_module) {
-  VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
+  http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
   rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 11);
@@ -62,6 +66,7 @@ void http_transport_init(VALUE profiling_module) {
   error_symbol = ID2SYM(rb_intern_const("error"));
   agentless_id = rb_intern_const("agentless");
   agent_id = rb_intern_const("agent");
+  log_failure_to_process_tag_id = rb_intern_const("log_failure_to_process_tag");
 }
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
@@ -85,7 +90,7 @@ static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration)
 
   // We don't actually need the exporter for now -- we just wanted to validate that we could create it with the
   // settings we were given
-  ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result);
+  ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
 
   return rb_ary_new_from_args(2, ok_symbol, Qnil);
 }
@@ -94,18 +99,12 @@ static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_conf
   Check_Type(exporter_configuration, T_ARRAY);
   Check_Type(tags_as_array, T_ARRAY);
 
-  long tags_count = RARRAY_LEN(tags_as_array);
-  ddprof_ffi_Tag* converted_tags = xcalloc(tags_count, sizeof(ddprof_ffi_Tag));
-  if (converted_tags == NULL) rb_raise(rb_eNoMemError, "Failed to allocate memory for storing tags");
-  convert_tags(converted_tags, tags_count, tags_as_array);
+  ddprof_ffi_Vec_tag tags = convert_tags(tags_as_array);
 
-  ddprof_ffi_NewProfileExporterV3Result exporter_result = ddprof_ffi_ProfileExporterV3_new(
-    DDPROF_FFI_CHARSLICE_C("ruby"),
-    (ddprof_ffi_Slice_tag) {.ptr = converted_tags, .len = tags_count},
-    endpoint_from(exporter_configuration)
-  );
+  ddprof_ffi_NewProfileExporterV3Result exporter_result =
+    ddprof_ffi_ProfileExporterV3_new(DDPROF_FFI_CHARSLICE_C("ruby"), &tags, endpoint_from(exporter_configuration));
 
-  xfree(converted_tags);
+  ddprof_ffi_Vec_tag_drop(tags);
 
   return exporter_result;
 }
@@ -115,7 +114,7 @@ static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result expor
 
   VALUE failure_details = rb_str_new((char *) exporter_result.err.ptr, exporter_result.err.len);
 
-  ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result);
+  ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
 
   return rb_ary_new_from_args(2, error_symbol, failure_details);
 }
@@ -144,8 +143,12 @@ static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
   }
 }
 
-static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE tags_as_array) {
+__attribute__((warn_unused_result))
+static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
   Check_Type(tags_as_array, T_ARRAY);
+
+  long tags_count = rb_array_len(tags_as_array);
+  ddprof_ffi_Vec_tag tags = ddprof_ffi_Vec_tag_new();
 
   for (long i = 0; i < tags_count; i++) {
     VALUE name_value_pair = rb_ary_entry(tags_as_array, i);
@@ -157,11 +160,20 @@ static void convert_tags(ddprof_ffi_Tag *converted_tags, long tags_count, VALUE 
     Check_Type(tag_name, T_STRING);
     Check_Type(tag_value, T_STRING);
 
-    converted_tags[i] = (ddprof_ffi_Tag) {
-      .name = char_slice_from_ruby_string(tag_name),
-      .value = char_slice_from_ruby_string(tag_value)
-    };
+    ddprof_ffi_PushTagResult push_result =
+      ddprof_ffi_Vec_tag_push(&tags, char_slice_from_ruby_string(tag_name), char_slice_from_ruby_string(tag_value));
+
+    if (push_result.tag == DDPROF_FFI_PUSH_TAG_RESULT_ERR) {
+      VALUE failure_details = rb_str_new((char *) push_result.err.ptr, push_result.err.len);
+      // libddprof validates tags and may catch invalid tags that ddtrace didn't actually catch.
+      // We warn users about such tags, and then just ignore them.
+      rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, failure_details);
+    }
+
+    ddprof_ffi_PushTagResult_drop(push_result);
   }
+
+  return tags;
 }
 
 static VALUE _native_do_export(
@@ -208,16 +220,13 @@ static VALUE _native_do_export(
   ddprof_ffi_SendResult result = args.result;
 
   // Dispose of the exporter
-  ddprof_ffi_NewProfileExporterV3Result_dtor(exporter_result);
+  ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
 
   // The request itself does not need to be freed as libddprof takes care of it.
 
   if (result.tag != DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
     VALUE failure_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    // TODO: This is needed until a proper dtor gets added in libddprof for SendResult; note that the Buffer
-    // itself is stack-allocated (so there's nothing to free/clean up there), so we only need to make sure its contents
-    // aren't leaked
-    ddprof_ffi_Buffer_reset(&result.failure); // Clean up result
+    ddprof_ffi_SendResult_drop(result); // Clean up result
     return rb_ary_new_from_args(2, error_symbol, failure_details);
   }
 
@@ -271,8 +280,9 @@ static ddprof_ffi_Request *build_request(
     };
   }
 
+  ddprof_ffi_Vec_tag *null_additional_tags = NULL;
   ddprof_ffi_Request *request =
-    ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, timeout_milliseconds);
+    ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, null_additional_tags, timeout_milliseconds);
 
   return request;
 }
@@ -280,7 +290,7 @@ static ddprof_ffi_Request *build_request(
 static void *call_exporter_without_gvl(void *exporter_and_request) {
   struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) exporter_and_request;
 
-  args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request);
+  args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request, /* TODO: use cancel token */ NULL);
 
   return NULL; // Unused
 }
