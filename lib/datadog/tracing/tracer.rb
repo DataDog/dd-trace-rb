@@ -199,7 +199,7 @@ module Datadog
 
       # The active, unfinished trace, representing the current instrumentation context.
       #
-      # The active trace is thread-local.
+      # The active trace is fiber-local.
       #
       # @param [Thread] key Thread to retrieve trace from. Defaults to current thread. For internal use only.
       # @return [Datadog::Tracing::TraceSegment] the active trace
