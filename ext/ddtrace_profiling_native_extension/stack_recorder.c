@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include "stack_recorder.h"
+#include "libddprof_helpers.h"
 
 // Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -69,12 +70,12 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   ddprof_ffi_SerializeResult serialized_profile = ddprof_ffi_Profile_serialize(profile);
 
   if (serialized_profile.tag == DDPROF_FFI_SERIALIZE_RESULT_ERR) {
-    VALUE err_details = rb_str_new((char *) serialized_profile.err.ptr, serialized_profile.err.len);
+    VALUE err_details = ruby_string_from_vec_u8(serialized_profile.err);
     ddprof_ffi_SerializeResult_drop(serialized_profile);
     return rb_ary_new_from_args(2, error_symbol, err_details);
   }
 
-  VALUE encoded_pprof = rb_str_new((char *) serialized_profile.ok.buffer.ptr, serialized_profile.ok.buffer.len);
+  VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
   VALUE start = ruby_time_from(serialized_profile.ok.start);
   VALUE finish = ruby_time_from(serialized_profile.ok.end);
 
