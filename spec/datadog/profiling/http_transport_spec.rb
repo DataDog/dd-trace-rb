@@ -204,7 +204,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       export
     end
 
-    context 'when export was successful' do
+    context 'when successful' do
       before do
         expect(described_class).to receive(:_native_do_export).and_return([:ok, 200])
       end
@@ -307,7 +307,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         )
 
         tags = body['tags[]'].list
-        expect(tags).to include('tag_a:value_a', 'tag_b:value_b')
+        expect(tags).to contain_exactly('tag_a:value_a', 'tag_b:value_b')
       end
     end
 
@@ -410,6 +410,32 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       it 'logs an error' do
         expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 503/)
+
+        http_transport.export(flush)
+      end
+    end
+
+    context 'when tags contains invalid tags' do
+      let(:tags_as_array) { [%w[:invalid invalid:], %w[valid1 valid1], %w[valid2 valid2]] }
+
+      before do
+        allow(Datadog.logger).to receive(:warn)
+      end
+
+      it 'reports using the valid tags and ignores the invalid tags' do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+        tags = body['tags[]'].list
+        expect(tags).to contain_exactly('valid1:valid1', 'valid2:valid2')
+      end
+
+      it 'logs a warning' do
+        expect(Datadog.logger).to receive(:warn).with(/Failed to add tag to profiling request/)
 
         http_transport.export(flush)
       end
