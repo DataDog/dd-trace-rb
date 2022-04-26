@@ -101,10 +101,14 @@ static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_conf
   Check_Type(exporter_configuration, T_ARRAY);
   Check_Type(tags_as_array, T_ARRAY);
 
+  // This needs to be called BEFORE convert_tags since it can raise an exception and thus cause the ddprof_ffi_Vec_tag
+  // to be leaked.
+  ddprof_ffi_EndpointV3 endpoint = endpoint_from(exporter_configuration);
+
   ddprof_ffi_Vec_tag tags = convert_tags(tags_as_array);
 
   ddprof_ffi_NewProfileExporterV3Result exporter_result =
-    ddprof_ffi_ProfileExporterV3_new(DDPROF_FFI_CHARSLICE_C("ruby"), &tags, endpoint_from(exporter_configuration));
+    ddprof_ffi_ProfileExporterV3_new(DDPROF_FFI_CHARSLICE_C("ruby"), &tags, endpoint);
 
   ddprof_ffi_Vec_tag_drop(tags);
 
