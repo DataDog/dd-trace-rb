@@ -556,7 +556,7 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
-  describe 'thread-local context' do
+  describe 'fiber-local context' do
     subject(:tracer) { new_tracer }
 
     it 'clears context after tracer finishes' do
@@ -596,7 +596,7 @@ RSpec.describe 'Tracer integration tests' do
 
       after { tracer2.shutdown! }
 
-      it 'create one thread-local context per tracer' do
+      it 'create one fiber-local context per tracer' do
         span = tracer.trace('test')
         context = tracer.send(:call_context)
 
@@ -613,7 +613,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       context 'with another thread' do
-        it 'create one thread-local context per tracer per thread' do
+        it 'create one fiber-local context per tracer per thread' do
           span = tracer.trace('test')
           context = tracer.send(:call_context)
 
@@ -622,10 +622,10 @@ RSpec.describe 'Tracer integration tests' do
 
           Thread.new do
             thread_span = tracer.trace('thread_test')
-            @thread_context = tracer.send(:call_context)
+            @fiber_context = tracer.send(:call_context)
 
             thread_span2 = tracer2.trace('thread_test2')
-            @thread_context2 = tracer2.send(:call_context)
+            @fiber_context2 = tracer2.send(:call_context)
 
             thread_span.finish
             thread_span2.finish
@@ -634,7 +634,7 @@ RSpec.describe 'Tracer integration tests' do
           span2.finish
           span.finish
 
-          expect([context, context2, @thread_context, @thread_context2].uniq)
+          expect([context, context2, @fiber_context, @fiber_context2].uniq)
             .to have(4).items
 
           spans = tracer.writer.spans

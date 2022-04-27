@@ -74,7 +74,7 @@ module Datadog
           module PatchLegacyGem
             # Ensure invocation to #trace method targets the new namespaced public API object,
             # instead of the old global Datadog.trace.
-            # This is fixed in graphql > 2.0.6.
+            # This is fixed in graphql > 2.0.3.
             def tracer
               options.fetch(:tracer, Datadog::Tracing) # GraphQL will invoke #trace on the returned object
             end

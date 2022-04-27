@@ -1585,6 +1585,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
+| `service_name` | Service name used for `rake` instrumentation | `'rake'` |
 
 **Configuring task quantization behavior**
 
