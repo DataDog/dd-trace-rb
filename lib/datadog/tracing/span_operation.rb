@@ -457,18 +457,18 @@ module Datadog
       # we don't want this SpanOperation to modify it further.
       def build_span
         Span.new(
-          @name.frozen? ? @name : @name.dup,
+          @name,
           duration: duration,
           end_time: @end_time,
           id: @id,
           meta: meta.dup,
           metrics: metrics.dup,
           parent_id: @parent_id,
-          resource: @resource.frozen? ? @resource : @resource.dup,
-          service: @service.frozen? ? @service : @service.dup,
+          resource: @resource,
+          service: @service,
           start_time: @start_time,
           status: @status,
-          type: @type.frozen? ? @type : @type.dup,
+          type: @type,
           trace_id: @trace_id
         )
       end

@@ -30,8 +30,6 @@ module Datadog
           :trace_service,
           :version
 
-        # rubocop:disable Metrics/CyclomaticComplexity
-        # rubocop:disable Metrics/PerceivedComplexity
         # @!visibility private
         def initialize(
           env: nil,
@@ -48,26 +46,19 @@ module Datadog
           version: nil
         )
           # Dup and freeze strings so they aren't modified by reference.
-          @env = env || Datadog.configuration.env
-          @service = service || Datadog.configuration.service
+          @env = Core::Utils::SafeDup.frozen_or_dup(env || Datadog.configuration.env).freeze
+          @service = Core::Utils::SafeDup.frozen_or_dup(service || Datadog.configuration.service).freeze
           @span_id = span_id || 0
-          @span_name = span_name && span_name.dup.freeze
-          @span_resource = span_resource && span_resource.dup.freeze
-          @span_service = span_service && span_service.dup.freeze
-          @span_type = span_type && span_type.dup.freeze
+          @span_name = Core::Utils::SafeDup.frozen_or_dup(span_name).freeze
+          @span_resource = Core::Utils::SafeDup.frozen_or_dup(span_resource).freeze
+          @span_service = Core::Utils::SafeDup.frozen_or_dup(span_service).freeze
+          @span_type = Core::Utils::SafeDup.frozen_or_dup(span_type).freeze
           @trace_id = trace_id || 0
-          @trace_name = trace_name && trace_name.dup.freeze
-          @trace_resource = trace_resource && trace_resource.dup.freeze
-          @trace_service = trace_service && trace_service.dup.freeze
-          @version = version || Datadog.configuration.version
-
-          # Finish freezing globals
-          @service = @service.dup.freeze unless @service.nil?
-          @env = @env.dup.freeze unless @env.nil?
-          @version = @version.dup.freeze unless @version.nil?
+          @trace_name = Core::Utils::SafeDup.frozen_or_dup(trace_name).freeze
+          @trace_resource = Core::Utils::SafeDup.frozen_or_dup(trace_resource).freeze
+          @trace_service = Core::Utils::SafeDup.frozen_or_dup(trace_service).freeze
+          @version = Core::Utils::SafeDup.frozen_or_dup(version || Datadog.configuration.version).freeze
         end
-        # rubocop:enable Metrics/CyclomaticComplexity
-        # rubocop:enable Metrics/PerceivedComplexity
 
         def to_log_format
           @log_format ||= begin
