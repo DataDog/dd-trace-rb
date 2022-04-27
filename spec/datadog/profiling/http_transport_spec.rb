@@ -246,9 +246,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
       let(:hostname) { '127.0.0.1' }
       let(:port) { 6006 }
-      let(:log) { WEBrick::Log.new(log_buffer) }
-      let(:log_buffer) { StringIO.new }
-      let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
+      let(:log) { WEBrick::Log.new($stderr, WEBrick::Log::WARN) }
+      let(:access_log_buffer) { StringIO.new }
+      let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
       let(:server_proc) do
         proc do |req, res|
           messages << req.tap { req.body } # Read body, store message before socket closes.
