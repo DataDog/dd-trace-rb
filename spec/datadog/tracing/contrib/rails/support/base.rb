@@ -41,7 +41,7 @@ RSpec.shared_context 'Rails base application' do
     proc do
       if ENV['USE_TAGGED_LOGGING'] == true
         config.log_tags = ENV['LOG_TAGS'] || []
-        config.logger = ActiveSupport::TaggedLogging.new(logger)
+        Rails.logger = ActiveSupport::TaggedLogging.new(logger)
       end
 
       if ENV['USE_SEMANTIC_LOGGER'] == true
