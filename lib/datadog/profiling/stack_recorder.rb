@@ -11,6 +11,8 @@ module Datadog
         if status == :ok
           start, finish, encoded_pprof = result
 
+          Datadog.logger.debug { "Encoded profile covering #{start.iso8601} to #{finish.iso8601}" }
+
           [start, finish, encoded_pprof]
         else
           error_message = result

@@ -20,6 +20,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(encoded_pprof) }
 
+    it 'debug logs profile information' do
+      message = nil
+
+      expect(Datadog.logger).to receive(:debug) do |&message_block|
+        message = message_block.call
+      end
+
+      serialize
+
+      expect(message).to include start.iso8601
+      expect(message).to include finish.iso8601
+    end
+
     context 'when the profile is empty' do
       it 'uses the current time as the start and finish time' do
         before_serialize = Time.now
