@@ -86,6 +86,7 @@ module Datadog
                 active_trace.set_tag('_dd.appsec.event_rules.loaded', @processor.ruleset_info[:loaded].to_f)
                 active_trace.set_tag('_dd.appsec.event_rules.error_count', @processor.ruleset_info[:failed].to_f)
                 active_trace.set_tag('_dd.appsec.event_rules.errors', JSON.dump(@processor.ruleset_info[:errors]))
+                active_trace.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(@processor.addresses))
                 active_trace.keep!
               end
             end
