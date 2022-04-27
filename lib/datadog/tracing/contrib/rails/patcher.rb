@@ -89,7 +89,7 @@ module Datadog
               should_warn = false
             end
 
-            Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger} is not supported") if should_warn
+            Datadog.logger.warn("Unable to enable Datadog Trace context, Logger #{logger.class} is not supported") if should_warn
           end
 
           def patch_after_intialize
