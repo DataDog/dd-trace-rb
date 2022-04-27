@@ -13,10 +13,7 @@ module Datadog
         module Gateway
           # Watcher for Rack gateway events
           module Watcher
-            # rubocop:disable Metrics/AbcSize
-            # rubocop:disable Metrics/CyclomaticComplexity
             # rubocop:disable Metrics/MethodLength
-            # rubocop:disable Metrics/PerceivedComplexity
             def self.watch
               Instrumentation.gateway.watch('rack.request') do |stack, request|
                 block = false
@@ -24,18 +21,8 @@ module Datadog
                 waf_context = request.env['datadog.waf.context']
 
                 AppSec::Reactive::Operation.new('rack.request') do |op|
-                  # TODO: factor out
-                  if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
-                    active_trace = Datadog::Tracing.active_trace
-                    active_span = Datadog::Tracing.active_span
-
-                    Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
-
-                    if active_span
-                      active_span.set_tag('_dd.appsec.enabled', 1)
-                      active_span.set_tag('_dd.runtime_family', 'ruby')
-                    end
-                  end
+                  trace = active_trace
+                  span = active_span
 
                   Rack::Reactive::Request.subscribe(op, waf_context) do |action, result, _block|
                     record = [:block, :monitor].include?(action)
@@ -43,8 +30,8 @@ module Datadog
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
-                        trace: active_trace,
-                        span: active_span,
+                        trace: trace,
+                        span: span,
                         request: request,
                         action: action
                       }
@@ -72,18 +59,8 @@ module Datadog
                 waf_context = response.instance_eval { @waf_context }
 
                 AppSec::Reactive::Operation.new('rack.response') do |op|
-                  # TODO: factor out
-                  if defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
-                    active_trace = Datadog::Tracing.active_trace
-                    active_span = Datadog::Tracing.active_span
-
-                    Datadog.logger.debug { "active span: #{active_span.span_id}" } if active_span
-
-                    if active_span
-                      active_span.set_tag('_dd.appsec.enabled', 1)
-                      active_span.set_tag('_dd.runtime_family', 'ruby')
-                    end
-                  end
+                  trace = active_trace
+                  span = active_span
 
                   Rack::Reactive::Response.subscribe(op, waf_context) do |action, result, _block|
                     record = [:block, :monitor].include?(action)
@@ -91,8 +68,8 @@ module Datadog
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
-                        trace: active_trace,
-                        span: active_span,
+                        trace: trace,
+                        span: span,
                         response: response,
                         action: action
                       }
@@ -114,10 +91,23 @@ module Datadog
                 [ret, res]
               end
             end
-            # rubocop:enable Metrics/AbcSize
-            # rubocop:enable Metrics/CyclomaticComplexity
             # rubocop:enable Metrics/MethodLength
-            # rubocop:enable Metrics/PerceivedComplexity
+
+            class << self
+              private
+
+              def active_trace
+                return unless defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_trace)
+
+                Datadog::Tracing.active_trace
+              end
+
+              def active_span
+                return unless defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+
+                Datadog::Tracing.active_span
+              end
+            end
           end
         end
       end
