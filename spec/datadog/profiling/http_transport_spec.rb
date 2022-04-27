@@ -45,7 +45,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:deprecated_for_removal_transport_configuration_proc) { nil }
   let(:site) { nil }
   let(:api_key) { nil }
-  let(:upload_timeout_seconds) { 123 }
+  let(:upload_timeout_seconds) { 10 }
 
   let(:flush) do
     Datadog::Profiling::Flush.new(
@@ -181,7 +181,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     it 'calls the native export method with the data from the flush' do
       # Manually converted from the lets above :)
-      upload_timeout_milliseconds = 123_000
+      upload_timeout_milliseconds = 10_000
       start_timespec_seconds = 1644249593
       start_timespec_nanoseconds = 987654321
       finish_timespec_seconds = 1699718400
