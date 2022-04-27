@@ -20,9 +20,11 @@ module Datadog
           end
 
           def patch
-            return if get_option(:schemas).nil?
+            if (schemas = get_option(:schemas))
+              schemas.each { |s| patch_schema!(s) }
+            end
 
-            get_option(:schemas).each { |s| patch_schema!(s) }
+            patch_legacy_gem!
           end
 
           def patch_schema!(schema)
@@ -55,8 +57,33 @@ module Datadog
             end
           end
 
+          # Before https://github.com/rmosolgo/graphql-ruby/pull/4038 was introduced,
+          # we were left with incompatibilities between ddtrace 1.0 and older graphql gem versions.
+          def patch_legacy_gem!
+            return unless Gem::Version.new(::GraphQL::VERSION) <= Gem::Version.new('2.0.6')
+
+            ::GraphQL::Tracing::DataDogTracing.prepend(PatchLegacyGem)
+          end
+
           def get_option(option)
             Datadog.configuration.tracing[:graphql].get_option(option)
+          end
+
+          # Patches the graphql gem to support ddtrace 1.0.
+          # This is not necessary in versions containing https://github.com/rmosolgo/graphql-ruby/pull/4038.
+          module PatchLegacyGem
+            # Ensure invocation to #trace method targets the new namespaced public API object,
+            # instead of the old global Datadog.trace.
+            # This is fixed in graphql > 2.0.3.
+            def tracer
+              options.fetch(:tracer, Datadog::Tracing) # GraphQL will invoke #trace on the returned object
+            end
+
+            # Ensure resource name is not left as `nil`.
+            # This is fixed in graphql > 2.0.6.
+            def fallback_transaction_name(context)
+              context[:tracing_fallback_transaction_name] || 'execute.graphql'
+            end
           end
         end
       end

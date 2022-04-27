@@ -1479,7 +1479,7 @@ DEPENDENCIES
   faraday
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   grape
-  graphql (>= 1.12.0, < 1.13.0)
+  graphql
   grpc (~> 1.19.0)
   hiredis
   http
