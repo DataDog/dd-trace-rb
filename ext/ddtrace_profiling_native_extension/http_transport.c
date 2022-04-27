@@ -20,6 +20,7 @@ struct call_exporter_without_gvl_arguments {
   ddprof_ffi_Request *request;
   ddprof_ffi_CancellationToken *cancel_token;
   ddprof_ffi_SendResult result;
+  bool send_ran;
 };
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string);
@@ -221,7 +222,7 @@ static VALUE _native_do_export(
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
   struct call_exporter_without_gvl_arguments args =
-    {.exporter = exporter, .request = request, .cancel_token = cancel_token};
+    {.exporter = exporter, .request = request, .cancel_token = cancel_token, .send_ran = false};
 
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the former does not process pending
   // interrupts before returning.
@@ -234,8 +235,8 @@ static VALUE _native_do_export(
   // Instead, with rb_thread_call_without_gvl2, if someone calls Thread#kill, rb_thread_call_without_gvl2 will still
   // return as usual AND the exception will not be raised until we return from this function (as long as we don't
   // call any Ruby API that triggers interrupt checking), which means we get to make an orderly exit.
+  // (Remember also that it can return BEFORE actually calling call_exporter_without_gvl, which we handle below.)
   rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
-  ddprof_ffi_SendResult result = args.result;
 
   ddprof_ffi_CancellationToken_drop(cancel_token);
   ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
@@ -244,16 +245,26 @@ static VALUE _native_do_export(
   VALUE ruby_status;
   VALUE ruby_result;
 
-  if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
-    ruby_status = ok_symbol;
-    ruby_result = UINT2NUM(result.http_response.code);
-  } else {
-    ruby_status = error_symbol;
-    VALUE err_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
-    ruby_result = err_details;
-  }
+  if (args.send_ran) {
+    ddprof_ffi_SendResult result = args.result;
 
-  ddprof_ffi_SendResult_drop(result);
+    if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
+      ruby_status = ok_symbol;
+      ruby_result = UINT2NUM(result.http_response.code);
+    } else {
+      ruby_status = error_symbol;
+      VALUE err_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
+      ruby_result = err_details;
+    }
+
+    ddprof_ffi_SendResult_drop(result);
+  } else {
+    // According to the Ruby VM documentation, rb_thread_call_without_gvl2 checks for interrupts before doing anything
+    // else and thus it is possible -- yet extremely unlikely -- for it to return immediately without even calling
+    // call_exporter_without_gvl. Thus, here we handle that weird corner case.
+    ruby_status = error_symbol;
+    ruby_result = rb_str_new_cstr("Interrupted before call_exporter_without_gvl ran");
+  }
 
   return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }
@@ -316,6 +327,7 @@ static void *call_exporter_without_gvl(void *exporter_and_request) {
   struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) exporter_and_request;
 
   args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request, args->cancel_token);
+  args->send_ran = true;
 
   return NULL; // Unused
 }
