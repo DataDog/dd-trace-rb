@@ -16,9 +16,38 @@ module Datadog
         end
       end
 
+      # Context wraps libddwaf's context
+      class Context
+        attr_reader :time, :time_ext, :timeouts
+
+        def initialize(processor)
+          @context = Datadog::AppSec::WAF::Context.new(processor.send(:handle))
+          @time = 0.0
+          @time_ext = 0.0
+          @timeouts = 0
+        end
+
+        def run(*args)
+          start = Core::Utils::Time.get_time
+
+          ret, res = @context.run(*args)
+
+          stop = Core::Utils::Time.get_time
+
+          @time += res.total_runtime
+          @time_ext += (stop - start) * 1_000_000_000
+          @timeouts += 1 if res.timeout
+
+          [ret, res]
+        end
+      end
+
+      attr_reader :ruleset_info
+
       def initialize
         @ruleset = nil
         @handle = nil
+        @ruleset_info = nil
 
         unless load_libddwaf && load_ruleset && create_waf_handle
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
@@ -30,8 +59,12 @@ module Datadog
       end
 
       def new_context
-        Datadog::AppSec::WAF::Context.new(@handle)
+        Context.new(self)
       end
+
+      protected
+
+      attr_reader :handle
 
       private
 
@@ -75,12 +108,15 @@ module Datadog
           value_regex: Datadog::AppSec.settings.obfuscator_value_regex,
         }
         @handle = Datadog::AppSec::WAF::Handle.new(@ruleset, obfuscator: obfuscator_config)
+        @ruleset_info = @handle.ruleset_info
 
         true
       rescue StandardError => e
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
+
+        @ruleset_info = e.ruleset_info if e.respond_to?(:ruleset_info)
 
         false
       end
