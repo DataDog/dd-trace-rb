@@ -81,7 +81,9 @@ module Datadog
 
             # if lograge isn't set, check if tagged logged is enabled.
             # if so, add proc that injects trace identifiers for tagged logging.
-            if (logger = app.config.logger) \
+            logger = app.config.logger || ::Rails.logger
+
+            if (logger) \
                 && defined?(::ActiveSupport::TaggedLogging) \
                 && logger.is_a?(::ActiveSupport::TaggedLogging)
 
