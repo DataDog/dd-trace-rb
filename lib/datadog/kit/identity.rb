@@ -6,18 +6,25 @@ module Datadog
     module Identity
       # Attach user information to the trace
       #
-      # Values must be strings. Keys are free form, although the following keys have specific meanings:
-      # - id: Mandatory. Username or client id extracted from the access token or
-      #   Authorization header in the inbound request from outside the system.
-      # - email: Email of the authenticated user associated to the trace.
-      # - name: User-friendly name. To be displayed in the UI if set.
-      # - session_id: Session ID of the authenticated user.
-      # - role: Actual/assumed role the client is making the request under
-      #   extracted from token or application security context.
-      # - scope: Scopes or granted authorities the client currently possesses
-      #   extracted from token or application security context. The value would
-      #   come from the scope associated with an OAuth 2.0 Access Token or an
-      #   attribute value in a SAML 2.0 Assertion.
+      # Data values must be strings. Data keys are free form, although the
+      # following keys have specific meanings.
+      #
+      # @param trace [TraceOperation] Trace to attach data to
+      # @option data [String] :id Mandatory. Username or client id extracted
+      #   from the access token or Authorization header in the inbound request
+      #   from outside the system.
+      # @option data [String] :email Email of the authenticated user associated
+      #   to the trace.
+      # @option data [String] :name User-friendly name. To be displayed in the
+      #   UI if set.
+      # @option data [String] :session_id Session ID of the authenticated user.
+      # @option data [String] :role Actual/assumed role the client is making
+      #   the request under extracted from token or application security
+      #   context.
+      # @option data [String] :scope Scopes or granted authorities the client
+      #   currently possesses extracted from token or application security
+      #   context. The value would come from the scope associated with an OAuth
+      #   2.0 Access Token or an attribute value in a SAML 2.0 Assertion.
       def self.set_user(trace, data = {})
         raise ArgumentError, 'missing required key: :id' unless data[:id]
 
