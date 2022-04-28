@@ -6,38 +6,58 @@ module Datadog
     module Identity
       # Attach user information to the trace
       #
-      # Data values must be strings. Data keys are free form, although the
-      # following keys have specific meanings.
-      #
-      # @param trace [TraceOperation] Trace to attach data to
-      # @option data [String] :id Mandatory. Username or client id extracted
+      # @param trace [TraceOperation] Trace to attach data to.
+      # @param id [String] Mandatory. Username or client id extracted
       #   from the access token or Authorization header in the inbound request
       #   from outside the system.
-      # @option data [String] :email Email of the authenticated user associated
+      # @param email [String] Email of the authenticated user associated
       #   to the trace.
-      # @option data [String] :name User-friendly name. To be displayed in the
+      # @param name [String] User-friendly name. To be displayed in the
       #   UI if set.
-      # @option data [String] :session_id Session ID of the authenticated user.
-      # @option data [String] :role Actual/assumed role the client is making
+      # @param session_id [String] Session ID of the authenticated user.
+      # @param role [String] Actual/assumed role the client is making
       #   the request under extracted from token or application security
       #   context.
-      # @option data [String] :scope Scopes or granted authorities the client
+      # @param scope [String] Scopes or granted authorities the client
       #   currently possesses extracted from token or application security
       #   context. The value would come from the scope associated with an OAuth
       #   2.0 Access Token or an attribute value in a SAML 2.0 Assertion.
-      def self.set_user(trace, data = {})
-        raise ArgumentError, 'missing required key: :id' unless data[:id]
+      # @param others [Hash<String || Symbol, String>] Additional free-form
+      #   user information to attach to the trace.
+      #
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
+      def self.set_user(trace, id:, email: nil, name: nil, session_id: nil, role: nil, scope: nil, **others)
+        raise ArgumentError, 'missing required key: :id' if id.nil?
 
         # enforce types
-        data.each do |k, v|
-          raise TypeError, "#{k.inspect} must be a String" unless v.is_a?(String)
+
+        raise TypeError, 'id must be a String'         unless id.is_a?(String)
+        raise TypeError, 'email must be a String'      unless email.nil? || email.is_a?(String)
+        raise TypeError, 'name must be a String'       unless name.nil? || name.is_a?(String)
+        raise TypeError, 'session_id must be a String' unless session_id.nil? || session_id.is_a?(String)
+        raise TypeError, 'role must be a String'       unless role.nil? || role.is_a?(String)
+        raise TypeError, 'scope must be a String'      unless scope.nil? || scope.is_a?(String)
+
+        others.each do |k, v|
+          raise TypeError, "#{k.inspect} must be a String" unless v.nil? || v.is_a?(String)
         end
 
-        # set tags once data is made consistent
-        data.each do |k, v| # rubocop:disable Style/CombinableLoops
-          trace.set_tag("usr.#{k}", v)
+        # set tags once data is known consistent
+
+        trace.set_tag('usr.id', id)
+        trace.set_tag('usr.email', email)           unless email.nil?
+        trace.set_tag('usr.name', name)             unless name.nil?
+        trace.set_tag('usr.session_id', session_id) unless session_id.nil?
+        trace.set_tag('usr.role', role)             unless role.nil?
+        trace.set_tag('usr.scope', scope)           unless scope.nil?
+
+        others.each do |k, v|
+          trace.set_tag("usr.#{k}", v) unless v.nil?
         end
       end
+      # rubocop:enable Metrics/PerceivedComplexity
+      # rubocop:enable Metrics/CyclomaticComplexity
     end
   end
 end
