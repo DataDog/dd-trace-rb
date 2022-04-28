@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+## [1.0.0] - 2022-04-28
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.0.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta2...v1.0.0
+
+Diff since last stable release: https://github.com/DataDog/dd-trace-rb/compare/v0.54.2...v1.0.0
+
+### Added
+
+- GraphQL 2.0 support ([#1982][])
+
+### Changed
+
+- AppSec: Update libddwaf to 1.3.0 ([#1981][])
+
+### Fixed
+
+- Rails log correlation ([#1989][]) ([@cwoodcox][])
+- Resource not inherited from lazily annotated spans ([#1983][])
+- AppSec: Query address for libddwaf ([#1990][])
+
+### Refactored
+
+- Docs: Add undocumented Rake option ([#1980][]) ([@ecdemis123][])
+- Improvements to test suite & CI ([#1970][], [#1974][], [#1991][])
+- Improvements to documentation ([#1984][])
+
 ## [1.0.0.beta2] - 2022-04-14
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.0.0.beta2
@@ -1959,7 +1987,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta2...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0...master
+[1.0.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta2...v1.0.0
 [1.0.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta1...v1.0.0.beta2
 [1.0.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.54.2...v1.0.0.beta1
 [0.54.2]: https://github.com/DataDog/dd-trace-rb/compare/v0.54.1...v0.54.2
@@ -2782,9 +2811,19 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1964]: https://github.com/DataDog/dd-trace-rb/issues/1964
 [#1965]: https://github.com/DataDog/dd-trace-rb/issues/1965
 [#1968]: https://github.com/DataDog/dd-trace-rb/issues/1968
+[#1970]: https://github.com/DataDog/dd-trace-rb/issues/1970
 [#1973]: https://github.com/DataDog/dd-trace-rb/issues/1973
+[#1974]: https://github.com/DataDog/dd-trace-rb/issues/1974
 [#1975]: https://github.com/DataDog/dd-trace-rb/issues/1975
 [#1976]: https://github.com/DataDog/dd-trace-rb/issues/1976
+[#1980]: https://github.com/DataDog/dd-trace-rb/issues/1980
+[#1981]: https://github.com/DataDog/dd-trace-rb/issues/1981
+[#1982]: https://github.com/DataDog/dd-trace-rb/issues/1982
+[#1983]: https://github.com/DataDog/dd-trace-rb/issues/1983
+[#1984]: https://github.com/DataDog/dd-trace-rb/issues/1984
+[#1989]: https://github.com/DataDog/dd-trace-rb/issues/1989
+[#1990]: https://github.com/DataDog/dd-trace-rb/issues/1990
+[#1991]: https://github.com/DataDog/dd-trace-rb/issues/1991
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -2826,6 +2865,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@ck3g]: https://github.com/ck3g
 [@components]: https://github.com/components
 [@cswatt]: https://github.com/cswatt
+[@cwoodcox]: https://github.com/cwoodcox
 [@dasch]: https://github.com/dasch
 [@dim]: https://github.com/dim
 [@dirk]: https://github.com/dirk
@@ -2834,6 +2874,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@drcapulet]: https://github.com/drcapulet
 [@dudo]: https://github.com/dudo
 [@e1senh0rn]: https://github.com/e1senh0rn
+[@ecdemis123]: https://github.com/ecdemis123
 [@elliterate]: https://github.com/elliterate
 [@elyalvarado]: https://github.com/elyalvarado
 [@ericmustin]: https://github.com/ericmustin
