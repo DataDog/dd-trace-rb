@@ -44,18 +44,6 @@ static VALUE _native_do_export(
   VALUE code_provenance_data,
   VALUE tags_as_array
 );
-static ddprof_ffi_Request *build_request(
-  ddprof_ffi_ProfileExporterV3 *exporter,
-  VALUE upload_timeout_milliseconds,
-  VALUE start_timespec_seconds,
-  VALUE start_timespec_nanoseconds,
-  VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds,
-  VALUE pprof_file_name,
-  VALUE pprof_data,
-  VALUE code_provenance_file_name,
-  VALUE code_provenance_data
-);
 static void *call_exporter_without_gvl(void *exporter_and_request);
 static void interrupt_exporter_call(void *cancel_token);
 
@@ -185,41 +173,20 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
   return tags;
 }
 
-static VALUE _native_do_export(
-  VALUE self,
-  VALUE exporter_configuration,
-  VALUE upload_timeout_milliseconds,
-  VALUE start_timespec_seconds,
-  VALUE start_timespec_nanoseconds,
-  VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds,
-  VALUE pprof_file_name,
-  VALUE pprof_data,
-  VALUE code_provenance_file_name,
-  VALUE code_provenance_data,
-  VALUE tags_as_array
+// Note: This function handles a bunch of libddprof dynamically-allocated objects, so it MUST not use any Ruby APIs
+// which can raise exceptions, otherwise the objects will be leaked.
+static VALUE perform_export(
+  ddprof_ffi_NewProfileExporterV3Result valid_exporter_result, // Must be called with a valid exporter result
+  ddprof_ffi_Timespec start,
+  ddprof_ffi_Timespec finish,
+  ddprof_ffi_Slice_file slice_files,
+  ddprof_ffi_Vec_tag *additional_tags,
+  uint64_t timeout_milliseconds
 ) {
-  ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, tags_as_array);
-
-  VALUE failure_tuple = handle_exporter_failure(exporter_result);
-  if (!NIL_P(failure_tuple)) return failure_tuple;
-
-  ddprof_ffi_ProfileExporterV3 *exporter = exporter_result.ok;
+  ddprof_ffi_ProfileExporterV3 *exporter = valid_exporter_result.ok;
   ddprof_ffi_CancellationToken *cancel_token = ddprof_ffi_CancellationToken_new();
-
   ddprof_ffi_Request *request =
-    build_request(
-      exporter,
-      upload_timeout_milliseconds,
-      start_timespec_seconds,
-      start_timespec_nanoseconds,
-      finish_timespec_seconds,
-      finish_timespec_nanoseconds,
-      pprof_file_name,
-      pprof_data,
-      code_provenance_file_name,
-      code_provenance_data
-    );
+    ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, additional_tags, timeout_milliseconds);
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
@@ -245,14 +212,10 @@ static VALUE _native_do_export(
 
   if (args.send_ran) {
     ddprof_ffi_SendResult result = args.result;
+    bool success = result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE;
 
-    if (result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE) {
-      ruby_status = ok_symbol;
-      ruby_result = UINT2NUM(result.http_response.code);
-    } else {
-      ruby_status = error_symbol;
-      ruby_result = ruby_string_from_vec_u8(result.failure);
-    }
+    ruby_status = success ? ok_symbol : error_symbol;
+    ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.failure);
   } else {
     // According to the Ruby VM documentation, rb_thread_call_without_gvl2 checks for interrupts before doing anything
     // else and thus it is possible -- yet extremely unlikely -- for it to return immediately without even calling
@@ -272,16 +235,18 @@ static VALUE _native_do_export(
     call_exporter_without_gvl((void *) &args);
   }
 
+  // Clean up all dynamically-allocated things
   ddprof_ffi_SendResult_drop(args.result);
   ddprof_ffi_CancellationToken_drop(cancel_token);
-  ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
+  ddprof_ffi_NewProfileExporterV3Result_drop(valid_exporter_result);
   // The request itself does not need to be freed as libddprof takes care of it.
 
   return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }
 
-static ddprof_ffi_Request *build_request(
-  ddprof_ffi_ProfileExporterV3 *exporter,
+static VALUE _native_do_export(
+  VALUE self,
+  VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
@@ -290,7 +255,8 @@ static ddprof_ffi_Request *build_request(
   VALUE pprof_file_name,
   VALUE pprof_data,
   VALUE code_provenance_file_name,
-  VALUE code_provenance_data
+  VALUE code_provenance_data,
+  VALUE tags_as_array
 ) {
   Check_Type(upload_timeout_milliseconds, T_FIXNUM);
   Check_Type(start_timespec_seconds, T_FIXNUM);
@@ -328,10 +294,14 @@ static ddprof_ffi_Request *build_request(
   }
 
   ddprof_ffi_Vec_tag *null_additional_tags = NULL;
-  ddprof_ffi_Request *request =
-    ddprof_ffi_ProfileExporterV3_build(exporter, start, finish, slice_files, null_additional_tags, timeout_milliseconds);
 
-  return request;
+  ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, tags_as_array);
+  // Note: Do not add anything that can raise exceptions after this line, as otherwise the exporter memory will leak
+
+  VALUE failure_tuple = handle_exporter_failure(exporter_result);
+  if (!NIL_P(failure_tuple)) return failure_tuple;
+
+  return perform_export(exporter_result, start, finish, slice_files, null_additional_tags, timeout_milliseconds);
 }
 
 static void *call_exporter_without_gvl(void *exporter_and_request) {
