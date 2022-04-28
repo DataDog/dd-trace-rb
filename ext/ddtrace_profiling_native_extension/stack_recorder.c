@@ -62,8 +62,6 @@ static void stack_recorder_typed_data_free(void *data) {
 }
 
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
-  Check_TypedStruct(recorder_instance, &stack_recorder_typed_data);
-
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
 
@@ -96,8 +94,8 @@ static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time) {
 }
 
 void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
-  Check_TypedStruct(recorder_instance, &stack_recorder_typed_data);
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
+
   ddprof_ffi_Profile_add(profile, sample);
 }
