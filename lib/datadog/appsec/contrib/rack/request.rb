@@ -7,7 +7,14 @@ module Datadog
         # Normalized extration of data from Rack::Request
         module Request
           def self.query(request)
-            request.query_string.split('&').map { |e| e.split('=').map { |s| CGI.unescape(s) } }
+            # Downstream libddwaf expects keys and values to be extractable
+            # separately so we can't use [[k, v], ...]. We also want to allow
+            # duplicate keys, so we use [{k, v}, ...] instead.
+            request.query_string.split('&').map do |e|
+              k, v = e.split('=').map { |s| CGI.unescape(s) }
+
+              { k => v }
+            end
           end
 
           # Rack < 2.0 does not have :each_header
