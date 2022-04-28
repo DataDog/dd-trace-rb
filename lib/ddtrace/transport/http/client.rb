@@ -29,7 +29,8 @@ module Datadog
           response
         rescue StandardError => e
           message =
-            "Internal error during #{self.class.name} request. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Internal error during #{self.class.name} request. Cause: #{e.class.name} #{e.message} " \
+            "Location: #{Array(e.backtrace).first}"
 
           # Log error
           if stats.consecutive_errors > 0

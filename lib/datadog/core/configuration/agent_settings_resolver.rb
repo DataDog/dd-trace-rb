@@ -303,7 +303,7 @@ module Datadog
               if logger
                 logger.debug do
                   'Could not extract configuration from transport_options proc. ' \
-                  "Cause: #{e.message} Source: #{Array(e.backtrace).first}"
+                  "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
                 end
               end
 

@@ -399,7 +399,7 @@ module Datadog
               rescue StandardError => e
                 Datadog.logger.debug do
                   "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Error: #{e.message} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 end
 
                 original.call(op, error) if original
@@ -412,7 +412,7 @@ module Datadog
               @handler.call(*args)
             rescue StandardError => e
               Datadog.logger.debug do
-                "Error in on_error handler '#{@default}': #{e.message} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@default}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
               end
             end
 

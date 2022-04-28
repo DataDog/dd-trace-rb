@@ -69,7 +69,7 @@ module Datadog
             rescue => e
               Datadog.logger.error(
                 "Failed to resolve ActiveRecord configuration key #{db_config.inspect}. " \
-                "Cause: #{e.message} Source: #{Array(e.backtrace).first}"
+                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
               )
 
               nil
@@ -88,7 +88,7 @@ module Datadog
             rescue => e
               Datadog.logger.error(
                 "Failed to resolve ActiveRecord configuration key #{matcher.inspect}. " \
-                "Cause: #{e.message} Source: #{Array(e.backtrace).first}"
+                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
               )
             end
 

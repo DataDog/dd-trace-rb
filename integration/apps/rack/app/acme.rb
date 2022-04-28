@@ -58,7 +58,7 @@ module Acme
     end
 
     def application_error(request, error)
-      [500, { 'Content-Type' => 'text/plain' }, ["500 Application Error: #{error.message} Location: #{error.backtrace.first(3)}"]]
+      [500, { 'Content-Type' => 'text/plain' }, ["500 Application Error: #{error.class.name} #{error.message} Location: #{error.backtrace.first(3)}"]]
     end
   end
 
