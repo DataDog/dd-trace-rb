@@ -74,10 +74,16 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   }
 
   VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
-  VALUE start = ruby_time_from(serialized_profile.ok.start);
-  VALUE finish = ruby_time_from(serialized_profile.ok.end);
 
+  ddprof_ffi_Timespec ddprof_start = serialized_profile.ok.start;
+  ddprof_ffi_Timespec ddprof_finish = serialized_profile.ok.end;
+
+  // Clean up libddprof object to avoid leaking in case ruby_time_from raises an exception
   ddprof_ffi_SerializeResult_drop(serialized_profile);
+
+  VALUE start = ruby_time_from(ddprof_start);
+  VALUE finish = ruby_time_from(ddprof_finish);
+
   if (!ddprof_ffi_Profile_reset(profile)) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
