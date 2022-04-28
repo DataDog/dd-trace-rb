@@ -123,7 +123,7 @@ static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result expor
 static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
   Check_Type(exporter_configuration, T_ARRAY);
 
-  ID working_mode = SYM2ID(rb_ary_entry(exporter_configuration, 0)); // SYMID verifies its input so we can do this safely
+  ID working_mode = SYM2ID(rb_ary_entry(exporter_configuration, 0)); // SYM2ID verifies its input so we can do this safely
 
   if (working_mode != agentless_id && working_mode != agent_id) {
     rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
@@ -153,13 +153,21 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
 
   for (long i = 0; i < tags_count; i++) {
     VALUE name_value_pair = rb_ary_entry(tags_as_array, i);
-    Check_Type(name_value_pair, T_ARRAY);
+
+    if (!RB_TYPE_P(name_value_pair, T_ARRAY)) {
+      ddprof_ffi_Vec_tag_drop(tags);
+      Check_Type(name_value_pair, T_ARRAY);
+    }
 
     // Note: We can index the array without checking its size first because rb_ary_entry returns Qnil if out of bounds
     VALUE tag_name = rb_ary_entry(name_value_pair, 0);
     VALUE tag_value = rb_ary_entry(name_value_pair, 1);
-    Check_Type(tag_name, T_STRING);
-    Check_Type(tag_value, T_STRING);
+
+    if (!(RB_TYPE_P(tag_name, T_STRING) && RB_TYPE_P(tag_value, T_STRING))) {
+      ddprof_ffi_Vec_tag_drop(tags);
+      Check_Type(tag_name, T_STRING);
+      Check_Type(tag_value, T_STRING);
+    }
 
     ddprof_ffi_PushTagResult push_result =
       ddprof_ffi_Vec_tag_push(&tags, char_slice_from_ruby_string(tag_name), char_slice_from_ruby_string(tag_value));
@@ -232,10 +240,6 @@ static VALUE _native_do_export(
   // (Remember also that it can return BEFORE actually calling call_exporter_without_gvl, which we handle below.)
   rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
 
-  ddprof_ffi_CancellationToken_drop(cancel_token);
-  ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
-  // The request itself does not need to be freed as libddprof takes care of it.
-
   VALUE ruby_status;
   VALUE ruby_result;
 
@@ -250,15 +254,29 @@ static VALUE _native_do_export(
       VALUE err_details = rb_str_new((char *) result.failure.ptr, result.failure.len);
       ruby_result = err_details;
     }
-
-    ddprof_ffi_SendResult_drop(result);
   } else {
     // According to the Ruby VM documentation, rb_thread_call_without_gvl2 checks for interrupts before doing anything
     // else and thus it is possible -- yet extremely unlikely -- for it to return immediately without even calling
     // call_exporter_without_gvl. Thus, here we handle that weird corner case.
     ruby_status = error_symbol;
     ruby_result = rb_str_new_cstr("Interrupted before call_exporter_without_gvl ran");
+
+    // We're in a weird situation that libddprof doesn't quite support. The ddprof_ffi_Request payload is dynamically
+    // allocated and needs to be freed, but libddprof doesn't have an API for dropping a request because it's kinda
+    // weird that a profiler builds a request and then says "oh, nevermind" and throws it away.
+    // We could add such an API, but I'm somewhat hesitant since this is a really bizarre corner case that looks quite
+    // Ruby-specific.
+    //
+    // Instead, let's get libddprof to clean up this value by asking for the send to be cancelled, and then calling
+    // it anyway. This will make libddprof free the request without needing changes to its API.
+    interrupt_exporter_call((void *) cancel_token);
+    call_exporter_without_gvl((void *) &args);
   }
+
+  ddprof_ffi_SendResult_drop(args.result);
+  ddprof_ffi_CancellationToken_drop(cancel_token);
+  ddprof_ffi_NewProfileExporterV3Result_drop(exporter_result);
+  // The request itself does not need to be freed as libddprof takes care of it.
 
   return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }
