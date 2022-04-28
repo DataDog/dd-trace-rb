@@ -30,6 +30,7 @@ static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_conf
 static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result exporter_result);
 static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration);
 static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array);
+static void safely_log_failure_to_process_tag(ddprof_ffi_Vec_tag tags, VALUE err_details);
 static VALUE _native_do_export(
   VALUE self,
   VALUE exporter_configuration,
@@ -162,15 +163,33 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
 
     if (push_result.tag == DDPROF_FFI_PUSH_TAG_RESULT_ERR) {
       VALUE err_details = ruby_string_from_vec_u8(push_result.err);
+      ddprof_ffi_PushTagResult_drop(push_result);
+
       // libddprof validates tags and may catch invalid tags that ddtrace didn't actually catch.
       // We warn users about such tags, and then just ignore them.
-      rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, err_details);
+      safely_log_failure_to_process_tag(tags, err_details);
+    } else {
+      ddprof_ffi_PushTagResult_drop(push_result);
     }
-
-    ddprof_ffi_PushTagResult_drop(push_result);
   }
 
   return tags;
+}
+
+static VALUE log_failure_to_process_tag(VALUE err_details) {
+  return rb_funcall(http_transport_class, log_failure_to_process_tag_id, 1, err_details);
+}
+
+// Since we are calling into Ruby code, it may raise an exception. This method ensure that dynamically-allocated tags
+// get cleaned before propagating the exception.
+static void safely_log_failure_to_process_tag(ddprof_ffi_Vec_tag tags, VALUE err_details) {
+  int exception_state;
+  rb_protect(log_failure_to_process_tag, err_details, &exception_state);
+
+  if (exception_state) {           // An exception was raised
+    ddprof_ffi_Vec_tag_drop(tags); // clean up
+    rb_jump_tag(exception_state);  // "Re-raise" exception
+  }
 }
 
 // Note: This function handles a bunch of libddprof dynamically-allocated objects, so it MUST not use any Ruby APIs
