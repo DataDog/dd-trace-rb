@@ -258,7 +258,7 @@ RSpec.describe Datadog::AppSec::Processor do
       it { expect(context.time).to be > 0 }
       it { expect(context.time_ext).to be > 0 }
       it { expect(context.time_ext).to be > context.time }
-      it { expect(context.time).to eq(runs.sum(&:total_runtime)) }
+      it { expect(context.time).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
       it { expect(context.timeouts).to eq 0 }
 
       context 'with timeout' do
@@ -273,7 +273,7 @@ RSpec.describe Datadog::AppSec::Processor do
       context 'with multiple runs' do
         let(:run_count) { 10 }
 
-        it { expect(context.time).to eq(runs.sum(&:total_runtime)) }
+        it { expect(context.time).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
 
         context 'with timeout' do
           let(:timeout) { 0 }
