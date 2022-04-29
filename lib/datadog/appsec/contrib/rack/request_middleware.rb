@@ -1,5 +1,7 @@
 # typed: ignore
 
+require 'json'
+
 require 'datadog/appsec/instrumentation/gateway'
 require 'datadog/appsec/processor'
 require 'datadog/appsec/assets'
