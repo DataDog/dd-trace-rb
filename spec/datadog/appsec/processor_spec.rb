@@ -236,4 +236,54 @@ RSpec.describe Datadog::AppSec::Processor do
       it { is_expected.to be_ready }
     end
   end
+
+  describe '#new_context' do
+    let(:ruleset) { :recommended }
+    let(:input) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
+
+    subject(:context) { described_class.new.new_context }
+
+    it { is_expected.to be_a Datadog::AppSec::Processor::Context }
+
+    describe 'Context' do
+      let(:run_count) { 1 }
+      let(:timeout) { 10_000_000_000 }
+      let(:runs) { Array.new(run_count) { context.run(input, timeout).last } }
+
+      before do
+        runs
+      end
+
+      it { expect(runs.first.action).to eq :monitor }
+      it { expect(context.time).to be > 0 }
+      it { expect(context.time_ext).to be > 0 }
+      it { expect(context.time_ext).to be > context.time }
+      it { expect(context.time).to eq(runs.sum(&:total_runtime)) }
+      it { expect(context.timeouts).to eq 0 }
+
+      context 'with timeout' do
+        let(:timeout) { 0 }
+
+        it { expect(runs.first.action).to eq :good }
+        it { expect(context.time).to eq 0 }
+        it { expect(context.time_ext).to be > 0 }
+        it { expect(context.timeouts).to eq run_count }
+      end
+
+      context 'with multiple runs' do
+        let(:run_count) { 10 }
+
+        it { expect(context.time).to eq(runs.sum(&:total_runtime)) }
+
+        context 'with timeout' do
+          let(:timeout) { 0 }
+
+          it { expect(runs.first.action).to eq :good }
+          it { expect(context.time).to eq 0 }
+          it { expect(context.time_ext).to be > 0 }
+          it { expect(context.timeouts).to eq run_count }
+        end
+      end
+    end
+  end
 end
