@@ -94,6 +94,39 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
+  context 'when sampling an eval' do
+    let(:ready_queue) { Queue.new }
+    let(:thread_running_eval) do
+      Thread.new(ready_queue) do |ready_queue|
+        eval(%(
+          ready_queue << true
+          sleep
+        ))
+      end
+    end
+
+    before do
+      thread_running_eval
+      ready_queue.pop
+    end
+
+    after do
+      thread_running_eval.kill
+      thread_running_eval.join
+    end
+
+    let(:stacks) { { reference: thread_running_eval.backtrace_locations, gathered: sample_and_decode(thread_running_eval) } }
+
+    it 'matches the Ruby backtrace API' do
+      expect(gathered_stack).to eq reference_stack
+    end
+
+    it 'has eval frames on the stack' do
+      expect(reference_stack[0..2])
+        .to match([hash_including(base_label: 'sleep'), hash_including(path: '(eval)'), hash_including(base_label: 'eval')])
+    end
+  end
+
   context 'when sampling a thread with a stack that is deeper than the configured max_frames' do
     let(:max_frames) { 5 }
     let(:target_stack_depth) { 100 }
@@ -162,6 +195,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       read_ready_pipe, write_ready_pipe = ready_pipe
       read_finish_pipe, write_finish_pipe = finish_pipe
 
+      # Process.detach returns a `Process::Waiter` thread that always has an empty stack but that's actually running
+      # native code
       Process.detach(
         fork do
           # Signal ready to parent
