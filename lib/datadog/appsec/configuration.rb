@@ -47,6 +47,14 @@ module Datadog
           options[:trace_rate_limit] = value
         end
 
+        def obfuscator_key_regex=(value)
+          options[:obfuscator_key_regex] = value
+        end
+
+        def obfuscator_value_regex=(value)
+          options[:obfuscator_value_regex] = value
+        end
+
         def [](key)
           found = @instruments.find { |e| e.name == key }
 
