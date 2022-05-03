@@ -129,6 +129,7 @@ module Datadog
       end
 
       def sampling_priority=(s)
+        puts "sampling_priority=#{s},trace_id#{id},caller:#{caller.join("\n")}"
         @sampling_priority = s
       end
 
