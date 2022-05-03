@@ -4,7 +4,6 @@ require 'forwardable'
 require 'set'
 
 require 'datadog/core/configuration/settings'
-require 'datadog/tracing/contrib'
 
 # Datadog
 module Datadog
