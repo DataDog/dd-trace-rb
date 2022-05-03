@@ -2,7 +2,6 @@
 
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/qless/integration'
 
 module Datadog
   module Tracing

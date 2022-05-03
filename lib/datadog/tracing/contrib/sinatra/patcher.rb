@@ -4,7 +4,6 @@ require 'datadog/core/utils/only_once'
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/rack/middlewares'
 require 'datadog/tracing/contrib/sinatra/framework'
-require 'datadog/tracing/contrib/sinatra/integration'
 
 module Datadog
   module Tracing

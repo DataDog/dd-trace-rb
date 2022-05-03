@@ -1,7 +1,6 @@
 # typed: false
 
 require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/resque/integration'
 require 'datadog/tracing/contrib/sidekiq/ext'
 
 module Datadog

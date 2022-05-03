@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/racecar/ext'
 require 'datadog/tracing/contrib/racecar/events'
-require 'datadog/tracing/contrib/racecar/integration'
 
 module Datadog
   module Tracing
