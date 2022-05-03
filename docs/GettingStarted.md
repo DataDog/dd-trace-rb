@@ -105,6 +105,12 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 ## Compatibility
 
+<!--
+    Note: Please replicate any changes to this section also to
+    https://github.com/datadog/documentation/blob/master/content/en/tracing/setup_overview/compatibility_requirements/ruby.md
+    so that they remain in sync.
+-->
+
 **Supported Ruby interpreters**:
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
@@ -455,6 +461,12 @@ end
 `options` is a `Hash` of integration-specific configuration settings.
 
 For a list of available integrations, and their configuration options, please refer to the following:
+
+<!--
+    Note: Please replicate any changes to this section also to
+    https://github.com/datadog/documentation/blob/master/content/en/tracing/setup_overview/compatibility_requirements/ruby.md
+    so that they remain in sync.
+-->
 
 | Name                       | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
 | -------------------------- | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
