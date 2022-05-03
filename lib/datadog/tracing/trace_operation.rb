@@ -86,7 +86,7 @@ module Datadog
         @resource = resource
         @rule_sample_rate = rule_sample_rate
         @sample_rate = sample_rate
-        @sampling_priority = sampling_priority
+        self.sampling_priority = sampling_priority
         @service = service
 
         # Generic tags
@@ -126,6 +126,10 @@ module Datadog
       def reject!
         self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
+      end
+
+      def sampling_priority=(s)
+        @sampling_priority = s
       end
 
       def name
