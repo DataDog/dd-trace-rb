@@ -1,7 +1,6 @@
 # typed: ignore
 
 require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/rack/integration'
 require 'datadog/appsec/contrib/rack/gateway/watcher'
 
 module Datadog
