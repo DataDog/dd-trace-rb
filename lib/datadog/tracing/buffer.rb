@@ -58,7 +58,9 @@ module Datadog
 
         @buffer_spans += trace.length
       rescue StandardError => e
-        Datadog.logger.debug("Failed to measure queue accept. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
+        Datadog.logger.debug(
+          "Failed to measure queue accept. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+        )
       end
 
       def measure_drop(trace)
@@ -66,7 +68,9 @@ module Datadog
 
         @buffer_spans -= trace.length
       rescue StandardError => e
-        Datadog.logger.debug("Failed to measure queue drop. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
+        Datadog.logger.debug(
+          "Failed to measure queue drop. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+        )
       end
 
       def measure_pop(traces)
@@ -89,7 +93,9 @@ module Datadog
         @buffer_dropped = 0
         @buffer_spans = 0
       rescue StandardError => e
-        Datadog.logger.debug("Failed to measure queue. Cause: #{e.message} Source: #{Array(e.backtrace).first}")
+        Datadog.logger.debug(
+          "Failed to measure queue. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+        )
       end
     end
 

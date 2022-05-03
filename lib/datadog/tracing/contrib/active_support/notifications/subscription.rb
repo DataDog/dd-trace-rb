@@ -116,7 +116,9 @@ module Datadog
               def run(span, name, id, payload)
                 run!(span, name, id, payload)
               rescue StandardError => e
-                Datadog.logger.debug("ActiveSupport::Notifications handler for '#{name}' failed: #{e.message}")
+                Datadog.logger.debug(
+                  "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"
+                )
               end
 
               def run!(*args)
@@ -142,7 +144,7 @@ module Datadog
                     callback.call(event, key, *args)
                   rescue StandardError => e
                     Datadog.logger.debug(
-                      "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.message}"
+                      "ActiveSupport::Notifications '#{key}' callback for '#{event}' failed: #{e.class.name} #{e.message}"
                     )
                   end
                 end

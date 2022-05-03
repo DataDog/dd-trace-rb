@@ -93,7 +93,7 @@ module Datadog
         # In the future it'd be nice to shuffle the logger startup to happen first to avoid this special case.
         Kernel.warn(
           '[DDTRACE] Error while loading google-protobuf gem. ' \
-          "Cause: '#{e.message}' Location: '#{Array(e.backtrace).first}'. " \
+          "Cause: '#{e.class.name} #{e.message}' Location: '#{Array(e.backtrace).first}'. " \
           'This can happen when google-protobuf is missing its native components. ' \
           'To fix this, try removing and reinstalling the gem, forcing it to recompile the components: ' \
           '`gem uninstall google-protobuf -a; BUNDLE_FORCE_RUBY_PLATFORM=true bundle install`. ' \
@@ -110,7 +110,7 @@ module Datadog
       unless success
         if exception
           'There was an error loading the profiling native extension due to ' \
-          "'#{exception.message}' at '#{exception.backtrace.first}'"
+          "'#{exception.class.name} #{exception.message}' at '#{exception.backtrace.first}'"
         else
           'The profiling native extension did not load correctly. ' \
           'If the error persists, please contact support via <https://docs.datadoghq.com/help/> or ' \

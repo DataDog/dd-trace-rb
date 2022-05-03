@@ -61,7 +61,7 @@ module Datadog
               span.set_tag(Ext::TAG_TASK_ARG_NAMES, arg_names)
               span.set_tag(Ext::TAG_INVOKE_ARGS, quantize_args(args)) unless args.nil?
             rescue StandardError => e
-              Datadog.logger.debug("Error while tracing Rake invoke: #{e.message}")
+              Datadog.logger.debug("Error while tracing Rake invoke: #{e.class.name} #{e.message}")
             end
 
             def annotate_execute!(span, args)
@@ -70,7 +70,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_EXECUTE)
               span.set_tag(Ext::TAG_EXECUTE_ARGS, quantize_args(args.to_hash)) unless args.nil?
             rescue StandardError => e
-              Datadog.logger.debug("Error while tracing Rake execute: #{e.message}")
+              Datadog.logger.debug("Error while tracing Rake execute: #{e.class.name} #{e.message}")
             end
 
             def quantize_args(args)
