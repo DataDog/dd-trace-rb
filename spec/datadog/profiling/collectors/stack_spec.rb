@@ -12,19 +12,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   subject(:collectors_stack) { described_class.new }
 
-  let(:recorder) { Datadog::Profiling::StackRecorder.new }
   let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
   let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
 
-  let(:pprof_data) { recorder.serialize.last }
-  let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(pprof_data) }
-
   let(:raw_reference_stack) { stacks.fetch(:reference) }
-  let(:reference_stack) do
-    raw_reference_stack.map do |location|
-      { base_label: location.base_label, path: location.path, lineno: location.lineno }
-    end
-  end
+  let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
   let(:gathered_stack) { stacks.fetch(:gathered) }
 
   # Kernel#sleep is one of many Ruby standard library APIs that are implemented using native code. Older versions of
@@ -238,24 +230,39 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   context 'when trying to sample something which is not a thread' do
     it 'raises a TypeError' do
-      expect { collectors_stack.sample(:not_a_thread, recorder, metric_values, labels) }.to raise_error(TypeError)
+      expect do
+        collectors_stack.sample(:not_a_thread, Datadog::Profiling::StackRecorder.new, metric_values, labels)
+      end.to raise_error(TypeError)
     end
   end
 
   context 'when max_frames is too small' do
     it 'raises an ArgumentError' do
-      expect { collectors_stack.sample(Thread.current, recorder, metric_values, labels, max_frames: 4) }.to raise_error(ArgumentError)
+      expect do
+        collectors_stack.sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 4)
+      end.to raise_error(ArgumentError)
     end
   end
 
   context 'when max_frames is too large' do
     it 'raises an ArgumentError' do
-      expect { collectors_stack.sample(Thread.current, recorder, metric_values, labels, max_frames: 10_001) }.to raise_error(ArgumentError)
+      expect do
+        collectors_stack.sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 10_001)
+      end.to raise_error(ArgumentError)
     end
   end
 
-  def sample_and_decode(thread, max_frames: 400)
+  def convert_reference_stack(raw_reference_stack)
+    raw_reference_stack.map do |location|
+      { base_label: location.base_label, path: location.path, lineno: location.lineno }
+    end
+  end
+
+  def sample_and_decode(thread, max_frames: 400, recorder: Datadog::Profiling::StackRecorder.new)
     collectors_stack.sample(thread, recorder, metric_values, labels, max_frames: max_frames)
+
+    pprof_data = recorder.serialize.last
+    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
 
     expect(decoded_profile.sample.size).to be 1
     sample = decoded_profile.sample.first
