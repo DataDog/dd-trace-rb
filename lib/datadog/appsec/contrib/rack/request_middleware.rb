@@ -16,7 +16,7 @@ module Datadog
           def initialize(app, opt = {})
             @app = app
 
-            @first_request = true
+            @oneshot_tags_sent = false
             @processor = Datadog::AppSec::Processor.new
           end
 
@@ -55,22 +55,15 @@ module Datadog
 
             request_return
           ensure
-            add_waf_runtime_tags(context)
-            request!
+            add_waf_runtime_tags(context) if context
           end
 
           private
 
-          def first_request?
-            @first_request
-          end
-
-          def request!
-            @first_request = false
-          end
-
           def active_trace
-            return unless defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+            # TODO: factor out tracing availability detection
+
+            return unless defined?(Datadog::Tracing)
 
             Datadog::Tracing.active_trace
           end
@@ -84,20 +77,32 @@ module Datadog
 
             if @processor.ruleset_info
               active_trace.set_tag('_dd.appsec.event_rules.version', @processor.ruleset_info[:version])
-              if first_request?
+
+              unless @oneshot_tags_sent
+                # Small race condition, but it's inoccuous: worst case the tags
+                # are sent a couple of times more than expected
+                @oneshot_tags_sent = true
+
                 active_trace.set_tag('_dd.appsec.event_rules.loaded', @processor.ruleset_info[:loaded].to_f)
                 active_trace.set_tag('_dd.appsec.event_rules.error_count', @processor.ruleset_info[:failed].to_f)
                 active_trace.set_tag('_dd.appsec.event_rules.errors', JSON.dump(@processor.ruleset_info[:errors]))
                 active_trace.set_tag('_dd.appsec.event_rules.addresses', JSON.dump(@processor.addresses))
+
+                # Ensure these tags reach the backend
                 active_trace.keep!
               end
             end
           end
 
           def add_waf_runtime_tags(context)
+            return unless active_trace
+            return unless context
+
             active_trace.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
-            active_trace.set_tag('_dd.appsec.waf.duration', context.time / 1000.0)
-            active_trace.set_tag('_dd.appsec.waf.duration_ext', context.time_ext / 1000.0)
+
+            # these tags expect time in us
+            active_trace.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
+            active_trace.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
           end
         end
       end

@@ -255,32 +255,32 @@ RSpec.describe Datadog::AppSec::Processor do
       end
 
       it { expect(runs.first.action).to eq :monitor }
-      it { expect(context.time).to be > 0 }
-      it { expect(context.time_ext).to be > 0 }
-      it { expect(context.time_ext).to be > context.time }
-      it { expect(context.time).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
+      it { expect(context.time_ns).to be > 0 }
+      it { expect(context.time_ext_ns).to be > 0 }
+      it { expect(context.time_ext_ns).to be > context.time_ns }
+      it { expect(context.time_ns).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
       it { expect(context.timeouts).to eq 0 }
 
       context 'with timeout' do
         let(:timeout) { 0 }
 
         it { expect(runs.first.action).to eq :good }
-        it { expect(context.time).to eq 0 }
-        it { expect(context.time_ext).to be > 0 }
+        it { expect(context.time_ns).to eq 0 }
+        it { expect(context.time_ext_ns).to be > 0 }
         it { expect(context.timeouts).to eq run_count }
       end
 
       context 'with multiple runs' do
         let(:run_count) { 10 }
 
-        it { expect(context.time).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
+        it { expect(context.time_ns).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
 
         context 'with timeout' do
           let(:timeout) { 0 }
 
           it { expect(runs.first.action).to eq :good }
-          it { expect(context.time).to eq 0 }
-          it { expect(context.time_ext).to be > 0 }
+          it { expect(context.time_ns).to eq 0 }
+          it { expect(context.time_ext_ns).to be > 0 }
           it { expect(context.timeouts).to eq run_count }
         end
       end

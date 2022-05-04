@@ -97,13 +97,17 @@ module Datadog
               private
 
               def active_trace
-                return unless defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_trace)
+                # TODO: factor out tracing availability detection
+
+                return unless defined?(Datadog::Tracing)
 
                 Datadog::Tracing.active_trace
               end
 
               def active_span
-                return unless defined?(Datadog::Tracing) && Datadog::Tracing.respond_to?(:active_span)
+                # TODO: factor out tracing availability detection
+
+                return unless defined?(Datadog::Tracing)
 
                 Datadog::Tracing.active_span
               end

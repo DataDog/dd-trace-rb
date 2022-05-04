@@ -16,26 +16,26 @@ module Datadog
         end
       end
 
-      # Context wraps libddwaf's context
+      # Context manages a sequence of runs
       class Context
-        attr_reader :time, :time_ext, :timeouts
+        attr_reader :time_ns, :time_ext_ns, :timeouts
 
         def initialize(processor)
           @context = Datadog::AppSec::WAF::Context.new(processor.send(:handle))
-          @time = 0.0
-          @time_ext = 0.0
+          @time_ns = 0.0
+          @time_ext_ns = 0.0
           @timeouts = 0
         end
 
         def run(*args)
-          start = Core::Utils::Time.get_time
+          start_ns = Core::Utils::Time.get_time(:nanosecond)
 
           ret, res = @context.run(*args)
 
-          stop = Core::Utils::Time.get_time
+          stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          @time += res.total_runtime
-          @time_ext += (stop - start) * 1_000_000_000
+          @time_ns += res.total_runtime
+          @time_ext_ns += (stop_ns - start_ns)
           @timeouts += 1 if res.timeout
 
           [ret, res]
@@ -48,6 +48,7 @@ module Datadog
         @ruleset = nil
         @handle = nil
         @ruleset_info = nil
+        @addresses = nil
 
         unless load_libddwaf && load_ruleset && create_waf_handle
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
