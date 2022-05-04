@@ -11,7 +11,6 @@ module Datadog
           ENV_ENABLED = 'DD_TRACE_SIDEKIQ_ENABLED'.freeze
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE'.freeze
-          ENV_TAG_JOB_ARGS = 'DD_SIDEKIQ_TAG_JOB_ARGS'.freeze # @deprecated Use :quantize instead.
           SERVICE_NAME = 'sidekiq'.freeze
           SPAN_PUSH = 'sidekiq.push'.freeze
           SPAN_JOB = 'sidekiq.job'.freeze
