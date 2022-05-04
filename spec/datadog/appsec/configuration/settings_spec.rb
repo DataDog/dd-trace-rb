@@ -82,6 +82,28 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       it { expect { trace_rate_limit_ }.to change { settings.trace_rate_limit }.from(100).to(2) }
     end
 
+    describe '#obfuscator_key_regex' do
+      subject(:obfuscator_key_regex) { settings.obfuscator_key_regex }
+      it { is_expected.to include('token') }
+    end
+
+    describe '#obfuscator_key_regex=' do
+      subject(:obfuscator_key_regex_) { settings.merge(dsl.tap { |c| c.obfuscator_key_regex = 'bar' }) }
+      let(:default) { described_class::DEFAULT_OBFUSCATOR_KEY_REGEX }
+      it { expect { obfuscator_key_regex_ }.to change { settings.obfuscator_key_regex }.from(default).to('bar') }
+    end
+
+    describe '#obfuscator_value_regex' do
+      subject(:obfuscator_value_regex) { settings.obfuscator_value_regex }
+      it { is_expected.to include('token') }
+    end
+
+    describe '#obfuscator_value_regex=' do
+      subject(:obfuscator_value_regex_) { settings.merge(dsl.tap { |c| c.obfuscator_value_regex = 'bar' }) }
+      let(:default) { described_class::DEFAULT_OBFUSCATOR_VALUE_REGEX }
+      it { expect { obfuscator_value_regex_ }.to change { settings.obfuscator_value_regex }.from(default).to('bar') }
+    end
+
     describe '#[]' do
       describe 'when the integration exists' do
         subject(:get) { settings[integration_name] }
@@ -185,6 +207,38 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         describe '#trace_rate_limit=' do
           subject(:trace_rate_limit_) { settings.merge(dsl.tap { |c| c.trace_rate_limit = 2 }) }
           it { expect { trace_rate_limit_ }.to change { settings.trace_rate_limit }.from(1024).to(2) }
+        end
+      end
+
+      describe 'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP' do
+        before do
+          allow(ENV).to receive(:[]).with('DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP').and_return('bar')
+        end
+
+        describe '#obfuscator_key_regex' do
+          subject(:obfuscator_key_regex) { settings.obfuscator_key_regex }
+          it { is_expected.to eq('bar') }
+        end
+
+        describe '#obfuscator_key_regex=' do
+          subject(:obfuscator_key_regex_) { settings.merge(dsl.tap { |c| c.obfuscator_key_regex = 'baz' }) }
+          it { expect { obfuscator_key_regex_ }.to change { settings.obfuscator_key_regex }.from('bar').to('baz') }
+        end
+      end
+
+      describe 'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' do
+        before do
+          allow(ENV).to receive(:[]).with('DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP').and_return('bar')
+        end
+
+        describe '#obfuscator_value_regex' do
+          subject(:obfuscator_value_regex) { settings.obfuscator_value_regex }
+          it { is_expected.to eq('bar') }
+        end
+
+        describe '#obfuscator_value_regex=' do
+          subject(:obfuscator_value_regex_) { settings.merge(dsl.tap { |c| c.obfuscator_value_regex = 'baz' }) }
+          it { expect { obfuscator_value_regex_ }.to change { settings.obfuscator_value_regex }.from('bar').to('baz') }
         end
       end
     end
