@@ -89,9 +89,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
     end
 
+    # rubocop:disable Style/EvalWithLocation
     context 'when sampling a top-level eval' do
       let(:do_in_background_thread) do
-        proc do |ready_queue|
+        proc do
           eval(%(
             ready_queue << true
             sleep
@@ -117,11 +118,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       let(:eval_test_class) do
         Class.new do
           def call_eval
-            eval("call_instance_eval")
+            eval('call_instance_eval')
           end
 
           def call_instance_eval
-            instance_eval("call_sleep")
+            instance_eval('call_sleep')
           end
 
           def call_sleep
@@ -150,6 +151,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         )
       end
     end
+    # rubocop:enable Style/EvalWithLocation
   end
 
   context 'when sampling a thread with a stack that is deeper than the configured max_frames' do
