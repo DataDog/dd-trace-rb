@@ -151,6 +151,25 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         )
       end
     end
+
+    context 'when sampling an eval with a custom file and line provided' do
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          ready_queue << true
+          eval('sleep', binding, '/this/is/a/fake_file_.rb', -123456789)
+        end
+      end
+
+      it 'matches the Ruby backtrace API' do
+        expect(gathered_stack).to eq reference_stack
+      end
+
+      it 'has a frame with the custom file and line provided on the stack' do
+        expect(reference_stack).to include(
+          hash_including(path: '/this/is/a/fake_file_.rb', lineno: -123456789),
+        )
+      end
+    end
     # rubocop:enable Style/EvalWithLocation
   end
 
