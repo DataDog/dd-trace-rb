@@ -186,11 +186,9 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
       # rubocop:enable Style/GlobalVars
 
-      it 'matches the Ruby backtrace API' do
+      # I opted to join these two expects to avoid running the `load` above more than once
+      it 'matches the Ruby backtrace API has has a sleeping frame at the top of the stack' do
         expect(gathered_stack).to eq reference_stack
-      end
-
-      it 'has a sleeping frame at the top of the stack' do
         expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
       end
     end

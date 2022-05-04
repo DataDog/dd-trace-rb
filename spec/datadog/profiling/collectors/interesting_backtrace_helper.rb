@@ -174,8 +174,27 @@ IbhClassN = Class.new do
   end
 end
 
+def ibh_subclass_of_anonymous_class
+  c1 = Class.new(Array)
+  c2 = Class.new(c1) do
+    def hello
+      [nil].map { IbhClassN.new.hello }.first
+    end
+  end
+
+  c2.new.hello
+end
+
+module IbhModuleO
+  module_function
+
+  def hello
+    ibh_subclass_of_anonymous_class
+  end
+end
+
 def ibh_top_level_hello
-  IbhClassN.new.hello
+  IbhModuleO.hello
 end
 
 1.times {
