@@ -179,6 +179,10 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Skip frames where `cfp->iseq && !cfp->pc`. These seem to be internal and are skipped by `backtrace_each` in
 //   `vm_backtrace.c`.
 // * Check thread status and do not sample if thread has been killed.
+// * Match Ruby reference stack trace APIs that use the iseq instead of the callable method entry to get information
+//   for iseqs created from calls to `eval` and `instance_eval`. This makes it so that `rb_profile_frame_path` on
+//   the `VALUE` returned by rb_profile_frames returns `(eval)` instead of the path of the file where the `eval`
+//   was called from.
 //
 // **IMPORTANT: WHEN CHANGING THIS FUNCTION, CONSIDER IF THE SAME CHANGE ALSO NEEDS TO BE MADE TO THE VARIANT FOR
 // RUBY 2.2 AND BELOW WHICH IS ALSO PRESENT ON THIS FILE**
@@ -206,6 +210,11 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // 4. Because we haven't yet submitted patches to upstream Ruby. As with any changes on the `private_vm_api_access.c`,
 //    our medium/long-term plan is to contribute upstream changes and make it so that we don't need any of this
 //    on modern Rubies.
+//
+// 5. To make rb_profile_frames behave more like the Ruby-level reference stack trace APIs (`Thread#backtrace_locations`
+//    and friends). We've found quite a few situations where the data from rb_profile_frames and the reference APIs
+//    disagree, and quite a few of them seem oversights/bugs (speculation from my part) rather than deliberate
+//    decisions.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
 {
     int i;
@@ -262,7 +271,26 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
             /* record frame info */
             cme = rb_vm_frame_method_entry(cfp);
-            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ) {
+
+            if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ &&
+              // Fix: Do not use callable method entry when iseq is for an eval.
+              // TL;DR: This fix is needed for us to match the Ruby reference API information in the
+              // "when sampling an eval/instance eval inside an object" spec.
+              //
+              // Longer note:
+              // When a frame is a ruby frame (VM_FRAME_RUBYFRAME_P above), we can get information about it
+              // by introspecting both the callable method entry, as well as the iseq directly.
+              // Often they match... but sometimes they provide different info (as in the "iseq for an eval" situation
+              // here).
+              // If my reading of vm_backtrace.c is correct, the actual Ruby stack trace API **never** uses the
+              // callable method entry for Ruby frames, but only for VM_METHOD_TYPE_CFUNC (see `backtrace_each` method
+              // on that file).
+              // So... why does `rb_profile_frames` do something different? Is it a bug? Is it because it exposes
+              // more information than the Ruby stack frame API?
+              // As a final note, the `backtracie` gem (https://github.com/ivoanjo/backtracie) can be used to introspect
+              // the full metadata provided by both the callable method entry as well as the iseq, and is really useful
+              // to debug and learn more about these differences.
+              cfp->iseq->body->type != ISEQ_TYPE_EVAL) {
                 buff[i] = (VALUE)cme;
             }
             else {

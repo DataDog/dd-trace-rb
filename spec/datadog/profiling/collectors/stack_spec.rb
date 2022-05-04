@@ -86,7 +86,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  context 'when sampling an eval' do
+  context 'when sampling a top-level eval' do
     let(:ready_queue) { Queue.new }
     let(:thread_running_eval) do
       Thread.new(ready_queue) do |ready_queue|
@@ -114,8 +114,62 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
 
     it 'has eval frames on the stack' do
-      expect(reference_stack[0..2])
-        .to match([hash_including(base_label: 'sleep'), hash_including(path: '(eval)'), hash_including(base_label: 'eval')])
+      expect(reference_stack[0..2]).to contain_exactly(
+        hash_including(base_label: 'sleep', path: '(eval)'),
+        hash_including(base_label: '<top (required)>', path: '(eval)'),
+        hash_including(base_label: 'eval', path: end_with('stack_spec.rb')),
+      )
+    end
+  end
+
+  context 'when sampling an eval/instance eval inside an object' do
+    let(:eval_test_class) do
+      Class.new do
+        def call_eval
+          eval("call_instance_eval")
+        end
+
+        def call_instance_eval
+          instance_eval("call_sleep")
+        end
+
+        def call_sleep
+          sleep
+        end
+      end
+    end
+    let(:ready_queue) { Queue.new }
+    let(:thread_running_eval) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        eval_test_class.new.call_eval
+      end
+    end
+
+    before do
+      thread_running_eval
+      ready_queue.pop
+    end
+
+    after do
+      thread_running_eval.kill
+      thread_running_eval.join
+    end
+
+    let(:stacks) { { reference: thread_running_eval.backtrace_locations, gathered: sample_and_decode(thread_running_eval) } }
+
+    it 'matches the Ruby backtrace API' do
+      expect(gathered_stack).to eq reference_stack
+    end
+
+    it 'has two eval frames on the stack' do
+      expect(reference_stack).to include(
+        # These two frames are the frames that get created with the evaluation of the string, e.g. if instead of
+        # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
+        # although you don't see a block there.
+        hash_including(base_label: 'call_eval', path: '(eval)', lineno: 1),
+        hash_including(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
+      )
     end
   end
 
