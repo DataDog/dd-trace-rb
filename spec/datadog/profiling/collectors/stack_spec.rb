@@ -171,6 +171,29 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
     end
     # rubocop:enable Style/EvalWithLocation
+
+    context 'when sampling the interesting backtrace helper' do
+      # rubocop:disable Style/GlobalVars
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          $ibh_ready_queue = ready_queue
+          load("#{__dir__}/interesting_backtrace_helper.rb")
+        end
+      end
+
+      after do
+        $ibh_ready_queue = nil
+      end
+      # rubocop:enable Style/GlobalVars
+
+      it 'matches the Ruby backtrace API' do
+        expect(gathered_stack).to eq reference_stack
+      end
+
+      it 'has a sleeping frame at the top of the stack' do
+        expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
+      end
+    end
   end
 
   context 'when sampling a thread with a stack that is deeper than the configured max_frames' do
