@@ -10,3 +10,4 @@ require 'datadog/appsec/autoload' # TODO: datadog/appsec?
 # Load other products (must follow tracing)
 require 'datadog/profiling'
 require 'datadog/ci'
+require 'datadog/kit'
