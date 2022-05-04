@@ -19,38 +19,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
   let(:gathered_stack) { stacks.fetch(:gathered) }
 
-  # Kernel#sleep is one of many Ruby standard library APIs that are implemented using native code. Older versions of
-  # rb_profile_frames did not include these frames in their output, so this spec tests that our rb_profile_frames fixes
-  # do correctly overcome this.
-  context 'when sampling a sleeping thread' do
-    let(:ready_queue) { Queue.new }
-    let(:stacks) { { reference: sleeping_thread.backtrace_locations, gathered: sample_and_decode(sleeping_thread) } }
-    let(:sleeping_thread) do
-      Thread.new(ready_queue) do |ready_queue|
-        ready_queue << true
-        sleep
-      end
-    end
-
-    before do
-      sleeping_thread
-      ready_queue.pop
-    end
-
-    after do
-      sleeping_thread.kill
-      sleeping_thread.join
-    end
-
-    it 'matches the Ruby backtrace API' do
-      expect(gathered_stack).to eq reference_stack
-    end
-
-    it 'has a sleeping frame at the top of the stack' do
-      expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
-    end
-  end
-
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
   # main thread than the reference Ruby API. This is almost-surely a bug in rb_profile_frames, since the same frame
   # gets excluded from the reference Ruby API.
@@ -86,90 +54,101 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  context 'when sampling a top-level eval' do
+  context 'in a background thread' do
     let(:ready_queue) { Queue.new }
-    let(:thread_running_eval) do
-      Thread.new(ready_queue) do |ready_queue|
-        eval(%(
+    let(:stacks) { { reference: background_thread.backtrace_locations, gathered: sample_and_decode(background_thread) } }
+    let(:background_thread) { Thread.new(ready_queue, &do_in_background_thread) }
+
+    before do
+      background_thread
+      ready_queue.pop
+    end
+
+    after do
+      background_thread.kill
+      background_thread.join
+    end
+
+    # Kernel#sleep is one of many Ruby standard library APIs that are implemented using native code. Older versions of
+    # rb_profile_frames did not include these frames in their output, so this spec tests that our rb_profile_frames fixes
+    # do correctly overcome this.
+    context 'when sampling a sleeping thread' do
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
           ready_queue << true
           sleep
-        ))
+        end
+      end
+
+      it 'matches the Ruby backtrace API' do
+        expect(gathered_stack).to eq reference_stack
+      end
+
+      it 'has a sleeping frame at the top of the stack' do
+        expect(reference_stack.first).to match(hash_including(base_label: 'sleep'))
       end
     end
 
-    before do
-      thread_running_eval
-      ready_queue.pop
-    end
-
-    after do
-      thread_running_eval.kill
-      thread_running_eval.join
-    end
-
-    let(:stacks) { { reference: thread_running_eval.backtrace_locations, gathered: sample_and_decode(thread_running_eval) } }
-
-    it 'matches the Ruby backtrace API' do
-      expect(gathered_stack).to eq reference_stack
-    end
-
-    it 'has eval frames on the stack' do
-      expect(reference_stack[0..2]).to contain_exactly(
-        hash_including(base_label: 'sleep', path: '(eval)'),
-        hash_including(base_label: '<top (required)>', path: '(eval)'),
-        hash_including(base_label: 'eval', path: end_with('stack_spec.rb')),
-      )
-    end
-  end
-
-  context 'when sampling an eval/instance eval inside an object' do
-    let(:eval_test_class) do
-      Class.new do
-        def call_eval
-          eval("call_instance_eval")
-        end
-
-        def call_instance_eval
-          instance_eval("call_sleep")
-        end
-
-        def call_sleep
-          sleep
+    context 'when sampling a top-level eval' do
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          eval(%(
+            ready_queue << true
+            sleep
+          ))
         end
       end
-    end
-    let(:ready_queue) { Queue.new }
-    let(:thread_running_eval) do
-      Thread.new(ready_queue) do |ready_queue|
-        ready_queue << true
-        eval_test_class.new.call_eval
+
+      it 'matches the Ruby backtrace API' do
+        expect(gathered_stack).to eq reference_stack
+      end
+
+      it 'has eval frames on the stack' do
+        expect(reference_stack[0..2]).to contain_exactly(
+          hash_including(base_label: 'sleep', path: '(eval)'),
+          hash_including(base_label: '<top (required)>', path: '(eval)'),
+          hash_including(base_label: 'eval', path: end_with('stack_spec.rb')),
+        )
       end
     end
 
-    before do
-      thread_running_eval
-      ready_queue.pop
-    end
+    # We needed to patch our custom rb_profile_frames to match the reference stack on this case
+    context 'when sampling an eval/instance eval inside an object' do
+      let(:eval_test_class) do
+        Class.new do
+          def call_eval
+            eval("call_instance_eval")
+          end
 
-    after do
-      thread_running_eval.kill
-      thread_running_eval.join
-    end
+          def call_instance_eval
+            instance_eval("call_sleep")
+          end
 
-    let(:stacks) { { reference: thread_running_eval.backtrace_locations, gathered: sample_and_decode(thread_running_eval) } }
+          def call_sleep
+            sleep
+          end
+        end
+      end
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          ready_queue << true
+          eval_test_class.new.call_eval
+        end
+      end
 
-    it 'matches the Ruby backtrace API' do
-      expect(gathered_stack).to eq reference_stack
-    end
+      it 'matches the Ruby backtrace API' do
+        expect(gathered_stack).to eq reference_stack
+      end
 
-    it 'has two eval frames on the stack' do
-      expect(reference_stack).to include(
-        # These two frames are the frames that get created with the evaluation of the string, e.g. if instead of
-        # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
-        # although you don't see a block there.
-        hash_including(base_label: 'call_eval', path: '(eval)', lineno: 1),
-        hash_including(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
-      )
+      it 'has two eval frames on the stack' do
+        expect(reference_stack).to include(
+          # These two frames are the frames that get created with the evaluation of the string, e.g. if instead of
+          # `eval("foo")` we did `eval { foo }` then it is the block containing foo; eval with a string works similarly,
+          # although you don't see a block there.
+          hash_including(base_label: 'call_eval', path: '(eval)', lineno: 1),
+          hash_including(base_label: 'call_instance_eval', path: '(eval)', lineno: 1),
+        )
+      end
     end
   end
 
