@@ -19,7 +19,8 @@ module Datadog
               setup_at_fork_hooks
             rescue StandardError, ScriptError => e
               Datadog.logger.warn do
-                "Profiler extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+                "Profiler extensions unavailable. Cause: #{e.class.name} #{e.message} " \
+                "Location: #{Array(e.backtrace).first}"
               end
             end
           end
@@ -35,7 +36,8 @@ module Datadog
           end
         rescue StandardError, ScriptError => e
           Datadog.logger.warn do
-            "Profiler forking extensions unavailable. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+            "Profiler forking extensions unavailable. Cause: #{e.class.name} #{e.message} " \
+            "Location: #{Array(e.backtrace).first}"
           end
         end
 
@@ -65,7 +67,8 @@ module Datadog
                 Profiling.start_if_enabled
               rescue StandardError => e
                 Datadog.logger.warn do
-                  "Error during post-fork hooks. Cause: #{e.message} Location: #{Array(e.backtrace).first}"
+                  "Error during post-fork hooks. Cause: #{e.class.name} #{e.message} " \
+                  "Location: #{Array(e.backtrace).first}"
                 end
               end
             end

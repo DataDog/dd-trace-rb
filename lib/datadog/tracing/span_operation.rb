@@ -399,7 +399,7 @@ module Datadog
               rescue StandardError => e
                 Datadog.logger.debug do
                   "Custom on_error handler #{@handler} failed, using fallback behavior. \
-                  Error: #{e.message} Location: #{Array(e.backtrace).first}"
+                  Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 end
 
                 original.call(op, error) if original
@@ -412,7 +412,7 @@ module Datadog
               @handler.call(*args)
             rescue StandardError => e
               Datadog.logger.debug do
-                "Error in on_error handler '#{@default}': #{e.message} at #{Array(e.backtrace).first}"
+                "Error in on_error handler '#{@default}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
               end
             end
 
@@ -457,18 +457,18 @@ module Datadog
       # we don't want this SpanOperation to modify it further.
       def build_span
         Span.new(
-          @name.frozen? ? @name : @name.dup,
+          @name,
           duration: duration,
           end_time: @end_time,
           id: @id,
           meta: meta.dup,
           metrics: metrics.dup,
           parent_id: @parent_id,
-          resource: @resource.frozen? ? @resource : @resource.dup,
-          service: @service.frozen? ? @service : @service.dup,
+          resource: @resource,
+          service: @service,
           start_time: @start_time,
           status: @status,
-          type: @type.frozen? ? @type : @type.dup,
+          type: @type,
           trace_id: @trace_id
         )
       end

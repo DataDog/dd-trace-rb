@@ -5,12 +5,14 @@ require 'datadog/tracing/context'
 module Datadog
   module Tracing
     # DefaultContextProvider is a default context provider that retrieves
-    # all contexts from the current thread-local storage. It is suitable for
+    # all contexts from the current fiber-local storage. It is suitable for
     # synchronous programming.
+    #
+    # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
     class DefaultContextProvider
-      # Initializes the default context provider with a thread-bound context.
+      # Initializes the default context provider with a fiber-bound context.
       def initialize
-        @context = ThreadLocalContext.new
+        @context = FiberLocalContext.new
       end
 
       # Sets the current context.
@@ -35,32 +37,29 @@ module Datadog
       end
     end
 
-    # ThreadLocalContext can be used as a tracer global reference to create
-    # a different {Datadog::Tracing::Context} for each thread. In synchronous tracer, this
-    # is required to prevent multiple threads sharing the same {Datadog::Tracing::Context}
-    # in different executions.
-    class ThreadLocalContext
-      # ThreadLocalContext can be used as a tracer global reference to create
-      # a different {Datadog::Tracing::Context} for each thread. In synchronous tracer, this
-      # is required to prevent multiple threads sharing the same {Datadog::Tracing::Context}
-      # in different executions.
-      #
-      # To support multiple tracers simultaneously, each {Datadog::Tracing::ThreadLocalContext}
-      # instance has its own thread-local variable.
+    # FiberLocalContext can be used as a tracer global reference to create
+    # a different {Datadog::Tracing::Context} for each fiber. This allows for the tracer
+    # to create a serial execution graph regardless of any concurrent execution: each
+    # concurrent execution path creates a new trace graph.
+    #
+    # @see https://ruby-doc.org/core-3.1.2/Thread.html#method-i-5B-5D Thread attributes are fiber-local
+    class FiberLocalContext
+      # To support multiple tracers simultaneously, each {Datadog::Tracing::FiberLocalContext}
+      # instance has its own fiber-local variable.
       def initialize
         @key = "datadog_context_#{object_id}".to_sym
 
         self.local = Context.new
       end
 
-      # Override the thread-local context with a new context.
+      # Override the fiber-local context with a new context.
       def local=(ctx)
         Thread.current[@key] = ctx
       end
 
-      # Return the thread-local context.
-      def local(thread = Thread.current)
-        thread[@key] ||= Context.new
+      # Return the fiber-local context.
+      def local(storage = Thread.current)
+        storage[@key] ||= Context.new
       end
     end
   end

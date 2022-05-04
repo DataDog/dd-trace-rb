@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/rack/middlewares'
 
 require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/sinatra/integration'
 require 'datadog/appsec/contrib/rack/request_middleware'
 require 'datadog/appsec/contrib/sinatra/framework'
 require 'datadog/tracing/contrib/sinatra/framework'

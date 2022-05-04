@@ -34,7 +34,6 @@ module ::Faraday::RackBuilder; end
 module ::GRPC::InterceptionContext; end
 module ::Grape::API::Instance; end
 module ::Grape::Endpoint; end
-module ::GraphQL::Tracing::DataDogTracing; end
 module ::HTTP::Client; end
 module ::HTTPClient; end
 module ::Lograge::LogSubscribers::Base; end

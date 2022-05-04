@@ -5,6 +5,7 @@ module Datadog
     module Configuration
       # Configuration settings, acting as an integration registry
       # TODO: as with Configuration, this is a trivial implementation
+      # rubocop:disable Metrics/ClassLength
       class Settings
         class << self
           def boolean
@@ -84,12 +85,19 @@ module Datadog
           # rubocop:enable Metrics/MethodLength
         end
 
+        # rubocop:disable Metrics/LineLength
+        DEFAULT_OBFUSCATOR_KEY_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:_?phrase)?|secret|(?:api_?|private_?|public_?)key)|token|consumer_?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization'.freeze
+        DEFAULT_OBFUSCATOR_VALUE_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:_?phrase)?|secret|(?:api_?|private_?|public_?|access_?|secret_?)key(?:_?id)?|token|consumer_?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?)(?:\s*=[^;]|"\s*:\s*"[^"]+")|bearer\s+[a-z0-9\._\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\w=-]+\.ey[I-L][\w=-]+(?:\.[\w.+\/=-]+)?|[\-]{5}BEGIN[a-z\s]+PRIVATE\sKEY[\-]{5}[^\-]+[\-]{5}END[a-z\s]+PRIVATE\sKEY|ssh-rsa\s*[a-z0-9\/\.+]{100,}'.freeze
+        # rubocop:enable Metrics/LineLength
+
         DEFAULTS = {
           enabled: false,
           ruleset: :recommended,
           waf_timeout: 5_000, # us
           waf_debug: false,
           trace_rate_limit: 100, # traces/s
+          obfuscator_key_regex: DEFAULT_OBFUSCATOR_KEY_REGEX,
+          obfuscator_value_regex: DEFAULT_OBFUSCATOR_VALUE_REGEX,
         }.freeze
 
         ENVS = {
@@ -98,6 +106,8 @@ module Datadog
           'DD_APPSEC_WAF_TIMEOUT' => [:waf_timeout, Settings.duration(:us)],
           'DD_APPSEC_WAF_DEBUG' => [:waf_debug, Settings.boolean],
           'DD_APPSEC_TRACE_RATE_LIMIT' => [:trace_rate_limit, Settings.integer],
+          'DD_APPSEC_OBFUSCATION_PARAMETER_KEY_REGEXP' => [:obfuscator_key_regex, Settings.string],
+          'DD_APPSEC_OBFUSCATION_PARAMETER_VALUE_REGEXP' => [:obfuscator_value_regex, Settings.string],
         }.freeze
 
         Integration = Struct.new(:integration, :options)
@@ -129,6 +139,14 @@ module Datadog
 
         def trace_rate_limit
           @options[:trace_rate_limit]
+        end
+
+        def obfuscator_key_regex
+          @options[:obfuscator_key_regex]
+        end
+
+        def obfuscator_value_regex
+          @options[:obfuscator_value_regex]
         end
 
         def [](integration_name)
@@ -170,6 +188,7 @@ module Datadog
           initialize
         end
       end
+      # rubocop:enable Metrics/ClassLength
     end
   end
 end

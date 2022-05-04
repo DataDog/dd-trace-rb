@@ -70,7 +70,11 @@ module Datadog
         # TODO: this may need to be reset if the main Datadog logging level changes after initialization
         Datadog::AppSec::WAF.logger = Datadog.logger if Datadog.logger.debug? && Datadog::AppSec.settings.waf_debug
 
-        @handle = Datadog::AppSec::WAF::Handle.new(@ruleset)
+        obfuscator_config = {
+          key_regex: Datadog::AppSec.settings.obfuscator_key_regex,
+          value_regex: Datadog::AppSec.settings.obfuscator_value_regex,
+        }
+        @handle = Datadog::AppSec::WAF::Handle.new(@ruleset, obfuscator: obfuscator_config)
 
         true
       rescue StandardError => e

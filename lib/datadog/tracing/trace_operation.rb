@@ -9,6 +9,7 @@ require 'datadog/tracing/event'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/trace_digest'
+require 'datadog/tracing/metadata/tagging'
 
 module Datadog
   module Tracing
@@ -24,19 +25,18 @@ module Datadog
     # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
+      include Metadata::Tagging
+
       DEFAULT_MAX_LENGTH = 100_000
 
       attr_accessor \
         :agent_sample_rate,
         :hostname,
-        :name,
         :origin,
         :rate_limiter_rate,
-        :resource,
         :rule_sample_rate,
         :sample_rate,
-        :sampling_priority,
-        :service
+        :sampling_priority
 
       attr_reader \
         :active_span_count,
@@ -46,7 +46,10 @@ module Datadog
         :parent_span_id
 
       attr_writer \
-        :sampled
+        :name,
+        :resource,
+        :sampled,
+        :service
 
       def initialize(
         agent_sample_rate: nil,
@@ -63,7 +66,9 @@ module Datadog
         sample_rate: nil,
         sampled: nil,
         sampling_priority: nil,
-        service: nil
+        service: nil,
+        tags: nil,
+        metrics: nil
       )
         # Attributes
         @events = events || Events.new
@@ -83,6 +88,10 @@ module Datadog
         @sample_rate = sample_rate
         @sampling_priority = sampling_priority
         @service = service
+
+        # Generic tags
+        set_tags(tags) if tags
+        set_tags(metrics) if metrics
 
         # State
         @root_span = nil
@@ -117,6 +126,18 @@ module Datadog
       def reject!
         self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
+      end
+
+      def name
+        @name || (root_span && root_span.name)
+      end
+
+      def resource
+        @resource || (root_span && root_span.resource)
+      end
+
+      def service
+        @service || (root_span && root_span.service)
       end
 
       def measure(
@@ -233,13 +254,13 @@ module Datadog
           span_type: (@active_span && @active_span.type),
           trace_hostname: @hostname,
           trace_id: @id,
-          trace_name: @name,
+          trace_name: name,
           trace_origin: @origin,
           trace_process_id: Core::Environment::Identity.pid,
-          trace_resource: @resource,
+          trace_resource: resource,
           trace_runtime_id: Core::Environment::Identity.id,
           trace_sampling_priority: @sampling_priority,
-          trace_service: @service
+          trace_service: service,
         ).freeze
       end
 
@@ -252,16 +273,18 @@ module Datadog
           hostname: (@hostname && @hostname.dup),
           id: @id,
           max_length: @max_length,
-          name: (@name && @name.dup),
+          name: (name && name.dup),
           origin: (@origin && @origin.dup),
           parent_span_id: (@active_span && @active_span.id) || @parent_span_id,
           rate_limiter_rate: @rate_limiter_rate,
-          resource: (@resource && @resource.dup),
+          resource: (resource && resource.dup),
           rule_sample_rate: @rule_sample_rate,
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: (@service && @service.dup)
+          service: (service && service.dup),
+          tags: meta.dup,
+          metrics: metrics.dup
         )
       end
 
@@ -359,7 +382,7 @@ module Datadog
           deactivate_span!(span_op)
 
           # Set finished, to signal root span has completed.
-          @finished = true if span_op == @root_span
+          @finished = true if span_op == root_span
 
           # Update active span count
           @active_span_count -= 1
@@ -379,12 +402,6 @@ module Datadog
         return if span.nil? || root_span
 
         @root_span = span
-
-        # Auto populate these attributes if
-        # they haven't been set yet.
-        @name ||= span.name
-        @resource ||= span.resource
-        @service ||= span.service
       end
 
       def build_trace(spans, partial = false)
@@ -401,10 +418,12 @@ module Datadog
           runtime_id: Core::Environment::Identity.id,
           sample_rate: @sample_rate,
           sampling_priority: @sampling_priority,
-          name: @name,
-          resource: @resource,
-          service: @service,
-          root_span_id: !partial ? @root_span && @root_span.id : nil
+          name: name,
+          resource: resource,
+          service: service,
+          tags: meta,
+          metrics: metrics,
+          root_span_id: !partial ? root_span && root_span.id : nil
         )
       end
     end

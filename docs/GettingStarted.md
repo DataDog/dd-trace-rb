@@ -1,4 +1,4 @@
-***Version 1.0.0 is in beta! Check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10) for more details.***
+***Version 1.0.0 has been released. Check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10) for more details.***
 
 # Datadog Ruby Trace Client
 
@@ -105,6 +105,12 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 ## Compatibility
 
+<!--
+    Note: Please replicate any changes to this section also to
+    https://github.com/datadog/documentation/blob/master/content/en/tracing/setup_overview/compatibility_requirements/ruby.md
+    so that they remain in sync.
+-->
+
 **Supported Ruby interpreters**:
 
 | Type  | Documentation              | Version | Support type                         | Gem version support |
@@ -121,7 +127,8 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.0     | EOL since June 7th, 2021             | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.2     | Full                                 | Latest              |
+| JRuby | https://www.jruby.org      | 9.3     | Full                                 | Latest              |
+|       |                            | 9.2     | Full                                 | Latest              |
 
 **Supported web servers**:
 
@@ -454,6 +461,12 @@ end
 `options` is a `Hash` of integration-specific configuration settings.
 
 For a list of available integrations, and their configuration options, please refer to the following:
+
+<!--
+    Note: Please replicate any changes to this section also to
+    https://github.com/datadog/documentation/blob/master/content/en/tracing/setup_overview/compatibility_requirements/ruby.md
+    so that they remain in sync.
+-->
 
 | Name                       | Key                        | Versions Supported: MRI  | Versions Supported: JRuby | How to configure                    | Gem source                                                                     |
 | -------------------------- | -------------------------- | ------------------------ | --------------------------| ----------------------------------- | ------------------------------------------------------------------------------ |
@@ -1585,6 +1598,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
+| `service_name` | Service name used for `rake` instrumentation | `'rake'` |
 
 **Configuring task quantization behavior**
 

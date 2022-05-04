@@ -32,6 +32,11 @@ module Datadog
         # trace metadata, we must put our trace
         # metadata on the root span. This "root span"
         # is needed by the agent/API to ingest the trace.
+
+        # Apply generic trace tags. Any more specific value will be overridden
+        # by the subsequent calls below.
+        set_trace_tags!
+
         set_resource!
 
         tag_agent_sample_rate!
@@ -54,9 +59,19 @@ module Datadog
         # If the trace resource is undefined, or the root span wasn't
         # specified, don't set this. We don't want to overwrite the
         # resource of a span that is in the middle of the trace.
-        return if trace.resource.nil? || !@found_root_span
+        return if trace.resource.nil? || partial?
 
         root_span.resource = trace.resource
+      end
+
+      def set_trace_tags!
+        # If the root span wasn't specified, don't set this. We don't want to
+        # misset or overwrite the tags of a span that is in the middle of the
+        # trace.
+        return if partial?
+
+        root_span.set_tags(trace.send(:meta))
+        root_span.set_tags(trace.send(:metrics))
       end
 
       def tag_agent_sample_rate!
@@ -151,6 +166,10 @@ module Datadog
 
       private
 
+      def partial?
+        !@found_root_span
+      end
+
       def find_root_span(trace)
         # TODO: Should we memoize this?
         #       Would be safe, but `spans` is mutable, so if
@@ -159,6 +178,8 @@ module Datadog
         root_span_id = trace.send(:root_span_id)
         root_span = trace.spans.find { |s| s.id == root_span_id } if root_span_id
         @found_root_span = !root_span.nil?
+
+        # when root span is not found, fall back to last span (partial flush)
         root_span || trace.spans.last
       end
     end

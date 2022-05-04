@@ -38,7 +38,7 @@ module Datadog
                   framework: Ext::FRAMEWORK,
                   framework_version: CI::Contrib::RSpec::Integration.version.to_s,
                   test_name: test_name,
-                  test_suite: file_path,
+                  test_suite: metadata[:example_group][:file_path],
                   test_type: Ext::TEST_TYPE
                 }
               ) do |span|

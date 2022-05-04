@@ -6244,6 +6244,301 @@ class Google::Protobuf::UninterpretedOption
   extend ::Google::Protobuf::MessageExts::ClassMethods
 end
 
+
+module GraphQL
+  VERSION = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Analysis::AST::QueryComplexity::ScopedTypeComplexity
+  HASH_CHILDREN = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Backtrace::Table
+  HEADERS = ::T.let(nil, ::T.untyped)
+  MAX_COL_WIDTH = ::T.let(nil, ::T.untyped)
+  MIN_COL_WIDTH = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Backtrace::TracedError
+  CAUSE_BACKTRACE_PREVIEW_LENGTH = ::T.let(nil, ::T.untyped)
+  MESSAGE_TEMPLATE = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Execution
+  SKIP = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Execution::DirectiveChecks
+  INCLUDE = ::T.let(nil, ::T.untyped)
+  SKIP = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Execution::Interpreter::Arguments
+  EMPTY = ::T.let(nil, ::T.untyped)
+  NO_ARGS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Execution::Interpreter::ArgumentsCache
+  NO_ARGUMENTS = ::T.let(nil, ::T.untyped)
+  NO_VALUE_GIVEN = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Execution::Interpreter::Runtime
+  HALT = ::T.let(nil, ::T.untyped)
+  NO_ARGS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Execution::Lazy
+  NullResult = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Execution::Lookahead
+  NULL_LOOKAHEAD = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Execution::Multiplex
+  NO_OPERATION = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Introspection
+  INTROSPECTION_QUERY = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Language::Cache
+  DIGEST = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Language::Lexer
+  ESCAPES = ::T.let(nil, ::T.untyped)
+  ESCAPES_REPLACE = ::T.let(nil, ::T.untyped)
+  PACK_DIRECTIVE = ::T.let(nil, ::T.untyped)
+  UTF_8 = ::T.let(nil, ::T.untyped)
+  UTF_8_ENCODING = ::T.let(nil, ::T.untyped)
+  UTF_8_REPLACE = ::T.let(nil, ::T.untyped)
+  VALID_STRING = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Language::Nodes::AbstractNode
+  NO_CHILDREN = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Language::Nodes::Field
+  NONE = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Language::Parser
+  EMPTY_ARRAY = ::T.let(nil, ::T.untyped)
+  Racc_arg = ::T.let(nil, ::T.untyped)
+  Racc_debug_parser = ::T.let(nil, ::T.untyped)
+  Racc_token_to_s_table = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Language::SanitizedPrinter
+  REDACTED = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Language::Visitor
+  DELETE_NODE = ::T.let(nil, ::T.untyped)
+  SKIP = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::NameValidator
+  VALID_NAME_REGEX = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Query::Context
+  UNSPECIFIED_FETCH_DEFAULT = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Query::InputValidationResult
+  VALID = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema
+  BUILT_IN_TYPES = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Argument
+  NO_DEFAULT = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Directive
+  ARGUMENT_DEFINITION = ::T.let(nil, ::T.untyped)
+  DEFAULT_DEPRECATION_REASON = ::T.let(nil, ::T.untyped)
+  ENUM = ::T.let(nil, ::T.untyped)
+  ENUM_VALUE = ::T.let(nil, ::T.untyped)
+  FIELD = ::T.let(nil, ::T.untyped)
+  FIELD_DEFINITION = ::T.let(nil, ::T.untyped)
+  FRAGMENT_DEFINITION = ::T.let(nil, ::T.untyped)
+  FRAGMENT_SPREAD = ::T.let(nil, ::T.untyped)
+  INLINE_FRAGMENT = ::T.let(nil, ::T.untyped)
+  INPUT_FIELD_DEFINITION = ::T.let(nil, ::T.untyped)
+  INPUT_OBJECT = ::T.let(nil, ::T.untyped)
+  INTERFACE = ::T.let(nil, ::T.untyped)
+  LOCATIONS = ::T.let(nil, ::T.untyped)
+  LOCATION_DESCRIPTIONS = ::T.let(nil, ::T.untyped)
+  MUTATION = ::T.let(nil, ::T.untyped)
+  OBJECT = ::T.let(nil, ::T.untyped)
+  QUERY = ::T.let(nil, ::T.untyped)
+  SCALAR = ::T.let(nil, ::T.untyped)
+  SCHEMA = ::T.let(nil, ::T.untyped)
+  SUBSCRIPTION = ::T.let(nil, ::T.untyped)
+  UNION = ::T.let(nil, ::T.untyped)
+  VARIABLE_DEFINITION = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Directive::Transform
+  TRANSFORMS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Field
+  extend ::GraphQL::Schema::FindInheritedValue::EmptyObjects
+end
+
+module GraphQL::Schema::FindInheritedValue::EmptyObjects
+  EMPTY_ARRAY = ::T.let(nil, ::T.untyped)
+  EMPTY_HASH = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Schema::Loader
+  NullScalarCoerce = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Schema::Member::GraphQLTypeNames
+  Boolean = ::T.let(nil, ::T.untyped)
+  ID = ::T.let(nil, ::T.untyped)
+  Int = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Schema::Member::HasArguments
+  NO_ARGUMENTS = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Schema::Member::HasDirectives
+  NO_DIRECTIVES = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Schema::Member::HasFields
+  CONFLICT_FIELD_NAMES = ::T.let(nil, ::T.untyped)
+  GRAPHQL_RUBY_KEYWORDS = ::T.let(nil, ::T.untyped)
+  RUBY_KEYWORDS = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Schema::Resolver::HasPayloadType
+  NO_INTERFACES = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Subscription
+  NO_UPDATE = ::T.let(nil, ::T.untyped)
+  READING_SCOPE = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Validator::AllowNullValidator
+  MESSAGE = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema::Warden
+  NO_REFERENCES = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Schema
+  extend ::GraphQL::Schema::FindInheritedValue::EmptyObjects
+end
+
+module GraphQL::StaticValidation
+  ALL_RULES = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::StaticValidation::DirectivesAreInValidLocations
+  LOCATION_MESSAGE_NAMES = ::T.let(nil, ::T.untyped)
+  SIMPLE_LOCATIONS = ::T.let(nil, ::T.untyped)
+  SIMPLE_LOCATION_NODES = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::StaticValidation::FieldsWillMerge
+  NO_ARGS = ::T.let(nil, ::T.untyped)
+  NO_SELECTIONS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::StaticValidation::TypeStack
+  PUSH_STRATEGIES = ::T.let(nil, ::T.untyped)
+  TYPE_INFERRENCE_ROOTS = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::StaticValidation::UniqueDirectivesPerLocation
+  DIRECTIVE_NODE_HOOKS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::StaticValidation::VariableDefaultValuesAreCorrectlyTypedError
+  VIOLATIONS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::StaticValidation::VariablesAreUsedAndDefinedError
+  VIOLATIONS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Subscriptions::ActionCableSubscriptions
+  EVENT_PREFIX = ::T.let(nil, ::T.untyped)
+  SUBSCRIPTION_PREFIX = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Subscriptions::Serialize
+  GLOBALID_KEY = ::T.let(nil, ::T.untyped)
+  OPEN_STRUCT_KEY = ::T.let(nil, ::T.untyped)
+  SYMBOL_KEY = ::T.let(nil, ::T.untyped)
+  SYMBOL_KEYS_KEY = ::T.let(nil, ::T.untyped)
+  TIMESTAMP_FORMAT = ::T.let(nil, ::T.untyped)
+  TIMESTAMP_KEY = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::Tracing::ActiveSupportNotificationsTracing
+  KEYS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Tracing::AppOpticsTracing
+  EXEC_KEYS = ::T.let(nil, ::T.untyped)
+  PREP_KEYS = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Tracing::DataDogTracing
+  include ::Datadog::Tracing::Contrib::GraphQL::Patcher::PatchLegacyGem
+end
+
+class GraphQL::Tracing::NotificationsTracing
+  KEYS = ::T.let(nil, ::T.untyped)
+  MAX_KEYS_SIZE = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Tracing::PrometheusTracing
+  DEFAULT_COLLECTOR_TYPE = ::T.let(nil, ::T.untyped)
+  DEFAULT_WHITELIST = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Tracing::ScoutTracing
+  INSTRUMENT_OPTS = ::T.let(nil, ::T.untyped)
+end
+
+module GraphQL::TypeKinds
+  ENUM = ::T.let(nil, ::T.untyped)
+  INPUT_OBJECT = ::T.let(nil, ::T.untyped)
+  INTERFACE = ::T.let(nil, ::T.untyped)
+  LIST = ::T.let(nil, ::T.untyped)
+  NON_NULL = ::T.let(nil, ::T.untyped)
+  OBJECT = ::T.let(nil, ::T.untyped)
+  SCALAR = ::T.let(nil, ::T.untyped)
+  TYPE_KINDS = ::T.let(nil, ::T.untyped)
+  UNION = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Types::ISO8601DateTime
+  DEFAULT_TIME_PRECISION = ::T.let(nil, ::T.untyped)
+end
+
+class GraphQL::Types::Int
+  MAX = ::T.let(nil, ::T.untyped)
+  MIN = ::T.let(nil, ::T.untyped)
+end
+
 class Hash
   include ::JSON::Ext::Generator::GeneratorMethods::Hash
   include ::LanguageHelpers::HashHelpers

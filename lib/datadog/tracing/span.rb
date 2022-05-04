@@ -3,6 +3,7 @@
 # typed: true
 
 require 'datadog/core/utils'
+require 'datadog/core/utils/safe_dup'
 
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/metadata'
@@ -79,10 +80,10 @@ module Datadog
         type: span_type,
         trace_id: nil
       )
-        @name = name
-        @service = service
-        @resource = resource
-        @type = type
+        @name = Core::Utils::SafeDup.frozen_or_dup(name)
+        @service = Core::Utils::SafeDup.frozen_or_dup(service)
+        @resource = Core::Utils::SafeDup.frozen_or_dup(resource)
+        @type = Core::Utils::SafeDup.frozen_or_dup(type)
 
         @id = id || Core::Utils.next_id
         @parent_id = parent_id || 0

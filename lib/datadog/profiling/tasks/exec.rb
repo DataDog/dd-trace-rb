@@ -38,10 +38,10 @@ module Datadog
         def exec_with_error_handling(args)
           Kernel.exec(*args)
         rescue Errno::ENOENT => e
-          Kernel.warn "ddtracerb exec failed: #{e.message} (command was '#{args.join(' ')}')"
+          Kernel.warn "ddtracerb exec failed: #{e.class.name} #{e.message} (command was '#{args.join(' ')}')"
           Kernel.exit 127
         rescue Errno::EACCES, Errno::ENOEXEC => e
-          Kernel.warn "ddtracerb exec failed: #{e.message} (command was '#{args.join(' ')}')"
+          Kernel.warn "ddtracerb exec failed: #{e.class.name} #{e.message} (command was '#{args.join(' ')}')"
           Kernel.exit 126
         end
       end

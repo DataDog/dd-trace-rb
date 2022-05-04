@@ -22,7 +22,9 @@ module Datadog
             end
           rescue StandardError => e
             # TODO: can we use Datadog.logger at this point?
-            Datadog.logger.warn("Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.message}")
+            Datadog.logger.warn(
+              "Unable to add Datadog Trace context to ActiveSupport::TaggedLogging: #{e.class.name} #{e.message}"
+            )
             false
           end
 

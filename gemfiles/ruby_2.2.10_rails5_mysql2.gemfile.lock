@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.0.0.beta1)
-      debase-ruby_core_source (<= 0.10.14)
-      libddwaf (~> 1.2.1.0.0.a)
+    ddtrace (1.0.0)
+      debase-ruby_core_source (<= 0.10.15)
+      libddwaf (~> 1.3.0.1.0.a)
       msgpack
 
 GEM
@@ -68,7 +68,7 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    debase-ruby_core_source (0.10.14)
+    debase-ruby_core_source (0.10.15)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.3.5)
@@ -84,7 +84,7 @@ GEM
     json (2.5.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddwaf (1.2.1.0.0.beta1)
+    libddwaf (1.3.0.1.0.beta1-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)

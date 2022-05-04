@@ -3,7 +3,6 @@
 require 'datadog/core/utils/only_once'
 
 require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/rails/integration'
 require 'datadog/appsec/contrib/rails/framework'
 require 'datadog/appsec/contrib/rack/request_middleware'
 

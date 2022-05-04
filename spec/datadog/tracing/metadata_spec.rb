@@ -3,8 +3,6 @@
 require 'spec_helper'
 
 require 'datadog/tracing/metadata'
-require 'datadog/tracing/metadata/analytics'
-require 'datadog/tracing/metadata/tagging'
 
 RSpec.describe Datadog::Tracing::Metadata do
   context 'when included' do
@@ -16,7 +14,8 @@ RSpec.describe Datadog::Tracing::Metadata do
       it 'has all of the tagging behavior in correct order' do
         expect(ancestors.first(5)).to include(
           described_class::Analytics,
-          described_class::Tagging
+          described_class::Tagging,
+          described_class::Errors
         )
       end
     end

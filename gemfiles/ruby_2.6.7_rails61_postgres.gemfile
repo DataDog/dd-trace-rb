@@ -38,6 +38,7 @@ gem "sorbet", "= 0.5.9672"
 gem "spoom", "~> 1.1"
 gem "rails", "~> 6.1.0"
 gem "pg", ">= 1.1", platform: :ruby
+gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "sprockets", "< 4"
 gem "lograge", "~> 0.11"
 
