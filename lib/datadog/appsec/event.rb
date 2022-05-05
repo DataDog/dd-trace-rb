@@ -38,7 +38,14 @@ module Datadog
         Content-Language
       ].map!(&:downcase).freeze
 
+      # Record events for a trace
+      #
+      # This is expected to be called only once per trace for the rate limiter
+      # to properly apply
       def self.record(*events)
+        # ensure rate limiter is called only when there are events to record
+        return if events.empty?
+
         Datadog::AppSec::RateLimiter.limit(:traces) do
           record_via_span(*events)
         end
