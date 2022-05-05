@@ -35,6 +35,11 @@ module Datadog
           rate_limiter(name).limit(&block)
         end
 
+        # reset a rate limiter: used for testing
+        def reset!(name)
+          Thread.current[:datadog_security_trace_rate_limiter] = nil
+        end
+
         protected
 
         def rate_limiter(name)
