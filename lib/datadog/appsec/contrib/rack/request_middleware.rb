@@ -45,13 +45,14 @@ module Datadog
               @waf_context = context
             end
 
-            _, response_response = Instrumentation.gateway.push('rack.response', response)
+            _response_return, _response_response = Instrumentation.gateway.push('rack.response', response)
 
-            request_response.each { |_, e| e.merge!(response: response) } if request_response
-            response_response.each { |_, e| e.merge!(request: request) } if response_response
-            both_response = (request_response || []) + (response_response || [])
+            context.events.each do |e|
+              e[:response] ||= response
+              e[:request]  ||= request
+            end
 
-            AppSec::Event.record(*both_response.map { |_action, event| event }) if both_response.any?
+            AppSec::Event.record(*context.events)
 
             request_return
           ensure

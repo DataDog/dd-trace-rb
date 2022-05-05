@@ -38,6 +38,8 @@ module Datadog
                         request: request,
                         action: action
                       }
+
+                      waf_context.events << event
                     end
                   end
 
@@ -76,6 +78,8 @@ module Datadog
                         response: response,
                         action: action
                       }
+
+                      waf_context.events << event
                     end
                   end
 
@@ -114,6 +118,8 @@ module Datadog
                         request: request,
                         action: action
                       }
+
+                      waf_context.events << event
                     end
                   end
 

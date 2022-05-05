@@ -64,11 +64,6 @@ module Datadog
               request_return = nil
             end
 
-            # record or stack for request?
-            if request_response && request_response.any?
-              AppSec::Event.record(*request_response.map { |_action, event| event })
-            end
-
             request_return
           end
         end
