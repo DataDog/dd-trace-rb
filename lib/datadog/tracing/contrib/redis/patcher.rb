@@ -3,7 +3,6 @@
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/redis/ext'
 require 'datadog/tracing/contrib/redis/configuration/resolver'
-require 'datadog/tracing/contrib/redis/integration'
 
 module Datadog
   module Tracing

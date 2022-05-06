@@ -3,7 +3,6 @@
 require 'datadog/tracing'
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/sucker_punch/ext'
-require 'datadog/tracing/contrib/sucker_punch/integration'
 
 module Datadog
   module Tracing

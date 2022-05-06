@@ -4,7 +4,6 @@ require 'datadog/tracing'
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/rake/ext'
 require 'datadog/tracing/contrib/rake/instrumentation'
-require 'datadog/tracing/contrib/rake/integration'
 
 module Datadog
   module Tracing

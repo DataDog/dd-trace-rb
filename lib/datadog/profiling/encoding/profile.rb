@@ -3,7 +3,6 @@
 require 'set'
 require 'time'
 
-require 'datadog/core'
 require 'datadog/profiling/flush'
 require 'datadog/profiling/pprof/template'
 
