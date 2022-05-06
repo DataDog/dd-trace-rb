@@ -5,7 +5,7 @@ require:
   - rubocop-rspec
 
 AllCops:
-  TargetRubyVersion: 2.5 # Lowest version supported as of Rubocop 0.13.0
+  TargetRubyVersion: 2.6 # Lowest version supported as of Rubocop 1.29.0
   Include:
     - 'lib/**/*.rb'
     - 'ext/**/*.rb'
@@ -216,6 +216,10 @@ Style/RedundantBegin:
 
 # Requires Ruby 2.5
 Style/HashTransformKeys:
+  Enabled: false
+
+# Requires Ruby 2.6
+Style/SlicingWithRange:
   Enabled: false
 
 # Enforces negative/positive branching order,
