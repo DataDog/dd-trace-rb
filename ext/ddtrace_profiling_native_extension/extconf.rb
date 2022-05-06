@@ -1,6 +1,7 @@
 # typed: ignore
 
 # rubocop:disable Style/StderrPuts
+# rubocop:disable Style/GlobalVars
 
 # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
 CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
@@ -203,4 +204,6 @@ else
   Debase::RubyCoreSource
     .create_makefile_with_core(proc { have_header('vm_core.h') && thread_native_for_ruby_2_1.call }, EXTENSION_NAME)
 end
+
+# rubocop:enable Style/GlobalVars
 # rubocop:enable Style/StderrPuts

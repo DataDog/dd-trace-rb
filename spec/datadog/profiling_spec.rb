@@ -176,7 +176,7 @@ RSpec.describe Datadog::Profiling do
   describe '::try_loading_native_library' do
     subject(:try_loading_native_library) { described_class.send(:try_loading_native_library) }
 
-    let(:native_extension_require) { "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}" }
+    let(:native_extension_require) { 'datadog/profiling/load_native_extension' }
 
     around { |example| ClimateControl.modify('DD_PROFILING_NO_EXTENSION' => nil) { example.run } }
 
