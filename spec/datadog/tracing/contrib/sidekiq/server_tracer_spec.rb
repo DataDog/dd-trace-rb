@@ -80,10 +80,50 @@ RSpec.describe 'Server tracer' do
       end)
     end
 
+    it 'traces async job run' do
+      perform_async
+      CustomWorker.perform_async('random_id')
+
+      expect(spans).to have(4).items
+
+      custom, empty, _push, _push = spans
+
+      expect(empty.service).to eq(tracer.default_service)
+      expect(empty.resource).to eq('EmptyWorker')
+      expect(empty.get_tag('sidekiq.job.queue')).to eq('default')
+      expect(empty.get_tag('sidekiq.job.delay')).to_not be_nil
+      expect(empty.status).to eq(0)
+      expect(empty).to be_root_span
+      expect(empty.get_metric('_dd.measured')).to eq(1.0)
+
+      expect(custom.service).to eq(tracer.default_service)
+      expect(custom.resource).to eq('CustomWorker')
+      expect(custom.get_tag('sidekiq.job.queue')).to eq('default')
+      expect(custom.status).to eq(0)
+      expect(custom).to be_root_span
+      expect(custom.get_tag('sidekiq.job.args')).to eq(['?'].to_s)
+      expect(custom.get_metric('_dd.measured')).to eq(1.0)
+    end
+
+    context 'with tag_args' do
+      let(:sidekiq_options) { { service_name: 'sidekiq-slow', tag_args: true } }
+
+      it 'records tag values' do
+        perform_async
+        CustomWorker.perform_async('random_id')
+
+        expect(spans).to have(4).items
+
+        custom, _empty, _push, _push = spans
+
+        expect(custom.get_tag('sidekiq.job.args')).to eq(['random_id'].to_s)
+      end
+    end
+
     context 'with default quantization' do
       let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: {} } }
 
-      it 'traces async job run' do
+      it 'hides tag values' do
         perform_async
         CustomWorker.perform_async('random_id')
 
@@ -98,7 +138,7 @@ RSpec.describe 'Server tracer' do
     context 'with quantization showing all' do
       let(:sidekiq_options) { { service_name: 'sidekiq-slow', quantize: { args: { show: :all } } } }
 
-      it 'traces async job run' do
+      it 'records tag values' do
         perform_async
         CustomWorker.perform_async('random_id')
 
