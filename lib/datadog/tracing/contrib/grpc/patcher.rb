@@ -1,7 +1,6 @@
 # typed: true
 
 require 'datadog/tracing/contrib/grpc/ext'
-require 'datadog/tracing/contrib/grpc/integration'
 require 'datadog/tracing/contrib/patcher'
 
 module Datadog

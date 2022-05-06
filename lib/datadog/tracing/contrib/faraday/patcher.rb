@@ -2,7 +2,6 @@
 
 require 'datadog/tracing/contrib/faraday/connection'
 require 'datadog/tracing/contrib/faraday/ext'
-require 'datadog/tracing/contrib/faraday/integration'
 require 'datadog/tracing/contrib/faraday/rack_builder'
 require 'datadog/tracing/contrib/patcher'
 

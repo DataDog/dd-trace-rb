@@ -11,8 +11,6 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/flush'
 require 'datadog/tracing/sync_writer'
 
-require 'datadog/profiling'
-
 module Datadog
   module Core
     module Configuration

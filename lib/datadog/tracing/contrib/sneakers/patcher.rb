@@ -3,7 +3,6 @@
 # typed: false
 
 require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/sneakers/integration'
 require 'datadog/tracing/contrib/sneakers/tracer'
 
 module Datadog
