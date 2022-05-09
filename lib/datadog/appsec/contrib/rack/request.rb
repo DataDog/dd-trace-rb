@@ -45,6 +45,13 @@ module Datadog
           def self.cookies(request)
             request.cookies
           end
+
+          def self.form_hash(request)
+            # usually Hash<String,String> but can be a more complex
+            # Hash<String,String||Array||Hash> when e.g coming from JSON or
+            # with Rails advanced param square bracket parsing
+            request.env['rack.request.form_hash'] || request.env['action_dispatch.request.request_parameters']
+          end
         end
       end
     end

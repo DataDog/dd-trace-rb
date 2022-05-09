@@ -239,7 +239,12 @@ RSpec.describe Datadog::AppSec::Processor do
 
   describe '#new_context' do
     let(:ruleset) { :recommended }
-    let(:input) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
+
+    let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
+    let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
+    let(:input_scanner) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
+
+    let(:input) { input_scanner }
 
     subject(:context) { described_class.new.new_context }
 
@@ -248,23 +253,36 @@ RSpec.describe Datadog::AppSec::Processor do
     describe 'Context' do
       let(:run_count) { 1 }
       let(:timeout) { 10_000_000_000 }
-      let(:runs) { Array.new(run_count) { context.run(input, timeout).last } }
 
-      before do
-        runs
+      let(:runs) { Array.new(run_count) { context.run(input, timeout) } }
+      let(:results) { runs.map(&:last) }
+      let(:overall_runtime) { results.reduce(0) { |a, e| a + e.total_runtime } }
+
+      let(:run) do
+        expect(runs).to have_attributes(count: 1)
+
+        runs.first
       end
 
-      it { expect(runs.first.action).to eq :monitor }
+      let(:result) do
+        expect(results).to have_attributes(count: 1)
+
+        results.first
+      end
+
+      before { runs }
+
+      it { expect(result.action).to eq :monitor }
       it { expect(context.time_ns).to be > 0 }
       it { expect(context.time_ext_ns).to be > 0 }
       it { expect(context.time_ext_ns).to be > context.time_ns }
-      it { expect(context.time_ns).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
+      it { expect(context.time_ns).to eq(overall_runtime) }
       it { expect(context.timeouts).to eq 0 }
 
       context 'with timeout' do
         let(:timeout) { 0 }
 
-        it { expect(runs.first.action).to eq :good }
+        it { expect(result.action).to eq :good }
         it { expect(context.time_ns).to eq 0 }
         it { expect(context.time_ext_ns).to be > 0 }
         it { expect(context.timeouts).to eq run_count }
@@ -273,15 +291,71 @@ RSpec.describe Datadog::AppSec::Processor do
       context 'with multiple runs' do
         let(:run_count) { 10 }
 
-        it { expect(context.time_ns).to eq(runs.reduce(0) { |a, e| a + e.total_runtime }) }
+        it { expect(context.time_ns).to eq(overall_runtime) }
 
         context 'with timeout' do
           let(:timeout) { 0 }
 
-          it { expect(runs.first.action).to eq :good }
+          it { expect(results.first.action).to eq :good }
           it { expect(context.time_ns).to eq 0 }
           it { expect(context.time_ext_ns).to be > 0 }
           it { expect(context.timeouts).to eq run_count }
+        end
+      end
+
+      describe '#run' do
+        let(:matches) do
+          results.reject { |r| r.action == :good }
+        end
+
+        let(:data) do
+          matches.map(&:data).flatten
+        end
+
+        context 'no attack' do
+          let(:input) { input_safe }
+
+          it { expect(matches).to eq [] }
+        end
+
+        context 'one attack' do
+          let(:input) { input_scanner }
+
+          it { expect(matches).to have_attributes(count: 1) }
+          it { expect(data).to have_attributes(count: 1) }
+        end
+
+        context 'multiple attacks per run' do
+          let(:input) { input_scanner.merge(input_sqli) }
+
+          it { expect(matches).to have_attributes(count: 1) }
+          it { expect(data).to have_attributes(count: 2) }
+        end
+
+        context 'multiple runs' do
+          context 'same attack' do
+            let(:runs) do
+              [
+                context.run(input_scanner, timeout),
+                context.run(input_scanner, timeout)
+              ]
+            end
+
+            it { expect(matches).to have_attributes(count: 1) }
+            it { expect(data).to have_attributes(count: 1) }
+          end
+
+          context 'different attacks' do
+            let(:runs) do
+              [
+                context.run(input_sqli, timeout),
+                context.run(input_scanner, timeout)
+              ]
+            end
+
+            it { expect(matches).to have_attributes(count: 2) }
+            it { expect(data).to have_attributes(count: 2) }
+          end
         end
       end
     end

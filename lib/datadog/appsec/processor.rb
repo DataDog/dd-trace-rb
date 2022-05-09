@@ -18,13 +18,14 @@ module Datadog
 
       # Context manages a sequence of runs
       class Context
-        attr_reader :time_ns, :time_ext_ns, :timeouts
+        attr_reader :time_ns, :time_ext_ns, :timeouts, :events
 
         def initialize(processor)
           @context = Datadog::AppSec::WAF::Context.new(processor.send(:handle))
           @time_ns = 0.0
           @time_ext_ns = 0.0
           @timeouts = 0
+          @events = []
         end
 
         def run(*args)

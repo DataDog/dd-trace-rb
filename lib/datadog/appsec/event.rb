@@ -52,6 +52,7 @@ module Datadog
       end
 
       # rubocop:disable Metrics/AbcSize
+      # rubocop:disable Metrics/MethodLength
       def self.record_via_span(*events)
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
@@ -67,30 +68,34 @@ module Datadog
 
             span.set_tag('appsec.event', 'true') if span
 
-            request = event[:request]
-            response = event[:response]
-
             # TODO: assume HTTP request context for now
-            request_headers = AppSec::Contrib::Rack::Request.headers(request).select do |k, _|
-              ALLOWED_REQUEST_HEADERS.include?(k.downcase)
-            end
-            response_headers = AppSec::Contrib::Rack::Response.headers(response).select do |k, _|
-              ALLOWED_RESPONSE_HEADERS.include?(k.downcase)
+
+            if (request = event[:request])
+              request_headers = AppSec::Contrib::Rack::Request.headers(request).select do |k, _|
+                ALLOWED_REQUEST_HEADERS.include?(k.downcase)
+              end
+
+              request_headers.each do |header, value|
+                tags["http.request.headers.#{header}"] = value
+              end
+
+              tags['http.host'] = request.host
+              tags['http.useragent'] = request.user_agent
+              tags['network.client.ip'] = request.ip
+
+              # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
             end
 
-            request_headers.each do |header, value|
-              tags["http.request.headers.#{header}"] = value
+            if (response = event[:response])
+              response_headers = AppSec::Contrib::Rack::Response.headers(response).select do |k, _|
+                ALLOWED_RESPONSE_HEADERS.include?(k.downcase)
+              end
+
+              response_headers.each do |header, value|
+                tags["http.response.headers.#{header}"] = value
+              end
             end
 
-            response_headers.each do |header, value|
-              tags["http.response.headers.#{header}"] = value
-            end
-
-            tags['http.host'] = request.host
-            tags['http.useragent'] = request.user_agent
-            tags['network.client.ip'] = request.ip
-
-            # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
             tags['_dd.origin'] = 'appsec'
 
             # accumulate triggers
@@ -109,6 +114,7 @@ module Datadog
           end
         end
       end
+      # rubocop:enable Metrics/MethodLength
       # rubocop:enable Metrics/AbcSize
     end
   end
