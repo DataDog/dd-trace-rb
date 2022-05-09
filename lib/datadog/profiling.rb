@@ -134,7 +134,8 @@ module Datadog
       end
 
       begin
-        require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+        require 'datadog/profiling/load_native_extension'
+
         success =
           defined?(Profiling::NativeExtension) && Profiling::NativeExtension.send(:native_working?)
         [success, nil]

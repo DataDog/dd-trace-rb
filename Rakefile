@@ -397,6 +397,10 @@ Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RU
   ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
 end
 
+Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+  ext.ext_dir = 'ext/ddtrace_profiling_loader'
+end
+
 desc 'Runs the sorbet type checker on the codebase'
 task :typecheck do
   if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
