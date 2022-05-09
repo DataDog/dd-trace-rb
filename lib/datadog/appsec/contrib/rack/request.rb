@@ -48,9 +48,8 @@ module Datadog
 
           def self.form_hash(request)
             # usually Hash<String,String> but can be a more complex
-            # Hash<String,String||Array||Hash> when e.g coming from JSON or
-            # with Rails advanced param square bracket parsing
-            request.env['rack.request.form_hash'] || request.env['action_dispatch.request.request_parameters']
+            # Hash<String,String||Array||Hash> when e.g coming from JSON
+            request.env['rack.request.form_hash']
           end
         end
       end

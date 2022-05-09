@@ -6,6 +6,7 @@ require 'datadog/appsec/contrib/patcher'
 require 'datadog/appsec/contrib/rails/framework'
 require 'datadog/appsec/contrib/rack/request_middleware'
 require 'datadog/appsec/contrib/rack/request_body_middleware'
+require 'datadog/appsec/contrib/rails/gateway/watcher'
 
 require 'datadog/tracing/contrib/rack/middlewares'
 
@@ -31,6 +32,7 @@ module Datadog
           end
 
           def patch
+            Gateway::Watcher.watch
             patch_before_intialize
             patch_after_intialize
 
@@ -74,7 +76,7 @@ module Datadog
 
               # TODO: handle exceptions, except for super
 
-              request_return, request_response = Instrumentation.gateway.push('rack.request.body', request) do
+              request_return, request_response = Instrumentation.gateway.push('rails.request.action', request) do
                 super
               end
 
