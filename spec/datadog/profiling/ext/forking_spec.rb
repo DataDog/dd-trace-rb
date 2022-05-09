@@ -136,7 +136,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       end
 
       after do
-        described_class.at_fork_blocks.clear
+        described_class.ddtrace_at_fork_blocks.clear
       end
     end
 
