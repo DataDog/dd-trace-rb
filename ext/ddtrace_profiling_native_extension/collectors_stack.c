@@ -25,7 +25,6 @@ typedef struct sampling_buffer {
 } sampling_buffer;
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
-void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 
@@ -39,7 +38,7 @@ void collectors_stack_init(VALUE profiling_module) {
   rb_global_variable(&missing_string);
 }
 
-// This method exists only to enable testing Collectors::Stack behavior using RSpec.
+// This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
   Check_Type(metric_values_hash, T_HASH);
@@ -77,7 +76,7 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
 
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
-  sample(
+  sample_thread(
     thread,
     buffer,
     recorder_instance,
@@ -90,7 +89,7 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
   return Qtrue;
 }
 
-void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
+void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
     0 /* stack starting depth */,
