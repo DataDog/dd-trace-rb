@@ -12,7 +12,7 @@ struct cpu_and_wall_time_collector_state {
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
 static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(VALUE self, VALUE recorder_instance);
+static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -28,7 +28,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_class, _native_new);
 
-  rb_define_method(collectors_cpu_and_wall_time_class, "initialize", _native_initialize, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 2);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -68,15 +68,15 @@ static VALUE _native_new(VALUE klass) {
   return TypedData_Wrap_Struct(collectors_cpu_and_wall_time_class, &cpu_and_wall_time_collector_typed_data, state);
 }
 
-static VALUE _native_initialize(VALUE self, VALUE recorder_instance) {
+static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance) {
   // Quick sanity check. If the object passed here is not actually a Datadog::Profiling::StackRecorder, then
   // we will later flag that when trying to access its data using TypedData_Get_Struct.
   Check_Type(recorder_instance, T_DATA);
 
   struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(self, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   state->recorder_instance = recorder_instance;
 
-  return self;
+  return Qtrue;
 }

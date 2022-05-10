@@ -8,7 +8,9 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time.c`
       class CpuAndWallTime
-
+        def initialize(recorder:, max_frames:)
+          self.class._native_initialize(self, recorder, max_frames)
+        end
       end
     end
   end
