@@ -11,7 +11,23 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
   subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
 
-  it "doesn't do anything useful at the moment" do
-    cpu_and_wall_time_collector
+  it 'samples all threads' do
+    all_threads = Thread.list
+
+    decoded_profile = sample_and_decode
+
+    #binding.pry
+  end
+
+  def sample_and_decode
+    cpu_and_wall_time_collector.sample
+
+    serialization_result = recorder.serialize
+    raise 'Unexpected: Serialization failed' unless serialization_result
+
+    pprof_data = serialization_result.last
+    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
+
+    decoded_profile
   end
 end

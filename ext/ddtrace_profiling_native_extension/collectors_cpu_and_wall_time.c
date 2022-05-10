@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include "collectors_stack.h"
 #include "stack_recorder.h"
+#include "private_vm_api_access.h"
 
 // Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
@@ -18,6 +19,8 @@ static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
 static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr);
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
+static VALUE _native_sample(VALUE self, VALUE collector_instance);
+static void sample(VALUE collector_instance);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -34,6 +37,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_alloc_func(collectors_cpu_and_wall_time_class, _native_new);
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 3);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_sample", _native_sample, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -96,4 +100,38 @@ static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE reco
   state->recorder_instance = recorder_instance;
 
   return Qtrue;
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_sample(VALUE self, VALUE collector_instance) {
+  sample(collector_instance);
+  return Qtrue;
+}
+
+static void sample(VALUE collector_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  // FIXME: How to access thread list?
+  VALUE threads = rb_ary_new(); //rb_thread_list();
+
+  const int thread_count = RARRAY_LEN(threads);
+  for (int i = 0; i < thread_count; i++) {
+    VALUE thread = RARRAY_AREF(threads, i);
+
+    int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
+
+    metric_values[CPU_TIME_VALUE_POS] = 12;
+    metric_values[CPU_SAMPLES_VALUE_POS] = 34;
+    metric_values[WALL_TIME_VALUE_POS] = 56;
+
+    sample_thread(
+      thread,
+      state->sampling_buffer,
+      state->recorder_instance,
+      (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+      (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME
+    );
+  }
 }
