@@ -25,8 +25,8 @@ typedef struct sampling_buffer {
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
-void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
+static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
+static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
 
@@ -186,7 +186,7 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
   );
 }
 
-void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size) {
+static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size) {
   ptrdiff_t frames_omitted = stack_depth_for(thread) - buffer->max_frames;
 
   if (frames_omitted == 0) return; // Perfect fit!
@@ -228,7 +228,7 @@ void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer,
 //
 // To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
-void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
+static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
   ddprof_ffi_Line placeholder_stack_in_native_code_line = {
     .function = (ddprof_ffi_Function) {
       .name = DDPROF_FFI_CHARSLICE_C(""),
