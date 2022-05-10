@@ -179,7 +179,27 @@ module Datadog
           end
 
           def build_profiler(settings, agent_settings, tracer)
-            return unless Profiling.supported? && settings.profiling.enabled
+            return unless settings.profiling.enabled
+
+            # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
+            # dependency on individual products, in this case the Profiler.
+            # (Note "currently": in the future we want to change this so core classes don't depend on specific products)
+            #
+            # If the current file included a `require 'datadog/profiler'` at its beginning, we would generate circular
+            # requires when used from profiling:
+            #
+            # datadog/profiling
+            #     └─requires─> datadog/core
+            #                      └─requires─> datadog/core/configuration/components
+            #                                       └─requires─> datadog/profiling       # Loop!
+            #
+            # ...thus in #1998 we removed such a require.
+            #
+            # On the other hand, if datadog/core is loaded by a different product and no general `require 'ddtrace'` is
+            # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
+            # no-op if profiling is already loaded).
+            require 'datadog/profiling'
+            return unless Profiling.supported?
 
             unless defined?(Profiling::Tasks::Setup)
               # In #1545 a user reported a NameError due to this constant being uninitialized
