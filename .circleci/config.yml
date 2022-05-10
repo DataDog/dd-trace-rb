@@ -62,7 +62,12 @@ test_containers:
       - MYSQL_USER=mysql
   - &mysql_port 3306
   - &container_elasticsearch
-    image: elasticsearch:2.4
+    image: elasticsearch:8.1.3
+    environment:
+      # Ensure production cluster requirements are not enforced
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms750m -Xmx750m
   - &elasticsearch_port 9200
   - &container_redis
     image: redis:3.0

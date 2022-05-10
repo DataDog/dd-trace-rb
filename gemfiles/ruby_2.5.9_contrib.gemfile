@@ -45,10 +45,10 @@ gem "cucumber"
 gem "dalli", ">= 3.0.0"
 gem "delayed_job"
 gem "delayed_job_active_record"
-gem "elasticsearch-transport"
+gem "elasticsearch", ">= 8.0.0"
 gem "ethon", ">= 0"
 gem "excon"
-gem "faraday"
+gem "faraday", ">= 1.0"
 gem "grape"
 gem "graphql", ">= 2.0"
 gem "grpc", platform: :ruby
@@ -63,7 +63,6 @@ gem "mysql2", "< 1", platform: :ruby
 gem "activerecord-jdbcmysql-adapter", ">= 60.2", platform: :jruby
 gem "pg", platform: :ruby
 gem "activerecord-jdbcpostgresql-adapter", ">= 60.2", platform: :jruby
-gem "presto-client", ">=  0.5.14"
 gem "qless", ">= 0"
 gem "racecar", ">= 0.3.5"
 gem "rack"

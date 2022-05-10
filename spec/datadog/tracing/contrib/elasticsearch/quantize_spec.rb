@@ -1,7 +1,7 @@
 # typed: false
 
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'elasticsearch-transport'
+require 'elasticsearch'
 
 require 'ddtrace'
 require 'datadog/tracing/contrib/elasticsearch/quantize'

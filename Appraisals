@@ -98,7 +98,7 @@ if ruby_version?('2.1')
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
+    gem 'elasticsearch'
     gem 'presto-client', '>=  0.5.14'
     gem 'ethon'
     gem 'excon'
@@ -269,7 +269,7 @@ elsif ruby_version?('2.2')
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
+    gem 'elasticsearch'
     gem 'pg'
     gem 'presto-client', '>=  0.5.14'
     gem 'ethon'
@@ -454,10 +454,9 @@ elsif ruby_version?('2.3')
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
     gem 'ethon'
     gem 'excon'
-    gem 'faraday'
+    gem 'faraday', '>= 1.0'
     gem 'grape'
     gem 'graphql'
     gem 'grpc'
@@ -470,7 +469,6 @@ elsif ruby_version?('2.3')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
     gem 'pg'
-    gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
@@ -494,7 +492,9 @@ elsif ruby_version?('2.3')
   end
 
   appraise 'contrib-old' do
+    gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
+    gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
   appraise 'core-old' do
@@ -572,10 +572,9 @@ elsif ruby_version?('2.4')
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
     gem 'ethon'
     gem 'excon'
-    gem 'faraday'
+    gem 'faraday', '>= 1.0'
     gem 'grape'
     gem 'graphql', '>= 2.0'
     gem 'grpc'
@@ -588,7 +587,6 @@ elsif ruby_version?('2.4')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
     gem 'pg'
-    gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -612,8 +610,10 @@ elsif ruby_version?('2.4')
   end
 
   appraise 'contrib-old' do
+    gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
     gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
   appraise 'core-old' do
@@ -809,7 +809,7 @@ elsif ruby_version?('2.5')
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
+    gem 'elasticsearch', '>= 8.0.0'
     # Workaround bundle of JRuby/ethon issues:
     # * ethon 0.15.0 is incompatible with most JRuby 9.2 versions (fixed in 9.2.20.0),
     #   see https://github.com/typhoeus/ethon/issues/205
@@ -820,7 +820,7 @@ elsif ruby_version?('2.5')
     # either the upstream issues are fixed OR we end up moving to Java 11.
     gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
     gem 'excon'
-    gem 'faraday'
+    gem 'faraday', '>= 1.0'
     gem 'grape'
     gem 'graphql', '>= 2.0'
     gem 'grpc', platform: :ruby
@@ -835,7 +835,6 @@ elsif ruby_version?('2.5')
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
-    gem 'presto-client', '>=  0.5.14'
     gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -861,8 +860,10 @@ elsif ruby_version?('2.5')
 
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
+    gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'faraday', '0.17'
     gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
   appraise 'core-old' do
@@ -1041,10 +1042,10 @@ elsif ruby_version?('2.6')
       gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
-      gem 'elasticsearch-transport'
+      gem 'elasticsearch', '>= 8.0.0'
       gem 'ethon'
       gem 'excon'
-      gem 'faraday'
+      gem 'faraday', '>= 1.0'
       gem 'grape'
       gem 'graphql', '>= 2.0'
       gem 'grpc', platform: :ruby
@@ -1058,7 +1059,6 @@ elsif ruby_version?('2.6')
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'pg', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'presto-client', '>=  0.5.14'
       gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -1084,8 +1084,10 @@ elsif ruby_version?('2.6')
 
     appraise 'contrib-old' do
       gem 'dalli', '< 3.0.0'
+      gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
       gem 'faraday', '0.17'
       gem 'graphql', '>= 1.12.0', '< 2.0'
+      gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
     end
 
     appraise 'core-old' do
@@ -1247,7 +1249,7 @@ elsif ruby_version?('2.7')
       gem 'dalli', '>= 3.0.0'
       gem 'delayed_job'
       gem 'delayed_job_active_record'
-      gem 'elasticsearch-transport'
+      gem 'elasticsearch', '>= 8.0.0'
       gem 'ethon'
       gem 'excon'
       gem 'grape'
@@ -1261,7 +1263,6 @@ elsif ruby_version?('2.7')
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', platform: :ruby
-      gem 'presto-client', '>=  0.5.14'
       gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
@@ -1286,8 +1287,10 @@ elsif ruby_version?('2.7')
 
     appraise 'contrib-old' do
       gem 'dalli', '< 3.0.0'
+      gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
       gem 'faraday', '0.17'
       gem 'graphql', '>= 1.12.0', '< 2.0'
+      gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
     end
 
     appraise 'core-old' do
@@ -1361,7 +1364,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
+    gem 'elasticsearch', '>= 8.0.0'
     gem 'ethon'
     gem 'excon'
     gem 'grape'
@@ -1375,7 +1378,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
-    gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
@@ -1401,7 +1403,9 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
 
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
+    gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
   appraise 'core-old' do
@@ -1475,7 +1479,7 @@ elsif ruby_version?('3.2')
     gem 'dalli', '>= 3.0.0'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
-    gem 'elasticsearch-transport'
+    gem 'elasticsearch', '>= 8.0.0'
     gem 'ethon'
     gem 'excon'
     gem 'grape'
@@ -1489,7 +1493,6 @@ elsif ruby_version?('3.2')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
     gem 'pg', '>= 1.1', platform: :ruby
-    gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
@@ -1515,7 +1518,9 @@ elsif ruby_version?('3.2')
 
   appraise 'contrib-old' do
     gem 'dalli', '< 3.0.0'
+    gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'graphql', '>= 1.12.0', '< 2.0'
+    gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   end
 
   appraise 'core-old' do

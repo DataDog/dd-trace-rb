@@ -3,7 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'time'
-require 'elasticsearch-transport'
+require 'elasticsearch'
 require 'faraday'
 
 require 'ddtrace'
@@ -31,6 +31,19 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     Datadog.configure do |c|
       c.tracing.instrument :elasticsearch, configuration_options
     end
+
+    # Mock realistic Elasticsearch verification response
+    stub_request(:get, %r{#{Regexp.quote(server)}//?})
+      .to_return(
+        status: 200,
+        headers: { 'x-elastic-product' => 'Elasticsearch', 'content-type' => 'application/yaml' },
+        body: "version:\n  number: 8.0.0"
+      )
+
+    # Elasticsearch always sends one sanity request to `/` per client before executing the desired request.
+    # @see https://github.com/elastic/elasticsearch-ruby/blob/ce84322759ff494764bbd096922faff998342197/elasticsearch/lib/elasticsearch.rb#L161
+    client.perform_request('GET', '/')
+    clear_traces!
   end
 
   after { Datadog.registry[:elasticsearch].reset_configuration! }
@@ -136,9 +149,12 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
   describe 'client configuration override' do
     context 'when #service is overridden' do
-      before { Datadog.configure_onto(client, service_name: service_name) }
+      before { Datadog.configure_onto(client.transport, service_name: service_name) }
 
+      let(:configuration_target) { version_less_than_8 ? client : client.transport }
       let(:service_name) { 'bar' }
+
+      let(:version_less_than_8) { Gem::Version.new(::Elasticsearch::VERSION) < Gem::Version.new('8.0.0') }
 
       describe 'then a GET request' do
         subject(:response) { client.perform_request(method, path) }

@@ -18,12 +18,18 @@ module Datadog
           register_as :elasticsearch, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['elasticsearch-transport'] \
-              && Gem.loaded_specs['elasticsearch-transport'].version
+            # elastic-transport gem for version >= 8.0.0
+            # elasticsearch-transport gem for version < 8.0.0
+            Gem.loaded_specs['elastic-transport'] \
+              && Gem.loaded_specs['elastic-transport'].version || \
+              Gem.loaded_specs['elasticsearch-transport'] \
+                && Gem.loaded_specs['elasticsearch-transport'].version
           end
 
           def self.loaded?
-            !defined?(::Elasticsearch::Transport).nil?
+            # Elastic::Transport gem for version >= 8.0.0
+            # Elasticsearch::Transport gem for version < 8.0.0
+            !defined?(::Elastic::Transport).nil? || !defined?(::Elasticsearch::Transport).nil?
           end
 
           def self.compatible?

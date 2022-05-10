@@ -35,7 +35,9 @@ gem "opentracing", ">= 0.4.1"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "sorbet", "= 0.5.9672"
 gem "spoom", "~> 1.1"
+gem "elasticsearch", "< 8.0.0"
 gem "faraday", "0.17"
 gem "graphql", ">= 1.12.0", "< 2.0"
+gem "presto-client", ">= 0.5.14"
 
 gemspec path: "../"

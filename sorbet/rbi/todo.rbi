@@ -22,7 +22,6 @@ module ::Cucumber::Runtime; end
 module ::Dalli::Protocol::Binary; end
 module ::Dalli::Server; end
 module ::Delayed::Worker; end
-module ::Elasticsearch::Transport::Client; end
 module ::Ethon::Curl; end
 module ::Ethon::Easy; end
 module ::Ethon::Multi; end
