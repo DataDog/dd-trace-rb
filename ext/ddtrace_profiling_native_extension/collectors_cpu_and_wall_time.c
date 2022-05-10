@@ -1,4 +1,6 @@
 #include <ruby.h>
+#include "collectors_stack.h"
+#include "stack_recorder.h"
 
 // Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
@@ -6,13 +8,16 @@
 static VALUE collectors_cpu_and_wall_time_class = Qnil;
 
 struct cpu_and_wall_time_collector_state {
+  // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
+  // "Update this when modifying state struct"
+  sampling_buffer *sampling_buffer;
   VALUE recorder_instance;
 };
 
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
 static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance);
+static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -28,7 +33,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 2);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 3);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -47,11 +52,18 @@ static const rb_data_type_t cpu_and_wall_time_collector_typed_data = {
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_collector_state *state = (struct cpu_and_wall_time_collector_state *) state_ptr;
 
+  // Update this when modifying state struct
   rb_gc_mark(state->recorder_instance);
 }
 
 static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr) {
   struct cpu_and_wall_time_collector_state *state = (struct cpu_and_wall_time_collector_state *) state_ptr;
+
+  // Update this when modifying state struct
+
+  // Important: Remember that we're only guaranteed to see here what's been set in _native_new, aka
+  // pointers that have been set NULL there may still be NULL here.
+  if (state->sampling_buffer != NULL) sampling_buffer_free(state->sampling_buffer);
 
   xfree(state);
 }
@@ -63,19 +75,24 @@ static VALUE _native_new(VALUE klass) {
     rb_raise(rb_eNoMemError, "Failed to allocate memory for components of Datadog::Profiling::Collectors::CpuAndWallTime");
   }
 
+  // Update this when modifying state struct
+  state->sampling_buffer = NULL;
   state->recorder_instance = Qnil;
 
   return TypedData_Wrap_Struct(collectors_cpu_and_wall_time_class, &cpu_and_wall_time_collector_typed_data, state);
 }
 
-static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance) {
-  // Quick sanity check. If the object passed here is not actually a Datadog::Profiling::StackRecorder, then
-  // we will later flag that when trying to access its data using TypedData_Get_Struct.
-  Check_Type(recorder_instance, T_DATA);
+static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
+  enforce_recorder_instance(recorder_instance);
 
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
+  int max_frames_requested = NUM2INT(max_frames);
+  if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
+
+  // Update this when modifying state struct
+  state->sampling_buffer = sampling_buffer_new(max_frames_requested);
   state->recorder_instance = recorder_instance;
 
   return Qtrue;

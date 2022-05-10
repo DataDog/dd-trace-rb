@@ -137,3 +137,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   return NULL; // Unused
 }
+
+void enforce_recorder_instance(VALUE object) {
+  Check_TypedStruct(object, &stack_recorder_typed_data);
+}

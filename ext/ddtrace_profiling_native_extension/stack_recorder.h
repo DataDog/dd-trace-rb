@@ -26,3 +26,4 @@ static const ddprof_ffi_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_S
 #define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddprof_ffi_ValueType))
 
 void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample);
+void enforce_recorder_instance(VALUE object);

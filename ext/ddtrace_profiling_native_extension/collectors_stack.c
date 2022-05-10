@@ -4,6 +4,7 @@
 #include "libddprof_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
+#include "collectors_stack.h"
 
 // Gathers stack traces from running threads, storing them in a StackRecorder instance
 // This file implements the native bits of the Datadog::Profiling::Collectors::Stack class
@@ -27,8 +28,6 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
-sampling_buffer *sampling_buffer_new(unsigned int max_frames);
-void sampling_buffer_free(sampling_buffer *buffer);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -268,6 +267,8 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
+  if (buffer == NULL) rb_raise(rb_eArgError, "sampling_buffer_free called with NULL buffer");
+
   ruby_xfree(buffer->stack_buffer);
   ruby_xfree(buffer->lines_buffer);
   ruby_xfree(buffer->is_ruby_frame);
