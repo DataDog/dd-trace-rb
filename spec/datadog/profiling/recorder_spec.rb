@@ -141,7 +141,7 @@ RSpec.describe Datadog::Profiling::Recorder do
             finish: kind_of(Time),
             pprof_file_name: 'rubyprofile.pprof.gz',
             code_provenance_file_name: 'code-provenance.json.gz',
-            tags_as_array: array_including(%w[language ruby], ['pid', Process.pid.to_s]),
+            tags_as_array: array_including(%w[language ruby], ['process_id', Process.pid.to_s]),
           )
         end
 
