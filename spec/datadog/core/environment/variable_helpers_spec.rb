@@ -158,7 +158,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
   end
 
   describe '::env_to_list' do
-    subject(:env_to_list) { variable_helpers.env_to_list(var) }
+    subject(:env_to_list) { variable_helpers.env_to_list(var, comma_separated_only: false) }
 
     context 'when env var is not defined' do
       context 'and default is not defined' do
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       end
 
       context 'and default is defined' do
-        subject(:env_to_list) { variable_helpers.env_to_list(var, default) }
+        subject(:env_to_list) { variable_helpers.env_to_list(var, default, comma_separated_only: false) }
 
         let(:default) { double }
 

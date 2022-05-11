@@ -33,7 +33,7 @@ module Datadog
         # either trailing or leading are trimmed.
         #
         # Empty entries, after trimmed, are also removed from the result.
-        def env_to_list(var, default = [], comma_separated_only: false)
+        def env_to_list(var, default = [], comma_separated_only:)
           var = decode_array(var)
           if var && ENV.key?(var)
             value = ENV[var]
@@ -41,7 +41,7 @@ module Datadog
             values = if value.include?(',') || comma_separated_only
                        value.split(',')
                      else
-                       value.split # space splitting is the default
+                       value.split(' ') # rubocop:disable Style/RedundantArgument
                      end
 
             values.map! do |v|
