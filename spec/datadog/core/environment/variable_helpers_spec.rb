@@ -174,7 +174,7 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
       end
     end
 
-    context 'when env var is set as' do
+    context 'when env var is set' do
       include_context 'env var'
 
       context '\'\'' do
@@ -201,10 +201,44 @@ RSpec.describe Datadog::Core::Environment::VariableHelpers do
         it { is_expected.to eq(%w[1 2]) }
       end
 
-      context ' 1 , 2 , 3 ' do
-        let(:env_value) { ' 1 , 2 , 3 ' }
+      context ' 1 , 2 ,  3 ' do
+        let(:env_value) { ' 1 , 2 ,  3 ' }
 
         it { is_expected.to eq(%w[1 2 3]) }
+      end
+
+      context '1 2 3' do
+        let(:env_value) { '1 2 3' }
+
+        it { is_expected.to eq(%w[1 2 3]) }
+      end
+
+      context '1,2 3' do
+        let(:env_value) { '1,2 3' }
+
+        it { is_expected.to eq(['1', '2 3']) }
+      end
+
+      context ' 1  2   3 ' do
+        let(:env_value) { ' 1  2   3 ' }
+
+        it { is_expected.to eq(%w[1 2 3]) }
+      end
+
+      context '1,, ,2,3,' do
+        let(:env_value) { '1,, ,2,3,' }
+
+        it { is_expected.to eq(%w[1 2 3]) }
+      end
+
+      context 'and comma_separated_only is set' do
+        subject(:env_to_list) { variable_helpers.env_to_list(var, comma_separated_only: true) }
+
+        context 'B3 single header ' do
+          let(:env_value) { 'B3 single header ' }
+
+          it { is_expected.to eq(['B3 single header']) }
+        end
       end
     end
   end

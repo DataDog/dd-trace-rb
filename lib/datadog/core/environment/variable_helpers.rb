@@ -24,10 +24,34 @@ module Datadog
           var && ENV.key?(var) ? ENV[var].to_f : default
         end
 
-        def env_to_list(var, default = [])
+        # Parses comma- or space-separated lists.
+        #
+        # If a comma is present, then the list is considered comma-separated.
+        # Otherwise, it is considered space-separated.
+        #
+        # After the entries are separated, commas and whitespaces that are
+        # either trailing or leading are trimmed.
+        #
+        # Empty entries, after trimmed, are also removed from the result.
+        def env_to_list(var, default = [], comma_separated_only: false)
           var = decode_array(var)
           if var && ENV.key?(var)
-            ENV[var].split(',').map(&:strip)
+            value = ENV[var]
+
+            values = if value.include?(',') || comma_separated_only
+                       value.split(',')
+                     else
+                       value.split # space splitting is the default
+                     end
+
+            values.map! do |v|
+              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
+
+              v.empty? ? nil : v
+            end
+
+            values.compact!
+            values
           else
             default
           end
