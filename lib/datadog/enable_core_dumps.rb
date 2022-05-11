@@ -1,3 +1,5 @@
+# typed: ignore
+
 # This helper is used to enable core dumps for the current Ruby app. This is useful when debugging native-level
 # crashes.
 #
