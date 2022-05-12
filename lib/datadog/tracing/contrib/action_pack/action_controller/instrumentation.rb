@@ -21,24 +21,23 @@ module Datadog
               # trace the execution
               service = Datadog.configuration.tracing[:action_pack][:service_name]
               type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
-              span = Tracing.trace(
+              Tracing.trace(
                 Ext::SPAN_ACTION_CONTROLLER,
                 service: service,
                 span_type: type,
                 resource: "#{payload.fetch(:controller)}##{payload.fetch(:action)}",
-              )
-              trace = Tracing.active_trace
+              ) do |span, trace|
+                # attach the current span to the tracing context
+                tracing_context = payload.fetch(:tracing_context)
+                tracing_context[:dd_request_trace] = trace
+                tracing_context[:dd_request_span] = span
 
-              # attach the current span to the tracing context
-              tracing_context = payload.fetch(:tracing_context)
-              tracing_context[:dd_request_trace] = trace
-              tracing_context[:dd_request_span] = span
+                # We want the route to show up as the trace's resource
+                trace.resource = span.resource
 
-              # We want the route to show up as the trace's resource
-              trace.resource = span.resource
-
-              span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
+                span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
+              end
             rescue StandardError => e
               Datadog.logger.error(e.message)
             end
