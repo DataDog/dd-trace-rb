@@ -63,6 +63,7 @@ ptrdiff_t stack_depth_for(VALUE thread) {
   #define ccan_list_for_each list_for_each
 #endif
 
+#ifndef USE_LEGACY_LIVING_THREADS_ST // Ruby > 2.1
 // Tries to match rb_thread_list() but that method isn't accessible to extensions
 VALUE ddtrace_thread_list() {
   VALUE result = rb_ary_new();
@@ -97,6 +98,31 @@ VALUE ddtrace_thread_list() {
 
   return result;
 }
+#else // USE_LEGACY_LIVING_THREADS_ST
+static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, void *result_object);
+
+// Alternative ddtrace_thread_list implementation for Ruby 2.1. In this Ruby version, living threads were stored in a
+// hashmap (st) instead of a list.
+VALUE ddtrace_thread_list() {
+  VALUE result = rb_ary_new();
+  st_foreach(thread_struct_from_object(rb_thread_current())->vm->living_threads, ddtrace_thread_list_each, result);
+  return result;
+}
+
+static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, void *result_object) {
+  VALUE result = (VALUE) result_object;
+  rb_thread_t *thread = thread_struct_from_object((VALUE) thread_object);
+  switch (thread->status) {
+    case THREAD_RUNNABLE:
+    case THREAD_STOPPED:
+    case THREAD_STOPPED_FOREVER:
+      rb_ary_push(result, thread->self);
+    default:
+      break;
+  }
+  return ST_CONTINUE;
+}
+#endif // USE_LEGACY_LIVING_THREADS_ST
 
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.

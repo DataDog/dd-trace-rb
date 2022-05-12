@@ -33,7 +33,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
   end
 
-  describe '#thread_list', :focus do
+  describe '#thread_list' do
     let(:ready_queue) { Queue.new }
     let!(:t1) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
     let!(:t2) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
