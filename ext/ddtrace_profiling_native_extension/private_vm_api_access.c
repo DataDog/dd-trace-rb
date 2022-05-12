@@ -58,6 +58,46 @@ ptrdiff_t stack_depth_for(VALUE thread) {
   return end_cfp <= cfp ? 0 : end_cfp - cfp - 1;
 }
 
+// This was renamed in Ruby 3.2
+#if !defined(ccan_list_for_each) && defined(list_for_each)
+  #define ccan_list_for_each list_for_each
+#endif
+
+// Tries to match rb_thread_list() but that method isn't accessible to extensions
+VALUE ddtrace_thread_list() {
+  VALUE result = rb_ary_new();
+  rb_thread_t *thread = NULL;
+
+  // Ruby 3 Safety: Our implementation is inspired by `rb_ractor_thread_list` BUT that method wraps the operations below
+  // with `RACTOR_LOCK` and `RACTOR_UNLOCK`.
+  //
+  // This initially made me believe that one MUST grab the ractor lock (which is different from the ractor-scoped Global
+  // VM Lock) in able to iterate the `threads.set`. This turned out not to be the case: upon further study of the VM
+  // codebase in 3.2-master, 3.1 and 3.0, there's quite a few places where `threads.set` is accessed without grabbing
+  // the ractor lock: `ractor_mark` (ractor.c), `thgroup_list` (thread.c), `rb_check_deadlock` (thread.c), etc.
+  //
+  // I suspect the design in `rb_ractor_thread_list` may be done that way to perhaps in the future expose it to be
+  // called from a different Ractor, but I'm not sure...
+  #ifdef HAVE_RUBY_RACTOR_H
+    rb_ractor_t *current_ractor = GET_RACTOR();
+    ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
+  #else
+    rb_vm_t *vm = thread_struct_from_object(rb_thread_current())->vm;
+    list_for_each(&vm->living_threads, thread, vmlt_node) {
+  #endif
+      switch (thread->status) {
+        case THREAD_RUNNABLE:
+        case THREAD_STOPPED:
+        case THREAD_STOPPED_FOREVER:
+          rb_ary_push(result, thread->self);
+        default:
+          break;
+      }
+    }
+
+  return result;
+}
+
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.

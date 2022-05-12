@@ -21,6 +21,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
 static VALUE _native_sample(VALUE self, VALUE collector_instance);
 static void sample(VALUE collector_instance);
+static VALUE _native_thread_list(VALUE self);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -38,6 +39,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 3);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_sample", _native_sample, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_thread_list", _native_thread_list, 0);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -134,4 +136,10 @@ static void sample(VALUE collector_instance) {
       (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME
     );
   }
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_thread_list(VALUE self) {
+  return ddtrace_thread_list();
 }

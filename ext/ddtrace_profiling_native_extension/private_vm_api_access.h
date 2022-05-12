@@ -17,6 +17,8 @@
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
 ptrdiff_t stack_depth_for(VALUE thread);
+VALUE ddtrace_thread_list();
+
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);
 
 // Ruby 3.0 finally added support for showing CFUNC frames (frames for methods written using native code)

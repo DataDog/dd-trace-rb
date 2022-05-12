@@ -17,6 +17,12 @@ module Datadog
         def sample
           self.class._native_sample(self)
         end
+
+        # This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+        # It SHOULD NOT be used for other purposes.
+        def thread_list
+          self.class._native_thread_list
+        end
       end
     end
   end

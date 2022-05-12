@@ -11,23 +11,48 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
   subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
 
-  it 'samples all threads' do
-    all_threads = Thread.list
+  describe '#sample' do
+    it 'samples all threads' do
+      all_threads = Thread.list
 
-    decoded_profile = sample_and_decode
+      decoded_profile = sample_and_decode
 
-    #binding.pry
+      #binding.pry
+    end
+
+    def sample_and_decode
+      cpu_and_wall_time_collector.sample
+
+      serialization_result = recorder.serialize
+      raise 'Unexpected: Serialization failed' unless serialization_result
+
+      pprof_data = serialization_result.last
+      decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
+
+      decoded_profile
+    end
   end
 
-  def sample_and_decode
-    cpu_and_wall_time_collector.sample
+  describe '#thread_list', :focus do
+    let(:ready_queue) { Queue.new }
+    let!(:t1) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+    let!(:t2) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+    let!(:t3) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
 
-    serialization_result = recorder.serialize
-    raise 'Unexpected: Serialization failed' unless serialization_result
+    before do
+      3.times { ready_queue.pop }
+      expect(Thread.list).to include(Thread.main, t1, t2, t3)
+    end
 
-    pprof_data = serialization_result.last
-    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
+    after do
+      [t1, t2, t3].each do |thread|
+        thread.kill
+        thread.join
+      end
+    end
 
-    decoded_profile
+    it "returns the same as Ruby's Thread.list" do
+      expect(cpu_and_wall_time_collector.thread_list).to eq Thread.list
+    end
   end
 end
