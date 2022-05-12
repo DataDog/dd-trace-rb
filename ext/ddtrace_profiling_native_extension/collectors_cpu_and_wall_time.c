@@ -116,8 +116,8 @@ static void sample(VALUE collector_instance) {
   // FIXME: How to access thread list?
   VALUE threads = rb_ary_new(); //rb_thread_list();
 
-  const int thread_count = RARRAY_LEN(threads);
-  for (int i = 0; i < thread_count; i++) {
+  const long thread_count = RARRAY_LEN(threads);
+  for (long i = 0; i < thread_count; i++) {
     VALUE thread = RARRAY_AREF(threads, i);
 
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
