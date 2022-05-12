@@ -48,7 +48,7 @@ static const rb_data_type_t cpu_and_wall_time_collector_typed_data = {
     .dmark = cpu_and_wall_time_collector_typed_data_mark,
     .dfree = cpu_and_wall_time_collector_typed_data_free,
     .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
-    .dcompact = NULL, // FIXME: Add support for compaction
+    //.dcompact = NULL, // FIXME: Add support for compaction
   },
   .flags = RUBY_TYPED_FREE_IMMEDIATELY
 };
