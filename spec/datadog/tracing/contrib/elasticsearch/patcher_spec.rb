@@ -8,7 +8,7 @@ require 'ddtrace'
 
 require 'elasticsearch'
 
-require_relative 'support/client'
+require 'datadog/tracing/contrib/elasticsearch/support/client'
 
 RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
   include_context 'Elasticsearch client'
