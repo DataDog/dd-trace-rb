@@ -91,3 +91,8 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
+
+# This is needed to enable profiling on Ruby 2.5.4 to 2.5.9. Without it, the profiler will not turn on because
+# the `self_test_thread_list` (private_vm_api_access.c) will not pass.
+# Hopefully upstream will accept this PR, otherwise we may need to fork, which I really would like to avoid.
+gem 'debase-ruby_core_source', git: 'https://github.com/Datadog/debase-ruby_core_source.git', branch: 'datadog/add-ruby-2.5.4-headers'
