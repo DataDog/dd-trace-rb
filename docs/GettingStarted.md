@@ -882,6 +882,9 @@ end
 # Perform a query to Elasticsearch
 client = Elasticsearch::Client.new url: 'http://127.0.0.1:9200'
 response = client.perform_request 'GET', '_cluster/health'
+
+# In case you want to override the global configuration for a certain client instance
+Datadog.configure_onto(client.transport, **options)
 ```
 
 Where `options` is an optional `Hash` that accepts the following parameters:

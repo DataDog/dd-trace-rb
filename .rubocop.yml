@@ -70,6 +70,10 @@ Metrics/BlockLength:
     - test/**/*
     - spec/**/*
 
+Metrics/ModuleLength:
+  Exclude:
+    - spec/**/*
+
 Metrics/ParameterLists:
   Enabled: false
 

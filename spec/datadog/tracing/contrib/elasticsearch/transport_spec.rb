@@ -3,7 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'time'
-require 'elasticsearch-transport'
+require 'elasticsearch'
 require 'faraday'
 
 require 'ddtrace'
@@ -31,6 +31,19 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     Datadog.configure do |c|
       c.tracing.instrument :elasticsearch, configuration_options
     end
+
+    # Mock realistic Elasticsearch verification response
+    stub_request(:get, %r{#{Regexp.quote(server)}//?})
+      .to_return(
+        status: 200,
+        headers: { 'x-elastic-product' => 'Elasticsearch', 'content-type' => 'application/yaml' },
+        body: "version:\n  number: 8.0.0"
+      )
+
+    # Elasticsearch always sends one sanity request to `/` per client before executing the desired request.
+    # @see https://github.com/elastic/elasticsearch-ruby/blob/ce84322759ff494764bbd096922faff998342197/elasticsearch/lib/elasticsearch.rb#L161
+    client.perform_request('GET', '/')
+    clear_traces!
   end
 
   after { Datadog.registry[:elasticsearch].reset_configuration! }
@@ -136,7 +149,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
   describe 'client configuration override' do
     context 'when #service is overridden' do
-      before { Datadog.configure_onto(client, service_name: service_name) }
+      before { Datadog.configure_onto(client.transport, service_name: service_name) }
 
       let(:service_name) { 'bar' }
 
@@ -148,14 +161,30 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
         before do
           stub_request(:get, "#{server}/#{path}").to_return(status: 200)
-          expect(response.status).to eq(200)
         end
 
         it 'produces a well-formed trace' do
+          expect(response.status).to eq(200)
           expect(WebMock).to have_requested(:get, "#{server}/#{path}")
           expect(spans).to have(1).items
           expect(span.name).to eq('elasticsearch.query')
           expect(span.service).to eq(service_name)
+        end
+
+        context 'configured at the Elasticsearch client level' do
+          before do
+            skip('Configuration through client object is not possible in Elasticsearch >= 8.0.0') if version_greater_than_8
+
+            Datadog.configure_onto(client, service_name: 'custom')
+          end
+
+          let(:version_greater_than_8) { Gem::Version.new(::Elasticsearch::VERSION) >= Gem::Version.new('8.0.0') }
+
+          it 'warns about deprecated configuration of the Elasticsearch client itself' do
+            expect { response }.to emit_deprecation_warning(
+              include('Providing configuration though the Elasticsearch client object is deprecated')
+            )
+          end
         end
       end
     end

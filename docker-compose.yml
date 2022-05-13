@@ -544,11 +544,7 @@ services:
     volumes:
       - ddagent_var_run:/var/run/datadog
   elasticsearch:
-    # Note: ES 5.0 dies with error:
-    # max virtual memory areas vm.max_map_count [65530] is too low, increase to at least [262144]
-    # see https://github.com/docker-library/elasticsearch/issues/98 for details
-    # For now, just rely on a 2.X server.
-    image: elasticsearch:2.4
+    image: elasticsearch:8.1.3
     platform: linux/x86_64
     expose:
       - "9200"
@@ -556,6 +552,11 @@ services:
     ports:
       - "${TEST_ELASTICSEARCH_REST_PORT}:9200"
       - "${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
+    environment:
+      # Ensure production cluster requirements are not enforced
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS="-Xms750m -Xmx750m"
   memcached:
     image: memcached:1.5-alpine
     platform: linux/x86_64

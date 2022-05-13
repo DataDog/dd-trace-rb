@@ -128,4 +128,44 @@ module LogHelpers
       end
     end
   end
+
+  # Matches Datadog.logger.warn messages
+  RSpec::Matchers.define :emit_deprecation_warning do |expected|
+    match do |actual|
+      captured_log_entries = []
+      allow(Datadog.logger).to receive(:warn) do |arg, &block|
+        captured_log_entries << if block
+                                  block.call
+                                else
+                                  arg
+                                end
+      end
+
+      actual.call
+
+      @actual = captured_log_entries.join('\n')
+
+      # Matches any output with the word deprecation (or equivalent variants)
+      # in case no expectation is specified.
+      expected ||= /deprecat(e|ion)/i
+
+      values_match?(expected, @actual)
+    end
+
+    def failure_message
+      "expected Datadog.logger.warn output #{description_of @actual} to #{description}".dup
+    end
+
+    def failure_message_when_negated
+      "expected Datadog.logger.warn output #{description_of @actual} not to #{description}".dup
+    end
+
+    diffable
+
+    # Only allow matching with blocks
+    supports_block_expectations
+    def supports_value_expectations?
+      false
+    end
+  end
 end

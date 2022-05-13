@@ -5,12 +5,13 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 
 require 'ddtrace'
-require 'elasticsearch-transport'
+
+require 'elasticsearch'
+
+require 'datadog/tracing/contrib/elasticsearch/support/client'
 
 RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
-  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1') }
-  let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '9200').to_i }
-  let(:server) { "http://#{host}:#{port}" }
+  include_context 'Elasticsearch client'
 
   let(:client) { Elasticsearch::Client.new(url: server, adapter: :net_http) }
   let(:configuration_options) { {} }
@@ -19,8 +20,6 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
     Datadog.configure do |c|
       c.tracing.instrument :elasticsearch, configuration_options
     end
-
-    wait_http_server(server, 60)
   end
 
   around do |example|
@@ -126,10 +125,9 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       }
     end
     let(:index_name) { 'some_index' }
-    let(:document_type) { 'type' }
     let(:document_id) { 1 }
 
-    subject(:request) { client.perform_request 'PUT', "#{index_name}/#{document_type}/#{document_id}", {}, document_body }
+    subject(:request) { client.perform_request 'PUT', "#{index_name}/_doc/#{document_id}", {}, document_body }
 
     it 'creates a span' do
       expect { request }.to change { fetch_spans.first }.to Datadog::Tracing::Span
@@ -148,7 +146,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.span_type).to eq('elasticsearch') }
-      it { expect(span.resource).to eq('PUT some_index/type/?') }
+      it { expect(span.resource).to eq('PUT some_index/_doc/?') }
 
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
