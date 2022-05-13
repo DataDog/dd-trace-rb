@@ -14,7 +14,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
 
   describe '#log' do
     subject(:log) do
-      ThreadHelpers.with_leaky_thread_creation('semantic_logger') do
+      ThreadHelpers.with_leaky_thread_creation('semantic_logger log') do
         instrumented.log(event)
       end
     end
@@ -41,7 +41,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
     end
 
     it 'merges correlation data with original options' do
-      expect(SemanticLogger::Logger).to receive(:call_subscribers) do |event|
+      assertion = proc do |event|
         expect(event.named_tags).to eq({ original: 'tag',
                                          dd: {
                                            env: 'env',
@@ -51,6 +51,14 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
                                            version: 'version'
                                          },
                                          ddsource: 'ruby' })
+      end
+
+      if SemanticLogger::Logger.respond_to?(:call_subscribers)
+        expect(SemanticLogger::Logger).to receive(:call_subscribers, &assertion) # semantic_logger >= 4.4.0
+      else
+        ThreadHelpers.with_leaky_thread_creation('semantic_logger processor') do
+          expect(SemanticLogger::Processor).to receive(:<<, &assertion) # semantic_logger < 4.4.0
+        end
       end
 
       log
