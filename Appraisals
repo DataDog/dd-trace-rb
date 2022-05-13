@@ -1528,7 +1528,7 @@ ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
                  "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
                else
                  "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
-               end
+               end.split('.')[0..1].join('.') # Remove patchlevel
 
 appraisals.each do |appraisal|
   appraisal.name.prepend("#{ruby_runtime}-")
