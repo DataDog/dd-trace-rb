@@ -1,6 +1,6 @@
 # typed: false
 
-RSpec.describe 'datadog/enable_core_dumps' do
+RSpec.describe 'datadog/kit/enable_core_dumps' do
   before do
     # Make sure we don't touch the actual real value
     allow(Process).to receive(:setrlimit).with(:CORE, anything)
@@ -10,7 +10,7 @@ RSpec.describe 'datadog/enable_core_dumps' do
   end
 
   subject(:enable_core_dumps) do
-    load('datadog/enable_core_dumps.rb')
+    load('datadog/kit/enable_core_dumps.rb')
   end
 
   context 'when core dumps are disabled' do
