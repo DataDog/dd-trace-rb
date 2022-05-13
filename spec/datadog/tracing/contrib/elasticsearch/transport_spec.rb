@@ -182,7 +182,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
 
           it 'warns about deprecated configuration of the Elasticsearch client itself' do
             expect { response }.to emit_deprecation_warning(
-              'Providing configuration though the Elasticsearch client object is deprecated'
+              include('Providing configuration though the Elasticsearch client object is deprecated')
             )
           end
         end
