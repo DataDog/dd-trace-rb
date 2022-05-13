@@ -124,6 +124,36 @@ static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, v
 }
 #endif // USE_LEGACY_LIVING_THREADS_ST
 
+// On Ruby versions where we don't use the MJIT header (< 2.6) we instead use the debase-ruby_core_source to access
+// the VM headers and be able to get definitions for VM internal structs.
+//
+// Unfortunately, not every Ruby minor version is included in that gem, and in particular for Ruby 2.5.4 there was a
+// change introduced in the `struct rb_vm_struct` (vm_core.h) that means that compiling it with headers for
+// earlier 2.5.x releases results in the code being compiled incorrectly.
+//
+// The self test below is a sanity check for this case, so that we don't try to use profiler if we got compiled
+// with the incorrect header.
+void self_test_thread_list() {
+  #if !defined(RUBY_MJIT_HEADER) && !defined(USE_LEGACY_LIVING_THREADS_ST)
+    VALUE thread_list = rb_funcall(rb_cThread, rb_intern("list"), 0);
+    Check_Type(thread_list, T_ARRAY);
+    size_t thread_list_size = RARRAY_LEN(thread_list);
+    size_t living_thread_num = thread_struct_from_object(rb_thread_current())->vm->living_thread_num;
+
+    // Other than the reason above, theoretically thread_list_size can be a bit smaller than living_thread_num if there's
+    // threads that have been just killed and not removed from the living_thread list. I'm not sure if we're ever going
+    // to run into it, but if you're investigating a suspicious failure below, that may be the reason.
+    if (thread_list_size != living_thread_num) {
+      rb_raise(
+        rb_eRuntimeError,
+        "ddtrace_thread_list() self-test failed (got %lu, expected %lu)",
+        living_thread_num,
+        thread_list_size
+      );
+    }
+  #endif
+}
+
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.

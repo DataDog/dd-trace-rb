@@ -1,6 +1,7 @@
 #include <ruby.h>
 
 #include "clock_id.h"
+#include "private_vm_api_access.h"
 
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_init(VALUE profiling_module);
@@ -28,6 +29,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
 
 static VALUE native_working_p(VALUE self) {
   self_test_clock_id();
+  self_test_thread_list();
 
   return Qtrue;
 }
