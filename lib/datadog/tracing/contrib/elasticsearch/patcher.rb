@@ -29,6 +29,8 @@ module Datadog
             patch_elasticsearch_transport_client
           end
 
+          SELF_DEPRECATION_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
           # rubocop:disable Metrics/MethodLength
           # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/CyclomaticComplexity
@@ -44,6 +46,16 @@ module Datadog
                 # since `elasticsearch` v8.0.0. In contrast, `Client#transport` is always available across
                 # all `elasticsearch` gem versions and should be used instead.
                 service = Datadog.configuration_for(self, :service_name)
+
+                if service
+                  SELF_DEPRECATION_ONLY_ONCE.run do
+                    Datadog.logger.warn(
+                      'Providing configuration though the Elasticsearch client object is deprecated.' \
+                      'Configure the `client#transport` object instead: ' \
+                      'Datadog.configure_onto(client.transport, service_name: service_name, ...)'
+                    )
+                  end
+                end
 
                 # `Client#transport` is most convenient object both this integration and the library
                 # user have shared access to across all `elasticsearch` versions.
