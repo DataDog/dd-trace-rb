@@ -23,6 +23,13 @@ module Datadog
         def thread_list
           self.class._native_thread_list
         end
+
+        def inspect
+          # Compose Ruby's default inspect with our custom inspect for the native parts
+          result = super()
+          result[-1] = "#{self.class._native_inspect(self)}>"
+          result
+        end
       end
     end
   end
