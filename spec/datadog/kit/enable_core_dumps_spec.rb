@@ -1,17 +1,19 @@
 # typed: false
 
-RSpec.describe 'datadog/kit/enable_core_dumps' do
+RSpec.describe 'Datadog::Kit::EnableCoreDumps' do
   before do
     # Make sure we don't touch the actual real value
-    allow(Process).to receive(:setrlimit).with(:CORE, anything)
+    allow(Process).to receive(:setrlimit).with(:CORE, anything).at_least(1).time
 
     allow(Kernel).to receive(:warn)
-    expect(Process).to receive(:getrlimit).with(:CORE).and_return(setrlimit_result)
+    expect(Process).to receive(:getrlimit).with(:CORE).and_return(setrlimit_result).at_least(1).time
+
+    # This should only be required with the mocks enabled, to make sure we don't actually affect the running
+    # Ruby instance
+    require 'datadog/kit/enable_core_dumps'
   end
 
-  subject(:enable_core_dumps) do
-    load('datadog/kit/enable_core_dumps.rb')
-  end
+  subject(:enable_core_dumps) { Datadog::Kit::EnableCoreDumps.call }
 
   context 'when core dumps are disabled' do
     let(:setrlimit_result) { [0, 0] }
