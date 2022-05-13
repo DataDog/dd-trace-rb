@@ -69,7 +69,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
             "runtime_engine:#{flush.runtime_engine}",
             "runtime_platform:#{flush.runtime_platform}",
             "runtime_version:#{flush.runtime_version}",
-            "pid:#{Process.pid}",
+            "process_id:#{Process.pid}",
             "profiler_version:#{flush.profiler_version}",
             "language:#{flush.language}",
             "host:#{flush.host}"

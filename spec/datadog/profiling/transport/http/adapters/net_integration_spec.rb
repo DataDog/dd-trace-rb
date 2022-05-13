@@ -114,7 +114,7 @@ RSpec.describe 'Adapters::Net profiling integration tests' do
           /runtime_engine:#{Datadog::Core::Environment::Ext::LANG_ENGINE}/o,
           /runtime_platform:#{Datadog::Core::Environment::Ext::LANG_PLATFORM}/o,
           /runtime_version:#{Datadog::Core::Environment::Ext::LANG_VERSION}/o,
-          /pid:#{Process.pid}/o,
+          /process_id:#{Process.pid}/o,
           /profiler_version:#{Datadog::Core::Environment::Ext::TRACER_VERSION}/o,
           /language:ruby/o,
           'test_tag:test_value'
