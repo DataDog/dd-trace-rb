@@ -12,12 +12,29 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
 
   describe '#sample' do
+    let(:ready_queue) { Queue.new }
+    let!(:t1) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+    let!(:t2) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+    let!(:t3) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+
+    before do
+      3.times { ready_queue.pop }
+      expect(Thread.list).to include(Thread.main, t1, t2, t3)
+    end
+
+    after do
+      [t1, t2, t3].each do |thread|
+        thread.kill
+        thread.join
+      end
+    end
+
     it 'samples all threads' do
       all_threads = Thread.list
 
       decoded_profile = sample_and_decode
 
-      #binding.pry
+      expect(decoded_profile.sample.size).to be all_threads.size
     end
 
     def sample_and_decode

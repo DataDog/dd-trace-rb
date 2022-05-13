@@ -115,8 +115,7 @@ static void sample(VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
-  // FIXME: How to access thread list?
-  VALUE threads = rb_ary_new(); //rb_thread_list();
+  VALUE threads = ddtrace_thread_list();
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -124,6 +123,7 @@ static void sample(VALUE collector_instance) {
 
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
 
+    // FIXME: TODO
     metric_values[CPU_TIME_VALUE_POS] = 12;
     metric_values[CPU_SAMPLES_VALUE_POS] = 34;
     metric_values[WALL_TIME_VALUE_POS] = 56;
@@ -133,7 +133,7 @@ static void sample(VALUE collector_instance) {
       state->sampling_buffer,
       state->recorder_instance,
       (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME
+      (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME: TODO
     );
   }
 }
