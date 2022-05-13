@@ -33,7 +33,7 @@ module Datadog
                   service: correlation.service.to_s,
                   version: correlation.version.to_s
                 },
-                ddsource: ['ruby']
+                ddsource: Logging::Ext::DD_SOURCE
               }
 
               datadog_trace_log_hash.merge(original_custom_options)

@@ -33,7 +33,7 @@ module Datadog
                   service: correlation.service.to_s,
                   version: correlation.version.to_s
                 },
-                ddsource: ['ruby']
+                ddsource: Logging::Ext::DD_SOURCE
               }
 
               # # if the user already has conflicting log_tags
