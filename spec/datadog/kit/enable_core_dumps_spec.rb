@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 RSpec.describe 'Datadog::Kit::EnableCoreDumps' do
   before do
