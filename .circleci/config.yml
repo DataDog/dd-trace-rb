@@ -134,6 +134,7 @@ step_appraisal_install: &step_appraisal_install
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         bundle exec appraisal install
       else
+        bundle exec appraisal generate # Generate the appraisal files to match the lockfiles in the tree
         echo "All required gems were found in cache."
       fi
 step_appraisal_update: &step_appraisal_update

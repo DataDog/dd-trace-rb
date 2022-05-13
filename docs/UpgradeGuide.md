@@ -342,7 +342,7 @@ See the table below for most common mappings:
 | `Datadog.tracer.active_span`                                                                 | `Datadog::Tracing.active_span`              | See [trace state](#1.0-trace-api-trace-state) for details.          |
 | `Datadog.tracer.call_context`                                                                | Removed                                     | See [trace state](#1.0-trace-api-trace-state) for details.          |
 | `Datadog.tracer.configure(options)`                                                          | `Datadog.configure { \|c\| ... }`           | Use configuration API instead.                                      |
-| `Datadog.tracer.provider.context = context`                                                  | `Datadog::Tracing.continue_from!(digest)`   | See [distributed tracing](#1.0-trace-api-distributed) for details.  |
+| `Datadog.tracer.provider.context = context`                                                  | `Datadog::Tracing.continue_trace!(digest)`  | See [distributed tracing](#1.0-trace-api-distributed) for details.  |
 | `Datadog.tracer.set_tags(tags)`                                                              | `Datadog.configure { \|c\| c.tags = tags }` |                                                                     |
 | `Datadog.tracer.shutdown!`                                                                   | `Datadog::Tracing.shutdown!`                |                                                                     |
 | `Datadog.tracer.start_span`                                                                  | `Datadog::Tracing.trace`                    | See [manual tracing](#1.0-trace-api-manual-tracing) for details.    |
@@ -464,8 +464,8 @@ Datadog::Tracing.trace('my.job', continue_from: trace_digest) do |span, trace|
   trace.id == trace_digest.trace_id
 end
 
-# Continue a trace: explicit continuation (using #continue_from!)
-Datadog::Tracing.continue_from!(trace_digest) do
+# Continue a trace: explicit continuation (using #continue_trace!)
+Datadog::Tracing.continue_trace!(trace_digest) do
   # Traces implicitly continue within the block
   Datadog::Tracing.trace('my.job') do |span, trace|
     trace.id == trace_digest.trace_id
