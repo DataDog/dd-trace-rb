@@ -1,3 +1,5 @@
+# typed: ignore
+
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'semantic_logger'
 require 'datadog/tracing/contrib/semantic_logger/instrumentation'
