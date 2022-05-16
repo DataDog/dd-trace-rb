@@ -22,9 +22,13 @@ module Datadog
             on_truffleruby? ||
             on_windows? ||
             on_unknown_os? ||
-            not_on_x86_64? ||
-            expected_to_use_mjit_but_mjit_is_disabled? ||
-            libddprof_not_usable?
+            # TODO: Temporarily disabled for PR https://github.com/DataDog/dd-trace-rb/pull/1885; will be updated in
+            # follow-up PR
+            # not_on_x86_64? ||
+            expected_to_use_mjit_but_mjit_is_disabled?
+          # TODO: Temporarily disabled for PR https://github.com/DataDog/dd-trace-rb/pull/1885; will be updated in
+          # follow-up PR
+          # libddprof_not_usable?
         end
 
         private_class_method def self.disabled_via_env?
