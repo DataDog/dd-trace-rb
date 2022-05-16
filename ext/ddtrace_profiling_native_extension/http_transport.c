@@ -154,7 +154,7 @@ __attribute__((warn_unused_result))
 static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
   Check_Type(tags_as_array, T_ARRAY);
 
-  long tags_count = rb_array_len(tags_as_array);
+  long tags_count = RARRAY_LEN(tags_as_array);
   ddprof_ffi_Vec_tag tags = ddprof_ffi_Vec_tag_new();
 
   for (long i = 0; i < tags_count; i++) {
