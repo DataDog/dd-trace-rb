@@ -71,7 +71,6 @@ module Datadog
         metrics: nil
       )
         # Attributes
-        @events = events || Events.new
         @id = id || Core::Utils.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
