@@ -63,53 +63,51 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           it { is_expected.to include 'operating system is not supported' }
         end
 
-        # TODO: Temporarily disabled for PR https://github.com/DataDog/dd-trace-rb/pull/1885; will be updated in
-        # follow-up PR
-        # context 'when not on x86-64' do
-        #   before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
+        context 'when not on x86-64' do
+          before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
 
-        #   it { is_expected.to include 'architecture is not supported' }
-        # end
+          it { is_expected.to include 'architecture is not supported' }
+        end
 
         context 'when on x86-64 linux' do
           before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
 
           shared_examples 'libddprof usable' do
-            # context 'when libddprof is not available' do
-            #   before do
-            #     allow(described_class)
-            #       .to receive(:require).with('libddprof').and_raise(LoadError.new('Testing failed require'))
-            #   end
+            context 'when libddprof is not available' do
+              before do
+                allow(described_class)
+                  .to receive(:require).with('libddprof').and_raise(LoadError.new('Testing failed require'))
+              end
 
-            #   it { is_expected.to include '`libddprof` gem is not available' }
-            # end
+              it { is_expected.to include '`libddprof` gem is not available' }
+            end
 
-            # context 'when libddprof is available' do
-            #   context 'but DOES NOT have binaries' do
-            #     before { expect(Libddprof).to receive(:binaries?).and_return(false) }
+            context 'when libddprof is available' do
+              context 'but DOES NOT have binaries' do
+                before { expect(Libddprof).to receive(:binaries?).and_return(false) }
 
-            #     it { is_expected.to include 'gem installed on your system is missing platform-specific' }
-            #   end
+                it { is_expected.to include 'gem installed on your system is missing platform-specific' }
+              end
 
-            #   context 'and DOES have binaries' do
-            #     before { expect(Libddprof).to receive(:binaries?).and_return(true) }
+              context 'and DOES have binaries' do
+                before { expect(Libddprof).to receive(:binaries?).and_return(true) }
 
-            #     context 'but DOES NOT HAVE binaries for the current platform' do
-            #       before do
-            #         expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
-            #         expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
-            #       end
+                context 'but DOES NOT HAVE binaries for the current platform' do
+                  before do
+                    expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
+                    expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+                  end
 
-            #       it { is_expected.to include 'platform variant' }
-            #     end
+                  it { is_expected.to include 'platform variant' }
+                end
 
-            #     context 'and HAS BINARIES for the current platform' do
-            #       before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
+                context 'and HAS BINARIES for the current platform' do
+                  before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
 
-            it { is_expected.to be nil }
-            #     end
-            #   end
-            # end
+                  it { is_expected.to be nil }
+                end
+              end
+            end
           end
 
           context 'when Ruby CAN NOT use the MJIT header' do
