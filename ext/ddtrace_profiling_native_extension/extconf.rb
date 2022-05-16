@@ -78,24 +78,22 @@ if RUBY_PLATFORM.include?('linux')
 end
 
 # If we got here, libddprof is available and loaded
-
-# TODO: Temporarily disabled for PR https://github.com/DataDog/dd-trace-rb/pull/1885; will be re-enabled in a follow-up PR
-# ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
-# unless pkg_config('ddprof_ffi')
-#   $stderr.puts(%(
-# +------------------------------------------------------------------------------+
-# | Skipping build of profiling native extension:                                |
-# | failed to configure `libddprof` for compilation.                             |
-# |                                                                              |
-# | The Datadog Continuous Profiler will not be available,                       |
-# | but all other ddtrace features will work fine!                               |
-# |                                                                              |
-# | For help solving this issue, please contact Datadog support at               |
-# | <https://docs.datadoghq.com/help/>.                                          |
-# +------------------------------------------------------------------------------+
-# ))
-#   skip_building_extension!
-# end
+ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
+unless pkg_config('ddprof_ffi')
+  $stderr.puts(%(
++------------------------------------------------------------------------------+
+| Skipping build of profiling native extension:                                |
+| failed to configure `libddprof` for compilation.                             |
+|                                                                              |
+| The Datadog Continuous Profiler will not be available,                       |
+| but all other ddtrace features will work fine!                               |
+|                                                                              |
+| For help solving this issue, please contact Datadog support at               |
+| <https://docs.datadoghq.com/help/>.                                          |
++------------------------------------------------------------------------------+
+))
+  skip_building_extension!
+end
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
