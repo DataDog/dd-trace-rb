@@ -121,7 +121,7 @@ static void sample(VALUE collector_instance) {
 
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
 
-    // FIXME: TODO
+    // FIXME: TODO These are just dummy values for now
     metric_values[CPU_TIME_VALUE_POS] = 12;
     metric_values[CPU_SAMPLES_VALUE_POS] = 34;
     metric_values[WALL_TIME_VALUE_POS] = 56;
@@ -131,7 +131,7 @@ static void sample(VALUE collector_instance) {
       state->sampling_buffer,
       state->recorder_instance,
       (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME: TODO
+      (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME: TODO we need to gather the expected labels
     );
   }
 }
