@@ -4037,12 +4037,6 @@ class Datadog::Tracing::Contrib::Aws::Integration
   include ::Datadog::Tracing::Contrib::Registerable::InstanceMethods
 end
 
-class Datadog::Tracing::Contrib::ConcurrentRuby::ContextCompositeExecutorService
-  def can_overflow?(*args, &block); end
-
-  def serialized?(*args, &block); end
-end
-
 class Datadog::Tracing::Contrib::ConcurrentRuby::Integration
   include ::Datadog::Tracing::Contrib::Configurable
   include ::Datadog::Tracing::Contrib::Configurable::InstanceMethods
