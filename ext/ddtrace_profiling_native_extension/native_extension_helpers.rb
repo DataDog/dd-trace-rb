@@ -172,7 +172,7 @@ module Datadog
             'the `libddprof` gem installed on your system is missing binaries for your',
             'platform variant.',
             "(Your platform: `#{Gem::Platform.local}`)",
-            "(Available binaries: ",
+            '(Available binaries: ',
             "`#{Libddprof.available_binaries.join('`, `')}`)",
             suggested: CONTACT_SUPPORT,
           )
