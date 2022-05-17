@@ -60,6 +60,12 @@ def add_compiler_flag(flag)
   end
 end
 
+# Older gcc releases may not default to C99 and we need to ask for this. This is also used:
+# * by upstream Ruby -- search for gnu99 in the codebase
+# * by msgpack, another ddtrace dependency
+#   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
+add_compiler_flag '-std=gnu99'
+
 # Gets really noisy when we include the MJIT header, let's omit it
 add_compiler_flag '-Wno-unused-function'
 
