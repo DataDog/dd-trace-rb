@@ -1,6 +1,7 @@
 # typed: true
 
 require 'datadog/tracing'
+require 'datadog/core/logging/ext'
 
 module Datadog
   module Tracing
@@ -33,7 +34,7 @@ module Datadog
                   service: correlation.service.to_s,
                   version: correlation.version.to_s
                 },
-                ddsource: Logging::Ext::DD_SOURCE
+                ddsource: Core::Logging::Ext::DD_SOURCE
               }
 
               datadog_trace_log_hash.merge(original_custom_options)
