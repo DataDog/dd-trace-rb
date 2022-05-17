@@ -36,15 +36,17 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
     end
 
     it 'merges correlation data with original options' do
-      is_expected.to eq({ original: 'option',
-                          dd: {
-                            env: 'env',
-                            service: 'service',
-                            span_id: 'span_id',
-                            trace_id: 'trace_id',
-                            version: 'version'
-                          },
-                          ddsource: 'ruby' })
+      is_expected.to eq(
+        { original: 'option',
+          dd: {
+            env: 'env',
+            service: 'service',
+            span_id: 'span_id',
+            trace_id: 'trace_id',
+            version: 'version'
+          },
+          ddsource: 'ruby' }
+      )
     end
   end
 end

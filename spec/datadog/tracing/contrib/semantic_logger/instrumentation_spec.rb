@@ -44,15 +44,17 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
 
     it 'merges correlation data with original options' do
       assertion = proc do |event|
-        expect(event.named_tags).to eq({ original: 'tag',
-                                         dd: {
-                                           env: 'env',
-                                           service: 'service',
-                                           span_id: 'span_id',
-                                           trace_id: 'trace_id',
-                                           version: 'version'
-                                         },
-                                         ddsource: 'ruby' })
+        expect(event.named_tags).to eq(
+          { original: 'tag',
+            dd: {
+              env: 'env',
+              service: 'service',
+              span_id: 'span_id',
+              trace_id: 'trace_id',
+              version: 'version'
+            },
+            ddsource: 'ruby' }
+        )
       end
 
       if SemanticLogger::Logger.respond_to?(:call_subscribers)
