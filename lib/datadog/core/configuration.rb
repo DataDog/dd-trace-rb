@@ -152,19 +152,13 @@ module Datadog
         pin[option] if pin
       end
 
+      # Internal {Datadog::Statsd} metrics collection.
+      #
+      # The list of metrics collected can be found in {Datadog::Core::Diagnostics::Ext::Health::Metrics}.
+      # @public_api
       def health_metrics
-        HEALTH_METRICS_DEPRECATION_ONLY_ONCE.run do
-          Datadog.logger.warn(
-            'configuration#health_metrics access is deprecated.' \
-                      'Use `Datadog.health_metrics` instead.'
-          )
-        end
-
         components.health_metrics
       end
-
-      HEALTH_METRICS_DEPRECATION_ONLY_ONCE = Utils::OnlyOnce.new
-      private_constant :HEALTH_METRICS_DEPRECATION_ONLY_ONCE
 
       def logger
         # avoid initializing components if they didn't already exist
