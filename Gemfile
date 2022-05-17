@@ -94,5 +94,5 @@ end
 
 # This is needed to enable profiling on Ruby 2.5.4 to 2.5.9. Without it, the profiler will not turn on because
 # the `self_test_thread_list` (private_vm_api_access.c) will not pass.
-# Hopefully upstream will accept this PR, otherwise we may need to fork, which I really would like to avoid.
-gem 'debase-ruby_core_source', git: 'https://github.com/Datadog/debase-ruby_core_source.git', branch: 'datadog/add-ruby-2.5.4-headers'
+# Hopefully this fix will be released soon, so we can start depending on it
+gem 'debase-ruby_core_source', git: 'https://github.com/ruby-debug/debase-ruby_core_source.git', ref: '97650d6f70d823e12efd4f0eac51cb81ea59a1f2'
