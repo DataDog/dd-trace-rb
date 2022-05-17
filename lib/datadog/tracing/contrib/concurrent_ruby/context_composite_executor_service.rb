@@ -36,8 +36,6 @@ module Datadog
           def datadog_configuration
             Datadog.configuration.tracing[:concurrent_ruby]
           end
-
-          delegate [:can_overflow?, :serialized?] => :composited_executor
         end
       end
     end
