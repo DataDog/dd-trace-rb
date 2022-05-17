@@ -18,6 +18,8 @@ module Datadog
             module_function
 
             def start_processing(payload)
+              return unless Tracing.enabled?
+
               # trace the execution
               service = Datadog.configuration.tracing[:action_pack][:service_name]
               type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
@@ -44,6 +46,8 @@ module Datadog
             end
 
             def finish_processing(payload)
+              return unless Tracing.enabled?
+
               # retrieve the tracing context and the latest active span
               tracing_context = payload.fetch(:tracing_context)
               trace = tracing_context[:dd_request_trace]
