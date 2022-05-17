@@ -136,6 +136,8 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         context 'when macOS testing override is enabled' do
           around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => 'true') { example.run } }
 
+          before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+
           include_examples 'mjit header validation'
         end
       end
