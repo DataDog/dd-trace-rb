@@ -33,6 +33,16 @@ module Datadog
             end
           end
 
+          # Respect the {Concurrent::ExecutorService} interface
+          def can_overflow?
+            @composited_executor.can_overflow?
+          end
+
+          # Respect the {Concurrent::ExecutorService} interface
+          def serialized?
+            @composited_executor.serialized?
+          end
+
           def datadog_configuration
             Datadog.configuration.tracing[:concurrent_ruby]
           end
