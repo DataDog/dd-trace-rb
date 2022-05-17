@@ -1,7 +1,5 @@
 # typed: true
 
-require 'forwardable'
-
 require 'datadog/core'
 
 require 'datadog/tracing/sampling/ext'
@@ -18,8 +16,6 @@ module Datadog
       # sampling strategy is applied.
       # @public_api
       class RuleSampler
-        extend Forwardable
-
         attr_reader :rules, :rate_limiter, :default_sampler
 
         # @param rules [Array<Rule>] ordered list of rules to be applied to a trace

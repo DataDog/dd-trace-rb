@@ -1,7 +1,5 @@
 # typed: false
 
-require 'forwardable'
-
 require 'datadog/core/runtime/metrics'
 
 require 'datadog/core/worker'
@@ -13,7 +11,6 @@ module Datadog
     module Workers
       # Emits runtime metrics asynchronously on a timed loop
       class RuntimeMetrics < Worker
-        extend Forwardable
         include Workers::Polling
 
         # In seconds

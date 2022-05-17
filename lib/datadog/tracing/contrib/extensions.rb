@@ -1,6 +1,5 @@
 # typed: false
 
-require 'forwardable'
 require 'set'
 
 require 'datadog/core/configuration/settings'

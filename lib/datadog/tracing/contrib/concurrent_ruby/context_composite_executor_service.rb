@@ -8,7 +8,6 @@ module Datadog
       module ConcurrentRuby
         # wraps existing executor to carry over trace context
         class ContextCompositeExecutorService
-          extend Forwardable
           include Concurrent::ExecutorService
 
           attr_accessor :composited_executor
