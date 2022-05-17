@@ -56,7 +56,7 @@ module Datadog
 
         contents = file_api.read(skipped_reason_file).strip
         contents unless contents.empty?
-      rescue StandardError => _e
+      rescue StandardError
         # Do nothing
       end
     end
