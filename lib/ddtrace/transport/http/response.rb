@@ -44,11 +44,6 @@ module Datadog
           @http_response.client_error?
         end
 
-        # (see Datadog::Transport::Response#inspect)
-        def inspect
-          @http_response.inspect
-        end
-
         # (see Datadog::Transport::Response#server_error?)
         def server_error?
           @http_response.server_error?
