@@ -1,6 +1,9 @@
 # typed: false
+require 'datadog/profiling/spec_helper'
 
-RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0' && PlatformHelpers.supports_fork?) do
+RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0') do
+  before { skip_if_profiling_not_supported(self) }
+
   around do |example|
     ClimateControl.modify('VALIDATE_BENCHMARK' => 'true') do
       example.run

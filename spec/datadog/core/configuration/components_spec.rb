@@ -1,6 +1,7 @@
 # typed: false
 
 require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 
 require 'logger'
 
@@ -893,10 +894,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
 
     context 'given settings' do
-      before do
-        skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-        skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
-      end
+      before { skip_if_profiling_not_supported(self) }
 
       shared_examples_for 'disabled profiler' do
         it { is_expected.to be nil }
