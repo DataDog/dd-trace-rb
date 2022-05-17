@@ -1,6 +1,5 @@
 # typed: true
 
-require 'forwardable'
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'
 require 'datadog/core/logger'
@@ -11,7 +10,6 @@ module Datadog
     # Configuration provides a unique access point for configurations
     module Configuration # rubocop:disable Metrics/ModuleLength
       include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-      extend Forwardable
 
       # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
       #
@@ -154,9 +152,19 @@ module Datadog
         pin[option] if pin
       end
 
-      def_delegators \
-        :components,
-        :health_metrics
+      def health_metrics
+        HEALTH_METRICS_DEPRECATION_ONLY_ONCE.run do
+          Datadog.logger.warn(
+            'configuration#health_metrics access is deprecated.' \
+                      'Use `Datadog.health_metrics` instead.'
+          )
+        end
+
+        components.health_metrics
+      end
+
+      HEALTH_METRICS_DEPRECATION_ONLY_ONCE = Utils::OnlyOnce.new
+      private_constant :HEALTH_METRICS_DEPRECATION_ONLY_ONCE
 
       def logger
         # avoid initializing components if they didn't already exist
