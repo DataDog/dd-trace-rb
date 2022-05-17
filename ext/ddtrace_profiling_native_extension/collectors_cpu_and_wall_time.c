@@ -77,9 +77,7 @@ static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr) {
 static VALUE _native_new(VALUE klass) {
   struct cpu_and_wall_time_collector_state *state = xcalloc(1, sizeof(struct cpu_and_wall_time_collector_state));
 
-  if (state == NULL) {
-    rb_raise(rb_eNoMemError, "Failed to allocate memory for components of Datadog::Profiling::Collectors::CpuAndWallTime");
-  }
+  if (state == NULL) rb_memerror();
 
   // Update this when modifying state struct
   state->sampling_buffer = NULL;
