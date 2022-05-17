@@ -1,15 +1,13 @@
 # typed: false
 
 require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling'
 require 'datadog/profiling/pprof/template'
 
 RSpec.describe Datadog::Profiling::Pprof::Template do
-  before do
-    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
-  end
+  before { skip_if_profiling_not_supported(self) }
 
   subject(:template) { described_class.new(mappings) }
 

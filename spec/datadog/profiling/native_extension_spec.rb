@@ -10,8 +10,15 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     begin
       require "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
     rescue LoadError
-      raise 'Profiling native extension does not seem to be compiled. ' \
-        'Try running `bundle exec rake compile` before running this test.'
+      if PlatformHelpers.mac?
+        skip 'Skipping profiling native extension specs: extension does not seem' \
+          'to be available. (Note that on macOS the extension can only be built if ' \
+          'libddprof is also manually rebuilt from source, since there are no ' \
+          'precompiled macOS binaries for libddprof).'
+      else
+        raise 'Profiling native extension does not seem to be compiled. ' \
+          'Try running `bundle exec rake compile` before running this test.'
+      end
     end
   end
 

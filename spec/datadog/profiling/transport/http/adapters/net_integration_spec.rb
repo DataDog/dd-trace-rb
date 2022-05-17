@@ -13,10 +13,7 @@ require 'datadog/profiling/transport/http'
 require 'ddtrace/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net profiling integration tests' do
-  before do
-    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
-  end
+  before { skip_if_profiling_not_supported(self) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
 
