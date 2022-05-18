@@ -10,8 +10,6 @@ module Datadog
     # OpenTracing adapter for Datadog::Tracer
     # @public_api
     class Tracer < ::OpenTracing::Tracer
-      extend Forwardable
-
       # (see Datadog::Tracer)
       # @return [Datadog::Tracer]
       attr_reader \

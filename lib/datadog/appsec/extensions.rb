@@ -1,6 +1,5 @@
 # typed: false
 
-require 'forwardable'
 require 'datadog/appsec/configuration'
 
 module Datadog
@@ -25,8 +24,6 @@ module Datadog
       # Merges {Datadog::AppSec::Configuration::Settings} and {Datadog::AppSec::Configuration::DSL}
       # into a single read/write object.
       class AppSecAdapter
-        extend Forwardable
-
         def initialize(settings)
           @settings = settings
         end

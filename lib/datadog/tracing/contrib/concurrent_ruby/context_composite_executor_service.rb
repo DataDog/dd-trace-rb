@@ -8,7 +8,6 @@ module Datadog
       module ConcurrentRuby
         # wraps existing executor to carry over trace context
         class ContextCompositeExecutorService
-          extend Forwardable
           include Concurrent::ExecutorService
 
           attr_accessor :composited_executor
@@ -34,11 +33,19 @@ module Datadog
             end
           end
 
+          # Respect the {Concurrent::ExecutorService} interface
+          def can_overflow?
+            @composited_executor.can_overflow?
+          end
+
+          # Respect the {Concurrent::ExecutorService} interface
+          def serialized?
+            @composited_executor.serialized?
+          end
+
           def datadog_configuration
             Datadog.configuration.tracing[:concurrent_ruby]
           end
-
-          delegate [:can_overflow?, :serialized?] => :composited_executor
         end
       end
     end
