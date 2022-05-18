@@ -1,4 +1,4 @@
-# typed: true
+# typed: ignore
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
@@ -61,7 +61,7 @@ class ProfilerSubmission
 
     # @ivoanjo: Hack to allow unmarshalling the old data; this will all need to be redesigned once we start using
     # libddprof for profile encoding, so I decided to take a shorter route for now.
-    original_flush_class = Datadog::Profiling::Flush
+    original_flush_class = defined?(Datadog::Profiling::Flush) && Datadog::Profiling::Flush
     Datadog::Profiling.const_set(:Flush, OldFlush)
     @flush = Marshal.load(
       Zlib::GzipReader.new(File.open(ENV['FLUSH_DUMP_FILE'] || 'benchmarks/data/profiler-submission-marshal.gz'))
