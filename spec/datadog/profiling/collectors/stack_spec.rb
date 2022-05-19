@@ -9,18 +9,23 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   subject(:collectors_stack) { described_class.new }
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
-  let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
-  let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b'}.to_a }
+  let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+  let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
 
   let(:pprof_data) { recorder.serialize.last }
   let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(pprof_data) }
 
   let(:raw_reference_stack) { stacks.fetch(:reference) }
-  let(:reference_stack) { raw_reference_stack.map { |location| {base_label: location.base_label, path: location.path, lineno: location.lineno} } }
+  let(:reference_stack) do
+    raw_reference_stack.map do |location|
+      { base_label: location.base_label, path: location.path, lineno: location.lineno }
+    end
+  end
   let(:gathered_stack) { stacks.fetch(:gathered) }
 
   context 'when sampling a sleeping thread' do
     let(:ready_queue) { Queue.new }
+    let(:stacks) { { reference: another_thread.backtrace_locations, gathered: sample_and_decode(another_thread) } }
     let(:another_thread) do
       Thread.new(ready_queue) do |ready_queue|
         ready_queue << true
@@ -37,8 +42,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       another_thread.kill
       another_thread.join
     end
-
-    let!(:stacks) { {reference: another_thread.backtrace_locations, gathered: sample_and_decode(another_thread)} }
 
     it 'matches the Ruby backtrace API' do
       pending 'Needs fixes in rb_profile_frames to fix sleep'
@@ -64,11 +67,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   def decode_frame(decoded_profile, location_id)
     strings = decoded_profile.string_table
-    location = decoded_profile.location.find { |location| location.id == location_id }
+    location = decoded_profile.location.find { |loc| loc.id == location_id }
     expect(location.line.size).to be 1
     line_entry = location.line.first
-    function = decoded_profile.function.find { |function| function.id == line_entry.function_id }
+    function = decoded_profile.function.find { |func| func.id == line_entry.function_id }
 
-    {base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line}
+    { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
   end
 end

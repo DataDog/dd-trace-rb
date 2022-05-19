@@ -63,8 +63,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     context 'when profile has a sample' do
       let(:collectors_stack) { Datadog::Profiling::Collectors::Stack.new }
 
-      let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
-      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b'}.to_a }
+      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
 
       before do
         collectors_stack.sample(Thread.current, stack_recorder, metric_values, labels)
