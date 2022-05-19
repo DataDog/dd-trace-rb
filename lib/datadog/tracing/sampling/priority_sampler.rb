@@ -1,7 +1,5 @@
 # typed: true
 
-require 'forwardable'
-
 require 'datadog/tracing/sampling/ext'
 require 'datadog/tracing/sampling/all_sampler'
 require 'datadog/tracing/sampling/rate_sampler'
@@ -13,8 +11,6 @@ module Datadog
       # {Datadog:::Tracing::Sampling::PrioritySampler}
       # @public_api
       class PrioritySampler
-        extend Forwardable
-
         # NOTE: We do not advise using a pre-sampler. It can save resources,
         # but pre-sampling at rates < 100% may result in partial traces, unless
         # the pre-sampler knows exactly how to drop a span without dropping its ancestors.
@@ -59,7 +55,10 @@ module Datadog
           trace.sampled?
         end
 
-        def_delegators :@priority_sampler, :update
+        # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)
+        def update(rate_by_service)
+          @priority_sampler.update(rate_by_service)
+        end
 
         private
 

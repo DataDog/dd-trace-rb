@@ -11,7 +11,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Response do
 
   describe 'Datadog::Transport::Response methods' do
     it 'are forwarded to the HTTP response' do
-      Datadog::Transport::Response.instance_methods.each do |method|
+      (Datadog::Transport::Response.instance_methods - [:inspect]).each do |method|
         expect(http_response).to receive(method)
         response.send(method)
       end

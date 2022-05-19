@@ -1,7 +1,5 @@
 # typed: true
 
-require 'forwardable'
-
 require 'datadog/core'
 
 require 'datadog/tracing/sampling/matcher'
@@ -15,8 +13,6 @@ module Datadog
       # apply in case of a positive match.
       # @public_api
       class Rule
-        extend Forwardable
-
         attr_reader :matcher, :sampler
 
         # @param [Matcher] matcher A matcher to verify trace conformity against
@@ -40,7 +36,15 @@ module Datadog
           nil
         end
 
-        def_delegators :@sampler, :sample?, :sample_rate
+        # (see Datadog::Tracing::Sampling::Sampler#sample?)
+        def sample?(trace)
+          @sampler.sample?(trace)
+        end
+
+        # (see Datadog::Tracing::Sampling::Sampler#sample_rate)
+        def sample_rate(trace)
+          @sampler.sample_rate(trace)
+        end
       end
 
       # A {Datadog::Tracing::Sampling::Rule} that matches a trace based on

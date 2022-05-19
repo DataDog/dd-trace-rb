@@ -4831,24 +4831,6 @@ class Datadog::Transport::HTTP::Client
   include ::Datadog::Transport::HTTP::Traces::Client
 end
 
-module Datadog::Transport::HTTP::Response
-  def client_error?(*args, &block); end
-
-  def inspect(*args, &block); end
-
-  def internal_error?(*args, &block); end
-
-  def not_found?(*args, &block); end
-
-  def ok?(*args, &block); end
-
-  def payload(*args, &block); end
-
-  def server_error?(*args, &block); end
-
-  def unsupported?(*args, &block); end
-end
-
 class Datadog::Transport::IO::Client
   include ::Datadog::Transport::IO::Traces::Client
 end

@@ -1,6 +1,5 @@
 # typed: true
 
-require 'forwardable'
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'
 require 'datadog/core/logger'
@@ -11,7 +10,6 @@ module Datadog
     # Configuration provides a unique access point for configurations
     module Configuration # rubocop:disable Metrics/ModuleLength
       include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
-      extend Forwardable
 
       # Used to ensure that @components initialization/reconfiguration is performed one-at-a-time, by a single thread.
       #
@@ -154,9 +152,13 @@ module Datadog
         pin[option] if pin
       end
 
-      def_delegators \
-        :components,
-        :health_metrics
+      # Internal {Datadog::Statsd} metrics collection.
+      #
+      # The list of metrics collected can be found in {Datadog::Core::Diagnostics::Ext::Health::Metrics}.
+      # @public_api
+      def health_metrics
+        components.health_metrics
+      end
 
       def logger
         # avoid initializing components if they didn't already exist
