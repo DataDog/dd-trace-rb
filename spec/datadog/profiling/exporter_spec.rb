@@ -30,9 +30,9 @@ RSpec.describe Datadog::Profiling::Exporter do
       expect(flush).to have_attributes(
         start: start,
         finish: finish,
-        pprof_file_name: 'rubyprofile.pprof.gz',
-        code_provenance_file_name: 'code-provenance.json.gz',
-        tags_as_array: array_including(%w[language ruby], ['pid', Process.pid.to_s]),
+        pprof_file_name: 'rubyprofile.pprof',
+        code_provenance_file_name: 'code-provenance.json',
+        tags_as_array: array_including(%w[language ruby], ['process_id', Process.pid.to_s]),
       )
       expect(Datadog::Core::Utils::Compression.gunzip(flush.pprof_data)).to eq pprof_data
       expect(Datadog::Core::Utils::Compression.gunzip(flush.code_provenance_data)).to eq code_provenance_data
