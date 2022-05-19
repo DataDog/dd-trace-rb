@@ -4,7 +4,15 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/stack_recorder'
 
 RSpec.describe Datadog::Profiling::StackRecorder do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip_if_profiling_not_supported(self)
+    if RUBY_VERSION < '2.6'
+      skip(
+        'This is temporarily disabled just to break up implementation into two PRs and will be ' \
+        'reverted in https://github.com/DataDog/dd-trace-rb/pull/2000'
+      )
+    end
+  end
 
   subject(:stack_recorder) { described_class.new }
 
