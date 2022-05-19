@@ -65,7 +65,7 @@ static VALUE _native_new(VALUE klass) {
 
   ddprof_ffi_Profile *profile = ddprof_ffi_Profile_new(sample_types, NULL /* Period is optional */);
 
-  return TypedData_Wrap_Struct(stack_recorder_class, &stack_recorder_typed_data, profile);
+  return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, profile);
 }
 
 static void stack_recorder_typed_data_free(void *data) {
