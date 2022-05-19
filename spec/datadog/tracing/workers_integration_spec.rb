@@ -147,6 +147,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
     context 'that are filtered' do
       before do
+        skip 'TODO: Test is flaky on macOS' if RUBY_PLATFORM.include?('darwin')
+
         # Activate filter
         filter = Datadog::Tracing::Pipeline::SpanFilter.new do |span|
           span.name[/discard/]
