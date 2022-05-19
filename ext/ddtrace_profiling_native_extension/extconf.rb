@@ -5,14 +5,23 @@
 
 require_relative 'native_extension_helpers'
 
-def skip_building_extension!
+SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
+# Not a problem if the file doesn't exist or we can't delete it
+File.delete(SKIPPED_REASON_FILE) rescue nil
+
+def skip_building_extension!(reason)
+  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(**reason))
+  File.write(
+    SKIPPED_REASON_FILE,
+    Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason),
+  )
+
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   exit
 end
 
 unless Datadog::Profiling::NativeExtensionHelpers::Supported.supported?
-  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
-  skip_building_extension!
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
 end
 
 $stderr.puts(%(
@@ -48,6 +57,12 @@ def add_compiler_flag(flag)
   end
 end
 
+# Older gcc releases may not default to C99 and we need to ask for this. This is also used:
+# * by upstream Ruby -- search for gnu99 in the codebase
+# * by msgpack, another ddtrace dependency
+#   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
+add_compiler_flag '-std=gnu99'
+
 # Gets really noisy when we include the MJIT header, let's omit it
 add_compiler_flag '-Wno-unused-function'
 
@@ -78,24 +93,10 @@ if RUBY_PLATFORM.include?('linux')
 end
 
 # If we got here, libddprof is available and loaded
-
-# TODO: Temporarily disabled for PR https://github.com/DataDog/dd-trace-rb/pull/1885; will be re-enabled in a follow-up PR
-# ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
-# unless pkg_config('ddprof_ffi')
-#   $stderr.puts(%(
-# +------------------------------------------------------------------------------+
-# | Skipping build of profiling native extension:                                |
-# | failed to configure `libddprof` for compilation.                             |
-# |                                                                              |
-# | The Datadog Continuous Profiler will not be available,                       |
-# | but all other ddtrace features will work fine!                               |
-# |                                                                              |
-# | For help solving this issue, please contact Datadog support at               |
-# | <https://docs.datadoghq.com/help/>.                                          |
-# +------------------------------------------------------------------------------+
-# ))
-#   skip_building_extension!
-# end
+ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
+unless pkg_config('ddprof_ffi_with_rpath')
+  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
+end
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
@@ -115,20 +116,7 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   original_common_headers = MakeMakefile::COMMON_HEADERS
   MakeMakefile::COMMON_HEADERS = ''.freeze
   unless have_macro('RUBY_MJIT_H', mjit_header_file_name)
-    $stderr.puts(%(
-+------------------------------------------------------------------------------+
-| WARNING: Unable to compile a needed component for ddtrace native extension.  |
-| Your C compiler or Ruby VM just-in-time compiler seems to be broken.         |
-|                                                                              |
-| The Datadog Continuous Profiler will not be available,                       |
-| but all other ddtrace features will work fine!                               |
-|                                                                              |
-| For help solving this issue, please contact Datadog support at               |
-| <https://docs.datadoghq.com/help/>.                                          |
-+------------------------------------------------------------------------------+
-
-))
-    skip_building_extension!
+    skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILATION_BROKEN)
   end
   MakeMakefile::COMMON_HEADERS = original_common_headers
 

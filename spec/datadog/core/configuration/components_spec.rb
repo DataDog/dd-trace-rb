@@ -950,6 +950,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         subject(:http_exporter) { profiler.scheduler.exporters.first }
 
         before do
+          allow(File).to receive(:exist?).and_call_original
           allow(File).to receive(:exist?).with('/var/run/datadog/apm.socket').and_return(false)
         end
 

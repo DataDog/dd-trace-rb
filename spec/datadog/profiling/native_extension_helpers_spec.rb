@@ -21,7 +21,10 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
   end
 
   describe '.unsupported_reason' do
-    subject(:unsupported_reason) { described_class.unsupported_reason }
+    subject(:unsupported_reason) do
+      reason = described_class.unsupported_reason
+      reason.fetch(:reason).join("\n") if reason
+    end
 
     before do
       allow(RbConfig::CONFIG).to receive(:[]).and_call_original
@@ -54,71 +57,54 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         it { is_expected.to include 'Windows' }
       end
 
-      context 'when not on Windows' do
+      context 'when on macOS' do
+        around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => nil) { example.run } }
+
+        before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+
+        it { is_expected.to include 'macOS' }
+      end
+
+      context 'when not on Linux' do
+        before { stub_const('RUBY_PLATFORM', 'sparc-opensolaris') }
+
+        it { is_expected.to include 'operating system is not supported' }
+      end
+
+      context 'when on Linux or on macOS with testing override enabled' do
         before { expect(Gem).to receive(:win_platform?).and_return(false) }
 
-        context 'when not on macOS or Linux' do
-          before { stub_const('RUBY_PLATFORM', 'sparc-opensolaris') }
+        context 'when not on amd64 or arm64' do
+          before { stub_const('RUBY_PLATFORM', 'mipsel-linux') }
 
-          it { is_expected.to include 'operating system is not supported' }
+          it { is_expected.to include 'architecture is not supported' }
         end
 
-        # TODO: Temporarily disabled for PR https://github.com/DataDog/dd-trace-rb/pull/1885; will be updated in
-        # follow-up PR
-        # context 'when not on x86-64' do
-        #   before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
-
-        #   it { is_expected.to include 'architecture is not supported' }
-        # end
-
-        context 'when on x86-64 linux' do
-          before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
-
+        shared_examples 'mjit header validation' do
           shared_examples 'libddprof usable' do
-            # context 'when libddprof is not available' do
-            #   before do
-            #     allow(described_class)
-            #       .to receive(:require).with('libddprof').and_raise(LoadError.new('Testing failed require'))
-            #   end
+            context 'when libddprof DOES NOT HAVE binaries for the current platform' do
+              before do
+                expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
+                expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+              end
 
-            #   it { is_expected.to include '`libddprof` gem is not available' }
-            # end
+              it { is_expected.to include 'platform variant' }
+            end
 
-            # context 'when libddprof is available' do
-            #   context 'but DOES NOT have binaries' do
-            #     before { expect(Libddprof).to receive(:binaries?).and_return(false) }
+            context 'when libddprof HAS BINARIES for the current platform' do
+              before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
 
-            #     it { is_expected.to include 'gem installed on your system is missing platform-specific' }
-            #   end
-
-            #   context 'and DOES have binaries' do
-            #     before { expect(Libddprof).to receive(:binaries?).and_return(true) }
-
-            #     context 'but DOES NOT HAVE binaries for the current platform' do
-            #       before do
-            #         expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
-            #         expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
-            #       end
-
-            #       it { is_expected.to include 'platform variant' }
-            #     end
-
-            #     context 'and HAS BINARIES for the current platform' do
-            #       before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
-
-            it { is_expected.to be nil }
-            #     end
-            #   end
-            # end
+              it('marks the native extension as supported') { is_expected.to be nil }
+            end
           end
 
-          context 'when Ruby CAN NOT use the MJIT header' do
+          context 'on a Ruby version where we CAN NOT use the MJIT header' do
             before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
 
             include_examples 'libddprof usable'
           end
 
-          context 'when Ruby CAN use the MJIT header' do
+          context 'on a Ruby version where we CAN use the MJIT header' do
             before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
 
             context 'but DOES NOT have MJIT support' do
@@ -133,6 +119,26 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
               include_examples 'libddprof usable'
             end
           end
+        end
+
+        context 'when on amd64 (x86-64) linux' do
+          before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
+
+          include_examples 'mjit header validation'
+        end
+
+        context 'when on arm64 (aarch64) linux' do
+          before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
+
+          include_examples 'mjit header validation'
+        end
+
+        context 'when macOS testing override is enabled' do
+          around { |example| ClimateControl.modify('DD_PROFILING_MACOS_TESTING' => 'true') { example.run } }
+
+          before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
+
+          include_examples 'mjit header validation'
         end
       end
     end
