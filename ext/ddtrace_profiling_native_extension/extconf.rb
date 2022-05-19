@@ -6,11 +6,8 @@
 require_relative 'native_extension_helpers'
 
 SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
-begin
-  File.delete(SKIPPED_REASON_FILE)
-rescue StandardError => _e
-  # Not a problem if the file doesn't exist or we can't delete it
-end
+# Not a problem if the file doesn't exist or we can't delete it
+File.delete(SKIPPED_REASON_FILE) rescue nil
 
 def skip_building_extension!(reason)
   $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(**reason))
