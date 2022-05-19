@@ -60,7 +60,7 @@ Lint/MissingSuper:
     - 'lib/datadog/opentracer/scope.rb'
     - 'lib/datadog/opentracer/span.rb'
     - 'lib/datadog/opentracer/span_context.rb'
-    - 'lib/datadog/profiling/collectors/stack.rb'
+    - 'lib/datadog/profiling/collectors/old_stack.rb'
     - 'lib/datadog/profiling/pprof/converter.rb'
     - 'lib/datadog/profiling/pprof/template.rb'
     - 'lib/datadog/profiling/recorder.rb'
@@ -112,7 +112,7 @@ Naming/VariableNumber:
 Performance/MethodObjectAsBlock:
   Exclude:
     - 'lib/datadog/ci/contrib/cucumber/formatter.rb'
-    - 'lib/datadog/profiling/collectors/stack.rb'
+    - 'lib/datadog/profiling/collectors/old_stack.rb'
     - 'lib/datadog/profiling/pprof/builder.rb'
     - 'lib/datadog/profiling/pprof/stack_sample.rb'
     - 'lib/datadog/profiling/pprof/template.rb'
@@ -260,7 +260,7 @@ RSpec/VerifiedDoubles:
     - 'spec/datadog/opentracer/text_map_propagator_spec.rb'
     - 'spec/datadog/opentracer/tracer_spec.rb'
     - 'spec/datadog/profiling/backtrace_location_spec.rb'
-    - 'spec/datadog/profiling/collectors/stack_spec.rb'
+    - 'spec/datadog/profiling/collectors/old_stack_spec.rb'
     - 'spec/datadog/profiling/encoding/profile_spec.rb'
     - 'spec/datadog/profiling/events/stack_spec.rb'
     - 'spec/datadog/profiling/exporter_spec.rb'

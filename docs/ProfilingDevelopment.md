@@ -8,7 +8,7 @@ For a more practical view of getting started with development of `ddtrace`, see 
 
 Components below live inside <../lib/datadog/profiling>:
 
-* `Collectors::Stack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
+* `Collectors::OldStack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
 * `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code, from libraries, from the standard library, etc).
 * `Encoding::Profile`: Encodes gathered data into the pprof format.
@@ -25,7 +25,7 @@ Components below live inside <../lib/datadog/profiling>:
 * `Exporter`: Writes profiling data to a given transport.
 * `Flush`: Entity class used to represent metadata for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
-* `Recorder`: Stores profiling events gathered by `Collector`s.
+* `Recorder`: Stores profiling events gathered by the `Collector::OldStack`. (To be removed after migration to libddprof aggregation)
 * `Scheduler`: Periodically (every 1 minute) takes data from the `Recorder` and pushes them to all configured
   `Exporter`s. Runs on its own background thread.
 
@@ -52,9 +52,9 @@ flow:
     +---------+--+  +-+-------+-+
               |       |       |
               v       |       v
-        +-----+-+     |  +----+------+
-        | Stack |     |  | Exporters |
-        +-----+-+     |  +-----------+
+     +--------+-+     |  +----+------+
+     | OldStack |     |  | Exporters |
+     +--------+-+     |  +-----------+
               |       |
               v       v
             +-+-------+-+
@@ -70,9 +70,9 @@ flow:
 
 ## Run-time execution
 
-During run-time, the `Scheduler` and the `Collectors::Stack` each execute on their own background thread.
+During run-time, the `Scheduler` and the `Collectors::OldStack` each execute on their own background thread.
 
-The `Collectors::Stack` samples stack traces of threads, capturing both CPU-time (if available) and wall-clock, storing
+The `Collectors::OldStack` samples stack traces of threads, capturing both CPU-time (if available) and wall-clock, storing
 them in the `Recorder`.
 
 The `Scheduler` wakes up every 1 minute to flush the results of the `Recorder` into one or more `exporter`s.
@@ -103,7 +103,7 @@ To further enable filtering of a profile to show only samples related to a given
 profiler is tagged with the `local root span id` and `span id` for the given trace/span.
 
 This is done using the `Datadog::Profiling::TraceIdentifiers::Helper` that retrieves a `root_span_id` and `span_id`, if
-available, from the supported tracers. This helper is called by the `Collectors::Stack` during sampling.
+available, from the supported tracers. This helper is called by the `Collectors::OldStack` during sampling.
 
 Note that if a given trace executes too fast, it's possible that the profiler will not contain any samples for that
 specific trace. Nevertheless, the linking still works and is useful, as it allows users to explore what was going on their

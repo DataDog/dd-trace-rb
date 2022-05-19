@@ -14,7 +14,7 @@ require 'datadog/core/runtime/metrics'
 require 'datadog/core/workers/runtime_metrics'
 require 'datadog/profiling'
 require 'datadog/profiling/collectors/code_provenance'
-require 'datadog/profiling/collectors/stack'
+require 'datadog/profiling/collectors/old_stack'
 require 'datadog/profiling/exporter'
 require 'datadog/profiling/profiler'
 require 'datadog/profiling/recorder'
@@ -914,7 +914,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         it 'has a Stack collector' do
           expect(profiler.collectors).to have(1).item
-          expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::Stack))
+          expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::OldStack))
           is_expected.to have_attributes(
             enabled?: true,
             started?: false,

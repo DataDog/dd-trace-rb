@@ -19,7 +19,7 @@ RSpec.describe 'Basic scenarios' do
     it 'should be profiling' do
       expect(json_result).to include(
         profiler_available: true,
-        profiler_threads: contain_exactly('Datadog::Profiling::Collectors::Stack', 'Datadog::Profiling::Scheduler')
+        profiler_threads: contain_exactly('Datadog::Profiling::Collectors::OldStack', 'Datadog::Profiling::Scheduler')
       )
     end
 

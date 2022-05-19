@@ -13,7 +13,7 @@ RSpec.describe 'Basic scenarios' do
 
   let(:expected_profiler_threads) do
     # NOTE: Threads can't be named on Ruby 2.1 and 2.2
-    contain_exactly('Datadog::Profiling::Collectors::Stack', 'Datadog::Profiling::Scheduler') unless RUBY_VERSION < '2.3'
+    contain_exactly('Datadog::Profiling::Collectors::OldStack', 'Datadog::Profiling::Scheduler') unless RUBY_VERSION < '2.3'
   end
 
   context 'component checks' do
