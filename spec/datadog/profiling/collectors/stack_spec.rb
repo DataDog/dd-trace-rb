@@ -117,6 +117,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when sampling an eval/instance eval inside an object' do
       let(:eval_test_class) do
         Class.new do
+          def initialize(ready_queue)
+            @ready_queue = ready_queue
+          end
+
           def call_eval
             eval('call_instance_eval')
           end
@@ -126,14 +130,14 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
           end
 
           def call_sleep
+            @ready_queue << true
             sleep
           end
         end
       end
       let(:do_in_background_thread) do
         proc do |ready_queue|
-          ready_queue << true
-          eval_test_class.new.call_eval
+          eval_test_class.new(ready_queue).call_eval
         end
       end
 
@@ -155,8 +159,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when sampling an eval with a custom file and line provided' do
       let(:do_in_background_thread) do
         proc do |ready_queue|
-          ready_queue << true
-          eval('sleep', binding, '/this/is/a/fake_file_.rb', -123456789)
+          eval('ready_queue << true; sleep', binding, '/this/is/a/fake_file_.rb', -123456789)
         end
       end
 
