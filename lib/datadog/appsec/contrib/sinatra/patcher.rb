@@ -74,6 +74,12 @@ module Datadog
         # merged with normal params, so we get both
         module RoutePatch
           def process_route(*)
+            env = @request.env
+
+            context = env['datadog.waf.context']
+
+            return super unless context
+
             # process_route is called repeatedly until a route is found.
             # Until then, params has no route params.
             # Capture normal params.
