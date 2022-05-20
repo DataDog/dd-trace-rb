@@ -29,12 +29,12 @@ static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, V
   Check_Type(metric_values_hash, T_HASH);
   Check_Type(labels_array, T_ARRAY);
 
-  if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
+  if (rb_hash_size_num(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
     rb_raise(
       rb_eArgError,
       "Mismatched values for metrics; expected %lu values and got %lu instead",
       ENABLED_VALUE_TYPES_COUNT,
-      RHASH_SIZE(metric_values_hash)
+      rb_hash_size_num(metric_values_hash)
     );
   }
 

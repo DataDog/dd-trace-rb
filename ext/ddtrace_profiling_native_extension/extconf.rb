@@ -92,10 +92,6 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
-# This is temporary just to break up implementation into two PRs and will be reverted in
-# https://github.com/DataDog/dd-trace-rb/pull/2000
-$defs << '-DTEMPORARY_SKIP_OLDER_RUBIES' if RUBY_VERSION < '2.6'
-
 # For REALLY OLD Rubies...
 if RUBY_VERSION < '2.3'
   # ...there was no rb_time_timespec_new function

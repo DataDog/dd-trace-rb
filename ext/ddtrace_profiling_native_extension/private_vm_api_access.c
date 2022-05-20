@@ -34,13 +34,6 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   return thread_struct_from_object(thread)->thread_id;
 }
 
-// This is temporary just to break up implementation into two PRs and will be reverted in
-// https://github.com/DataDog/dd-trace-rb/pull/2000
-#ifdef TEMPORARY_SKIP_OLDER_RUBIES
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines) { return 0; }
-
-#else
-
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.
@@ -208,5 +201,3 @@ ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *
 
     return i;
 }
-
-#endif

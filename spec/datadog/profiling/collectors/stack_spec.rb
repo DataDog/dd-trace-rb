@@ -4,15 +4,7 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/stack'
 
 RSpec.describe Datadog::Profiling::Collectors::Stack do
-  before do
-    skip_if_profiling_not_supported(self)
-    if RUBY_VERSION < '2.6'
-      skip(
-        'This is temporarily disabled just to break up implementation into two PRs and will be ' \
-        'reverted in https://github.com/DataDog/dd-trace-rb/pull/2000'
-      )
-    end
-  end
+  before { skip_if_profiling_not_supported(self) }
 
   subject(:collectors_stack) { described_class.new }
 
