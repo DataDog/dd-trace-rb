@@ -22,7 +22,7 @@
 #define   ALLOC_SPACE_VALUE {.type_ = VALUE_STRING("alloc-space"),   .unit = VALUE_STRING("bytes")}
 #define    HEAP_SPACE_VALUE {.type_ = VALUE_STRING("heap-space"),    .unit = VALUE_STRING("bytes")}
 
-const static ddprof_ffi_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
+static const ddprof_ffi_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
 #define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddprof_ffi_ValueType))
 
 void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample);
