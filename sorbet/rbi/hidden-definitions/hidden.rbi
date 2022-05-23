@@ -3674,7 +3674,7 @@ class Datadog::Profiling::Collectors::CodeProvenance::Library
   def self.members(); end
 end
 
-class Datadog::Profiling::Collectors::Stack
+class Datadog::Profiling::Collectors::OldStack
   include ::Datadog::Core::Workers::IntervalLoop
   include ::Datadog::Core::Workers::Async::Thread
   include ::Datadog::Core::Workers::IntervalLoop::PrependedMethods

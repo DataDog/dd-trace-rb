@@ -6,12 +6,6 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/tracing'
 require 'datadog/core/utils/time'
 require 'datadog/profiling'
-require 'datadog/profiling/pprof/template'
-require 'datadog/profiling/collectors/stack'
-require 'datadog/profiling/recorder'
-require 'datadog/profiling/scheduler'
-require 'datadog/profiling/exporter'
-require 'datadog/profiling/encoding/profile'
 
 RSpec.describe 'profiling integration test' do
   before do
@@ -98,7 +92,7 @@ RSpec.describe 'profiling integration test' do
       )
     end
     let(:collector) do
-      Datadog::Profiling::Collectors::Stack.new(
+      Datadog::Profiling::Collectors::OldStack.new(
         recorder,
         trace_identifiers_helper:
           Datadog::Profiling::TraceIdentifiers::Helper.new(

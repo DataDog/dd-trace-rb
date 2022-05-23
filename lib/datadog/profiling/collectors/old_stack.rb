@@ -14,7 +14,8 @@ module Datadog
       # Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
       # Runs on its own background thread.
       #
-      class Stack < Core::Worker # rubocop:disable Metrics/ClassLength
+      # This class has the prefix "Old" because it will be deprecated by the new native CPU Profiler
+      class OldStack < Core::Worker # rubocop:disable Metrics/ClassLength
         include Core::Workers::Polling
 
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0

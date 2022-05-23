@@ -147,7 +147,7 @@ module Datadog
 
       require 'datadog/profiling/ext/forking'
       require 'datadog/profiling/collectors/code_provenance'
-      require 'datadog/profiling/collectors/stack'
+      require 'datadog/profiling/collectors/old_stack'
       require 'datadog/profiling/exporter'
       require 'datadog/profiling/recorder'
       require 'datadog/profiling/scheduler'
