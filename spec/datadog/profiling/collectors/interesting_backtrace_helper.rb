@@ -44,16 +44,18 @@ class IbhClassC
   include IbhModuleD
 end
 
-$ibh_a_proc = proc { IbhClassC.new.hello }
-
-$ibh_a_lambda = lambda { $ibh_a_proc.call }
-
 class IbhClassD; end
 
-$ibh_class_d_object = IbhClassD.new
+module IbhGlobals
+  $ibh_a_proc = proc { IbhClassC.new.hello }
 
-def $ibh_class_d_object.hello
-  $ibh_a_lambda.call
+  $ibh_a_lambda = lambda { $ibh_a_proc.call }
+
+  $ibh_class_d_object = IbhClassD.new
+
+  def $ibh_class_d_object.hello
+    $ibh_a_lambda.call
+  end
 end
 
 class IbhClassE
@@ -112,21 +114,23 @@ IbhClassI = Class.new do
   end
 end
 
-$ibh_singleton_class = Object.new.singleton_class
+module IbhMoreGlobals
+  $ibh_singleton_class = Object.new.singleton_class
 
-def $ibh_singleton_class.hello
-  IbhClassI.new.hello
-end
-
-$ibh_anonymous_instance = Class.new do
-  def hello
-    $ibh_singleton_class.hello
+  def $ibh_singleton_class.hello
+    IbhClassI.new.hello
   end
-end.new
 
-$ibh_anonymous_module = Module.new do
-  def self.hello
-    $ibh_anonymous_instance.hello
+  $ibh_anonymous_instance = Class.new do
+    def hello
+      $ibh_singleton_class.hello
+    end
+  end.new
+
+  $ibh_anonymous_module = Module.new do
+    def self.hello
+      $ibh_anonymous_instance.hello
+    end
   end
 end
 
