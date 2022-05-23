@@ -247,41 +247,26 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
   if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
 
-  sampling_buffer* buffer = xcalloc(1, sizeof(sampling_buffer));
-  if (buffer == NULL) rb_memerror();
+  // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
+  sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
 
   buffer->max_frames = max_frames;
 
-  buffer->stack_buffer  = xcalloc(max_frames, sizeof(VALUE));
-  buffer->lines_buffer  = xcalloc(max_frames, sizeof(int));
-  buffer->is_ruby_frame = xcalloc(max_frames, sizeof(bool));
-  buffer->locations     = xcalloc(max_frames, sizeof(ddprof_ffi_Location));
-  buffer->lines         = xcalloc(max_frames, sizeof(ddprof_ffi_Line));
-
-  if (
-    buffer->stack_buffer  == NULL ||
-    buffer->lines_buffer  == NULL ||
-    buffer->is_ruby_frame == NULL ||
-    buffer->locations     == NULL ||
-    buffer->lines         == NULL
-  ) {
-    sampling_buffer_free(buffer);
-    rb_memerror();
-  }
+  buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
+  buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
+  buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
+  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddprof_ffi_Location));
+  buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddprof_ffi_Line));
 
   return buffer;
 }
 
 void sampling_buffer_free(sampling_buffer *buffer) {
-  // The only case where any of the underlying arrays are NULL is when initial allocation failed; otherwise they
-  // can be assumed to be not-null.
-  // Having these if tests here enables us to use this function also in sampling_buffer_new; otherwise we could do
-  // without them.
-  if (buffer->stack_buffer  != NULL) xfree(buffer->stack_buffer);
-  if (buffer->lines_buffer  != NULL) xfree(buffer->lines_buffer);
-  if (buffer->is_ruby_frame != NULL) xfree(buffer->is_ruby_frame);
-  if (buffer->locations     != NULL) xfree(buffer->locations);
-  if (buffer->lines         != NULL) xfree(buffer->lines);
+  ruby_xfree(buffer->stack_buffer);
+  ruby_xfree(buffer->lines_buffer);
+  ruby_xfree(buffer->is_ruby_frame);
+  ruby_xfree(buffer->locations);
+  ruby_xfree(buffer->lines);
 
-  xfree(buffer);
+  ruby_xfree(buffer);
 }
