@@ -53,7 +53,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'debase-ruby_core_source', '<= 0.10.16'
 
   # Used by appsec
-  spec.add_dependency 'libddwaf', '~> 1.3.0.1.0'
+  spec.add_dependency 'libddwaf', '~> 1.3.0.2.0'
 
   # Used by profiling
   spec.add_dependency 'libddprof', '~> 0.6.0.1.0'
