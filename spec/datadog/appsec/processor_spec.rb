@@ -246,7 +246,8 @@ RSpec.describe Datadog::AppSec::Processor do
 
     let(:input) { input_scanner }
 
-    subject(:context) { described_class.new.new_context }
+    let(:processor) { described_class.new }
+    subject(:context) { processor.new_context }
 
     it { is_expected.to be_a Datadog::AppSec::Processor::Context }
 
