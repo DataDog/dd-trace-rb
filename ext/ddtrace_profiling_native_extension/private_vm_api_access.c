@@ -43,6 +43,8 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
+// Each function is annotated with its origin, why we imported it, and the changes made.
+//
 // The Ruby project copyright and license follow:
 // -----------------------------------------------------------------------------
 // Copyright (C) 1993-2013 Yukihiro Matsumoto. All rights reserved.
@@ -167,6 +169,8 @@ int
 ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines)
 {
     int i;
+    // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
+    // support sampling any thread (including the current) passed as an argument
     const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     const rb_callable_method_entry_t *cme;
