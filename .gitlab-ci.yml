@@ -16,7 +16,7 @@ deploy_to_reliability_env:
   stage: deploy
   when: on_success
   trigger:
-    project: DataDog/datadog-reliability-env
+    project: DataDog/apm-reliability/datadog-reliability-env
     branch: $DOWNSTREAM_BRANCH
   variables:
     UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
