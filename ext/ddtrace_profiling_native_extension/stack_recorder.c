@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <ruby/thread.h>
 #include "stack_recorder.h"
 #include "libddprof_helpers.h"
 
@@ -12,10 +13,17 @@ static ID ruby_time_from_id; // id of :ruby_time_from in Ruby
 
 static VALUE stack_recorder_class = Qnil;
 
+struct call_serialize_without_gvl_arguments {
+  ddprof_ffi_Profile *profile;
+  ddprof_ffi_SerializeResult result;
+  bool serialize_ran;
+};
+
 static VALUE _native_new(VALUE klass);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time);
+static void *call_serialize_without_gvl(void *call_args);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -65,7 +73,22 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
 
-  ddprof_ffi_SerializeResult serialized_profile = ddprof_ffi_Profile_serialize(profile);
+  // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
+  // is pending
+  struct call_serialize_without_gvl_arguments args = {.profile = profile, .serialize_ran = false};
+
+  // We use rb_thread_call_without_gvl2 for similar reasons as in http_transport.c: we don't want pending interrupts
+  // that cause exceptions to be raised to be processed as otherwise we can leak the serialized profile.
+  rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, /* No interruption supported */ NULL, NULL);
+
+  // This weird corner case can happen if rb_thread_call_without_gvl2 returns immediately due to an interrupt
+  // without ever calling call_serialize_without_gvl. In this situation, we don't have anything to clean up, we can
+  // just return.
+  if (!args.serialize_ran) {
+    return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Interrupted before call_serialize_without_gvl ran"));
+  }
+
+  ddprof_ffi_SerializeResult serialized_profile = args.result;
 
   if (serialized_profile.tag == DDPROF_FFI_SERIALIZE_RESULT_ERR) {
     VALUE err_details = ruby_string_from_vec_u8(serialized_profile.err);
@@ -104,4 +127,13 @@ void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
 
   ddprof_ffi_Profile_add(profile, sample);
+}
+
+static void *call_serialize_without_gvl(void *call_args) {
+  struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
+
+  args->result = ddprof_ffi_Profile_serialize(args->profile);
+  args->serialize_ran = true;
+
+  return NULL; // Unused
 }
