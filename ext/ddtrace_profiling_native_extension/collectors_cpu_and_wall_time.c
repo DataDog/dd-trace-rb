@@ -71,13 +71,11 @@ static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr) {
   // pointers that have been set NULL there may still be NULL here.
   if (state->sampling_buffer != NULL) sampling_buffer_free(state->sampling_buffer);
 
-  xfree(state);
+  ruby_xfree(state);
 }
 
 static VALUE _native_new(VALUE klass) {
-  struct cpu_and_wall_time_collector_state *state = xcalloc(1, sizeof(struct cpu_and_wall_time_collector_state));
-
-  if (state == NULL) rb_memerror();
+  struct cpu_and_wall_time_collector_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_collector_state));
 
   // Update this when modifying state struct
   state->sampling_buffer = NULL;
