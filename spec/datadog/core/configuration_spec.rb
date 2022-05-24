@@ -85,6 +85,7 @@ RSpec.describe Datadog::Core::Configuration do
           # Enable
           test_class.configure do |c|
             c.diagnostics.debug = true
+            c.logger.instance = Datadog::Core::Logger.new(StringIO.new)
           end
 
           # Assert state change

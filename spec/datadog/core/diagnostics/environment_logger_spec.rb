@@ -187,7 +187,12 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with debug enabled' do
-        before { Datadog.configure { |c| c.diagnostics.debug = true } }
+        before do
+          Datadog.configure do |c|
+            c.diagnostics.debug = true
+            c.logger.instance = Datadog::Core::Logger.new(StringIO.new)
+          end
+        end
 
         it { is_expected.to include debug: true }
       end
