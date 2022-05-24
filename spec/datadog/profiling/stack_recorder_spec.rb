@@ -4,15 +4,7 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/stack_recorder'
 
 RSpec.describe Datadog::Profiling::StackRecorder do
-  before do
-    skip_if_profiling_not_supported(self)
-    if RUBY_VERSION < '2.6'
-      skip(
-        'This is temporarily disabled just to break up implementation into two PRs and will be ' \
-        'reverted in https://github.com/DataDog/dd-trace-rb/pull/2000'
-      )
-    end
-  end
+  before { skip_if_profiling_not_supported(self) }
 
   subject(:stack_recorder) { described_class.new }
 
@@ -27,6 +19,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     let(:encoded_pprof) { serialize[2] }
 
     let(:decoded_profile) { ::Perftools::Profiles::Profile.decode(encoded_pprof) }
+
+    it 'debug logs profile information' do
+      message = nil
+
+      expect(Datadog.logger).to receive(:debug) do |&message_block|
+        message = message_block.call
+      end
+
+      serialize
+
+      expect(message).to include start.iso8601
+      expect(message).to include finish.iso8601
+    end
 
     context 'when the profile is empty' do
       it 'uses the current time as the start and finish time' do

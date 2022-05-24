@@ -92,14 +92,26 @@ if RUBY_PLATFORM.include?('linux')
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
 
-# This is temporary just to break up implementation into two PRs and will be reverted in
-# https://github.com/DataDog/dd-trace-rb/pull/2000
-$defs << '-DTEMPORARY_SKIP_OLDER_RUBIES' if RUBY_VERSION < '2.6'
+# On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
+$defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
+
+# On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
+$defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
+
+# On older Rubies...
+if RUBY_VERSION < '2.4'
+  # ...we need to use RUBY_VM_NORMAL_ISEQ_P instead of VM_FRAME_RUBYFRAME_P
+  $defs << '-DUSE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P'
+  # ...we use a legacy copy of rb_vm_frame_method_entry
+  $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
+end
 
 # For REALLY OLD Rubies...
 if RUBY_VERSION < '2.3'
   # ...there was no rb_time_timespec_new function
   $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
+  # ...the VM changed enough that we need an alternative legacy rb_profile_frames
+  $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
 end
 
 # If we got here, libddprof is available and loaded
@@ -130,24 +142,10 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   end
   MakeMakefile::COMMON_HEADERS = original_common_headers
 
-  $defs << '-DUSE_MJIT_HEADER'
+  $defs << "-DRUBY_MJIT_HEADER='\"#{mjit_header_file_name}\"'"
 
   # NOTE: This needs to come after all changes to $defs
   create_header
-
-  # The MJIT header is always (afaik?) suffixed with the exact Ruby VM version,
-  # including patch (e.g. 2.7.2). Thus, we add to the header file a definition
-  # containing the exact file, so that it can be used in a #include in the C code.
-  header_contents =
-    File.read($extconf_h)
-        .sub('#endif',
-             <<-EXTCONF_H.strip
-#define RUBY_MJIT_HEADER "#{mjit_header_file_name}"
-
-#endif
-             EXTCONF_H
-            )
-  File.open($extconf_h, 'w') { |file| file.puts(header_contents) }
 
   create_makefile EXTENSION_NAME
 else
@@ -168,7 +166,10 @@ else
   dir_config('ruby') # allow user to pass in non-standard core include directory
 
   Debase::RubyCoreSource
-    .create_makefile_with_core(proc { have_header('vm_core.h') && thread_native_for_ruby_2_1.call }, EXTENSION_NAME)
+    .create_makefile_with_core(
+      proc { have_header('vm_core.h') && have_header('iseq.h') && thread_native_for_ruby_2_1.call },
+      EXTENSION_NAME,
+    )
 end
 
 # rubocop:enable Style/GlobalVars

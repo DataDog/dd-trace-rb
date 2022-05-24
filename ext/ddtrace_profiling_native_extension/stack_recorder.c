@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include "stack_recorder.h"
+#include "libddprof_helpers.h"
 
 // Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -61,24 +62,28 @@ static void stack_recorder_typed_data_free(void *data) {
 }
 
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
-  Check_TypedStruct(recorder_instance, &stack_recorder_typed_data);
-
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
 
   ddprof_ffi_SerializeResult serialized_profile = ddprof_ffi_Profile_serialize(profile);
 
   if (serialized_profile.tag == DDPROF_FFI_SERIALIZE_RESULT_ERR) {
-    VALUE err_details = rb_str_new((char *) serialized_profile.err.ptr, serialized_profile.err.len);
+    VALUE err_details = ruby_string_from_vec_u8(serialized_profile.err);
     ddprof_ffi_SerializeResult_drop(serialized_profile);
     return rb_ary_new_from_args(2, error_symbol, err_details);
   }
 
-  VALUE encoded_pprof = rb_str_new((char *) serialized_profile.ok.buffer.ptr, serialized_profile.ok.buffer.len);
-  VALUE start = ruby_time_from(serialized_profile.ok.start);
-  VALUE finish = ruby_time_from(serialized_profile.ok.end);
+  VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
 
+  ddprof_ffi_Timespec ddprof_start = serialized_profile.ok.start;
+  ddprof_ffi_Timespec ddprof_finish = serialized_profile.ok.end;
+
+  // Clean up libddprof object to avoid leaking in case ruby_time_from raises an exception
   ddprof_ffi_SerializeResult_drop(serialized_profile);
+
+  VALUE start = ruby_time_from(ddprof_start);
+  VALUE finish = ruby_time_from(ddprof_finish);
+
   if (!ddprof_ffi_Profile_reset(profile)) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
@@ -95,8 +100,8 @@ static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time) {
 }
 
 void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
-  Check_TypedStruct(recorder_instance, &stack_recorder_typed_data);
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
+
   ddprof_ffi_Profile_add(profile, sample);
 }

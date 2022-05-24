@@ -24,7 +24,7 @@ RSpec.describe Datadog::Profiling::Tasks::Exec do
       ENV['RUBYOPT'] = original_opts
     end
 
-    context 'when RUBOPT is not defined' do
+    context 'when RUBYOPT is not defined' do
       before do
         # Must stub the call out or test will prematurely terminate.
         expect(Kernel).to receive(:exec)

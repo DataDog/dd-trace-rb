@@ -22,10 +22,9 @@ AllCops:
     - 'integration/apps/*/bin/*'
     - 'integration/apps/*/Gemfile'
     - 'lib/datadog/profiling/pprof/pprof_pb.rb'
+    - 'spec/**/**/interesting_backtrace_helper.rb' # This file needs quite a few bizarre code patterns by design
   NewCops: disable # Don't allow new cops to be enabled implicitly.
 
-# 80 characters is a nice goal, but not worth currently changing in existing
-# code for the sake of changing it to conform to a length set in 1928 (IBM).
 Layout/LineLength:
   Max: 124
   Exclude:
