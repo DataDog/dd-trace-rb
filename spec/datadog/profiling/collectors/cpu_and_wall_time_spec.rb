@@ -13,9 +13,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
   describe '#sample' do
     let(:ready_queue) { Queue.new }
-    let!(:t1) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
-    let!(:t2) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
-    let!(:t3) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+    let!(:t1) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        sleep
+      end
+    end
+    let!(:t2) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        sleep
+      end
+    end
+    let!(:t3) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        sleep
+      end
+    end
 
     before do
       3.times { ready_queue.pop }
@@ -44,17 +59,30 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       raise 'Unexpected: Serialization failed' unless serialization_result
 
       pprof_data = serialization_result.last
-      decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
-
-      decoded_profile
+      ::Perftools::Profiles::Profile.decode(pprof_data)
     end
   end
 
   describe '#thread_list' do
     let(:ready_queue) { Queue.new }
-    let!(:t1) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
-    let!(:t2) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
-    let!(:t3) { Thread.new(ready_queue) { |ready_queue| ready_queue << true; sleep } }
+    let!(:t1) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        sleep
+      end
+    end
+    let!(:t2) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        sleep
+      end
+    end
+    let!(:t3) do
+      Thread.new(ready_queue) do |ready_queue|
+        ready_queue << true
+        sleep
+      end
+    end
 
     before do
       3.times { ready_queue.pop }
