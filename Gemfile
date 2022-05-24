@@ -91,8 +91,3 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
-
-# This is needed to enable profiling on Ruby 2.5.4 to 2.5.9. Without it, the profiler will not turn on because
-# the `self_test_thread_list` (private_vm_api_access.c) will not pass.
-# Hopefully this fix will be released soon, so we can start depending on it
-gem 'debase-ruby_core_source', git: 'https://github.com/ruby-debug/debase-ruby_core_source.git', ref: '97650d6f70d823e12efd4f0eac51cb81ea59a1f2'
