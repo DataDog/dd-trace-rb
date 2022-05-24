@@ -25,7 +25,7 @@ typedef struct sampling_buffer {
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
-void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer);
+void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
 sampling_buffer *sampling_buffer_new(unsigned int max_frames);
 void sampling_buffer_free(sampling_buffer *buffer);
@@ -166,9 +166,15 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
     buffer->locations[i] = (ddprof_ffi_Location) {.lines = (ddprof_ffi_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
   }
 
+  // Used below; since we want to stack-allocate this, we must do it here rather than in maybe_add_placeholder_frames_omitted
+  const int frames_omitted_message_size = sizeof(MAX_FRAMES_LIMIT_AS_STRING " frames omitted");
+  char frames_omitted_message[frames_omitted_message_size];
+
   // If we filled up the buffer, some frames may have been omitted. In that case, we'll add a placeholder frame
   // with that info.
-  if (captured_frames == (long) buffer->max_frames) maybe_add_placeholder_frames_omitted(thread, buffer);
+  if (captured_frames == (long) buffer->max_frames) {
+    maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
+  }
 
   record_sample(
     recorder_instance,
@@ -180,7 +186,7 @@ void sample(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddpr
   );
 }
 
-void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer) {
+void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size) {
   ptrdiff_t frames_omitted = stack_depth_for(thread) - buffer->max_frames;
 
   if (frames_omitted == 0) return; // Perfect fit!
@@ -189,10 +195,10 @@ void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer)
   // placeholder, then 11 frames are omitted in total
   frames_omitted++;
 
-  const int message_size = sizeof(MAX_FRAMES_LIMIT_AS_STRING " frames omitted");
-  char frames_omitted_message[message_size];
-  snprintf(frames_omitted_message, message_size, "%td frames omitted", frames_omitted);
+  snprintf(frames_omitted_message, frames_omitted_message_size, "%td frames omitted", frames_omitted);
 
+  // Important note: `frames_omitted_message` MUST have a lifetime that is at least as long as the call to
+  // `record_sample`. So be careful where it gets allocated. (We do have tests for this, at least!)
   buffer->lines[buffer->max_frames - 1] = (ddprof_ffi_Line) {
     .function = (ddprof_ffi_Function) {
       .name = DDPROF_FFI_CHARSLICE_C(""),
