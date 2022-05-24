@@ -39,6 +39,12 @@ Gem::Specification.new do |spec|
   spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
+  # Important note: This `if` ONLY works for development. When packaging up the gem, Ruby runs this code, and hardcodes
+  # the output in the `.gem` file that gets uploaded to rubygems. So the decision here gets hardcoded, we don't actually
+  # pick a version depending on the Ruby customers are running, as it may appear.
+  # For more context, see the discussion in
+  # * https://github.com/DataDog/dd-trace-rb/pull/1739
+  # * https://github.com/DataDog/dd-trace-rb/pull/1336
   if RUBY_VERSION >= '2.2.0'
     spec.add_dependency 'msgpack'
   else
