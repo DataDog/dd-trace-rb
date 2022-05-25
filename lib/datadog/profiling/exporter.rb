@@ -8,7 +8,7 @@ module Datadog
   module Profiling
     # Exports profiling data gathered by the multiple recorders in a `Flush`.
     #
-    # @ivoanjo: Note that the recorders that gathers pprof data is special, since we use its start/finish/empty? to
+    # @ivoanjo: Note that the recorder that gathers pprof data is special, since we use its start/finish/empty? to
     # decide if there's data to flush, as well as the timestamp for that data.
     # I could've made the whole design more generic, but I'm unsure if we'll ever have more than a handful of
     # recorders, so I've decided to make it specific until we actually need to support more recorders.
