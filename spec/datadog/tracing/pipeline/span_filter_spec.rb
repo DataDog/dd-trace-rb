@@ -35,18 +35,16 @@ RSpec.describe Datadog::Tracing::Pipeline::SpanFilter do
     end
 
     context 'with spans that have a parent' do
-      let(:trace) { Datadog::Tracing::TraceSegment.new([span_a, span_b, span_c, span_d]) }
+      let(:trace) { Datadog::Tracing::TraceSegment.new(spans.dup) }
 
+      let(:spans) { [span_a, span_b, span_c, span_d] }
       let(:filter_regex) { /a/ }
       let(:span_b) { generate_span('b', span_a) }
       let(:span_c) { generate_span('c', span_b) }
       let(:span_d) { generate_span('d') }
 
       it 'filters out any child spans of a span that matches the criteria' do
-        expect { span_filter.call(trace) }
-          .to change { trace.spans }
-          .from([span_a, span_b, span_c, span_d])
-          .to([span_d])
+        expect { span_filter.call(trace) }.to change { trace.spans }.from(spans).to([span_d])
       end
 
       context 'with spans that have a parent span that doesnt match filtering criteria' do
@@ -54,9 +52,15 @@ RSpec.describe Datadog::Tracing::Pipeline::SpanFilter do
 
         it 'does not filter out parent spans of child spans that matches the criteria' do
           expect { span_filter.call(trace) }
-            .to change { trace.spans }
-            .from([span_a, span_b, span_c, span_d])
-            .to([span_a, span_d])
+            .to change { trace.spans }.from(spans).to([span_a, span_d])
+        end
+      end
+
+      context 'and are not ordered in the trace' do
+        let(:spans) { [span_b, span_d, span_a, span_c] }
+
+        it 'filters out any child spans of a span that matches the criteria' do
+          expect { span_filter.call(trace) }.to change { trace.spans }.from(spans).to([span_d])
         end
       end
     end
