@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2022-05-25
+
+### Added
+
+* [Application Security Monitoring](https://docs.datadoghq.com/security_platform/application_security/)
+* Elasticsearch: v8.0 support ([#1985][])
+* Sidekiq: Quantize args ([#1972][]) ([@dudo][])
+* Profiling: Add libddprof dependency to power the new Ruby profiler ([#2028][])
+* Helper to easily enable core dumps ([#2010][])
+
+### Changed
+
+* Support spaces in environment variable DD_TAGS ([#2011][])
+
+### Fixed
+
+* Fix "circular require considered harmful" warnings ([#1998][])
+* Logging: Change ddsource to a scalar value ([#2022][])
+* Improve exception logging ([#1992][])
+
 ## [1.0.0] - 2022-04-28
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.0.0
@@ -1987,7 +2007,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.1.0...master
+[1.1.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta2...v1.0.0
 [1.0.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta1...v1.0.0.beta2
 [1.0.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v0.54.2...v1.0.0.beta1
@@ -2812,6 +2833,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1965]: https://github.com/DataDog/dd-trace-rb/issues/1965
 [#1968]: https://github.com/DataDog/dd-trace-rb/issues/1968
 [#1970]: https://github.com/DataDog/dd-trace-rb/issues/1970
+[#1972]: https://github.com/DataDog/dd-trace-rb/issues/1972
 [#1973]: https://github.com/DataDog/dd-trace-rb/issues/1973
 [#1974]: https://github.com/DataDog/dd-trace-rb/issues/1974
 [#1975]: https://github.com/DataDog/dd-trace-rb/issues/1975
@@ -2821,9 +2843,16 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#1982]: https://github.com/DataDog/dd-trace-rb/issues/1982
 [#1983]: https://github.com/DataDog/dd-trace-rb/issues/1983
 [#1984]: https://github.com/DataDog/dd-trace-rb/issues/1984
+[#1985]: https://github.com/DataDog/dd-trace-rb/issues/1985
 [#1989]: https://github.com/DataDog/dd-trace-rb/issues/1989
 [#1990]: https://github.com/DataDog/dd-trace-rb/issues/1990
 [#1991]: https://github.com/DataDog/dd-trace-rb/issues/1991
+[#1992]: https://github.com/DataDog/dd-trace-rb/issues/1992
+[#1998]: https://github.com/DataDog/dd-trace-rb/issues/1998
+[#2010]: https://github.com/DataDog/dd-trace-rb/issues/2010
+[#2011]: https://github.com/DataDog/dd-trace-rb/issues/2011
+[#2022]: https://github.com/DataDog/dd-trace-rb/issues/2022
+[#2028]: https://github.com/DataDog/dd-trace-rb/issues/2028
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
