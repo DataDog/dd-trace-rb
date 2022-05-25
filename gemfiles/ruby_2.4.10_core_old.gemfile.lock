@@ -1,8 +1,9 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.0.0)
-      debase-ruby_core_source (<= 0.10.15)
+    ddtrace (1.1.0)
+      debase-ruby_core_source (<= 0.10.16)
+      libddprof (~> 0.6.0.1.0)
       libddwaf (~> 1.3.0.2.0)
       msgpack
 
@@ -28,16 +29,17 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.10)
-    debase-ruby_core_source (0.10.15)
+    debase-ruby_core_source (0.10.16)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.3.5)
     dogstatsd-ruby (4.8.3)
     ffi (1.15.5)
-    google-protobuf (3.19.4)
+    google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libddprof (0.6.0.1.0-x86_64-linux)
     libddwaf (1.3.0.2.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -138,7 +140,7 @@ DEPENDENCIES
   concurrent-ruby
   ddtrace!
   dogstatsd-ruby (~> 4)
-  google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
+  google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   json-schema
   memory_profiler (~> 0.9)
   opentracing (>= 0.4.1)
