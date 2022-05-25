@@ -2,6 +2,7 @@
 #include <ruby/thread.h>
 #include <ddprof/ffi.h>
 #include "libddprof_helpers.h"
+#include "ruby_helpers.h"
 
 // Used to report profiling data to Datadog.
 // This file implements the native bits of the Datadog::Profiling::HttpTransport class
@@ -45,7 +46,7 @@ static VALUE _native_do_export(
   VALUE code_provenance_data,
   VALUE tags_as_array
 );
-static void *call_exporter_without_gvl(void *exporter_and_request);
+static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
 
 void http_transport_init(VALUE profiling_module) {
@@ -212,53 +213,55 @@ static VALUE perform_export(
   struct call_exporter_without_gvl_arguments args =
     {.exporter = exporter, .request = request, .cancel_token = cancel_token, .send_ran = false};
 
-  // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the former does not process pending
-  // interrupts before returning.
+  // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
+  // exceptions.
   //
-  // Aka with rb_thread_call_without_gvl if someone calls Thread#kill on the current thread, rb_thread_call_without_gvl
-  // will never return because Thread#kill causes an exception to be raised, and Ruby will longjmp to the exception
-  // handler which is outside of our code.
-  // This is problematic because we will leak the exporter, cancel_token, etc.
+  // (With rb_thread_call_without_gvl, if someone calls Thread#kill or something like it on the current thread,
+  // the exception will be raised without us being able to clean up dynamically-allocated stuff, which would leak.)
   //
-  // Instead, with rb_thread_call_without_gvl2, if someone calls Thread#kill, rb_thread_call_without_gvl2 will still
-  // return as usual AND the exception will not be raised until we return from this function (as long as we don't
-  // call any Ruby API that triggers interrupt checking), which means we get to make an orderly exit.
-  // (Remember also that it can return BEFORE actually calling call_exporter_without_gvl, which we handle below.)
-  rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
+  // Instead, we take care of our own exception checking, and delay the exception raising (`rb_jump_tag` call) until
+  // after we cleaned up any dynamically-allocated resources.
+  //
+  // We run rb_thread_call_without_gvl2 in a loop since an "interrupt" may cause it to return before even running
+  // our code. In such a case, we retry the call -- unless the interrupt was caused by an exception being pending,
+  // and in that case we also give up and break out of the loop.
+  int pending_exception = 0;
+
+  while (!args.send_ran && !pending_exception) {
+    rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
+    if (!args.send_ran) pending_exception = check_if_pending_exception();
+  }
 
   VALUE ruby_status;
   VALUE ruby_result;
 
-  if (args.send_ran) {
-    ddprof_ffi_SendResult result = args.result;
-    bool success = result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE;
-
-    ruby_status = success ? ok_symbol : error_symbol;
-    ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.failure);
-  } else {
-    // According to the Ruby VM documentation, rb_thread_call_without_gvl2 checks for interrupts before doing anything
-    // else and thus it is possible -- yet extremely unlikely -- for it to return immediately without even calling
-    // call_exporter_without_gvl. Thus, here we handle that weird corner case.
-    ruby_status = error_symbol;
-    ruby_result = rb_str_new_cstr("Interrupted before call_exporter_without_gvl ran");
-
+  if (pending_exception) {
     // We're in a weird situation that libddprof doesn't quite support. The ddprof_ffi_Request payload is dynamically
     // allocated and needs to be freed, but libddprof doesn't have an API for dropping a request because it's kinda
     // weird that a profiler builds a request and then says "oh, nevermind" and throws it away.
     // We could add such an API, but I'm somewhat hesitant since this is a really bizarre corner case that looks quite
     // Ruby-specific.
     //
-    // Instead, let's get libddprof to clean up this value by asking for the send to be cancelled, and then calling
-    // it anyway. This will make libddprof free the request without needing changes to its API.
+    // Instead, let's get libddprof to clean up the request by asking for the send to be cancelled, and then calling
+    // it anyway. This will make libddprof free the request and return immediately without needing changes to its API.
     interrupt_exporter_call((void *) cancel_token);
     call_exporter_without_gvl((void *) &args);
   }
+
+  ddprof_ffi_SendResult result = args.result;
+  bool success = result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE;
+
+  ruby_status = success ? ok_symbol : error_symbol;
+  ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.failure);
 
   // Clean up all dynamically-allocated things
   ddprof_ffi_SendResult_drop(args.result);
   ddprof_ffi_CancellationToken_drop(cancel_token);
   ddprof_ffi_NewProfileExporterV3Result_drop(valid_exporter_result);
   // The request itself does not need to be freed as libddprof takes care of it.
+
+  // We've cleaned up everything, so if there's an exception to be raised, let's have it
+  if (pending_exception) rb_jump_tag(pending_exception);
 
   return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }
@@ -323,8 +326,8 @@ static VALUE _native_do_export(
   return perform_export(exporter_result, start, finish, slice_files, null_additional_tags, timeout_milliseconds);
 }
 
-static void *call_exporter_without_gvl(void *exporter_and_request) {
-  struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) exporter_and_request;
+static void *call_exporter_without_gvl(void *call_args) {
+  struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) call_args;
 
   args->result = ddprof_ffi_ProfileExporterV3_send(args->exporter, args->request, args->cancel_token);
   args->send_ran = true;
