@@ -5,6 +5,7 @@
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
+void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
 static VALUE native_working_p(VALUE self);
@@ -23,6 +24,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
 
   collectors_cpu_and_wall_time_init(profiling_module);
   collectors_stack_init(profiling_module);
+  http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
 }
 

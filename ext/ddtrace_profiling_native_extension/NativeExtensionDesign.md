@@ -44,13 +44,15 @@ We avoid issues using a combination of:
 * Avoiding calling Ruby VM APIs after doing dynamic allocations
 * Wrapping dynamic allocations into Ruby GC-managed objects (using `TypedData_Wrap_Struct`), so that Ruby will manage
   their lifetime and call `free` when the GC-managed object is no longer being referenced
+* Using [`rb_protect` and similar APIs](https://silverhammermba.github.io/emberb/c/?#rescue) to run cleanup code on
+  exception cases
 
 Non-exhaustive list of APIs that cause exceptions to be raised:
 
 * `Check_TypedStruct`, `Check_Type`
 * `rb_funcall`
 * `rb_thread_call_without_gvl`, `rb_thread_call_without_gvl2`
-* [Numeric conversion APIs, e.g. `NUM2LONG`, `NUM2INT`, etc.](https://silverhammermba.github.io/emberb/c/?utm_source=pocket_mylist#translation)
+* [Numeric conversion APIs, e.g. `NUM2LONG`, `NUM2INT`, etc.](https://silverhammermba.github.io/emberb/c/?#translation)
 * Our `char_slice_from_ruby_string` helper
 
 ## Usage of private VM headers
