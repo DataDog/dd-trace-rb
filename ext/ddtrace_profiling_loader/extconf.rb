@@ -1,4 +1,5 @@
 # typed: ignore
+
 # rubocop:disable Style/StderrPuts
 # rubocop:disable Style/GlobalVars
 
