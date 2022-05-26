@@ -43,6 +43,19 @@ RSpec.describe 'Rails ActionController' do
           expect(spans.first.name).to eq('rails.action_controller')
         end
 
+        context 'with tracing disabled' do
+          before do
+            Datadog.configure { |c| c.tracing.enabled = false }
+            expect(Datadog.logger).to_not receive(:error)
+            expect(Datadog::Tracing).to_not receive(:trace)
+          end
+
+          it 'runs the action without tracing' do
+            expect { result }.to_not raise_error
+            expect(spans).to have(0).items
+          end
+        end
+
         context 'when response is overridden' do
           context 'with an Array' do
             let(:headers) { double('headers') }
