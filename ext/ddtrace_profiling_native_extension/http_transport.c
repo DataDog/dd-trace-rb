@@ -237,13 +237,13 @@ static VALUE perform_export(
 
   if (pending_exception) {
     // We're in a weird situation that libddprof doesn't quite support. The ddprof_ffi_Request payload is dynamically
-    // allocated and needs to be freed, but libddprof doesn't have an API for dropping a request because it's kinda
-    // weird that a profiler builds a request and then says "oh, nevermind" and throws it away.
-    // We could add such an API, but I'm somewhat hesitant since this is a really bizarre corner case that looks quite
-    // Ruby-specific.
+    // allocated and needs to be freed, but libddprof doesn't have an API for dropping a request.
     //
-    // Instead, let's get libddprof to clean up the request by asking for the send to be cancelled, and then calling
-    // it anyway. This will make libddprof free the request and return immediately without needing changes to its API.
+    // There's plans to add a `ddprof_ffi_Request_drop`
+    // (https://github.com/DataDog/dd-trace-rb/pull/1923#discussion_r882096221); once that happens, we can use it here.
+    //
+    // As a workaround, we get libddprof to clean up the request by asking for the send to be cancelled, and then calling
+    // it anyway. This will make libddprof free the request and return immediately which gets us the expected effect.
     interrupt_exporter_call((void *) cancel_token);
     call_exporter_without_gvl((void *) &args);
   }
