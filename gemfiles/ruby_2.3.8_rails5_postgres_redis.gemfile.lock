@@ -2,7 +2,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.1.0)
-      debase-ruby_core_source (<= 0.10.16)
+      debase-ruby_core_source (= 0.10.16)
       libddprof (~> 0.6.0.1.0)
       libddwaf (~> 1.3.0.2.0)
       msgpack

@@ -28,7 +28,7 @@ static void *call_serialize_without_gvl(void *call_args);
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
 
-  // Instances of the StackRecorder class are going to be "TypedData" objects.
+  // Instances of the StackRecorder class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
   // In our case, we're going to keep a libddprof profile reference inside our object.
   //
@@ -136,4 +136,8 @@ static void *call_serialize_without_gvl(void *call_args) {
   args->serialize_ran = true;
 
   return NULL; // Unused
+}
+
+void enforce_recorder_instance(VALUE object) {
+  Check_TypedStruct(object, &stack_recorder_typed_data);
 }

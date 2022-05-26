@@ -3,6 +3,7 @@
 #include "clock_id.h"
 
 // Each class/module here is implemented in their separate file
+void collectors_cpu_and_wall_time_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
@@ -20,6 +21,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
 
   rb_define_singleton_method(native_extension_module, "clock_id_for", clock_id_for, 1); // from clock_id.h
 
+  collectors_cpu_and_wall_time_init(profiling_module);
   collectors_stack_init(profiling_module);
   stack_recorder_init(profiling_module);
 }

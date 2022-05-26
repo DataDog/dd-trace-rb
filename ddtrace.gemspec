@@ -54,9 +54,12 @@ Gem::Specification.new do |spec|
 
   # Used by the profiler native extension to support older Rubies (see NativeExtensionDesign.md for notes)
   #
-  # Because we only use this for older Rubies, and we consider it "feature-complete" for those older Rubies,
+  # Most versions of this gem work for us, but 0.10.16 includes an important fix for Ruby 2.5.4 to 2.5.9
+  # (https://github.com/ruby-debug/debase-ruby_core_source/pull/6) so we should keep that as a lower bound going
+  # forward.
+  #
   # we're pinning it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '<= 0.10.16'
+  spec.add_dependency 'debase-ruby_core_source', '= 0.10.16'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.3.0.2.0'

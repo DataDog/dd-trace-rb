@@ -147,6 +147,7 @@ module Datadog
 
       require 'datadog/profiling/ext/forking'
       require 'datadog/profiling/collectors/code_provenance'
+      require 'datadog/profiling/collectors/cpu_and_wall_time'
       require 'datadog/profiling/collectors/old_stack'
       require 'datadog/profiling/collectors/stack'
       require 'datadog/profiling/stack_recorder'
