@@ -65,7 +65,10 @@ module LogHelpers
     end
 
     after do
-      Datadog.configure { |c| c.logger.instance = @default_logger }
+      Datadog.configure do |c|
+        c.logger.instance = @default_logger
+        c.diagnostics.debug = false
+      end
     end
 
     # Checks buffer to see if it contains lines that match all patterns.
