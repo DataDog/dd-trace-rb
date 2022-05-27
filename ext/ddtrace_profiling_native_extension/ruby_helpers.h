@@ -3,7 +3,7 @@
 #include <ruby.h>
 
 // Processes any pending interruptions, including exceptions to be raised.
-// If there's an exception to be raised, it raises it.
+// If there's an exception to be raised, it raises it. In that case, this function does not return.
 static inline VALUE process_pending_interruptions(VALUE _unused) {
   rb_thread_check_ints();
   return Qnil;

@@ -15,14 +15,14 @@
 static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
-typedef struct sampling_buffer {
+struct sampling_buffer {
   unsigned int max_frames;
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
   ddprof_ffi_Location *locations;
   ddprof_ffi_Line *lines;
-} sampling_buffer;
+}; // Note: typedef'd in the header to sampling_buffer
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);

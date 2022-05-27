@@ -2,6 +2,7 @@
 #include <ruby/thread.h>
 #include "stack_recorder.h"
 #include "libddprof_helpers.h"
+#include "ruby_helpers.h"
 
 // Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -77,15 +78,18 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   // is pending
   struct call_serialize_without_gvl_arguments args = {.profile = profile, .serialize_ran = false};
 
-  // We use rb_thread_call_without_gvl2 for similar reasons as in http_transport.c: we don't want pending interrupts
-  // that cause exceptions to be raised to be processed as otherwise we can leak the serialized profile.
-  rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, /* No interruption supported */ NULL, NULL);
+  while (!args.serialize_ran) {
+    // Give the Ruby VM an opportunity to process any pending interruptions (including raising exceptions).
+    // Note that it's OK to do this BEFORE call_serialize_without_gvl runs BUT NOT AFTER because afterwards
+    // there's heap-allocated memory that MUST be cleaned before raising any exception.
+    //
+    // Note that we run this in a loop because `rb_thread_call_without_gvl2` may return multiple times due to
+    // pending interrupts until it actually runs our code.
+    process_pending_interruptions(Qnil);
 
-  // This weird corner case can happen if rb_thread_call_without_gvl2 returns immediately due to an interrupt
-  // without ever calling call_serialize_without_gvl. In this situation, we don't have anything to clean up, we can
-  // just return.
-  if (!args.serialize_ran) {
-    return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Interrupted before call_serialize_without_gvl ran"));
+    // We use rb_thread_call_without_gvl2 here because unlike the regular _gvl variant, gvl2 does not process
+    // interruptions and thus does not raise exceptions after running our code.
+    rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, /* No interruption function supported */ NULL, NULL);
   }
 
   ddprof_ffi_SerializeResult serialized_profile = args.result;
