@@ -1867,7 +1867,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `tag_args` | Enable tagging of job arguments. `true` for on, `false` for off. | `false` |
-| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { |span, error| span.set_error(error) unless span.nil? }` |
+| `error_handler` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize` | Hash containing options for quantization of job arguments. | `{}` |
 
 ### Sinatra
