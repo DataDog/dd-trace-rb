@@ -84,7 +84,7 @@ Datadog.configure do |c|
   # Global settings
   c.tracer.hostname = '127.0.0.1'
   c.tracer.port = 8126
-  c.runtime_metrics.enabled = true
+  c.runtime_metrics_enabled = true
   c.service = 'billing-api'
 
   # Tracing settings
