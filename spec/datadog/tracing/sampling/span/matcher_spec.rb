@@ -91,10 +91,6 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
 
     context 'matching on span name and service' do
       let(:matcher) { described_class.new(name_pattern: name_pattern, service_pattern: service_pattern) }
-      let(:span_name) { input }
-      let(:span_service) { input }
-      let(:name_pattern) { input }
-      let(:service_pattern) { input }
 
       context 'when only name matches' do
         let(:span_name) { 'web.get' }

@@ -69,7 +69,7 @@ module Datadog
             pattern.gsub!('\*', '.*') # Any substring
 
             # Patterns have to match the whole input string
-            pattern = "\\A#{pattern}\\Z"
+            pattern = "\\A#{pattern}\\z"
 
             Regexp.new(pattern)
           end
