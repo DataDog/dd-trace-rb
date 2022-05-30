@@ -52,7 +52,7 @@ We welcome code contributions to the library, which you can [submit as a pull re
 
 1. **Fork the repository** from https://github.com/DataDog/dd-trace-rb
 2. **Make any changes** for your patch.
-3. **Write tests** that demonstrate how the feature works or how the bug is fixed.
+3. **Write tests** that demonstrate how the feature works or how the bug is fixed. See the [DevelopmentGuide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md) for detailed test instructions.
 4. **Update any documentation** such as `docs/GettingStarted.md`, especially for new features.
 5. **Submit the pull request** from your fork back to the latest revision of the `master` branch on https://github.com/DataDog/dd-trace-rb.
 
