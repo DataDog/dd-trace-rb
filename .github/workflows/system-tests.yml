@@ -65,8 +65,13 @@ jobs:
       - name: Build
         run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.weblog-variant }}
 
-      - name: Run
+      - name: Run default scenario
         run: ./run.sh
+        env:
+          DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+
+      - name: Run APPSEC_CUSTOM_RULES scenario
+        run: ./run.sh APPSEC_CUSTOM_RULES
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
 
@@ -75,4 +80,8 @@ jobs:
         if: ${{ always() }}
         with:
           name: system-tests-${{ matrix.library }}-${{ matrix.weblog-variant }}-logs-${{ github.run_id }}-${{ github.sha }}
-          path: logs
+          path: logs*
+
+      - name: Print fancy log report
+        if: ${{ always() }}
+        run: python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
