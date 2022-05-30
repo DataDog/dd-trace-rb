@@ -53,7 +53,11 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Matcher do
       ]
     }.each do |scenario, fixtures|
       context "for '#{scenario}'" do
-        fixtures.each do |pattern:, input:, expected:|
+        fixtures.each do |fixture|
+          pattern = fixture[:pattern]
+          input = fixture[:input]
+          expected = fixture[:expected]
+
           context "with pattern '#{pattern}' and input '#{input}'" do
             context 'matching on span name' do
               let(:matcher) { described_class.new(name_pattern: pattern) }
