@@ -123,6 +123,8 @@ module Datadog
           TAG_HOSTNAME = '_dd.hostname'
           TAG_TARGET_HOST = 'out.host'
           TAG_TARGET_PORT = 'out.port'
+          TAG_DESTINATION_NAME = 'network.destination.name'
+          TAG_DESTINATION_PORT = 'network.destination.port'
         end
 
         # @public_api
@@ -144,6 +146,16 @@ module Datadog
         module SQL
           TYPE = 'sql'
           TAG_QUERY = 'sql.query'
+          TAG_ROWS = 'sql.rows'
+        end
+
+        # @public_api
+        module DB
+          TAG_INSTANCE = 'db.instance'
+          TAG_USER = 'db.user'
+          TAG_SYSTEM = 'db.system'
+          TAG_STATEMENT = 'db.statement'
+          TAG_ROW_COUNT = 'db.row_count'
         end
       end
     end

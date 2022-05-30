@@ -14,7 +14,10 @@ module Datadog
           SPAN_SYSTEM = 'postgresql'.freeze
           SPAN_EXEC = 'pg.exec'.freeze
           SPAN_EXEC_PARAMS = 'pg.exec.params'.freeze
-          SPAN_EXEC_PREPARED = 'pg.exec.prepared'.freeze
+          SPAN_ASYNC_EXEC = 'pg.async.exec'.freeze
+          SPAN_ASYNC_EXEC_PARAMS = 'pg.async.exec.params'.freeze
+          SPAN_SYNC_EXEC = 'pg.sync.exec'.freeze
+          SPAN_SYNC_EXEC_PARAMS = 'pg.sync.exec.params'.freeze
           TAG_DB_NAME = 'pg.db.name'.freeze
           TAG_COMPONENT = 'pg'.freeze
           TAG_OPERATION_QUERY = 'query'.freeze
