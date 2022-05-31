@@ -22,7 +22,7 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_EXEC, service: service, resource: sql,
                                             type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, sql, service)
+                annotate_span_with_query!(span, service, sql)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
@@ -37,11 +37,26 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_EXEC_PARAMS, service: service, resource: sql,
                                                    type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, sql, service)
+                annotate_span_with_query!(span, service, sql)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
                 result = super(sql, params, *args)
+                annotate_span_with_result!(span, result)
+                result
+              end
+            end
+
+            def exec_prepared(statement_name, params, *args)
+              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+
+              Tracing.trace(Ext::SPAN_EXEC_PREPARED, service: service, resource: statement_name,
+                                                     type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
+                annotate_span_with_query!(span, service)
+                # Set analytics sample rate
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
+                result = super(statement_name, params, *args)
                 annotate_span_with_result!(span, result)
                 result
               end
@@ -52,7 +67,7 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_ASYNC_EXEC, service: service, resource: sql,
                                                   type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, sql, service)
+                annotate_span_with_query!(span, service, sql)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
@@ -67,11 +82,26 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_ASYNC_EXEC_PARAMS, service: service, resource: sql,
                                                          type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, sql, service)
+                annotate_span_with_query!(span, service, sql)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
                 result = super(sql, params, *args)
+                annotate_span_with_result!(span, result)
+                result
+              end
+            end
+
+            def async_exec_prepared(statement_name, params, *args)
+              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+
+              Tracing.trace(Ext::SPAN_ASYNC_EXEC_PREPARED, service: service, resource: statement_name,
+                                                           type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
+                annotate_span_with_query!(span, service)
+                # Set analytics sample rate
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
+                result = super(statement_name, params, *args)
                 annotate_span_with_result!(span, result)
                 result
               end
@@ -82,7 +112,7 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_SYNC_EXEC, service: service, resource: sql,
                                                  type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, sql, service)
+                annotate_span_with_query!(span, service, sql)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
@@ -97,7 +127,7 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_SYNC_EXEC_PARAMS, service: service, resource: sql,
                                                         type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, sql, service)
+                annotate_span_with_query!(span, service, sql)
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
@@ -107,7 +137,24 @@ module Datadog
               end
             end
 
-            def annotate_span_with_query!(span, sql, service)
+            def sync_exec_prepared(statement_name, params, *args)
+              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+
+              Tracing.trace(Ext::SPAN_SYNC_EXEC_PREPARED, service: service, resource: statement_name,
+                                                          type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
+                annotate_span_with_query!(span, service)
+                # Set analytics sample rate
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+
+                result = super(statement_name, params, *args)
+                annotate_span_with_result!(span, result)
+                result
+              end
+            end
+
+            private
+
+            def annotate_span_with_query!(span, service, sql=nil)
               span.set_tag(Ext::TAG_DB_NAME, db)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -120,7 +167,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_INSTANCE, db)
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_USER, user)
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_SYSTEM, Ext::SPAN_SYSTEM)
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_STATEMENT, sql)
+              span.set_tag(Tracing::Metadata::Ext::DB::TAG_STATEMENT, sql) if sql
 
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
@@ -133,8 +180,6 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_ROW_COUNT, row_count)
               span.set_tag(Tracing::Metadata::Ext::SQL::TAG_ROWS, row_count)
             end
-
-            private
 
             def datadog_configuration
               Datadog.configuration.tracing[:pg]
