@@ -252,7 +252,7 @@ static VALUE perform_export(
   bool success = result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE;
 
   ruby_status = success ? ok_symbol : error_symbol;
-  ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.failure);
+  ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.err);
 
   // Clean up all dynamically-allocated things
   ddprof_ffi_SendResult_drop(args.result);

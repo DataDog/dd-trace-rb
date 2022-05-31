@@ -61,7 +61,7 @@ static const rb_data_type_t stack_recorder_typed_data = {
 static VALUE _native_new(VALUE klass) {
   ddprof_ffi_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
 
-  ddprof_ffi_Profile *profile = ddprof_ffi_Profile_new(sample_types, NULL /* Period is optional */);
+  ddprof_ffi_Profile *profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
   return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, profile);
 }
@@ -89,7 +89,7 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
 
     // We use rb_thread_call_without_gvl2 here because unlike the regular _gvl variant, gvl2 does not process
     // interruptions and thus does not raise exceptions after running our code.
-    rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, /* No interruption function supported */ NULL, NULL);
+    rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, NULL /* No interruption function needed in this case */, NULL /* Not needed */);
   }
 
   ddprof_ffi_SerializeResult serialized_profile = args.result;
@@ -111,7 +111,9 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  if (!ddprof_ffi_Profile_reset(profile)) return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
+  if (!ddprof_ffi_Profile_reset(profile, NULL /* start_time is optional */ )) {
+    return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
+  }
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
 }
@@ -136,7 +138,7 @@ void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
-  args->result = ddprof_ffi_Profile_serialize(args->profile);
+  args->result = ddprof_ffi_Profile_serialize(args->profile, NULL /* end_time is optional */, NULL /* duration_nanos is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
