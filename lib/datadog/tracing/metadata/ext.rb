@@ -20,6 +20,8 @@ module Datadog
         # Name of external service that performed the work
         TAG_PEER_SERVICE = 'peer.service'
 
+        TAG_KIND = 'span.kind'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
@@ -146,7 +148,6 @@ module Datadog
         module SQL
           TYPE = 'sql'
           TAG_QUERY = 'sql.query'
-          TAG_ROWS = 'sql.rows'
         end
 
         # @public_api
@@ -156,6 +157,15 @@ module Datadog
           TAG_SYSTEM = 'db.system'
           TAG_STATEMENT = 'db.statement'
           TAG_ROW_COUNT = 'db.row_count'
+        end
+
+        # @public_api
+        module SpanKind
+          TAG_SERVER = 'server'
+          TAG_CLIENT = 'client'
+          TAG_PRODUCER = 'producer'
+          TAG_CONSUMER = 'consumer'
+          TAG_INTERNAL = 'internal'
         end
       end
     end

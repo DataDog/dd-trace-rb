@@ -154,11 +154,12 @@ module Datadog
 
             private
 
-            def annotate_span_with_query!(span, service, sql=nil)
+            def annotate_span_with_query!(span, service, sql = nil)
               span.set_tag(Ext::TAG_DB_NAME, db)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
               # Tag as an external peer service
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, service)
@@ -167,7 +168,8 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_INSTANCE, db)
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_USER, user)
               span.set_tag(Tracing::Metadata::Ext::DB::TAG_SYSTEM, Ext::SPAN_SYSTEM)
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_STATEMENT, sql) if sql
+
+              span.set_tag(Tracing::Metadata::Ext::SQL::TAG_QUERY, sql) if sql
 
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
@@ -176,9 +178,7 @@ module Datadog
             end
 
             def annotate_span_with_result!(span, result)
-              row_count = result.ntuples
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_ROW_COUNT, row_count)
-              span.set_tag(Tracing::Metadata::Ext::SQL::TAG_ROWS, row_count)
+              span.set_tag(Tracing::Metadata::Ext::DB::TAG_ROW_COUNT, result.ntuples)
             end
 
             def datadog_configuration

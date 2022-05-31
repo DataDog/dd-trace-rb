@@ -80,6 +80,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -92,13 +93,12 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_STATEMENT)).to eq(query)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -160,6 +160,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -172,13 +173,12 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_STATEMENT)).to eq(query)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -241,6 +241,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(statement_name)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -258,7 +259,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -320,6 +320,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -332,13 +333,12 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_STATEMENT)).to eq(query)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -400,6 +400,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -412,13 +413,12 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_STATEMENT)).to eq(query)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -481,6 +481,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(statement_name)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -498,7 +499,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -560,6 +560,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -572,13 +573,12 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_STATEMENT)).to eq(query)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -640,6 +640,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -652,13 +653,12 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_STATEMENT)).to eq(query)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -721,6 +721,7 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(statement_name)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -738,7 +739,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_ROWS)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
