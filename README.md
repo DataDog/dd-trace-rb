@@ -22,7 +22,7 @@ For contributing, checkout the [contribution guidelines][contribution docs] and 
 
 [setup docs]: https://docs.datadoghq.com/tracing/setup/ruby/
 [api docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/GettingStarted.md
-[gem docs]: http://gems.datadoghq.com/trace/docs/
+[gem docs]: https://s3.amazonaws.com/gems.datadoghq.com/trace/docs/index.html
 [visualization docs]: https://docs.datadoghq.com/tracing/visualization/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
