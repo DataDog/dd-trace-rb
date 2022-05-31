@@ -233,6 +233,13 @@ module Datadog
             # Disable gathering of names and versions of gems in use by the service, used to power grouping and
             # categorization of stack traces.
             option :code_provenance_enabled, default: true
+
+            # Use legacy transport code instead of HttpTransport. Temporarily added for migration to HttpTransport,
+            # and will be removed soon. Do not use unless instructed to by support.
+            option :legacy_transport_enabled do |o|
+              o.default { env_to_bool('DD_PROFILING_LEGACY_TRANSPORT_ENABLED', false) }
+              o.lazy
+            end
           end
 
           # @public_api
