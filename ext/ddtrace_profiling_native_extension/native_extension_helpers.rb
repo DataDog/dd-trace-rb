@@ -2,7 +2,7 @@
 
 # typed: ignore
 
-require 'libddprof'
+require 'libdatadog'
 require 'pathname'
 
 module Datadog
@@ -22,29 +22,29 @@ module Datadog
       end
 
       # Used as an workaround for a limitation with how dynamic linking works in environments where ddtrace and
-      # libddprof are moved after the extension gets compiled.
+      # libdatadog are moved after the extension gets compiled.
       #
       # Because the libddpprof native library is installed on a non-standard system path, in order for it to be
       # found by the system dynamic linker (e.g. what takes care of dlopen(), which is used to load the profiling
-      # native extension), we need to add a "runpath" -- a list of folders to search for libddprof.
+      # native extension), we need to add a "runpath" -- a list of folders to search for libdatadog.
       #
       # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
       # Linux: e.g. `readelf -d ddtrace_profiling_native_extension.2.7.3_x86_64-linux.so`.
       #
-      # In ddtrace 1.1.0, we only set as runpath an absolute path to libddprof. (This gets set automatically by the call
-      # to `pkg_config('ddprof_ffi_with_rpath')` in `extconf.rb`). This worked fine as long as libddprof was **NOT**
+      # In ddtrace 1.1.0, we only set as runpath an absolute path to libdatadog. (This gets set automatically by the call
+      # to `pkg_config('ddprof_ffi_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
       # moved from the folder it was present at ddtrace installation/linking time.
       #
       # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
       # installation. Thus, the profiling native extension could not be loaded in these environments
-      # (see https://github.com/DataDog/dd-trace-rb/issues/2067) because libddprof could not be found.
+      # (see https://github.com/DataDog/dd-trace-rb/issues/2067) because libdatadog could not be found.
       #
       # To workaround this issue, this method computes the **relative** path between the folder where the profiling
-      # native extension is going to be installed and the folder where libddprof is installed, and returns it
+      # native extension is going to be installed and the folder where libdatadog is installed, and returns it
       # to be set as an additional runpath. (Yes, you can set multiple runpath folders to be searched).
       #
       # This way, if both gems are moved together (and it turns out that they are in these environments),
-      # the relative path can still be traversed to find libddprof.
+      # the relative path can still be traversed to find libdatadog.
       #
       # This is incredibly awful, and it's kinda bizarre how it's not possible to just find these paths at runtime
       # and set them correctly; rather than needing to set stuff at linking-time and then praying to $deity that
@@ -54,16 +54,16 @@ module Datadog
       # SET DYNAMICALLY**, e.g. it needs to be set at the start of the process (Ruby VM) and thus it's not something
       # we could setup when doing a `require`.
       #
-      def self.libddprof_folder_relative_to_native_lib_folder(
+      def self.libdatadog_folder_relative_to_native_lib_folder(
         current_folder: __dir__,
-        libddprof_pkgconfig_folder: Libddprof.pkgconfig_folder
+        libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder
       )
-        return unless libddprof_pkgconfig_folder
+        return unless libdatadog_pkgconfig_folder
 
         profiling_native_lib_folder = "#{current_folder}/../../lib/"
-        libddprof_lib_folder = "#{libddprof_pkgconfig_folder}/../"
+        libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
 
-        Pathname.new(libddprof_lib_folder).relative_path_from(Pathname.new(profiling_native_lib_folder)).to_s
+        Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(profiling_native_lib_folder)).to_s
       end
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their
@@ -87,7 +87,7 @@ module Datadog
             on_unknown_os? ||
             not_on_amd64_or_arm64? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
-            libddprof_not_usable?
+            libdatadog_not_usable?
         end
 
         # This banner will show up in the logs/terminal while compiling the native extension
@@ -149,8 +149,8 @@ module Datadog
         ].freeze
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
-        FAILED_TO_CONFIGURE_LIBDDPROF = explain_issue(
-          'there was a problem in setting up the `libddprof` dependency.',
+        FAILED_TO_CONFIGURE_LIBDATADOG = explain_issue(
+          'there was a problem in setting up the `libdatadog` dependency.',
           suggested: CONTACT_SUPPORT,
         )
 
@@ -255,17 +255,17 @@ module Datadog
           ruby_without_mjit if CAN_USE_MJIT_HEADER && RbConfig::CONFIG['MJIT_SUPPORT'] != 'yes'
         end
 
-        private_class_method def self.libddprof_not_usable?
+        private_class_method def self.libdatadog_not_usable?
           no_binaries_for_current_platform = explain_issue(
-            'the `libddprof` gem installed on your system is missing binaries for your',
+            'the `libdatadog` gem installed on your system is missing binaries for your',
             'platform variant.',
             "(Your platform: `#{Gem::Platform.local}`)",
             '(Available binaries: ',
-            "`#{Libddprof.available_binaries.join('`, `')}`)",
+            "`#{Libdatadog.available_binaries.join('`, `')}`)",
             suggested: CONTACT_SUPPORT,
           )
 
-          no_binaries_for_current_platform unless Libddprof.pkgconfig_folder
+          no_binaries_for_current_platform unless Libdatadog.pkgconfig_folder
         end
       end
       # rubocop:enable Metrics/ModuleLength
