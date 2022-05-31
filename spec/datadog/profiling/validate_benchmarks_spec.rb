@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/profiling/spec_helper'
 
 RSpec.describe 'Profiling benchmarks', if: (RUBY_VERSION >= '2.4.0') do
