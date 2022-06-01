@@ -24,8 +24,8 @@ RSpec.describe 'PG::Connection patcher' do
   let(:host) { ENV.fetch('TEST_POSTGRES_HOST') { '127.0.0.1' } }
   let(:port) { ENV.fetch('TEST_POSTGRES_PORT') { '5432' } }
   let(:dbname) { ENV.fetch('TEST_POSTGRES_DB') { 'postgres' } }
-  let(:user) { ENV.fetch('TEST_POSTGRES_USER') { 'root' } }
-  let(:password) { ENV.fetch('TEST_POSTGRES_PASSWORD') { 'root' } }
+  let(:user) { ENV.fetch('TEST_POSTGRES_USER') { 'postgres' } }
+  let(:password) { ENV.fetch('TEST_POSTGRES_PASSWORD') { 'postgres' } }
 
   before do
     Datadog.configure do |c|
@@ -368,9 +368,7 @@ RSpec.describe 'PG::Connection patcher' do
 
     describe '#async_exec_params' do
       before do
-        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
-          skip('pg < 1.1.0 does not support #async_exec_params')
-        end
+        skip('pg < 1.1.0 does not support #async_exec_params') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
       end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
@@ -539,9 +537,7 @@ RSpec.describe 'PG::Connection patcher' do
 
     describe '#sync_exec' do
       before do
-        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
-          skip('pg < 1.1.0 does not support #async_exec_params')
-        end
+        skip('pg < 1.1.0 does not support #async_exec_params') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
       end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
@@ -624,9 +620,7 @@ RSpec.describe 'PG::Connection patcher' do
 
     describe '#sync_exec_params' do
       before do
-        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
-          skip('pg < 1.1.0 does not support #sync_exec_params')
-        end
+        skip('pg < 1.1.0 does not support #sync_exec_params') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
       end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
@@ -709,9 +703,7 @@ RSpec.describe 'PG::Connection patcher' do
 
     describe '#sync_exec_prepared' do
       before do
-        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
-          skip('pg < 1.1.0 does not support #sync_exec_prepared')
-        end
+        skip('pg < 1.1.0 does not support #sync_exec_prepared') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
         conn.prepare('prepared select 1', 'SELECT $1::int')
       end
       context 'when the tracer is disabled' do
