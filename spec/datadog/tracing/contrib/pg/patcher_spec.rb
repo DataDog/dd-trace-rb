@@ -80,7 +80,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -93,7 +94,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
@@ -160,7 +160,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -173,7 +174,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
@@ -241,7 +241,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(statement_name)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -320,7 +321,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -333,7 +335,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
@@ -366,6 +367,11 @@ RSpec.describe 'PG::Connection patcher' do
     end
 
     describe '#async_exec_params' do
+      before do
+        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+          skip('pg < 1.1.0 does not support #async_exec_params')
+        end
+      end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
@@ -400,7 +406,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -413,7 +420,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
@@ -446,7 +452,12 @@ RSpec.describe 'PG::Connection patcher' do
     end
 
     describe '#async_exec_prepared' do
-      before { conn.prepare('prepared select 1', 'SELECT $1::int') }
+      before do
+        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+          skip('pg < 1.1.0 does not support #async_exec_prepared')
+        end
+        conn.prepare('prepared select 1', 'SELECT $1::int')
+      end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
@@ -481,7 +492,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(statement_name)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -526,6 +538,11 @@ RSpec.describe 'PG::Connection patcher' do
     end
 
     describe '#sync_exec' do
+      before do
+        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+          skip('pg < 1.1.0 does not support #async_exec_params')
+        end
+      end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
@@ -560,7 +577,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -573,7 +591,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
@@ -606,6 +623,11 @@ RSpec.describe 'PG::Connection patcher' do
     end
 
     describe '#sync_exec_params' do
+      before do
+        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+          skip('pg < 1.1.0 does not support #sync_exec_params')
+        end
+      end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
@@ -640,7 +662,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(query)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
@@ -653,7 +676,6 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::SQL::TAG_QUERY)).to eq(query)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
@@ -686,7 +708,12 @@ RSpec.describe 'PG::Connection patcher' do
     end
 
     describe '#sync_exec_prepared' do
-      before { conn.prepare('prepared select 1', 'SELECT $1::int') }
+      before do
+        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+          skip('pg < 1.1.0 does not support #sync_exec_prepared')
+        end
+        conn.prepare('prepared select 1', 'SELECT $1::int')
+      end
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
@@ -721,7 +748,8 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.resource).to eq(statement_name)
           expect(span.service).to eq('pg')
           expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::SQL::TYPE)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND))
+            .to eq(Datadog::Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
           expect(span.get_tag(Datadog::Tracing::Contrib::Pg::Ext::TAG_DB_NAME)).to eq(dbname)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::TAG_COMPONENT)
