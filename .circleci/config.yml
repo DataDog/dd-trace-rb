@@ -407,6 +407,7 @@ jobs:
       - environment:
           *container_base_environment
         image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+    resource_class: small
     steps:
       - checkout
       - run:
@@ -428,6 +429,7 @@ jobs:
       - environment:
           *container_base_environment
         image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+    resource_class: small
     steps:
       - run:
           name: Check if this commit author has publishing credentials
@@ -497,6 +499,9 @@ job_configuration:
     ruby_version: '2.7'
     image: ivoanjo/docker-library:ddtrace_rb_2_7_3
     resource_class_to_use: medium+
+  - &config-2_7-small
+    <<: *config-2_7
+    resource_class_to_use: small
   - &config-3_0
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
@@ -539,17 +544,17 @@ workflows:
   build-and-test:
     jobs:
       - orb/lint:
-          <<: *config-2_6
+          <<: *config-2_7-small
           name: lint
           requires:
-            - build-2.6
+            - build-2.7
       - orb/sorbet_type_checker:
-          <<: *config-2_6
+          <<: *config-2_7-small
           name: sorbet_type_checker
           requires:
-            - build-2.6
+            - build-2.7
       - orb/coverage:
-          <<: *config-2_7
+          <<: *config-2_7-small
           name: coverage
           requires:
             - test-2.1
@@ -569,7 +574,7 @@ workflows:
             - test-jruby-9.3-latest
             # soon™️ - test-truffleruby-21.0.0
       - orb/changelog:
-          <<: *config-2_7
+          <<: *config-2_7-small
           name: changelog
           requires:
             - build-2.7
