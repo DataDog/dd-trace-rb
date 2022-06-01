@@ -1,4 +1,4 @@
-# typed: true
+# typed: ignore
 
 require 'datadog/tracing/contrib/patcher'
 require 'datadog/tracing/contrib/pg/instrumentation'

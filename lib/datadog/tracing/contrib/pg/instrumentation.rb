@@ -16,6 +16,7 @@ module Datadog
           end
 
           # PG::Connection patch methods
+          # rubocop:disable Metrics/ModuleLength:
           module InstanceMethods
             def exec(sql, *args)
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
@@ -191,6 +192,7 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
           end
+          # rubocop:enable Metrics/ModuleLength:
         end
       end
     end
