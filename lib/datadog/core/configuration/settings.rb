@@ -234,11 +234,17 @@ module Datadog
             # categorization of stack traces.
             option :code_provenance_enabled, default: true
 
-            # Use legacy transport code instead of HttpTransport. Temporarily added for migration to HttpTransport,
-            # and will be removed soon. Do not use unless instructed to by support.
+            # No longer does anything, and will be removed on dd-trace-rb 2.0.
+            #
+            # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
+            # but we're now confident it's working nicely so we've removed the old code path.
             option :legacy_transport_enabled do |o|
-              o.default { env_to_bool('DD_PROFILING_LEGACY_TRANSPORT_ENABLED', false) }
-              o.lazy
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
+              end
             end
 
             # Forces enabling the new profiler. We do not yet recommend turning on this option.
