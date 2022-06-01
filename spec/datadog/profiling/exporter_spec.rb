@@ -1,53 +1,83 @@
 # typed: false
 
-require 'spec_helper'
-
 require 'datadog/profiling/exporter'
-require 'datadog/profiling/flush'
-require 'datadog/profiling/transport/io'
+require 'datadog/profiling/old_recorder'
+require 'datadog/profiling/collectors/code_provenance'
+require 'datadog/core/logger'
 
 RSpec.describe Datadog::Profiling::Exporter do
-  subject(:exporter) { described_class.new(transport) }
+  subject(:exporter) do
+    described_class.new(pprof_recorder: pprof_recorder, code_provenance_collector: code_provenance_collector)
+  end
 
-  let(:transport) { Datadog::Profiling::Transport::IO.default }
+  let(:start) { Time.now }
+  let(:finish) { start + 60 }
+  let(:pprof_data) { 'dummy pprof data' }
+  let(:code_provenance_data) { 'dummy code provenance data' }
+  let(:pprof_recorder_serialize) { [start, finish, pprof_data] }
+  let(:pprof_recorder) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_recorder_serialize) }
+  let(:code_provenance_collector) do
+    collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
+    allow(collector).to receive(:refresh).and_return(collector)
+    collector
+  end
+  let(:logger) { Datadog.logger }
 
-  describe '::new' do
-    context 'given an IO transport' do
-      it 'uses the transport' do
-        is_expected.to have_attributes(
-          transport: transport
-        )
+  describe '#flush' do
+    subject(:flush) { exporter.flush }
+
+    it 'returns a flush containing the data from the recorders' do
+      expect(flush).to have_attributes(
+        start: start,
+        finish: finish,
+        pprof_file_name: 'rubyprofile.pprof',
+        code_provenance_file_name: 'code-provenance.json',
+        tags_as_array: array_including(%w[language ruby], ['process_id', Process.pid.to_s]),
+      )
+      expect(Datadog::Core::Utils::Compression.gunzip(flush.pprof_data)).to eq pprof_data
+      expect(Datadog::Core::Utils::Compression.gunzip(flush.code_provenance_data)).to eq code_provenance_data
+    end
+
+    context 'when pprof recorder has no data' do
+      let(:pprof_recorder_serialize) { nil }
+
+      it { is_expected.to be nil }
+    end
+
+    context 'when no code provenance collector was provided' do
+      let(:code_provenance_collector) { nil }
+
+      it 'returns a flush with nil code_provenance_data' do
+        expect(flush.code_provenance_data).to be nil
       end
     end
 
-    context 'given an HTTP transport' do
-      let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+    context 'when duration of profile is below 1s' do
+      let(:finish) { start + 0.99 }
 
-      # TODO: Should not raise an error when implemented.
-      it 'raises an error' do
-        expect { exporter }.to raise_error(ArgumentError)
+      before { allow(logger).to receive(:debug) }
+
+      it { is_expected.to be nil }
+
+      it 'logs a debug message' do
+        expect(logger).to receive(:debug).with(/Skipped exporting/)
+
+        flush
       end
+    end
+
+    context 'when duration of profile is 1s or above' do
+      let(:finish) { start + 1 }
+
+      it { is_expected.to_not be nil }
     end
   end
 
-  describe '#export' do
-    subject(:export) { exporter.export(flush) }
+  describe '#empty?' do
+    it 'delegates to the pprof_recorder' do
+      expect(pprof_recorder).to receive(:empty?).and_return(:empty_result)
 
-    let(:flush) { instance_double(Datadog::Profiling::OldFlush) }
-    let(:result) { double('result') }
-
-    before do
-      allow(transport)
-        .to receive(:send_profiling_flush)
-        .and_return(result)
-    end
-
-    it do
-      is_expected.to be result
-
-      expect(transport)
-        .to have_received(:send_profiling_flush)
-        .with(flush)
+      expect(exporter.empty?).to be :empty_result
     end
   end
 end

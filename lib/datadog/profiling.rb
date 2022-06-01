@@ -151,17 +151,16 @@ module Datadog
       require 'datadog/profiling/collectors/old_stack'
       require 'datadog/profiling/collectors/stack'
       require 'datadog/profiling/stack_recorder'
+      require 'datadog/profiling/old_recorder'
       require 'datadog/profiling/exporter'
-      require 'datadog/profiling/recorder'
       require 'datadog/profiling/scheduler'
       require 'datadog/profiling/tasks/setup'
-      require 'datadog/profiling/transport/io'
-      require 'datadog/profiling/transport/http'
       require 'datadog/profiling/profiler'
       require 'datadog/profiling/native_extension'
       require 'datadog/profiling/trace_identifiers/helper'
       require 'datadog/profiling/pprof/pprof_pb'
       require 'datadog/profiling/tag_builder'
+      require 'datadog/profiling/http_transport'
 
       true
     end

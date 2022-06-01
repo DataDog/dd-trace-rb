@@ -96,7 +96,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         end
 
         it 'returns a transport configured for agentless' do
-          expected_host = URI(format(Datadog::Profiling::Ext::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
+          expected_host = URI(format(Datadog::Profiling::OldExt::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
           expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
           expect(default.api.adapter.hostname).to eq(expected_host)
           expect(default.api.adapter.port).to eq(443)
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP do
         let(:options) { { **super(), agentless_allowed: true } }
 
         it 'returns a transport configured for agentless' do
-          expected_host = URI(format(Datadog::Profiling::Ext::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
+          expected_host = URI(format(Datadog::Profiling::OldExt::Transport::HTTP::URI_TEMPLATE_DD_API, site)).host
           expect(default.api.adapter).to be_a_kind_of(Datadog::Transport::HTTP::Adapters::Net)
           expect(default.api.adapter.hostname).to eq(expected_host)
           expect(default.api.adapter.port).to eq(443)

@@ -2,18 +2,17 @@
 
 require 'spec_helper'
 
-require 'datadog/profiling/recorder'
+require 'datadog/profiling/old_recorder'
 require 'datadog/profiling/event'
-require 'datadog/profiling/collectors/code_provenance'
 
-RSpec.describe Datadog::Profiling::Recorder do
+RSpec.describe Datadog::Profiling::OldRecorder do
   subject(:recorder) do
-    described_class.new(event_classes, max_size, code_provenance_collector: code_provenance_collector)
+    described_class.new(event_classes, max_size, **options)
   end
 
   let(:event_classes) { [] }
   let(:max_size) { 0 }
-  let(:code_provenance_collector) { nil }
+  let(:options) { {} }
 
   shared_context 'test buffer' do
     let(:buffer) { instance_double(Datadog::Profiling::Buffer) }
@@ -113,81 +112,67 @@ RSpec.describe Datadog::Profiling::Recorder do
     end
   end
 
-  describe '#flush' do
+  describe '#serialize' do
     include_context 'test buffer'
 
     let(:events) { [] }
+    let(:event_classes) { [event_class] }
+    let(:event_class) { Class.new(Datadog::Profiling::Event) }
 
-    subject(:flush) { recorder.flush }
+    subject(:serialize) { recorder.serialize }
 
     before { allow(buffer).to receive(:pop).and_return(events) }
 
-    context 'when the Recorder has a registered event class' do
-      let(:event_classes) { [event_class] }
-      let(:event_class) { Class.new(Datadog::Profiling::Event) }
+    context 'whose buffer returns events' do
+      let(:events) { [event_class.new, event_class.new] }
+      let(:pprof_data) { 'dummy encoded pprof data' }
 
-      context 'whose buffer returns events' do
-        let(:events) { [event_class.new, event_class.new] }
-
-        it { is_expected.to be_a_kind_of(Datadog::Profiling::OldFlush) }
-
-        it do
-          is_expected.to have_attributes(
-            start: kind_of(Time),
-            finish: kind_of(Time),
-            event_groups: array_including(Datadog::Profiling::EventGroup),
-            event_count: 2
-          )
-        end
-
-        it { expect(flush.event_groups).to be_a_kind_of(Array) }
-        it { expect(flush.event_groups).to have(1).item }
-        it { expect(flush.start).to be < flush.finish }
-
-        it 'produces a flush with the events' do
-          expect(flush.event_groups.first).to have_attributes(
-            event_class: event_class,
-            events: events
-          )
-        end
+      before do
+        allow(Datadog::Profiling::Encoding::Profile::Protobuf).to receive(:encode).and_return(pprof_data)
       end
 
-      context 'whose buffer returns no events' do
-        it { is_expected.to be_a_kind_of(Datadog::Profiling::OldFlush) }
-        it { expect(flush.event_groups).to be_empty }
+      it 'returns a tuple with the profiling data' do
+        start, finish, pprof_data = serialize
+
+        expect(start).to be_a_kind_of(Time)
+        expect(finish).to be_a_kind_of(Time)
+        expect(pprof_data).to be pprof_data
+      end
+
+      it 'calls the protobuf encoder with the events' do
+        expected_event_group = instance_double(Datadog::Profiling::EventGroup)
+
+        expect(Datadog::Profiling::EventGroup)
+          .to receive(:new).with(event_class, events).and_return(expected_event_group)
+        expect(Datadog::Profiling::Encoding::Profile::Protobuf).to receive(:encode).with(
+          start: kind_of(Time),
+          finish: kind_of(Time),
+          event_groups: [expected_event_group],
+          event_count: 2,
+        )
+
+        serialize
       end
 
       context 'called back to back' do
-        subject(:flush) { Array.new(3) { recorder.flush } }
+        subject(:flush) do
+          Array.new(3) do
+            start, finish = recorder.serialize
+            OpenStruct.new(start: start, finish: finish)
+          end
+        end
 
         it 'has its start and end times line up' do
           expect(flush[0].start).to be < flush[0].finish
-          expect(flush[0].finish).to eq(flush[1].start)
-          expect(flush[1].finish).to eq(flush[2].start)
+          expect(flush[0].finish).to eq flush[1].start
+          expect(flush[1].finish).to eq flush[2].start
           expect(flush[2].start).to be < flush[2].finish
         end
       end
     end
 
-    context 'when code_provenance_collector is nil' do
-      let(:code_provenance_collector) { nil }
-
-      it 'returns a flush without code_provenance' do
-        expect(flush.code_provenance).to be nil
-      end
-    end
-
-    context 'when code_provenance_collector is available' do
-      let(:code_provenance_collector) do
-        collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance)
-        allow(collector).to receive(:refresh).and_return(collector)
-        collector
-      end
-      let(:code_provenance) { double('code_provenance') }
-
-      it 'returns a flush with code_provenance' do
-        expect(flush.code_provenance).to be code_provenance
-      end
+    context 'whose buffer returns no events' do
+      it { is_expected.to be nil }
     end
   end
 

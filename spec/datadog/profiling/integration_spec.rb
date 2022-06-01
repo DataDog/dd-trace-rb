@@ -83,17 +83,17 @@ RSpec.describe 'profiling integration test' do
   end
 
   describe 'profiling' do
-    let(:recorder) do
-      Datadog::Profiling::Recorder.new(
+    let(:old_recorder) do
+      Datadog::Profiling::OldRecorder.new(
         [Datadog::Profiling::Events::StackSample],
         100000,
-        code_provenance_collector: nil,
         last_flush_time: Time.now.utc - 5
       )
     end
+    let(:exporter) { Datadog::Profiling::Exporter.new(pprof_recorder: old_recorder, code_provenance_collector: nil) }
     let(:collector) do
       Datadog::Profiling::Collectors::OldStack.new(
-        recorder,
+        old_recorder,
         trace_identifiers_helper:
           Datadog::Profiling::TraceIdentifiers::Helper.new(
             tracer: tracer,
@@ -102,24 +102,11 @@ RSpec.describe 'profiling integration test' do
         max_frames: 400
       )
     end
-    let(:exporter) do
-      Datadog::Profiling::Exporter.new(
-        Datadog::Profiling::Transport::IO.default(
-          out: out
-        )
-      )
-    end
-    let(:out) { instance_double(IO) }
-    let(:scheduler) do
-      Datadog::Profiling::Scheduler.new(
-        recorder,
-        exporter,
-        enabled: true
-      )
-    end
+    let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
+    let(:scheduler) { Datadog::Profiling::Scheduler.new(exporter: exporter, transport: transport) }
 
     it 'produces a profile' do
-      expect(out).to receive(:puts)
+      expect(transport).to receive(:export)
 
       collector.collect_events
       scheduler.send(:flush_events)
@@ -140,13 +127,15 @@ RSpec.describe 'profiling integration test' do
       let(:tracer) { Datadog::Tracing.send(:tracer) }
 
       before do
-        expect(recorder)
-          .to receive(:flush)
-          .and_wrap_original do |m, *args|
-            flush = m.call(*args)
+        expect(Datadog::Profiling::Encoding::Profile::Protobuf)
+          .to receive(:encode)
+          .and_wrap_original do |m, **args|
+            encoded_pprof = m.call(**args)
+
+            event_groups = args.fetch(:event_groups)
 
             # Verify that all the stack samples for this test received the same non-zero trace and span ID
-            stack_sample_group = flush.event_groups.find { |g| g.event_class == Datadog::Profiling::Events::StackSample }
+            stack_sample_group = event_groups.find { |g| g.event_class == Datadog::Profiling::Events::StackSample }
             stack_samples = stack_sample_group.events.select { |e| e.thread_id == Thread.current.object_id }
 
             raise 'No stack samples matching current thread!' if stack_samples.empty?
@@ -156,12 +145,12 @@ RSpec.describe 'profiling integration test' do
               expect(stack_sample.span_id).to eq(@current_span.span_id)
             end
 
-            flush
+            encoded_pprof
           end
       end
 
       it 'produces a profile including tracing data' do
-        expect(out).to receive(:puts)
+        expect(transport).to receive(:export)
 
         collector.collect_events
         scheduler.send(:flush_events)

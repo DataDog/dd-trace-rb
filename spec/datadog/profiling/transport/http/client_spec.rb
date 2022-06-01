@@ -4,6 +4,8 @@ require 'spec_helper'
 
 require 'ddtrace'
 require 'ddtrace/transport/http/client'
+require 'datadog/profiling/transport/http/client'
+require 'datadog/profiling/transport/http/api'
 
 RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
   subject(:client) { described_class.new(api) }
@@ -12,7 +14,6 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
 
   describe '#initialize' do
     it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Client) }
-    it { is_expected.to be_a_kind_of(Datadog::Profiling::Transport::Client) }
     it { is_expected.to be_a_kind_of(Datadog::Transport::HTTP::Statistics) }
     it { is_expected.to have_attributes(api: api) }
   end
@@ -35,7 +36,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
 
     subject(:send_profiling_flush) { client.send_profiling_flush(flush) }
 
-    let(:flush) { instance_double(Datadog::Profiling::OldFlush) }
+    let(:flush) { instance_double(Datadog::Profiling::Flush) }
 
     context 'when request was successful' do
       before do
@@ -75,7 +76,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::Client do
 
     subject(:send_payload) { client.send_payload(request) }
 
-    let(:request) { instance_double(Datadog::Profiling::Transport::Request) }
+    let(:request) { instance_double(Datadog::Transport::Request) }
 
     it 'returns the response object' do
       is_expected.to be response

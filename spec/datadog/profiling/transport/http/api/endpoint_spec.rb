@@ -3,25 +3,26 @@
 require 'spec_helper'
 require 'datadog/profiling/spec_helper'
 
+require 'datadog/profiling/stack_recorder'
+require 'datadog/profiling/exporter'
+require 'datadog/profiling/collectors/code_provenance'
+
 require 'datadog/profiling/encoding/profile'
 require 'datadog/profiling/flush'
 require 'datadog/profiling/transport/http/api/endpoint'
 require 'datadog/profiling/transport/http/response'
-require 'datadog/profiling/transport/request'
 require 'ddtrace/transport/http/env'
 
 RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
-  subject(:endpoint) { described_class.new(path, encoder) }
+  subject(:endpoint) { described_class.new(path) }
 
   let(:path) { double('path') }
-  let(:encoder) { class_double(Datadog::Profiling::Encoding::Profile::Protobuf) }
 
   describe '#initialize' do
     it do
       is_expected.to have_attributes(
         verb: :post,
         path: path,
-        encoder: encoder
       )
     end
   end
@@ -30,24 +31,15 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
     subject(:call) { endpoint.call(env, &block) }
 
     shared_examples_for 'profile request' do
-      let(:env) { Datadog::Transport::HTTP::Env.new(request) }
-      let(:request) { Datadog::Profiling::Transport::Request.new(flush) }
+      let(:env) { Datadog::Transport::HTTP::Env.new(flush) }
       let(:flush) { get_test_profiling_flush }
 
-      let(:pprof) { instance_double(Datadog::Profiling::Pprof::Payload, data: data) }
-      let(:data) { 'pprof_string_data' }
       let(:http_response) { instance_double(Datadog::Profiling::Transport::HTTP::Response) }
 
       let(:block) do
         proc do
           http_response
         end
-      end
-
-      before do
-        allow(encoder).to receive(:encode)
-          .with(flush)
-          .and_return(pprof)
       end
 
       it 'fills the env with data' do
@@ -62,19 +54,23 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
           'data[rubyprofile.pprof]' => kind_of(Datadog::Core::Vendor::Multipart::Post::UploadIO),
           'start' => flush.start.utc.iso8601,
           'end' => flush.finish.utc.iso8601,
-          'family' => flush.language,
+          'family' => get_flush_tag('language'),
           'tags' => array_including(
-            "runtime:#{flush.language}",
-            "runtime-id:#{flush.runtime_id}",
-            "runtime_engine:#{flush.runtime_engine}",
-            "runtime_platform:#{flush.runtime_platform}",
-            "runtime_version:#{flush.runtime_version}",
+            "runtime:#{get_flush_tag('language')}",
+            "runtime-id:#{get_flush_tag('runtime-id')}",
+            "runtime_engine:#{get_flush_tag('runtime_engine')}",
+            "runtime_platform:#{get_flush_tag('runtime_platform')}",
+            "runtime_version:#{get_flush_tag('runtime_version')}",
             "process_id:#{Process.pid}",
-            "profiler_version:#{flush.profiler_version}",
-            "language:#{flush.language}",
-            "host:#{flush.host}"
+            "profiler_version:#{get_flush_tag('profiler_version')}",
+            "language:#{get_flush_tag('language')}",
+            "host:#{get_flush_tag('host')}"
           )
         )
+      end
+
+      def get_flush_tag(tag)
+        flush.tags_as_array.find { |key, _| key == tag }.last
       end
     end
 
@@ -102,7 +98,7 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         let(:tags) { { 'test_tag_key' => 'test_tag_value', 'another_tag_key' => :another_tag_value } }
 
         before do
-          flush.tags = tags
+          flush.tags_as_array.push(*tags.to_a)
         end
 
         it 'reports the additional tags as part of the tags field' do
@@ -114,69 +110,27 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         end
       end
     end
+  end
 
-    context 'when service/env/version are available' do
-      let(:service) { 'test-service' }
-      let(:env_name) { 'test-env' }
-      let(:version) { '1.2.3' }
+  def get_test_profiling_flush(code_provenance: nil)
+    start = Time.now.utc
+    finish = start + 10
 
-      it_behaves_like 'profile request' do
-        before do
-          flush.service = service
-          flush.env = env_name
-          flush.version = version
-        end
+    pprof_recorder = instance_double(
+      Datadog::Profiling::StackRecorder,
+      serialize: [start, finish, 'fake_compressed_encoded_pprof_data'],
+    )
 
-        it 'includes service/env/version as tags' do
-          call
-          expect(env.form).to include(
-            'tags' => array_including(
-              "service:#{flush.service}",
-              "env:#{flush.env}",
-              "version:#{flush.version}"
-            )
-          )
-        end
-
-        context 'when service/env/version were configured via tags' do
-          # NOTE: In normal operation, flush.tags SHOULD never be different from flush.service/env/version because we set
-          # the service/env/version in the settings object from the tags if they are available (see settings.rb).
-          # But simulating them being different here makes it easier to test that no duplicates are added -- that
-          # effectively the tag versions are ignored and we only include the top-level flush versions.
-          let(:tags) do
-            { 'service' => 'service_tag', 'env' => 'env_tag', 'version' => 'version_tag',
-              'some_other_tag' => 'some_other_value' }
-          end
-
-          before do
-            flush.tags = tags
-          end
-
-          it 'includes the flush.service / flush.env / flush.version values for these tags' do
-            call
-
-            expect(env.form).to include(
-              'tags' => array_including(
-                "service:#{flush.service}",
-                "env:#{flush.env}",
-                "version:#{flush.version}"
-              )
-            )
-          end
-
-          it 'does not include the values for these tags from the flush.tags hash' do
-            call
-
-            expect(env.form.fetch('tags')).to_not include('service:service_tag', 'env:env_tag', 'version:version_tag')
-          end
-
-          it 'includes other defined tags' do
-            call
-
-            expect(env.form.fetch('tags')).to include('some_other_tag:some_other_value')
-          end
+    code_provenance_collector =
+      if code_provenance
+        instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance).tap do |it|
+          allow(it).to receive(:refresh).and_return(it)
         end
       end
-    end
+
+    Datadog::Profiling::Exporter.new(
+      pprof_recorder: pprof_recorder,
+      code_provenance_collector: code_provenance_collector,
+    ).flush
   end
 end

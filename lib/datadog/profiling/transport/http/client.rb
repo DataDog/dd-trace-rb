@@ -1,7 +1,7 @@
 # typed: true
 
 require 'ddtrace/transport/http/client'
-require 'datadog/profiling/transport/client'
+require 'ddtrace/transport/request'
 
 module Datadog
   module Profiling
@@ -9,11 +9,13 @@ module Datadog
       module HTTP
         # Routes, encodes, and sends tracer data to the trace agent via HTTP.
         class Client < Datadog::Transport::HTTP::Client
-          include Transport::Client
+          def export(flush)
+            send_profiling_flush(flush)
+          end
 
           def send_profiling_flush(flush)
             # Build a request
-            request = Profiling::Transport::Request.new(flush)
+            request = flush
             send_payload(request).tap do |response|
               if response.ok?
                 Datadog.logger.debug('Successfully reported profiling data')

@@ -80,7 +80,7 @@ module Datadog
         private_class_method def self.configure_for_agentless(transport, profiling_upload_timeout_seconds:, site:, api_key:)
           apis = API.api_defaults
 
-          site_uri = URI(format(Profiling::Ext::Transport::HTTP::URI_TEMPLATE_DD_API, site))
+          site_uri = URI(format(Profiling::OldExt::Transport::HTTP::URI_TEMPLATE_DD_API, site))
           hostname = site_uri.host
           port = site_uri.port
 

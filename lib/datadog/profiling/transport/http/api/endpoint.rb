@@ -2,7 +2,7 @@
 
 require 'datadog/core/utils/compression'
 require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
-require 'datadog/profiling/ext'
+require 'datadog/profiling/old_ext'
 require 'datadog/profiling/transport/http/response'
 require 'ddtrace/transport/http/api/endpoint'
 
@@ -13,7 +13,7 @@ module Datadog
         module API
           # Datadog API endpoint for profiling
           class Endpoint < Datadog::Transport::HTTP::API::Endpoint
-            include Profiling::Ext::Transport::HTTP
+            include Profiling::OldExt::Transport::HTTP
 
             # These tags are read from the flush object (see below) directly and so we ignore any extra copies that
             # may come in the tags hash to avoid duplicates.
@@ -23,7 +23,7 @@ module Datadog
             attr_reader \
               :encoder
 
-            def initialize(path, encoder)
+            def initialize(path, encoder = nil)
               super(:post, path)
               @encoder = encoder
             end
@@ -40,48 +40,26 @@ module Datadog
             end
 
             def build_form(env)
-              flush = env.request.parcel.data
+              flush = env.request
               pprof_file = build_pprof(flush)
 
               form = {
                 FORM_FIELD_INTAKE_VERSION => '3', # Aka 1.3 intake format
                 FORM_FIELD_RECORDING_START => flush.start.utc.iso8601,
                 FORM_FIELD_RECORDING_END => flush.finish.utc.iso8601,
-                FORM_FIELD_TAGS => [
-                  "#{FORM_FIELD_TAG_RUNTIME}:#{flush.language}",
-                  "#{FORM_FIELD_TAG_RUNTIME_ID}:#{flush.runtime_id}",
-                  "#{FORM_FIELD_TAG_RUNTIME_ENGINE}:#{flush.runtime_engine}",
-                  "#{FORM_FIELD_TAG_RUNTIME_PLATFORM}:#{flush.runtime_platform}",
-                  "#{FORM_FIELD_TAG_RUNTIME_VERSION}:#{flush.runtime_version}",
-                  "#{FORM_FIELD_TAG_PID}:#{Process.pid}",
-                  "#{FORM_FIELD_TAG_PROFILER_VERSION}:#{flush.profiler_version}",
-                  # NOTE: Redundant w/ 'runtime'; may want to remove this later.
-                  "#{FORM_FIELD_TAG_LANGUAGE}:#{flush.language}",
-                  "#{FORM_FIELD_TAG_HOST}:#{flush.host}",
-                  *flush
-                    .tags
-                    .reject { |tag_key| TAGS_TO_IGNORE_IN_TAGS_HASH.include?(tag_key) }
-                    .map { |tag_key, tag_value| "#{tag_key}:#{tag_value}" }
-                ],
+                FORM_FIELD_TAGS => flush.tags_as_array.map { |key, value| "#{key}:#{value}" },
                 FORM_FIELD_PPROF_DATA => pprof_file,
-                FORM_FIELD_FAMILY => flush.language,
+                FORM_FIELD_FAMILY => 'ruby',
               }
 
-              # Optional fields
-              form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_SERVICE}:#{flush.service}" unless flush.service.nil?
-              form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_ENV}:#{flush.env}" unless flush.env.nil?
-              form[FORM_FIELD_TAGS] << "#{FORM_FIELD_TAG_VERSION}:#{flush.version}" unless flush.version.nil?
-
               # May not be available/enabled
-              form[FORM_FIELD_CODE_PROVENANCE_DATA] = build_code_provenance(flush) if flush.code_provenance
+              form[FORM_FIELD_CODE_PROVENANCE_DATA] = build_code_provenance(flush) if flush.code_provenance_data
 
               form
             end
 
             def build_pprof(flush)
-              pprof = encoder.encode(flush)
-
-              gzipped_pprof_data = Core::Utils::Compression.gzip(pprof.data)
+              gzipped_pprof_data = flush.pprof_data
 
               Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_pprof_data),
@@ -91,7 +69,7 @@ module Datadog
             end
 
             def build_code_provenance(flush)
-              gzipped_code_provenance = Core::Utils::Compression.gzip(flush.code_provenance)
+              gzipped_code_provenance = flush.code_provenance_data
 
               Core::Vendor::Multipart::Post::UploadIO.new(
                 StringIO.new(gzipped_code_provenance),

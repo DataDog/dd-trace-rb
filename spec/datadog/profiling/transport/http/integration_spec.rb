@@ -72,4 +72,26 @@ RSpec.describe 'Datadog::Profiling::Transport::HTTP integration tests' do
       end
     end
   end
+
+  def get_test_profiling_flush(code_provenance: nil)
+    start = Time.now.utc
+    finish = start + 10
+
+    pprof_recorder = instance_double(
+      Datadog::Profiling::StackRecorder,
+      serialize: [start, finish, 'fake_compressed_encoded_pprof_data'],
+    )
+
+    code_provenance_collector =
+      if code_provenance
+        instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance).tap do |it|
+          allow(it).to receive(:refresh).and_return(it)
+        end
+      end
+
+    Datadog::Profiling::Exporter.new(
+      pprof_recorder: pprof_recorder,
+      code_provenance_collector: code_provenance_collector,
+    ).flush
+  end
 end

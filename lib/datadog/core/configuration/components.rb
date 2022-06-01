@@ -240,17 +240,11 @@ module Datadog
               endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
             )
 
-            # TODO: It's a bit weird to treat this collector differently from others. See the TODO on the
-            # Datadog::Profiling::Recorder class for a discussion of this choice.
-            if settings.profiling.advanced.code_provenance_enabled
-              code_provenance_collector =
-                Profiling::Collectors::CodeProvenance.new
-            end
-
-            recorder = build_profiler_recorder(settings, code_provenance_collector)
-            collectors = build_profiler_collectors(settings, recorder, trace_identifiers_helper)
-            exporters = build_profiler_exporters(settings, agent_settings)
-            scheduler = build_profiler_scheduler(settings, recorder, exporters)
+            old_recorder = build_profiler_old_recorder(settings)
+            exporter = build_profiler_exporter(settings, old_recorder)
+            collectors = build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
+            transport = build_profiler_transport(settings, agent_settings)
+            scheduler = build_profiler_scheduler(settings, exporter, transport)
 
             Profiling::Profiler.new(collectors, scheduler)
           end
@@ -284,20 +278,31 @@ module Datadog
             Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
           end
 
-          def build_profiler_recorder(settings, code_provenance_collector)
+          def build_profiler_old_recorder(settings)
             event_classes = [Profiling::Events::StackSample]
 
-            Profiling::Recorder.new(
+            Profiling::OldRecorder.new(
               event_classes,
               settings.profiling.advanced.max_events,
-              code_provenance_collector: code_provenance_collector
             )
           end
 
-          def build_profiler_collectors(settings, recorder, trace_identifiers_helper)
+          def build_profiler_exporter(settings, old_recorder)
+            code_provenance_collector =
+              (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
+
+            Profiling::Exporter.new(
+              # NOTE: Using the OldRecorder as a pprof_recorder is temporary and will be removed once libpprof is
+              # being used for aggregation
+              pprof_recorder: old_recorder,
+              code_provenance_collector: code_provenance_collector,
+            )
+          end
+
+          def build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
             [
               Profiling::Collectors::OldStack.new(
-                recorder,
+                old_recorder,
                 trace_identifiers_helper: trace_identifiers_helper,
                 max_frames: settings.profiling.advanced.max_frames
                 # TODO: Provide proc that identifies Datadog worker threads?
@@ -306,20 +311,30 @@ module Datadog
             ]
           end
 
-          def build_profiler_exporters(settings, agent_settings)
-            transport =
-              settings.profiling.exporter.transport || Profiling::Transport::HTTP.default(
+          def build_profiler_transport(settings, agent_settings)
+            settings.profiling.exporter.transport ||
+              if settings.profiling.advanced.legacy_transport_enabled
+                require 'datadog/profiling/transport/http'
+
+                Datadog.logger.warn('Using legacy profiling transport. Do not use unless instructed to by support.')
+
+                Profiling::Transport::HTTP.default(
+                  agent_settings: agent_settings,
+                  site: settings.site,
+                  api_key: settings.api_key,
+                  profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
+                )
+              end ||
+              Profiling::HttpTransport.new(
                 agent_settings: agent_settings,
                 site: settings.site,
                 api_key: settings.api_key,
-                profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
+                upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
               )
-
-            [Profiling::Exporter.new(transport)]
           end
 
-          def build_profiler_scheduler(settings, recorder, exporters)
-            Profiling::Scheduler.new(recorder, exporters)
+          def build_profiler_scheduler(_settings, exporter, transport)
+            Profiling::Scheduler.new(exporter: exporter, transport: transport)
           end
         end
 
