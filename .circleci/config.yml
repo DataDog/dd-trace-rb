@@ -466,42 +466,52 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: '2.1'
     image: ivoanjo/docker-library:ddtrace_rb_2_1_10
+    resource_class_to_use: medium+
   - &config-2_2
     <<: *filters_all_branches_and_tags
     ruby_version: '2.2'
     image: ivoanjo/docker-library:ddtrace_rb_2_2_10
+    resource_class_to_use: medium+
   - &config-2_3
     <<: *filters_all_branches_and_tags
     ruby_version: '2.3'
     image: ivoanjo/docker-library:ddtrace_rb_2_3_8
+    resource_class_to_use: medium+
   - &config-2_4
     <<: *filters_all_branches_and_tags
     ruby_version: '2.4'
     image: ivoanjo/docker-library:ddtrace_rb_2_4_10
+    resource_class_to_use: medium+
   - &config-2_5
     <<: *filters_all_branches_and_tags
     ruby_version: '2.5'
     image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+    resource_class_to_use: medium+
   - &config-2_6
     <<: *filters_all_branches_and_tags
     ruby_version: '2.6'
     image: ivoanjo/docker-library:ddtrace_rb_2_6_7
+    resource_class_to_use: medium+
   - &config-2_7
     <<: *filters_all_branches_and_tags
     ruby_version: '2.7'
     image: ivoanjo/docker-library:ddtrace_rb_2_7_3
+    resource_class_to_use: medium+
   - &config-3_0
     <<: *filters_all_branches_and_tags
     ruby_version: '3.0'
     image: ivoanjo/docker-library:ddtrace_rb_3_0_3
+    resource_class_to_use: medium+
   - &config-3_1
     <<: *filters_all_branches_and_tags
     ruby_version: '3.1'
     image: ivoanjo/docker-library:ddtrace_rb_3_1_1
+    resource_class_to_use: medium+
   - &config-3_2
     <<: *filters_all_branches_and_tags
     ruby_version: '3.2'
     image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview1
+    resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409
     <<: *filters_all_branches_and_tags
