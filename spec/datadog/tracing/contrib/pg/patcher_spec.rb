@@ -46,11 +46,13 @@ RSpec.describe 'PG::Connection patcher' do
 
   describe 'tracing' do
     describe '#exec' do
+      subject(:exec) { conn.exec('SELECT 1;') }
+
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.exec('SELECT 1;')
+          exec
           expect(spans).to be_empty
         end
       end
@@ -58,12 +60,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.exec('SELECT 1;')
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          exec
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -72,9 +72,8 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         query = 'SELECT 1;'
-        before { conn.exec(query) }
-
         it 'produces a trace' do
+          exec
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC)
           expect(span.resource).to eq(query)
@@ -102,35 +101,39 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { exec }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { exec }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { exec }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.exec('SELECT INVALID') }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.exec('SELECT INVALID') }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('column "invalid" does not exist')
+          expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
         end
       end
     end
 
     describe '#exec_params' do
+      subject(:exec_params) { conn.exec_params('SELECT $1::int;', [1]) }
+
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.exec_params('SELECT $1::int;', [1])
+          exec_params
           expect(spans).to be_empty
         end
       end
@@ -138,12 +141,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.exec_params('SELECT $1::int;', [1])
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          exec_params
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -152,9 +153,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         query = 'SELECT $1::int;'
-        before { conn.exec_params(query, [1]) }
 
         it 'produces a trace' do
+          exec_params
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC_PARAMS)
           expect(span.resource).to eq(query)
@@ -182,36 +183,39 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { exec_params }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { exec_params }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { exec_params }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('could not determine data type of parameter $1')
+          expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
         end
       end
     end
 
     describe '#exec_prepared' do
       before { conn.prepare('prepared select 1', 'SELECT $1::int') }
+      subject(:exec_prepared) { conn.exec_prepared('prepared select 1', [1]) }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.exec_prepared('prepared select 1', [1])
+          exec_prepared
           expect(spans).to be_empty
         end
       end
@@ -219,12 +223,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.exec_prepared('prepared select 1', [1])
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          exec_prepared
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -233,9 +235,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         statement_name = 'prepared select 1'
-        before { conn.exec_prepared('prepared select 1', [1]) }
 
         it 'produces a trace' do
+          exec_prepared
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC_PREPARED)
           expect(span.resource).to eq(statement_name)
@@ -263,35 +265,40 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { exec_prepared }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { exec_prepared }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { exec_prepared }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
+          expect(span).to have_error_message(
+            include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
+          )
         end
       end
     end
 
     describe '#async_exec' do
+      subject(:async_exec) { conn.async_exec('SELECT 1;') }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.async_exec('SELECT 1;')
+          async_exec
           expect(spans).to be_empty
         end
       end
@@ -299,12 +306,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.async_exec('SELECT 1;')
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          async_exec
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -313,9 +318,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         query = 'SELECT 1;'
-        before { conn.async_exec(query) }
 
         it 'produces a trace' do
+          async_exec
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC)
           expect(span.resource).to eq(query)
@@ -343,25 +348,27 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { async_exec }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { async_exec }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { async_exec }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.async_exec('SELECT INVALID') }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.async_exec('SELECT INVALID') }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('column "invalid" does not exist')
+          expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
         end
       end
     end
@@ -370,11 +377,12 @@ RSpec.describe 'PG::Connection patcher' do
       before do
         skip('pg < 1.1.0 does not support #async_exec_params') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
       end
+      subject(:async_exec_params) { conn.async_exec_params('SELECT $1::int;', [1]) }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.async_exec_params('SELECT $1::int;', [1])
+          async_exec_params
           expect(spans).to be_empty
         end
       end
@@ -382,12 +390,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.async_exec_params('SELECT $1::int;', [1])
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          async_exec_params
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -396,9 +402,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         query = 'SELECT $1::int;'
-        before { conn.async_exec_params(query, [1]) }
 
         it 'produces a trace' do
+          async_exec_params
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC_PARAMS)
           expect(span.resource).to eq(query)
@@ -426,25 +432,27 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { async_exec_params }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { async_exec_params }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { async_exec_params }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.async_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.async_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('could not determine data type of parameter $1')
+          expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
         end
       end
     end
@@ -456,11 +464,12 @@ RSpec.describe 'PG::Connection patcher' do
         end
         conn.prepare('prepared select 1', 'SELECT $1::int')
       end
+      subject(:async_exec_prepared) { conn.async_exec_prepared('prepared select 1', [1]) }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.async_exec_prepared('prepared select 1', [1])
+          async_exec_prepared
           expect(spans).to be_empty
         end
       end
@@ -468,12 +477,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.async_exec_prepared('prepared select 1', [1])
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          async_exec_prepared
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -482,9 +489,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         statement_name = 'prepared select 1'
-        before { conn.async_exec_prepared('prepared select 1', [1]) }
 
         it 'produces a trace' do
+          async_exec_prepared
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC_PREPARED)
           expect(span.resource).to eq(statement_name)
@@ -512,38 +519,45 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { async_exec_prepared }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { async_exec_prepared }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { async_exec_prepared }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.async_exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.async_exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
+          expect(span).to have_error_message(
+            include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
+          )
         end
       end
     end
 
     describe '#sync_exec' do
       before do
-        skip('pg < 1.1.0 does not support #async_exec_params') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+        if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
+          skip('pg < 1.1.0 does not support #async_exec_prepared')
+        end
       end
+      subject(:sync_exec) { conn.sync_exec('SELECT 1;') }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.sync_exec('SELECT 1;')
+          sync_exec
           expect(spans).to be_empty
         end
       end
@@ -551,12 +565,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.sync_exec('SELECT 1;')
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          sync_exec
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -565,9 +577,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         query = 'SELECT 1;'
-        before { conn.sync_exec(query) }
 
         it 'produces a trace' do
+          sync_exec
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC)
           expect(span.resource).to eq(query)
@@ -595,25 +607,27 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { sync_exec }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { sync_exec }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { sync_exec }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.sync_exec('SELECT INVALID') }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.sync_exec('SELECT INVALID') }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('column "invalid" does not exist')
+          expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
         end
       end
     end
@@ -622,11 +636,12 @@ RSpec.describe 'PG::Connection patcher' do
       before do
         skip('pg < 1.1.0 does not support #sync_exec_params') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
       end
+      subject(:sync_exec_params) { conn.sync_exec_params('SELECT $1::int;', [1]) }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.sync_exec_params('SELECT $1::int;', [1])
+          sync_exec_params
           expect(spans).to be_empty
         end
       end
@@ -634,12 +649,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.sync_exec_params('SELECT $1::int;', [1])
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          sync_exec_params
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -648,9 +661,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         query = 'SELECT $1::int;'
-        before { conn.sync_exec_params(query, [1]) }
 
         it 'produces a trace' do
+          sync_exec_params
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC_PARAMS)
           expect(span.resource).to eq(query)
@@ -678,25 +691,27 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { sync_exec_params }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { sync_exec_params }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { sync_exec_params }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.sync_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.sync_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('could not determine data type of parameter $1')
+          expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
         end
       end
     end
@@ -706,11 +721,12 @@ RSpec.describe 'PG::Connection patcher' do
         skip('pg < 1.1.0 does not support #sync_exec_prepared') if Gem::Version.new(PG::VERSION) < Gem::Version.new('1.1.0')
         conn.prepare('prepared select 1', 'SELECT $1::int')
       end
+      subject(:sync_exec_prepared) { conn.sync_exec_prepared('prepared select 1', [1]) }
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          conn.sync_exec_prepared('prepared select 1', [1])
+          sync_exec_prepared
           expect(spans).to be_empty
         end
       end
@@ -718,12 +734,10 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when the tracer is configured directly' do
         let(:service_override) { 'pg-override' }
 
-        before do
-          Datadog.configure_onto(conn, service_name: service_override)
-          conn.sync_exec_prepared('prepared select 1', [1])
-        end
+        before { Datadog.configure_onto(conn, service_name: service_override) }
 
         it 'produces a trace with service override' do
+          sync_exec_prepared
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
@@ -732,9 +746,9 @@ RSpec.describe 'PG::Connection patcher' do
 
       context 'when a successful query is made' do
         statement_name = 'prepared select 1'
-        before { conn.sync_exec_prepared('prepared select 1', [1]) }
 
         it 'produces a trace' do
+          sync_exec_prepared
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC_PREPARED)
           expect(span.resource).to eq(statement_name)
@@ -762,25 +776,29 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
+          before { sync_exec_prepared }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { sync_exec_prepared }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { sync_exec_prepared }
+        end
       end
 
       context 'when a failed query is made' do
-        before { expect { conn.sync_exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error) }
-
         it 'traces failed queries' do
+          expect { conn.sync_exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg'))
-            .to include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
+          expect(span).to have_error_message(
+            include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
+          )
         end
       end
     end

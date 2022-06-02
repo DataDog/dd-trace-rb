@@ -16,144 +16,74 @@ module Datadog
           end
 
           # PG::Connection patch methods
-          # rubocop:disable Metrics/ModuleLength:
           module InstanceMethods
             def exec(sql, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_EXEC, service: service, resource: sql,
-                                            type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(sql, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_EXEC, resource: sql) do
+                super(sql, *args)
               end
             end
 
             def exec_params(sql, params, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_EXEC_PARAMS, service: service, resource: sql,
-                                                   type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(sql, params, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_EXEC_PARAMS, resource: sql) do
+                super(sql, params, *args)
               end
             end
 
             def exec_prepared(statement_name, params, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_EXEC_PREPARED, service: service, resource: statement_name,
-                                                     type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(statement_name, params, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_EXEC_PREPARED, resource: statement_name) do
+                super(statement_name, params, *args)
               end
             end
 
             def async_exec(sql, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_ASYNC_EXEC, service: service, resource: sql,
-                                                  type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(sql, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_ASYNC_EXEC, resource: sql) do
+                super(sql, *args)
               end
             end
 
             def async_exec_params(sql, params, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_ASYNC_EXEC_PARAMS, service: service, resource: sql,
-                                                         type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(sql, params, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_ASYNC_EXEC_PARAMS, resource: sql) do
+                super(sql, params, *args)
               end
             end
 
             def async_exec_prepared(statement_name, params, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_ASYNC_EXEC_PREPARED, service: service, resource: statement_name,
-                                                           type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(statement_name, params, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_ASYNC_EXEC_PREPARED, resource: statement_name) do
+                super(statement_name, params, *args)
               end
             end
 
             def sync_exec(sql, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_SYNC_EXEC, service: service, resource: sql,
-                                                 type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(sql, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_SYNC_EXEC, resource: sql) do
+                super(sql, *args)
               end
             end
 
             def sync_exec_params(sql, params, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_SYNC_EXEC_PARAMS, service: service, resource: sql,
-                                                        type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(sql, params, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_SYNC_EXEC_PARAMS, resource: sql) do
+                super(sql, params, *args)
               end
             end
 
             def sync_exec_prepared(statement_name, params, *args)
-              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-
-              Tracing.trace(Ext::SPAN_SYNC_EXEC_PREPARED, service: service, resource: statement_name,
-                                                          type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
-                annotate_span_with_query!(span, service)
-                # Set analytics sample rate
-                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-
-                result = super(statement_name, params, *args)
-                annotate_span_with_result!(span, result)
-                result
+              trace(Ext::SPAN_SYNC_EXEC_PREPARED, resource: statement_name) do
+                super(statement_name, params, *args)
               end
             end
 
             private
+
+            def trace(name, resource:)
+              service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+              Tracing.trace(name, service: service, resource: resource, type: Tracing::Metadata::Ext::SQL::TYPE) do |span|
+                annotate_span_with_query!(span, service)
+                # Set analytics sample rate
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+                result = yield
+                annotate_span_with_result!(span, result)
+                result
+              end
+            end
 
             def annotate_span_with_query!(span, service)
               span.set_tag(Ext::TAG_DB_NAME, db)
@@ -192,7 +122,6 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
           end
-          # rubocop:enable Metrics/ModuleLength:
         end
       end
     end

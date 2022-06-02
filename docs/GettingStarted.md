@@ -1373,7 +1373,10 @@ Datadog.configure_onto(client, **options)
 ```
 ### Postgres
 
-The PG integration traces SQL commands sent through the `pg` gem via `exec`, `exec_params`, `exec_preapred`, `async_exec`, `async_exec_params`, `async_exec_prepared`,`sync_exec`,`sync_exec_params` or `sync_exec_prepared`.
+The PG integration traces SQL commands sent through the `pg` gem via:
+* `exec`, `exec_params`, `exec_prepared`;
+* `async_exec`, `async_exec_params`, `async_exec_prepared`; or,
+* `sync_exec`, `sync_exec_params`, `sync_exec_prepared`
 
 ```ruby
 require 'pg'
@@ -1382,18 +1385,6 @@ require 'ddtrace'
 Datadog.configure do |c|
   c.tracing.instrument :pg, options
 end
-
-conn = PG.connect( :dbname => 'database', :host => 'db', :user => 'user', :password => 'password' )
-conn.exec('SELECT * FROM users WHERE group="x"')
-conn.exec_params('SELECT * FROM users WHERE group=$1', ['x'])
-# conn.prepare('FIND USER BY GROUP', 'SELECT * FROM users WHERE group=$1;')
-conn.exec_prepared('FIND USER BY GROUP', ['x'])
-conn.async_exec('SELECT * FROM users WHERE group="x"')
-conn.async_exec_params('SELECT * FROM users WHERE group=$1', ['x'])
-conn.async_exec_prepared('FIND USER BY GROUP', ['x'])
-conn.sync_exec('SELECT * FROM users WHERE group="x"')
-conn.sync_exec_params('SELECT * FROM users WHERE group=$1', ['x'])
-conn.sync_exec_prepared('FIND USER BY GROUP', ['x'])
 ```
 
 Where `options` is an optional `Hash` that accepts the following parameters:
