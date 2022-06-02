@@ -1673,7 +1673,7 @@ DEPENDENCIES
   mysql2 (< 1)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg
+  pg (>= 0.8.4)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby

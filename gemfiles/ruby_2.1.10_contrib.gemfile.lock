@@ -283,7 +283,7 @@ DEPENDENCIES
   mysql2 (= 0.3.21)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg (< 1.0)
+  pg (>= 0.8.4, < 1.0)
   pimpmychangelog (>= 0.1.2)
   presto-client (>= 0.5.14)
   pry
