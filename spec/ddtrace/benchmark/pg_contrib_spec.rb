@@ -30,6 +30,8 @@ RSpec.describe 'Pg Tracing Integration', :order => :defined do
   end
 
   context 'timing' do
+    before { skip('Benchmark results not currently captured in CI') if ENV.key?('CI') }
+
     include Benchmark
 
     context 'no tracing enabled' do

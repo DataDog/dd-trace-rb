@@ -120,7 +120,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.exec('SELECT INVALID') }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
         end
       end
@@ -202,7 +202,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
         end
       end
@@ -284,7 +284,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(
             include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
           )
@@ -367,7 +367,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.async_exec('SELECT INVALID') }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
         end
       end
@@ -451,7 +451,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.async_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
         end
       end
@@ -538,7 +538,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.async_exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(
             include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
           )
@@ -626,7 +626,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.sync_exec('SELECT INVALID') }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
         end
       end
@@ -710,7 +710,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.sync_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
         end
       end
@@ -795,7 +795,7 @@ RSpec.describe 'PG::Connection patcher' do
         it 'traces failed queries' do
           expect { conn.sync_exec_prepared('invalid prepared select 1', ['INVALID']) }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
-          expect(span.status).to eq(1)
+          expect(span).to have_error
           expect(span).to have_error_message(
             include('ERROR') & include('prepared statement "invalid prepared select 1" does not exist')
           )

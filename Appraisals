@@ -270,8 +270,6 @@ elsif ruby_version?('2.2')
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'elasticsearch'
-    gem 'pg', '>= 0.8.4'
-    gem 'presto-client', '>=  0.5.14'
     gem 'ethon'
     gem 'excon'
     gem 'faraday'
@@ -285,7 +283,8 @@ elsif ruby_version?('2.2')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 0.5'
-    gem 'pg'
+    gem 'pg', '>= 0.8.4'
+    gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
