@@ -108,7 +108,7 @@ if ruby_version?('2.1')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '< 2.5'
     gem 'mysql2', '0.3.21'
-    gem 'pg', '>= 0.8.4', '< 1.0'
+    gem 'pg', '>= 0.18.4', '< 1.0'
     gem 'rack', '1.4.7'
     gem 'rack-cache', '1.7.1'
     gem 'rack-test', '0.7.0'
@@ -283,7 +283,7 @@ elsif ruby_version?('2.2')
     gem 'makara', '< 0.5.0' # >= 0.5.0 contain Ruby 2.3+ syntax
     gem 'mongo', '>= 2.8.0'
     gem 'mysql2', '< 0.5'
-    gem 'pg', '>= 0.8.4'
+    gem 'pg', '>= 0.18.4'
     gem 'presto-client', '>=  0.5.14'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
@@ -468,7 +468,7 @@ elsif ruby_version?('2.3')
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
-    gem 'pg', '>= 0.8.4'
+    gem 'pg', '>= 0.18.4'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
@@ -586,7 +586,7 @@ elsif ruby_version?('2.4')
     gem 'makara'
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
-    gem 'pg', '>= 0.8.4'
+    gem 'pg', '>= 0.18.4'
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
@@ -833,7 +833,7 @@ elsif ruby_version?('2.5')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 1', platform: :ruby
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
-    gem 'pg', '>= 0.8.4', platform: :ruby
+    gem 'pg', '>= 0.18.4', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
     gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
     gem 'racecar', '>= 0.3.5'
@@ -1057,7 +1057,7 @@ elsif ruby_version?('2.6')
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-      gem 'pg', '>= 0.8.4', platform: :ruby
+      gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
       gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
       gem 'racecar', '>= 0.3.5'
@@ -1262,7 +1262,7 @@ elsif ruby_version?('2.7')
       gem 'makara'
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
-      gem 'pg', '>= 0.8.4', platform: :ruby
+      gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
