@@ -1707,7 +1707,7 @@ DEPENDENCIES
   mysql2 (< 0.5)
   opentracing (>= 0.4.1)
   os (~> 1.1)
-  pg
+  pg (>= 0.18.4)
   pimpmychangelog (>= 0.1.2)
   pry
   pry-nav

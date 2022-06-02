@@ -62,6 +62,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [MongoDB](#mongodb)
      - [MySQL2](#mysql2)
      - [Net/HTTP](#nethttp)
+     - [Postgres](#postgres)
      - [Presto](#presto)
      - [Qless](#qless)
      - [Que](#que)
@@ -497,6 +498,7 @@ For a list of available integrations, and their configuration options, please re
 | MongoDB                    | `mongo`                    | `>= 2.1`                 | `>= 2.1`                  | *[Link](#mongodb)*                  | *[Link](https://github.com/mongodb/mongo-ruby-driver)*                         |
 | MySQL2                     | `mysql2`                   | `>= 0.3.21`              | *gem not available*       | *[Link](#mysql2)*                   | *[Link](https://github.com/brianmario/mysql2)*                                 |
 | Net/HTTP                   | `http`                     | *(Any supported Ruby)*   | *(Any supported Ruby)*    | *[Link](#nethttp)*                  | *[Link](https://ruby-doc.org/stdlib-2.4.0/libdoc/net/http/rdoc/Net/HTTP.html)* |
+| Postgres                     | `pg`                   | `>= 0.18.4`              | *gem not available*       | *[Link](#postgres)*                   | *[Link](https://github.com/ged/ruby-pg)*                  |
 | Presto                     | `presto`                   | `>= 0.5.14`              | `>= 0.5.14`               | *[Link](#presto)*                   | *[Link](https://github.com/treasure-data/presto-client-ruby)*                  |
 | Qless                      | `qless`                    | `>= 0.10.0`              | `>= 0.10.0`               | *[Link](#qless)*                    | *[Link](https://github.com/seomoz/qless)*                                      |
 | Que                        | `que`                      | `>= 1.0.0.beta2`         | `>= 1.0.0.beta2`          | *[Link](#que)*                      | *[Link](https://github.com/que-rb/que)*                                        |
@@ -1369,6 +1371,27 @@ If you wish to configure each connection object individually, you may use the `D
 client = Net::HTTP.new(host, port)
 Datadog.configure_onto(client, **options)
 ```
+### Postgres
+
+The PG integration traces SQL commands sent through the `pg` gem via:
+* `exec`, `exec_params`, `exec_prepared`;
+* `async_exec`, `async_exec_params`, `async_exec_prepared`; or,
+* `sync_exec`, `sync_exec_params`, `sync_exec_prepared`
+
+```ruby
+require 'pg'
+require 'ddtrace'
+
+Datadog.configure do |c|
+  c.tracing.instrument :pg, options
+end
+```
+
+Where `options` is an optional `Hash` that accepts the following parameters:
+
+| Key | Description | Default |
+| --- | ----------- | ------- |
+| `service_name` | Service name used for `pg` instrumentation | `'pg'` |
 
 ### Presto
 
