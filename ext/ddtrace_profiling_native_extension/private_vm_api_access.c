@@ -35,7 +35,12 @@ static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
 }
 
 rb_nativethread_id_t pthread_id_for(VALUE thread) {
-  return thread_struct_from_object(thread)->thread_id;
+  // struct rb_native_thread was introduced in Ruby 3.2 (preview2): https://github.com/ruby/ruby/pull/5836
+  #ifndef NO_RB_NATIVE_THREAD
+    return thread_struct_from_object(thread)->nt->thread_id;
+  #else
+    return thread_struct_from_object(thread)->thread_id;
+  #endif
 }
 
 // Returns the stack depth by using the same approach as rb_profile_frames and backtrace_each: get the positions
