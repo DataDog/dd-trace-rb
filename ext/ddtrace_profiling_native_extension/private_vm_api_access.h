@@ -17,7 +17,7 @@
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
 ptrdiff_t stack_depth_for(VALUE thread);
-VALUE ddtrace_thread_list();
+VALUE ddtrace_thread_list(void);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);
 

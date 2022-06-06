@@ -70,7 +70,7 @@ ptrdiff_t stack_depth_for(VALUE thread) {
 
 #ifndef USE_LEGACY_LIVING_THREADS_ST // Ruby > 2.1
 // Tries to match rb_thread_list() but that method isn't accessible to extensions
-VALUE ddtrace_thread_list() {
+VALUE ddtrace_thread_list(void) {
   VALUE result = rb_ary_new();
   rb_thread_t *thread = NULL;
 

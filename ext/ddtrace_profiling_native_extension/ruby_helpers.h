@@ -26,7 +26,7 @@ static inline VALUE process_pending_interruptions(VALUE _unused) {
 // }
 // ```
 __attribute__((warn_unused_result))
-static inline int check_if_pending_exception() {
+static inline int check_if_pending_exception(void) {
   int pending_exception;
   rb_protect(process_pending_interruptions, Qnil, &pending_exception);
   return pending_exception;
