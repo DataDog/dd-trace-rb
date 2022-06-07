@@ -13,7 +13,7 @@
 #include "clock_id.h"
 
 // Validate that our home-cooked pthread_id_for() matches pthread_self() for the current thread
-void self_test_clock_id() {
+void self_test_clock_id(void) {
   rb_nativethread_id_t expected_pthread_id = pthread_self();
   rb_nativethread_id_t actual_pthread_id = pthread_id_for(rb_thread_current());
 

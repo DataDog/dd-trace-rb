@@ -41,7 +41,7 @@ static void unload_failed_library(void *handle);
 
 #define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
 
-void DDTRACE_EXPORT Init_ddtrace_profiling_loader() {
+void DDTRACE_EXPORT Init_ddtrace_profiling_loader(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE loader_module = rb_define_module_under(profiling_module, "Loader");
