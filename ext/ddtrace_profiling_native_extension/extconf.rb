@@ -10,13 +10,30 @@ SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
 File.delete(SKIPPED_REASON_FILE) rescue nil
 
 def skip_building_extension!(reason)
-  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(**reason))
+  fail_install_if_missing_extension =
+    Datadog::Profiling::NativeExtensionHelpers.fail_install_if_missing_extension?
+
+  $stderr.puts(
+    Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(
+      **reason,
+      fail_install: fail_install_if_missing_extension,
+    )
+  )
+
   File.write(
     SKIPPED_REASON_FILE,
     Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason),
   )
 
-  File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  if fail_install_if_missing_extension
+    require 'mkmf'
+    Logging.message(
+      "\nFailure cause: #{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}"
+    )
+  else
+    File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  end
+
   exit
 end
 
