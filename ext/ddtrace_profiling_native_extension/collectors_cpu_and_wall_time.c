@@ -38,6 +38,9 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
+static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
+static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
+static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -57,6 +60,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_sample", _native_sample, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_inspect", _native_inspect, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_per_thread_context", _native_per_thread_context, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -176,6 +180,9 @@ static void sample(VALUE collector_instance) {
       (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME: TODO we need to gather the expected labels
     );
   }
+
+  // TODO: This seems somewhat overkill and inefficient to do every time we sample; to be improved later
+  remove_context_for_dead_threads(state);
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
@@ -231,4 +238,31 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
   return ST_CONTINUE;
+}
+
+static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state) {
+  st_foreach(state->hash_map_per_thread_context, remove_if_dead_thread, 0 /* unused */);
+}
+
+static bool thread_alive(VALUE thread) {
+  // TODO: FIX THIS TO ACTUALLY WORK
+  return true;
+}
+
+static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument) {
+  VALUE thread = (VALUE) key_thread;
+  struct per_thread_context* thread_context = (struct per_thread_context*) value_context;
+
+  if (thread_alive(thread)) return ST_CONTINUE;
+
+  ruby_xfree(thread_context);
+  return ST_DELETE;
+}
+
+// Returns the whole contents of the per_thread_context structs being tracked, for debugging/testing
+static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  return per_thread_context_st_table_as_ruby_hash(state);
 }
