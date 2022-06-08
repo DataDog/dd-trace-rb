@@ -10,13 +10,31 @@ SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
 File.delete(SKIPPED_REASON_FILE) rescue nil
 
 def skip_building_extension!(reason)
-  $stderr.puts(Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(**reason))
+  fail_install_if_missing_extension =
+    Datadog::Profiling::NativeExtensionHelpers.fail_install_if_missing_extension?
+
+  $stderr.puts(
+    Datadog::Profiling::NativeExtensionHelpers::Supported.failure_banner_for(
+      **reason,
+      fail_install: fail_install_if_missing_extension,
+    )
+  )
+
   File.write(
     SKIPPED_REASON_FILE,
     Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason),
   )
 
-  File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  if fail_install_if_missing_extension
+    require 'mkmf'
+    Logging.message(
+      ' [ddtrace] Failure cause: ' \
+      "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n"
+    )
+  else
+    File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  end
+
   exit
 end
 
@@ -122,6 +140,7 @@ $defs << '-DUSE_LEGACY_LIVING_THREADS_ST' if RUBY_VERSION < '2.2'
 
 # If we got here, libddprof is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
+Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 unless pkg_config('ddprof_ffi_with_rpath')
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
 end

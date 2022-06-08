@@ -6,11 +6,19 @@ require 'libddprof'
 
 module Datadog
   module Profiling
+    # Helpers for extconf.rb
     module NativeExtensionHelpers
+      # Can be set when customers want to skip compiling the native extension entirely
       ENV_NO_EXTENSION = 'DD_PROFILING_NO_EXTENSION'
+      # Can be set to force rubygems to fail gem installation when profiling extension could not be built
+      ENV_FAIL_INSTALL_IF_MISSING_EXTENSION = 'DD_PROFILING_FAIL_INSTALL_IF_MISSING_EXTENSION'
 
       # Older Rubies don't have the MJIT header, used by the JIT compiler, so we need to use a different approach
       CAN_USE_MJIT_HEADER = RUBY_VERSION >= '2.6'
+
+      def self.fail_install_if_missing_extension?
+        ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
+      end
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their
       # system may not be supported.
@@ -37,15 +45,30 @@ module Datadog
         end
 
         # This banner will show up in the logs/terminal while compiling the native extension
-        def self.failure_banner_for(reason:, suggested:)
-          prettify_lines = proc { |lines| lines.map { |line| "| #{line.ljust(76)} |" }.join("\n") }
+        def self.failure_banner_for(reason:, suggested:, fail_install:)
+          prettify_lines = proc { |lines| Array(lines).map { |line| "| #{line.ljust(76)} |" }.join("\n") }
+          outcome =
+            if fail_install
+              [
+                'Failing installation immediately because the ',
+                "`#{ENV_FAIL_INSTALL_IF_MISSING_EXTENSION}` environment variable is set",
+                'to `true`.',
+                'When contacting support, please include the <mkmf.log> file that is shown ',
+                'below.',
+              ]
+            else
+              [
+                'The Datadog Continuous Profiler will not be available,',
+                'but all other ddtrace features will work fine!',
+              ]
+            end
+
           %(
 +------------------------------------------------------------------------------+
 | Could not compile the Datadog Continuous Profiler because                    |
 #{prettify_lines.call(reason)}
 |                                                                              |
-| The Datadog Continuous Profiler will not be available,                       |
-| but all other ddtrace features will work fine!                               |
+#{prettify_lines.call(outcome)}
 |                                                                              |
 #{prettify_lines.call(suggested)}
 +------------------------------------------------------------------------------+
