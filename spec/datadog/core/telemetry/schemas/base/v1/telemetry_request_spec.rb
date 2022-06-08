@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/base/v1/telemetry_request'
+require 'datadog/core/telemetry/schemas/v1/base/telemetry_request'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::TelemetryRequest do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
   describe '#initialize' do
     let(:api_version) { 'v1' }
     let(:request_type) { 'app-started' }
@@ -17,7 +17,8 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::TelemetryRequest do
 
     context 'given only required parameters' do
       subject(:telemetry_request) do
-        described_class.new(api_version, request_type, runtime_id, tracer_time, seq_id, payload, application, host)
+        described_class.new(api_version: api_version, request_type: request_type, runtime_id: runtime_id, seq_id: seq_id,
+                            tracer_time: tracer_time, payload: payload, application: application, host: host)
       end
       it { is_expected.to be_a_kind_of(described_class) }
 
@@ -32,8 +33,9 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::TelemetryRequest do
 
     context 'given all parameters' do
       subject(:telemetry_request) do
-        described_class.new(api_version, request_type, runtime_id, tracer_time, seq_id, payload, application, host,
-                            session_id, debug)
+        described_class.new(api_version: api_version, request_type: request_type, runtime_id: runtime_id, host: host,
+                            tracer_time: tracer_time, seq_id: seq_id, payload: payload, application: application,
+                            session_id: session_id, debug: debug)
       end
       it {
         is_expected

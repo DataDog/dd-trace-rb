@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/base/v1/profiler'
+require 'datadog/core/telemetry/schemas/v1/base/profiler'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Profiler do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Profiler do
   describe '#initialize' do
     let(:version) { '1.0' }
 

@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/base/v1/appsec'
+require 'datadog/core/telemetry/schemas/v1/base/appsec'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::AppSec do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::AppSec do
   describe '#initialize' do
     let(:version) { '1.0' }
 

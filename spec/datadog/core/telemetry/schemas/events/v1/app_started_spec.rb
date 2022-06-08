@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/events/v1/app_started'
+require 'datadog/core/telemetry/schemas/v1/events/app_started'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Events::V1::AppStarted do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Events::AppStarted do
   describe '#initialize' do
     let(:configuration) { [] }
     let(:dependencies) { [] }
@@ -14,7 +14,10 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Events::V1::AppStarted do
     end
 
     context 'given all parameters' do
-      subject(:app_started) { described_class.new(configuration, dependencies, integrations, additional_payload) }
+      subject(:app_started) do
+        described_class.new(configuration: configuration, dependencies: dependencies, integrations: integrations,
+                            additional_payload: additional_payload)
+      end
       it {
         is_expected.to have_attributes(configuration: configuration, dependencies: dependencies, integrations: integrations,
                                        additional_payload: additional_payload)

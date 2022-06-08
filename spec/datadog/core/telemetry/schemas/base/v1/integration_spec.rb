@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/base/v1/integration'
+require 'datadog/core/telemetry/schemas/v1/base/integration'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Integration do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Integration do
   describe '#initialize' do
     let(:name) { 'pg' }
     let(:enabled) { false }
@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Integration do
     let(:error) { 'Failed to enable' }
 
     context 'given only required parameters' do
-      subject(:integration) { described_class.new(name, enabled) }
+      subject(:integration) { described_class.new(name: name, enabled: enabled) }
       it { is_expected.to be_a_kind_of(described_class) }
       it { is_expected.to have_attributes(name: name, enabled: enabled) }
 
@@ -23,7 +23,10 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Integration do
     end
 
     context 'given all parameters' do
-      subject(:integration) { described_class.new(name, enabled, version, auto_enabled, compatible, error) }
+      subject(:integration) do
+        described_class.new(name: name, enabled: enabled, version: version, auto_enabled: auto_enabled,
+                            compatible: compatible, error: error)
+      end
       it {
         is_expected.to have_attributes(name: name, enabled: enabled, version: version, auto_enabled: auto_enabled,
                                        compatible: compatible, error: error)

@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/base/v1/product'
-require 'datadog/core/telemetry/schemas/base/v1/appsec'
-require 'datadog/core/telemetry/schemas/base/v1/profiler'
+require 'datadog/core/telemetry/schemas/v1/base/product'
+require 'datadog/core/telemetry/schemas/v1/base/appsec'
+require 'datadog/core/telemetry/schemas/v1/base/profiler'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Product do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Product do
   describe '#initialize' do
     context 'given no parameters' do
       subject(:products) { described_class.new }
@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Product do
     end
 
     context 'given all parameters' do
-      subject(:host) { described_class.new(appsec, profiler) }
+      subject(:host) { described_class.new(appsec: appsec, profiler: profiler) }
       let(:appsec) { { appsec: { version: '1.0' } } }
       let(:profiler) { { profiler: { version: '1.0' } } }
       it {

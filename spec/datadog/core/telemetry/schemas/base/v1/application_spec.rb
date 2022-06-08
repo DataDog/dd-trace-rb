@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/base/v1/application'
+require 'datadog/core/telemetry/schemas/v1/base/application'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Application do
+RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Application do
   describe '#initialize' do
     let(:language_name) { 'ruby' }
     let(:language_version) { '3.0' }
@@ -16,7 +16,10 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Application do
     let(:products) { { appsec: { version: '1.0' } } }
 
     context 'given only required parameters' do
-      subject(:application) { described_class.new(language_name, language_version, service_name, tracer_version) }
+      subject(:application) do
+        described_class.new(language_name: language_name, language_version: language_version, service_name: service_name,
+                            tracer_version: tracer_version)
+      end
       it { is_expected.to be_a_kind_of(described_class) }
 
       it {
@@ -32,8 +35,10 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::Base::V1::Application do
 
     context 'given all parameters' do
       subject(:application) do
-        described_class.new(language_name, language_version, service_name, tracer_version, env, runtime_name,
-                            runtime_patches, runtime_version, service_version, products)
+        described_class.new(language_name: language_name, language_version: language_version, service_name: service_name,
+                            tracer_version: tracer_version, env: env, runtime_name: runtime_name,
+                            runtime_patches: runtime_patches, runtime_version: runtime_version,
+                            service_version: service_version, products: products)
       end
       it {
         is_expected

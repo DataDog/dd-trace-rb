@@ -2,8 +2,8 @@ module Datadog
   module Core
     module Telemetry
       module Schemas
-        module Base
-          module V1
+        module V1
+          module Base
             # Describes attributes for profiler object
             class Profiler
               attr_reader :version
