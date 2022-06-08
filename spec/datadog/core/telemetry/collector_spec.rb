@@ -1,25 +1,25 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/collector'
-require 'datadog/core/telemetry/schemas/common/v1/integration'
+require 'datadog/core/telemetry/schemas/v1/base/integration'
 require 'ddtrace'
 require 'rake'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
-  describe '.list_dependencies' do
-    subject(:dependencies) { described_class.list_dependencies }
+  describe '.dependencies' do
+    subject(:dependencies) { described_class.dependencies }
 
     it 'returns an array' do
       is_expected.to be_a(Array)
     end
 
     it 'returns an array of Dependency objects' do
-      is_expected.to all(be_a(Datadog::Core::Telemetry::Schemas::Common::V1::Dependency))
+      is_expected.to all(be_a(Datadog::Core::Telemetry::Schemas::V1::Base::Dependency))
     end
   end
 
-  describe '.list_integrations' do
-    subject(:integrations) { described_class.list_integrations }
+  describe '.integrations' do
+    subject(:integrations) { described_class.integrations }
 
     it 'returns an array' do
       is_expected.to be_a(Array)
@@ -47,8 +47,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
       it 'creates a list of integrations' do
         expect(integrations.length).to eq(2)
-        expect(integrations[0]).to be_a(Datadog::Core::Telemetry::Schemas::Common::V1::Integration)
-        expect(integrations[1]).to be_a(Datadog::Core::Telemetry::Schemas::Common::V1::Integration)
+        expect(integrations[0]).to be_a(Datadog::Core::Telemetry::Schemas::V1::Base::Integration)
+        expect(integrations[1]).to be_a(Datadog::Core::Telemetry::Schemas::V1::Base::Integration)
         expect(integrations[0]).to have_attributes(name: :rake, enabled: true, compatible: true, error: nil)
       end
 
