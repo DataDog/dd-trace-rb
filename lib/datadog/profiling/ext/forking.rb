@@ -45,7 +45,7 @@ module Datadog
             child_block = if block_given?
                             proc do
                               # Trigger :child callback
-                              at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
+                              ddtrace_at_fork_blocks[:child].each(&:call) if ddtrace_at_fork_blocks.key?(:child)
 
                               # Invoke original block
                               yield
@@ -53,7 +53,7 @@ module Datadog
                           end
 
             # Trigger :prepare callback
-            at_fork_blocks[:prepare].each(&:call) if at_fork_blocks.key?(:prepare)
+            ddtrace_at_fork_blocks[:prepare].each(&:call) if ddtrace_at_fork_blocks.key?(:prepare)
 
             # Start fork
             # If a block is provided, use the wrapped version.
@@ -65,10 +65,10 @@ module Datadog
             # rubocop:disable Style/IfInsideElse
             if result.nil?
               # Trigger :child callback
-              at_fork_blocks[:child].each(&:call) if at_fork_blocks.key?(:child)
+              ddtrace_at_fork_blocks[:child].each(&:call) if ddtrace_at_fork_blocks.key?(:child)
             else
               # Trigger :parent callback
-              at_fork_blocks[:parent].each(&:call) if at_fork_blocks.key?(:parent)
+              ddtrace_at_fork_blocks[:parent].each(&:call) if ddtrace_at_fork_blocks.key?(:parent)
             end
             # rubocop:enable Style/IfInsideElse
 
@@ -79,17 +79,17 @@ module Datadog
           def at_fork(stage = :prepare, &block)
             raise ArgumentError, 'Bad \'stage\' for ::at_fork' unless FORK_STAGES.include?(stage)
 
-            at_fork_blocks[stage] = [] unless at_fork_blocks.key?(stage)
-            at_fork_blocks[stage] << block
+            ddtrace_at_fork_blocks[stage] = [] unless ddtrace_at_fork_blocks.key?(stage)
+            ddtrace_at_fork_blocks[stage] << block
           end
 
           module_function
 
-          def at_fork_blocks
+          def ddtrace_at_fork_blocks
             # Blocks should be shared across all users of this module,
             # e.g. Process#fork, Kernel#fork, etc. should all invoke the same callbacks.
             # rubocop:disable Style/ClassVars
-            @@at_fork_blocks ||= {}
+            @@ddtrace_at_fork_blocks ||= {}
             # rubocop:enable Style/ClassVars
           end
         end
