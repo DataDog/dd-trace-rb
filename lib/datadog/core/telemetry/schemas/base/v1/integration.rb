@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Telemetry
       module Schemas
-        module Common
+        module Base
           module V1
             # Describes attributes for integration object
             class Integration
