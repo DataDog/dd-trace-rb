@@ -199,8 +199,6 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
     thread_context = (struct per_thread_context*) value_context;
   } else {
     thread_context = ruby_xcalloc(1, sizeof(struct per_thread_context));
-    // FIXME FIXME! Right now we never remove threads from this map! So as long as the sampler object is alive, this
-    // will leak threads!
     st_insert(state->hash_map_per_thread_context, (st_data_t) thread, (st_data_t) thread_context);
   }
 
@@ -244,16 +242,11 @@ static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_s
   st_foreach(state->hash_map_per_thread_context, remove_if_dead_thread, 0 /* unused */);
 }
 
-static bool thread_alive(VALUE thread) {
-  // TODO: FIX THIS TO ACTUALLY WORK
-  return true;
-}
-
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument) {
   VALUE thread = (VALUE) key_thread;
   struct per_thread_context* thread_context = (struct per_thread_context*) value_context;
 
-  if (thread_alive(thread)) return ST_CONTINUE;
+  if (is_thread_alive(thread)) return ST_CONTINUE;
 
   ruby_xfree(thread_context);
   return ST_DELETE;

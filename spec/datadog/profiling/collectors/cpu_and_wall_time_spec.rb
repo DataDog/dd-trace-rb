@@ -4,13 +4,14 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/collectors/cpu_and_wall_time'
 
 RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip_if_profiling_not_supported(self)
+
+    3.times { ready_queue.pop }
+    expect(Thread.list).to include(Thread.main, t1, t2, t3)
+  end
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
-  let(:max_frames) { 123 }
-
-  subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
-
   let(:ready_queue) { Queue.new }
   let!(:t1) do
     Thread.new(ready_queue) do |ready_queue|
@@ -30,11 +31,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       sleep
     end
   end
+  let(:max_frames) { 123 }
 
-  before do
-    3.times { ready_queue.pop }
-    expect(Thread.list).to include(Thread.main, t1, t2, t3)
-  end
+  subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
 
   after do
     [t1, t2, t3].each do |thread|
