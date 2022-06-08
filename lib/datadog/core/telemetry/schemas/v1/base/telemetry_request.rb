@@ -6,21 +6,30 @@ module Datadog
           module Base
             # Describes attributes for telemetry API request
             class TelemetryRequest
-              attr_reader :api_version, :request_type, :runtime_id, :tracer_time, :seq_id, :payload, :application, :host,
-                          :session_id, :debug
+              attr_reader \
+                :api_version,
+                :application,
+                :debug,
+                :host,
+                :payload,
+                :request_type,
+                :runtime_id,
+                :seq_id,
+                :session_id,
+                :tracer_time
 
-              def initialize(api_version:, request_type:, runtime_id:, tracer_time:, seq_id:, payload:, application:, host:,
-                             session_id: nil, debug: nil)
+              def initialize(api_version:, application:, host:, payload:, request_type:, runtime_id:, seq_id:, tracer_time:,
+                             debug: nil, session_id: nil)
                 @api_version = api_version
+                @application = application
+                @debug = debug
+                @host = host
+                @payload = payload
                 @request_type = request_type
                 @runtime_id = runtime_id
-                @tracer_time = tracer_time
                 @seq_id = seq_id
-                @payload = payload
-                @application = application
-                @host = host
                 @session_id = session_id
-                @debug = debug
+                @tracer_time = tracer_time
               end
             end
           end

@@ -6,13 +6,17 @@ module Datadog
           module Events
             # Describes payload for telemetry V1 API app_started event
             class AppStarted
-              attr_reader :configuration, :dependencies, :integrations, :additional_payload
+              attr_reader \
+                :additional_payload,
+                :configuration,
+                :dependencies,
+                :integrations
 
-              def initialize(configuration: nil, dependencies: nil, integrations: nil, additional_payload: nil)
+              def initialize(additional_payload: nil, configuration: nil, dependencies: nil, integrations: nil)
+                @additional_payload = additional_payload
                 @configuration = configuration
                 @dependencies = dependencies
                 @integrations = integrations
-                @additional_payload = additional_payload
               end
             end
           end

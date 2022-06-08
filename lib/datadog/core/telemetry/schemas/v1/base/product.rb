@@ -6,7 +6,9 @@ module Datadog
           module Base
             # Describes attributes for products object
             class Product
-              attr_reader :appsec, :profiler
+              attr_reader \
+                :appsec,
+                :profiler
 
               def initialize(appsec: nil, profiler: nil)
                 @appsec = appsec

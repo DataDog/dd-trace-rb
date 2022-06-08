@@ -6,12 +6,15 @@ module Datadog
           module Base
             # Describes attributes for dependency object
             class Dependency
-              attr_reader :name, :version, :hash
+              attr_reader \
+                :hash,
+                :name,
+                :version
 
               def initialize(name:, version:, hash: nil)
+                @hash = hash
                 @name = name
                 @version = version
-                @hash = hash
               end
             end
           end

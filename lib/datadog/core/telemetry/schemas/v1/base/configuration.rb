@@ -6,7 +6,9 @@ module Datadog
           module Base
             # Describes attributes for additional payload or configuration object
             class Configuration
-              attr_reader :name, :value
+              attr_reader \
+                :name,
+                :value
 
               def initialize(name:, value: nil)
                 @name = name

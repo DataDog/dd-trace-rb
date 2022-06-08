@@ -6,15 +6,21 @@ module Datadog
           module Base
             # Describes attributes for integration object
             class Integration
-              attr_reader :name, :enabled, :version, :auto_enabled, :compatible, :error
+              attr_reader \
+                :auto_enabled,
+                :compatible,
+                :enabled,
+                :error,
+                :name,
+                :version
 
-              def initialize(name:, enabled:, version: nil, auto_enabled: nil, compatible: nil, error: nil)
-                @name = name
-                @enabled = enabled
-                @version = version
+              def initialize(enabled:, name:, auto_enabled: nil, compatible: nil, error: nil, version: nil)
                 @auto_enabled = auto_enabled
                 @compatible = compatible
+                @enabled = enabled
                 @error = error
+                @name = name
+                @version = version
               end
             end
           end

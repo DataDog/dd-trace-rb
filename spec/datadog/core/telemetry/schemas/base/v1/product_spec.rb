@@ -15,9 +15,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Product do
       subject(:host) { described_class.new(appsec: appsec, profiler: profiler) }
       let(:appsec) { { appsec: { version: '1.0' } } }
       let(:profiler) { { profiler: { version: '1.0' } } }
-      it {
-        is_expected.to have_attributes(appsec: appsec, profiler: profiler)
-      }
+      it { is_expected.to have_attributes(appsec: appsec, profiler: profiler) }
     end
   end
 end

@@ -6,21 +6,30 @@ module Datadog
           module Base
             # Describes attributes for application environment object
             class Application
-              attr_reader :language_name, :language_version, :service_name, :tracer_version, :env, :runtime_name,
-                          :runtime_patches, :runtime_version, :service_version, :products
+              attr_reader \
+                :env,
+                :language_name,
+                :language_version,
+                :products,
+                :runtime_name,
+                :runtime_patches,
+                :runtime_version,
+                :service_name,
+                :service_version,
+                :tracer_version
 
-              def initialize(language_name:, language_version:, service_name:, tracer_version:, env: nil, runtime_name: nil,
-                             runtime_patches: nil, runtime_version: nil, service_version: nil, products: nil)
+              def initialize(language_name:, language_version:, service_name:, tracer_version:, env: nil, products: nil,
+                             runtime_name: nil, runtime_patches: nil, runtime_version: nil, service_version: nil)
+                @env = env
                 @language_name = language_name
                 @language_version = language_version
-                @service_name = service_name
-                @tracer_version = tracer_version
-                @env = env
+                @products = products
                 @runtime_name = runtime_name
                 @runtime_patches = runtime_patches
                 @runtime_version = runtime_version
+                @service_name = service_name
                 @service_version = service_version
-                @products = products
+                @tracer_version = tracer_version
               end
             end
           end

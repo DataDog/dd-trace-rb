@@ -6,10 +6,17 @@ module Datadog
           module Base
             # Describes attributes for host object
             class Host
-              attr_reader :container_id, :hostname, :kernel_name, :kernel_release, :kernel_version, :os, :os_version
+              attr_reader \
+                :container_id,
+                :hostname,
+                :kernel_name,
+                :kernel_release,
+                :kernel_version,
+                :os_version,
+                :os
 
-              def initialize(container_id: nil, hostname: nil, kernel_name: nil, kernel_release: nil,
-                             kernel_version: nil, os: nil, os_version: nil)
+              def initialize(container_id: nil, hostname: nil, kernel_name: nil, kernel_release: nil, kernel_version: nil,
+                             os_version: nil, os: nil)
                 @container_id = container_id
                 @hostname = hostname
                 @kernel_name = kernel_name
