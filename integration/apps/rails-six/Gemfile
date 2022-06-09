@@ -37,10 +37,15 @@ source 'https://rubygems.org' do
   gem 'multi_json'
   gem 'oj', platform: :ruby
 
-  # Need to add these because ActionMailer is broken in 6.1.5
+  # Need to add these because ActionMailer is broken in 6.1.6
   # https://github.com/rails/rails/pull/44697
-  gem 'net-smtp'
-  gem 'net-imap'
+  if RUBY_VERSION < '2.6.0'
+    gem 'net-smtp', '0.3.0'
+    gem 'net-imap', '0.2.2'
+  else
+    gem 'net-smtp'
+    gem 'net-imap'
+  end
   gem 'net-pop'
 
   gem 'active_model_serializers'
@@ -80,7 +85,13 @@ source 'https://rubygems.org' do
     gem 'rspec'
     gem 'rspec-collection_matchers'
     gem 'rspec-rails'
-    gem 'shoulda-matchers'
+
+    if RUBY_VERSION < '2.6.0'
+      gem 'shoulda-matchers', '~> 4.5'
+    else
+      gem 'shoulda-matchers'
+    end
+
     gem 'simplecov', require: false # Will install simplecov-html as a dependency
     gem 'timecop'
     gem 'webmock'
