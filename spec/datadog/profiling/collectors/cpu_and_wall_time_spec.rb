@@ -7,25 +7,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   before do
     skip_if_profiling_not_supported(self)
 
-    3.times { ready_queue.pop }
+    [t1, t2, t3].each { ready_queue.pop }
     expect(Thread.list).to include(Thread.main, t1, t2, t3)
   end
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
   let(:ready_queue) { Queue.new }
-  let!(:t1) do
+  let(:t1) do
     Thread.new(ready_queue) do |ready_queue|
       ready_queue << true
       sleep
     end
   end
-  let!(:t2) do
+  let(:t2) do
     Thread.new(ready_queue) do |ready_queue|
       ready_queue << true
       sleep
     end
   end
-  let!(:t3) do
+  let(:t3) do
     Thread.new(ready_queue) do |ready_queue|
       ready_queue << true
       sleep
