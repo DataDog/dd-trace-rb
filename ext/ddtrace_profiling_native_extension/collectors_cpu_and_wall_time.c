@@ -230,7 +230,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   VALUE thread = (VALUE) key_thread;
   VALUE result = (VALUE) result_hash;
   VALUE context_as_hash = rb_hash_new();
-  rb_hash_aset(result_hash, thread, context_as_hash);
+  rb_hash_aset(result, thread, context_as_hash);
 
   VALUE arguments[] = {};
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
