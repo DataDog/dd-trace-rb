@@ -23,6 +23,7 @@ struct cpu_and_wall_time_collector_state {
 
 // Tracks per-thread state
 struct per_thread_context {
+  int dummy_placeholder_will_be_removed_in_next_pr;
 };
 
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
