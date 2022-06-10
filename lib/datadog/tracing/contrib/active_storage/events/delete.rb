@@ -1,7 +1,9 @@
-require 'datadog/tracing/contrib/analytics'
+# typed: false
+
+require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/contrib/active_storage/event'
-require 'datadog/tracing/ext/http'
 require 'datadog/tracing/contrib/active_storage/ext'
+require 'datadog/tracing/contrib/analytics'
 
 module Datadog
   module Tracing
@@ -28,7 +30,7 @@ module Datadog
 
             def span_type
               # Interacting with a cloud based image service
-              Datadog::Ext::HTTP::TYPE_OUTBOUND
+              Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 
             def resource_prefix

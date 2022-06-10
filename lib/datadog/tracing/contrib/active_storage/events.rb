@@ -1,3 +1,5 @@
+# typed: false
+
 require 'datadog/tracing/contrib/active_storage/events/delete'
 require 'datadog/tracing/contrib/active_storage/events/delete_prefixed'
 require 'datadog/tracing/contrib/active_storage/events/download'

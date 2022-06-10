@@ -1,3 +1,5 @@
+# typed: true
+
 require 'datadog/tracing/contrib/active_support/notifications/event'
 
 module Datadog
@@ -7,22 +9,22 @@ module Datadog
         # Defines basic behaviors for an ActiveStorage event.
         module Event
           def self.included(base)
-            base.send(:include, ActiveSupport::Notifications::Event)
-            base.send(:extend, ClassMethods)
+            base.include(ActiveSupport::Notifications::Event)
+            base.extend(ClassMethods)
           end
 
           # Class methods for ActiveStorage events.
           module ClassMethods
             def span_options
-              { service: configuration[:service_name] }
-            end
-
-            def tracer
-              -> { configuration[:tracer] }
+              if configuration[:service_name]
+                { service: configuration[:service_name] }
+              else
+                {}
+              end
             end
 
             def configuration
-              Datadog.configuration[:active_storage]
+              Datadog.configuration.tracing[:active_storage]
             end
           end
         end

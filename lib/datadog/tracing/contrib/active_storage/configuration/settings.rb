@@ -1,3 +1,5 @@
+# typed: false
+
 require 'datadog/tracing/contrib/configuration/settings'
 require 'datadog/tracing/contrib/active_storage/ext'
 

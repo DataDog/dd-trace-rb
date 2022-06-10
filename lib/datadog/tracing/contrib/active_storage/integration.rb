@@ -1,6 +1,9 @@
+# typed: false
+
 require 'datadog/tracing/contrib/integration'
 require 'datadog/tracing/contrib/active_storage/configuration/settings'
 require 'datadog/tracing/contrib/active_storage/patcher'
+require 'datadog/tracing/contrib/rails/utils'
 
 module Datadog
   module Tracing
@@ -26,7 +29,13 @@ module Datadog
             super && version >= MINIMUM_VERSION
           end
 
-          def default_configuration
+          # enabled by rails integration so should only auto instrument
+          # if detected that it is being used without rails
+          def auto_instrument?
+            !Contrib::Rails::Utils.railtie_supported?
+          end
+
+          def new_configuration
             Configuration::Settings.new
           end
 
