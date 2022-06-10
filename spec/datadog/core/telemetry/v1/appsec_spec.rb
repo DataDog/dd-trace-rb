@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/appsec'
-require 'datadog/core/telemetry/schemas/shared_examples'
+require 'datadog/core/telemetry/v1/appsec'
+require 'datadog/core/telemetry/v1/shared_examples'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::AppSec do
+RSpec.describe Datadog::Core::Telemetry::V1::AppSec do
   subject(:appsec) { described_class.new(version: version) }
 
   let(:version) { '1.0' }

@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/configuration'
+require 'datadog/core/telemetry/v1/configuration'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Configuration do
+RSpec.describe Datadog::Core::Telemetry::V1::Configuration do
   subject(:configuration) { described_class.new(name: name, value: value) }
 
   let(:name) { 'DD_TRACE_DEBUG' }

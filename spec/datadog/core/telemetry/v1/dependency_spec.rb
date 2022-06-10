@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/dependency'
-require 'datadog/core/telemetry/schemas/shared_examples'
+require 'datadog/core/telemetry/v1/dependency'
+require 'datadog/core/telemetry/v1/shared_examples'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Dependency do
+RSpec.describe Datadog::Core::Telemetry::V1::Dependency do
   subject(:dependency) { described_class.new(name: name, version: version, hash: hash) }
 
   let(:hash) { '3e2e2c2362c89aa01bc0e004681e' }

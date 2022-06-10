@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/integration'
-require 'datadog/core/telemetry/schemas/shared_examples'
+require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/shared_examples'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Integration do
+RSpec.describe Datadog::Core::Telemetry::V1::Integration do
   subject(:integration) do
     described_class.new(
       auto_enabled: auto_enabled,

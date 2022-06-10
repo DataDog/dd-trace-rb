@@ -1,12 +1,12 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/shared_examples'
-require 'datadog/core/telemetry/schemas/v1/base/application'
-require 'datadog/core/telemetry/schemas/v1/base/product'
-require 'datadog/core/telemetry/schemas/v1/base/appsec'
-require 'datadog/core/telemetry/schemas/v1/base/profiler'
+require 'datadog/core/telemetry/v1/shared_examples'
+require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/product'
+require 'datadog/core/telemetry/v1/appsec'
+require 'datadog/core/telemetry/v1/profiler'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Application do
+RSpec.describe Datadog::Core::Telemetry::V1::Application do
   subject(:application) do
     described_class.new(
       env: env,
@@ -26,9 +26,9 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Application do
   let(:language_name) { 'ruby' }
   let(:language_version) { '3.0' }
   let(:products) do
-    Datadog::Core::Telemetry::Schemas::V1::Base::Product.new(
-      appsec: Datadog::Core::Telemetry::Schemas::V1::Base::AppSec.new(version: '1.0'),
-      profiler: Datadog::Core::Telemetry::Schemas::V1::Base::Profiler.new(version: '1.0')
+    Datadog::Core::Telemetry::V1::Product.new(
+      appsec: Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0'),
+      profiler: Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0')
     )
   end
   let(:runtime_name) { 'ruby30' }
@@ -103,9 +103,9 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Application do
 
       context 'is valid' do
         let(:products) do
-          Datadog::Core::Telemetry::Schemas::V1::Base::Product.new(
-            appsec: Datadog::Core::Telemetry::Schemas::V1::Base::AppSec.new(version: '1.0'),
-            profiler: Datadog::Core::Telemetry::Schemas::V1::Base::Profiler.new(version: '1.0')
+          Datadog::Core::Telemetry::V1::Product.new(
+            appsec: Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0'),
+            profiler: Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0')
           )
         end
         it { is_expected.to be_a_kind_of(described_class) }

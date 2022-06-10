@@ -1,13 +1,13 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/telemetry_request'
-require 'datadog/core/telemetry/schemas/v1/events/app_started'
-require 'datadog/core/telemetry/schemas/v1/base/application'
-require 'datadog/core/telemetry/schemas/v1/base/host'
-require 'datadog/core/telemetry/schemas/v1/base/integration'
-require 'datadog/core/telemetry/schemas/shared_examples'
+require 'datadog/core/telemetry/v1/telemetry_request'
+require 'datadog/core/telemetry/v1/app_started'
+require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/host'
+require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/shared_examples'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
+RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
   subject(:telemetry_request) do
     described_class.new(
       api_version: api_version,
@@ -25,14 +25,14 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
 
   let(:api_version) { 'v1' }
   let(:application) do
-    Datadog::Core::Telemetry::Schemas::V1::Base::Application.new(language_name: 'ruby', language_version: '3.0',
-                                                                 service_name: 'myapp', tracer_version: '1.0')
+    Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
+                                                  service_name: 'myapp', tracer_version: '1.0')
   end
   let(:debug) { false }
-  let(:host) { Datadog::Core::Telemetry::Schemas::V1::Base::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
+  let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
   let(:payload) do
-    Datadog::Core::Telemetry::Schemas::V1::Events::AppStarted.new(
-      integrations: [Datadog::Core::Telemetry::Schemas::V1::Base::Integration.new(
+    Datadog::Core::Telemetry::V1::AppStarted.new(
+      integrations: [Datadog::Core::Telemetry::V1::Integration.new(
         name: 'pg', enabled: true
       )]
     )
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
       end
 
       context 'is valid' do
-        let(:host) { Datadog::Core::Telemetry::Schemas::V1::Base::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
+        let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
         it { is_expected.to be_a_kind_of(described_class) }
       end
     end
@@ -115,8 +115,8 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
 
       context 'is valid' do
         let(:application) do
-          Datadog::Core::Telemetry::Schemas::V1::Base::Application.new(language_name: 'ruby', language_version: '3.0',
-                                                                       service_name: 'myapp', tracer_version: '1.0')
+          Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
+                                                        service_name: 'myapp', tracer_version: '1.0')
         end
         it { is_expected.to be_a_kind_of(described_class) }
       end
@@ -130,15 +130,15 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
 
       context 'is not of type Payload' do
         let(:payload) do
-          { integrations: [Datadog::Core::Telemetry::Schemas::V1::Base::Integration.new(name: 'pg', enabled: true)] }
+          { integrations: [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
         end
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
       context 'is valid' do
         let(:payload) do
-          Datadog::Core::Telemetry::Schemas::V1::Events::AppStarted.new(
-            integrations: [Datadog::Core::Telemetry::Schemas::V1::Base::Integration.new(
+          Datadog::Core::Telemetry::V1::AppStarted.new(
+            integrations: [Datadog::Core::Telemetry::V1::Integration.new(
               name: 'pg', enabled: true
             )]
           )

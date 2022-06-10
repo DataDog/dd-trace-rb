@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/host'
-require 'datadog/core/telemetry/schemas/shared_examples'
+require 'datadog/core/telemetry/v1/host'
+require 'datadog/core/telemetry/v1/shared_examples'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Host do
+RSpec.describe Datadog::Core::Telemetry::V1::Host do
   subject(:host) do
     described_class.new(
       container_id: container_id,

@@ -1,14 +1,14 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/schemas/v1/base/product'
-require 'datadog/core/telemetry/schemas/v1/base/appsec'
-require 'datadog/core/telemetry/schemas/v1/base/profiler'
+require 'datadog/core/telemetry/v1/product'
+require 'datadog/core/telemetry/v1/appsec'
+require 'datadog/core/telemetry/v1/profiler'
 
-RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Product do
+RSpec.describe Datadog::Core::Telemetry::V1::Product do
   subject(:product) { described_class.new(appsec: appsec, profiler: profiler) }
 
-  let(:appsec) { Datadog::Core::Telemetry::Schemas::V1::Base::AppSec.new(version: '1.0') }
-  let(:profiler) { Datadog::Core::Telemetry::Schemas::V1::Base::Profiler.new(version: '1.0') }
+  let(:appsec) { Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0') }
+  let(:profiler) { Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0') }
 
   it { is_expected.to have_attributes(appsec: appsec, profiler: profiler) }
 
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Product do
       end
 
       context 'is valid' do
-        let(:appsec) { Datadog::Core::Telemetry::Schemas::V1::Base::AppSec.new(version: '1.0') }
+        let(:appsec) { Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0') }
         it { is_expected.to be_a_kind_of(described_class) }
       end
     end
@@ -44,7 +44,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Product do
       end
 
       context 'is valid' do
-        let(:profiler) { Datadog::Core::Telemetry::Schemas::V1::Base::Profiler.new(version: '1.0') }
+        let(:profiler) { Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0') }
         it { is_expected.to be_a_kind_of(described_class) }
       end
     end
