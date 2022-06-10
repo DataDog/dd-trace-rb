@@ -2187,6 +2187,81 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe 'integration tests' do
+    context 'top_level attributes' do
+      context 'when service not given' do
+        it do
+          trace_op.measure('root') do |_, trace|
+            trace.measure('children_1') do
+              sleep(0.01)
+            end
+
+            trace.measure('children_2') do
+              sleep(0.01)
+            end
+          end
+
+          trace_segment = trace_op.flush!
+
+          expect(trace_segment.spans.map(&:service)).to all(be_nil)
+
+          hash = trace_segment.spans.each_with_object({}) do |span, h|
+            h[span.name] = span.__send__(:top_level?)
+          end
+          expect(hash['root']).to be true
+          expect(hash['children_1']).to be false
+          expect(hash['children_2']).to be false
+        end
+      end
+
+      context 'when service provided at root' do
+        it do
+          trace_op.measure('root', service: 'service_1') do |_, trace|
+            trace.measure('children_1') do
+              sleep(0.01)
+            end
+
+            trace.measure('children_2') do
+              sleep(0.01)
+            end
+          end
+
+          trace_segment = trace_op.flush!
+
+          hash = trace_segment.spans.each_with_object({}) do |span, h|
+            h[span.name] = span.__send__(:top_level?)
+          end
+
+          expect(hash['root']).to be true
+          expect(hash['children_1']).to be false
+          expect(hash['children_2']).to be false
+        end
+      end
+
+      context 'when service changed' do
+        it do
+          trace_op.measure('root', service: 'service_1') do |_, trace|
+            trace.measure('children_1', service: 'service_2') do
+              sleep(0.01)
+            end
+
+            trace.measure('children_2') do
+              sleep(0.01)
+            end
+          end
+
+          trace_segment = trace_op.flush!
+
+          hash = trace_segment.spans.each_with_object({}) do |span, h|
+            h[span.name] = span.__send__(:top_level?)
+          end
+
+          expect(hash['root']).to be true
+          expect(hash['children_1']).to be true
+          expect(hash['children_2']).to be false
+        end
+      end
+    end
+
     context 'for a mock job with fan-out/fan-in behavior' do
       subject(:trace) do
         @thread_traces = Queue.new
@@ -2274,6 +2349,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: 'import_job',
           service: 'job-worker'
         )
+        expect(job_span.__send__(:top_level?)).to be true
 
         expect(load_data_span).to have_attributes(
           trace_id: trace_id,
@@ -2283,6 +2359,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: 'imports.csv',
           service: 'job-worker'
         )
+        expect(load_data_span.__send__(:top_level?)).to be false
 
         expect(read_file_span).to have_attributes(
           trace_id: trace_id,
@@ -2292,6 +2369,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: 'imports.csv',
           service: 'job-worker'
         )
+        expect(read_file_span.__send__(:top_level?)).to be false
 
         expect(deserialize_span).to have_attributes(
           trace_id: trace_id,
@@ -2301,6 +2379,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: 'inventory',
           service: 'job-worker'
         )
+        expect(deserialize_span.__send__(:top_level?)).to be false
 
         expect(start_inserts_span).to have_attributes(
           trace_id: trace_id,
@@ -2310,6 +2389,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: 'inventory',
           service: 'job-worker'
         )
+        expect(start_inserts_span.__send__(:top_level?)).to be false
 
         expect(db_query_spans).to all(
           have_attributes(
@@ -2321,6 +2401,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             service: 'database'
           )
         )
+        expect(db_query_spans.map { |s| s.__send__(:top_level?) }).to all(be true)
 
         expect(wait_insert_span).to have_attributes(
           trace_id: trace_id,
@@ -2331,6 +2412,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           service: 'job-worker'
         )
         expect(wait_insert_span.get_tag('worker.count')).to eq(5.0)
+        expect(wait_insert_span.__send__(:top_level?)).to be false
 
         expect(update_log_span).to have_attributes(
           trace_id: trace_id,
@@ -2340,6 +2422,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: 'inventory',
           service: 'job-worker'
         )
+        expect(update_log_span.__send__(:top_level?)).to be false
       end
     end
   end

@@ -81,7 +81,8 @@ module Datadog
         start_time: nil,
         status: 0,
         type: span_type,
-        trace_id: nil
+        trace_id: nil,
+        top_level: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -106,6 +107,8 @@ module Datadog
         # duration_start and duration_end track monotonic clock, and may remain nil in cases where it
         # is known that we have to use wall clock to measure duration.
         @duration = duration
+
+        @top_level = top_level
       end
 
       # Return whether the duration is started or not
@@ -209,6 +212,10 @@ module Datadog
       # @return [Integer] in nanoseconds since Epoch
       def duration_nano
         (duration * 1e9).to_i
+      end
+
+      def top_level?
+        !!@top_level
       end
     end
   end

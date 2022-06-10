@@ -343,6 +343,8 @@ module Datadog
       def activate_span!(span_op)
         parent = @active_span
 
+        span_op.__send__(:top_level=, true) if parent.nil? || (span_op.service && parent.service != span_op.service)
+
         span_op.send(:parent=, parent) unless parent.nil?
 
         @active_span = span_op

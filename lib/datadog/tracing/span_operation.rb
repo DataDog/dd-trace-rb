@@ -437,6 +437,8 @@ module Datadog
         :parent,
         :span
 
+      attr_writer :top_level
+
       if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
         # Ensures #initialize can call nil.dup safely
         module RefineNil
@@ -468,8 +470,13 @@ module Datadog
           start_time: @start_time,
           status: @status,
           type: @type,
-          trace_id: @trace_id
+          trace_id: @trace_id,
+          top_level: top_level?
         )
+      end
+
+      def top_level?
+        !!@top_level
       end
 
       # Set this span's parent, inheriting any properties not explicitly set.
