@@ -38,31 +38,31 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Host do
 
   describe '#initialize' do
     context ':container_id' do
-      it_behaves_like 'an optional string argument', 'container_id'
+      it_behaves_like 'an optional string parameter', 'container_id'
     end
 
     context ':hostname' do
-      it_behaves_like 'an optional string argument', 'hostname'
+      it_behaves_like 'an optional string parameter', 'hostname'
     end
 
     context ':kernel_name' do
-      it_behaves_like 'an optional string argument', 'kernel_name'
+      it_behaves_like 'an optional string parameter', 'kernel_name'
     end
 
     context ':kernel_release' do
-      it_behaves_like 'an optional string argument', 'kernel_release'
+      it_behaves_like 'an optional string parameter', 'kernel_release'
     end
 
     context ':kernel_version' do
-      it_behaves_like 'an optional string argument', 'kernel_version'
+      it_behaves_like 'an optional string parameter', 'kernel_version'
     end
 
     context ':os_version' do
-      it_behaves_like 'an optional string argument', 'os_version'
+      it_behaves_like 'an optional string parameter', 'os_version'
     end
 
     context ':os' do
-      it_behaves_like 'an optional string argument', 'os'
+      it_behaves_like 'an optional string parameter', 'os'
     end
 
     context 'when all parameters' do

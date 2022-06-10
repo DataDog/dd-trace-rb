@@ -13,16 +13,16 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Dependency do
   it { is_expected.to have_attributes(name: name, hash: hash, version: version) }
 
   describe '#initialize' do
-    context 'when :name' do
-      it_behaves_like 'a string argument', 'name'
+    context ':name' do
+      it_behaves_like 'a required string parameter', 'name'
     end
 
-    context 'when :version' do
-      it_behaves_like 'an optional string argument', 'version'
+    context ':version' do
+      it_behaves_like 'an optional string parameter', 'version'
     end
 
-    context 'when :hash' do
-      it_behaves_like 'an optional string argument', 'hash'
+    context ':hash' do
+      it_behaves_like 'an optional string parameter', 'hash'
     end
   end
 end

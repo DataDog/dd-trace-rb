@@ -60,22 +60,22 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
 
   describe '#initialize' do
     context 'when :api_version' do
-      context 'when it is nil' do
+      context 'is nil' do
         let(:api_version) { nil }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when it is empty string' do
+      context 'is empty string' do
         let(:api_version) { '' }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when it is random valid string' do
+      context 'is random valid string' do
         let(:api_version) { 'valid' }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when it is valid api version' do
+      context 'is valid api version' do
         let(:api_version) { 'v1' }
         it { is_expected.to be_a_kind_of(described_class) }
       end
@@ -98,8 +98,8 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
       end
     end
 
-    context 'when :debug' do
-      it_behaves_like 'an optional boolean argument', 'debug'
+    context ':debug' do
+      it_behaves_like 'an optional boolean parameter', 'debug'
     end
 
     context 'when :host' do
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
     end
 
     context 'when :payload' do
-      context 'when it is nil' do
+      context 'is nil' do
         let(:payload) { nil }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
@@ -148,28 +148,28 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
     end
 
     context 'when :request_type' do
-      context 'when it is nil' do
+      context 'is nil' do
         let(:request_type) { nil }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when it is empty string' do
+      context 'is empty string' do
         let(:request_type) { '' }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when it is random valid string' do
+      context 'is random valid string' do
         let(:request_type) { 'valid' }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when it is valid request type' do
+      context 'is valid request type' do
         let(:request_type) { 'app-started' }
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'when :runtime_id' do
-        it_behaves_like 'a string argument', 'runtime_id'
+      context ':runtime_id' do
+        it_behaves_like 'a required string parameter', 'runtime_id'
       end
 
       context 'when :seq_id' do
@@ -189,8 +189,8 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::TelemetryRequest do
         end
       end
 
-      context 'when :session_id' do
-        it_behaves_like 'an optional string argument', 'session_id'
+      context ':session_id' do
+        it_behaves_like 'an optional string parameter', 'session_id'
       end
 
       context 'when :tracer_time' do

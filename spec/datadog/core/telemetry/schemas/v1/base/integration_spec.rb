@@ -34,28 +34,28 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Integration do
   end
 
   describe '#initialize' do
-    context 'when :auto_enabled' do
-      it_behaves_like 'an optional boolean argument', 'auto_enabled'
+    context ':auto_enabled' do
+      it_behaves_like 'an optional boolean parameter', 'auto_enabled'
     end
 
-    context 'when :compatible' do
-      it_behaves_like 'an optional boolean argument', 'compatible'
+    context ':compatible' do
+      it_behaves_like 'an optional boolean parameter', 'compatible'
     end
 
-    context 'when :enabled' do
-      it_behaves_like 'a boolean argument', 'enabled'
+    context ':enabled' do
+      it_behaves_like 'a required boolean parameter', 'enabled'
     end
 
-    context 'when :error' do
-      it_behaves_like 'an optional string argument', 'error'
+    context ':error' do
+      it_behaves_like 'an optional string parameter', 'error'
     end
 
-    context 'when :name' do
-      it_behaves_like 'a string argument', 'name'
+    context ':name' do
+      it_behaves_like 'a required string parameter', 'name'
     end
 
-    context 'when :version' do
-      it_behaves_like 'an optional string argument', 'version'
+    context ':version' do
+      it_behaves_like 'an optional string parameter', 'version'
     end
   end
 end

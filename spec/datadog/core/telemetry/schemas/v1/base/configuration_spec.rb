@@ -11,12 +11,12 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Configuration do
   it { is_expected.to have_attributes(name: name, value: value) }
 
   describe '#initialize' do
-    context 'when :name' do
-      it_behaves_like 'a string argument', 'name'
+    context ':name' do
+      it_behaves_like 'a required string parameter', 'name'
     end
 
-    context 'when :value' do
-      it_behaves_like 'an optional string argument', 'value'
+    context ':value' do
+      it_behaves_like 'an optional string parameter', 'value'
 
       context 'is valid bool' do
         let(:value) { true }

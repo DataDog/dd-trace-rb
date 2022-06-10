@@ -54,40 +54,40 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::Application do
   end
 
   describe '#initialize' do
-    context 'when :language_name' do
-      it_behaves_like 'a string argument', 'language_name'
+    context ':language_name' do
+      it_behaves_like 'a required string parameter', 'language_name'
     end
 
-    context 'when :language_version' do
-      it_behaves_like 'a string argument', 'language_version'
+    context ':language_version' do
+      it_behaves_like 'a required string parameter', 'language_version'
     end
 
-    context 'when :service_name' do
-      it_behaves_like 'a string argument', 'service_name'
+    context ':service_name' do
+      it_behaves_like 'a required string parameter', 'service_name'
     end
 
-    context 'when :tracer_version' do
-      it_behaves_like 'a string argument', 'tracer_version'
+    context ':tracer_version' do
+      it_behaves_like 'a required string parameter', 'tracer_version'
     end
 
-    context 'when :env' do
-      it_behaves_like 'an optional string argument', 'env'
+    context ':env' do
+      it_behaves_like 'an optional string parameter', 'env'
     end
 
-    context 'when :runtime_name' do
-      it_behaves_like 'an optional string argument', 'runtime_name'
+    context ':runtime_name' do
+      it_behaves_like 'an optional string parameter', 'runtime_name'
     end
 
-    context 'when :runtime_patches' do
-      it_behaves_like 'an optional string argument', 'runtime_patches'
+    context ':runtime_patches' do
+      it_behaves_like 'an optional string parameter', 'runtime_patches'
     end
 
-    context 'when :runtime_version' do
-      it_behaves_like 'an optional string argument', 'runtime_version'
+    context ':runtime_version' do
+      it_behaves_like 'an optional string parameter', 'runtime_version'
     end
 
-    context 'when :service_version' do
-      it_behaves_like 'an optional string argument', 'service_version'
+    context ':service_version' do
+      it_behaves_like 'an optional string parameter', 'service_version'
     end
 
     context 'when :products' do

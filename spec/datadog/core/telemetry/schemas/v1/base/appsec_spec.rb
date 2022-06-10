@@ -11,8 +11,8 @@ RSpec.describe Datadog::Core::Telemetry::Schemas::V1::Base::AppSec do
   it { is_expected.to have_attributes(version: version) }
 
   describe '#initialize' do
-    context 'when :version' do
-      it_behaves_like 'a string argument', 'version'
+    context ':version' do
+      it_behaves_like 'a required string parameter', 'version'
     end
   end
 end
