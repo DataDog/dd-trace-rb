@@ -26,6 +26,12 @@ module Datadog
                 :dependencies,
                 :integrations
 
+              # @param additional_payload [Array<V1::Base::Configuration>] List of Additional payload to track (any key
+              #   value not mentioned and doesn't fit under a metric)
+              # @param configuration [Array<V1::Base::Configuration>] List of Tracer related configuration data
+              # @param dependencies [Array<V1::Base::Dependency>] List of all loaded modules requested by the app
+              # @param integrations [Array<V1::Base::Integration>] List of integrations that are available within the app
+              #   and applicable to be traced
               def initialize(additional_payload: nil, configuration: nil, dependencies: nil, integrations: nil)
                 validate(additional_payload: additional_payload, configuration: configuration, dependencies: dependencies,
                          integrations: integrations)
@@ -37,6 +43,9 @@ module Datadog
 
               private
 
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
               def validate(additional_payload:, configuration:, dependencies:, integrations:)
                 if additional_payload.nil? && configuration.nil? && dependencies.nil? && integrations.nil?
                   raise ArgumentError, ERROR_NIL_ARGUMENTS

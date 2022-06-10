@@ -14,6 +14,7 @@ module Datadog
 
               attr_reader :version
 
+              # @param version [String] Version of the appsec product
               def initialize(version:)
                 raise ArgumentError, ERROR_BAD_VERSION_MESSAGE unless valid_string?(version)
 

@@ -35,6 +35,16 @@ module Datadog
                 :service_version,
                 :tracer_version
 
+              # @param env [String] Service's environment
+              # @param language_name [String] 'ruby'
+              # @param language_version [String] Version of language used
+              # @param products [Base::Product] Contains information about specific products added to the environment
+              # @param runtime_name [String] Runtime being used
+              # @param runtime_patches [String] String of patches applied to the runtime
+              # @param runtime_version [String] Runtime version; potentially the same as :language_version
+              # @param service_name [String] Service’s name (DD_SERVICE)
+              # @param service_version [String] Service’s version (DD_VERSION)
+              # @param tracer_version [String] Version of the used tracer
               def initialize(language_name:, language_version:, service_name:, tracer_version:, env: nil, products: nil,
                              runtime_name: nil, runtime_patches: nil, runtime_version: nil, service_version: nil)
                 validate(language_name: language_name, language_version: language_version, service_name: service_name,
@@ -55,6 +65,9 @@ module Datadog
 
               private
 
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
               def validate(language_name:, language_version:, service_name:, tracer_version:, env:, products:,
                            runtime_name:, runtime_patches:, runtime_version:, service_version:)
                 raise ArgumentError, ERROR_BAD_LANGUAGE_NAME_MESSAGE unless valid_string?(language_name)

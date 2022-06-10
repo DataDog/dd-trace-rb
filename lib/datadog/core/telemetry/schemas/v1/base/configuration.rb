@@ -17,12 +17,19 @@ module Datadog
                 :name,
                 :value
 
+              # @param name [String] Configuration/additional payload attribute name
+              # @param value [String, Integer, Boolean] Corresponding value
               def initialize(name:, value: nil)
                 validate(name: name, value: value)
                 @name = name
                 @value = value
               end
 
+              private
+
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
               def validate(name:, value:)
                 raise ArgumentError, ERROR_BAD_NAME_MESSAGE unless valid_string?(name)
                 if value && !(valid_string?(value) || valid_bool?(value) || valid_int?(value))

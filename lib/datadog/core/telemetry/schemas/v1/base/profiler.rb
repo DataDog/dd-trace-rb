@@ -14,6 +14,7 @@ module Datadog
 
               attr_reader :version
 
+              # @param version [String] version of the profiler product
               def initialize(version:)
                 raise ArgumentError, ERROR_BAD_VERSION_MESSAGE unless valid_string?(version)
 

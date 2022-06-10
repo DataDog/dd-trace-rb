@@ -28,8 +28,32 @@ module Datadog
                 :os_version,
                 :os
 
+              # @param container_id [String] Docker container ID
+              # @param hostname [String] uname -n
+              # @param kernel_name [String] uname -s
+              # @param kernel_release [String] uname -r
+              # @param kernel_version [String] uname -v
+              # @param os [String] uname -o
+              # @param os_version [String] Version of OS running
               def initialize(container_id: nil, hostname: nil, kernel_name: nil, kernel_release: nil, kernel_version: nil,
                              os_version: nil, os: nil)
+                validate(container_id: container_id, hostname: hostname, kernel_name: kernel_name,
+                         kernel_release: kernel_release, kernel_version: kernel_version, os_version: os_version, os: os)
+                @container_id = container_id
+                @hostname = hostname
+                @kernel_name = kernel_name
+                @kernel_release = kernel_release
+                @kernel_version = kernel_version
+                @os = os
+                @os_version = os_version
+              end
+
+              private
+
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
+              def validate(container_id:, hostname:, kernel_name:, kernel_release:, kernel_version:, os_version:, os:)
                 if container_id.nil? && hostname.nil? && kernel_name.nil? && kernel_release.nil? && kernel_version.nil? &&
                    os_version.nil? && os.nil?
                   raise ArgumentError, ERROR_NIL_ARGUMENTS
@@ -41,14 +65,6 @@ module Datadog
                 raise ArgumentError, ERROR_BAD_KERNEL_VERSION_MESSAGE unless valid_optional_string?(kernel_version)
                 raise ArgumentError, ERROR_BAD_OS_VERSION_MESSAGE unless valid_optional_string?(os_version)
                 raise ArgumentError, ERROR_BAD_OS_MESSAGE unless valid_optional_string?(os)
-
-                @container_id = container_id
-                @hostname = hostname
-                @kernel_name = kernel_name
-                @kernel_release = kernel_release
-                @kernel_version = kernel_version
-                @os = os
-                @os_version = os_version
               end
             end
           end

@@ -25,6 +25,12 @@ module Datadog
                 :name,
                 :version
 
+              # @param enabled [Boolean] Whether integration is enabled at time of request
+              # @param name [String] Integration name
+              # @param auto_enabled [Boolean] If integration is not enabled by default, but by user choice
+              # @param compatible [Boolean] If integration is available, but incompatible
+              # @param error [String] Error message if integration fails to load
+              # @param version [String] Integration version (if specified in app-started, it should be for other events too)
               def initialize(enabled:, name:, auto_enabled: nil, compatible: nil, error: nil, version: nil)
                 validate(auto_enabled: auto_enabled, compatible: compatible, enabled: enabled, error: error, name: name,
                          version: version)
@@ -38,6 +44,9 @@ module Datadog
 
               private
 
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
               def validate(auto_enabled:, compatible:, enabled:, error:, name:, version:)
                 raise ArgumentError, ERROR_BAD_ENABLED_MESSAGE unless valid_bool?(enabled)
                 raise ArgumentError, ERROR_BAD_NAME_MESSAGE unless valid_string?(name)

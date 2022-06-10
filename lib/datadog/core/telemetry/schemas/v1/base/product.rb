@@ -16,13 +16,23 @@ module Datadog
                 :appsec,
                 :profiler
 
+              # @param appsec [Base::AppSec] Holds custom information about the appsec product
+              # @param profiler [Base::Profiler] Holds custom information about the profiler product
               def initialize(appsec: nil, profiler: nil)
+                validate(appsec: appsec, profiler: profiler)
+                @appsec = appsec
+                @profiler = profiler
+              end
+
+              private
+
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
+              def validate(appsec:, profiler:)
                 raise ArgumentError, ERROR_NIL_ARGUMENTS if appsec.nil? && profiler.nil?
                 raise ArgumentError, ERROR_BAD_APPSEC_MESSAGE if appsec && !appsec.is_a?(Base::AppSec)
                 raise ArgumentError, ERROR_BAD_PROFILER_MESSAGE if profiler && !profiler.is_a?(Base::Profiler)
-
-                @appsec = appsec
-                @profiler = profiler
               end
             end
           end

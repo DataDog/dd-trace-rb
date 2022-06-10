@@ -39,6 +39,18 @@ module Datadog
                 :session_id,
                 :tracer_time
 
+              # @param api_version [String] Requested API version, `v1`
+              # @param application [Base::Application] Object that contains information about the environment of the
+              #   application
+              # @param host [Base::Host] Object that holds host related information
+              # @param payload [V1::Events::AppStarted] The payload of the request, type impacted by :request_type
+              # @param request_type [String] Requested API function impacting the Payload type, `app-started`
+              # @param runtime_id [String] V4 UUID that represents a tracer session
+              # @param seq_id [Integer] Counter that should be auto incremented every time an API call is being made
+              # @param tracer_time [Integer] Unix timestamp (in seconds) of when the message is being sent
+              # @param debug [Boolean] Flag that enables payload debug mode
+              # @param session_id [String] V4 UUID that represents the session of the top level tracer process, often same\
+              #   as runtime_id
               def initialize(api_version:, application:, host:, payload:, request_type:, runtime_id:, seq_id:, tracer_time:,
                              debug: nil, session_id: nil)
                 validate(api_version: api_version, application: application, host: host, payload: payload,
@@ -58,6 +70,9 @@ module Datadog
 
               private
 
+              # Validates all arguments passed to the class on initialization
+              #
+              # @!visibility private
               def validate(api_version:, application:, debug:, host:, payload:, request_type:, runtime_id:, seq_id:,
                            session_id:, tracer_time:)
                 unless valid_string?(api_version) && API_VERSIONS.include?(api_version)
