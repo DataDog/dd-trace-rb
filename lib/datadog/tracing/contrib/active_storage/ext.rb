@@ -9,9 +9,7 @@ module Datadog
           APP = 'active_storage'.freeze
           ENV_ENABLED = 'DD_TRACE_ACTIVE_STORAGE_ENABLED'.freeze
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_STORAGE_ANALYTICS_ENABLED'.freeze
-          ENV_ANALYTICS_ENABLED_OLD = 'DD_ACTIVE_STORAGE_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTIVE_STORAGE_ANALYTICS_SAMPLE_RATE'.freeze
-          ENV_ANALYTICS_SAMPLE_RATE_OLD = 'DD_ACTIVE_STORAGE_ANALYTICS_SAMPLE_RATE'.freeze
           SERVICE_NAME = 'active_storage'.freeze
           SPAN_ACTION = 'active_storage.action'.freeze
           TAG_SERVICE = 'active_storage.service'.freeze
