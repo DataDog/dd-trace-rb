@@ -39,7 +39,7 @@ module Datadog
               as_content_type = payload[:content_type]
               as_disposition   = payload[:disposition]
 
-              span.service = configuration[:service_name]
+              span.service = configuration[:service_name] if configuration[:service_name]
               span.resource = "#{as_service}: #{as_key}"
               span.span_type = span_type
 

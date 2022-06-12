@@ -36,7 +36,7 @@ module Datadog
             def process(span, _event, _id, payload)
               as_key = payload[:key]
 
-              span.service = configuration[:service_name]
+              span.service = configuration[:service_name] if configuration[:service_name]
               # preview action is not specific to a service and key cardinality is too high for a resource
               # so just use resource prefix
               # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#preview-active-storage
