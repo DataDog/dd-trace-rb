@@ -12,7 +12,17 @@ module Datadog
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_ACTIVE_STORAGE_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_ACTIVE_STORAGE_ANALYTICS_SAMPLE_RATE'.freeze
           SERVICE_NAME = 'active_storage'.freeze
-          SPAN_ACTION = 'active_storage.action'.freeze
+          SPAN_DELETE = 'active_storage.delete'.freeze
+          SPAN_DELETE_PREFIXED = 'active_storage.delete_prefixed'.freeze
+          SPAN_DOWNLOAD = 'active_storage.download'.freeze
+          SPAN_DOWNLOAD_CHUNK = 'active_storage.download_chunk'.freeze
+          SPAN_EXIST = 'active_storage.exist'.freeze
+          SPAN_PREVIEW = 'active_storage.preview'.freeze
+          SPAN_STREAMING_DOWNLOAD = 'active_storage.streaming_download'.freeze
+          SPAN_TRANSFORM = 'active_storage.transform'.freeze
+          SPAN_UPDATE_METADATA = 'active_storage.update_metadata'.freeze
+          SPAN_UPLOAD = 'active_storage.upload'.freeze
+          SPAN_URL = 'active_storage.url'.freeze
           TAG_SERVICE = 'active_storage.service'.freeze
           TAG_KEY = 'active_storage.key'.freeze
           TAG_PREFIX = 'active_storage.prefix'.freeze
@@ -21,17 +31,6 @@ module Datadog
           TAG_EXIST = 'active_storage.exist'.freeze
           TAG_CONTENT_TYPE = 'active_storage.content_type'.freeze
           TAG_DISPOSITION = 'active_storage.disposition'.freeze
-          ACTION_DELETE = 'delete'.freeze
-          ACTION_DELETE_PREFIXED = 'delete_prefixed'.freeze
-          ACTION_DOWNLOAD = 'download'.freeze
-          ACTION_DOWNLOAD_CHUNK = 'download_chunk'.freeze
-          ACTION_EXIST = 'exist'.freeze
-          ACTION_PREVIEW = 'preview'.freeze
-          ACTION_STREAMING_DOWNLOAD = 'streaming_download'.freeze
-          ACTION_TRANSFORM = 'transform'.freeze
-          ACTION_UPDATE_METADATA = 'update_metadata'.freeze
-          ACTION_UPLOAD = 'upload'.freeze
-          ACTION_URL = 'url'.freeze
         end
       end
     end
