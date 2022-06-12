@@ -12,7 +12,7 @@ module Datadog
         module Events
           # Defines instrumentation for 'service_delete_prefixed.active_storage' event.
           #
-          # TODO: Define
+          # Blobs with names beginning with the given prefix were deleted
           module DeletePrefixed
             include ActiveStorage::Event
 
@@ -29,7 +29,7 @@ module Datadog
             end
 
             def span_type
-              # Interacting with a cloud based image service
+              # Interacting with a cloud-based blob service via HTTP
               Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 

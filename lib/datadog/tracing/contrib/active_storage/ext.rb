@@ -5,6 +5,7 @@ module Datadog
     module Contrib
       module ActiveStorage
         # ActiveStorage integration constants
+        # @public_api Changing resource names, tag names, or environment variables creates breaking changes.
         module Ext
           APP = 'active_storage'.freeze
           ENV_ENABLED = 'DD_TRACE_ACTIVE_STORAGE_ENABLED'.freeze

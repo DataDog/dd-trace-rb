@@ -12,7 +12,7 @@ module Datadog
         module Events
           # Defines instrumentation for 'service_exist.active_storage' event.
           #
-          # TODO: Define
+          # Existence of a blob hosted on the remote service was checked
           module Exist
             include ActiveStorage::Event
 
@@ -29,7 +29,7 @@ module Datadog
             end
 
             def span_type
-              # Interacting with a cloud based image service
+              # Interacting with a cloud-based blob service via HTTP
               Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 
