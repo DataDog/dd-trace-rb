@@ -33,16 +33,12 @@ module Datadog
               Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 
-            def resource_prefix
-              Ext::ACTION_DELETE_PREFIXED
-            end
-
             def process(span, _event, _id, payload)
               as_prefix = payload[:prefix]
               as_service = payload[:service]
 
               span.service = configuration[:service_name]
-              span.resource = "#{resource_prefix} #{as_service}"
+              span.resource = "#{as_service}: #{as_prefix}"
               span.span_type = span_type
 
               # Set analytics sample rate

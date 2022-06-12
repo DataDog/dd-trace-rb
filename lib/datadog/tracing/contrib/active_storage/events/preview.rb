@@ -33,10 +33,6 @@ module Datadog
               Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 
-            def resource_prefix
-              Ext::ACTION_PREVIEW
-            end
-
             def process(span, _event, _id, payload)
               as_key = payload[:key]
 
@@ -44,7 +40,7 @@ module Datadog
               # preview action is not specific to a service and key cardinality is too high for a resource
               # so just use resource prefix
               # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#preview-active-storage
-              span.resource = resource_prefix
+              span.resource = as_key
               span.span_type = span_type
 
               # Set analytics sample rate

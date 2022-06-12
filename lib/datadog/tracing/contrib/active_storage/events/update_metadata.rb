@@ -33,10 +33,6 @@ module Datadog
               Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 
-            def resource_prefix
-              Ext::ACTION_UPDATE_METADATA
-            end
-
             def process(span, _event, _id, payload)
               as_key = payload[:key]
               as_service = payload[:service]
@@ -44,7 +40,7 @@ module Datadog
               as_disposition   = payload[:disposition]
 
               span.service = configuration[:service_name]
-              span.resource = "#{resource_prefix} #{as_service}"
+              span.resource = "#{as_service}: #{as_key}"
               span.span_type = span_type
 
               # Set analytics sample rate

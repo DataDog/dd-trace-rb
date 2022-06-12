@@ -33,15 +33,11 @@ module Datadog
               Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             end
 
-            def resource_prefix
-              Ext::ACTION_TRANSFORM
-            end
-
             def process(span, _event, _id, payload)
-              span.service = configuration[:service_name]
               # transform contains no payload details
               # https://edgeguides.rubyonrails.org/active_support_instrumentation.html#transform-active-storage
-              span.resource = resource_prefix
+
+              span.service = configuration[:service_name]
               span.span_type = span_type
 
               # Set analytics sample rate
