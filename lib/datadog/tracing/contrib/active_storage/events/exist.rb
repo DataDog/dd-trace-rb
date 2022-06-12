@@ -25,7 +25,7 @@ module Datadog
             end
 
             def span_name
-              Ext::SPAN_ACTION
+              Ext::SPAN_EXIST
             end
 
             def span_type
