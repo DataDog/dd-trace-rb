@@ -25,7 +25,7 @@ module Datadog
             end
 
             def span_name
-              Ext::SPAN_ACTION
+              Ext::SPAN_UPDATE_METADATA
             end
 
             def span_type
