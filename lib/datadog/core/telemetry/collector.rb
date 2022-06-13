@@ -5,7 +5,7 @@ require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/application'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/environment/ext'
-require 'sys/uname'
+require 'etc'
 
 module Datadog
   module Core
@@ -59,10 +59,10 @@ module Datadog
           Telemetry::V1::Host
             .new(
               container_id: Core::Environment::Container.container_id,
-              hostname: Sys::Uname.nodename,
-              kernel_name: Sys::Uname.sysname,
-              kernel_release: Sys::Uname.release,
-              kernel_version: Sys::Uname.version
+              hostname: Etc.nodename,
+              kernel_name: Etc.sysname,
+              kernel_release: Etc.release,
+              kernel_version: Etc.version
             )
         end
       end
