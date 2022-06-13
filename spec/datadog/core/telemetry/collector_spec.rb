@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/collector'
-require 'datadog/core/telemetry/schemas/v1/base/integration'
+require 'datadog/core/telemetry/v1/integration'
 require 'ddtrace'
 require 'rake'
 
@@ -14,7 +14,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     end
 
     it 'returns an array of Dependency objects' do
-      is_expected.to all(be_a(Datadog::Core::Telemetry::Schemas::V1::Base::Dependency))
+      is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Dependency))
     end
   end
 
@@ -47,14 +47,14 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
       it 'creates a list of integrations' do
         expect(integrations.length).to eq(2)
-        expect(integrations[0]).to be_a(Datadog::Core::Telemetry::Schemas::V1::Base::Integration)
-        expect(integrations[1]).to be_a(Datadog::Core::Telemetry::Schemas::V1::Base::Integration)
-        expect(integrations[0]).to have_attributes(name: :rake, enabled: true, compatible: true, error: nil)
+        expect(integrations[0]).to be_a(Datadog::Core::Telemetry::V1::Integration)
+        expect(integrations[1]).to be_a(Datadog::Core::Telemetry::V1::Integration)
+        expect(integrations[0]).to have_attributes(name: 'rake', enabled: true, compatible: true, error: nil)
       end
 
       it 'propogates errors with integration configuration' do
         expect(integrations[1])
-          .to have_attributes(name: :pg, enabled: false, compatible: false,
+          .to have_attributes(name: 'pg', enabled: false, compatible: false,
                               error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false')
       end
     end

@@ -1,10 +1,11 @@
 # typed: true
 
-require 'datadog/core/telemetry/schemas/v1/base/dependency'
-require 'datadog/core/telemetry/schemas/v1/base/integration'
-require 'datadog/core/telemetry/schemas/v1/base/application'
-require 'datadog/core/telemetry/schemas/v1/base/host'
+require 'datadog/core/telemetry/v1/dependency'
+require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/environment/ext'
+require 'sys/uname'
 
 module Datadog
   module Core
@@ -14,15 +15,19 @@ module Datadog
         module_function
 
         def dependencies
-          Gem::Specification.map { |gem| Telemetry::Schemas::V1::Base::Dependency.new(gem.name, gem.version, gem.hash) }
+          Gem::Specification.map do |gem|
+            Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
+          end
         end
 
         def integrations
           integrations = Datadog.configuration.tracing.instrumented_integrations
           integrations.map do |name, integration|
             patch_result = integration.patch
-            Telemetry::Schemas::V1::Base::Integration
-              .new(name: name, enabled: (patch_result == true), version: integration.class.version,
+            Telemetry::V1::Integration
+              .new(name: name.to_s,
+                   enabled: (patch_result == true),
+                   version: integration.class.version ? integration.class.version.to_s : nil,
                    compatible: (patch_result == true ? true : patch_result[:compatible]),
                    error: (patch_result != true ? integration_error(patch_result) : nil))
           end
@@ -37,21 +42,28 @@ module Datadog
         end
 
         def application
-          Telemetry::Schemas::V1::Base::Application
-            .new(Datadog::Core::Environment::Ext::LANG,
-                 Datadog::Core::Environment::Ext::LANG_VERSION,
-                 Datadog::Core::Environment::Ext::ENV_SERVICE,
-                 Datadog::Core::Environment::Ext::TRACER_VERSION,
-                 Datadog::Core::Environment::Ext::ENV_ENVIRONMENT,
-                 Datadog::Core::Environment::Ext::RUBY_ENGINE,
-                 nil,
-                 Datadog::Core::Environment::Ext::ENGINE_VERSION,
-                 Datadog::Core::Environment::Ext::ENV_VERSION,
-                 nil
+          Telemetry::V1::Application
+            .new(
+              env: ENV.fetch(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT, nil),
+              language_version: Datadog::Core::Environment::Ext::LANG_VERSION,
+              runtime_name: Datadog::Core::Environment::Ext::RUBY_ENGINE,
+              runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
+              service_name: ENV.fetch(Datadog::Core::Environment::Ext::ENV_SERVICE),
+              service_version: ENV.fetch(Datadog::Core::Environment::Ext::ENV_VERSION, nil),
+              tracer_version: Datadog::Core::Environment::Ext::TRACER_VERSION,
+              language_name: Datadog::Core::Environment::Ext::LANG
             )
         end
 
         def host
+          Telemetry::V1::Host
+            .new(
+              container_id: Core::Environment::Container.container_id,
+              hostname: Sys::Uname.nodename,
+              kernel_name: Sys::Uname.sysname,
+              kernel_release: Sys::Uname.release,
+              kernel_version: Sys::Uname.version
+            )
         end
       end
     end
