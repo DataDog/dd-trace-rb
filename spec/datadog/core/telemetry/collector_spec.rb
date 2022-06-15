@@ -1,61 +1,53 @@
 require 'spec_helper'
 
+require 'datadog/core/environment/ext'
+require 'datadog/core/environment/identity'
 require 'datadog/core/telemetry/collector'
 require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/telemetry_request'
+require 'datadog/core/telemetry/v1/app_started'
 require 'ddtrace'
 require 'rake'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
-  describe '.dependencies' do
-    subject(:dependencies) { described_class.dependencies }
+  describe '::request' do
+    subject(:request) { described_class.request(request_type) }
+    let(:request_type) { 'app-started' }
 
-    it 'returns an array' do
-      is_expected.to be_a(Array)
-    end
+    context('when :request_type') do
+      context 'is app-started' do
+        let(:request_type) { 'app-started' }
 
-    it 'returns an array of Dependency objects' do
-      is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Dependency))
-    end
-  end
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name') do
+            example.run
+          end
+        end
 
-  describe '.integrations' do
-    subject(:integrations) { described_class.integrations }
+        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
 
-    it 'returns an array' do
-      is_expected.to be_a(Array)
-    end
+        context('top-level keys') do
+          before do
+            allow(Time).to receive(:now).and_return(Time.new(2020))
+          end
 
-    context 'no configuration call is made' do
-      it 'returns and empty array' do
-        is_expected.to eq([])
-      end
-    end
+          it('api_version is set to default') { expect(request.api_version).to eq('v1') }
 
-    context 'after a configure block is called' do
-      around do |example|
-        Datadog.registry[:rake].reset_configuration!
-        Datadog.registry[:pg].reset_configuration!
-        example.run
-        Datadog.registry[:rake].reset_configuration!
-        Datadog.registry[:pg].reset_configuration!
-      end
-      before do
-        Datadog.configure do |c|
-          c.tracing.instrument :rake
-          c.tracing.instrument :pg
+          it('request_type is set to app-started') { expect(request.request_type).to eq('app-started') }
+
+          it('runtime_id is set correctly') { expect(request.runtime_id).to eq(Datadog::Core::Environment::Identity.id) }
+
+          it('tracer_time is set correctly') { expect(request.tracer_time).to eq(Time.new(2020).to_i) }
+
+          it('seq_id is incremented') do
+            expect(described_class.request(request_type).seq_id).to eq(described_class.request(request_type).seq_id - 1)
+          end
         end
       end
-      it 'creates a list of integrations' do
-        expect(integrations.length).to eq(2)
-        expect(integrations[0]).to be_a(Datadog::Core::Telemetry::V1::Integration)
-        expect(integrations[1]).to be_a(Datadog::Core::Telemetry::V1::Integration)
-        expect(integrations[0]).to have_attributes(name: 'rake', enabled: true, compatible: true, error: nil)
-      end
 
-      it 'propogates errors with integration configuration' do
-        expect(integrations[1])
-          .to have_attributes(name: 'pg', enabled: false, compatible: false,
-                              error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false')
+      context 'is invalid' do
+        let(:request_type) { 'some-request-type' }
+        it { expect { request }.to raise_error(ArgumentError) }
       end
     end
   end

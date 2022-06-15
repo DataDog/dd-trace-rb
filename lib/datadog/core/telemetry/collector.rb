@@ -3,6 +3,9 @@
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/app_started'
+require 'datadog/core/telemetry/v1/telemetry_request'
+require 'datadog/core/telemetry/v1/profiler'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/environment/ext'
 require 'etc'
@@ -12,28 +15,50 @@ module Datadog
     module Telemetry
       # Module defining methods for collecting metadata
       module Collector
+        API_VERSION = 'v1'.freeze
+        @seq_id = 1
+
         module_function
 
-        def dependencies
+        def request(request_type, api_version: Collector::API_VERSION)
+          case request_type
+          when 'app-started'
+            payload = app_started
+            telemetry_request(request_type, api_version, payload)
+          else
+            raise ArgumentError, "Request type invalid received: #{request_type}"
+          end
+        end
+
+        private_class_method def self.telemetry_request(request_type, api_version, payload)
+          request = Telemetry::V1::TelemetryRequest.new(
+            api_version: api_version,
+            application: application,
+            host: host,
+            payload: payload,
+            request_type: request_type,
+            runtime_id: Datadog::Core::Environment::Identity.id,
+            seq_id: @seq_id,
+            tracer_time: Time.now.to_i,
+          )
+          @seq_id += 1
+          request
+        end
+
+        private_class_method def self.app_started
+          Telemetry::V1::AppStarted.new(
+            dependencies: dependencies,
+            integrations: integrations
+          )
+        end
+
+        private_class_method def self.dependencies
           Gem::Specification.map do |gem|
             Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
           end
         end
 
-        def integrations
-          integrations = Datadog.configuration.tracing.instrumented_integrations
-          integrations.map do |name, integration|
-            patch_result = integration.patch
-            Telemetry::V1::Integration
-              .new(name: name.to_s,
-                   enabled: (patch_result == true),
-                   version: integration.class.version ? integration.class.version.to_s : nil,
-                   compatible: (patch_result == true ? true : patch_result[:compatible]),
-                   error: (patch_result != true ? integration_error(patch_result) : nil))
-          end
-        end
-
-        def integration_error(patch_result)
+        private_class_method def self.integration_error(patch_result)
           desc = "Available?: #{patch_result[:available]}"
           desc += ", Loaded? #{patch_result[:loaded]}"
           desc += ", Compatible? #{patch_result[:compatible]}"
@@ -41,7 +66,23 @@ module Datadog
           desc
         end
 
-        def application
+        private_class_method def self.integrations
+          registry = Datadog.registry
+          instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
+          registry.map do |integration|
+            is_instrumented = instrumented_integrations.include?(integration.name)
+            is_enabled = is_instrumented && instrumented_integrations[integration.name].patch == true
+            Telemetry::V1::Integration
+              .new(name: integration.name.to_s,
+                   enabled: is_enabled,
+                   version: integration.klass.class.version ? integration.klass.class.version.to_s : nil,
+                   compatible: integration.klass.class.compatible?,
+                   error: is_instrumented && !is_enabled ? integration_error(instrumented_integrations[integration.name].patch) : nil,
+                   auto_enabled: integration.klass.auto_instrument?) # is this the right value?
+          end
+        end
+
+        private_class_method def self.application
           Telemetry::V1::Application
             .new(
               env: ENV.fetch(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT, nil),
@@ -51,20 +92,41 @@ module Datadog
               service_name: ENV.fetch(Datadog::Core::Environment::Ext::ENV_SERVICE),
               service_version: ENV.fetch(Datadog::Core::Environment::Ext::ENV_VERSION, nil),
               tracer_version: Datadog::Core::Environment::Ext::TRACER_VERSION,
-              language_name: Datadog::Core::Environment::Ext::LANG
+              language_name: Datadog::Core::Environment::Ext::LANG,
+              products: products
             )
         end
 
-        def host
+        private_class_method def self.host
           Telemetry::V1::Host
             .new(
               container_id: Core::Environment::Container.container_id,
-              hostname: Etc.nodename,
-              kernel_name: Etc.sysname,
-              kernel_release: Etc.release,
-              kernel_version: Etc.version
+              hostname: Etc.uname[:nodename],
+              kernel_name: Etc.uname[:sysname],
+              kernel_release: Etc.uname[:release],
+              kernel_version: Etc.uname[:version]
             )
         end
+
+        private_class_method def self.configuration
+          configurations = []
+          ENV.each do |key, value|
+            next unless key.to_s.include?('DD') && !value.empty?
+
+            configurations.append(Telemetry::V1::Configuration.new(name: key, value: value))
+          end
+          configurations
+        end
+
+        private_class_method def self.products
+          Telemetry::V1::Product.new(profiler: profiling)
+        end
+
+        private_class_method def self.profiling
+          Datadog.configuration.respond_to?(:profiling) ? Telemetry::V1::Profiler.new(version: Core::Environment::Identity.tracer_version) : nil
+        end
+
+        def appsec; end
       end
     end
   end
