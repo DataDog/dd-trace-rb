@@ -1,32 +1,33 @@
 # typed: true
 
-require 'datadog/core/telemetry/v1/dependency'
-require 'datadog/core/telemetry/v1/integration'
-require 'datadog/core/telemetry/v1/application'
-require 'datadog/core/telemetry/v1/app_started'
-require 'datadog/core/telemetry/v1/telemetry_request'
-require 'datadog/core/telemetry/v1/profiler'
-require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/environment/ext'
+require 'datadog/core/telemetry/v1/app_started'
+require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/dependency'
+require 'datadog/core/telemetry/v1/host'
+require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/profiler'
+require 'datadog/core/telemetry/v1/telemetry_request'
 require 'etc'
 
 module Datadog
   module Core
     module Telemetry
       # Module defining methods for collecting metadata
+      # rubocop:disable Metrics/ModuleLength
       module Collector
         API_VERSION = 'v1'.freeze
         @seq_id = 1
 
         module_function
 
-        def request(request_type, api_version: Collector::API_VERSION)
+        def request(request_type, api_version = Collector::API_VERSION)
           case request_type
           when 'app-started'
             payload = app_started
             telemetry_request(request_type, api_version, payload)
           else
-            raise ArgumentError, "Request type invalid received: #{request_type}"
+            raise ArgumentError, "Request type invalid, received request_type: #{request_type}"
           end
         end
 
@@ -48,7 +49,8 @@ module Datadog
         private_class_method def self.app_started
           Telemetry::V1::AppStarted.new(
             dependencies: dependencies,
-            integrations: integrations
+            integrations: integrations,
+            configuration: configuration
           )
         end
 
@@ -77,8 +79,10 @@ module Datadog
                    enabled: is_enabled,
                    version: integration.klass.class.version ? integration.klass.class.version.to_s : nil,
                    compatible: integration.klass.class.compatible?,
-                   error: is_instrumented && !is_enabled ? integration_error(instrumented_integrations[integration.name].patch) : nil,
-                   auto_enabled: integration.klass.auto_instrument?) # is this the right value?
+                   error: if is_instrumented && !is_enabled
+                            integration_error(instrumented_integrations[integration.name].patch)
+                          end,
+                   auto_enabled: is_enabled ? integration.klass.auto_instrument? : nil) # is this the right value?
           end
         end
 
@@ -98,14 +102,19 @@ module Datadog
         end
 
         private_class_method def self.host
-          Telemetry::V1::Host
-            .new(
-              container_id: Core::Environment::Container.container_id,
-              hostname: Etc.uname[:nodename],
-              kernel_name: Etc.uname[:sysname],
-              kernel_release: Etc.uname[:release],
-              kernel_version: Etc.uname[:version]
-            )
+          # Etc.uname is only available in stdlib from Ruby v2.2 onwards
+          if Datadog::Core::Environment::Ext::LANG_VERSION < '2.2'
+            Telemetry::V1::Host.new(container_id: Core::Environment::Container.container_id)
+          else
+            Telemetry::V1::Host
+              .new(
+                container_id: Core::Environment::Container.container_id,
+                hostname: Etc.uname[:nodename],
+                kernel_name: Etc.uname[:sysname],
+                kernel_release: Etc.uname[:release],
+                kernel_version: Etc.uname[:version]
+              )
+          end
         end
 
         private_class_method def self.configuration
@@ -119,15 +128,22 @@ module Datadog
         end
 
         private_class_method def self.products
-          Telemetry::V1::Product.new(profiler: profiling)
+          Telemetry::V1::Product.new(profiler: profiling, appsec: appsec)
         end
 
         private_class_method def self.profiling
-          Datadog.configuration.respond_to?(:profiling) ? Telemetry::V1::Profiler.new(version: Core::Environment::Identity.tracer_version) : nil
+          if Datadog.configuration.respond_to?(:profiling)
+            Telemetry::V1::Profiler.new(version: Core::Environment::Identity.tracer_version)
+          end
         end
 
-        def appsec; end
+        private_class_method def self.appsec
+          if Datadog.configuration.respond_to?(:appsec)
+            Telemetry::V1::Profiler.new(version: Core::Environment::Identity.tracer_version)
+          end
+        end
       end
     end
+    # rubocop:enable Metrics/ModuleLength
   end
 end
