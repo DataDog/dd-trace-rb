@@ -122,7 +122,7 @@ module Datadog
           ENV.each do |key, value|
             next unless key.to_s.include?('DD') && !value.empty?
 
-            configurations.append(Telemetry::V1::Configuration.new(name: key, value: value))
+            configurations << Telemetry::V1::Configuration.new(name: key, value: value)
           end
           configurations
         end
@@ -139,7 +139,7 @@ module Datadog
 
         private_class_method def self.appsec
           if Datadog.configuration.respond_to?(:appsec)
-            Telemetry::V1::Profiler.new(version: Core::Environment::Identity.tracer_version)
+            Telemetry::V1::AppSec.new(version: Core::Environment::Identity.tracer_version)
           end
         end
       end

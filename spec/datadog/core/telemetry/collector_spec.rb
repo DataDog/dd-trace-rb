@@ -1,14 +1,15 @@
 require 'spec_helper'
 
-require 'ddtrace/version'
+require 'datadog/appsec'
 require 'datadog/core/environment/ext'
 require 'datadog/core/environment/identity'
 require 'datadog/core/telemetry/collector'
+require 'datadog/core/telemetry/v1/app_started'
 require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/telemetry_request'
-require 'datadog/core/telemetry/v1/app_started'
 require 'ddtrace'
+require 'ddtrace/version'
 require 'rake'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
@@ -118,9 +119,26 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
                 end
 
                 it { expect(products).to respond_to(:profiler) }
+                it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
 
                 it('profiler product has same version as tracer') do
                   expect(products.profiler).to have_attributes(version: '4.2')
+                end
+              end
+
+              context 'when appsec is enabled' do
+                before do
+                  stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+                  Datadog.configure do |c|
+                    c.appsec.enabled = true
+                  end
+                end
+
+                it { expect(products).to respond_to(:appsec) }
+                it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
+
+                it('appsec product has same version as tracer') do
+                  expect(products.appsec).to have_attributes(version: '4.2')
                 end
               end
             end
