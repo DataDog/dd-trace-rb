@@ -16,12 +16,12 @@ module Datadog
       # Module defining methods for collecting metadata
       # rubocop:disable Metrics/ModuleLength
       module Collector
+        include Kernel
+
         API_VERSION = 'v1'.freeze
         @seq_id = 1
 
-        module_function
-
-        def request(request_type, api_version = Collector::API_VERSION)
+        def self.request(request_type, api_version = Collector::API_VERSION)
           case request_type
           when 'app-started'
             payload = app_started
@@ -104,7 +104,10 @@ module Datadog
         private_class_method def self.host
           # Etc.uname is only available in stdlib from Ruby v2.2 onwards
           if Datadog::Core::Environment::Ext::LANG_VERSION < '2.2'
-            Telemetry::V1::Host.new(container_id: Core::Environment::Container.container_id)
+            Telemetry::V1::Host.new(
+              container_id: Core::Environment::Container.container_id,
+              kernel_name: Gem::Platform.local.os
+            )
           else
             Telemetry::V1::Host
               .new(
