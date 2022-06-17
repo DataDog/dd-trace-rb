@@ -10,7 +10,6 @@ require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/telemetry_request'
 require 'ddtrace'
 require 'ddtrace/version'
-# require 'rake'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
   let(:dummy_class) { Class.new { extend(Datadog::Core::Telemetry::Collector) } }
@@ -134,28 +133,38 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
     it { is_expected.to be_a_kind_of(Array) }
     it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Configuration)) }
-    it { is_expected.to all(have_attributes(:name => start_with('DD'))) }
     it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
+    it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
 
     context 'when DD environment variable' do
-      let(:dd_variable_value) { 'test' }
-
+      let(:test_site) { 'test' }
       around do |example|
-        ClimateControl.modify DD_TEST: dd_variable_value do
+        ClimateControl.modify DD_SITE: test_site do
           example.run
         end
       end
 
       context 'is set' do
-        let(:dd_variable_value) { 'test' }
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_TEST', :value => 'test')) }
+        let(:test_site) { 'test' }
+        it { is_expected.to include(an_object_having_attributes(:name => 'site', :value => test_site)) }
       end
 
       context 'is nil' do
-        let(:dd_variable_value) { nil }
-        it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
-        it { is_expected.to_not include(an_object_having_attributes(:name => 'DD_TEST')) }
+        let(:test_site) { nil }
+        it { is_expected.to_not include(an_object_having_attributes(:name => 'site')) }
       end
+    end
+
+    context 'when DD environment variable of embedded config is set' do
+      around do |example|
+        ClimateControl.modify DD_PROFILING_ENDPOINT_COLLECTION_ENABLED: 'false' do
+          example.run
+        end
+      end
+      it {
+        is_expected.to include(an_object_having_attributes(:name => 'profiling.advanced.endpoint.collection.enabled',
+                                                           :value => false))
+      }
     end
   end
 
