@@ -12,12 +12,19 @@ module Datadog
         #
         # If a span does not conform to the matcher, no changes are made.
         class Rule
+          attr_reader :matcher, :sampling_rate, :rate_limit
+
           # Creates a new span sampling rule.
           #
           # @param [Sampling::Span::Matcher] matcher whether this rule applies to a specific span
           # @param [Float] sampling_rate span sampling ratio, between 0.0 (0%) and 1.0 (100%).
           # @param [Numeric] rate_limit maximum number of spans sampled per second. Negative numbers mean unlimited spans.
-          def initialize(matcher, sampling_rate, rate_limit)
+          def initialize(
+            matcher,
+            sampling_rate: Span::Ext::DEFAULT_SAMPLE_RATE,
+            rate_limit: Span::Ext::DEFAULT_MAX_PER_SECOND
+          )
+
             @matcher = matcher
             @sampling_rate = sampling_rate
             @rate_limit = rate_limit

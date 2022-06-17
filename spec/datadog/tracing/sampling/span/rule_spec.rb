@@ -2,7 +2,7 @@ require 'datadog/tracing/sampling/span/matcher'
 require 'datadog/tracing/sampling/span/rule'
 
 RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
-  subject(:rule) { described_class.new(matcher, sampling_rate, rate_limit) }
+  subject(:rule) { described_class.new(matcher, sampling_rate: sampling_rate, rate_limit: rate_limit) }
   let(:matcher) { instance_double(Datadog::Tracing::Sampling::Span::Matcher) }
   let(:sampling_rate) { 0.0 }
   let(:rate_limit) { 0 }
@@ -10,6 +10,19 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
   let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service) }
   let(:span_name) { 'operation.name' }
   let(:span_service) { '' }
+
+  describe '#initialize' do
+    subject(:rule) { described_class.new(matcher) }
+    context 'default values' do
+      it 'sets sampling rate to 100%' do
+        expect(rule.sampling_rate).to eq(1.0)
+      end
+
+      it 'sets rate limit unlimited' do
+        expect(rule.rate_limit).to eq(-1)
+      end
+    end
+  end
 
   describe '#sample!' do
     subject(:sample!) { rule.sample!(span_op) }
