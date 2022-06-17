@@ -11,6 +11,7 @@ require 'datadog/tracing/context_provider'
 require 'datadog/tracing/sampling/all_sampler'
 require 'datadog/tracing/sampling/rule_sampler'
 require 'datadog/tracing/sampling/priority_sampler'
+require 'datadog/tracing/sampling/span/sampler'
 require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
@@ -28,6 +29,7 @@ module Datadog
         :trace_flush,
         :provider,
         :sampler,
+        :span_sampler,
         :tags
 
       attr_accessor \
@@ -56,6 +58,7 @@ module Datadog
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
         ),
+        span_sampler: Sampling::Span::Sampler.new,
         tags: {},
         writer: Writer.new
       )
@@ -64,6 +67,7 @@ module Datadog
         @enabled = enabled
         @provider = context_provider
         @sampler = sampler
+        @span_sampler = span_sampler
         @tags = tags
         @writer = writer
       end
@@ -341,7 +345,8 @@ module Datadog
           sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
-        events.span_finished.subscribe do |_event_span, event_trace_op|
+        events.span_finished.subscribe do |event_span, event_trace_op|
+          sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
       end
@@ -461,7 +466,15 @@ module Datadog
         begin
           @sampler.sample!(trace_op)
         rescue StandardError => e
-          Datadog.logger.debug { "Failed to sample trace: #{e}" }
+          Datadog.logger.warn { "Failed to sample trace: #{e}" }
+        end
+      end
+
+      def sample_span(trace_op, span)
+        begin
+          @span_sampler.sample!(trace_op, span)
+        rescue StandardError => e
+          Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
         end
       end
 
