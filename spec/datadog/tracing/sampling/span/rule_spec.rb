@@ -2,9 +2,9 @@ require 'datadog/tracing/sampling/span/matcher'
 require 'datadog/tracing/sampling/span/rule'
 
 RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
-  subject(:rule) { described_class.new(matcher, sampling_rate: sampling_rate, rate_limit: rate_limit) }
+  subject(:rule) { described_class.new(matcher, sample_rate: sample_rate, rate_limit: rate_limit) }
   let(:matcher) { instance_double(Datadog::Tracing::Sampling::Span::Matcher) }
-  let(:sampling_rate) { 0.0 }
+  let(:sample_rate) { 0.0 }
   let(:rate_limit) { 0 }
 
   let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service) }
@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
     subject(:rule) { described_class.new(matcher) }
     context 'default values' do
       it 'sets sampling rate to 100%' do
-        expect(rule.sampling_rate).to eq(1.0)
+        expect(rule.sample_rate).to eq(1.0)
       end
 
       it 'sets rate limit unlimited' do
@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
       end
 
       context 'not sampled' do
-        let(:sampling_rate) { 0.0 }
+        let(:sample_rate) { 0.0 }
 
         it 'returns false' do
           is_expected.to eq(false)
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
       end
 
       context 'sampled' do
-        let(:sampling_rate) { 1.0 }
+        let(:sample_rate) { 1.0 }
 
         context 'rate limited' do
           let(:rate_limit) { 0 }

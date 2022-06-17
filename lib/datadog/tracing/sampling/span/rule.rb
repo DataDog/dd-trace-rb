@@ -12,25 +12,25 @@ module Datadog
         #
         # If a span does not conform to the matcher, no changes are made.
         class Rule
-          attr_reader :matcher, :sampling_rate, :rate_limit
+          attr_reader :matcher, :sample_rate, :rate_limit
 
           # Creates a new span sampling rule.
           #
           # @param [Sampling::Span::Matcher] matcher whether this rule applies to a specific span
-          # @param [Float] sampling_rate span sampling ratio, between 0.0 (0%) and 1.0 (100%).
+          # @param [Float] sample_rate span sampling ratio, between 0.0 (0%) and 1.0 (100%).
           # @param [Numeric] rate_limit maximum number of spans sampled per second. Negative numbers mean unlimited spans.
           def initialize(
             matcher,
-            sampling_rate: Span::Ext::DEFAULT_SAMPLE_RATE,
+            sample_rate: Span::Ext::DEFAULT_SAMPLE_RATE,
             rate_limit: Span::Ext::DEFAULT_MAX_PER_SECOND
           )
 
             @matcher = matcher
-            @sampling_rate = sampling_rate
+            @sample_rate = sample_rate
             @rate_limit = rate_limit
 
             @sampler = Sampling::RateSampler.new
-            @sampler.sample_rate = sampling_rate
+            @sampler.sample_rate = sample_rate
             @rate_limiter = Sampling::TokenBucket.new(rate_limit)
           end
 
@@ -56,7 +56,7 @@ module Datadog
 
             if @sampler.sample?(span_op) && @rate_limiter.allow?(1)
               span_op.set_metric(Span::Ext::TAG_MECHANISM, Span::Ext::MECHANISM_SPAN_SAMPLING_RATE)
-              span_op.set_metric(Span::Ext::TAG_RULE_RATE, @sampling_rate)
+              span_op.set_metric(Span::Ext::TAG_RULE_RATE, @sample_rate)
               span_op.set_metric(Span::Ext::TAG_MAX_PER_SECOND, @rate_limit)
               true
             else
