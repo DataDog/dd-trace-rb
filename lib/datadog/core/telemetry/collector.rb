@@ -21,14 +21,14 @@ module Datadog
           Telemetry::V1::Application
             .new(
               env: env,
+              language_name: Datadog::Core::Environment::Ext::LANG,
               language_version: Datadog::Core::Environment::Ext::LANG_VERSION,
+              products: products,
               runtime_name: Datadog::Core::Environment::Ext::RUBY_ENGINE,
               runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
               service_name: service_name,
               service_version: service_version,
-              tracer_version: Datadog::Core::Environment::Ext::TRACER_VERSION,
-              language_name: Datadog::Core::Environment::Ext::LANG,
-              products: products
+              tracer_version: Datadog::Core::Environment::Ext::TRACER_VERSION
             )
         end
 
@@ -64,12 +64,14 @@ module Datadog
             is_instrumented = instrumented?(integration)
             is_enabled = is_instrumented && patched?(integration)
             Telemetry::V1::Integration
-              .new(name: integration.name.to_s,
-                   enabled: is_enabled,
-                   version: integration_version(integration),
-                   compatible: integration_compatible?(integration),
-                   error: (integration_error(integration) if is_instrumented && !is_enabled),
-                   auto_enabled: is_enabled ? integration_auto_instrument?(integration) : nil)
+              .new(
+                name: integration.name.to_s,
+                enabled: is_enabled,
+                version: integration_version(integration),
+                compatible: integration_compatible?(integration),
+                error: (integration_error(integration) if is_instrumented && !is_enabled),
+                auto_enabled: is_enabled ? integration_auto_instrument?(integration) : nil
+              )
           end
         end
 
