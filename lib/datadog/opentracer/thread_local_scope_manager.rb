@@ -1,10 +1,19 @@
-# typed: true
+# typed: false
+
+require 'datadog/core/utils/sequence'
 
 module Datadog
   module OpenTracer
     # OpenTracing adapter for thread local scope management
     # @public_api
     class ThreadLocalScopeManager < ScopeManager
+      def initialize(*args, &block)
+        super(*args, &block)
+        @thread_key = "dd_opentracer_context_#{ThreadLocalScopeManager.next_instance_id}".to_sym
+      end
+
+      ruby2_keywords :initialize if respond_to?(:ruby2_keywords, true)
+
       # Make a span instance active.
       #
       # @param span [Span] the Span that should become active
@@ -30,13 +39,25 @@ module Datadog
       # (as Reference#CHILD_OF) of any newly-created Span at Tracer#start_active_span
       # or Tracer#start_span time.
       def active
-        Thread.current[object_id.to_s]
+        Thread.current[@thread_key]
+      end
+
+      # Ensure two instances of {FiberLocalContext} do not conflict.
+      # We previously used {FiberLocalContext#object_id} to ensure uniqueness
+      # but the VM is allowed to reuse `object_id`, allow for the possibility that
+      # a new FiberLocalContext would be able to read an old FiberLocalContext's
+      # value.
+      @mutex = Mutex.new
+      @unique_instance_id = Datadog::Core::Utils::Sequence.new
+
+      def self.next_instance_id
+        @mutex.synchronize { @unique_instance_id.next }
       end
 
       private
 
       def set_scope(scope)
-        Thread.current[object_id.to_s] = scope
+        Thread.current[@thread_key] = scope
       end
     end
   end
