@@ -7,19 +7,25 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   subject(:event) { described_class.new(api_version: api_version) }
   let(:api_version) { 'v1' }
 
-  # DD_SERVICE must be set in the application
-  around do |example|
-    ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'env_service') do
-      example.run
-    end
-  end
-
   describe '#initialize' do
+    subject(:event) { described_class.new(api_version: api_version) }
+
     context ':api_version' do
-      it_behaves_like 'a required string parameter', 'api_version'
-      context 'defaults to v1 when not provided' do
+      let(:api_version) { 'v1' }
+
+      context 'when not provided' do
         subject(:event) { described_class.new }
         it { is_expected.to have_attributes(api_version: 'v1') }
+      end
+
+      context 'when provided with valid value' do
+        let(:api_version) { 'v1' }
+        it { is_expected.to have_attributes(api_version: 'v1') }
+      end
+
+      context 'when given invalid value' do
+        let(:api_version) { 'v2' }
+        it { expect { event }.to raise_error(ArgumentError) }
       end
     end
   end
@@ -54,18 +60,6 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       context 'is invalid option' do
         let(:request_type) { 'some-request-type' }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-    end
-
-    context('when :api_version') do
-      context 'is nil' do
-        let(:api_version) { nil }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is valid version' do
-        let(:api_version) { 'v1' }
-        it { expect(telemetry_request.api_version).to eq('v1') }
       end
     end
   end
