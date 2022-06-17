@@ -72,6 +72,10 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       context 'when profiling and appsec are disabled' do
         before do
+          Datadog.configuration.profiling.enabled = false
+          Datadog.configuration.appsec.enabled = false
+        end
+        after do
           Datadog.configuration.profiling.send(:reset!)
           Datadog.configuration.appsec.send(:reset!)
         end
