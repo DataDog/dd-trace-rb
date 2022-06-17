@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
         end
 
         context 'not rate limited' do
-          let(:rate_limit) { 10 }
+          let(:rate_limit) { 3 }
 
           it 'returns true' do
             is_expected.to eq(true)
@@ -58,7 +58,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
 
             expect(span_op.get_metric('_dd.span_sampling.mechanism')).to eq(8)
             expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
-            expect(span_op.get_metric('_dd.span_sampling.limit_rate')).to eq(1.0)
+            expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
           end
         end
       end

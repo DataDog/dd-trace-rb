@@ -8,11 +8,10 @@ module Datadog
         class Ext
           # Sampling decision method used to come to the sampling decision for this span
           TAG_MECHANISM = '_dd.span_sampling.mechanism'
-          # Sampling rate applied to this span
+          # Sampling rate applied to this span, if a rule applies
           TAG_RULE_RATE = '_dd.span_sampling.rule_rate'
-          # Effective sampling ratio for the rate limiter configured for this span
-          # @see Datadog::Tracing::Sampling::TokenBucket#effective_rate
-          TAG_LIMIT_RATE = '_dd.span_sampling.limit_rate'
+          # Rate limit configured for this span, if a rule applies
+          TAG_MAX_PER_SECOND = '_dd.span_sampling.max_per_second'
 
           # This span was sampled on account of a Span Sampling Rule
           # @see Datadog::Tracing::Sampling::Span::Rule
