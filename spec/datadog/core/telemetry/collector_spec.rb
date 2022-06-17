@@ -10,169 +10,263 @@ require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/telemetry_request'
 require 'ddtrace'
 require 'ddtrace/version'
-require 'rake'
+# require 'rake'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
-  describe '::request' do
-    subject(:request) { described_class.request(request_type) }
-    let(:request_type) { 'app-started' }
+  let(:dummy_class) { Class.new { extend(Datadog::Core::Telemetry::Collector) } }
 
-    # we need to ensure the service is set
+  describe '#application' do
+    subject(:application) { dummy_class.application }
+    let(:env_service) { 'default-service' }
+
     around do |example|
-      ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'service') do
+      ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => env_service) do
         example.run
       end
     end
 
-    context('when :request_type') do
-      context 'is app-started' do
-        let(:request_type) { 'app-started' }
+    it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Application) }
 
-        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
+    describe ':env' do
+      subject(:env) { application.env }
 
-        context('top-level keys') do
-          before do
-            allow(Time).to receive(:now).and_return(Time.new(2020))
-          end
-          it('api_version is set to default v1') { expect(request.api_version).to eq('v1') }
+      context 'when DD_ENV not set' do
+        it { is_expected.to be_nil }
+      end
 
-          it('request_type is set to app-started') { expect(request.request_type).to eq('app-started') }
-
-          it('runtime_id is set correctly') { expect(request.runtime_id).to eq(Datadog::Core::Environment::Identity.id) }
-
-          it('tracer_time is set correctly') { expect(request.tracer_time).to eq(1577836800) }
-
-          it('seq_id is incremented') do
-            expect(described_class.request(request_type).seq_id).to eq(described_class.request(request_type).seq_id - 1)
+      context 'when DD_env set' do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT => 'test_env') do
+            example.run
           end
         end
+        it('reads value correctly') { is_expected.to eql('test_env') }
+      end
+    end
 
-        context('payload') do
-          let(:payload) { request.payload }
-          around do |example|
-            ClimateControl.modify DD_SERVICE: 'my-test-service' do
-              example.run
-            end
-          end
-          it 'configuration is set via environment variables' do
-            expect(payload.configuration)
-              .to include(an_object_having_attributes(name: 'DD_SERVICE', value: 'my-test-service'))
-          end
+    describe ':service_name' do
+      subject(:service_name) { application.service_name }
+      let(:env_service) { 'test-service' }
+      it('reads value correctly') { is_expected.to eql('test-service') }
+    end
 
-          context 'integrations' do
-            let(:integrations) { payload.integrations }
+    describe ':service_version' do
+      subject(:service_version) { application.service_version }
 
-            it('contains list of all integrations') { expect(integrations.length).to eq(Datadog.registry.entries.length) }
+      context 'when DD_VERSION not set' do
+        it { is_expected.to be_nil }
+      end
 
-            context 'after a configure block is called' do
-              around do |example|
-                Datadog.registry[:rake].reset_configuration!
-                Datadog.registry[:pg].reset_configuration!
-                example.run
-                Datadog.registry[:rake].reset_configuration!
-                Datadog.registry[:pg].reset_configuration!
-              end
-              before do
-                Datadog.configure do |c|
-                  c.tracing.instrument :rake
-                  c.tracing.instrument :pg
-                end
-              end
-
-              it 'sets integration as enabled' do
-                expect(integrations).to include(an_object_having_attributes(
-                                                  name: 'rake',
-                                                  enabled: true,
-                                                  compatible: true,
-                                                  error: nil
-                                                ))
-              end
-
-              it 'propogates errors with configuration' do
-                expect(integrations)
-                  .to include(an_object_having_attributes(
-                                name: 'pg',
-                                enabled: false,
-                                compatible: false,
-                                error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false'
-                              ))
-              end
-            end
-          end
-
-          context 'application' do
-            let(:application) { request.application }
-
-            context 'products' do
-              let(:products) { application.products }
-
-              context 'when no products enabled' do
-                it { expect(request).not_to respond_to(:products) }
-              end
-
-              context 'when profiling is enabled' do
-                before do
-                  stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
-                  Datadog.configure do |c|
-                    c.profiling.enabled = true
-                  end
-                end
-
-                it { expect(products).to respond_to(:profiler) }
-                it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
-
-                it('profiler product has same version as tracer') do
-                  expect(products.profiler).to have_attributes(version: '4.2')
-                end
-              end
-
-              context 'when appsec is enabled' do
-                before do
-                  stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
-                  Datadog.configure do |c|
-                    c.appsec.enabled = true
-                  end
-                end
-
-                it { expect(products).to respond_to(:appsec) }
-                it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
-
-                it('appsec product has same version as tracer') do
-                  expect(products.appsec).to have_attributes(version: '4.2')
-                end
-              end
-            end
+      context 'when DD_VERSION set' do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_VERSION => '4.2.0') do
+            example.run
           end
         end
+        it('reads value correctly') { is_expected.to eql('4.2.0') }
+      end
+    end
+
+    describe ':products' do
+      subject(:products) { application.products }
+
+      context 'when profiling and appsec are disabled' do
+        before do
+          Datadog.configuration.profiling.send(:reset!)
+          Datadog.configuration.appsec.send(:reset!)
+        end
+        it { is_expected.to be_nil }
+      end
+
+      context 'when profiling is enabled' do
+        before do
+          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+          Datadog.configure do |c|
+            c.profiling.enabled = true
+          end
+        end
+        after { Datadog.configuration.profiling.send(:reset!) }
+
+        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
+        it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
+        it { expect(products.profiler).to have_attributes(version: '4.2') }
+      end
+
+      context 'when appsec is enabled' do
+        before do
+          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+          Datadog.configure do |c|
+            c.appsec.enabled = true
+          end
+        end
+        after { Datadog.configuration.appsec.send(:reset!) }
+
+        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
+        it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
+        it { expect(products.appsec).to have_attributes(version: '4.2') }
+      end
+
+      context 'when both profiler and appsec are enabled' do
+        before do
+          Datadog.configure do |c|
+            c.profiling.enabled = true
+            c.appsec.enabled = true
+          end
+        end
+        after do
+          Datadog.configuration.profiling.send(:reset!)
+          Datadog.configuration.appsec.send(:reset!)
+        end
+
+        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
+        it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
+        it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
+      end
+    end
+  end
+
+  describe '#configurations' do
+    subject(:configurations) { dummy_class.configurations }
+
+    it { is_expected.to be_a_kind_of(Array) }
+    it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Configuration)) }
+    it { is_expected.to all(have_attributes(:name => start_with('DD'))) }
+    it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
+
+    context 'when DD environment variable' do
+      let(:dd_variable_value) { 'test' }
+
+      around do |example|
+        ClimateControl.modify DD_TEST: dd_variable_value do
+          example.run
+        end
+      end
+
+      context 'is set' do
+        let(:dd_variable_value) { 'test' }
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_TEST', :value => 'test')) }
       end
 
       context 'is nil' do
-        let(:request_type) { nil }
-        it { expect { request }.to raise_error(ArgumentError) }
+        let(:dd_variable_value) { nil }
+        it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
+        it { is_expected.to_not include(an_object_having_attributes(:name => 'DD_TEST')) }
       end
+    end
+  end
 
-      context 'is invalid option' do
-        let(:request_type) { 'some-request-type' }
-        it { expect { request }.to raise_error(ArgumentError) }
+  describe '#dependencies' do
+    subject(:dependencies) { dummy_class.dependencies }
+
+    it { is_expected.to be_a_kind_of(Array) }
+    it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Dependency)) }
+  end
+
+  describe '#host' do
+    subject(:host) { dummy_class.host }
+
+    it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Host) }
+
+    describe ':hostname' do
+      subject(:hostname) { host.hostname }
+      if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
+        it { is_expected.to eql(`uname -n`.strip) }
+      else
+        it { is_expected.to be_nil }
       end
     end
 
-    context('when :api_version') do
-      subject(:request) { described_class.request(request_type, api_version) }
-      let(:request_type) { 'app-started' }
-      let(:api_version) { 'v1' }
+    describe ':kernel_name' do
+      subject(:kernel_name) { host.kernel_name }
+      it { is_expected.to be_a_kind_of(String) }
+      it { is_expected.to eql(`uname -s`.strip) }
+    end
 
-      it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
+    describe ':kernel_release' do
+      subject(:kernel_release) { host.kernel_release }
 
-      context 'is valid version' do
-        let(:api_version) { 'v1' }
-        it { expect(request.api_version).to eq('v1') }
-      end
-
-      context 'is not a valid version' do
-        let(:api_version) { 'v2' }
-        it { expect { request }.to raise_error(ArgumentError) }
+      if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
+        it { is_expected.to be_a_kind_of(String) }
+        it { is_expected.to eql(`uname -r`.strip) }
+      else
+        it { is_expected.to be_nil }
       end
     end
+
+    describe ':kernel_version' do
+      subject(:kernel_version) { host.kernel_version }
+
+      if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
+        it { is_expected.to be_a_kind_of(String) }
+        it { is_expected.to eql(`uname -v`.strip) }
+      else
+        it { is_expected.to be_nil }
+      end
+    end
+  end
+
+  describe '#integrations' do
+    subject(:integrations) { dummy_class.integrations }
+
+    it { is_expected.to be_a_kind_of(Array) }
+    it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Integration)) }
+    it('contains list of all integrations') { expect(integrations.length).to eq(Datadog.registry.entries.length) }
+
+    context 'when a configure block is called' do
+      around do |example|
+        Datadog.registry[:rake].reset_configuration!
+        Datadog.registry[:pg].reset_configuration!
+        example.run
+        Datadog.registry[:rake].reset_configuration!
+        Datadog.registry[:pg].reset_configuration!
+      end
+      before do
+        require 'rake'
+        Datadog.configure do |c|
+          c.tracing.instrument :rake
+          c.tracing.instrument :pg
+        end
+      end
+
+      it 'sets integration as enabled' do
+        expect(integrations).to include(an_object_having_attributes(
+                                          name: 'rake',
+                                          enabled: true,
+                                          compatible: true,
+                                          error: nil
+                                        ))
+      end
+
+      it 'propogates errors with configuration' do
+        expect(integrations)
+          .to include(an_object_having_attributes(
+                        name: 'pg',
+                        enabled: false,
+                        compatible: false,
+                        error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false'
+                      ))
+      end
+    end
+  end
+
+  describe '#runtime_id' do
+    subject(:runtime_id) { dummy_class.runtime_id }
+
+    it { is_expected.to be_a_kind_of(String) }
+
+    context 'when invoked twice' do
+      it { is_expected.to eq(runtime_id) }
+    end
+  end
+
+  describe '#tracer_time' do
+    subject(:tracer_time) { dummy_class.tracer_time }
+
+    before do
+      allow(Time).to receive(:now).and_return(Time.new(2020))
+    end
+
+    it { is_expected.to be_a_kind_of(Integer) }
+    it('captures time with Time.now') { is_expected.to eq(1577836800) }
   end
 end

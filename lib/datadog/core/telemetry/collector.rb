@@ -1,5 +1,7 @@
 # typed: true
 
+require 'etc'
+
 require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/v1/app_started'
 require 'datadog/core/telemetry/v1/application'
@@ -8,142 +10,174 @@ require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/profiler'
 require 'datadog/core/telemetry/v1/telemetry_request'
-require 'etc'
 
 module Datadog
   module Core
     module Telemetry
-      # Module defining methods for collecting metadata
+      # Module defining methods for collecting metadata for telemetry
       # rubocop:disable Metrics/ModuleLength
       module Collector
-        include Kernel
-
-        API_VERSION = 'v1'.freeze
-        @seq_id = 1
-
-        def self.request(request_type, api_version = Collector::API_VERSION)
-          case request_type
-          when 'app-started'
-            payload = app_started
-            telemetry_request(request_type, api_version, payload)
-          else
-            raise ArgumentError, "Request type invalid, received request_type: #{request_type}"
-          end
-        end
-
-        private_class_method def self.telemetry_request(request_type, api_version, payload)
-          request = Telemetry::V1::TelemetryRequest.new(
-            api_version: api_version,
-            application: application,
-            host: host,
-            payload: payload,
-            request_type: request_type,
-            runtime_id: Datadog::Core::Environment::Identity.id,
-            seq_id: @seq_id,
-            tracer_time: Time.now.to_i,
-          )
-          @seq_id += 1
-          request
-        end
-
-        private_class_method def self.app_started
-          Telemetry::V1::AppStarted.new(
-            dependencies: dependencies,
-            integrations: integrations,
-            configuration: configuration
-          )
-        end
-
-        private_class_method def self.dependencies
-          Gem::Specification.map do |gem|
-            Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
-          end
-        end
-
-        private_class_method def self.integration_error(patch_result)
-          desc = "Available?: #{patch_result[:available]}"
-          desc += ", Loaded? #{patch_result[:loaded]}"
-          desc += ", Compatible? #{patch_result[:compatible]}"
-          desc += ", Patchable? #{patch_result[:patchable]}"
-          desc
-        end
-
-        private_class_method def self.integrations
-          registry = Datadog.registry
-          instrumented_integrations = Datadog.configuration.tracing.instrumented_integrations
-          registry.map do |integration|
-            is_instrumented = instrumented_integrations.include?(integration.name)
-            is_enabled = is_instrumented && instrumented_integrations[integration.name].patch == true
-            Telemetry::V1::Integration
-              .new(name: integration.name.to_s,
-                   enabled: is_enabled,
-                   version: integration.klass.class.version ? integration.klass.class.version.to_s : nil,
-                   compatible: integration.klass.class.compatible?,
-                   error: if is_instrumented && !is_enabled
-                            integration_error(instrumented_integrations[integration.name].patch)
-                          end,
-                   auto_enabled: is_enabled ? integration.klass.auto_instrument? : nil) # is this the right value?
-          end
-        end
-
-        private_class_method def self.application
+        def application
           Telemetry::V1::Application
             .new(
-              env: ENV.fetch(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT, nil),
+              env: env,
               language_version: Datadog::Core::Environment::Ext::LANG_VERSION,
               runtime_name: Datadog::Core::Environment::Ext::RUBY_ENGINE,
               runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
-              service_name: ENV.fetch(Datadog::Core::Environment::Ext::ENV_SERVICE),
-              service_version: ENV.fetch(Datadog::Core::Environment::Ext::ENV_VERSION, nil),
+              service_name: service_name,
+              service_version: service_version,
               tracer_version: Datadog::Core::Environment::Ext::TRACER_VERSION,
               language_name: Datadog::Core::Environment::Ext::LANG,
               products: products
             )
         end
 
-        private_class_method def self.host
-          # Etc.uname is only available in stdlib from Ruby v2.2 onwards
-          if Datadog::Core::Environment::Ext::LANG_VERSION < '2.2'
-            Telemetry::V1::Host.new(
-              container_id: Core::Environment::Container.container_id,
-              kernel_name: Gem::Platform.local.os
-            )
-          else
-            Telemetry::V1::Host
-              .new(
-                container_id: Core::Environment::Container.container_id,
-                hostname: Etc.uname[:nodename],
-                kernel_name: Etc.uname[:sysname],
-                kernel_release: Etc.uname[:release],
-                kernel_version: Etc.uname[:version]
-              )
-          end
-        end
-
-        private_class_method def self.configuration
-          configurations = []
+        def configurations
+          configuration_variables = []
           ENV.each do |key, value|
-            next unless key.to_s.include?('DD') && !value.empty?
-
-            configurations << Telemetry::V1::Configuration.new(name: key, value: value)
+            if configuration_variable?(key, value)
+              configuration_variables << Telemetry::V1::Configuration.new(name: key, value: value)
+            end
           end
-          configurations
+          configuration_variables
         end
 
-        private_class_method def self.products
-          Telemetry::V1::Product.new(profiler: profiling, appsec: appsec)
-        end
-
-        private_class_method def self.profiling
-          if Datadog.configuration.respond_to?(:profiling)
-            Telemetry::V1::Profiler.new(version: Core::Environment::Identity.tracer_version)
+        def dependencies
+          Gem::Specification.map do |gem|
+            Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
           end
         end
 
-        private_class_method def self.appsec
-          if Datadog.configuration.respond_to?(:appsec)
-            Telemetry::V1::AppSec.new(version: Core::Environment::Identity.tracer_version)
+        def host
+          Telemetry::V1::Host
+            .new(
+              container_id: Core::Environment::Container.container_id,
+              hostname: hostname,
+              kernel_name: kernel_name,
+              kernel_release: kernel_release,
+              kernel_version: kernel_version
+            )
+        end
+
+        def integrations
+          Datadog.registry.map do |integration|
+            is_instrumented = instrumented?(integration)
+            is_enabled = is_instrumented && patched?(integration)
+            Telemetry::V1::Integration
+              .new(name: integration.name.to_s,
+                   enabled: is_enabled,
+                   version: integration_version(integration),
+                   compatible: integration_compatible?(integration),
+                   error: (integration_error(integration) if is_instrumented && !is_enabled),
+                   auto_enabled: is_enabled ? integration_auto_instrument?(integration) : nil)
           end
+        end
+
+        def runtime_id
+          Datadog::Core::Environment::Identity.id
+        end
+
+        def tracer_time
+          Time.now.to_i
+        end
+
+        private
+
+        def products
+          profiler_obj = profiler
+          appsec_obj = appsec
+          profiler_obj || appsec_obj ? Telemetry::V1::Product.new(profiler: profiler_obj, appsec: appsec_obj) : nil
+        end
+
+        def integration_auto_instrument?(integration)
+          integration.klass.auto_instrument?
+        end
+
+        def integration_compatible?(integration)
+          integration.klass.class.compatible?
+        end
+
+        def instrumented?(integration)
+          instrumented_integrations.include?(integration.name)
+        end
+
+        def instrumented_integrations
+          Datadog.configuration.tracing.instrumented_integrations
+        end
+
+        def patched?(integration)
+          instrumented_integrations[integration.name].patch == true
+        end
+
+        def integration_version(integration)
+          integration.klass.class.version ? integration.klass.class.version.to_s : nil
+        end
+
+        def patch_result(integration)
+          instrumented_integrations[integration.name].patch
+        end
+
+        def hostname
+          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:nodename] : nil
+        end
+
+        def kernel_name
+          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
+        end
+
+        def kernel_release
+          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:release] : nil
+        end
+
+        def kernel_version
+          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:version] : nil
+        end
+
+        def configuration_variable?(key, value)
+          key.to_s.start_with?('DD') && !value.empty?
+        end
+
+        def profiler_version
+          if Datadog.configuration.respond_to?(:profiling) && Datadog.configuration.profiling.enabled
+            Core::Environment::Identity.tracer_version
+          end
+        end
+
+        def appsec_version
+          if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
+            Core::Environment::Identity.tracer_version
+          end
+        end
+
+        def profiler
+          version = profiler_version
+          Telemetry::V1::Profiler.new(version: version) if version
+        end
+
+        def appsec
+          version = appsec_version
+          Telemetry::V1::AppSec.new(version: version) if version
+        end
+
+        def env
+          ENV.fetch(Datadog::Core::Environment::Ext::ENV_ENVIRONMENT, nil)
+        end
+
+        def service_name
+          ENV.fetch(Datadog::Core::Environment::Ext::ENV_SERVICE)
+        end
+
+        def service_version
+          ENV.fetch(Datadog::Core::Environment::Ext::ENV_VERSION, nil)
+        end
+
+        def integration_error(integration)
+          patch_result = patch_result(integration)
+          desc = "Available?: #{patch_result[:available]}"
+          desc += ", Loaded? #{patch_result[:loaded]}"
+          desc += ", Compatible? #{patch_result[:compatible]}"
+          desc += ", Patchable? #{patch_result[:patchable]}"
+          desc
         end
       end
     end
