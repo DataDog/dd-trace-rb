@@ -57,3 +57,20 @@ RSpec.shared_examples 'an optional boolean parameter' do |argument|
     it { is_expected.to be_a_kind_of(described_class) }
   end
 end
+
+RSpec.shared_examples 'a required int parameter' do |argument|
+  context 'is nil' do
+    let(argument.to_sym) { nil }
+    it { expect { subject }.to raise_error(ArgumentError) }
+  end
+
+  context 'is string' do
+    let(argument.to_sym) { '42' }
+    it { expect { subject }.to raise_error(ArgumentError) }
+  end
+
+  context 'is valid int' do
+    let(argument.to_sym) { 42 }
+    it { is_expected.to be_a_kind_of(described_class) }
+  end
+end
