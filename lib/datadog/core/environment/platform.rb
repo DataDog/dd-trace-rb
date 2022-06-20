@@ -1,5 +1,7 @@
 # typed: false
 
+require 'etc'
+
 require 'datadog/core/environment/identity'
 
 module Datadog
