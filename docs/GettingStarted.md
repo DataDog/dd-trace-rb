@@ -1780,6 +1780,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
 
 ### RSpec
 
