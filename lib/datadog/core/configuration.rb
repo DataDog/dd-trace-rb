@@ -2,6 +2,7 @@
 
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'
+require 'datadog/core/telemetry/emitter'
 require 'datadog/core/logger'
 require 'datadog/core/pin'
 
@@ -244,6 +245,11 @@ module Datadog
       def build_components(settings)
         components = Components.new(settings)
         components.startup!(settings)
+
+        if configuration.telemetry.enabled
+          # emit telemetry event
+          Core::Telemetry::Emitter.request('app-started')
+        end
         components
       end
 
