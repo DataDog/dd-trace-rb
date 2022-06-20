@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/core/environment/ext'
+require 'datadog/core/environment/identity'
 
 module Datadog
   module Core
@@ -10,19 +10,23 @@ module Datadog
         module_function
 
         def hostname
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:nodename] : nil
+          Identity.lang_version >= '2.2' ? Etc.uname[:nodename] : nil
         end
 
         def kernel_name
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
+          Identity.lang_version >= '2.2' ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
         end
 
         def kernel_release
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:release] : nil
+          if Identity.lang_engine == 'jruby'
+            Etc.uname[:version]  # Java's `os.version` maps to `uname -r`
+          elsif Identity.lang_version >= '2.2'
+            Etc.uname[:release]
+          end
         end
 
         def kernel_version
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:version] : nil
+          Etc.uname[:version] if Identity.lang_engine != 'jruby' && Identity.lang_version >= '2.2'
         end
       end
     end

@@ -7,11 +7,13 @@ RSpec.describe Datadog::Core::Environment::Host do
   describe '::hostname' do
     subject(:hostname) { described_class.hostname }
 
-    if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
+    context 'when Ruby version < 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION < '2.2' do
+      it { is_expected.to be_nil }
+    end
+
+    context 'when Ruby version >= 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' do
       it { is_expected.to be_a_kind_of(String) }
       it { is_expected.to eql(`uname -n`.strip) }
-    else
-      it { is_expected.to be_nil }
     end
   end
 
@@ -24,22 +26,32 @@ RSpec.describe Datadog::Core::Environment::Host do
   describe '::kernel_release' do
     subject(:kernel_release) { described_class.kernel_release }
 
-    if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
+    context 'when Ruby version < 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION < '2.2' do
+      it { is_expected.to be_nil }
+    end
+
+    context 'when Ruby version >= 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' do
       it { is_expected.to be_a_kind_of(String) }
       it { is_expected.to eql(`uname -r`.strip) }
-    else
-      it { is_expected.to be_nil }
     end
   end
 
   describe '::kernel_version' do
     subject(:kernel_version) { described_class.kernel_version }
 
-    if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
-      it { is_expected.to be_a_kind_of(String) }
-      it { is_expected.to eql(`uname -v`.strip) }
-    else
+    context 'when using JRuby', if: Datadog::Core::Environment::Ext::RUBY_ENGINE == 'jruby' do
       it { is_expected.to be_nil }
+    end
+
+    context 'when not using JRuby', unless: Datadog::Core::Environment::Ext::RUBY_ENGINE == 'jruby' do
+      context 'when Ruby version < 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION < '2.2' do
+        it { is_expected.to be_nil }
+      end
+
+      context 'when Ruby version >= 2.2', if: Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' do
+        it { is_expected.to be_a_kind_of(String) }
+        it { is_expected.to eql(`uname -v`.strip) }
+      end
     end
   end
 end
