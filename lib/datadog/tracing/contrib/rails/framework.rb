@@ -68,7 +68,8 @@ module Datadog
               application: ::Rails.application,
               service_name: rails_config[:service_name],
               middleware_names: rails_config[:middleware_names],
-              distributed_tracing: rails_config[:distributed_tracing]
+              distributed_tracing: rails_config[:distributed_tracing],
+              request_queuing: rails_config[:request_queuing]
             )
           end
 
