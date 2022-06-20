@@ -1,9 +1,9 @@
 # typed: false
 
 require 'spec_helper'
-require 'datadog/core/environment/host'
+require 'datadog/core/environment/platform'
 
-RSpec.describe Datadog::Core::Environment::Host do
+RSpec.describe Datadog::Core::Environment::Platform do
   describe '::hostname' do
     subject(:hostname) { described_class.hostname }
 
