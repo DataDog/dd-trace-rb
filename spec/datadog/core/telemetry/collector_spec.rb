@@ -2,12 +2,15 @@ require 'spec_helper'
 
 require 'datadog/appsec'
 require 'datadog/core/environment/ext'
-require 'datadog/core/environment/identity'
+require 'datadog/core/configuration'
 require 'datadog/core/telemetry/collector'
-require 'datadog/core/telemetry/v1/app_started'
 require 'datadog/core/telemetry/v1/configuration'
+require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/dependency'
+require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
-require 'datadog/core/telemetry/v1/telemetry_request'
+require 'datadog/core/telemetry/v1/profiler'
+
 require 'ddtrace'
 require 'ddtrace/version'
 
@@ -136,7 +139,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
     it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
 
-    context 'when DD environment variable' do
+    context 'when configuration is set via environment variable' do
       let(:test_site) { 'test' }
       around do |example|
         ClimateControl.modify DD_SITE: test_site do
@@ -179,43 +182,6 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     subject(:host) { dummy_class.host }
 
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Host) }
-
-    describe ':hostname' do
-      subject(:hostname) { host.hostname }
-      if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
-        it { is_expected.to eql(`uname -n`.strip) }
-      else
-        it { is_expected.to be_nil }
-      end
-    end
-
-    describe ':kernel_name' do
-      subject(:kernel_name) { host.kernel_name }
-      it { is_expected.to be_a_kind_of(String) }
-      it { is_expected.to eql(`uname -s`.strip) }
-    end
-
-    describe ':kernel_release' do
-      subject(:kernel_release) { host.kernel_release }
-
-      if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
-        it { is_expected.to be_a_kind_of(String) }
-        it { is_expected.to eql(`uname -r`.strip) }
-      else
-        it { is_expected.to be_nil }
-      end
-    end
-
-    describe ':kernel_version' do
-      subject(:kernel_version) { host.kernel_version }
-
-      if Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2'
-        it { is_expected.to be_a_kind_of(String) }
-        it { is_expected.to eql(`uname -v`.strip) }
-      else
-        it { is_expected.to be_nil }
-      end
-    end
   end
 
   describe '#integrations' do
@@ -242,12 +208,13 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
 
       it 'sets integration as enabled' do
-        expect(integrations).to include(an_object_having_attributes(
-                                          name: 'rake',
-                                          enabled: true,
-                                          compatible: true,
-                                          error: nil
-                                        ))
+        expect(integrations)
+          .to include(an_object_having_attributes(
+                        name: 'rake',
+                        enabled: true,
+                        compatible: true,
+                        error: nil
+                      ))
       end
 
       it 'propogates errors with configuration' do

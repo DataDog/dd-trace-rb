@@ -3,14 +3,14 @@
 require 'etc'
 
 require 'datadog/core/environment/ext'
+require 'datadog/core/environment/platform'
 require 'datadog/core/telemetry/utils/validation'
-require 'datadog/core/telemetry/v1/app_started'
 require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/profiler'
-require 'datadog/core/telemetry/v1/telemetry_request'
 
 module Datadog
   module Core
@@ -52,10 +52,10 @@ module Datadog
           Telemetry::V1::Host
             .new(
               container_id: Core::Environment::Container.container_id,
-              hostname: hostname,
-              kernel_name: kernel_name,
-              kernel_release: kernel_release,
-              kernel_version: kernel_version
+              hostname: Core::Environment::Platform.hostname,
+              kernel_name: Core::Environment::Platform.kernel_name,
+              kernel_release: Core::Environment::Platform.kernel_release,
+              kernel_version: Core::Environment::Platform.kernel_version
             )
         end
 
@@ -154,26 +154,6 @@ module Datadog
 
         def patch_result(integration)
           instrumented_integrations[integration.name].patch
-        end
-
-        def hostname
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:nodename] : nil
-        end
-
-        def kernel_name
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
-        end
-
-        def kernel_release
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:release] : nil
-        end
-
-        def kernel_version
-          Datadog::Core::Environment::Ext::LANG_VERSION >= '2.2' ? Etc.uname[:version] : nil
-        end
-
-        def configuration_variable?(key, value)
-          key.to_s.start_with?('DD') && !value.empty?
         end
 
         def profiler_version
