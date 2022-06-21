@@ -21,49 +21,43 @@ module Datadog
 
         attr_reader \
           :request_type,
-          :seq_id,
           :api_version
 
-        # @param request_type [String] the type of telemetry request to collect data for
-        # @param seq_id [Integer] the ID to attach to the request, incremented for each new telemetry request
+        attr_accessor \
+          :seq_id
+
         # @param api_version [String] telemetry API version to request; defaults to `v1`
-        def initialize(request_type:, seq_id:, api_version: API_VERSION)
-          validate(request_type, seq_id, api_version)
-          @request_type = request_type
-          @seq_id = seq_id
+        def initialize(api_version: API_VERSION)
+          raise ArgumentError, ERROR_BAD_API_VERSION unless valid_string?(api_version)
+          @seq_id = 1
           @api_version = api_version
         end
 
-        # Forms a TelemetryRequest object based on the event @request_type
-        def request
-          case @request_type
-          when 'app-started'
-            payload = app_started
-          else
-            raise ArgumentError, "Request type invalid, received request_type: #{@request_type}"
-          end
-          telemetry_request(payload)
-        end
-
-        private
-
-        def validate(request_type, seq_id, api_version)
-          raise ArgumentError, ERROR_BAD_REQUEST_TYPE unless valid_string?(request_type)
-          raise ArgumentError, ERROR_BAD_SEQ_ID unless valid_int?(seq_id)
-          raise ArgumentError, ERROR_BAD_API_VERSION unless valid_string?(api_version)
-        end
-
-        def telemetry_request(payload)
+        # Forms a TelemetryRequest object based on the event request_type
+        # @param request_type [String] the type of telemetry request to collect data for
+        def telemetry_request(request_type:)
           Telemetry::V1::TelemetryRequest.new(
             api_version: @api_version,
             application: application,
             host: host,
-            payload: payload,
-            request_type: @request_type,
+            payload: payload(request_type),
+            request_type: request_type,
             runtime_id: runtime_id,
             seq_id: @seq_id,
             tracer_time: tracer_time,
           )
+        end
+
+        private
+
+        def payload(request_type)
+          raise ArgumentError, ERROR_BAD_REQUEST_TYPE unless valid_string?(request_type)
+          case request_type
+          when 'app-started'
+            app_started
+          else
+            raise ArgumentError, "Request type invalid, received request_type: #{@request_type}"
+          end
         end
 
         def app_started
