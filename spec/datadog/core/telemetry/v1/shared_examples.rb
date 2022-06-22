@@ -6,11 +6,6 @@ RSpec.shared_examples 'an optional string parameter' do |argument|
     it { is_expected.to be_a_kind_of(described_class) }
   end
 
-  context 'when argument is empty string' do
-    let(argument.to_sym) { '' }
-    it { expect { subject }.to raise_error(ArgumentError) }
-  end
-
   context 'when argument is valid' do
     let(argument.to_sym) { 'valid string' }
     it { is_expected.to be_a_kind_of(described_class) }
@@ -23,16 +18,6 @@ RSpec.shared_examples 'a required string parameter' do |argument|
     it { expect { subject }.to raise_error(ArgumentError) }
   end
 
-  context 'when argument is empty string' do
-    let(argument.to_sym) { '' }
-    it { expect { subject }.to raise_error(ArgumentError) }
-  end
-
-  context 'when argument is integer' do
-    let(argument.to_sym) { 1.0 }
-    it { expect { subject }.to raise_error(ArgumentError) }
-  end
-
   context 'when argument is valid' do
     let(argument.to_sym) { 'valid string' }
     it { is_expected.to be_a_kind_of(described_class) }
@@ -42,11 +27,6 @@ end
 RSpec.shared_examples 'a required boolean parameter' do |argument|
   context 'when argument is nil' do
     let(argument.to_sym) { nil }
-    it { expect { subject }.to raise_error(ArgumentError) }
-  end
-
-  context 'when argument is integer' do
-    let(argument.to_sym) { 1 }
     it { expect { subject }.to raise_error(ArgumentError) }
   end
 
@@ -65,11 +45,6 @@ RSpec.shared_examples 'an optional boolean parameter' do |argument|
   context 'when argument is nil' do
     let(argument.to_sym) { nil }
     it { is_expected.to be_a_kind_of(described_class) }
-  end
-
-  context 'when argument is integer' do
-    let(argument.to_sym) { 1 }
-    it { expect { subject }.to raise_error(ArgumentError) }
   end
 
   context 'when argument is true' do

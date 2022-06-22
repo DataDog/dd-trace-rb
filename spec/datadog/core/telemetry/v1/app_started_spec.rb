@@ -36,16 +36,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is empty' do
-        let(:additional_payload) { [] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
-      context 'is array of Hashes' do
-        let(:additional_payload) { [{ :name => 'ENV_VARIABLE' }] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
       context 'is array of Configuration' do
         let(:additional_payload) { [Datadog::Core::Telemetry::V1::Configuration.new(name: 'ENV_VARIABLE')] }
         it { is_expected.to be_a_kind_of(described_class) }
@@ -67,16 +57,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
       context 'is nil' do
         let(:configuration) { nil }
         it { is_expected.to be_a_kind_of(described_class) }
-      end
-
-      context 'is empty' do
-        let(:configuration) { [] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
-      context 'is array of Hashes' do
-        let(:configuration) { [{ :name => 'DD_TRACE_DEBUG' }] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
       end
 
       context 'is array of Configuration' do
@@ -102,16 +82,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is empty' do
-        let(:dependencies) { [] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
-      context 'is array of Hashes' do
-        let(:dependencies) { [{ :name => 'pg' }] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
       context 'is array of Dependency' do
         let(:dependencies) { [Datadog::Core::Telemetry::V1::Dependency.new(name: 'pg')] }
         it { is_expected.to be_a_kind_of(described_class) }
@@ -135,16 +105,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is empty' do
-        let(:integrations) { [] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
-      context 'is array of Hashes' do
-        let(:integrations) { [{ :name => 'pg', :enabled => true }] }
-        it { expect { app_started }.to raise_error(ArgumentError) }
-      end
-
       context 'is array of Integration' do
         let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
         it { is_expected.to be_a_kind_of(described_class) }
@@ -159,16 +119,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
           ]
         end
         it { is_expected.to be_a_kind_of(described_class) }
-      end
-    end
-
-    context 'when all parameters' do
-      context 'are nil' do
-        let(:additional_payload) { nil }
-        let(:configuration) { nil }
-        let(:dependencies) { nil }
-        let(:integrations) { nil }
-        it { expect { app_started }.to raise_error(ArgumentError) }
       end
     end
   end

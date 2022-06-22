@@ -15,15 +15,23 @@ RSpec.describe Datadog::Core::Telemetry::V1::Configuration do
       it_behaves_like 'a required string parameter', 'name'
     end
 
-    context ':value' do
-      it_behaves_like 'an optional string parameter', 'value'
+    context 'when :value' do
+      context 'is nil' do
+        let(:value) { nil }
+        it { is_expected.to be_a_kind_of(described_class) }
+      end
 
-      context 'is valid bool' do
+      context 'is string' do
+        let(:value) { 'true' }
+        it { is_expected.to be_a_kind_of(described_class) }
+      end
+
+      context 'is bool' do
         let(:value) { true }
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is valid int' do
+      context 'is int' do
         let(:value) { 1 }
         it { is_expected.to be_a_kind_of(described_class) }
       end

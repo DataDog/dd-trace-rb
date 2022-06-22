@@ -20,11 +20,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::Product do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is not of type AppSec' do
-        let(:appsec) { { version: '1.0' } }
-        it { expect { product }.to raise_error(ArgumentError) }
-      end
-
       context 'is valid' do
         let(:appsec) { Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0') }
         it { is_expected.to be_a_kind_of(described_class) }
@@ -38,22 +33,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::Product do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is not of type Profiler' do
-        let(:profiler) { { version: '1.0' } }
-        it { expect { product }.to raise_error(ArgumentError) }
-      end
-
       context 'is valid' do
         let(:profiler) { Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0') }
         it { is_expected.to be_a_kind_of(described_class) }
-      end
-    end
-
-    context 'when :appsec and :profiler' do
-      context 'are nil' do
-        let(:appsec) { nil }
-        let(:profiler) { nil }
-        it { expect { product }.to raise_error(ArgumentError) }
       end
     end
   end

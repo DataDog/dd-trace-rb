@@ -64,18 +64,5 @@ RSpec.describe Datadog::Core::Telemetry::V1::Host do
     context ':os' do
       it_behaves_like 'an optional string parameter', 'os'
     end
-
-    context 'when all parameters' do
-      context 'are nil' do
-        let(:container_id) { nil }
-        let(:hostname) { nil }
-        let(:kernel_name) { nil }
-        let(:kernel_release) { nil }
-        let(:kernel_version) { nil }
-        let(:os_version) { nil }
-        let(:os) { nil }
-        it { expect { host }.to raise_error(ArgumentError) }
-      end
-    end
   end
 end

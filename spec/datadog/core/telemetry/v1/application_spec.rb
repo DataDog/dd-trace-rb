@@ -96,11 +96,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is not of type products' do
-        let(:products) { { version: '1.0' } }
-        it { expect { application }.to raise_error(ArgumentError) }
-      end
-
       context 'is valid' do
         let(:products) do
           Datadog::Core::Telemetry::V1::Product.new(

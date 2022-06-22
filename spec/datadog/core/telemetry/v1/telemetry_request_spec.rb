@@ -65,17 +65,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'is empty string' do
-        let(:api_version) { '' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is random valid string' do
-        let(:api_version) { 'valid' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is valid api version' do
+      context 'is string' do
         let(:api_version) { 'v1' }
         it { is_expected.to be_a_kind_of(described_class) }
       end
@@ -84,11 +74,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
     context 'when :application' do
       context 'is nil' do
         let(:application) { nil }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is not of type Application' do
-        let(:application) { { container_id: 'd39b145254d1f9c337fdd2be132f6' } }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
@@ -108,11 +93,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'is not of type Host' do
-        let(:host) { { language_name: 'ruby', language_version: '3.0', service_name: 'myapp', tracer_version: '1.0' } }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
       context 'is valid' do
         let(:application) do
           Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
@@ -125,13 +105,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
     context 'when :payload' do
       context 'is nil' do
         let(:payload) { nil }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is not of type Payload' do
-        let(:payload) do
-          { integrations: [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
-        end
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
@@ -153,17 +126,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'is empty string' do
-        let(:request_type) { '' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is random valid string' do
-        let(:request_type) { 'valid' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is valid request type' do
+      context 'is valid string' do
         let(:request_type) { 'app-started' }
         it { is_expected.to be_a_kind_of(described_class) }
       end
@@ -175,11 +138,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       context 'when :seq_id' do
         context 'is nil' do
           let(:seq_id) { nil }
-          it { expect { telemetry_request }.to raise_error(ArgumentError) }
-        end
-
-        context 'is string' do
-          let(:seq_id) { '42' }
           it { expect { telemetry_request }.to raise_error(ArgumentError) }
         end
 
@@ -196,11 +154,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       context 'when :tracer_time' do
         context 'is nil' do
           let(:tracer_time) { nil }
-          it { expect { telemetry_request }.to raise_error(ArgumentError) }
-        end
-
-        context 'is string' do
-          let(:tracer_time) { '1654805621' }
           it { expect { telemetry_request }.to raise_error(ArgumentError) }
         end
 
