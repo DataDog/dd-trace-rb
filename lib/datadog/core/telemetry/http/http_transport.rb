@@ -1,6 +1,7 @@
 # typed: true
 
 require 'datadog/core/configuration/settings'
+require 'datadog/core/telemetry/http/env'
 require 'datadog/core/telemetry/http/ext'
 require 'datadog/core/telemetry/http/adapters/net'
 
@@ -18,13 +19,12 @@ module Datadog
           end
 
           def request(request_type:, payload:)
+            env = Http::Env.new
             adapter = Http::Adapters::Net.new(hostname: @host, port: @port)
-            body = payload(payload)
-            headers = headers(request_type: request_type, content_length: content_length(payload))
-            puts body
-            puts headers
-            puts adapter
-            adapter.post(path: @path, headers: headers, body: body)
+            env.path = @path
+            env.body = payload(payload)
+            env.headers = headers(request_type: request_type, content_length: content_length(payload))
+            adapter.post(env)
           end
 
           def headers(request_type:, content_length:, api_version: Http::Ext::API_VERSION)
