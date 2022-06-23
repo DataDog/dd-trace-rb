@@ -58,14 +58,14 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     end
 
     context('when :api_version') do
+      context 'is nil' do
+        let(:api_version) { nil }
+        it { expect { telemetry_request }.to raise_error(ArgumentError) }
+      end
+
       context 'is valid version' do
         let(:api_version) { 'v1' }
         it { expect(telemetry_request.api_version).to eq('v1') }
-      end
-
-      context 'is not a valid version' do
-        let(:api_version) { 'v2' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
     end
   end
