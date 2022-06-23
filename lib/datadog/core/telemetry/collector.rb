@@ -21,6 +21,7 @@ module Datadog
       module Collector
         include Datadog::Core::Configuration
 
+        # Forms a telemetry application object
         def application
           Telemetry::V1::Application
             .new(
@@ -32,20 +33,23 @@ module Datadog
               runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
               service_name: service_name,
               service_version: service_version,
-              tracer_version: Datadog::Core::Environment::Ext::TRACER_VERSION
+              tracer_version: tracer_version
             )
         end
 
+        # Forms a telemetry configurations object
         def configurations
           configuration_variables
         end
 
+        # Forms a telemetry app-started dependencies object
         def dependencies
           Gem::Specification.map do |gem|
             Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
           end
         end
 
+        # Forms a telemetry host object
         def host
           Telemetry::V1::Host
             .new(
@@ -57,6 +61,7 @@ module Datadog
             )
         end
 
+        # Forms a telemetry app-started integrations object
         def integrations
           Datadog.registry.map do |integration|
             is_instrumented = instrumented?(integration)
@@ -73,15 +78,57 @@ module Datadog
           end
         end
 
+        # Returns the runtime ID of the current process
         def runtime_id
           Datadog::Core::Environment::Identity.id
         end
 
+        # Returns the current as a UNIX timestamp in seconds
         def tracer_time
           Time.now.to_i
         end
 
         private
+
+        def env
+          Datadog.configuration.env
+        end
+
+        def service_name
+          Datadog.configuration.service
+        end
+
+        def service_version
+          Datadog.configuration.version
+        end
+
+        def tracer_version
+          Core::Environment::Identity.tracer_version
+        end
+
+        def products
+          profiler_obj = profiler
+          appsec_obj = appsec
+          profiler_obj || appsec_obj ? Telemetry::V1::Product.new(profiler: profiler_obj, appsec: appsec_obj) : nil
+        end
+
+        def profiler
+          version = profiler_version
+          Telemetry::V1::Profiler.new(version: version) if version
+        end
+
+        def profiler_version
+          tracer_version if Datadog.configuration.respond_to?(:profiling) && Datadog.configuration.profiling.enabled
+        end
+
+        def appsec
+          version = appsec_version
+          Telemetry::V1::AppSec.new(version: version) if version
+        end
+
+        def appsec_version
+          tracer_version if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
+        end
 
         def configuration_variables
           configurations = []
@@ -106,10 +153,16 @@ module Datadog
           configurations
         end
 
-        def products
-          profiler_obj = profiler
-          appsec_obj = appsec
-          profiler_obj || appsec_obj ? Telemetry::V1::Product.new(profiler: profiler_obj, appsec: appsec_obj) : nil
+        def instrumented_integrations
+          Datadog.configuration.tracing.instrumented_integrations
+        end
+
+        def instrumented?(integration)
+          instrumented_integrations.include?(integration.name)
+        end
+
+        def patched?(integration)
+          instrumented_integrations[integration.name].patch == true
         end
 
         def integration_auto_instrument?(integration)
@@ -120,58 +173,12 @@ module Datadog
           integration.klass.class.compatible?
         end
 
-        def instrumented?(integration)
-          instrumented_integrations.include?(integration.name)
-        end
-
-        def instrumented_integrations
-          Datadog.configuration.tracing.instrumented_integrations
-        end
-
-        def patched?(integration)
-          instrumented_integrations[integration.name].patch == true
-        end
-
         def integration_version(integration)
           integration.klass.class.version ? integration.klass.class.version.to_s : nil
         end
 
         def patch_result(integration)
           instrumented_integrations[integration.name].patch
-        end
-
-        def profiler_version
-          if Datadog.configuration.respond_to?(:profiling) && Datadog.configuration.profiling.enabled
-            Core::Environment::Identity.tracer_version
-          end
-        end
-
-        def appsec_version
-          if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
-            Core::Environment::Identity.tracer_version
-          end
-        end
-
-        def profiler
-          version = profiler_version
-          Telemetry::V1::Profiler.new(version: version) if version
-        end
-
-        def appsec
-          version = appsec_version
-          Telemetry::V1::AppSec.new(version: version) if version
-        end
-
-        def env
-          Datadog.configuration.env
-        end
-
-        def service_name
-          Datadog.configuration.service
-        end
-
-        def service_version
-          Datadog.configuration.version
         end
 
         def integration_error(integration)

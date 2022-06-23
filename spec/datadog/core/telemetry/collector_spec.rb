@@ -44,6 +44,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
             example.run
           end
         end
+
+        it { is_expected.to be_a_kind_of(String) }
         it('reads value correctly') { is_expected.to eql('test_env') }
       end
     end
@@ -51,6 +53,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     describe ':service_name' do
       subject(:service_name) { application.service_name }
       let(:env_service) { 'test-service' }
+
+      it { is_expected.to be_a_kind_of(String) }
       it('reads value correctly') { is_expected.to eql('test-service') }
     end
 
@@ -67,6 +71,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
             example.run
           end
         end
+
+        it { is_expected.to be_a_kind_of(String) }
         it('reads value correctly') { is_expected.to eql('4.2.0') }
       end
     end
@@ -97,6 +103,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
         it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
+        it { expect(products.profiler.version).to be_a_kind_of(String) }
         it { expect(products.profiler).to have_attributes(version: '4.2') }
       end
 
@@ -111,6 +118,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
         it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
+        it { expect(products.appsec.version).to be_a_kind_of(String) }
         it { expect(products.appsec).to have_attributes(version: '4.2') }
       end
 
