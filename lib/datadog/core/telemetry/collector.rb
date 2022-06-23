@@ -4,12 +4,13 @@ require 'etc'
 
 require 'datadog/core/environment/ext'
 require 'datadog/core/environment/platform'
-require 'datadog/core/telemetry/utils/validation'
 require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/appsec'
 require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/telemetry/v1/profiler'
 
 module Datadog
@@ -19,7 +20,6 @@ module Datadog
       # rubocop:disable Metrics/ModuleLength
       module Collector
         include Datadog::Core::Configuration
-        include Telemetry::Utils::Validation
 
         def application
           Telemetry::V1::Application
@@ -37,8 +37,6 @@ module Datadog
         end
 
         def configurations
-          configuration_variables = []
-          flatten_configuration(Datadog.configuration.to_h, configuration_variables)
           configuration_variables
         end
 
@@ -85,41 +83,27 @@ module Datadog
 
         private
 
-        def flatten_configuration(hash, configurations)
-          flattened_hash = flatten_hash(hash)
-          flattened_hash.each do |k, v|
-            configurations << Telemetry::V1::Configuration.new(name: k.to_s, value: clean_config_value(v))
+        def configuration_variables
+          configurations = []
+          [
+            Telemetry::V1::Configuration.new(name: 'diagnostics.debug', value: Datadog.configuration.diagnostics.debug),
+            Telemetry::V1::Configuration.new(name: 'diagnostics.startup_logs.enabled',
+                                             value: Datadog.configuration.diagnostics.startup_logs.enabled),
+            Telemetry::V1::Configuration.new(name: 'profiling.advanced.endpoint.collection.enabled',
+                                             value: Datadog.configuration.profiling.advanced.endpoint.collection.enabled),
+            Telemetry::V1::Configuration.new(name: 'profiling.advanced.code_provenance_enabled',
+                                             value: Datadog.configuration.profiling.advanced.code_provenance_enabled),
+            Telemetry::V1::Configuration.new(name: 'profiling.advanced.legacy_transport_enabled',
+                                             value: Datadog.configuration.profiling.advanced.legacy_transport_enabled),
+            Telemetry::V1::Configuration.new(name: 'runtime_metrics.enabled',
+                                             value: Datadog.configuration.runtime_metrics.enabled),
+            Telemetry::V1::Configuration.new(name: 'tracing.enabled', value: Datadog.configuration.tracing.enabled),
+            Telemetry::V1::Configuration.new(name: 'tracing.analytics.enabled',
+                                             value: Datadog.configuration.tracing.analytics.enabled)
+          ].each do |configuration|
+            configurations << configuration unless configuration.value.nil?
           end
-        end
-
-        def flatten_hash(hash)
-          if hash.respond_to?(:to_h)
-            hash.to_h.each_with_object({}) do |(k, v), h|
-              if v.is_a? Array
-                h[k] = v unless empty?(v)
-              elsif v.respond_to?(:to_h) && !v.to_h.empty?
-                flatten_hash(v.to_h).map do |h_k, h_v|
-                  h["#{k}.#{h_k}"] = h_v unless empty?(h_v)
-                end
-              else
-                h[k.to_s] = v unless empty?(v)
-              end
-            end
-          end
-        end
-
-        def clean_config_value(v)
-          if valid_string?(v) || valid_bool?(v) || valid_int?(v)
-            v
-          elsif v.is_a? Float
-            v.round
-          else
-            v.to_s
-          end
-        end
-
-        def empty?(v)
-          v.nil? || (v.is_a? Proc) || (v == {})
+          configurations
         end
 
         def products

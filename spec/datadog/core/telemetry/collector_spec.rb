@@ -1,14 +1,16 @@
 require 'spec_helper'
 
 require 'datadog/appsec'
-require 'datadog/core/environment/ext'
 require 'datadog/core/configuration'
+require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/collector'
-require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/application'
+require 'datadog/core/telemetry/v1/appsec'
+require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
+require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/telemetry/v1/profiler'
 
 require 'ddtrace'
@@ -139,35 +141,26 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
     it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
 
-    context 'when configuration is set via environment variable' do
-      let(:test_site) { 'test' }
+    context 'when environment variable configuration' do
+      let(:dd_tracing_analytics_enabled) { 'true' }
       around do |example|
-        ClimateControl.modify DD_SITE: test_site do
+        ClimateControl.modify DD_TRACE_ANALYTICS_ENABLED: dd_tracing_analytics_enabled do
           example.run
         end
       end
 
       context 'is set' do
-        let(:test_site) { 'test' }
-        it { is_expected.to include(an_object_having_attributes(:name => 'site', :value => test_site)) }
+        let(:dd_tracing_analytics_enabled) { 'true' }
+        it do
+          is_expected.to include(an_object_having_attributes(:name => 'tracing.analytics.enabled',
+                                                             :value => true))
+        end
       end
 
       context 'is nil' do
-        let(:test_site) { nil }
-        it { is_expected.to_not include(an_object_having_attributes(:name => 'site')) }
+        let(:dd_tracing_analytics_enabled) { nil }
+        it { is_expected.to_not include(an_object_having_attributes(:name => 'tracing.analytics.enabled')) }
       end
-    end
-
-    context 'when DD environment variable of embedded config is set' do
-      around do |example|
-        ClimateControl.modify DD_PROFILING_ENDPOINT_COLLECTION_ENABLED: 'false' do
-          example.run
-        end
-      end
-      it {
-        is_expected.to include(an_object_having_attributes(:name => 'profiling.advanced.endpoint.collection.enabled',
-                                                           :value => false))
-      }
     end
   end
 
