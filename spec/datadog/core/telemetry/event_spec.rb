@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
     it { expect(telemetry_request.api_version).to eql(api_version) }
     it { expect(telemetry_request.request_type).to eql(request_type) }
-    it { expect(telemetry_request.seq_id).to eql(1) }
+    it { expect(telemetry_request.seq_id).to be(1) }
 
     context 'when :request_type' do
       context 'is app-started' do

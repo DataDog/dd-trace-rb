@@ -12,12 +12,8 @@ module Datadog
         include Kernel
 
         include Telemetry::Collector
-        include Telemetry::Utils::Validation
 
         API_VERSION = 'v1'.freeze
-        ERROR_BAD_REQUEST_TYPE = ':request_type must be a non-empty String'.freeze
-        ERROR_BAD_SEQ_ID = ':seq_id must be a non-empty Integer'.freeze
-        ERROR_BAD_API_VERSION = ':api_version must be of type String'.freeze
 
         attr_reader \
           :request_type,
@@ -28,7 +24,6 @@ module Datadog
 
         # @param api_version [String] telemetry API version to request; defaults to `v1`
         def initialize(api_version: API_VERSION)
-          raise ArgumentError, ERROR_BAD_API_VERSION unless valid_string?(api_version)
           @seq_id = 1
           @api_version = api_version
         end
@@ -51,7 +46,6 @@ module Datadog
         private
 
         def payload(request_type)
-          raise ArgumentError, ERROR_BAD_REQUEST_TYPE unless valid_string?(request_type)
           case request_type
           when 'app-started'
             app_started
