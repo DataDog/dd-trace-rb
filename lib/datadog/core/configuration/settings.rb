@@ -527,6 +527,7 @@ module Datadog
           option :sampler
 
           # Client-side sampling configuration.
+          # @see https://docs.datadoghq.com/tracing/trace_ingestion/mechanisms/
           # @public_api
           settings :sampling do
             # Default sampling rate for the tracer.
@@ -552,6 +553,47 @@ module Datadog
             option :rate_limit do |o|
               o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
               o.lazy
+            end
+
+            # Client-side single span sampling configuration.
+            # @public_api
+            settings :span do
+              # Single span sampling rules.
+              # These rules allow a span to be kept when its encompassing trace is dropped.
+              #
+              # The syntax for single span sampling rules can be found here:
+              # TODO: Insert documentation URL here when published
+              #
+              # @default `DD_SPAN_SAMPLING_RULES` environment variable.
+              #   Otherwise, `ENV_SPAN_SAMPLING_RULES_FILE` environment variable.
+              #   Otherwise `nil`.
+              # @return [String,nil]
+              option :rules do |o|
+                o.default do
+                  rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
+                  rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
+
+                  if rules
+                    if rules_file
+                      Datadog.logger.warn(
+                        'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
+                        'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
+                        'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts.'
+                      )
+                    end
+                    rules
+                  elsif rules_file
+                    begin
+                      File.read(rules_file)
+                    rescue => e
+                      # `File#read` errors have clear and actionable messages, no need to add extra exception info.
+                      Datadog.logger.warn("Cannot read span sampling rules file: #{e.message}")
+                      nil
+                    end
+                  end
+                end
+                o.lazy
+              end
             end
           end
 
