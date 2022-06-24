@@ -24,6 +24,12 @@ module Datadog
           GRPC_METADATA_PARENT_ID = 'x-datadog-parent-id'.freeze
           GRPC_METADATA_SAMPLING_PRIORITY = 'x-datadog-sampling-priority'.freeze
           GRPC_METADATA_ORIGIN = 'x-datadog-origin'.freeze
+
+          # B3 gRPC metadata used for distributed tracing
+          B3_METADATA_TRACE_ID = 'x-b3-traceid'.freeze
+          B3_METADATA_SPAN_ID = 'x-b3-spanid'.freeze
+          B3_METADATA_SAMPLED = 'x-b3-sampled'.freeze
+          B3_METADATA_SINGLE = 'b3'.freeze
         end
       end
     end
