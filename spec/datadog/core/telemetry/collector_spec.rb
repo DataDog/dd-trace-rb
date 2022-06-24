@@ -167,7 +167,9 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       context 'is nil' do
         let(:dd_tracing_analytics_enabled) { nil }
-        it { is_expected.to_not include(an_object_having_attributes(:name => 'tracing.analytics.enabled')) }
+        it('defaults to false') {
+          is_expected.to include(an_object_having_attributes(:name => 'tracing.analytics.enabled', :value => false))
+        }
       end
     end
   end

@@ -2,6 +2,7 @@
 
 require 'etc'
 
+require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/environment/ext'
 require 'datadog/core/environment/platform'
 require 'datadog/core/telemetry/v1/application'
@@ -132,8 +133,11 @@ module Datadog
 
         def configuration_variables
           configurations = []
+          environment_collector = Core::Diagnostics::EnvironmentCollector.new
           [
-            Telemetry::V1::Configuration.new(name: 'diagnostics.debug', value: Datadog.configuration.diagnostics.debug),
+            Telemetry::V1::Configuration.new(name: 'diagnostics.debug', value: environment_collector.debug),
+            Telemetry::V1::Configuration.new(name: 'diagnostics.health_metrics.enabled',
+                                             value: environment_collector.health_metrics_enabled),
             Telemetry::V1::Configuration.new(name: 'diagnostics.startup_logs.enabled',
                                              value: Datadog.configuration.diagnostics.startup_logs.enabled),
             Telemetry::V1::Configuration.new(name: 'profiling.advanced.endpoint.collection.enabled',
@@ -143,10 +147,18 @@ module Datadog
             Telemetry::V1::Configuration.new(name: 'profiling.advanced.legacy_transport_enabled',
                                              value: Datadog.configuration.profiling.advanced.legacy_transport_enabled),
             Telemetry::V1::Configuration.new(name: 'runtime_metrics.enabled',
-                                             value: Datadog.configuration.runtime_metrics.enabled),
-            Telemetry::V1::Configuration.new(name: 'tracing.enabled', value: Datadog.configuration.tracing.enabled),
+                                             value: environment_collector.runtime_metrics_enabled),
             Telemetry::V1::Configuration.new(name: 'tracing.analytics.enabled',
-                                             value: Datadog.configuration.tracing.analytics.enabled)
+                                             value: environment_collector.analytics_enabled),
+            Telemetry::V1::Configuration.new(name: 'tracing.enabled', value: environment_collector.enabled),
+            Telemetry::V1::Configuration.new(name: 'tracing.priority_sampling',
+                                             value: environment_collector.priority_sampling_enabled),
+            Telemetry::V1::Configuration.new(name: 'tracing.partial_flush.enabled',
+                                             value: environment_collector.partial_flushing_enabled),
+            Telemetry::V1::Configuration.new(name: 'tracing.sampler.rate', value: environment_collector.sample_rate),
+            Telemetry::V1::Configuration.new(name: 'tracing.sampler.rules', value: environment_collector.sampling_rules),
+            Telemetry::V1::Configuration.new(name: 'agent_url', value: environment_collector.agent_url),
+            Telemetry::V1::Configuration.new(name: 'tags', value: environment_collector.tags)
           ].each do |configuration|
             configurations << configuration unless configuration.value.nil?
           end
@@ -162,7 +174,7 @@ module Datadog
         end
 
         def patched?(integration)
-          instrumented_integrations[integration.name].patch == true
+          patch_result(integration) == true
         end
 
         def integration_auto_instrument?(integration)
@@ -178,15 +190,14 @@ module Datadog
         end
 
         def patch_result(integration)
-          instrumented_integrations[integration.name].patch
+          instrumented_integrations[integration.name].patcher.patch_results
         end
 
         def integration_error(integration)
-          patch_result = patch_result(integration)
-          desc = "Available?: #{patch_result[:available]}"
-          desc += ", Loaded? #{patch_result[:loaded]}"
-          desc += ", Compatible? #{patch_result[:compatible]}"
-          desc += ", Patchable? #{patch_result[:patchable]}"
+          desc = "Available?: #{integration.klass.class.available?}"
+          desc += ", Loaded? #{integration.klass.class.loaded?}"
+          desc += ", Compatible? #{integration.klass.class.compatible?}"
+          desc += ", Patchable? #{integration.klass.class.patchable?}"
           desc
         end
       end

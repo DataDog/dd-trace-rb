@@ -55,6 +55,14 @@ module Datadog
             Datadog.health_metrics.error_instrumentation_patch(1, tags: tags)
           end
 
+          def patch_results
+            @patch_results ||= nil
+          end
+
+          def patch_results=(patch_results)
+            @patch_results = patch_results
+          end
+
           private
 
           def default_tags

@@ -80,6 +80,7 @@ module Datadog
 
                 # integration.patch returns either true or a hash of details on why patching failed
                 patch_results = integration.patch
+                integration.patcher.patch_results = patch_results
 
                 next if patch_results == true
 
