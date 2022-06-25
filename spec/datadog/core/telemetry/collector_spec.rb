@@ -230,6 +230,31 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
                       ))
       end
     end
+
+    context 'when error is raised in patching' do
+      let(:error) { instance_double('error', class: StandardError, backtrace: []) }
+      before do
+        Datadog::Tracing::Contrib::Redis::Patcher.on_patch_error(error)
+        Datadog.configure do |c|
+          c.tracing.instrument :redis
+        end
+      end
+      after { Datadog::Tracing::Contrib::Redis::Patcher.patch_error_result = nil }
+      around do |example|
+        Datadog.registry[:redis].reset_configuration!
+        example.run
+        Datadog.registry[:redis].reset_configuration!
+      end
+      it do
+        expect(integrations)
+          .to include(an_object_having_attributes(
+                        name: 'redis',
+                        enabled: false,
+                        compatible: false,
+                        error: { type: 'StandardError', message: nil, line: nil }.to_s
+                      ))
+      end
+    end
   end
 
   describe '#runtime_id' do

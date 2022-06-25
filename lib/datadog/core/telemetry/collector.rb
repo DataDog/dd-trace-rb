@@ -45,8 +45,10 @@ module Datadog
 
         # Forms a telemetry app-started dependencies object
         def dependencies
-          Gem::Specification.map do |gem|
-            Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
+          if bundled_environment?
+            Gem::Specification.map do |gem|
+              Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
+            end
           end
         end
 
@@ -73,7 +75,7 @@ module Datadog
                 enabled: is_enabled,
                 version: integration_version(integration),
                 compatible: integration_compatible?(integration),
-                error: (integration_error(integration) if is_instrumented && !is_enabled),
+                error: (patch_error(integration) if is_instrumented && !is_enabled),
                 auto_enabled: is_enabled ? integration_auto_instrument?(integration) : nil
               )
           end
@@ -90,6 +92,14 @@ module Datadog
         end
 
         private
+
+        def bundled_environment?
+          begin
+            !Bundler.bundle_path.nil?
+          rescue Bundler::GemfileNotFound
+            false
+          end
+        end
 
         def env
           Datadog.configuration.env
@@ -174,7 +184,7 @@ module Datadog
         end
 
         def patched?(integration)
-          patch_result(integration) == true
+          !!integration.klass.patcher.patch_successful
         end
 
         def integration_auto_instrument?(integration)
@@ -189,16 +199,17 @@ module Datadog
           integration.klass.class.version ? integration.klass.class.version.to_s : nil
         end
 
-        def patch_result(integration)
-          instrumented_integrations[integration.name].patcher.patch_results
-        end
-
-        def integration_error(integration)
-          desc = "Available?: #{integration.klass.class.available?}"
-          desc += ", Loaded? #{integration.klass.class.loaded?}"
-          desc += ", Compatible? #{integration.klass.class.compatible?}"
-          desc += ", Patchable? #{integration.klass.class.patchable?}"
-          desc
+        def patch_error(integration)
+          patch_error_result = integration.klass.patcher.patch_error_result
+          if patch_error_result.nil? # if no error occurred during patching, but integration is still not instrumented
+            desc = "Available?: #{integration.klass.class.available?}"
+            desc += ", Loaded? #{integration.klass.class.loaded?}"
+            desc += ", Compatible? #{integration.klass.class.compatible?}"
+            desc += ", Patchable? #{integration.klass.class.patchable?}"
+            desc
+          else
+            patch_error_result.to_s
+          end
         end
       end
     end
