@@ -214,32 +214,6 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
         end
       end
-
-      describe '#patch_results' do
-        subject(:patch_results) { patcher.patch_results }
-
-        let(:patcher) do
-          stub_const('TestPatcher', Class.new do
-            include Datadog::Tracing::Contrib::Patcher
-          end)
-        end
-
-        it { expect(patcher).to respond_to(:patch_results) }
-
-        context 'when no patch result set' do
-          it { is_expected.to be_nil }
-        end
-      end
-
-      describe '#patch_results=' do
-        let(:patcher) do
-          stub_const('TestPatcher', Class.new do
-            include Datadog::Tracing::Contrib::Patcher
-          end)
-        end
-
-        it { expect(patcher).to respond_to(:patch_results=) }
-      end
     end
 
     describe 'instance behavior' do

@@ -39,8 +39,8 @@ module Datadog
                 super.tap do
                   # Emit a metric
                   Datadog.health_metrics.instrumentation_patched(1, tags: default_tags)
+                  @patch_successful = true
                 end
-                @patch_successful = true
               rescue StandardError => e
                 on_patch_error(e)
               end
