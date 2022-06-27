@@ -1,6 +1,8 @@
 # typed: true
 
 require 'datadog/tracing/distributed/metadata/datadog'
+require 'datadog/tracing/distributed/metadata/b3'
+require 'datadog/tracing/distributed/metadata/b3_single'
 
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_digest'
@@ -14,10 +16,11 @@ module Datadog
       # to the Propagation::HTTP; the key difference is the way gRPC handles
       # header information (called "metadata") as it operates over HTTP2
       module GRPC
-
         PROPAGATION_STYLES = {
+          Configuration::Ext::Distributed::PROPAGATION_STYLE_B3 => Distributed::Metadata::B3,
+          Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER => Distributed::Metadata::B3Single,
           Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG => Distributed::Metadata::Datadog
-        }
+        }.freeze
 
         def self.inject!(digest, metadata)
           return if digest.nil?
