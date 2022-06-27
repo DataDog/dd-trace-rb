@@ -47,9 +47,9 @@ module Datadog
             return if value.nil?
 
             parts = value.split('-')
-            trace_id = headers.value_to_id(parts[0], 16) unless parts.empty?
-            span_id = headers.value_to_id(parts[1], 16) if parts.length > 1
-            sampling_priority = headers.value_to_number(parts[2]) if parts.length > 2
+            trace_id = Helpers.value_to_id(parts[0], 16) unless parts.empty?
+            span_id = Helpers.value_to_id(parts[1], 16) if parts.length > 1
+            sampling_priority = Helpers.value_to_number(parts[2]) if parts.length > 2
 
             # Return early if this propagation is not valid
             return unless trace_id && span_id

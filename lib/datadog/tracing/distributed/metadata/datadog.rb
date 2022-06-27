@@ -1,4 +1,5 @@
 require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/distributed/metadata_parser'
 
 module Datadog
   module Tracing
@@ -35,7 +36,7 @@ module Datadog
             include Distributed::Headers::Ext
 
             def initialize(metadata = {})
-              @metadata = metadata || {}
+              @metadata = MetadataParser.new(metadata || {})
             end
 
             def valid?
@@ -43,35 +44,21 @@ module Datadog
             end
 
             def trace_id
-              value = metadata_for_key(GRPC_METADATA_TRACE_ID).to_i
-              value if (1..Span::EXTERNAL_MAX_ID).cover? value
+              @metadata.id(GRPC_METADATA_TRACE_ID)
             end
 
             def parent_id
-              value = metadata_for_key(GRPC_METADATA_PARENT_ID).to_i
-              value if (1..Span::EXTERNAL_MAX_ID).cover? value
+              @metadata.id(GRPC_METADATA_PARENT_ID)
             end
 
             def sampling_priority
-              value = metadata_for_key(GRPC_METADATA_SAMPLING_PRIORITY)
+              value = @metadata.metadata_for_key(GRPC_METADATA_SAMPLING_PRIORITY)
               value && value.to_i
             end
 
             def origin
-              value = metadata_for_key(GRPC_METADATA_ORIGIN)
+              value = @metadata.metadata_for_key(GRPC_METADATA_ORIGIN)
               value if value != ''
-            end
-
-            private
-
-            def metadata_for_key(key)
-              # metadata values can be arrays (multiple headers with the same key)
-              value = @metadata[key]
-              if value.is_a?(Array)
-                value.first
-              else
-                value
-              end
             end
           end
         end
