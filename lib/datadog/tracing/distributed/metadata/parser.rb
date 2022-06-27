@@ -1,5 +1,5 @@
 require 'datadog/tracing/distributed/helpers'
-          
+
 module Datadog
   module Tracing
     module Distributed
@@ -12,7 +12,6 @@ module Datadog
           def id(key, base = 10)
             Helpers.value_to_id(metadata_for_key(key), base)
           end
-
 
           def number(key, base = 10)
             Helpers.value_to_number(metadata_for_key(key), base)

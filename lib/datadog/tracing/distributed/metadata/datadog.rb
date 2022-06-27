@@ -13,7 +13,10 @@ module Datadog
 
             metadata[GRPC_METADATA_TRACE_ID] = digest.trace_id.to_s
             metadata[GRPC_METADATA_PARENT_ID] = digest.span_id.to_s
-            metadata[GRPC_METADATA_SAMPLING_PRIORITY] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
+            if digest.trace_sampling_priority
+              metadata[GRPC_METADATA_SAMPLING_PRIORITY] =
+                digest.trace_sampling_priority.to_s
+            end
             metadata[GRPC_METADATA_ORIGIN] = digest.trace_origin.to_s if digest.trace_origin
 
             metadata

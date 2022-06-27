@@ -46,7 +46,9 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
             )
           end
 
-          it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => "c350-ea60-#{expected}") }
+          it {
+            is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => "c350-ea60-#{expected}")
+          }
         end
       end
 

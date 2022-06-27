@@ -46,8 +46,8 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
 
           it do
             expect(metadata).to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_TRACE_ID => 50000.to_s(16),
-                              Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SPAN_ID => 60000.to_s(16),
-                              Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SAMPLED => expected.to_s)
+                                   Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SPAN_ID => 60000.to_s(16),
+                                   Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SAMPLED => expected.to_s)
           end
         end
       end
@@ -63,7 +63,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
 
         it do
           expect(metadata).to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_TRACE_ID => 90000.to_s(16),
-                            Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SPAN_ID => 100000.to_s(16))
+                                 Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SPAN_ID => 100000.to_s(16))
         end
       end
     end
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
     context 'with trace_id and span_id' do
       let(:metadata) do
         { Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_TRACE_ID => 10000.to_s(16),
-          Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SPAN_ID => 20000.to_s(16)}
+          Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SPAN_ID => 20000.to_s(16) }
       end
 
       it { expect(digest.span_id).to eq(20000) }
