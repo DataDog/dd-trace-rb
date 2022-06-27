@@ -1,5 +1,5 @@
 require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/distributed/metadata_parser'
+require 'datadog/tracing/distributed/metadata/parser'
 
 module Datadog
   module Tracing
@@ -36,7 +36,7 @@ module Datadog
             include Distributed::Headers::Ext
 
             def initialize(metadata = {})
-              @metadata = MetadataParser.new(metadata || {})
+              @metadata = Parser.new(metadata || {})
             end
 
             def valid?

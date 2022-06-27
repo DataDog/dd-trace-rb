@@ -1,7 +1,7 @@
 # typed: true
 
 require 'datadog/tracing/distributed/helpers'
-require 'datadog/tracing/distributed/metadata_parser'
+require 'datadog/tracing/distributed/metadata/parser'
 require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/trace_digest'
 
@@ -33,7 +33,7 @@ module Datadog
           def self.extract(metadata)
             # Extract values from gRPC metadata
             # DEV: B3 doesn't have "origin"
-            metadata = MetadataParser.new(metadata)
+            metadata = Parser.new(metadata)
             trace_id = metadata.id(B3_METADATA_TRACE_ID, 16)
             span_id = metadata.id(B3_METADATA_SPAN_ID, 16)
             # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
