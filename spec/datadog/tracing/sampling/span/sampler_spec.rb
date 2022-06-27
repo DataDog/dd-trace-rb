@@ -34,9 +34,21 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
       let(:rules) { [Datadog::Tracing::Sampling::Span::Rule.new(match_all, sample_rate: 1.0, rate_limit: 3)] }
 
       context 'a kept trace' do
-        before { trace_op.keep! }
+        before { trace_op.sampled = true }
 
         it_behaves_like 'does not modify span'
+
+        context 'but dropped by priority sampling' do
+          before { trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
+
+          it 'sets mechanism, rule rate and rate limit metrics' do
+            sample!
+
+            expect(span_op.get_metric('_dd.span_sampling.mechanism')).to eq(8)
+            expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
+            expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
+          end
+        end
       end
 
       context 'a rejected trace' do
