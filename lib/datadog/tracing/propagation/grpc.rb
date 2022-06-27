@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 
 require 'datadog/tracing/distributed/metadata/datadog'
 require 'datadog/tracing/distributed/metadata/b3'
