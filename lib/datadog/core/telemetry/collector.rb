@@ -24,23 +24,29 @@ module Datadog
 
         # Forms a telemetry application object
         def application
-          Telemetry::V1::Application
-            .new(
-              env: env,
-              language_name: Datadog::Core::Environment::Ext::LANG,
-              language_version: Datadog::Core::Environment::Ext::LANG_VERSION,
-              products: products,
-              runtime_name: Datadog::Core::Environment::Ext::RUBY_ENGINE,
-              runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
-              service_name: service_name,
-              service_version: service_version,
-              tracer_version: tracer_version
-            )
+          Telemetry::V1::Application.new(
+            env: env,
+            language_name: Datadog::Core::Environment::Ext::LANG,
+            language_version: Datadog::Core::Environment::Ext::LANG_VERSION,
+            products: products,
+            runtime_name: Datadog::Core::Environment::Ext::RUBY_ENGINE,
+            runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
+            service_name: service_name,
+            service_version: service_version,
+            tracer_version: tracer_version
+          )
         end
 
-        # Forms a telemetry configurations object
+        # Forms a telemetry app-started configurations object
         def configurations
           configuration_variables
+        end
+
+        # Forms telemetry app-started additional payload object
+        def additional_payload
+          configurations = []
+          flatten_configuration(Datadog.configuration, configurations)
+          configurations
         end
 
         # Forms a telemetry app-started dependencies object
@@ -54,14 +60,13 @@ module Datadog
 
         # Forms a telemetry host object
         def host
-          Telemetry::V1::Host
-            .new(
-              container_id: Core::Environment::Container.container_id,
-              hostname: Core::Environment::Platform.hostname,
-              kernel_name: Core::Environment::Platform.kernel_name,
-              kernel_release: Core::Environment::Platform.kernel_release,
-              kernel_version: Core::Environment::Platform.kernel_version
-            )
+          Telemetry::V1::Host.new(
+            container_id: Core::Environment::Container.container_id,
+            hostname: Core::Environment::Platform.hostname,
+            kernel_name: Core::Environment::Platform.kernel_name,
+            kernel_release: Core::Environment::Platform.kernel_release,
+            kernel_version: Core::Environment::Platform.kernel_version
+          )
         end
 
         # Forms a telemetry app-started integrations object
@@ -145,34 +150,52 @@ module Datadog
           configurations = []
           environment_collector = Core::Diagnostics::EnvironmentCollector.new
           [
-            Telemetry::V1::Configuration.new(name: 'diagnostics.debug', value: environment_collector.debug),
-            Telemetry::V1::Configuration.new(name: 'diagnostics.health_metrics.enabled',
-                                             value: environment_collector.health_metrics_enabled),
-            Telemetry::V1::Configuration.new(name: 'diagnostics.startup_logs.enabled',
-                                             value: Datadog.configuration.diagnostics.startup_logs.enabled),
-            Telemetry::V1::Configuration.new(name: 'profiling.advanced.endpoint.collection.enabled',
-                                             value: Datadog.configuration.profiling.advanced.endpoint.collection.enabled),
-            Telemetry::V1::Configuration.new(name: 'profiling.advanced.code_provenance_enabled',
-                                             value: Datadog.configuration.profiling.advanced.code_provenance_enabled),
-            Telemetry::V1::Configuration.new(name: 'profiling.advanced.legacy_transport_enabled',
-                                             value: Datadog.configuration.profiling.advanced.legacy_transport_enabled),
-            Telemetry::V1::Configuration.new(name: 'runtime_metrics.enabled',
-                                             value: environment_collector.runtime_metrics_enabled),
-            Telemetry::V1::Configuration.new(name: 'tracing.analytics.enabled',
-                                             value: environment_collector.analytics_enabled),
-            Telemetry::V1::Configuration.new(name: 'tracing.enabled', value: environment_collector.enabled),
-            Telemetry::V1::Configuration.new(name: 'tracing.priority_sampling',
-                                             value: environment_collector.priority_sampling_enabled),
-            Telemetry::V1::Configuration.new(name: 'tracing.partial_flush.enabled',
-                                             value: environment_collector.partial_flushing_enabled),
-            Telemetry::V1::Configuration.new(name: 'tracing.sampler.rate', value: environment_collector.sample_rate),
-            Telemetry::V1::Configuration.new(name: 'tracing.sampler.rules', value: environment_collector.sampling_rules),
-            Telemetry::V1::Configuration.new(name: 'agent_url', value: environment_collector.agent_url),
-            Telemetry::V1::Configuration.new(name: 'tags', value: environment_collector.tags)
+            Telemetry::V1::Configuration.new(
+              name: 'DD_AGENT_HOST', value: Datadog.configuration.agent.host || ENV.fetch('DD_AGENT_HOST', '127.0.0.1')
+            ),
+            Telemetry::V1::Configuration.new(name: 'DD_AGENT_TRANSPORT', value: agent_transport),
+            Telemetry::V1::Configuration.new(name: 'DD_TRACE_AGENT_URL', value: environment_collector.agent_url),
+            Telemetry::V1::Configuration.new(
+              name: 'DD_TRACE_SAMPLE_RATE',
+              value: environment_collector.sample_rate || Datadog.configuration.tracing.sampling.default_rate
+            )
           ].each do |configuration|
             configurations << configuration unless configuration.value.nil?
           end
           configurations
+        end
+
+        def agent_transport
+          if !!ENV.fetch('DD_APM_RECEIVER_SOCKET', nil)
+            'UDS'
+          else
+            'TCP'
+          end
+        end
+
+        def flatten_configuration(hash, configuration_array)
+          flattened_hash = flatten_hash(hash)
+          flattened_hash.each do |k, v|
+            configuration_array << Telemetry::V1::Configuration.new(name: k.to_s, value: v)
+          end
+        end
+
+        def flatten_hash(hash)
+          hash.to_h.each_with_object({}) do |(k, v), h|
+            if empty?(v) || (v.is_a? Array) || (v.is_a? String) || (v.is_a? Integer) || (v.is_a? Float)
+              next
+            elsif v.respond_to?(:to_h) && !v.to_h.empty?
+              flatten_hash(v.to_h).map do |h_k, h_v|
+                h["#{k}.#{h_k}"] = h_v unless empty?(h_v)
+              end
+            else
+              h[k.to_s] = v
+            end
+          end
+        end
+
+        def empty?(v)
+          v.nil? || (v.is_a? Proc) || (v == {})
         end
 
         def instrumented_integrations

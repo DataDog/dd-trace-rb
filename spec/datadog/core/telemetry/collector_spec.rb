@@ -149,6 +149,91 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
     it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
 
+    context 'DD_AGENT_HOST' do
+      let(:dd_agent_host) { 'ddagent' }
+
+      context 'when set via configuration' do
+        before do
+          Datadog.configure do |c|
+            c.agent.host = dd_agent_host
+          end
+        end
+
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_HOST', :value => dd_agent_host)) }
+      end
+
+      context 'when set via environment variable' do
+        let(:dd_agent_host) { 'ddagent' }
+        around do |example|
+          ClimateControl.modify DD_AGENT_HOST: dd_agent_host do
+            example.run
+          end
+        end
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_HOST', :value => dd_agent_host)) }
+      end
+
+      context 'when set as nil' do
+        let(:dd_agent_host) { nil }
+        around do |example|
+          ClimateControl.modify DD_AGENT_HOST: dd_agent_host do
+            example.run
+          end
+        end
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_HOST', :value => '127.0.0.1')) }
+      end
+    end
+
+    context 'DD_AGENT_TRANSPORT' do
+      context 'when no configuration variables set' do
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_TRANSPORT', :value => 'TCP')) }
+      end
+
+      context 'when DD_APM_RECEIVER_SOCKET is set' do
+        around do |example|
+          ClimateControl.modify DD_APM_RECEIVER_SOCKET: '8126' do
+            example.run
+          end
+        end
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_TRANSPORT', :value => 'UDS')) }
+      end
+    end
+
+    context 'DD_TRACE_AGENT_URL' do
+      context 'when environment variable set' do
+        around do |example|
+          ClimateControl.modify DD_TRACE_AGENT_URL: 'http://host:1234' do
+            example.run
+          end
+        end
+        it do
+          is_expected.to include(
+            an_object_having_attributes(:name => 'DD_TRACE_AGENT_URL',
+                                        :value => a_string_starting_with('http://host:1234'))
+          )
+        end
+      end
+    end
+
+    context 'DD_TRACE_SAMPLE_RATE' do
+      context 'when environment variable set' do
+        around do |example|
+          ClimateControl.modify DD_TRACE_SAMPLE_RATE: '0.2' do
+            example.run
+          end
+        end
+        it { is_expected.to include(an_object_having_attributes(:name => 'DD_TRACE_SAMPLE_RATE', :value => 0.2)) }
+      end
+    end
+  end
+
+  describe '#additional_payload' do
+    subject(:additional_payload) { dummy_class.additional_payload }
+
+    it { is_expected.to be_a_kind_of(Array) }
+    it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Configuration)) }
+    it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
+    it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
+
     context 'when environment variable configuration' do
       let(:dd_tracing_analytics_enabled) { 'true' }
       around do |example|
@@ -167,9 +252,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       context 'is nil' do
         let(:dd_tracing_analytics_enabled) { nil }
-        it('defaults to false') {
-          is_expected.to include(an_object_having_attributes(:name => 'tracing.analytics.enabled', :value => false))
-        }
+        it { is_expected.to_not include(an_object_having_attributes(:name => 'tracing.analytics.enabled')) }
       end
     end
   end
@@ -247,12 +330,14 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
       it do
         expect(integrations)
-          .to include(an_object_having_attributes(
-                        name: 'redis',
-                        enabled: false,
-                        compatible: false,
-                        error: { type: 'StandardError', message: nil, line: nil }.to_s
-                      ))
+          .to include(
+            an_object_having_attributes(
+              name: 'redis',
+              enabled: false,
+              compatible: false,
+              error: { type: 'StandardError', message: nil, line: nil }.to_s
+            )
+          )
       end
     end
   end
