@@ -47,11 +47,13 @@ module Datadog
       # but the VM is allowed to reuse `object_id`, allow for the possibility that
       # a new FiberLocalContext would be able to read an old FiberLocalContext's
       # value.
-      @mutex = Mutex.new
-      @unique_instance_id = Datadog::Core::Utils::Sequence.new
+      UNIQUE_INSTANCE_MUTEX = Mutex.new
+      UNIQUE_INSTANCE_GENERATOR = Datadog::Core::Utils::Sequence.new
+
+      private_constant :UNIQUE_INSTANCE_MUTEX, :UNIQUE_INSTANCE_GENERATOR
 
       def self.next_instance_id
-        @mutex.synchronize { @unique_instance_id.next }
+        UNIQUE_INSTANCE_MUTEX.synchronize { UNIQUE_INSTANCE_GENERATOR.next }
       end
 
       private

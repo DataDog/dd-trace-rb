@@ -71,6 +71,8 @@ module Datadog
       UNIQUE_INSTANCE_MUTEX = Mutex.new
       UNIQUE_INSTANCE_GENERATOR = Datadog::Core::Utils::Sequence.new
 
+      private_constant :UNIQUE_INSTANCE_MUTEX, :UNIQUE_INSTANCE_GENERATOR
+
       def self.next_instance_id
         UNIQUE_INSTANCE_MUTEX.synchronize { UNIQUE_INSTANCE_GENERATOR.next }
       end
