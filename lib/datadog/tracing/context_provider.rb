@@ -1,5 +1,6 @@
 # typed: true
 
+require 'datadog/core/utils/sequence'
 require 'datadog/tracing/context'
 
 module Datadog
@@ -30,6 +31,7 @@ module Datadog
         # that were generated from the parent process. Reset it such
         # that it acts like a distributed trace.
         current_context.after_fork! do
+          # TODO: Only assign to `self.context` when working on the current thread (`key == nil`)
           current_context = self.context = current_context.fork_clone
         end
 
@@ -47,7 +49,7 @@ module Datadog
       # To support multiple tracers simultaneously, each {Datadog::Tracing::FiberLocalContext}
       # instance has its own fiber-local variable.
       def initialize
-        @key = "datadog_context_#{object_id}".to_sym
+        @key = "datadog_context_#{FiberLocalContext.next_instance_id}".to_sym
 
         self.local = Context.new
       end
@@ -60,6 +62,20 @@ module Datadog
       # Return the fiber-local context.
       def local(storage = Thread.current)
         storage[@key] ||= Context.new
+      end
+
+      # Ensure two instances of {FiberLocalContext} do not conflict.
+      # We previously used {FiberLocalContext#object_id} to ensure uniqueness
+      # but the VM is allowed to reuse `object_id`, allow for the possibility that
+      # a new FiberLocalContext would be able to read an old FiberLocalContext's
+      # value.
+      UNIQUE_INSTANCE_MUTEX = Mutex.new
+      UNIQUE_INSTANCE_GENERATOR = Datadog::Core::Utils::Sequence.new
+
+      private_constant :UNIQUE_INSTANCE_MUTEX, :UNIQUE_INSTANCE_GENERATOR
+
+      def self.next_instance_id
+        UNIQUE_INSTANCE_MUTEX.synchronize { UNIQUE_INSTANCE_GENERATOR.next }
       end
     end
   end

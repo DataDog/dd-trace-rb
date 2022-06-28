@@ -26,13 +26,6 @@ RSpec.describe Datadog::Tracing::Tracer do
 
   after { tracer.shutdown! }
 
-  shared_context 'parent span' do
-    let(:parent_span) { tracer.start_span('parent', service: service) }
-    let(:service) { 'test-service' }
-    let(:trace_id) { parent_span.trace_id }
-    let(:span_id) { parent_span.span_id }
-  end
-
   describe '::new' do
     context 'given :trace_flush' do
       let(:tracer_options) { super().merge(trace_flush: trace_flush) }
@@ -192,25 +185,6 @@ RSpec.describe Datadog::Tracing::Tracer do
         it 'sets the span name from the name argument' do
           trace
           expect(span.name).to eq(name)
-        end
-
-        it 'tracks the number of allocations made in the span' do
-          skip 'Test unstable; improve stability before re-enabling.'
-
-          # Create and discard first trace.
-          # When warming up, it might have more allocations than subsequent traces.
-          tracer.trace(name) {}
-          writer.spans
-
-          # Then create traces to compare
-          tracer.trace(name) {}
-          tracer.trace(name) { Object.new }
-
-          first, second = writer.spans
-
-          # Different versions of Ruby will allocate a different number of
-          # objects, so this is what works across the board.
-          expect(second.allocations).to eq(first.allocations + 1)
         end
 
         context 'with diagnostics debug enabled' do
