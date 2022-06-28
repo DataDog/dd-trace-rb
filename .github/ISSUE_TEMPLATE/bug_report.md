@@ -14,8 +14,13 @@ assignees: ''
 <!-- What should be happening. -->
 
 **Steps to reproduce**
-<!-- How can we reproduce this issue in order to diagnose it?
-Code snippets and sample apps are encouraged! -->
+<!--
+  How can we reproduce this issue in order to diagnose it?
+  Code snippets, log messages, screenshots and sample apps are encouraged!
+-->
+
+**How does `ddtrace` help you?**
+<!-- Optionally, tell us why and how you're using ddtrace, and what your overall experience with it is! -->
 
 **Environment**
 

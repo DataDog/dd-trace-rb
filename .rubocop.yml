@@ -108,7 +108,7 @@ Style/CaseEquality:
 # New cops since Rubocop 1.0.
 # We have to explicitly opt-in for new cops to apply
 # before the next major release.
-Gemspec/DateAssignment: # (new in 1.10)
+Gemspec/DeprecatedAttributeAssignment: # (Gemspec/DateAssignment integrated in 1.31.0)
   Enabled: true
 Layout/SpaceBeforeBrackets: # (new in 1.7)
   Enabled: true
