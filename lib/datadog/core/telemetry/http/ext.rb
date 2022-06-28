@@ -11,6 +11,10 @@ module Datadog
 
           CONTENT_TYPE_APPLICATION_JSON = 'application/json'.freeze
           API_VERSION = 'v1'.freeze
+
+          AGENT_ENDPOINT = '/telemetry/proxy/api/v2/apmtelemetry'.freeze
+          AGENTLESS_HOST = 'instrumentation-telemetry-intake.datadoghq.com'.freeze
+          AGENTLESS_ENDPOINT = '/api/v2/apmtelemetry'.freeze
         end
       end
     end
