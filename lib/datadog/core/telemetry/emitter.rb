@@ -11,15 +11,16 @@ module Datadog
         module_function
 
         def request(request_type:)
-          request = collector.telemetry_request(request_type: request_type)
+          request = collector.telemetry_request(request_type: request_type).to_h
+          request['debug'] = true
           # send to telemetry API
-          res = http_transport.request(request_type: request_type, payload: request)
+          res = http_transport.request(request_type: request_type, payload: request.to_json)
           increment_seq_id
           res
         end
 
         def http_transport
-          @transporter ||= Telemetry::Http::Transport.new(host: 'instrumentation-telemetry-intake.datad0g.com', port: 443, path: '/api/v2/apmtelemetry')
+          @transporter ||= Telemetry::Http::Transport.new
         end
 
         def collector

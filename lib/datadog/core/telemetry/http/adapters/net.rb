@@ -7,6 +7,7 @@ module Datadog
     module Telemetry
       module Http
         module Adapters
+          # Class defining methods to make http requests via NET
           class Net
             attr_reader \
               :hostname,
@@ -52,6 +53,7 @@ module Datadog
               Response.new(http_response)
             end
 
+            # Data structure for an HTTP Response
             class Response
               include Datadog::Core::Telemetry::Http::Response
 

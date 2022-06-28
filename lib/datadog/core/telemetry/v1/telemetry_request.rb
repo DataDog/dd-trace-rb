@@ -53,6 +53,19 @@ module Datadog
             @tracer_time = tracer_time
           end
 
+          def to_h
+            { api_version: @api_version,
+              application: @application.to_h,
+              debug: @debug,
+              host: @host.to_h,
+              payload: @payload.to_h,
+              request_type: @request_type,
+              runtime_id: @runtime_id,
+              seq_id: @seq_id,
+              session_id: @session_id,
+              tracer_time: @tracer_time }
+          end
+
           private
 
           # Validates all required arguments passed to the class on initialization are not nil
