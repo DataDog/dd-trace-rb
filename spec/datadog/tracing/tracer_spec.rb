@@ -26,13 +26,6 @@ RSpec.describe Datadog::Tracing::Tracer do
 
   after { tracer.shutdown! }
 
-  shared_context 'parent span' do
-    let(:parent_span) { tracer.start_span('parent', service: service) }
-    let(:service) { 'test-service' }
-    let(:trace_id) { parent_span.trace_id }
-    let(:span_id) { parent_span.span_id }
-  end
-
   describe '::new' do
     context 'given :trace_flush' do
       let(:tracer_options) { super().merge(trace_flush: trace_flush) }
