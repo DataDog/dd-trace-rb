@@ -109,19 +109,9 @@ module Datadog
         # @return [String] target agent URL for trace flushing
         def agent_url
           # Retrieve the effect agent URL, regardless of how it was configured
-          adapter.url
-        end
-
-        # @return [String] target agent hostname for trace flushing
-        def agent_hostname
-          # Retrieve the effect agent hostname, regardless of how it was configured
-          adapter.hostname
-        end
-
-        # @return [Datadog::Transport Adapter] Adapter object used for transport
-        def adapter
           transport = Tracing.send(:tracer).writer.transport
-          transport.client.api.adapter
+          adapter = transport.client.api.adapter
+          adapter.url
         end
 
         # Error returned by Datadog agent during a tracer flush attempt

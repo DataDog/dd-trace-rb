@@ -79,16 +79,12 @@ module Datadog
             options_hash
           end
 
-          # Converts the configuration variables into a flat hash with period delimited keys
-          def to_hash(hash: to_h)
-            hash.each_with_object({}) do |(k, v), h|
-              if v.is_a?(Configuration::Options) && !(inner_hash = v.to_h).empty?
-                to_hash(hash: inner_hash).map do |h_k, h_v|
-                  h["#{k}.#{h_k}"] = h_v
-                end
-              else
-                h[k.to_s] = v
-              end
+          # Retrieves a nested option from a list of symbols
+          def dig(*options)
+            raise ArgumentError, 'expected at least one option' if options.empty?
+
+            options.inject(self) do |receiver, option|
+              receiver.send(option)
             end
           end
 

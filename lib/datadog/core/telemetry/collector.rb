@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # typed: true
 
 require 'etc'
@@ -101,50 +103,51 @@ module Datadog
         private
 
         TARGET_OPTIONS = [
-          'ci.enabled'.freeze,
-          'logger.level'.freeze,
-          'profiling.advanced.code_provenance_enabled'.freeze,
-          'profiling.advanced.endpoint.collection.enabled'.freeze,
-          'profiling.enabled'.freeze,
-          'runtime_metrics.enabled'.freeze,
-          'tracing.analytics.enabled'.freeze,
-          'tracing.distributed_tracing.propagation_inject_style'.freeze,
-          'tracing.distributed_tracing.propogation_extract_style'.freeze,
-          'tracing.enabled'.freeze,
-          'tracing.log_injection'.freeze,
-          'tracing.partial_flush.enabled'.freeze,
-          'tracing.partial_flush.min_spans_threshold'.freeze,
-          'tracing.priority_sampling'.freeze,
-          'tracing.report_hostname'.freeze,
-          'tracing.sampling.default_rate'.freeze,
-          'tracing.sampling.rate_limit'.freeze
+          'ci.enabled',
+          'logger.level',
+          'profiling.advanced.code_provenance_enabled',
+          'profiling.advanced.endpoint.collection.enabled',
+          'profiling.enabled',
+          'runtime_metrics.enabled',
+          'tracing.analytics.enabled',
+          'tracing.distributed_tracing.propagation_inject_style',
+          'tracing.distributed_tracing.propagation_extract_style',
+          'tracing.enabled',
+          'tracing.log_injection',
+          'tracing.partial_flush.enabled',
+          'tracing.partial_flush.min_spans_threshold',
+          'tracing.priority_sampling',
+          'tracing.report_hostname',
+          'tracing.sampling.default_rate',
+          'tracing.sampling.rate_limit'
         ].freeze
 
         def additional_payload_variables
           # Whitelist of configuration options to send in additional payload object
-          config_options = Datadog.configuration.to_hash
-          config_options_to_keep = {}
-          TARGET_OPTIONS.each do |option|
-            config_options_to_keep[option] = format_configuration_value(config_options[option])
+          configuration = Datadog.configuration
+          options = TARGET_OPTIONS.each_with_object({}) do |option, hash|
+            split_option = option.split('.')
+            hash[option] = format_configuration_value(configuration.dig(*split_option))
           end
 
           # Add some more custom additional payload values here
-          config_options_to_keep['tracing.auto_instrument.enabled'.freeze] = !defined?(Datadog::AutoInstrument::LOADED).nil?
-          config_options_to_keep['tracing.writer_options.buffer_size'.freeze] =
-            format_configuration_value(Datadog.configuration.tracing.writer_options[:buffer_size])
-          config_options_to_keep['tracing.writer_options.flush_interval'.freeze] =
-            format_configuration_value(Datadog.configuration.tracing.writer_options[:flush_interval])
-          config_options_to_keep['logger.instance'.freeze] = Datadog.configuration.logger.instance.class.to_s
+          options['tracing.auto_instrument.enabled'] = !defined?(Datadog::AutoInstrument::LOADED).nil?
+          options['tracing.writer_options.buffer_size'] =
+            format_configuration_value(configuration.tracing.writer_options[:buffer_size])
+          options['tracing.writer_options.flush_interval'] =
+            format_configuration_value(configuration.tracing.writer_options[:flush_interval])
+          options['logger.instance'] = configuration.logger.instance.class.to_s
 
-          compact_hash(config_options_to_keep)
+          compact_hash(options)
         end
 
         def format_configuration_value(value)
-          # TODO: If the telemetry spec is updated to accept floats, this condition should be removed
-          if value.is_a?(Float) || value.is_a?(Array)
-            value.to_s
-          else
+          # TODO: Add float if telemetry starts accepting it
+          case value
+          when Integer, String, true, false, nil
             value
+          else
+            value.to_s
           end
         end
 
@@ -180,7 +183,7 @@ module Datadog
         end
 
         def profiler_version
-          tracer_version if Datadog.configuration.respond_to?(:profiling) && Datadog.configuration.profiling.enabled
+          tracer_version if Datadog.configuration.profiling.enabled
         end
 
         def appsec
@@ -189,7 +192,7 @@ module Datadog
         end
 
         def appsec_version
-          tracer_version if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
+          tracer_version if Datadog.configuration.appsec.enabled
         end
 
         def agent_transport

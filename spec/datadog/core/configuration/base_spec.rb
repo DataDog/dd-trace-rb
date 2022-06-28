@@ -106,25 +106,29 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
-      describe '#to_hash' do
-        subject(:hash) { base_object.to_hash }
+      describe '#dig' do
+        subject(:dig) { base_object.dig(*options) }
+        let(:options) { 'debug' }
+
+        let(:settings) { base_class.send(:settings, name, &block) }
+        let(:name) { :debug }
+        let(:block) { proc { option :enabled, default: true } }
+        let(:definition) { base_class.options[name] }
 
         before do
-          allow(base_object).to receive(:to_h).and_return(options_hash)
+          settings
+          definition
         end
 
-        context 'when :options_hash' do
-          let(:options_hash) { {} }
+        context 'when given one arg' do
+          let(:options) { 'debug' }
+          it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::Options) }
+        end
 
-          context 'is empty' do
-            let(:options_hash) { {} }
-            it { is_expected.to eq({}) }
-          end
+        context 'when given more than one arg' do
+          let(:options) { %w[debug enabled] }
 
-          context 'is flat hash' do
-            let(:options_hash) { { 'key' => 'value' } }
-            it { is_expected.to include('key' => 'value') }
-          end
+          it { is_expected.to be(true) }
         end
       end
 

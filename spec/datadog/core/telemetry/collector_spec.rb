@@ -292,7 +292,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     end
 
     context 'when error is raised in patching' do
-      let(:error) { instance_double('error', class: StandardError, backtrace: []) }
+      let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
       before do
         Datadog::Tracing::Contrib::Redis::Patcher.on_patch_error(error)
         Datadog.configure do |c|

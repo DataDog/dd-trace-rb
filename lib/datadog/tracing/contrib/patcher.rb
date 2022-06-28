@@ -54,9 +54,9 @@ module Datadog
             Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{Array(e.backtrace).first}")
 
             @patch_error_result = {
-              type: e.respond_to?(:class) ? e.class.name : nil,
-              message: e.respond_to?(:message) ? e.message : nil,
-              line: e.respond_to?(:backtrace) ? Array(e.backtrace).first : nil
+              type: e.class.name,
+              message: e.message,
+              line: Array(e.backtrace).first
             }
 
             # Emit a metric
