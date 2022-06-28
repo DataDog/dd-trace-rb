@@ -4,8 +4,8 @@ module Datadog
   module Tracing
     module Sampling
       module Span
-        # Checks if a span conforms to a matching criteria.
-        class Ext
+        # Single Span Sampling constants.
+        module Ext
           # Accept all spans (100% retention).
           DEFAULT_SAMPLE_RATE = 1.0
           # Unlimited.

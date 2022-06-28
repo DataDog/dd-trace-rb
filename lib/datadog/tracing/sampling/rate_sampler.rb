@@ -20,6 +20,9 @@ module Datadog
         # * +sample_rate+: the sample rate as a {Float} between 0.0 and 1.0. 0.0
         #   means that no trace will be sampled; 1.0 means that all traces will be
         #   sampled.
+        #
+        # DEV-2.0: Allow for `sample_rate` zero (drop all) to be allowed. This eases
+        # DEV-2.0: usage for many consumers of the {RateSampler} class.
         def initialize(sample_rate = 1.0)
           super()
 

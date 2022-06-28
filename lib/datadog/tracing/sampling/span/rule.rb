@@ -30,6 +30,10 @@ module Datadog
             @rate_limit = rate_limit
 
             @sampler = Sampling::RateSampler.new
+            # Set the sample_rate outside of the initializer to allow for
+            # zero to be a "drop all".
+            # The RateSampler initializer enforces non-zero, falling back to 100% sampling
+            # if zero is provided.
             @sampler.sample_rate = sample_rate
             @rate_limiter = Sampling::TokenBucket.new(rate_limit)
           end
