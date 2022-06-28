@@ -2,17 +2,17 @@
 
 require 'etc'
 
-require 'datadog/core/diagnostics/environment_logger'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/environment/platform'
 require 'datadog/core/telemetry/v1/application'
 require 'datadog/core/telemetry/v1/appsec'
-require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/telemetry/v1/profiler'
+require 'ddtrace/transport/ext'
 
 module Datadog
   module Core
@@ -21,6 +21,11 @@ module Datadog
       # rubocop:disable Metrics/ModuleLength
       module Collector
         include Datadog::Core::Configuration
+
+        # Forms a hash of configuration key value pairs to be sent in the additional payload
+        def additional_payload
+          additional_payload_variables
+        end
 
         # Forms a telemetry application object
         def application
@@ -37,24 +42,22 @@ module Datadog
           )
         end
 
-        # Forms a telemetry app-started configurations object
+        # Forms a hash of standard key value pairs to be sent in the app-started event configuration
         def configurations
-          configuration_variables
-        end
-
-        # Forms telemetry app-started additional payload object
-        def additional_payload
-          configurations = []
-          flatten_configuration(Datadog.configuration, configurations)
-          configurations
+          configurations = {
+            DD_AGENT_HOST: Datadog.configuration.agent.host,
+            DD_AGENT_TRANSPORT: agent_transport,
+            DD_TRACE_SAMPLE_RATE: format_configuration_value(Datadog.configuration.tracing.sampling.default_rate),
+          }
+          compact_hash(configurations)
         end
 
         # Forms a telemetry app-started dependencies object
         def dependencies
-          if bundled_environment?
-            Gem::Specification.map do |gem|
-              Telemetry::V1::Dependency.new(name: gem.name, version: gem.version.to_s, hash: gem.hash.to_s)
-            end
+          Gem.loaded_specs.collect do |name, loaded_gem|
+            Datadog::Core::Telemetry::V1::Dependency.new(
+              name: name, version: loaded_gem.version.to_s, hash: loaded_gem.hash.to_s
+            )
           end
         end
 
@@ -74,15 +77,14 @@ module Datadog
           Datadog.registry.map do |integration|
             is_instrumented = instrumented?(integration)
             is_enabled = is_instrumented && patched?(integration)
-            Telemetry::V1::Integration
-              .new(
-                name: integration.name.to_s,
-                enabled: is_enabled,
-                version: integration_version(integration),
-                compatible: integration_compatible?(integration),
-                error: (patch_error(integration) if is_instrumented && !is_enabled),
-                auto_enabled: is_enabled ? integration_auto_instrument?(integration) : nil
-              )
+            Telemetry::V1::Integration.new(
+              name: integration.name.to_s,
+              enabled: is_enabled,
+              version: integration_version(integration),
+              compatible: integration_compatible?(integration),
+              error: (patch_error(integration) if is_instrumented && !is_enabled),
+              auto_enabled: is_enabled ? integration_auto_instrument?(integration) : nil
+            )
           end
         end
 
@@ -98,12 +100,56 @@ module Datadog
 
         private
 
-        def bundled_environment?
-          begin
-            !Bundler.bundle_path.nil?
-          rescue Bundler::GemfileNotFound
-            false
+        TARGET_OPTIONS = [
+          'ci.enabled'.freeze,
+          'logger.level'.freeze,
+          'profiling.advanced.code_provenance_enabled'.freeze,
+          'profiling.advanced.endpoint.collection.enabled'.freeze,
+          'profiling.enabled'.freeze,
+          'runtime_metrics.enabled'.freeze,
+          'tracing.analytics.enabled'.freeze,
+          'tracing.distributed_tracing.propagation_inject_style'.freeze,
+          'tracing.distributed_tracing.propogation_extract_style'.freeze,
+          'tracing.enabled'.freeze,
+          'tracing.log_injection'.freeze,
+          'tracing.partial_flush.enabled'.freeze,
+          'tracing.partial_flush.min_spans_threshold'.freeze,
+          'tracing.priority_sampling'.freeze,
+          'tracing.report_hostname'.freeze,
+          'tracing.sampling.default_rate'.freeze,
+          'tracing.sampling.rate_limit'.freeze
+        ].freeze
+
+        def additional_payload_variables
+          # Whitelist of configuration options to send in additional payload object
+          config_options = Datadog.configuration.to_hash
+          config_options_to_keep = {}
+          TARGET_OPTIONS.each do |option|
+            config_options_to_keep[option] = format_configuration_value(config_options[option])
           end
+
+          # Add some more custom additional payload values here
+          config_options_to_keep['tracing.auto_instrument.enabled'.freeze] = !defined?(Datadog::AutoInstrument::LOADED).nil?
+          config_options_to_keep['tracing.writer_options.buffer_size'.freeze] =
+            format_configuration_value(Datadog.configuration.tracing.writer_options[:buffer_size])
+          config_options_to_keep['tracing.writer_options.flush_interval'.freeze] =
+            format_configuration_value(Datadog.configuration.tracing.writer_options[:flush_interval])
+          config_options_to_keep['logger.instance'.freeze] = Datadog.configuration.logger.instance.class.to_s
+
+          compact_hash(config_options_to_keep)
+        end
+
+        def format_configuration_value(value)
+          # TODO: If the telemetry spec is updated to accept floats, this condition should be removed
+          if value.is_a?(Float) || value.is_a?(Array)
+            value.to_s
+          else
+            value
+          end
+        end
+
+        def compact_hash(hash)
+          hash.delete_if { |_k, v| v.nil? }
         end
 
         def env
@@ -146,56 +192,13 @@ module Datadog
           tracer_version if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
         end
 
-        def configuration_variables
-          configurations = []
-          environment_collector = Core::Diagnostics::EnvironmentCollector.new
-          [
-            Telemetry::V1::Configuration.new(
-              name: 'DD_AGENT_HOST', value: Datadog.configuration.agent.host || ENV.fetch('DD_AGENT_HOST', '127.0.0.1')
-            ),
-            Telemetry::V1::Configuration.new(name: 'DD_AGENT_TRANSPORT', value: agent_transport),
-            Telemetry::V1::Configuration.new(name: 'DD_TRACE_AGENT_URL', value: environment_collector.agent_url),
-            Telemetry::V1::Configuration.new(
-              name: 'DD_TRACE_SAMPLE_RATE',
-              value: environment_collector.sample_rate || Datadog.configuration.tracing.sampling.default_rate
-            )
-          ].each do |configuration|
-            configurations << configuration unless configuration.value.nil?
-          end
-          configurations
-        end
-
         def agent_transport
-          if !!ENV.fetch('DD_APM_RECEIVER_SOCKET', nil)
+          adapter = Core::Configuration::AgentSettingsResolver.call(Datadog.configuration).adapter
+          if adapter == Datadog::Transport::Ext::UnixSocket::ADAPTER
             'UDS'
           else
             'TCP'
           end
-        end
-
-        def flatten_configuration(hash, configuration_array)
-          flattened_hash = flatten_hash(hash)
-          flattened_hash.each do |k, v|
-            configuration_array << Telemetry::V1::Configuration.new(name: k.to_s, value: v)
-          end
-        end
-
-        def flatten_hash(hash)
-          hash.to_h.each_with_object({}) do |(k, v), h|
-            if empty?(v) || (v.is_a? Array) || (v.is_a? String) || (v.is_a? Integer) || (v.is_a? Float)
-              next
-            elsif v.respond_to?(:to_h) && !v.to_h.empty?
-              flatten_hash(v.to_h).map do |h_k, h_v|
-                h["#{k}.#{h_k}"] = h_v unless empty?(h_v)
-              end
-            else
-              h[k.to_s] = v
-            end
-          end
-        end
-
-        def empty?(v)
-          v.nil? || (v.is_a? Proc) || (v == {})
         end
 
         def instrumented_integrations
@@ -235,7 +238,7 @@ module Datadog
           end
         end
       end
+      # rubocop:enable Metrics/ModuleLength
     end
-    # rubocop:enable Metrics/ModuleLength
   end
 end

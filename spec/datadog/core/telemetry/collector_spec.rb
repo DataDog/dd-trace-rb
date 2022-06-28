@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'datadog/appsec'
 require 'datadog/core/configuration'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/collector'
 require 'datadog/core/telemetry/v1/application'
@@ -12,6 +13,7 @@ require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/telemetry/v1/profiler'
+require 'ddtrace/transport/ext'
 
 require 'ddtrace'
 require 'ddtrace/version'
@@ -144,10 +146,9 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
   describe '#configurations' do
     subject(:configurations) { dummy_class.configurations }
 
-    it { is_expected.to be_a_kind_of(Array) }
-    it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Configuration)) }
-    it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
-    it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
+    it { is_expected.to be_a_kind_of(Hash) }
+    it { expect(configurations.values).to_not include(nil) }
+    it { expect(configurations.values).to_not include({}) }
 
     context 'DD_AGENT_HOST' do
       let(:dd_agent_host) { 'ddagent' }
@@ -159,69 +160,47 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
           end
         end
 
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_HOST', :value => dd_agent_host)) }
+        it { is_expected.to include(:DD_AGENT_HOST => dd_agent_host) }
       end
 
-      context 'when set via environment variable' do
-        let(:dd_agent_host) { 'ddagent' }
-        around do |example|
-          ClimateControl.modify DD_AGENT_HOST: dd_agent_host do
-            example.run
-          end
-        end
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_HOST', :value => dd_agent_host)) }
-      end
-
-      context 'when set as nil' do
+      context 'when no value set' do
         let(:dd_agent_host) { nil }
-        around do |example|
-          ClimateControl.modify DD_AGENT_HOST: dd_agent_host do
-            example.run
-          end
-        end
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_HOST', :value => '127.0.0.1')) }
+        it { is_expected.to_not include(:DD_AGENT_HOST) }
       end
     end
 
     context 'DD_AGENT_TRANSPORT' do
       context 'when no configuration variables set' do
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_TRANSPORT', :value => 'TCP')) }
+        it { is_expected.to include(:DD_AGENT_TRANSPORT => 'TCP') }
       end
 
-      context 'when DD_APM_RECEIVER_SOCKET is set' do
-        around do |example|
-          ClimateControl.modify DD_APM_RECEIVER_SOCKET: '8126' do
-            example.run
-          end
-        end
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_AGENT_TRANSPORT', :value => 'UDS')) }
-      end
-    end
+      context 'when adapter is type :unix' do
+        let(:adapter_type) { Datadog::Transport::Ext::UnixSocket::ADAPTER }
 
-    context 'DD_TRACE_AGENT_URL' do
-      context 'when environment variable set' do
-        around do |example|
-          ClimateControl.modify DD_TRACE_AGENT_URL: 'http://host:1234' do
-            example.run
-          end
+        before do
+          allow(Datadog::Core::Configuration::AgentSettingsResolver)
+            .to receive(:call).and_return(double('agent settings', :adapter => adapter_type))
         end
-        it do
-          is_expected.to include(
-            an_object_having_attributes(:name => 'DD_TRACE_AGENT_URL',
-                                        :value => a_string_starting_with('http://host:1234'))
-          )
-        end
+        it { is_expected.to include(:DD_AGENT_TRANSPORT => 'UDS') }
       end
     end
 
     context 'DD_TRACE_SAMPLE_RATE' do
-      context 'when environment variable set' do
-        around do |example|
-          ClimateControl.modify DD_TRACE_SAMPLE_RATE: '0.2' do
-            example.run
-          end
+      around do |example|
+        ClimateControl.modify DD_TRACE_SAMPLE_RATE: dd_trace_sample_rate do
+          example.run
         end
-        it { is_expected.to include(an_object_having_attributes(:name => 'DD_TRACE_SAMPLE_RATE', :value => 0.2)) }
+      end
+
+      let(:dd_trace_sample_rate) { nil }
+      context 'when set' do
+        let(:dd_trace_sample_rate) { '0.2' }
+        it { is_expected.to include(:DD_TRACE_SAMPLE_RATE => '0.2') }
+      end
+
+      context 'when nil' do
+        let(:dd_trace_sample_rate) { nil }
+        it { is_expected.to_not include(:DD_TRACE_SAMPLE_RATE) }
       end
     end
   end
@@ -229,10 +208,9 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
   describe '#additional_payload' do
     subject(:additional_payload) { dummy_class.additional_payload }
 
-    it { is_expected.to be_a_kind_of(Array) }
-    it { is_expected.to all(be_a(Datadog::Core::Telemetry::V1::Configuration)) }
-    it { is_expected.to_not include(an_object_having_attributes(:value => nil)) }
-    it { is_expected.to_not include(an_object_having_attributes(:value => {})) }
+    it { is_expected.to be_a_kind_of(Hash) }
+    it { expect(additional_payload.values).to_not include(nil) }
+    it { expect(additional_payload.values).to_not include({}) }
 
     context 'when environment variable configuration' do
       let(:dd_tracing_analytics_enabled) { 'true' }
@@ -245,14 +223,15 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       context 'is set' do
         let(:dd_tracing_analytics_enabled) { 'true' }
         it do
-          is_expected.to include(an_object_having_attributes(:name => 'tracing.analytics.enabled',
-                                                             :value => true))
+          is_expected.to include(
+            'tracing.analytics.enabled' => true
+          )
         end
       end
 
       context 'is nil' do
         let(:dd_tracing_analytics_enabled) { nil }
-        it { is_expected.to_not include(an_object_having_attributes(:name => 'tracing.analytics.enabled')) }
+        it { is_expected.to_not include('tracing.analytics.enabled') }
       end
     end
   end
@@ -294,23 +273,21 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
 
       it 'sets integration as enabled' do
-        expect(integrations)
-          .to include(an_object_having_attributes(
-                        name: 'rake',
-                        enabled: true,
-                        compatible: true,
-                        error: nil
-                      ))
+        expect(integrations).to include(
+          an_object_having_attributes(name: 'rake', enabled: true, compatible: true, error: nil)
+        )
       end
 
       it 'propogates errors with configuration' do
         expect(integrations)
-          .to include(an_object_having_attributes(
-                        name: 'pg',
-                        enabled: false,
-                        compatible: false,
-                        error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false'
-                      ))
+          .to include(
+            an_object_having_attributes(
+              name: 'pg',
+              enabled: false,
+              compatible: false,
+              error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false'
+            )
+          )
       end
     end
 

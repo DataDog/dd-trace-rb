@@ -106,6 +106,28 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
+      describe '#to_hash' do
+        subject(:hash) { base_object.to_hash }
+
+        before do
+          allow(base_object).to receive(:to_h).and_return(options_hash)
+        end
+
+        context 'when :options_hash' do
+          let(:options_hash) { {} }
+
+          context 'is empty' do
+            let(:options_hash) { {} }
+            it { is_expected.to eq({}) }
+          end
+
+          context 'is flat hash' do
+            let(:options_hash) { { 'key' => 'value' } }
+            it { is_expected.to include('key' => 'value') }
+          end
+        end
+      end
+
       describe '#reset!' do
         subject(:reset!) { base_object.reset! }
 

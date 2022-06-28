@@ -7,3 +7,9 @@ require 'ddtrace'
 require 'datadog/tracing/contrib/auto_instrument'
 
 Datadog::Profiling.start_if_enabled
+
+module Datadog
+  module AutoInstrument
+    LOADED = true
+  end
+end
