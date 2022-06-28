@@ -5,6 +5,8 @@ module Datadog
   module Tracing
     module Distributed
       module Metadata
+
+        # Datadog provides helpers to inject or extract metadata for Datadog style headers
         class Datadog
           include Distributed::Headers::Ext
 

@@ -1,4 +1,5 @@
 # typed: false
+
 require 'datadog/tracing/distributed/helpers'
 
 module Datadog

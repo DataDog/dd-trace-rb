@@ -4,6 +4,7 @@ module Datadog
   module Tracing
     module Distributed
       module Metadata
+        # Parser provides easy access and validation methods for metadata headers
         class Parser
           def initialize(metadata)
             @metadata = metadata

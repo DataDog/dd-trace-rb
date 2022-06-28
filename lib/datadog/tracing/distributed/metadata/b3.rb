@@ -9,7 +9,7 @@ module Datadog
   module Tracing
     module Distributed
       module Metadata
-        # B3 provides helpers to inject or extract headers for B3 style headers
+        # B3 provides helpers to inject or extract metadata for B3 style headers
         module B3
           include Distributed::Headers::Ext
 
