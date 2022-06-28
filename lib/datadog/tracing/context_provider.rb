@@ -31,6 +31,7 @@ module Datadog
         # that were generated from the parent process. Reset it such
         # that it acts like a distributed trace.
         current_context.after_fork! do
+          # TODO: Only assign to `self.context` when working on the current thread (`key == nil`)
           current_context = self.context = current_context.fork_clone
         end
 
