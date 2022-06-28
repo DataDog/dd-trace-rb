@@ -22,6 +22,27 @@ module Datadog
             @dependencies = dependencies
             @integrations = integrations
           end
+
+          def to_h
+            {
+              additional_payload: map_hash(@additional_payload),
+              configuration: map_hash(@configuration),
+              dependencies: map_array(@dependencies),
+              integrations: map_array(@integrations),
+            }
+          end
+
+          private
+
+          def map_hash(hash)
+            hash.map do |k, v|
+              { name: k, value: v }
+            end
+          end
+
+          def map_array(arr)
+            arr.map(&:to_h)
+          end
         end
       end
     end

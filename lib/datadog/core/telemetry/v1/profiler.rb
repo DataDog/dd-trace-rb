@@ -14,6 +14,12 @@ module Datadog
 
             @version = version
           end
+
+          def to_h
+            {
+              version: @version
+            }
+          end
         end
       end
     end

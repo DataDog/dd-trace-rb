@@ -14,6 +14,13 @@ module Datadog
             @appsec = appsec
             @profiler = profiler
           end
+
+          def to_h
+            {
+              appsec: @appsec.to_h,
+              profiler: @profiler.to_h
+            }
+          end
         end
       end
     end

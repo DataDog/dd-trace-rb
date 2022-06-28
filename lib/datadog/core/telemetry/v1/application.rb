@@ -47,6 +47,21 @@ module Datadog
             @tracer_version = tracer_version
           end
 
+          def to_h
+            {
+              env: @env,
+              language_name: @language_name,
+              language_version: @language_version,
+              products: @products,
+              runtime_name: @runtime_name,
+              runtime_patches: @runtime_patches,
+              runtime_version: @runtime_version,
+              service_name: @service_name,
+              service_version: @service_version,
+              tracer_version: @tracer_version
+            }
+          end
+
           private
 
           # Validates required arguments passed to the class on initialization are not nil
