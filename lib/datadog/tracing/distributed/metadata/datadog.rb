@@ -5,7 +5,6 @@ module Datadog
   module Tracing
     module Distributed
       module Metadata
-
         # Datadog provides helpers to inject or extract metadata for Datadog style headers
         class Datadog
           include Distributed::Headers::Ext
@@ -37,6 +36,7 @@ module Datadog
             )
           end
 
+          # opentracing.io compliant carrier object
           class Carrier
             include Distributed::Headers::Ext
 
