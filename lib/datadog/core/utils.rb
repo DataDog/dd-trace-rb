@@ -9,6 +9,9 @@ module Datadog
     # @public_api
     module Utils
       extend Forking
+      
+      # Excludes zero from possible values
+      ID_RANGE = (1..Tracing::Span::RUBY_MAX_ID).freeze
 
       EMPTY_STRING = ''.encode(::Encoding::UTF_8).freeze
       # We use a custom random number generator because we want no interference
@@ -19,7 +22,7 @@ module Datadog
       # This method is thread-safe and fork-safe.
       def self.next_id
         after_fork! { reset! }
-        id_rng.rand(1..Tracing::Span::RUBY_MAX_ID)
+        id_rng.rand(ID_RANGE)
       end
 
       def self.id_rng
