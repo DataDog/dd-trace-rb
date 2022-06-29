@@ -82,7 +82,7 @@ module Datadog
         status: 0,
         type: span_type,
         trace_id: nil,
-        top_level: nil
+        service_entry: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -108,7 +108,11 @@ module Datadog
         # is known that we have to use wall clock to measure duration.
         @duration = duration
 
-        @top_level = top_level
+        # https://docs.datadoghq.com/tracing/visualization/#service-entry-span
+        # A span is a service entry span when it is the entrypoint method for a request to a service.
+        # You can visualize this within Datadog APM when the color of the immediate parent on a flame graph is a different
+        # color. Services are also listed on the right when viewing a flame graph.
+        @service_entry = service_entry
       end
 
       # Return whether the duration is started or not
@@ -214,8 +218,8 @@ module Datadog
         (duration * 1e9).to_i
       end
 
-      def top_level?
-        !!@top_level
+      def service_entry?
+        !!@service_entry
       end
     end
   end

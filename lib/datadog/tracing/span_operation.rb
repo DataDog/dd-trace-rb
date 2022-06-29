@@ -437,8 +437,6 @@ module Datadog
         :parent,
         :span
 
-      attr_writer :top_level
-
       if RUBY_VERSION < '2.2' # nil.dup only fails in Ruby 2.1
         # Ensures #initialize can call nil.dup safely
         module RefineNil
@@ -471,7 +469,7 @@ module Datadog
           status: @status,
           type: @type,
           trace_id: @trace_id,
-          top_level: parent.nil? || (service && parent.service != service)
+          service_entry: parent.nil? || (service && parent.service != service)
         )
       end
 
