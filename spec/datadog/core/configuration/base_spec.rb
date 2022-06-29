@@ -106,6 +106,32 @@ RSpec.describe Datadog::Core::Configuration::Base do
         end
       end
 
+      describe '#dig' do
+        subject(:dig) { base_object.dig(*options) }
+        let(:options) { 'debug' }
+
+        let(:settings) { base_class.send(:settings, name, &block) }
+        let(:name) { :debug }
+        let(:block) { proc { option :enabled, default: true } }
+        let(:definition) { base_class.options[name] }
+
+        before do
+          settings
+          definition
+        end
+
+        context 'when given one arg' do
+          let(:options) { 'debug' }
+          it { is_expected.to be_a_kind_of(Datadog::Core::Configuration::Options) }
+        end
+
+        context 'when given more than one arg' do
+          let(:options) { %w[debug enabled] }
+
+          it { is_expected.to be(true) }
+        end
+      end
+
       describe '#reset!' do
         subject(:reset!) { base_object.reset! }
 
