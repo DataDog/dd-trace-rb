@@ -21,7 +21,7 @@ module Datadog
               @hostname = hostname
               @port = port
               @timeout = timeout
-              @ssl = ssl
+              @ssl = ssl.nil? ? true : ssl
             end
 
             def self.build(agent_settings)
