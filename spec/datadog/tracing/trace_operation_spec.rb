@@ -2260,6 +2260,31 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           expect(hash['children_2']).to be false
         end
       end
+
+      context 'when service changed within the block' do
+        it do
+          trace_op.measure('root', service: 'service_1') do |_, trace|
+            trace.measure('children_1') do |span|
+              span.service = 'service_2'
+              sleep(0.01)
+            end
+
+            trace.measure('children_2') do
+              sleep(0.01)
+            end
+          end
+
+          trace_segment = trace_op.flush!
+
+          hash = trace_segment.spans.each_with_object({}) do |span, h|
+            h[span.name] = span.__send__(:top_level?)
+          end
+
+          expect(hash['root']).to be true
+          expect(hash['children_1']).to be true
+          expect(hash['children_2']).to be false
+        end
+      end
     end
 
     context 'for a mock job with fan-out/fan-in behavior' do
