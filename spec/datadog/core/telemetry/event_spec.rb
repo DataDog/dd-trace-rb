@@ -4,30 +4,13 @@ require 'datadog/core/telemetry/event'
 require 'datadog/core/telemetry/v1/shared_examples'
 
 RSpec.describe Datadog::Core::Telemetry::Event do
-  subject(:event) { described_class.new(api_version: api_version) }
-  let(:api_version) { 'v1' }
+  subject(:event) { described_class.new }
 
   describe '#initialize' do
-    subject(:event) { described_class.new(api_version: api_version) }
+    subject(:event) { described_class.new }
 
-    context ':api_version' do
-      let(:api_version) { 'v1' }
-
-      context 'when not provided' do
-        subject(:event) { described_class.new }
-        it { is_expected.to have_attributes(api_version: 'v1') }
-      end
-
-      context 'when provided with valid value' do
-        let(:api_version) { 'v1' }
-        it { is_expected.to have_attributes(api_version: 'v1') }
-      end
-
-      context 'when given invalid value' do
-        let(:api_version) { 'v2' }
-        it { expect { event }.to raise_error(ArgumentError) }
-      end
-    end
+    it { is_expected.to be_a_kind_of(described_class) }
+    it { is_expected.to have_attributes(api_version: 'v1') }
   end
 
   describe '#telemetry_request' do
@@ -37,7 +20,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     let(:seq_id) { 1 }
 
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
-    it { expect(telemetry_request.api_version).to eql(api_version) }
+    it { expect(telemetry_request.api_version).to eql('v1') }
     it { expect(telemetry_request.request_type).to eql(request_type) }
     it { expect(telemetry_request.seq_id).to be(1) }
 

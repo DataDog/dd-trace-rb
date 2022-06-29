@@ -14,17 +14,12 @@ module Datadog
         include Telemetry::Collector
 
         API_VERSION = 'v1'.freeze
-        ALLOWED_API_VERSIONS = ['v1'.freeze].freeze
-        ERROR_BAD_API_VERSION = ":api_version must be one of ['v1']".freeze
 
         attr_reader \
           :api_version
 
-        # @param api_version [String] telemetry API version to request; defaults to `v1`
-        def initialize(api_version: API_VERSION)
-          raise ArgumentError, ERROR_BAD_API_VERSION unless ALLOWED_API_VERSIONS.include?(api_version)
-
-          @api_version = api_version
+        def initialize
+          @api_version = API_VERSION
         end
 
         # Forms a TelemetryRequest object based on the event request_type
