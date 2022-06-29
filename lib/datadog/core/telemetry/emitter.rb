@@ -15,7 +15,8 @@ module Datadog
           request['debug'] = true
           # send to telemetry API
           res = http_transport.request(request_type: request_type, payload: request.to_json)
-          increment_seq_id
+          if res.ok?
+            increment_seq_id
           res
         end
 

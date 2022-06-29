@@ -24,6 +24,8 @@ module Datadog
             adapter.post(env)
           end
 
+          private
+
           def headers(request_type:, api_version: Http::Ext::API_VERSION)
             {
               Http::Ext::HEADER_CONTENT_TYPE => Http::Ext::CONTENT_TYPE_APPLICATION_JSON,
@@ -46,8 +48,9 @@ module Datadog
               @ssl = true
               @path = Http::Ext::AGENTLESS_ENDPOINT
             else
-              @host = agent_settings.hostname
-              @port = agent_settings.port
+              agent_configuration = Datadog.configuration.agent
+              @host = agent_configuration.host
+              @port = agent_configuration.port
               @ssl = false
               @path = Http::Ext::AGENT_ENDPOINT
             end
