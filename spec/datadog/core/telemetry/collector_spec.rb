@@ -1,6 +1,5 @@
 require 'spec_helper'
 
-require 'datadog/appsec'
 require 'datadog/core/configuration'
 require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
@@ -111,6 +110,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
       context 'when appsec is enabled' do
         before do
+          require 'datadog/appsec'
+
           stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
           Datadog.configure do |c|
             c.appsec.enabled = true
@@ -125,6 +126,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       end
 
       context 'when both profiler and appsec are enabled' do
+        require 'datadog/appsec'
+
         before do
           Datadog.configure do |c|
             c.profiling.enabled = true
