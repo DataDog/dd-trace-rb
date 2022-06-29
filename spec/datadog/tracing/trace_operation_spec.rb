@@ -2192,11 +2192,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           trace_op.measure('root') do |_, trace|
             trace.measure('children_1') do
-              sleep(0.01)
+              # sleep(0.01)
             end
 
             trace.measure('children_2') do
-              sleep(0.01)
+              # sleep(0.01)
             end
           end
 
@@ -2217,11 +2217,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           trace_op.measure('root', service: 'service_1') do |_, trace|
             trace.measure('children_1') do
-              sleep(0.01)
+              # sleep(0.01)
             end
 
             trace.measure('children_2') do
-              sleep(0.01)
+              # sleep(0.01)
             end
           end
 
@@ -2241,11 +2241,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           trace_op.measure('root', service: 'service_1') do |_, trace|
             trace.measure('children_1', service: 'service_2') do
-              sleep(0.01)
+              # sleep(0.01)
             end
 
             trace.measure('children_2') do
-              sleep(0.01)
+              # sleep(0.01)
             end
           end
 
@@ -2266,11 +2266,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           trace_op.measure('root', service: 'service_1') do |_, trace|
             trace.measure('children_1') do |span|
               span.service = 'service_2'
-              sleep(0.01)
+              # sleep(0.01)
             end
 
             trace.measure('children_2') do
-              sleep(0.01)
+              # sleep(0.01)
             end
           end
 
