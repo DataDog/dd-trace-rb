@@ -2664,8 +2664,6 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 
 ### Profiling
 
-*Currently available as BETA feature.*
-
 `ddtrace` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
 
 **Setup**
