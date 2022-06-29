@@ -174,7 +174,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { instance_double('error', class: StandardError, backtrace: []) }
+        let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
 
         before do
           allow(Datadog.logger).to receive(:error)
@@ -252,7 +252,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { instance_double('error', class: StandardError, backtrace: []) }
+        let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
 
         before do
           allow(Datadog.logger).to receive(:error)
@@ -454,7 +454,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { instance_double('error', class: StandardError, backtrace: []) }
+        let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
 
         before do
           allow(Datadog.logger).to receive(:error)
