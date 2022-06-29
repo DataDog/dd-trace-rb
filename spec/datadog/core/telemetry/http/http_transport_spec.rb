@@ -10,19 +10,10 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
   let(:agent_settings) { {} }
 
   describe '#initialize' do
-    context 'when agentless' do
-      it { expect(transport.host).to eq(Datadog::Core::Telemetry::Http::Ext::AGENTLESS_HOST) }
-      it { expect(transport.port).to eq(443) }
-      it { expect(transport.ssl).to eq(true) }
-      it { expect(transport.path).to eq(Datadog::Core::Telemetry::Http::Ext::AGENTLESS_ENDPOINT) }
-    end
-
-    context 'when not agentless' do
-      it { expect(transport.host).to eq(hostname) }
-      it { expect(transport.port).to eq(port) }
-      it { expect(transport.ssl).to eq(false) }
-      it { expect(transport.path).to eq(Datadog::Core::Telemetry::Http::Ext::AGENT_ENDPOINT) }
-    end
+    it { expect(transport.host).to eq(hostname) }
+    it { expect(transport.port).to eq(port) }
+    it { expect(transport.ssl).to eq(false) }
+    it { expect(transport.path).to eq(Datadog::Core::Telemetry::Http::Ext::AGENT_ENDPOINT) }
   end
 
   describe '#request' do
@@ -55,16 +46,9 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
       allow(adapter).to receive(:post).and_yield(response)
     end
 
-    context 'when agentless' do
-      it do
-        expect(env).to have_received(:path=).with(path)
-        expect(env).to have_received(:body=).with(payload)
-        expect(env).to have_received(:headers=).with(headers)
-        expect(adapter).to have_received(:post).with(env)
-      end
-    end
-  end
-
-  describe '#agentless?' do
+    expect(env).to have_received(:path=).with(path)
+    expect(env).to have_received(:body=).with(payload)
+    expect(env).to have_received(:headers=).with(headers)
+    expect(adapter).to have_received(:post).with(env)
   end
 end
