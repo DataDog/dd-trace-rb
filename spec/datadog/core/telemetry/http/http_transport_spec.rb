@@ -6,10 +6,16 @@ require 'datadog/core/telemetry/http/adapters/net'
 require 'datadog/core/telemetry/v1/telemetry_request'
 
 RSpec.describe Datadog::Core::Telemetry::Http::Transport do
-  subject(:transport) { described_class.new(agent_settings: agent_settings) }
-  let(:agent_settings) { {} }
+  subject(:transport) { described_class.new }
+
+  let(:hostname) { 'foo' }
+  let(:port) { 1234 }
 
   describe '#initialize' do
+    before do
+      Datadog.configuration.agent.host = hostname
+      Datadog.configuration.agent.port = port
+    end
     it { expect(transport.host).to eq(hostname) }
     it { expect(transport.port).to eq(port) }
     it { expect(transport.ssl).to eq(false) }
@@ -19,22 +25,30 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
   describe '#request' do
     subject(:request) { transport.request(request_type: request_type, payload: payload) }
 
-    let(:request_type) { 'app-started' }
-    let(:payload) { instance_double(Datadog::Core::Telemetry::V1::TelemetryRequest) }
-    let(:adapter) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net) }
-    let(:response) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+    let(:adapter) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net, post: response) }
+    let(:env) { instance_double(Datadog::Core::Telemetry::Http::Env, body: payload, path: path) }
+    let(:headers) { {
+      Datadog::Core::Telemetry::Http::Ext::HEADER_CONTENT_TYPE => 'application/json',
+      Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_API_VERSION => 'v1',
+      Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_REQUEST_TYPE => request_type,
+    } }
     let(:hostname) { 'foo' }
+    let(:http_connection) { instance_double(::Net::HTTP) }
+    let(:path) { Datadog::Core::Telemetry::Http::Ext::AGENT_ENDPOINT }
+    let(:payload) { instance_double(Datadog::Core::Telemetry::V1::TelemetryRequest) }
     let(:port) { 1234 }
-    let(:ssl) { true }
-    let(:env) { instance_double(Datadog::Core::Telemetry::Http::Env) }
-    let(:path) { nil }
-    let(:headers) { nil }
+    let(:request_type) { 'app-started' }
+    let(:response) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+    let(:ssl) { false }
 
     before do
+      Datadog.configuration.agent.host = hostname
+      Datadog.configuration.agent.port = port
+
       allow(Datadog::Core::Telemetry::Http::Env).to receive(:new).and_return(env)
-      allow(env).to receive(:path=).with(path).and_return(env)
-      allow(env).to receive(:body=).with(payload).and_return(env)
-      allow(env).to receive(:headers=).with(headers).and_return(env)
+      allow(env).to receive(:path=).with(path)
+      allow(env).to receive(:body=).with(payload)
+      allow(env).to receive(:headers=).with(headers)
 
       allow(Datadog::Core::Telemetry::Http::Adapters::Net).to receive(:new)
         .with(
@@ -42,13 +56,8 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
           port: port,
           ssl: ssl
         ).and_return(adapter)
-
-      allow(adapter).to receive(:post).and_yield(response)
     end
 
-    expect(env).to have_received(:path=).with(path)
-    expect(env).to have_received(:body=).with(payload)
-    expect(env).to have_received(:headers=).with(headers)
-    expect(adapter).to have_received(:post).with(env)
+    it { is_expected.to be(response) }
   end
 end

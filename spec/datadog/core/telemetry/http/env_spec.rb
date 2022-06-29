@@ -12,17 +12,11 @@ RSpec.describe Datadog::Core::Telemetry::Http::Env do
   end
 
   it 'has request attributes' do
-    is_expected.to respond_to(:verb)
-    is_expected.to respond_to(:verb=)
     is_expected.to respond_to(:path)
     is_expected.to respond_to(:path=)
     is_expected.to respond_to(:body)
     is_expected.to respond_to(:body=)
     is_expected.to respond_to(:headers)
     is_expected.to respond_to(:headers=)
-    is_expected.to respond_to(:timeout)
-    is_expected.to respond_to(:timeout=)
-    is_expected.to respond_to(:ssl)
-    is_expected.to respond_to(:ssl=)
   end
 end
