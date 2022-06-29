@@ -193,7 +193,7 @@ module Datadog
         end
 
         def appsec_version
-          tracer_version if Datadog.configuration.appsec.enabled
+          tracer_version if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
         end
 
         def agent_transport
