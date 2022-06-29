@@ -151,6 +151,7 @@ module Datadog
           end
         end
 
+        # Manual implementation of hash.compact used because it is unsupported by older Ruby versions (<2.4)
         def compact_hash(hash)
           hash.delete_if { |_k, v| v.nil? }
         end
