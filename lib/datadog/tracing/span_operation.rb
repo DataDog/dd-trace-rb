@@ -471,12 +471,8 @@ module Datadog
           status: @status,
           type: @type,
           trace_id: @trace_id,
-          top_level: top_level?
+          top_level: parent.nil? || (service && parent.service != service)
         )
-      end
-
-      def top_level?
-        !!@top_level
       end
 
       # Set this span's parent, inheriting any properties not explicitly set.
