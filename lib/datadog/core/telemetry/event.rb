@@ -18,23 +18,19 @@ module Datadog
         ERROR_BAD_API_VERSION = ":api_version must be one of ['v1']".freeze
 
         attr_reader \
-          :request_type,
           :api_version
-
-        attr_accessor \
-          :seq_id
 
         # @param api_version [String] telemetry API version to request; defaults to `v1`
         def initialize(api_version: API_VERSION)
           raise ArgumentError, ERROR_BAD_API_VERSION unless ALLOWED_API_VERSIONS.include?(api_version)
 
-          @seq_id = 1
           @api_version = api_version
         end
 
         # Forms a TelemetryRequest object based on the event request_type
         # @param request_type [String] the type of telemetry request to collect data for
-        def telemetry_request(request_type:)
+        # @param seq_id [Integer] the ID of the request; incremented each time a telemetry request is sent to the API
+        def telemetry_request(request_type:, seq_id:)
           Telemetry::V1::TelemetryRequest.new(
             api_version: @api_version,
             application: application,
@@ -42,7 +38,7 @@ module Datadog
             payload: payload(request_type),
             request_type: request_type,
             runtime_id: runtime_id,
-            seq_id: @seq_id,
+            seq_id: seq_id,
             tracer_time: tracer_time,
           )
         end
