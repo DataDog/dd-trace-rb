@@ -79,6 +79,15 @@ module Datadog
             options_hash
           end
 
+          # Retrieves a nested option from a list of symbols
+          def dig(*options)
+            raise ArgumentError, 'expected at least one option' if options.empty?
+
+            options.inject(self) do |receiver, option|
+              receiver.send(option)
+            end
+          end
+
           def reset!
             reset_options!
           end
