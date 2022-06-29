@@ -11,12 +11,13 @@ module Datadog
         module_function
 
         def request(request_type:)
-          request = collector.telemetry_request(request_type: request_type).to_h
+          request = Telemetry::Event.new.telemetry_request(request_type: request_type, seq_id: seq_id).to_h
           request['debug'] = true
           # send to telemetry API
           res = http_transport.request(request_type: request_type, payload: request.to_json)
           if res.ok?
             increment_seq_id
+          end
           res
         end
 
@@ -24,16 +25,12 @@ module Datadog
           @transporter ||= Telemetry::Http::Transport.new
         end
 
-        def collector
-          @collector ||= Telemetry::Event.new
-        end
-
         def increment_seq_id
-          collector.seq_id += 1
+          @seq_id += 1
         end
 
         def seq_id
-          collector.seq_id
+          @seq_id ||= 1
         end
       end
     end
