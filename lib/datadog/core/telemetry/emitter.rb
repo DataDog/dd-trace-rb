@@ -15,6 +15,8 @@ module Datadog
             request = Telemetry::Event.new.telemetry_request(request_type: request_type, seq_id: seq_id).to_h
             res = http_transport.request(request_type: request_type, payload: request.to_json)
             increment_seq_id if res.ok?
+            Datadog.logger.info("Received response from telemetry API: #{res.inspect}")
+            Datadog.logger.info("Sent request: #{request.to_json}")
             res
           rescue StandardError => e
             Datadog.logger.info("Unable to send telemetry request for #{request_type}: #{e}")
