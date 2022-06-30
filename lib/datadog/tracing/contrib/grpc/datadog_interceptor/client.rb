@@ -47,7 +47,7 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-              Tracing::Propagation::GRPC.inject!(trace, metadata)
+              Tracing::Propagation::GRPC.inject!(trace, metadata) if distributed_tracing?
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")
             end
