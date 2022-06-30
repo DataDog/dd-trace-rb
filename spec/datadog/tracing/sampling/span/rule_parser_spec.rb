@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
               it 'warns and returns nil' do
                 expect(Datadog.logger).to receive(:warn).with(include(name.inspect) & include('Error'))
-                is_expected.to be_empty
+                is_expected.to be_nil
               end
             end
           end
@@ -101,7 +101,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
               it 'warns and returns nil' do
                 expect(Datadog.logger).to receive(:warn).with(include(service.inspect) & include('Error'))
-                is_expected.to be_empty
+                is_expected.to be_nil
               end
             end
           end
@@ -122,7 +122,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
               it 'warns and returns nil' do
                 expect(Datadog.logger).to receive(:warn).with(include(sample_rate.inspect) & include('Error'))
-                is_expected.to be_empty
+                is_expected.to be_nil
               end
             end
           end
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
               it 'warns and returns nil' do
                 expect(Datadog.logger).to receive(:warn).with(include(max_per_second.inspect) & include('Error'))
-                is_expected.to be_empty
+                is_expected.to be_nil
               end
             end
           end
