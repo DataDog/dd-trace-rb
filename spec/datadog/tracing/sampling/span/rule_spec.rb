@@ -39,8 +39,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
       context 'not sampled' do
         let(:sample_rate) { 0.0 }
 
-        it 'returns false' do
-          is_expected.to eq(false)
+        it 'returns rejected' do
+          is_expected.to eq(:rejected)
         end
 
         it_behaves_like 'does not modify span'
@@ -52,8 +52,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
         context 'rate limited' do
           let(:rate_limit) { 0 }
 
-          it 'returns false' do
-            is_expected.to eq(false)
+          it 'returns rejected' do
+            is_expected.to eq(:rejected)
           end
 
           it_behaves_like 'does not modify span'
@@ -62,8 +62,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
         context 'not rate limited' do
           let(:rate_limit) { 3 }
 
-          it 'returns true' do
-            is_expected.to eq(true)
+          it 'returns kept' do
+            is_expected.to eq(:kept)
           end
 
           it 'sets mechanism, rule rate and rate limit metrics' do
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
       end
 
       it 'returns nil' do
-        is_expected.to be_nil
+        is_expected.to eq(:not_matched)
       end
 
       it_behaves_like 'does not modify span'
