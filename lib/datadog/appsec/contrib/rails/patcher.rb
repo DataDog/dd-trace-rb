@@ -98,9 +98,8 @@ module Datadog
           def include_middleware?(middleware, app)
             found = false
 
-            # Rails 7 does not have @operations instance variable as implemented below.
-            # Simply iterate over the stack to find the middleware.
-            if app.respond_to?(:middleware)
+            # Sometimes the app.middleware holds ActionDispatch::MiddlewareStack instance
+            if app.middleware.is_a?(ActionDispatch::MiddlewareStack)
               found = app.middleware.find do |m|
                 m == middleware
               end
