@@ -36,18 +36,14 @@ module Datadog
             #       used to reconfigure tracer components with Rails-sourced defaults.
             #       This is a trade-off we take to get nice defaults.
             Datadog.configure do |datadog_config|
+              rails_config = datadog_config.tracing[:rails]
+
               # By default, default service would be guessed from the script
               # being executed, but here we know better, get it from Rails config.
               # Don't set this if service has been explicitly provided by the user.
-              rails_service_name = Datadog.configuration.tracing[:rails][:service_name] \
-                                    || Datadog.configuration.service_without_fallback \
-                                    || Utils.app_name
-
-              datadog_config.service ||= rails_service_name
-            end
-
-            Datadog.configure do |datadog_config|
-              rails_config = datadog_config.tracing[:rails]
+              if datadog_config.service_without_fallback.nil?
+                datadog_config.service = rails_config[:service_name] || Utils.app_name
+              end
 
               activate_rack!(datadog_config, rails_config)
               activate_action_cable!(datadog_config, rails_config)
