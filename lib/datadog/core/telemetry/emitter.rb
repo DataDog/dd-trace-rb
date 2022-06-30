@@ -12,10 +12,7 @@ module Datadog
 
         def request(request_type:)
           begin
-            binding.pry
             request = Telemetry::Event.new.telemetry_request(request_type: request_type, seq_id: seq_id).to_h
-            request['debug'] = true
-            # send to telemetry API
             res = http_transport.request(request_type: request_type, payload: request.to_json)
             increment_seq_id if res.ok?
             res
