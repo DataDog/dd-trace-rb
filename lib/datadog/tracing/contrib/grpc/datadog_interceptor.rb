@@ -53,6 +53,10 @@ module Datadog
               Contrib::Analytics.enabled?(datadog_configuration[:analytics_enabled])
             end
 
+            def distributed_tracing?
+              Datadog.configuration_for(self, :distributed_tracing) || datadog_configuration[:distributed_tracing]
+            end
+
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
             end

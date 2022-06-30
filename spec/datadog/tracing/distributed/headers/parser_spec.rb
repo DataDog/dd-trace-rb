@@ -2,10 +2,10 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/distributed/parser'
+require 'datadog/tracing/distributed/headers/parser'
 require 'datadog/tracing/span'
 
-RSpec.describe Datadog::Tracing::Distributed::Parser do
+RSpec.describe Datadog::Tracing::Distributed::Headers::Parser do
   subject(:headers) do
     described_class.new(env)
   end

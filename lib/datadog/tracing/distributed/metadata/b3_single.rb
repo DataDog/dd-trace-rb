@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/distributed/headers/parser'
+require 'datadog/tracing/distributed/metadata/parser'
 require 'datadog/tracing/distributed/helpers'
 require 'datadog/tracing/distributed/headers/ext'
 require 'datadog/tracing/trace_digest'
@@ -8,12 +8,12 @@ require 'datadog/tracing/trace_digest'
 module Datadog
   module Tracing
     module Distributed
-      module Headers
-        # B3Single provides helpers to inject or extract headers for B3 single header style headers
+      module Metadata
+        # B3Single provides helpers to inject or extract metadata for B3 single header style headers
         module B3Single
-          include Ext
+          include Distributed::Headers::Ext
 
-          def self.inject!(digest, env)
+          def self.inject!(digest, metadata)
             return if digest.nil?
 
             # Header format:
@@ -22,31 +22,30 @@ module Datadog
             # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
 
             # DEV: We need these to be hex encoded
-            header = "#{digest.trace_id.to_s(16)}-#{digest.span_id.to_s(16)}"
+            b3_header = "#{digest.trace_id.to_s(16)}-#{digest.span_id.to_s(16)}"
 
             if digest.trace_sampling_priority
               sampling_priority = Helpers.clamp_sampling_priority(
                 digest.trace_sampling_priority
               )
-              header += "-#{sampling_priority}"
+              b3_header += "-#{sampling_priority}"
             end
 
-            env[B3_HEADER_SINGLE] = header
+            metadata[B3_HEADER_SINGLE] = b3_header
 
-            env
+            metadata
           end
 
-          def self.extract(env)
-            # Header format:
+          def self.extract(metadata)
+            # Metadata format:
             #   b3: {TraceId}-{SpanId}-{SamplingState}-{ParentSpanId}
             # https://github.com/apache/incubator-zipkin-b3-propagation/tree/7c6e9f14d6627832bd80baa87ac7dabee7be23cf#single-header
             # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
 
-            headers = Parser.new(env)
-            value = headers.header(B3_HEADER_SINGLE)
-            return if value.nil?
+            b3_single = Parser.new(metadata).metadata_for_key(B3_HEADER_SINGLE)
+            return if b3_single.nil?
 
-            parts = value.split('-')
+            parts = b3_single.split('-')
             trace_id = Helpers.value_to_id(parts[0], 16) unless parts.empty?
             span_id = Helpers.value_to_id(parts[1], 16) if parts.length > 1
             sampling_priority = Helpers.value_to_number(parts[2]) if parts.length > 2
