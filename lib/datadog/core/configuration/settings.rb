@@ -391,6 +391,13 @@ module Datadog
             end
           end
 
+          settings :stats_computer do
+            option :enabled do |o|
+              o.default { env_to_bool(Tracing::Configuration::Ext::StatsComputation::ENV_TRACE_STATS_COMPUTATION_ENABLED, nil) }
+              o.lazy
+            end
+          end
+
           # [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing) propagation
           # style configuration.
           #

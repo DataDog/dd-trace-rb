@@ -10,6 +10,9 @@ require 'datadog/core/workers/runtime_metrics'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/flush'
 require 'datadog/tracing/sync_writer'
+require 'datadog/tracing/stats/computer'
+require 'datadog/tracing/stats/repository'
+require 'datadog/tracing/stats/writer'
 
 module Datadog
   module Core
@@ -77,7 +80,26 @@ module Datadog
               sampler: sampler,
               writer: writer,
               tags: build_tracer_tags(settings),
+              stats_writer: build_stats_writer(settings)
             )
+          end
+
+          def build_stats_writer(settings)
+            return Tracing::Stats::NullWriter.new unless settings.tracing.stats_computer.enabled
+
+            require 'ddsketch'
+
+            # unless DDSketch.supported?
+            #   # Override and disable the settings
+            #   settings.tracing.stats_computer.enabled = false
+            #   return Tracing::NullStatsComputer.new
+            # end
+
+            Tracing::Stats::Writer.new
+          end
+
+          def build_stats_computer(settings)
+            Tracing::Stats::Computer.new
           end
 
           def build_trace_flush(settings)

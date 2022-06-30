@@ -9,6 +9,10 @@ module Datadog
           ENV_TRACE_ANALYTICS_ENABLED = 'DD_TRACE_ANALYTICS_ENABLED'.freeze
         end
 
+        module StatsComputation
+          ENV_TRACE_STATS_COMPUTATION_ENABLED = 'DD_TRACE_STATS_COMPUTATION_ENABLED'.freeze
+        end
+
         # @public_api
         module Correlation
           ENV_LOGS_INJECTION_ENABLED = 'DD_LOGS_INJECTION'.freeze

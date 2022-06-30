@@ -67,5 +67,7 @@ Gem::Specification.new do |spec|
   # Used by profiling
   spec.add_dependency 'libddprof', '~> 0.6.0.1.0'
 
+  spec.add_dependency 'ddsketch'
+
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end

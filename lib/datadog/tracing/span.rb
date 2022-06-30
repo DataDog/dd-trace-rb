@@ -201,12 +201,18 @@ module Datadog
         end
       end
 
-      private
+      def error?
+        @status == Metadata::Ext::Errors::STATUS
+      end
 
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def start_time_nano
-        @start_time.to_i * 1000000000 + @start_time.nsec
+        @start_time.to_i * 1e9 + @start_time.nsec
+      end
+
+      def end_time_nano
+        @end_time.to_i * 1e9 + @end_time.nsec
       end
 
       # Used for serialization

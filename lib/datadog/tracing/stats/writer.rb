@@ -1,87 +1,16 @@
-# typed: false
-
-require 'datadog/core'
-require 'datadog/core/worker'
-require 'datadog/core/workers/async'
-require 'datadog/core/workers/polling'
-require 'datadog/core/workers/queue'
-
-require 'datadog/tracing/buffer'
-require 'datadog/tracing/pipeline'
-require 'datadog/tracing/event'
-
-require 'ddtrace/transport/http'
+require 'datadog/tracing/stats/repository'
 
 module Datadog
   module Tracing
-    module Workers
-      # Writes traces to transport synchronously
-      class TraceWriter < Core::Worker
-        attr_reader \
-          :transport
-
-        # rubocop:disable Lint/MissingSuper
-        def initialize(options = {})
-          transport_options = options.fetch(:transport_options, {})
-
-          transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
-
-          @transport = options.fetch(:transport) do
-            Transport::HTTP.default(**transport_options)
-          end
-        end
-        # rubocop:enable Lint/MissingSuper
-
-        def perform(traces)
-          write_traces(traces)
-        end
-
-        def write(trace)
-          write_traces([trace])
-        end
-
-        def write_traces(traces)
-          # traceSegments
-          # traces.dup
-
-          traces = process_traces(traces)
-          # ... True immutatable => computation
-          flush_traces(traces)
-        rescue StandardError => e
-          Datadog.logger.error(
-            "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
-          )
-        end
-
-        def process_traces(traces)
-          # Run traces through the processing pipeline
-          Pipeline.process!(traces)
-        end
-
-        def flush_traces(traces)
-          transport.send_traces(traces).tap do |response|
-            flush_completed.publish(response)
-          end
-        end
-
-        # TODO: Register `Datadog::Core::Diagnostics::EnvironmentLogger.log!`
-        # TODO: as a flush_completed subscriber when the `TraceWriter`
-        # TODO: instantiation code is implemented.
-        def flush_completed
-          @flush_completed ||= FlushCompleted.new
-        end
-
-        # Flush completed event for worker
-        class FlushCompleted < Event
-          def initialize
-            super(:flush_completed)
-          end
-        end
+    module Stats
+      # TOP-LEVEL class description
+      class NullWriter
+        def perform(_); end
       end
 
-      # Writes traces to transport asynchronously,
-      # using a thread & buffer.
-      class AsyncTraceWriter < TraceWriter
+      # TOP-LEVEL class description
+      class Writer < Core::Worker
+        # Asynchronously
         include Core::Workers::Queue
         include Core::Workers::Polling
 
@@ -119,11 +48,7 @@ module Datadog
         # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#perform is spec'd to return the
         # result from the writer, whereas this method always returns nil.
         def perform(traces)
-          super(traces).tap do |responses|
-            loop_back_off! if responses.find(&:server_error?)
-          end
-
-          nil
+          enqueue(trace)
         end
 
         def stop(*args)
@@ -179,19 +104,6 @@ module Datadog
           # Switch to synchronous mode if configured to do so.
           # In some cases synchronous writing is preferred because the fork will be short lived.
           @async = false if @writer_fork_policy == FORK_POLICY_SYNC
-        end
-
-        # WARNING: This method breaks the Liskov Substitution Principle -- TraceWriter#write is spec'd to return the
-        # result from the writer, whereas this method returns something else when running in async mode.
-        def write(trace)
-          # Start worker thread. If the process has forked, it will trigger #after_fork to
-          # reconfigure the worker accordingly.
-          # NOTE: It's important we do this before queuing or it will drop the current trace,
-          #       because #after_fork resets the buffer.
-          perform
-
-          # Queue the trace if running asynchronously, otherwise short-circuit and write it directly.
-          async? ? enqueue(trace) : write_traces([trace])
         end
       end
     end
