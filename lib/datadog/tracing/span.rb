@@ -28,6 +28,9 @@ module Datadog
       # The range of IDs also has to consider portability across different languages and platforms.
       RUBY_MAX_ID = (1 << 62) - 1
 
+      # Excludes zero from possible values
+      RUBY_ID_RANGE = (1..RUBY_MAX_ID).freeze
+
       # While we only generate 63-bit integers due to limitations in other languages, we support
       # parsing 64-bit integers for distributed tracing since an upstream system may generate one
       EXTERNAL_MAX_ID = 1 << 64

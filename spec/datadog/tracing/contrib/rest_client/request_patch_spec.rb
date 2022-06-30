@@ -306,5 +306,19 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         end
       end
     end
+
+    context 'when split by domain' do
+      let(:configuration_options) { super().merge(split_by_domain: true) }
+
+      before { request }
+
+      it 'has correct service name' do
+        expect(span.service).to eq('example.com')
+      end
+
+      it_behaves_like 'a peer service span' do
+        let(:peer_hostname) { 'example.com' }
+      end
+    end
   end
 end
