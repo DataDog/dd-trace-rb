@@ -1,6 +1,9 @@
-# typed: true
+# typed: false
 
-require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/distributed/metadata/datadog'
+require 'datadog/tracing/distributed/metadata/b3'
+require 'datadog/tracing/distributed/metadata/b3_single'
+
 require 'datadog/tracing/span'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
@@ -13,74 +16,81 @@ module Datadog
       # to the Propagation::HTTP; the key difference is the way gRPC handles
       # header information (called "metadata") as it operates over HTTP2
       module GRPC
-        include Distributed::Headers::Ext
+        PROPAGATION_STYLES = {
+          Configuration::Ext::Distributed::PROPAGATION_STYLE_B3 => Distributed::Metadata::B3,
+          Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER => Distributed::Metadata::B3Single,
+          Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG => Distributed::Metadata::Datadog
+        }.freeze
 
         def self.inject!(digest, metadata)
           return if digest.nil?
 
           digest = digest.to_digest if digest.is_a?(TraceOperation)
 
-          metadata[GRPC_METADATA_TRACE_ID] = digest.trace_id.to_s
-          metadata[GRPC_METADATA_PARENT_ID] = digest.span_id.to_s
-          metadata[GRPC_METADATA_SAMPLING_PRIORITY] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
-          metadata[GRPC_METADATA_ORIGIN] = digest.trace_origin.to_s if digest.trace_origin
+          Datadog.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
+            propagator = PROPAGATION_STYLES[style]
+            begin
+              propagator.inject!(digest, metadata) unless propagator.nil?
+            rescue => e
+              Datadog.logger.error(
+                'Error injecting propagated trace headers into the environment. ' \
+                "Cause: #{e} Location: #{Array(e.backtrace).first}"
+              )
+            end
+          end
         end
 
         def self.extract(metadata)
-          metadata = Carrier.new(metadata)
-          return nil unless metadata.valid?
+          trace_digest = nil
+          dd_trace_digest = nil
 
-          TraceDigest.new(
-            span_id: metadata.parent_id,
-            trace_id: metadata.trace_id,
-            trace_origin: metadata.origin,
-            trace_sampling_priority: metadata.sampling_priority
-          )
-        end
+          Datadog.configuration.tracing.distributed_tracing.propagation_extract_style.each do |style|
+            propagator = PROPAGATION_STYLES[style]
 
-        # opentracing.io compliant carrier object
-        class Carrier
-          include Distributed::Headers::Ext
+            next if propagator.nil?
 
-          def initialize(metadata = {})
-            @metadata = metadata || {}
-          end
+            # Extract trace headers
+            begin
+              extracted_trace_digest = propagator.extract(metadata)
+            rescue => e
+              Datadog.logger.error(
+                'Error extracting propagated trace headers from the environment. ' \
+                "Cause: #{e} Location: #{Array(e.backtrace).first}"
+              )
+            end
 
-          def valid?
-            trace_id && parent_id
-          end
+            # Skip this style if no valid headers were found
+            next if extracted_trace_digest.nil?
 
-          def trace_id
-            value = metadata_for_key(GRPC_METADATA_TRACE_ID).to_i
-            value if (1..Span::EXTERNAL_MAX_ID).cover? value
-          end
+            # Keep track of the Datadog extract trace headers, we want to return
+            #   this one if we have one
+            if extracted_trace_digest && style == Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
+              dd_trace_digest = extracted_trace_digest
+            end
 
-          def parent_id
-            value = metadata_for_key(GRPC_METADATA_PARENT_ID).to_i
-            value if (1..Span::EXTERNAL_MAX_ID).cover? value
-          end
-
-          def sampling_priority
-            value = metadata_for_key(GRPC_METADATA_SAMPLING_PRIORITY)
-            value && value.to_i
-          end
-
-          def origin
-            value = metadata_for_key(GRPC_METADATA_ORIGIN)
-            value if value != ''
-          end
-
-          private
-
-          def metadata_for_key(key)
-            # metadata values can be arrays (multiple headers with the same key)
-            value = @metadata[key]
-            if value.is_a?(Array)
-              value.first
+            # No previously extracted trace headers, use the one we just extracted
+            if trace_digest.nil?
+              trace_digest = extracted_trace_digest
             else
-              value
+              unless trace_digest.trace_id == extracted_trace_digest.trace_id \
+                      && trace_digest.span_id == extracted_trace_digest.span_id
+                # Return an empty/new trace headers if we have a mismatch in values extracted
+                msg = "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
+                      "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
+                Datadog.logger.debug(
+                  "Cannot extract trace headers from HTTP: extracted trace headers differ, #{msg}"
+                )
+                # DEV: This will return from `self.extract` not this `each` block
+                return TraceDigest.new
+              end
             end
           end
+
+          # Return the extracted trace headers if we found one or else a new empty trace headers
+          # Always return the Datadog trace headers if one exists since it has more
+          #   information than the B3 headers e.g. origin, expanded priority
+          #   sampling values, etc
+          dd_trace_digest || trace_digest || nil
         end
       end
     end

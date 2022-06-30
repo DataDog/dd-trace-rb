@@ -27,6 +27,7 @@ module Datadog
               o.lazy
             end
 
+            option :distributed_tracing, default: true
             option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
             option :error_handler, default: Tracing::SpanOperation::Events::DEFAULT_ON_ERROR
           end
