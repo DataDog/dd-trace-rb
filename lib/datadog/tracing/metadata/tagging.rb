@@ -70,6 +70,12 @@ module Datadog
           meta.delete(key)
         end
 
+        # Convenient interface for setting a single tag.
+        alias []= set_tag
+
+        # Convenient interface for getting a single tag.
+        alias [] get_tag
+
         # Return the metric with the given key, nil if it doesn't exist.
         def get_metric(key)
           metrics[key] || meta[key]
