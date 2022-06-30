@@ -41,14 +41,12 @@ module Datadog
             # @return [nil] if parsing failed
             def parse_list(rules)
               unless rules.is_a?(Array)
-                # Using JSON terminology for the expected error type
                 Datadog.logger.warn("Span Sampling Rules are not an array: #{rules.inspect}")
                 return nil
               end
 
               parsed = rules.map do |hash|
                 unless hash.is_a?(Hash)
-                  # Using JSON terminology for the expected error type
                   Datadog.logger.warn("Span Sampling Rule is not a key-value object: #{hash.inspect}")
                   return nil
                 end
