@@ -18,9 +18,8 @@ module Datadog
             :path
 
           def initialize
-            agent_settings = Datadog.configuration.agent
-
-            @host = agent_settings.host
+            agent_settings = Configuration::AgentSettingsResolver.call(Datadog.configuration)
+            @host = agent_settings.hostname
             @port = agent_settings.port
             @ssl = false
             @path = Http::Ext::AGENT_ENDPOINT
