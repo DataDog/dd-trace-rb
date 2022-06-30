@@ -11,7 +11,6 @@ module Datadog
       module Http
         # Class to send telemetry data to Telemetry API
         class Transport
-
           attr_reader \
             :host,
             :port,

@@ -27,11 +27,13 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
 
     let(:adapter) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net, post: response) }
     let(:env) { instance_double(Datadog::Core::Telemetry::Http::Env, body: payload, path: path) }
-    let(:headers) { {
-      Datadog::Core::Telemetry::Http::Ext::HEADER_CONTENT_TYPE => 'application/json',
-      Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_API_VERSION => 'v1',
-      Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_REQUEST_TYPE => request_type,
-    } }
+    let(:headers) do
+      {
+        Datadog::Core::Telemetry::Http::Ext::HEADER_CONTENT_TYPE => 'application/json',
+        Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_API_VERSION => 'v1',
+        Datadog::Core::Telemetry::Http::Ext::HEADER_DD_TELEMETRY_REQUEST_TYPE => request_type,
+      }
+    end
     let(:hostname) { 'foo' }
     let(:http_connection) { instance_double(::Net::HTTP) }
     let(:path) { Datadog::Core::Telemetry::Http::Ext::AGENT_ENDPOINT }
