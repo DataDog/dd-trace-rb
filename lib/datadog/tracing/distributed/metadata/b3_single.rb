@@ -31,7 +31,7 @@ module Datadog
               b3_header += "-#{sampling_priority}"
             end
 
-            metadata[B3_METADATA_SINGLE] = b3_header
+            metadata[B3_HEADER_SINGLE] = b3_header
 
             metadata
           end
@@ -42,7 +42,7 @@ module Datadog
             # https://github.com/apache/incubator-zipkin-b3-propagation/tree/7c6e9f14d6627832bd80baa87ac7dabee7be23cf#single-header
             # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
 
-            b3_single = Parser.new(metadata).metadata_for_key(B3_METADATA_SINGLE)
+            b3_single = Parser.new(metadata).metadata_for_key(B3_HEADER_SINGLE)
             return if b3_single.nil?
 
             parts = b3_single.split('-')

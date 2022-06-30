@@ -17,8 +17,8 @@ module Datadog
             return if digest.nil?
 
             # DEV: We need these to be hex encoded
-            metadata[B3_METADATA_TRACE_ID] = digest.trace_id.to_s(16)
-            metadata[B3_METADATA_SPAN_ID] = digest.span_id.to_s(16)
+            metadata[B3_HEADER_TRACE_ID] = digest.trace_id.to_s(16)
+            metadata[B3_HEADER_SPAN_ID] = digest.span_id.to_s(16)
 
             if digest.trace_sampling_priority
               sampling_priority = Helpers.clamp_sampling_priority(
@@ -34,10 +34,10 @@ module Datadog
             # Extract values from gRPC metadata
             # DEV: B3 doesn't have "origin"
             metadata = Parser.new(metadata)
-            trace_id = metadata.id(B3_METADATA_TRACE_ID, 16)
-            span_id = metadata.id(B3_METADATA_SPAN_ID, 16)
+            trace_id = metadata.id(B3_HEADER_TRACE_ID, 16)
+            span_id = metadata.id(B3_HEADER_SPAN_ID, 16)
             # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
-            sampling_priority = metadata.number(B3_METADATA_SAMPLED)
+            sampling_priority = metadata.number(B3_HEADER_SAMPLED)
 
             # Return early if this propagation is not valid
             return unless trace_id && span_id
