@@ -28,6 +28,7 @@ module Datadog
 
             option :distributed_tracing, default: true
             option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
+            option :split_by_domain, default: false
           end
         end
       end

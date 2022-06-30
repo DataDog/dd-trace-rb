@@ -47,6 +47,9 @@ module Datadog
             end
 
             option :distributed_tracing, default: true
+
+            option :request_queuing, default: false
+
             option :exception_controller do |o|
               o.on_set do |value|
                 # Update ActionPack exception controller too

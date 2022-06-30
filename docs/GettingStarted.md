@@ -1579,6 +1579,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `cache_service` | Cache service name used when tracing cache activity | `'<app_name>-cache'` |
 | `database_service` | Database service name used when tracing database activity | `'<app_name>-<adapter_name>'` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
+| `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
 | `exception_controller` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | `nil` |
 | `middleware` | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load. | `true` |
 | `middleware_names` | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace. | `false` |
@@ -1780,6 +1781,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | --- | ----------- | ------- |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) | `true` |
 | `service_name` | Service name for `rest_client` instrumentation. | `'rest_client'` |
+| `split_by_domain` | Uses the request domain as the service name when set to `true`. | `false` |
 
 ### RSpec
 
@@ -2661,8 +2663,6 @@ However, additional instrumentation provided by Datadog can be activated alongsi
 | `OpenTracing::FORMAT_BINARY`   | No         |                        |
 
 ### Profiling
-
-*Currently available as BETA feature.*
 
 `ddtrace` can produce profiles that measure method-level application resource usage within production environments. These profiles can give insight into resources spent in Ruby code outside of existing trace instrumentation.
 

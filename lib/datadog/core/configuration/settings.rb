@@ -505,7 +505,7 @@ module Datadog
             # are always flushed immediately.
             #
             # @default 500
-            # @return [Boolean]
+            # @return [Integer]
             option :min_spans_threshold, default: 500
           end
 
