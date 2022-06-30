@@ -23,8 +23,9 @@ module Datadog
             def parse_json(rules)
               begin
                 list = JSON.parse(rules)
-              rescue JSON::ParserError => e
-                Datadog.logger.warn("Error parsing Span Sampling Rules \"#{e}\" for rules: #{rules}")
+              rescue => e
+                Datadog.logger.warn("Error parsing Span Sampling Rules `#{rules}`. "\
+                                    "Cause #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}")
                 return nil
               end
 
