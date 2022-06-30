@@ -24,8 +24,8 @@ module Datadog
               begin
                 list = JSON.parse(rules)
               rescue => e
-                Datadog.logger.warn("Error parsing Span Sampling Rules `#{rules}`. "\
-                                    "Cause #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}")
+                Datadog.logger.warn("Error parsing Span Sampling Rules `#{rules.inspect}`: "\
+                                    "#{e.class.name} #{e.message} at #{Array(e.backtrace).first}")
                 return nil
               end
 
@@ -42,21 +42,21 @@ module Datadog
             def parse_list(rules)
               unless rules.is_a?(Array)
                 # Using JSON terminology for the expected error type
-                Datadog.logger.warn("Span Sampling Rules are not an array: #{JSON.dump(rules)}")
+                Datadog.logger.warn("Span Sampling Rules are not an array: #{rules.inspect}")
                 return nil
               end
 
               parsed = rules.map do |hash|
                 unless hash.is_a?(Hash)
                   # Using JSON terminology for the expected error type
-                  Datadog.logger.warn("Span Sampling Rule is not a key-value object: #{JSON.dump(hash)}")
+                  Datadog.logger.warn("Span Sampling Rule is not a key-value object: #{hash.inspect}")
                   return nil
                 end
 
                 begin
                   parse_rule(hash)
                 rescue => e
-                  Datadog.logger.warn("Cannot parse Span Sampling Rule #{JSON.dump(hash)}: " \
+                  Datadog.logger.warn("Cannot parse Span Sampling Rule #{hash.inspect}: " \
                   "#{e.class.name} #{e} at #{Array(e.backtrace).first}")
                   nil
                 end

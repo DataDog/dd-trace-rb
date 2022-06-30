@@ -21,10 +21,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
     context 'valid JSON' do
       context 'not a list' do
-        let(:json_input) { { not: 'list' } }
+        let(:json_input) { { 'not' => 'list' } }
 
         it 'warns and returns nil' do
-          expect(Datadog.logger).to receive(:warn).with(include(rules_string))
+          expect(Datadog.logger).to receive(:warn).with(include(json_input.inspect))
           is_expected.to be(nil)
         end
       end
@@ -76,10 +76,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             end
 
             context 'with an invalid value' do
-              let(:name) { { bad: 'name' } }
+              let(:name) { { 'bad' => 'name' } }
 
               it 'warns and returns nil' do
-                expect(Datadog.logger).to receive(:warn).with(include('{"bad":"name"}') & include('Error'))
+                expect(Datadog.logger).to receive(:warn).with(include(name.inspect) & include('Error'))
                 is_expected.to be_empty
               end
             end
@@ -97,10 +97,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             end
 
             context 'with an invalid value' do
-              let(:service) { { bad: 'service' } }
+              let(:service) { { 'bad' => 'service' } }
 
               it 'warns and returns nil' do
-                expect(Datadog.logger).to receive(:warn).with(include('{"bad":"service"}') & include('Error'))
+                expect(Datadog.logger).to receive(:warn).with(include(service.inspect) & include('Error'))
                 is_expected.to be_empty
               end
             end
@@ -118,10 +118,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             end
 
             context 'with an invalid value' do
-              let(:sample_rate) { { bad: 'sample_rate' } }
+              let(:sample_rate) { { 'bad' => 'sample_rate' } }
 
               it 'warns and returns nil' do
-                expect(Datadog.logger).to receive(:warn).with(include('{"bad":"sample_rate"}') & include('Error'))
+                expect(Datadog.logger).to receive(:warn).with(include(sample_rate.inspect) & include('Error'))
                 is_expected.to be_empty
               end
             end
@@ -139,10 +139,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             end
 
             context 'with an invalid value' do
-              let(:max_per_second) { { bad: 'max_per_second' } }
+              let(:max_per_second) { { 'bad' => 'max_per_second' } }
 
               it 'warns and returns nil' do
-                expect(Datadog.logger).to receive(:warn).with(include('{"bad":"max_per_second"}') & include('Error'))
+                expect(Datadog.logger).to receive(:warn).with(include(max_per_second.inspect) & include('Error'))
                 is_expected.to be_empty
               end
             end
