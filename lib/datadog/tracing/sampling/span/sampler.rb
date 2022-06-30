@@ -32,11 +32,12 @@ module Datadog
           def sample!(trace_op, span_op)
             return if trace_op.sampled?
 
-            # Return as soon as one rule returns non-nil
-            # DEV: `all?{|x|x.nil?}` is faster than `any?{|x|!x.nil?}`
-            @rules.all? do |rule|
-              rule.sample!(span_op).nil?
+            # Return as soon as one rule matches
+            @rules.any? do |rule|
+              rule.sample!(span_op) != :not_matched
             end
+
+            nil
           end
         end
       end
