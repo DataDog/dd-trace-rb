@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/core/telemetry/http/http_transport'
+require 'datadog/core/telemetry/http/transport'
 require 'datadog/core/telemetry/http/adapters/net'
 require 'datadog/core/telemetry/v1/telemetry_request'
 
