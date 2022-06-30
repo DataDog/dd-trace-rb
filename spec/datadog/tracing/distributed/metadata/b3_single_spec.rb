@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
         )
       end
 
-      it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => '2710-4e20') }
+      it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '2710-4e20') }
 
       [
         [-1, 0],
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
           end
 
           it {
-            is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => "c350-ea60-#{expected}")
+            is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => "c350-ea60-#{expected}")
           }
         end
       end
@@ -61,7 +61,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
           )
         end
 
-        it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => '15f90-186a0') }
+        it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '15f90-186a0') }
       end
     end
   end
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
     end
 
     context 'with trace_id and span_id' do
-      let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => '15f90-186a0' } }
+      let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '15f90-186a0' } }
 
       it { expect(digest.span_id).to eq(100000) }
       it { expect(digest.trace_id).to eq(90000) }
@@ -85,7 +85,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
       it { expect(digest.trace_sampling_priority).to be nil }
 
       context 'with sampling priority' do
-        let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => '15f90-186a0-1' } }
+        let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '15f90-186a0-1' } }
 
         it { expect(digest.span_id).to eq(100000) }
         it { expect(digest.trace_id).to eq(90000) }
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
         context 'with parent_id' do
           let(:metadata) do
             {
-              Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => '15f90-186a0-1-4e20'
+              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '15f90-186a0-1-4e20'
             }
           end
 
@@ -108,7 +108,7 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3Single do
     end
 
     context 'with trace_id' do
-      let(:env) { { Datadog::Tracing::Distributed::Headers::Ext::B3_METADATA_SINGLE => '15f90' } }
+      let(:env) { { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '15f90' } }
 
       it { is_expected.to be nil }
     end
