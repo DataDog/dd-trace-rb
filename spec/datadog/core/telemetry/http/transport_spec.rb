@@ -4,7 +4,6 @@ require 'spec_helper'
 
 require 'datadog/core/telemetry/http/transport'
 require 'datadog/core/telemetry/http/adapters/net'
-require 'datadog/core/telemetry/v1/telemetry_request'
 
 RSpec.describe Datadog::Core::Telemetry::Http::Transport do
   subject(:transport) { described_class.new }
@@ -38,7 +37,7 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     let(:hostname) { 'foo' }
     let(:http_connection) { instance_double(::Net::HTTP) }
     let(:path) { Datadog::Core::Telemetry::Http::Ext::AGENT_ENDPOINT }
-    let(:payload) { instance_double(Datadog::Core::Telemetry::V1::TelemetryRequest) }
+    let(:payload) { '{"foo":"bar"}' }
     let(:port) { 1234 }
     let(:request_type) { 'app-started' }
     let(:response) { instance_double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }

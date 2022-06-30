@@ -24,15 +24,6 @@ module Datadog
               @ssl = ssl.nil? ? true : ssl
             end
 
-            def self.build(agent_settings)
-              new(
-                hostname: agent_settings.hostname,
-                port: agent_settings.port,
-                timeout: agent_settings.timeout_seconds,
-                ssl: agent_settings.ssl
-              )
-            end
-
             def open(&block)
               req = ::Net::HTTP.new(@hostname, @port)
 
