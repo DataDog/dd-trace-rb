@@ -145,6 +145,8 @@ unless pkg_config('ddprof_ffi_with_rpath')
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
 end
 
+have_func("rb_internal_thread_add_event_hook", ["ruby/thread.h"])
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
