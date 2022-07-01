@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 static VALUE _native_start(VALUE self);
 static VALUE _native_stop(VALUE self);
@@ -8,6 +9,8 @@ static void render_event(int event_id);
 
 static FILE *output_file = NULL;
 static rb_internal_thread_event_hook_t *current_hook = NULL;
+static long start_tracing_monotonic_timestamp = 0;
+static long start_tracing_epoch_nanos = 0;
 
 static const char *READY = "ready";
 static const char *RESUMED = "resumed";
@@ -81,10 +84,24 @@ static void render_event(int event_id) {
   struct timespec current_time;
   if (clock_gettime(CLOCK_MONOTONIC, &current_time) < 0) {
     fprintf(stderr, "Error getting time :(\n");
+    return;
+  }
+
+  if (event_id == GVL_TRACING_STARTED) {
+    struct timeval current_time_epoch;
+    if (gettimeofday(&current_time_epoch, NULL) < 0) {
+      fprintf(stderr, "Error getting time :(\n");
+      return;
+    }
+    start_tracing_epoch_nanos = (current_time_epoch.tv_sec * 1000 * 1000 * 1000) + (current_time_epoch.tv_usec * 1000);
   }
 
   long timestamp = current_time.tv_nsec + (current_time.tv_sec * 1000 * 1000 * 1000);
   pthread_t thread_id = pthread_self();
+
+  if (event_id == GVL_TRACING_STARTED) {
+    start_tracing_monotonic_timestamp = timestamp;
+  }
 
   const char *event_name = "";
   switch (event_id) {
@@ -111,5 +128,7 @@ static void render_event(int event_id) {
       break;
   };
 
-  fprintf(output_file, "  [%lu, %lu, \"%s\"],\n", thread_id, timestamp, event_name);
+  long timestamp_since_epoch = (timestamp - start_tracing_monotonic_timestamp) + start_tracing_epoch_nanos;
+
+  fprintf(output_file, "  [%lu, %lu, \"%s\"],\n", thread_id, timestamp_since_epoch, event_name);
 }
