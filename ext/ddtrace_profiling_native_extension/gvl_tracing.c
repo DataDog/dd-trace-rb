@@ -12,8 +12,13 @@ static rb_internal_thread_event_hook_t *current_hook = NULL;
 static const char *READY = "ready";
 static const char *RESUMED = "resumed";
 static const char *SUSPENDED = "suspended";
-// static const char *STARTED = "started";
-// static const char *EXITED = "exited";
+static const char *STARTED = "started";
+static const char *EXITED = "exited";
+static const char *TRACING_STARTED = "started_tracing";
+static const char *TRACING_STOPPED = "stopped_tracing";
+
+#define GVL_TRACING_STARTED 1 << 5
+#define GVL_TRACING_STOPPED 1 << 6
 
 void gvl_tracing_init(VALUE profiling_module) {
   VALUE gvl_tracing_class = rb_define_class_under(profiling_module, "GvlTracing", rb_cObject);
@@ -41,11 +46,12 @@ static VALUE _native_start(VALUE self) {
   fprintf(output_file, "[\n");
 
   #ifdef HAVE_RB_INTERNAL_THREAD_ADD_EVENT_HOOK
+    render_event(GVL_TRACING_STARTED);
     current_hook = rb_internal_thread_add_event_hook(
       on_gvl_event,
       (
-        RUBY_INTERNAL_THREAD_EVENT_READY | RUBY_INTERNAL_THREAD_EVENT_RESUMED | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED //|
-        // RUBY_INTERNAL_THREAD_EVENT_STARTED | RUBY_INTERNAL_THREAD_EVENT_EXITED
+        RUBY_INTERNAL_THREAD_EVENT_READY | RUBY_INTERNAL_THREAD_EVENT_RESUMED | RUBY_INTERNAL_THREAD_EVENT_SUSPENDED |
+        RUBY_INTERNAL_THREAD_EVENT_STARTED | RUBY_INTERNAL_THREAD_EVENT_EXITED
       ),
       NULL
     );
@@ -61,6 +67,8 @@ static VALUE _native_stop(VALUE self) {
 
   #ifdef HAVE_RB_INTERNAL_THREAD_ADD_EVENT_HOOK
     rb_internal_thread_remove_event_hook(current_hook);
+    render_event(GVL_TRACING_STOPPED);
+    render_event(GVL_TRACING_STOPPED); // Hack just to have time "range" for the stopped event, so it shows in the output
   #endif
 
   fprintf(output_file, "  []\n]\n");
@@ -89,12 +97,18 @@ static void render_event(int event_id) {
     case RUBY_INTERNAL_THREAD_EVENT_SUSPENDED:
       event_name = SUSPENDED;
       break;
-    // case RUBY_INTERNAL_THREAD_EVENT_STARTED:
-    //   event_name = STARTED;
-    //   break;
-    // case RUBY_INTERNAL_THREAD_EVENT_EXITED:
-    //   event_name = EXITED;
-    //   break;
+    case RUBY_INTERNAL_THREAD_EVENT_STARTED:
+      event_name = STARTED;
+      break;
+    case RUBY_INTERNAL_THREAD_EVENT_EXITED:
+      event_name = EXITED;
+      break;
+    case GVL_TRACING_STARTED:
+      event_name = TRACING_STARTED;
+      break;
+    case GVL_TRACING_STOPPED:
+      event_name =TRACING_STOPPED;
+      break;
   };
 
   fprintf(output_file, "  [%lu, %lu, \"%s\"],\n", thread_id, timestamp, event_name);
