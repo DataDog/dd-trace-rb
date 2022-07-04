@@ -39,4 +39,25 @@ RSpec.describe Datadog::Core::Telemetry::V1::Product do
       end
     end
   end
+
+  describe '#to_h' do
+    subject(:to_h) { product.to_h }
+
+    let(:appsec) { Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0') }
+    let(:profiler) { Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0') }
+
+    before do
+      allow(appsec).to receive(:to_h).and_return({ version: '1.0' })
+      allow(profiler).to receive(:to_h).and_return({ version: '1.0' })
+    end
+
+    it do
+      is_expected.to eq(
+        {
+          appsec: { version: '1.0' },
+          profiler: { version: '1.0' }
+        }
+      )
+    end
+  end
 end

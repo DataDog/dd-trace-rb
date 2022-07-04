@@ -25,4 +25,22 @@ RSpec.describe Datadog::Core::Telemetry::V1::Dependency do
       it_behaves_like 'an optional string parameter', 'hash'
     end
   end
+
+  describe '#to_h' do
+    subject(:to_h) { dependency.to_h }
+
+    let(:hash) { '3e2e2c2362c89aa01bc0e004681e' }
+    let(:name) { 'mongodb' }
+    let(:version) { '2.2.5' }
+
+    it do
+      is_expected.to eq(
+        {
+          hash: hash,
+          name: name,
+          version: version
+        }
+      )
+    end
+  end
 end

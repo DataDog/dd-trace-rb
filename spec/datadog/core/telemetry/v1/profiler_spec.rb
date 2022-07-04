@@ -15,4 +15,16 @@ RSpec.describe Datadog::Core::Telemetry::V1::Profiler do
       it_behaves_like 'a required string parameter', 'version'
     end
   end
+
+  describe '#to_h' do
+    subject(:to_h) { profiler.to_h }
+    let(:version) { '1.0' }
+    it do
+      is_expected.to eq(
+        {
+          version: version
+        }
+      )
+    end
+  end
 end

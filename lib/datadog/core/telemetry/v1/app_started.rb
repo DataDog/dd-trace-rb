@@ -24,19 +24,19 @@ module Datadog
           end
 
           def to_h
-            {
-              additional_payload: map_hash(@additional_payload),
-              configuration: map_hash(@configuration),
-              dependencies: map_array(@dependencies),
-              integrations: map_array(@integrations),
-            }
+            {}.tap do |app_started_hash|
+              app_started_hash[:additional_payload] = map_hash(@additional_payload) if @additional_payload
+              app_started_hash[:configuration] = map_hash(@configuration) if @configuration
+              app_started_hash[:dependencies] = map_array(@dependencies) if @dependencies
+              app_started_hash[:integrations] = map_array(@integrations) if @integrations
+            end
           end
 
           private
 
           def map_hash(hash)
             hash.map do |k, v|
-              { name: k, value: v }
+              { name: k.to_s, value: v }
             end
           end
 

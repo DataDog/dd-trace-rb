@@ -52,7 +52,7 @@ module Datadog
               env: @env,
               language_name: @language_name,
               language_version: @language_version,
-              products: @products,
+              products: @products.to_h,
               runtime_name: @runtime_name,
               runtime_patches: @runtime_patches,
               runtime_version: @runtime_version,

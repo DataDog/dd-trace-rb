@@ -164,4 +164,52 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       end
     end
   end
+
+  describe '#to_h' do
+    subject(:to_h) { telemetry_request.to_h }
+
+    let(:api_version) { 'v1' }
+    let(:application) do
+      Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
+                                                    service_name: 'myapp', tracer_version: '1.0')
+    end
+    let(:debug) { false }
+    let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
+    let(:payload) do
+      Datadog::Core::Telemetry::V1::AppStarted.new(
+        integrations: [Datadog::Core::Telemetry::V1::Integration.new(
+          name: 'pg', enabled: true
+        )]
+      )
+    end
+    let(:request_type) { 'app-started' }
+    let(:runtime_id) { '20338dfd-f700-0d470f054ae8' }
+    let(:seq_id) { 42 }
+    let(:session_id) { '20338dfd-f700-0d470f054ae8' }
+    let(:tracer_time) { 1654805621 }
+
+    before do
+      allow(application).to receive(:to_h).and_return({ language_name: 'ruby', language_version: '3.0',
+                                                        service_name: 'myapp', tracer_version: '1.0' })
+      allow(host).to receive(:to_h).and_return({ container_id: 'd39b145254d1f9c337fdd2be132f6' })
+      allow(payload).to receive(:to_h).and_return({ integrations: [{ name: 'pg', enabled: true }] })
+    end
+
+    it do
+      is_expected.to eq(
+        {
+          api_version: api_version,
+          application: { language_name: 'ruby', language_version: '3.0', service_name: 'myapp', tracer_version: '1.0' },
+          debug: debug,
+          host: { container_id: 'd39b145254d1f9c337fdd2be132f6' },
+          payload: { integrations: [{ name: 'pg', enabled: true }] },
+          request_type: request_type,
+          runtime_id: runtime_id,
+          seq_id: seq_id,
+          session_id: session_id,
+          tracer_time: tracer_time,
+        }
+      )
+    end
+  end
 end

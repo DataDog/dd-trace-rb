@@ -122,4 +122,39 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
       end
     end
   end
+
+  describe '#to_h' do
+    subject(:to_h) { app_started.to_h }
+
+    context 'when attributes are all nil' do
+      let(:additional_payload) { nil }
+      let(:configuration) { nil }
+      let(:dependencies) { nil }
+      let(:integrations) { nil }
+      it { is_expected.to eq({}) }
+    end
+
+    context 'when attributes are all defined' do
+      let(:additional_payload) { { 'tracing.enabled': true, 'profiling.enabled': false } }
+      let(:configuration) { { DD_AGENT_HOST: 'localhost', DD_TRACE_SAMPLE_RATE: '1' } }
+      let(:dependencies) { [Datadog::Core::Telemetry::V1::Dependency.new(name: 'pg')] }
+      let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
+
+      before do
+        allow(dependencies[0]).to receive(:to_h).and_return({ name: 'pg' })
+        allow(integrations[0]).to receive(:to_h).and_return({ name: 'pg', enabled: true })
+      end
+
+      it do
+        is_expected.to eq(
+          additional_payload: [{ :name => 'tracing.enabled', :value => true },
+                               { :name => 'profiling.enabled', :value => false }],
+          configuration: [{ :name => 'DD_AGENT_HOST', :value => 'localhost' },
+                          { :name => 'DD_TRACE_SAMPLE_RATE', :value => '1' }],
+          dependencies: [{ name: 'pg' }],
+          integrations: [{ name: 'pg', enabled: true }]
+        )
+      end
+    end
+  end
 end
