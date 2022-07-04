@@ -248,7 +248,7 @@ module Datadog
 
         if configuration.telemetry.enabled
           # emit telemetry event
-          Core::Telemetry::Emitter.request('app-started')
+          Core::Telemetry::Emitter.request(request_type: 'app-started')
         end
         components
       end

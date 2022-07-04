@@ -357,6 +357,38 @@ RSpec.describe Datadog::Core::Configuration do
           end
         end
       end
+
+      context 'when telemetry flag' do
+        let(:telemetry_enabled) { 'false' }
+
+        before do
+          allow(Datadog::Core::Telemetry::Emitter).to receive(:request)
+        end
+
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Telemetry::Ext::ENV_ENABLED => telemetry_enabled) do
+            example.run
+          end
+        end
+
+        context 'is enabled' do
+          let(:telemetry_enabled) { 'true' }
+
+          it do
+            configure
+            expect(Datadog::Core::Telemetry::Emitter).to have_received(:request).with(request_type: 'app-started')
+          end
+        end
+
+        context 'is not enabled' do
+          let(:telemetry_enabled) { 'false' }
+
+          it do
+            configure
+            expect(Datadog::Core::Telemetry::Emitter).to_not have_received(:request)
+          end
+        end
+      end
     end
 
     describe '#configure_onto' do
