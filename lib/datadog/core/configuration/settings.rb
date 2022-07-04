@@ -5,6 +5,7 @@ require 'logger'
 require 'datadog/core/configuration/base'
 require 'datadog/core/environment/ext'
 require 'datadog/core/runtime/ext'
+require 'datadog/core/telemetry/ext'
 require 'datadog/profiling/ext'
 require 'datadog/tracing/configuration/ext'
 
@@ -615,6 +616,19 @@ module Datadog
           # NOTE: version also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.default { ENV.fetch(Core::Environment::Ext::ENV_VERSION, nil) }
           o.lazy
+        end
+
+        # Client-side telemetry configuration
+        # @public_api
+        settings :telemetry do
+          # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
+          #
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`
+          # @return [Boolean]
+          option :enabled do |o|
+            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
+            o.lazy
+          end
         end
       end
       # rubocop:enable Metrics/BlockLength
