@@ -1418,4 +1418,43 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it { expect(settings.version).to eq(version) }
     end
   end
+
+  describe '#telemetry' do
+    around do |example|
+      ClimateControl.modify(Datadog::Core::Telemetry::Ext::ENV_ENABLED => environment) do
+        example.run
+      end
+    end
+    let(:environment) { 'true' }
+
+    describe '#enabled' do
+      subject(:enabled) { settings.telemetry.enabled }
+
+      context "when #{Datadog::Core::Telemetry::Ext::ENV_ENABLED}" do
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be true }
+        end
+
+        { 'true' => true, 'false' => false }.each do |string, value|
+          context "is defined as #{string}" do
+            let(:environment) { string }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#enabled=' do
+      let(:environment) { 'true' }
+      it 'updates the #enabled setting' do
+        expect { settings.telemetry.enabled = false }
+          .to change { settings.telemetry.enabled }
+          .from(true)
+          .to(false)
+      end
+    end
+  end
 end
