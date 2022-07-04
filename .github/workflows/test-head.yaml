@@ -10,6 +10,7 @@ jobs:
     env:
       SKIP_SIMPLECOV: 1
       JRUBY_OPTS: --dev
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     steps:
       - uses: actions/checkout@v2
       # bundler appears to match both prerelease and release rubies when we
