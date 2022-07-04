@@ -55,7 +55,6 @@
 # require_relative 'core/workers/runtime_metrics'
 
 require_relative 'core/extensions'
-require_relative 'core/telemetry/collector'
 
 # We must load core extensions to make certain global APIs
 # accessible: both for Datadog features and the core itself.
