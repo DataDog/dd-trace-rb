@@ -149,6 +149,9 @@ unless pkg_config('ddprof_ffi_with_rpath')
 end
 
 $LDFLAGS += ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../libddprof-0.6.0.1.0-x86_64-linux/vendor/libddprof-0.6.0/x86_64-linux/libddprof-x86_64-unknown-linux-gnu/lib'
+
+$LDFLAGS += ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../gems/libddprof-0.6.0.1.0-x86_64-linux/vendor/libddprof-0.6.0/x86_64-linux/libddprof-x86_64-unknown-linux-gnu/lib'
+
 $stderr.puts("After pkg-config $LDFLAGS was: #{$LDFLAGS.inspect}")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
