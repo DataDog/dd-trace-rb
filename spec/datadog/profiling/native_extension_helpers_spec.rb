@@ -1,7 +1,37 @@
 # typed: ignore
 
 require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
-require 'libddprof'
+
+require 'datadog/profiling/spec_helper'
+
+RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
+  describe '.libddprof_folder_relative_to_native_lib_folder' do
+    context 'when libddprof is available' do
+      before do
+        skip_if_profiling_not_supported(self)
+        if PlatformHelpers.mac? && Libddprof.pkgconfig_folder.nil? && ENV['LIBDDPROF_VENDOR_OVERRIDE'].nil?
+          raise 'You have a libddprof setup without macOS support. Did you forget to set LIBDDPROF_VENDOR_OVERRIDE?'
+        end
+      end
+
+      it 'returns a relative path to libddprof folder from the gem lib folder' do
+        relative_path = described_class.libddprof_folder_relative_to_native_lib_folder
+
+        gem_lib_folder = "#{Gem.loaded_specs['ddtrace'].gem_dir}/lib"
+        full_libddprof_path = "#{gem_lib_folder}/#{relative_path}/libddprof_ffi.#{RbConfig::CONFIG['SOEXT']}"
+
+        expect(relative_path).to start_with('../')
+        expect(File.exist?(full_libddprof_path)).to be true
+      end
+    end
+
+    context 'when libddprof is unsupported' do
+      it do
+        expect(described_class.libddprof_folder_relative_to_native_lib_folder(libddprof_pkgconfig_folder: nil)).to be nil
+      end
+    end
+  end
+end
 
 RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
   describe '.supported?' do
