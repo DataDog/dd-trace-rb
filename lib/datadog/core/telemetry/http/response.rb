@@ -6,6 +6,8 @@ module Datadog
       module Http
         # Module for base HTTP response
         module Response
+          include Kernel
+
           def payload
             nil
           end
