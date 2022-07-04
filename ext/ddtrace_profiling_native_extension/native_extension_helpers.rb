@@ -3,6 +3,7 @@
 # typed: ignore
 
 require 'libddprof'
+require 'pathname'
 
 module Datadog
   module Profiling
@@ -18,6 +19,51 @@ module Datadog
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
+      end
+
+      # Used as an workaround for a limitation with how dynamic linking works in environments where ddtrace and
+      # libddprof are moved after the extension gets compiled.
+      #
+      # Because the libddpprof native library is installed on a non-standard system path, in order for it to be
+      # found by the system dynamic linker (e.g. what takes care of dlopen(), which is used to load the profiling
+      # native extension), we need to add a "runpath" -- a list of folders to search for libddprof.
+      #
+      # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
+      # Linux: e.g. `readelf -d ddtrace_profiling_native_extension.2.7.3_x86_64-linux.so`.
+      #
+      # In ddtrace 1.1.0, we only set as runpath an absolute path to libddprof. (This gets set automatically by the call
+      # to `pkg_config('ddprof_ffi_with_rpath')` in `extconf.rb`). This worked fine as long as libddprof was **NOT**
+      # moved from the folder it was present at ddtrace installation/linking time.
+      #
+      # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
+      # installation. Thus, the profiling native extension could not be loaded in these environments
+      # (see https://github.com/DataDog/dd-trace-rb/issues/2067) because libddprof could not be found.
+      #
+      # To workaround this issue, this method computes the **relative** path between the folder where the profiling
+      # native extension is going to be installed and the folder where libddprof is installed, and returns it
+      # to be set as an additional runpath. (Yes, you can set multiple runpath folders to be searched).
+      #
+      # This way, if both gems are moved together (and it turns out that they are in these environments),
+      # the relative path can still be traversed to find libddprof.
+      #
+      # This is incredibly awful, and it's kinda bizarre how it's not possible to just find these paths at runtime
+      # and set them correctly; rather than needing the set stuff at linking-time and then praying to $deity that
+      # weird moves don't happen.
+      #
+      # As a curiosity, `LD_LIBRARY_PATH` can be used to influence the folders that get searched but **CANNOT BE
+      # SET DYNAMICALLY**, e.g. it needs to be set at the start of the process (Ruby VM) and thus it's not something
+      # we could setup when doing a `require`.
+      #
+      def self.libddprof_folder_relative_to_native_lib_folder(
+        current_folder: __dir__,
+        libddprof_pkgconfig_folder: Libddprof.pkgconfig_folder
+      )
+        return unless libddprof_pkgconfig_folder
+
+        profiling_native_lib_folder = "#{current_folder}/../../lib/"
+        libddprof_lib_folder = "#{libddprof_pkgconfig_folder}/../"
+
+        Pathname.new(libddprof_lib_folder).relative_path_from(profiling_native_lib_folder).to_s
       end
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their

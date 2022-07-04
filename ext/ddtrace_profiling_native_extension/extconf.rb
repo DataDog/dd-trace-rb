@@ -142,17 +142,12 @@ $defs << '-DUSE_LEGACY_LIVING_THREADS_ST' if RUBY_VERSION < '2.2'
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 
-$stderr.puts("Before pkg-config $LDFLAGS was: #{$LDFLAGS.inspect}")
-
 unless pkg_config('ddprof_ffi_with_rpath')
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
 end
 
-$LDFLAGS += ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../libddprof-0.6.0.1.0-x86_64-linux/vendor/libddprof-0.6.0/x86_64-linux/libddprof-x86_64-unknown-linux-gnu/lib'
-
-$LDFLAGS += ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/../../../../gems/libddprof-0.6.0.1.0-x86_64-linux/vendor/libddprof-0.6.0/x86_64-linux/libddprof-x86_64-unknown-linux-gnu/lib'
-
-$stderr.puts("After pkg-config $LDFLAGS was: #{$LDFLAGS.inspect}")
+$LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{Datadog::Profiling::NativeExtensionHelpers.libddprof_folder_relative_to_native_lib_folder}"
+Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
