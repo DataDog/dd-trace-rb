@@ -38,9 +38,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
     )
   end
   let(:request_type) { 'app-started' }
-  let(:dummy_runtime_id) { '20338dfd-f700-0d470f054ae8' }
+  let(:dummy_runtime_id) { 'dummy_runtime_id' }
   let(:seq_id) { 42 }
-  let(:dummy_session_id) { '20338dfd-f700-0d470f054ae8' }
+  let(:dummy_session_id) { 'dummy_session_id' }
   let(:tracer_time) { 1654805621 }
 
   it do
@@ -183,9 +183,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       )
     end
     let(:request_type) { 'app-started' }
-    let(:dummy_runtime_id) { '20338dfd-f700-0d470f054ae8' }
+    let(:dummy_runtime_id) { 'dummy_runtime_id' }
     let(:seq_id) { 42 }
-    let(:dummy_session_id) { '20338dfd-f700-0d470f054ae8' }
+    let(:dummy_session_id) { 'dummy_session_id' }
     let(:tracer_time) { 1654805621 }
 
     it do
