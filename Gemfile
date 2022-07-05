@@ -6,12 +6,12 @@ gemspec
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
 gem 'appraisal', '~> 2.2'
 gem 'benchmark-ips', '~> 2.8'
-gem 'benchmark-memory', '~> 0.1'
+gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
-gem 'json-schema'
+gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'

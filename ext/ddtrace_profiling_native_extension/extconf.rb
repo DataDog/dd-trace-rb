@@ -141,9 +141,18 @@ $defs << '-DUSE_LEGACY_LIVING_THREADS_ST' if RUBY_VERSION < '2.2'
 # If we got here, libddprof is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+
 unless pkg_config('ddprof_ffi_with_rpath')
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
 end
+
+# See comments on the helper method being used for why we need to additionally set this
+# The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
+# experimentation. We need to get these special characters across a lot of tools untouched...
+$LDFLAGS += \
+  ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
+  "#{Datadog::Profiling::NativeExtensionHelpers.libddprof_folder_relative_to_native_lib_folder}"
+Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
