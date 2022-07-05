@@ -63,7 +63,7 @@ module Datadog
         profiling_native_lib_folder = "#{current_folder}/../../lib/"
         libddprof_lib_folder = "#{libddprof_pkgconfig_folder}/../"
 
-        Pathname.new(libddprof_lib_folder).relative_path_from(profiling_native_lib_folder).to_s
+        Pathname.new(libddprof_lib_folder).relative_path_from(Pathname.new(profiling_native_lib_folder)).to_s
       end
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their

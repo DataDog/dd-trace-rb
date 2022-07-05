@@ -17,11 +17,16 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       it 'returns a relative path to libddprof folder from the gem lib folder' do
         relative_path = described_class.libddprof_folder_relative_to_native_lib_folder
 
+        # RbConfig::CONFIG['SOEXT'] was only introduced in Ruby 2.5, so we have a fallback for older Rubies...
+        libddprof_extension =
+          RbConfig::CONFIG['SOEXT'] ||
+          PlatformHelpers.linux? ? 'so' : (PlatformHelpers.mac? ? 'dylib' : raise('Missing SOEXT for current platform'))
+
         gem_lib_folder = "#{Gem.loaded_specs['ddtrace'].gem_dir}/lib"
-        full_libddprof_path = "#{gem_lib_folder}/#{relative_path}/libddprof_ffi.#{RbConfig::CONFIG['SOEXT']}"
+        full_libddprof_path = "#{gem_lib_folder}/#{relative_path}/libddprof_ffi.#{libddprof_extension}"
 
         expect(relative_path).to start_with('../')
-        expect(File.exist?(full_libddprof_path)).to be true
+        expect(File.exist?(full_libddprof_path)).to be(true), "Libddprof not available in expected path: #{full_libddprof_path.inspect}"
       end
     end
 
