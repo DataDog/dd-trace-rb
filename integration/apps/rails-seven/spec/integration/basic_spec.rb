@@ -26,8 +26,7 @@ RSpec.describe 'Basic scenarios' do
     it 'should be sending telemetry app-started event' do
       expect(json_result).to include(
         telemetry_enabled: true,
-        telemetry_transporter_defined: true,
-        telemetry_seq_id: 2
+        telemetry_transporter_defined: true
       )
     end
 
