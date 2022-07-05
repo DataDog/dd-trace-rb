@@ -23,6 +23,14 @@ RSpec.describe 'Basic scenarios' do
       )
     end
 
+    it 'should be sending telemetry app-started event' do
+      expect(json_result).to include(
+        telemetry_enabled: true,
+        telemetry_transporter_defined: true,
+        telemetry_seq_id: 2
+      )
+    end
+
     it 'webserver sanity checking' do
       puts "      Webserver: #{json_result.fetch(:webserver_process)}"
     end

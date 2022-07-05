@@ -13,7 +13,10 @@ class HealthController < ApplicationController
     render json: {
       webserver_process: $PROGRAM_NAME,
       profiler_available: Datadog::Profiling.start_if_enabled,
-      profiler_threads: Thread.list.map(&:name).select { |it| it && it.include?('Profiling') }
+      profiler_threads: Thread.list.map(&:name).select { |it| it && it.include?('Profiling') },
+      telemetry_enabled: Datadog.configuration.telemetry.enabled,
+      telemetry_transporter_defined: Datadog::Core::Telemetry::Emitter.instance_variable_defined?(:@transporter),
+      telemetry_seq_id: Datadog::Core::Telemetry::Emitter.seq_id
     }
   end
 end

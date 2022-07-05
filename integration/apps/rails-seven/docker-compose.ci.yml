@@ -95,6 +95,7 @@ services:
       - TEST_HOSTNAME=app
       - TEST_PORT=80
       - TEST_INTEGRATION=true
+      - DD_INSTRUMENTATION_TELEMETRY_ENABLED=true
     # volumes:
     #   - .:/app
     #   - ../../images/include:/vendor/dd-demo
