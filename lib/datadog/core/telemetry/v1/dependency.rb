@@ -21,6 +21,14 @@ module Datadog
             @name = name
             @version = version
           end
+
+          def to_h
+            {
+              hash: @hash,
+              name: @name,
+              version: @version
+            }
+          end
         end
       end
     end

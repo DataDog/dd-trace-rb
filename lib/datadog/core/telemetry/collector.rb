@@ -8,12 +8,10 @@ require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/environment/platform'
 require 'datadog/core/telemetry/v1/application'
-require 'datadog/core/telemetry/v1/appsec'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
-require 'datadog/core/telemetry/v1/profiler'
 require 'ddtrace/transport/ext'
 
 module Datadog
@@ -179,8 +177,7 @@ module Datadog
         end
 
         def profiler
-          version = profiler_version
-          Telemetry::V1::Profiler.new(version: version) if version
+          { version: profiler_version } if profiler_version
         end
 
         def profiler_version
@@ -188,8 +185,7 @@ module Datadog
         end
 
         def appsec
-          version = appsec_version
-          Telemetry::V1::AppSec.new(version: version) if version
+          { version: appsec_version } if appsec_version
         end
 
         def appsec_version
