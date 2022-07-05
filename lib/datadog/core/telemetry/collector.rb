@@ -38,7 +38,7 @@ module Datadog
             runtime_version: Datadog::Core::Environment::Ext::ENGINE_VERSION,
             service_name: service_name,
             service_version: service_version,
-            tracer_version: tracer_version
+            tracer_version: library_version
           )
         end
 
@@ -135,7 +135,7 @@ module Datadog
           options['tracing.writer_options.flush_interval'] =
             format_configuration_value(configuration.tracing.writer_options[:flush_interval])
           options['logger.instance'] = configuration.logger.instance.class.to_s
-
+          options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
           compact_hash(options)
         end
 
@@ -166,30 +166,20 @@ module Datadog
           Datadog.configuration.version
         end
 
-        def tracer_version
+        def library_version
           Core::Environment::Identity.tracer_version
         end
 
         def products
-          profiler_obj = profiler
-          appsec_obj = appsec
-          profiler_obj || appsec_obj ? Telemetry::V1::Product.new(profiler: profiler_obj, appsec: appsec_obj) : nil
+          Telemetry::V1::Product.new(profiler: profiler, appsec: appsec)
         end
 
         def profiler
-          { version: profiler_version } if profiler_version
-        end
-
-        def profiler_version
-          tracer_version if Datadog.configuration.profiling.enabled
+          { version: library_version }
         end
 
         def appsec
-          { version: appsec_version } if appsec_version
-        end
-
-        def appsec_version
-          tracer_version if Datadog.configuration.respond_to?(:appsec) && Datadog.configuration.appsec.enabled
+          { version: library_version }
         end
 
         def agent_transport
