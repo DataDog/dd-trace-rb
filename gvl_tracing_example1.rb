@@ -44,6 +44,7 @@ per_thread_events.each do |thread_id, events|
         startNs: start_timestamp,
         endNs: end_timestamp,
         label: start_event,
+        durationSeconds: (end_timestamp - start_timestamp).to_f / 1_000_000_000,
       }
     end
 
@@ -55,6 +56,7 @@ per_thread_events.each do |thread_id, events|
         startNs: last_event_timestamp,
         endNs: latest_timestamp,
         label: last_event,
+        durationSeconds: (latest_timestamp - last_event_timestamp).to_f / 1_000_000_000,
       }
   end
 end
@@ -66,6 +68,7 @@ File.write(
     timeRange: {
       startNs: earliest_timestamp,
       endNs: latest_timestamp,
+      durationSeconds: (latest_timestamp - earliest_timestamp).to_f / 1_000_000_000
     }
   )
 )
