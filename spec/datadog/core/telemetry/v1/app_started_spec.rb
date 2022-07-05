@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/v1/app_started'
-require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/integration'
 
@@ -15,8 +14,8 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
     )
   end
 
-  let(:additional_payload) { [Datadog::Core::Telemetry::V1::Configuration.new(name: 'ENV_VARIABLE')] }
-  let(:configuration) { [Datadog::Core::Telemetry::V1::Configuration.new(name: 'DD_TRACE_DEBUG')] }
+  let(:additional_payload) { [{ name: 'logger.level', value: 1 }] }
+  let(:configuration) { [{ name: 'DD_TRACE_DEBUG', value: false }] }
   let(:dependencies) { [Datadog::Core::Telemetry::V1::Dependency.new(name: 'pg')] }
   let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
 
@@ -36,17 +35,17 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is array of Configuration' do
-        let(:additional_payload) { [Datadog::Core::Telemetry::V1::Configuration.new(name: 'ENV_VARIABLE')] }
+      context 'is array of one Hash' do
+        let(:additional_payload) { [{ name: 'logger.level', value: 1 }] }
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is array of Configurations with multiple elements' do
+      context 'is array of multiple Hashes' do
         let(:additional_payload) do
           [
-            Datadog::Core::Telemetry::V1::Configuration.new(name: 'ENV_VARIABLE'),
-            Datadog::Core::Telemetry::V1::Configuration.new(name: 'ANOTHER_VAR'),
-            Datadog::Core::Telemetry::V1::Configuration.new(name: 'SOME_OTHER_VARIABLE')
+            { name: 'logger.level', value: 1 },
+            { name: 'profiling.enabled', value: true },
+            { name: 'tracing.enabled', value: true },
           ]
         end
         it { is_expected.to be_a_kind_of(described_class) }
@@ -59,17 +58,17 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
-      context 'is array of Configuration' do
-        let(:configuration) { [Datadog::Core::Telemetry::V1::Configuration.new(name: 'DD_TRACE_DEBUG')] }
+      context 'is array of one Hash' do
+        let(:configuration) { [{ name: 'DD_AGENT_HOST', value: 'localhost' }] }
         it { is_expected.to be_a_kind_of(described_class) }
       end
 
       context 'is array of Configurations with multiple elements' do
         let(:configuration) do
           [
-            Datadog::Core::Telemetry::V1::Configuration.new(name: 'DD_TRACE_DEBUG'),
-            Datadog::Core::Telemetry::V1::Configuration.new(name: 'DD_SERVICE_NAME'),
-            Datadog::Core::Telemetry::V1::Configuration.new(name: 'DD_ENV')
+            { name: 'DD_AGENT_HOST', value: 'localhost' },
+            { name: 'DD_AGENT_TRANSPORT', value: 'http' },
+            { name: 'DD_TRACE_SAMPLE_RATE', value: '0.7' },
           ]
         end
         it { is_expected.to be_a_kind_of(described_class) }
