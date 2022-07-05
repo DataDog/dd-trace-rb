@@ -32,6 +32,12 @@ module Datadog
         module Sampling
           ENV_SAMPLE_RATE = 'DD_TRACE_SAMPLE_RATE'.freeze
           ENV_RATE_LIMIT = 'DD_TRACE_RATE_LIMIT'.freeze
+
+          # @public_api
+          module Span
+            ENV_SPAN_SAMPLING_RULES = 'DD_SPAN_SAMPLING_RULES'.freeze
+            ENV_SPAN_SAMPLING_RULES_FILE = 'DD_SPAN_SAMPLING_RULES_FILE'.freeze
+          end
         end
 
         # @public_api
