@@ -71,14 +71,12 @@ RSpec.describe Datadog::Core::Telemetry::V1::Integration do
 
     it do
       is_expected.to eq(
-        {
-          auto_enabled: auto_enabled,
-          compatible: compatible,
-          enabled: enabled,
-          error: error,
-          name: name,
-          version: version
-        }
+        auto_enabled: auto_enabled,
+        compatible: compatible,
+        enabled: enabled,
+        error: error,
+        name: name,
+        version: version
       )
     end
   end

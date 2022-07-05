@@ -16,9 +16,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       host: host,
       payload: payload,
       request_type: request_type,
-      runtime_id: runtime_id,
+      runtime_id: dummy_runtime_id,
       seq_id: seq_id,
-      session_id: session_id,
+      session_id: dummy_session_id,
       tracer_time: tracer_time
     )
   end
@@ -38,9 +38,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
     )
   end
   let(:request_type) { 'app-started' }
-  let(:runtime_id) { '20338dfd-f700-0d470f054ae8' }
+  let(:dummy_runtime_id) { '20338dfd-f700-0d470f054ae8' }
   let(:seq_id) { 42 }
-  let(:session_id) { '20338dfd-f700-0d470f054ae8' }
+  let(:dummy_session_id) { '20338dfd-f700-0d470f054ae8' }
   let(:tracer_time) { 1654805621 }
 
   it do
@@ -51,9 +51,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       host: host,
       payload: payload,
       request_type: request_type,
-      runtime_id: runtime_id,
+      runtime_id: dummy_runtime_id,
       seq_id: seq_id,
-      session_id: session_id,
+      session_id: dummy_session_id,
       tracer_time: tracer_time
     )
   end
@@ -130,37 +130,37 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
         let(:request_type) { 'app-started' }
         it { is_expected.to be_a_kind_of(described_class) }
       end
+    end
 
-      context ':runtime_id' do
-        it_behaves_like 'a required string parameter', 'runtime_id'
+    context ':runtime_id' do
+      it_behaves_like 'a required string parameter', 'dummy_runtime_id'
+    end
+
+    context 'when :seq_id' do
+      context 'is nil' do
+        let(:seq_id) { nil }
+        it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context 'when :seq_id' do
-        context 'is nil' do
-          let(:seq_id) { nil }
-          it { expect { telemetry_request }.to raise_error(ArgumentError) }
-        end
+      context 'is valid int' do
+        let(:seq_id) { 42 }
+        it { is_expected.to be_a_kind_of(described_class) }
+      end
+    end
 
-        context 'is valid int' do
-          let(:seq_id) { 42 }
-          it { is_expected.to be_a_kind_of(described_class) }
-        end
+    context ':session_id' do
+      it_behaves_like 'an optional string parameter', 'dummy_session_id'
+    end
+
+    context 'when :tracer_time' do
+      context 'is nil' do
+        let(:tracer_time) { nil }
+        it { expect { telemetry_request }.to raise_error(ArgumentError) }
       end
 
-      context ':session_id' do
-        it_behaves_like 'an optional string parameter', 'session_id'
-      end
-
-      context 'when :tracer_time' do
-        context 'is nil' do
-          let(:tracer_time) { nil }
-          it { expect { telemetry_request }.to raise_error(ArgumentError) }
-        end
-
-        context 'is valid int' do
-          let(:tracer_time) { 1654805621 }
-          it { is_expected.to be_a_kind_of(described_class) }
-        end
+      context 'is valid int' do
+        let(:tracer_time) { 1654805621 }
+        it { is_expected.to be_a_kind_of(described_class) }
       end
     end
   end
@@ -183,32 +183,47 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       )
     end
     let(:request_type) { 'app-started' }
-    let(:runtime_id) { '20338dfd-f700-0d470f054ae8' }
+    let(:dummy_runtime_id) { '20338dfd-f700-0d470f054ae8' }
     let(:seq_id) { 42 }
-    let(:session_id) { '20338dfd-f700-0d470f054ae8' }
+    let(:dummy_session_id) { '20338dfd-f700-0d470f054ae8' }
     let(:tracer_time) { 1654805621 }
-
-    before do
-      allow(application).to receive(:to_h).and_return({ language_name: 'ruby', language_version: '3.0',
-                                                        service_name: 'myapp', tracer_version: '1.0' })
-      allow(host).to receive(:to_h).and_return({ container_id: 'd39b145254d1f9c337fdd2be132f6' })
-      allow(payload).to receive(:to_h).and_return({ integrations: [{ name: 'pg', enabled: true }] })
-    end
 
     it do
       is_expected.to eq(
-        {
-          api_version: api_version,
-          application: { language_name: 'ruby', language_version: '3.0', service_name: 'myapp', tracer_version: '1.0' },
-          debug: debug,
-          host: { container_id: 'd39b145254d1f9c337fdd2be132f6' },
-          payload: { integrations: [{ name: 'pg', enabled: true }] },
-          request_type: request_type,
-          runtime_id: runtime_id,
-          seq_id: seq_id,
-          session_id: session_id,
-          tracer_time: tracer_time,
-        }
+        api_version: api_version,
+        application: {
+          env: nil,
+          language_name: 'ruby',
+          language_version: '3.0',
+          products: {},
+          runtime_name: nil,
+          runtime_patches: nil,
+          runtime_version: nil,
+          service_name: 'myapp',
+          service_version: nil,
+          tracer_version: '1.0'
+        },
+        debug: debug,
+        host: {
+          container_id: 'd39b145254d1f9c337fdd2be132f6',
+          hostname: nil,
+          kernel_name: nil,
+          kernel_release: nil,
+          kernel_version: nil,
+          os: nil,
+          os_version: nil
+        },
+        payload: {
+          additional_payload: [],
+          configuration: [],
+          dependencies: [],
+          integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
+        },
+        request_type: request_type,
+        runtime_id: dummy_runtime_id,
+        seq_id: seq_id,
+        session_id: dummy_session_id,
+        tracer_time: tracer_time,
       )
     end
   end

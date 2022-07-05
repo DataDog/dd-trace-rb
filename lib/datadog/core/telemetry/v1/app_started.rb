@@ -4,6 +4,8 @@ module Datadog
       module V1
         # Describes payload for telemetry V1 API app_started event
         class AppStarted
+          include Kernel
+
           attr_reader \
             :additional_payload,
             :configuration,
@@ -24,12 +26,12 @@ module Datadog
           end
 
           def to_h
-            {}.tap do |app_started_hash|
-              app_started_hash[:additional_payload] = map_hash(@additional_payload) if @additional_payload
-              app_started_hash[:configuration] = map_hash(@configuration) if @configuration
-              app_started_hash[:dependencies] = map_array(@dependencies) if @dependencies
-              app_started_hash[:integrations] = map_array(@integrations) if @integrations
-            end
+            {
+              additional_payload: map_hash(Hash(@additional_payload)),
+              configuration: map_hash(Hash(@configuration)),
+              dependencies: map_array(Array(@dependencies)),
+              integrations: map_array(Array(@integrations)),
+            }
           end
 
           private

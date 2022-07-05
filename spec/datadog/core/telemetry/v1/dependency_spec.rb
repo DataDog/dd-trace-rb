@@ -35,11 +35,9 @@ RSpec.describe Datadog::Core::Telemetry::V1::Dependency do
 
     it do
       is_expected.to eq(
-        {
-          hash: hash,
-          name: name,
-          version: version
-        }
+        hash: hash,
+        name: name,
+        version: version
       )
     end
   end

@@ -3,8 +3,6 @@ require 'spec_helper'
 require 'datadog/core/telemetry/v1/shared_examples'
 require 'datadog/core/telemetry/v1/application'
 require 'datadog/core/telemetry/v1/product'
-require 'datadog/core/telemetry/v1/appsec'
-require 'datadog/core/telemetry/v1/profiler'
 
 RSpec.describe Datadog::Core::Telemetry::V1::Application do
   subject(:application) do
@@ -27,8 +25,8 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
   let(:language_version) { '3.0' }
   let(:products) do
     Datadog::Core::Telemetry::V1::Product.new(
-      appsec: Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0'),
-      profiler: Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0')
+      appsec: { version: '1.0' },
+      profiler: { version: '1.0' }
     )
   end
   let(:runtime_name) { 'ruby30' }
@@ -99,8 +97,8 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
       context 'is valid' do
         let(:products) do
           Datadog::Core::Telemetry::V1::Product.new(
-            appsec: Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0'),
-            profiler: Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0')
+            appsec: { version: '1.0' },
+            profiler: { version: '1.0' }
           )
         end
         it { is_expected.to be_a_kind_of(described_class) }
@@ -116,8 +114,8 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
     let(:language_version) { '3.0' }
     let(:products) do
       Datadog::Core::Telemetry::V1::Product.new(
-        appsec: Datadog::Core::Telemetry::V1::AppSec.new(version: '1.0'),
-        profiler: Datadog::Core::Telemetry::V1::Profiler.new(version: '1.0')
+        appsec: { version: '1.0' },
+        profiler: { version: '1.0' }
       )
     end
     let(:runtime_name) { 'ruby30' }
@@ -127,22 +125,18 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
     let(:service_version) { '1.2.3' }
     let(:tracer_version) { '1.0' }
 
-    before do
-      allow(products).to receive(:to_h).and_return({ profiling: { version: '1.0' }, appsec: { version: '1.0' } })
-    end
-
     it do
       is_expected.to eq(
-        { env: env,
-          language_name: language_name,
-          language_version: language_version,
-          products: { profiling: { version: '1.0' }, appsec: { version: '1.0' } },
-          runtime_name: runtime_name,
-          runtime_patches: runtime_patches,
-          runtime_version: runtime_version,
-          service_name: service_name,
-          service_version: service_version,
-          tracer_version: tracer_version }
+        env: env,
+        language_name: language_name,
+        language_version: language_version,
+        products: { profiler: { version: '1.0' }, appsec: { version: '1.0' } },
+        runtime_name: runtime_name,
+        runtime_patches: runtime_patches,
+        runtime_version: runtime_version,
+        service_name: service_name,
+        service_version: service_version,
+        tracer_version: tracer_version
       )
     end
   end

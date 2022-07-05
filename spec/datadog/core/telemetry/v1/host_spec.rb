@@ -79,15 +79,13 @@ RSpec.describe Datadog::Core::Telemetry::V1::Host do
 
     it do
       is_expected.to eq(
-        {
-          container_id: container_id,
-          hostname: hostname,
-          kernel_name: kernel_name,
-          kernel_release: kernel_release,
-          kernel_version: kernel_version,
-          os_version: os_version,
-          os: os
-        }
+        container_id: container_id,
+        hostname: hostname,
+        kernel_name: kernel_name,
+        kernel_release: kernel_release,
+        kernel_version: kernel_version,
+        os_version: os_version,
+        os: os
       )
     end
   end

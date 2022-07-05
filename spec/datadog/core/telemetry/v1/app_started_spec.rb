@@ -131,7 +131,14 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
       let(:configuration) { nil }
       let(:dependencies) { nil }
       let(:integrations) { nil }
-      it { is_expected.to eq({}) }
+      it do
+        is_expected.to eq(
+          additional_payload: [],
+          configuration: [],
+          dependencies: [],
+          integrations: [],
+        )
+      end
     end
 
     context 'when attributes are all defined' do
@@ -140,19 +147,14 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
       let(:dependencies) { [Datadog::Core::Telemetry::V1::Dependency.new(name: 'pg')] }
       let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
 
-      before do
-        allow(dependencies[0]).to receive(:to_h).and_return({ name: 'pg' })
-        allow(integrations[0]).to receive(:to_h).and_return({ name: 'pg', enabled: true })
-      end
-
       it do
         is_expected.to eq(
           additional_payload: [{ name: 'tracing.enabled', value: true },
                                { name: 'profiling.enabled', value: false }],
           configuration: [{ name: 'DD_AGENT_HOST', value: 'localhost' },
                           { name: 'DD_TRACE_SAMPLE_RATE', value: '1' }],
-          dependencies: [{ name: 'pg' }],
-          integrations: [{ name: 'pg', enabled: true }]
+          dependencies: [{ hash: nil, name: 'pg', version: nil }],
+          integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
         )
       end
     end
