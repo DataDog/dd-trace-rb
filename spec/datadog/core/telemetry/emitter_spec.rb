@@ -16,8 +16,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
   describe '#initialize' do
     context 'when no params provided' do
-      let(:sequence) { nil }
-      let(:http_transport) { nil }
+      subject(:emitter) { described_class.new }
       it { is_expected.to be_a_kind_of(described_class) }
     end
 
