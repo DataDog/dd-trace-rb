@@ -466,17 +466,27 @@ module Datadog
         begin
           @sampler.sample!(trace_op)
         rescue StandardError => e
-          Datadog.logger.warn { "Failed to sample trace: #{e}" }
+          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
         end
       end
+
+      SAMPLE_TRACE_LOG_ONLY_ONCE = Utils::OnlyOnce.new
+      private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
       def sample_span(trace_op, span)
         begin
           @span_sampler.sample!(trace_op, span)
         rescue StandardError => e
-          Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          SAMPLE_SPAN_LOG_ONLY_ONCE.run do
+            Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
         end
       end
+
+      SAMPLE_SPAN_LOG_ONLY_ONCE = Utils::OnlyOnce.new
+      private_constant :SAMPLE_SPAN_LOG_ONLY_ONCE
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
@@ -484,9 +494,14 @@ module Datadog
           trace = @trace_flush.consume!(trace_op)
           write(trace) if trace && !trace.empty?
         rescue StandardError => e
-          Datadog.logger.debug { "Failed to flush trace: #{e}" }
+          FLUSH_TRACE_LOG_ONLY_ONCE.run do
+            Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
         end
       end
+
+      FLUSH_TRACE_LOG_ONLY_ONCE = Utils::OnlyOnce.new
+      private_constant :FLUSH_TRACE_LOG_ONLY_ONCE
 
       # Send the trace to the writer to enqueue the spans list in the agent
       # sending queue.
