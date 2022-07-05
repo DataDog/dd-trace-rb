@@ -26,3 +26,8 @@ For contributing, checkout the [contribution guidelines][contribution docs] and 
 [visualization docs]: https://docs.datadoghq.com/tracing/visualization/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
+
+## Special thanks
+
+* [Mike Fiedler](https://github.com/miketheman) for working on a number of Datadog Ruby projects, as well as graciously
+  gifting control of the `datadog` gem
