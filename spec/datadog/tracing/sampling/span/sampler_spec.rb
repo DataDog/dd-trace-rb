@@ -17,7 +17,15 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
       it { expect { sample! }.to_not(change { span_op.send(:build_span).to_hash }) }
     end
 
+    shared_examples 'tags span with sampling decision' do
+      it do
+        sample!
+        expect(span_op.get_metric('_dd.span_sampling.mechanism')).to_not be_nil
+      end
+    end
+
     let(:match_all) { Datadog::Tracing::Sampling::Span::Matcher.new }
+
     context 'no matching rules' do
       it_behaves_like 'does not modify span'
     end
@@ -34,13 +42,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
       context 'a rejected trace' do
         before { trace_op.reject! }
 
-        it 'sets mechanism, rule rate and rate limit metrics' do
-          sample!
-
-          expect(span_op.get_metric('_dd.span_sampling.mechanism')).to eq(8)
-          expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
-          expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
-        end
+        it_behaves_like 'tags span with sampling decision'
 
         context 'multiple rules' do
           let(:rules) do
@@ -53,7 +55,6 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
           it 'applies the first matching rule' do
             sample!
 
-            expect(span_op.get_metric('_dd.span_sampling.mechanism')).to eq(8)
             expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
             expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
           end
