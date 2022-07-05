@@ -245,11 +245,6 @@ module Datadog
       def build_components(settings)
         components = Components.new(settings)
         components.startup!(settings)
-
-        if configuration.telemetry.enabled
-          # emit telemetry event
-          Core::Telemetry::Emitter.request(request_type: 'app-started')
-        end
         components
       end
 
