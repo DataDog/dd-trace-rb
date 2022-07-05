@@ -5,13 +5,11 @@ require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/collector'
 require 'datadog/core/telemetry/v1/application'
-require 'datadog/core/telemetry/v1/appsec'
 require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
 require 'datadog/core/telemetry/v1/product'
-require 'datadog/core/telemetry/v1/profiler'
 require 'ddtrace/transport/ext'
 
 require 'ddtrace'
@@ -103,9 +101,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         after { Datadog.configuration.profiling.send(:reset!) }
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
-        it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
-        it { expect(products.profiler.version).to be_a_kind_of(String) }
-        it { expect(products.profiler).to have_attributes(version: '4.2') }
+        it { expect(products.profiler).to be_a_kind_of(Hash) }
+        it { expect(products.profiler).to eq(version: '4.2') }
       end
 
       context 'when appsec is enabled' do
@@ -120,9 +117,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         after { Datadog.configuration.appsec.send(:reset!) }
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
-        it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
-        it { expect(products.appsec.version).to be_a_kind_of(String) }
-        it { expect(products.appsec).to have_attributes(version: '4.2') }
+        it { expect(products.appsec).to be_a_kind_of(Hash) }
+        it { expect(products.appsec).to eq(version: '4.2') }
       end
 
       context 'when both profiler and appsec are enabled' do
@@ -140,8 +136,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
-        it { expect(products.profiler).to be_a_kind_of(Datadog::Core::Telemetry::V1::Profiler) }
-        it { expect(products.appsec).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppSec) }
+        it { expect(products.profiler).to be_a_kind_of(Hash) }
+        it { expect(products.appsec).to be_a_kind_of(Hash) }
       end
     end
   end
