@@ -25,6 +25,10 @@ per_thread_events = Hash.new { |hash, key| hash[key] = [] }
 earliest_timestamp = Float::INFINITY
 latest_timestamp = -Float::INFINITY
 
+# HACK: Used to workaround what seems to be a bug in the GVL instrumentation API
+# where we transition between threads without the previous thread emitting a suspend event
+currently_working = nil
+
 gvl_trace.each do |thread_id, timestamp, event_name|
   next unless thread_id
 
@@ -32,6 +36,19 @@ gvl_trace.each do |thread_id, timestamp, event_name|
   latest_timestamp = timestamp if timestamp > latest_timestamp
 
   per_thread_events[thread_id] << [timestamp, event_name]
+
+  if event_name == 'suspended'
+    currently_working = nil
+  end
+
+  if event_name == 'resumed'
+    if currently_working && currently_working != thread_id
+      # We're missing a suspended event for the working thread, as we had not cleared currently_running yet
+      per_thread_events[currently_working] << [timestamp, 'suspended_injected']
+    end
+
+    currently_working = thread_id
+  end
 end
 
 gvl_trace = nil
