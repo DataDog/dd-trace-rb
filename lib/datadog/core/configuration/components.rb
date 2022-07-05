@@ -345,6 +345,23 @@ module Datadog
           :runtime_metrics,
           :tracer
 
+        # Telemetry instances persist across multiple component restarts
+        attr_accessor :telemetry
+
+        def self.build_telemetry(settings)
+          if @telemetry # Telemetry was already initialized before
+            unless settings.telemetry.enabled
+              @telemetry.disable!
+              return @telemetry
+            end
+
+            @telemetry.integrations_updated!
+            @telemetry
+          else
+            Core::Telemetry.new(enabled: settings.telemetry.enabled)
+          end
+        end
+
         def initialize(settings)
           # Logger
           @logger = self.class.build_logger(settings)
@@ -362,6 +379,8 @@ module Datadog
 
           # Health metrics
           @health_metrics = self.class.build_health_metrics(settings)
+
+          @telemetry = self.class.build_telemetry(settings)
         end
 
         # Starts up components
@@ -386,10 +405,19 @@ module Datadog
         def shutdown!(replacement = nil)
           # Shutdown the old tracer, unless it's still being used.
           # (e.g. a custom tracer instance passed in.)
+          self # old
+          replacement # new
+
           tracer.shutdown! unless replacement && tracer == replacement.tracer
 
           # Shutdown old profiler
           profiler.shutdown! unless profiler.nil?
+
+          replacement.telemetry = @telemetry if @telemetry
+
+          if !replacement && @telemetry
+            @telemetry.stop!
+          end
 
           # Shutdown workers
           runtime_metrics.stop(true, close_metrics: false)
