@@ -576,7 +576,8 @@ module Datadog
                     Datadog.logger.warn(
                       'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
                         'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
-                        'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts.'
+                        'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
+                        "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
                     )
                   end
                   rules
