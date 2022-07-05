@@ -31,6 +31,17 @@ module Datadog
             @version = version
           end
 
+          def to_h
+            {
+              auto_enabled: @auto_enabled,
+              compatible: @compatible,
+              enabled: @enabled,
+              error: @error,
+              name: @name,
+              version: @version
+            }
+          end
+
           private
 
           # Validates all required arguments passed to the class on initialization are not nil

@@ -30,6 +30,18 @@ module Datadog
             @os = os
             @os_version = os_version
           end
+
+          def to_h
+            {
+              container_id: @container_id,
+              hostname: @hostname,
+              kernel_name: @kernel_name,
+              kernel_release: @kernel_release,
+              kernel_version: @kernel_version,
+              os: @os,
+              os_version: @os_version,
+            }
+          end
         end
       end
     end
