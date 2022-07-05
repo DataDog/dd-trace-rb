@@ -5,7 +5,6 @@ require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/core/environment/ext'
 require 'datadog/core/telemetry/collector'
 require 'datadog/core/telemetry/v1/application'
-require 'datadog/core/telemetry/v1/configuration'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
@@ -83,42 +82,15 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         before do
           Datadog.configuration.profiling.enabled = false
           Datadog.configuration.appsec.enabled = false
+          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
         end
         after do
           Datadog.configuration.profiling.send(:reset!)
           Datadog.configuration.appsec.send(:reset!)
         end
-        it { is_expected.to be_nil }
-      end
 
-      context 'when profiling is enabled' do
-        before do
-          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
-          Datadog.configure do |c|
-            c.profiling.enabled = true
-          end
-        end
-        after { Datadog.configuration.profiling.send(:reset!) }
-
-        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
-        it { expect(products.profiler).to be_a_kind_of(Hash) }
-        it { expect(products.profiler).to eq(version: '4.2') }
-      end
-
-      context 'when appsec is enabled' do
-        before do
-          require 'datadog/appsec'
-
-          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
-          Datadog.configure do |c|
-            c.appsec.enabled = true
-          end
-        end
-        after { Datadog.configuration.appsec.send(:reset!) }
-
-        it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
-        it { expect(products.appsec).to be_a_kind_of(Hash) }
-        it { expect(products.appsec).to eq(version: '4.2') }
+        it { expect(products.appsec).to eq({ version: '4.2' }) }
+        it { expect(products.profiler).to eq({ version: '4.2' }) }
       end
 
       context 'when both profiler and appsec are enabled' do
@@ -136,8 +108,8 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         end
 
         it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::Product) }
-        it { expect(products.profiler).to be_a_kind_of(Hash) }
         it { expect(products.appsec).to be_a_kind_of(Hash) }
+        it { expect(products.profiler).to be_a_kind_of(Hash) }
       end
     end
   end
@@ -232,6 +204,44 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         let(:dd_tracing_analytics_enabled) { nil }
         it { is_expected.to_not include('tracing.analytics.enabled') }
       end
+    end
+
+    context 'when profiling is disabled' do
+      before do
+        Datadog.configuration.profiling.enabled = false
+        Datadog.configuration.appsec.enabled = false
+      end
+      after do
+        Datadog.configuration.profiling.send(:reset!)
+        Datadog.configuration.appsec.send(:reset!)
+      end
+      it { is_expected.to include('profiling.enabled' => false) }
+    end
+
+    context 'when profiling is enabled' do
+      before do
+        stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        Datadog.configure do |c|
+          c.profiling.enabled = true
+        end
+      end
+      after { Datadog.configuration.profiling.send(:reset!) }
+
+      it { is_expected.to include('profiling.enabled' => true) }
+    end
+
+    context 'when appsec is enabled' do
+      before do
+        require 'datadog/appsec'
+
+        stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        Datadog.configure do |c|
+          c.appsec.enabled = true
+        end
+      end
+      after { Datadog.configuration.appsec.send(:reset!) }
+
+      it { is_expected.to include('appsec.enabled' => true) }
     end
   end
 
