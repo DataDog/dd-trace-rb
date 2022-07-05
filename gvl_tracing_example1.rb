@@ -3,6 +3,10 @@ require 'json'
 require 'time'
 require 'pry'
 
+Thread.new do
+  sleep(0.05) while true
+end
+
 Datadog::Profiling::GvlTracing._native_start
 puts "Started!"
 
@@ -11,9 +15,11 @@ def fib(n)
   fib(n-1) + fib(n-2)
 end
 
-2.times.map { Thread.new { fib(27) } }.map(&:join)
+sleep(0.05)
 
-Thread.pass
+3.times.map { Thread.new { fib(38) } }.map(&:join)
+
+sleep(0.05)
 
 Datadog::Profiling::GvlTracing._native_stop
 puts "Stopped!"
