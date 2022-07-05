@@ -526,7 +526,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
         it 'invokes the span sampler with the current span and trace operation' do
           trace
-          expect(span_sampler).to have_received(:sample!).with(@trace_op, @span_op.send(:build_span))
+          expect(span_sampler).to have_received(:sample!).with(@trace_op, @span_op.finish)
         end
       end
     end
