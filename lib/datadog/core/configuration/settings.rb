@@ -555,45 +555,42 @@ module Datadog
               o.lazy
             end
 
-            # Client-side single span sampling configuration.
+            # Single span sampling rules.
+            # These rules allow a span to be kept when its encompassing trace is dropped.
+            #
+            # The syntax for single span sampling rules can be found here:
+            # TODO: Insert documentation URL here when published. Search for references of this TODO
+            #
+            # @default `DD_SPAN_SAMPLING_RULES` environment variable.
+            #   Otherwise, `ENV_SPAN_SAMPLING_RULES_FILE` environment variable.
+            #   Otherwise `nil`.
+            # @return [String,nil]
             # @public_api
-            settings :span do
-              # Single span sampling rules.
-              # These rules allow a span to be kept when its encompassing trace is dropped.
-              #
-              # The syntax for single span sampling rules can be found here:
-              # TODO: Insert documentation URL here when published
-              #
-              # @default `DD_SPAN_SAMPLING_RULES` environment variable.
-              #   Otherwise, `ENV_SPAN_SAMPLING_RULES_FILE` environment variable.
-              #   Otherwise `nil`.
-              # @return [String,nil]
-              option :rules do |o|
-                o.default do
-                  rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
-                  rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
+            option :span_rules do |o|
+              o.default do
+                rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
+                rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
 
-                  if rules
-                    if rules_file
-                      Datadog.logger.warn(
-                        'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
+                if rules
+                  if rules_file
+                    Datadog.logger.warn(
+                      'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
                         'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
                         'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts.'
-                      )
-                    end
-                    rules
-                  elsif rules_file
-                    begin
-                      File.read(rules_file)
-                    rescue => e
-                      # `File#read` errors have clear and actionable messages, no need to add extra exception info.
-                      Datadog.logger.warn("Cannot read span sampling rules file: #{e.message}")
-                      nil
-                    end
+                    )
+                  end
+                  rules
+                elsif rules_file
+                  begin
+                    File.read(rules_file)
+                  rescue => e
+                    # `File#read` errors have clear and actionable messages, no need to add extra exception info.
+                    Datadog.logger.warn("Cannot read span sampling rules file: #{e.message}")
+                    nil
                   end
                 end
-                o.lazy
               end
+              o.lazy
             end
           end
 
@@ -659,6 +656,7 @@ module Datadog
           o.lazy
         end
       end
+
       # rubocop:enable Metrics/BlockLength
       # rubocop:enable Metrics/ClassLength
       # rubocop:enable Layout/LineLength
