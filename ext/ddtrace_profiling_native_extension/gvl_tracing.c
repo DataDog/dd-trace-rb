@@ -50,6 +50,7 @@ static VALUE _native_start(VALUE self) {
 
   #ifdef HAVE_RB_INTERNAL_THREAD_ADD_EVENT_HOOK
     render_event(GVL_TRACING_STARTED);
+    render_event(RUBY_INTERNAL_THREAD_EVENT_RESUMED);
     current_hook = rb_internal_thread_add_event_hook(
       on_gvl_event,
       (
