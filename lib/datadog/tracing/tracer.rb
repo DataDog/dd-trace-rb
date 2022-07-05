@@ -472,7 +472,7 @@ module Datadog
         end
       end
 
-      SAMPLE_TRACE_LOG_ONLY_ONCE = Utils::OnlyOnce.new
+      SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
       def sample_span(trace_op, span)
@@ -485,7 +485,7 @@ module Datadog
         end
       end
 
-      SAMPLE_SPAN_LOG_ONLY_ONCE = Utils::OnlyOnce.new
+      SAMPLE_SPAN_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_SPAN_LOG_ONLY_ONCE
 
       # Flush finished spans from the trace buffer, send them to writer.
@@ -500,7 +500,7 @@ module Datadog
         end
       end
 
-      FLUSH_TRACE_LOG_ONLY_ONCE = Utils::OnlyOnce.new
+      FLUSH_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :FLUSH_TRACE_LOG_ONLY_ONCE
 
       # Send the trace to the writer to enqueue the spans list in the agent
