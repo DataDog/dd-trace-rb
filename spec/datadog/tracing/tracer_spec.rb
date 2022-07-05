@@ -509,6 +509,26 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
         end
       end
+
+      context 'for span sampling' do
+        let(:tracer_options) { super().merge(span_sampler: span_sampler) }
+        let(:span_sampler) { instance_double(Datadog::Tracing::Sampling::Span::Sampler) }
+        let(:block) do
+          proc do |span_op, trace_op|
+            @span_op = span_op
+            @trace_op = trace_op
+          end
+        end
+
+        before do
+          allow(span_sampler).to receive(:sample!)
+        end
+
+        it 'invokes the span sampler with the current span and trace operation' do
+          trace
+          expect(span_sampler).to have_received(:sample!).with(@trace_op, @span_op.finish)
+        end
+      end
     end
 
     context 'without a block' do
@@ -570,6 +590,23 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(parent).to be_root_span
           expect(child.send(:parent)).to be(parent)
           expect(child.end_time).to be > parent.end_time
+        end
+      end
+
+      context 'for span sampling' do
+        let(:tracer_options) { super().merge(span_sampler: span_sampler) }
+        let(:span_sampler) { instance_double(Datadog::Tracing::Sampling::Span::Sampler) }
+
+        before do
+          allow(span_sampler).to receive(:sample!)
+        end
+
+        it 'invokes the span sampler with the current span and trace operation' do
+          span_op = trace
+          trace_op = tracer.active_trace
+          span = span_op.finish
+
+          expect(span_sampler).to have_received(:sample!).with(trace_op, span)
         end
       end
     end
