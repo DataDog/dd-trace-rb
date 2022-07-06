@@ -5,6 +5,7 @@ require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
 require 'datadog/core/runtime/metrics'
+require 'datadog/core/telemetry/client'
 require 'datadog/core/workers/runtime_metrics'
 
 require 'datadog/tracing/tracer'
@@ -435,7 +436,7 @@ module Datadog
           unused_statsd.each(&:close)
 
           # Do not remove telemetry instance
-          replacement.telemetry = @telemetry if @telemetry
+          replacement.telemetry = @telemetry if replacement && @telemetry
         end
       end
       # rubocop:enable Metrics/ClassLength

@@ -10,6 +10,7 @@ require 'datadog/core/configuration/components'
 require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
+require 'datadog/core/telemetry/client'
 require 'datadog/core/runtime/metrics'
 require 'datadog/core/workers/runtime_metrics'
 require 'datadog/profiling'
@@ -210,6 +211,68 @@ RSpec.describe Datadog::Core::Configuration::Components do
           it_behaves_like 'new logger' do
             let(:level) { ::Logger::DEBUG }
           end
+        end
+      end
+    end
+  end
+
+  describe '::build_telemetry' do
+    subject(:build_telemetry) { described_class.build_telemetry(settings) }
+
+    context 'given settings' do
+      shared_examples_for 'new telemetry client' do
+        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
+        let(:default_options) { { enabled: settings.telemetry.enabled } }
+        let(:options) { {} }
+
+        before do
+          expect(Datadog::Core::Telemetry::Client).to receive(:new)
+            .with(default_options.merge(options))
+            .and_return(telemetry_client)
+        end
+
+        it { is_expected.to be(telemetry_client) }
+      end
+
+      context 'by default' do
+        it_behaves_like 'new telemetry client'
+      end
+
+      context 'with :enabled' do
+        let(:enabled) { double('enabled') }
+
+        before do
+          allow(settings.telemetry)
+            .to receive(:enabled)
+            .and_return(enabled)
+        end
+
+        it_behaves_like 'new telemetry client' do
+          let(:options) { { enabled: enabled } }
+        end
+      end
+
+      context 'when @telemetry exists with :enabled false' do
+        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
+        let(:default_options) { { enabled: settings.telemetry.enabled } }
+        let(:options) { {} }
+        let(:enabled) { false }
+
+        before do
+          allow(telemetry_client).to receive(:disable!)
+          allow(settings.telemetry).to receive(:enabled).and_return(enabled)
+        end
+
+        around do |example|
+          described_class.instance_variable_set(:@telemetry, telemetry_client)
+          example.run
+          described_class.instance_variable_set(:@telemetry, nil)
+        end
+
+        it do
+          expect(telemetry_client).to receive(:disable!)
+
+          build_telemetry
         end
       end
     end
@@ -1161,12 +1224,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
           allow(replacement).to receive(:profiler).and_return(profiler)
           allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
           allow(replacement).to receive(:health_metrics).and_return(health_metrics)
+          allow(replacement).to receive(:telemetry=).and_return(telemetry)
         end
       end
 
@@ -1200,6 +1265,26 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             shutdown!
           end
+        end
+      end
+
+      context 'when telemetry is defined' do
+        include_context 'replacement' do
+          let(:runtime_metrics_worker) { components.runtime_metrics }
+          let(:health_metrics) { components.health_metrics }
+        end
+
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
+
+        before do
+          allow(components).to receive(:telemetry).and_return(telemetry)
+        end
+
+        it 'returns existing telemetry instance' do
+          expect(components.telemetry).to be(telemetry)
+          expect(Datadog::Core::Telemetry::Client).to_not receive(:new)
+
+          shutdown!
         end
       end
 
