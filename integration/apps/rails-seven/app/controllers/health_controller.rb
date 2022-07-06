@@ -15,7 +15,7 @@ class HealthController < ApplicationController
       profiler_available: Datadog::Profiling.start_if_enabled,
       profiler_threads: Thread.list.map(&:name).select { |it| it && it.include?('Profiling') },
       telemetry_enabled: Datadog.configuration.telemetry.enabled,
-      Datadog.send(:components).instance_variable_get(:@telemetry).enabled
+      telemetry_client_enabled: Datadog.send(:components).telemetry.enabled
     }
   end
 end

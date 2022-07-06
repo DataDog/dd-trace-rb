@@ -53,6 +53,7 @@ module Datadog
           end
 
           def build_telemetry(settings)
+            # Reuse a previous instance of the telemetry client if it already exists
             if @telemetry
               @telemetry.disable! unless settings.telemetry.enabled
               @telemetry
@@ -435,7 +436,7 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          # Do not remove telemetry instance
+          # The telemetry client is stateful, thus needs to be preserved between reconfigurations
           replacement.telemetry = @telemetry if replacement && @telemetry
         end
       end
