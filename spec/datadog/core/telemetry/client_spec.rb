@@ -74,4 +74,25 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be(response) }
     end
   end
+
+  describe '#integrations_change!' do
+    subject(:integrations_change!) { client.integrations_change! }
+    context 'when disabled' do
+      let(:enabled) { false }
+      it do
+        integrations_change!
+        expect(emitter).to_not have_received(:request).with('app-integrations-change')
+      end
+    end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+      it do
+        integrations_change!
+        expect(emitter).to have_received(:request).with('app-integrations-change')
+      end
+
+      it { is_expected.to be(response) }
+    end
+  end
 end

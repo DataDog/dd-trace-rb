@@ -34,6 +34,12 @@ module Datadog
 
           @emitter.request('app-closing')
         end
+
+        def integrations_change!
+          return unless @enabled
+
+          @emitter.request('app-integrations-change')
+        end
       end
     end
   end

@@ -252,14 +252,15 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'when @telemetry exists with :enabled false' do
-        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
-        let(:default_options) { { enabled: settings.telemetry.enabled } }
+      context 'when @telemetry exists' do
+        let(:enabled) { true }
         let(:options) { {} }
-        let(:enabled) { false }
+        let(:default_options) { { enabled: settings.telemetry.enabled } }
+        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
 
         before do
           allow(telemetry_client).to receive(:disable!)
+          allow(telemetry_client).to receive(:integrations_change!)
           allow(settings.telemetry).to receive(:enabled).and_return(enabled)
         end
 
@@ -269,10 +270,24 @@ RSpec.describe Datadog::Core::Configuration::Components do
           described_class.instance_variable_set(:@telemetry, nil)
         end
 
-        it do
-          expect(telemetry_client).to receive(:disable!)
+        context 'with :enabled true' do
+          let(:enabled) { true }
 
-          build_telemetry
+          it do
+            expect(telemetry_client).to receive(:integrations_change!)
+
+            build_telemetry
+          end
+        end
+
+        context 'with :enabled false' do
+          let(:enabled) { false }
+
+          it do
+            expect(telemetry_client).to receive(:disable!)
+
+            build_telemetry
+          end
         end
       end
     end

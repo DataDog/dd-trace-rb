@@ -53,13 +53,15 @@ module Datadog
           end
 
           def build_telemetry(settings)
+            return Telemetry::Client.new(enabled: settings.telemetry.enabled) unless @telemetry
+
             # Reuse a previous instance of the telemetry client if it already exists
-            if @telemetry
-              @telemetry.disable! unless settings.telemetry.enabled
-              @telemetry
+            if settings.telemetry.enabled
+              @telemetry.integrations_change!
             else
-              Telemetry::Client.new(enabled: settings.telemetry.enabled)
+              @telemetry.disable!
             end
+            @telemetry
           end
 
           def build_tracer(settings, agent_settings)
