@@ -222,7 +222,7 @@ module Datadog
       #
       # @return [Boolean] `true` if the span is a serivce entry span
       def service_entry?
-        !!@service_entry
+        @service_entry == true
       end
     end
   end
