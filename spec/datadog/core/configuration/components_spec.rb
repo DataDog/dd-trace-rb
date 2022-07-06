@@ -1210,6 +1210,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           .with(true, close_metrics: false)
         expect(components.runtime_metrics.metrics.statsd).to receive(:close)
         expect(components.health_metrics.statsd).to receive(:close)
+        expect(components.telemetry).to receive(:stop!)
 
         shutdown!
       end
