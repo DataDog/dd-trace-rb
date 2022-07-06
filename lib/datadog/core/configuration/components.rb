@@ -436,6 +436,8 @@ module Datadog
 
           # The telemetry client is stateful, thus needs to be preserved between reconfigurations
           replacement.telemetry = @telemetry if replacement && @telemetry
+
+          @telemetry.stop! if !replacement && @telemetry
         end
       end
       # rubocop:enable Metrics/ClassLength
