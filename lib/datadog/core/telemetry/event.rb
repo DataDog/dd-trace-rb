@@ -1,7 +1,7 @@
 # typed: true
 
 require 'datadog/core/telemetry/collector'
-require 'datadog/core/telemetry/v1/app_started'
+require 'datadog/core/telemetry/v1/app_event'
 require 'datadog/core/telemetry/v1/telemetry_request'
 
 module Datadog
@@ -46,18 +46,24 @@ module Datadog
             app_started
           when 'app-closing'
             {}
+          when 'app-integrations-change'
+            app_integrations_change
           else
             raise ArgumentError, "Request type invalid, received request_type: #{@request_type}"
           end
         end
 
         def app_started
-          Telemetry::V1::AppStarted.new(
+          Telemetry::V1::AppEvent.new(
             dependencies: dependencies,
             integrations: integrations,
             configuration: configurations,
             additional_payload: additional_payload
           )
+        end
+
+        def app_integrations_change
+          Telemetry::V1::AppEvent.new(integrations: integrations)
         end
       end
     end

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/v1/telemetry_request'
-require 'datadog/core/telemetry/v1/app_started'
+require 'datadog/core/telemetry/v1/app_event'
 require 'datadog/core/telemetry/v1/application'
 require 'datadog/core/telemetry/v1/host'
 require 'datadog/core/telemetry/v1/integration'
@@ -31,7 +31,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
   let(:debug) { false }
   let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
   let(:payload) do
-    Datadog::Core::Telemetry::V1::AppStarted.new(
+    Datadog::Core::Telemetry::V1::AppEvent.new(
       integrations: [Datadog::Core::Telemetry::V1::Integration.new(
         name: 'pg', enabled: true
       )]
@@ -110,7 +110,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
 
       context 'is valid' do
         let(:payload) do
-          Datadog::Core::Telemetry::V1::AppStarted.new(
+          Datadog::Core::Telemetry::V1::AppEvent.new(
             integrations: [Datadog::Core::Telemetry::V1::Integration.new(
               name: 'pg', enabled: true
             )]
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
     let(:debug) { false }
     let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
     let(:payload) do
-      Datadog::Core::Telemetry::V1::AppStarted.new(
+      Datadog::Core::Telemetry::V1::AppEvent.new(
         integrations: [Datadog::Core::Telemetry::V1::Integration.new(
           name: 'pg', enabled: true
         )]
@@ -214,9 +214,6 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
           os_version: nil
         },
         payload: {
-          additional_payload: [],
-          configuration: [],
-          dependencies: [],
           integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
         },
         request_type: request_type,
