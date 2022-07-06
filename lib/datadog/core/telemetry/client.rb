@@ -17,6 +17,7 @@ module Datadog
         def initialize(enabled: true, sequence: Datadog::Core::Utils::Sequence.new(1))
           @enabled = enabled
           @emitter = Emitter.new(sequence: sequence)
+          started!
         end
 
         def disable!

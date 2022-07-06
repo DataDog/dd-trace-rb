@@ -68,6 +68,8 @@ module Datadog
 
         # Applies multiple patches
         module Patcher
+          include Contrib::Patcher
+
           PATCHERS = [
             MiddlewarePatcher,
             MiddlewareNamePatcher
