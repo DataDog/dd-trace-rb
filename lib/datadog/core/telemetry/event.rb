@@ -44,6 +44,8 @@ module Datadog
           case request_type
           when 'app-started'
             app_started
+          when 'app-closing'
+            {}
           else
             raise ArgumentError, "Request type invalid, received request_type: #{@request_type}"
           end
