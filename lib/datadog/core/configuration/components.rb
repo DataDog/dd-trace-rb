@@ -5,6 +5,7 @@ require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
 require 'datadog/core/runtime/metrics'
+require 'datadog/core/telemetry/client'
 require 'datadog/core/workers/runtime_metrics'
 
 require 'datadog/tracing/tracer'
@@ -49,6 +50,16 @@ module Datadog
             )
 
             Core::Workers::RuntimeMetrics.new(options)
+          end
+
+          def build_telemetry(settings)
+            # Reuse a previous instance of the telemetry client if it already exists
+            if @telemetry
+              @telemetry.disable! unless settings.telemetry.enabled
+              @telemetry
+            else
+              Telemetry::Client.new(enabled: settings.telemetry.enabled)
+            end
           end
 
           def build_tracer(settings, agent_settings)
@@ -345,6 +356,9 @@ module Datadog
           :runtime_metrics,
           :tracer
 
+        # Telemetry instances persist across multiple component restarts
+        attr_accessor :telemetry
+
         def initialize(settings)
           # Logger
           @logger = self.class.build_logger(settings)
@@ -362,6 +376,9 @@ module Datadog
 
           # Health metrics
           @health_metrics = self.class.build_health_metrics(settings)
+
+          # Telemetry
+          @telemetry = self.class.build_telemetry(settings)
         end
 
         # Starts up components
@@ -418,6 +435,9 @@ module Datadog
 
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
+
+          # The telemetry client is stateful, thus needs to be preserved between reconfigurations
+          replacement.telemetry = @telemetry if replacement && @telemetry
         end
       end
       # rubocop:enable Metrics/ClassLength
