@@ -2202,14 +2202,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           trace_segment = trace_op.flush!
 
-          expect(trace_segment.spans.map(&:service)).to all(be_nil)
-
-          hash = trace_segment.spans.each_with_object({}) do |span, h|
-            h[span.name] = span.__send__(:service_entry?)
-          end
-          expect(hash['root']).to be true
-          expect(hash['children_1']).to be false
-          expect(hash['children_2']).to be false
+          expect(trace_segment.spans).to include(
+            a_span_with(name: 'root', service_entry?: true),
+            a_span_with(name: 'children_1', service_entry?: false),
+            a_span_with(name: 'children_2', service_entry?: false)
+          )
         end
       end
 
@@ -2227,13 +2224,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           trace_segment = trace_op.flush!
 
-          hash = trace_segment.spans.each_with_object({}) do |span, h|
-            h[span.name] = span.__send__(:service_entry?)
-          end
-
-          expect(hash['root']).to be true
-          expect(hash['children_1']).to be false
-          expect(hash['children_2']).to be false
+          expect(trace_segment.spans).to include(
+            a_span_with(name: 'root', service_entry?: true),
+            a_span_with(name: 'children_1', service_entry?: false),
+            a_span_with(name: 'children_2', service_entry?: false)
+          )
         end
       end
 
@@ -2251,13 +2246,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           trace_segment = trace_op.flush!
 
-          hash = trace_segment.spans.each_with_object({}) do |span, h|
-            h[span.name] = span.__send__(:service_entry?)
-          end
-
-          expect(hash['root']).to be true
-          expect(hash['children_1']).to be true
-          expect(hash['children_2']).to be false
+          expect(trace_segment.spans).to include(
+            a_span_with(name: 'root', service_entry?: true),
+            a_span_with(name: 'children_1', service_entry?: true),
+            a_span_with(name: 'children_2', service_entry?: false)
+          )
         end
       end
 
@@ -2276,13 +2269,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           trace_segment = trace_op.flush!
 
-          hash = trace_segment.spans.each_with_object({}) do |span, h|
-            h[span.name] = span.__send__(:service_entry?)
-          end
-
-          expect(hash['root']).to be true
-          expect(hash['children_1']).to be true
-          expect(hash['children_2']).to be false
+          expect(trace_segment.spans).to include(
+            a_span_with(name: 'root', service_entry?: true),
+            a_span_with(name: 'children_1', service_entry?: true),
+            a_span_with(name: 'children_2', service_entry?: false)
+          )
         end
       end
     end

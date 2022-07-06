@@ -529,8 +529,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     context 'identifying service_entry_span' do
       context 'when service of root and child are `nil`' do
         it do
-          root_span_op = described_class.new("root")
-          child_span_op = described_class.new("child_1", child_of: root_span_op)
+          root_span_op = described_class.new('root')
+          child_span_op = described_class.new('child_1', child_of: root_span_op)
 
           root_span_op.measure do
             child_span_op.measure do
@@ -548,8 +548,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
       context 'when service of root and child are identical' do
         it do
-          root_span_op = described_class.new("root", service: 'root_service')
-          child_span_op = described_class.new("child_1", child_of: root_span_op, service: root_span_op.service)
+          root_span_op = described_class.new('root', service: 'root_service')
+          child_span_op = described_class.new('child_1', child_of: root_span_op, service: root_span_op.service)
 
           root_span_op.measure do
             child_span_op.measure do
@@ -567,8 +567,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
       context 'when service of root and child are different' do
         it do
-          root_span_op = described_class.new("root")
-          child_span_op = described_class.new("child_1", child_of: root_span_op, service: 'child_service')
+          root_span_op = described_class.new('root')
+          child_span_op = described_class.new('child_1', child_of: root_span_op, service: 'child_service')
 
           root_span_op.measure do
             child_span_op.measure do
@@ -586,8 +586,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
 
       context 'when service of root and child are different, overriden within the measure block' do
         it do
-          root_span_op = described_class.new("root")
-          child_span_op = described_class.new("child_1", child_of: root_span_op)
+          root_span_op = described_class.new('root')
+          child_span_op = described_class.new('child_1', child_of: root_span_op)
 
           root_span_op.measure do
             child_span_op.measure do |span_op|
