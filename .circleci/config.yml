@@ -35,6 +35,7 @@ test_containers:
     # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
     # issue when you connect to the testing container via ssh, then try lowering this file a notch.
     GRPC_RUBY_BUILD_PROCS: 6
+    DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
   - &container_parameters_environment
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1
