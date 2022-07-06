@@ -28,6 +28,12 @@ module Datadog
 
           @emitter.request('app-started')
         end
+
+        def stop!
+          return unless @enabled
+
+          @emitter.request('app-closing')
+        end
       end
     end
   end
