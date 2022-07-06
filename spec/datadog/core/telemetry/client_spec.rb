@@ -27,6 +27,16 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be_a_kind_of(described_class) }
       it { expect(client.enabled).to be(false) }
     end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+
+      it do
+        client
+
+        expect(emitter).to have_received(:request).with('app-started')
+      end
+    end
   end
 
   describe '#disable!' do
@@ -35,6 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
   describe '#started!' do
     subject(:started!) { client.started! }
+
     context 'when disabled' do
       let(:enabled) { false }
       it do
@@ -47,10 +58,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { true }
       it do
         started!
-        expect(emitter).to have_received(:request).with('app-started')
+        is_expected.to be(response)
       end
-
-      it { is_expected.to be(response) }
     end
   end
 

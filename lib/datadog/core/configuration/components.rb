@@ -53,7 +53,9 @@ module Datadog
           end
 
           def build_telemetry(settings, previous_components: nil)
-            return Telemetry::Client.new(enabled: settings.telemetry.enabled) unless previous_components && previous_components.telemetry
+            unless previous_components && previous_components.telemetry
+              return Telemetry::Client.new(enabled: settings.telemetry.enabled)
+            end
 
             # Reuse a previous instance of the telemetry client if it already exists
             if settings.telemetry.enabled
