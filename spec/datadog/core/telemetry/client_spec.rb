@@ -53,4 +53,25 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it { is_expected.to be(response) }
     end
   end
+
+  describe '#stop!' do
+    subject(:stop!) { client.stop! }
+    context 'when disabled' do
+      let(:enabled) { false }
+      it do
+        stop!
+        expect(emitter).to_not have_received(:request).with('app-closing')
+      end
+    end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+      it do
+        stop!
+        expect(emitter).to have_received(:request).with('app-closing')
+      end
+
+      it { is_expected.to be(response) }
+    end
+  end
 end
