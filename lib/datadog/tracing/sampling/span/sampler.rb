@@ -23,6 +23,9 @@ module Datadog
           end
 
           # Applies sampling rules to the span if the trace has been rejected.
+          # The tracer can be outright rejected, and never reach the transport,
+          # or be set as rejected by priority sampling. In both cases, the trace
+          # is considered rejected for Single Span Sampling purposes.
           #
           # If multiple rules match, only the first one is applied.
           #
@@ -30,7 +33,7 @@ module Datadog
           # @param [Datadog::Tracing::SpanOperation] span_op Span to apply sampling rules
           # @return [void]
           def sample!(trace_op, span_op)
-            return if trace_op.sampled?
+            return if trace_op.sampled? && trace_op.priority_sampled?
 
             # Return as soon as one rule matches
             @rules.any? do |rule|
