@@ -31,6 +31,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppStarted) }
       end
 
+      context 'is app-closing' do
+        let(:request_type) { 'app-closing' }
+
+        it { expect(telemetry_request.payload).to eq({}) }
+      end
+
       context 'is nil' do
         let(:request_type) { nil }
         it { expect { telemetry_request }.to raise_error(ArgumentError) }
