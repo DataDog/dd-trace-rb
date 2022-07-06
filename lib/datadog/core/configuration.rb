@@ -2,6 +2,7 @@
 
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
+require_relative 'telemetry/emitter'
 require_relative 'logger'
 require_relative 'pin'
 
