@@ -240,15 +240,27 @@ module Datadog
         end
       end
 
+      # Returns a {TraceSegment} with all finished spans that can be flushed
+      # at invocation time. All other **finished** spans are discarded.
+      #
+      # A span can be flushed if:
+      #
+      # 1. The span has finished, and
+      # 2. Either:
+      #   a. The trace is kept by sampling.
+      #   b. The span is kept by single span sampling.
+      #
+      # Unfinished spans are not affected by this method.
+      #
+      # @return [TraceSegment]
       def flush!
-        finished = finished?
-
-        # Copy out completed spans
-        spans = @spans.dup
-        @spans = []
-
-        # Use them to build a trace
-        build_trace(spans, !finished)
+        if sampled?
+          flush_all_spans!
+        else
+          # Only spans where the span-level sampling overrides
+          # the trace-level sampling can be flushed.
+          flush_single_sampled_spans_only!
+        end
       end
 
       # Returns a set of trace headers used for continuing traces.
@@ -415,6 +427,26 @@ module Datadog
         return if span.nil? || root_span
 
         @root_span = span
+      end
+
+      # Flushes all spans from this trace
+      def flush_all_spans!
+        # Copy out completed spans
+        spans = @spans.dup
+        @spans = []
+
+        # Use them to build a trace
+        build_trace(spans, !finished?)
+      end
+
+      # Flush single sampled span only, as the trace as a whole was dropped by trace-level sampling
+      def flush_single_sampled_spans_only!
+        # Copy out completed, selected spans
+        spans = @spans.select(&:single_sampled?)
+        @spans = []
+
+        # Use them to build a trace
+        build_trace(spans, true)
       end
 
       def build_trace(spans, partial = false)

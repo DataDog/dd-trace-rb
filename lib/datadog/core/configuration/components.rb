@@ -10,6 +10,8 @@ require 'datadog/core/workers/runtime_metrics'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/flush'
 require 'datadog/tracing/sync_writer'
+require 'datadog/tracing/sampling/span/rule_parser'
+require 'datadog/tracing/sampling/span/sampler'
 
 module Datadog
   module Core
@@ -75,6 +77,7 @@ module Datadog
               enabled: settings.tracing.enabled,
               trace_flush: trace_flush,
               sampler: sampler,
+              span_sampler: build_span_sampler(settings),
               writer: writer,
               tags: build_tracer_tags(settings),
             )
@@ -176,6 +179,11 @@ module Datadog
 
               sampler.update(response.service_rates)
             end
+          end
+
+          def build_span_sampler(settings)
+            rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
+            Tracing::Sampling::Span::Sampler.new(rules || [])
           end
 
           def build_profiler(settings, agent_settings, tracer)

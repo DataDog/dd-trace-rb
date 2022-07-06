@@ -15,6 +15,8 @@ module Datadog
         # reason to try to sample spans that are already kept by
         # the trace sampler.
         class Sampler
+          attr_reader :rules
+
           # Receives sampling rules to apply to individual spans.
           #
           # @param [Array<Datadog::Tracing::Sampling::Span::Rule>] rules list of rules to apply to spans

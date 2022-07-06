@@ -272,4 +272,24 @@ RSpec.describe Datadog::Tracing::Span do
       expect { pretty_print }.to output.to_stdout
     end
   end
+
+  describe '#single_sampled?' do
+    subject(:single_sampled) { span.single_sampled? }
+
+    context 'with the single span sampling sampling mechanism tag' do
+      let(:span_options) { { meta: { '_dd.span_sampling.mechanism' => 8 } } }
+
+      it { is_expected.to eq(true) }
+    end
+
+    context 'with another span sampling sampling mechanism tag' do
+      let(:span_options) { { meta: { '_dd.span_sampling.mechanism' => 999 } } }
+
+      it { is_expected.to eq(false) }
+    end
+
+    context 'without a span sampling sampling mechanism tag' do
+      it { is_expected.to eq(false) }
+    end
+  end
 end

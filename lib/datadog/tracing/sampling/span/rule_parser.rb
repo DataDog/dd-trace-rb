@@ -21,6 +21,8 @@ module Datadog
             # @return [Array<Datadog::Tracing::Sampling::Span::Rule>] a list of parsed rules
             # @return [nil] if parsing failed
             def parse_json(rules)
+              return nil unless rules
+
               begin
                 list = JSON.parse(rules)
               rescue => e
