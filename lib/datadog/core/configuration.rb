@@ -2,6 +2,7 @@
 
 require 'datadog/core/configuration/components'
 require 'datadog/core/configuration/settings'
+require 'datadog/core/telemetry/emitter'
 require 'datadog/core/logger'
 require 'datadog/core/pin'
 
