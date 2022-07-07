@@ -249,7 +249,7 @@ module Datadog
       end
 
       def replace_components!(settings, old)
-        components = Components.new(settings)
+        components = Components.new(settings, previous_components: old)
 
         old.shutdown!(components)
         components.startup!(settings)

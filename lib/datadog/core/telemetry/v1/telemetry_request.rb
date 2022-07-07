@@ -29,7 +29,7 @@ module Datadog
           # @param application [Telemetry::V1::Application] Object that contains information about the environment of the
           #   application
           # @param host [Telemetry::V1::Host] Object that holds host related information
-          # @param payload [Telemetry::V1::AppStarted] The payload of the request, type impacted by :request_type
+          # @param payload [Telemetry::V1::AppEvent] The payload of the request, type impacted by :request_type
           # @param request_type [String] Requested API function impacting the Payload type, `app-started`
           # @param runtime_id [String] V4 UUID that represents a tracer session
           # @param seq_id [Integer] Counter that should be auto incremented every time an API call is being made
