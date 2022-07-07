@@ -27,7 +27,7 @@ RSpec.describe 'Basic scenarios' do
       expect(json_result).to include(
         telemetry_enabled: true,
         telemetry_client_enabled: true,
-        telemetry_threads: contain_exactly('Datadog::Core::Telemetry::Heartbeat')
+        telemetry_worker_enabled: true
       )
     end
 

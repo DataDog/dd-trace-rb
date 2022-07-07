@@ -1,6 +1,4 @@
-# typed: true
-
-require 'datadog/core/utils/time'
+# typed: false
 
 require 'datadog/core/worker'
 require 'datadog/core/workers/polling'
