@@ -19,6 +19,8 @@ struct cpu_and_wall_time_collector_state {
   st_table *hash_map_per_thread_context;
   // Datadog::Profiling::StackRecorder instance
   VALUE recorder_instance;
+  // Track how many samples we've taken.
+  unsigned int sample_count;
 };
 
 // Tracks per-thread state
@@ -127,6 +129,7 @@ static VALUE _native_new(VALUE klass) {
    // "numtable" is an awful name, but TL;DR it's what should be used when keys are `VALUE`s.
     st_init_numtable();
   state->recorder_instance = Qnil;
+  state->sample_count = 0;
 
   return TypedData_Wrap_Struct(collectors_cpu_and_wall_time_class, &cpu_and_wall_time_collector_typed_data, state);
 }
@@ -182,8 +185,11 @@ static void sample(VALUE collector_instance) {
     );
   }
 
-  // TODO: This seems somewhat overkill and inefficient to do every time we sample; to be improved later
-  remove_context_for_dead_threads(state);
+  state->sample_count++;
+
+  // TODO: This seems somewhat overkill and inefficient to do often; right now we just doing every few samples
+  // but there's probably a better way to do this if we actually track when threads finish
+  if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
@@ -215,6 +221,7 @@ static VALUE _native_inspect(VALUE self, VALUE collector_instance) {
   // Update this when modifying state struct
   rb_str_concat(result, rb_sprintf(" hash_map_per_thread_context=%"PRIsVALUE, per_thread_context_st_table_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" recorder_instance=%"PRIsVALUE, state->recorder_instance));
+  rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
 
   return result;
 }

@@ -97,7 +97,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         t2.kill
         t2.join
 
-        cpu_and_wall_time_collector.sample
+        # Currently the clean-up gets triggered only every 100th sample, so we need to do this to trigger the
+        # clean-up. This can probably be improved (see TODO on the actual implementation)
+        100.times { cpu_and_wall_time_collector.sample }
+
         expect(cpu_and_wall_time_collector.per_thread_context.keys).to_not include(t2)
         expect(cpu_and_wall_time_collector.per_thread_context.keys).to include(Thread.main, t1, t3)
       end
