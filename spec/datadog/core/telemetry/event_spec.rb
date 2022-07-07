@@ -28,13 +28,19 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       context 'is app-started' do
         let(:request_type) { 'app-started' }
 
-        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppStarted) }
+        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
       end
 
       context 'is app-closing' do
         let(:request_type) { 'app-closing' }
 
         it { expect(telemetry_request.payload).to eq({}) }
+      end
+
+      context 'is app-integrations-change' do
+        let(:request_type) { 'app-integrations-change' }
+
+        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
       end
 
       context 'is nil' do
@@ -61,7 +67,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
       context 'is valid' do
         let(:seq_id) { 2 }
-        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppStarted) }
+        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
       end
     end
   end
