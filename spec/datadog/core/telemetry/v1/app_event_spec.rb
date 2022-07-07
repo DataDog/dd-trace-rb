@@ -1,10 +1,10 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/v1/app_started'
+require 'datadog/core/telemetry/v1/app_event'
 require 'datadog/core/telemetry/v1/dependency'
 require 'datadog/core/telemetry/v1/integration'
 
-RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
+RSpec.describe Datadog::Core::Telemetry::V1::AppEvent do
   subject(:app_started) do
     described_class.new(
       additional_payload: additional_payload,
@@ -130,12 +130,21 @@ RSpec.describe Datadog::Core::Telemetry::V1::AppStarted do
       let(:configuration) { nil }
       let(:dependencies) { nil }
       let(:integrations) { nil }
+
+      it do
+        is_expected.to eq({})
+      end
+    end
+
+    context 'when only integrations provided' do
+      let(:additional_payload) { nil }
+      let(:configuration) { nil }
+      let(:dependencies) { nil }
+      let(:integrations) { [Datadog::Core::Telemetry::V1::Integration.new(name: 'pg', enabled: true)] }
+
       it do
         is_expected.to eq(
-          additional_payload: [],
-          configuration: [],
-          dependencies: [],
-          integrations: [],
+          integrations: [{ auto_enabled: nil, compatible: nil, enabled: true, error: nil, name: 'pg', version: nil }]
         )
       end
     end

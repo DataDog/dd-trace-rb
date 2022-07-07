@@ -217,7 +217,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_telemetry' do
-    subject(:build_telemetry) { described_class.build_telemetry(settings) }
+    subject(:build_telemetry) { described_class.build_telemetry(settings, previous_components: previous_components) }
+
+    let(:previous_components) { nil }
 
     context 'given settings' do
       shared_examples_for 'new telemetry client' do
@@ -252,27 +254,38 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'when @telemetry exists with :enabled false' do
-        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
-        let(:default_options) { { enabled: settings.telemetry.enabled } }
+      context 'when telemetry has been initialized before' do
+        let(:enabled) { true }
         let(:options) { {} }
-        let(:enabled) { false }
+        let(:default_options) { { enabled: settings.telemetry.enabled } }
+        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
+        let(:previous_components) { double('previous components') }
 
         before do
           allow(telemetry_client).to receive(:disable!)
+          allow(telemetry_client).to receive(:integrations_change!)
           allow(settings.telemetry).to receive(:enabled).and_return(enabled)
+          allow(previous_components).to receive(:telemetry).and_return(telemetry_client)
         end
 
-        around do |example|
-          described_class.instance_variable_set(:@telemetry, telemetry_client)
-          example.run
-          described_class.instance_variable_set(:@telemetry, nil)
+        context 'with :enabled true' do
+          let(:enabled) { true }
+
+          it do
+            expect(telemetry_client).to receive(:integrations_change!)
+
+            build_telemetry
+          end
         end
 
-        it do
-          expect(telemetry_client).to receive(:disable!)
+        context 'with :enabled false' do
+          let(:enabled) { false }
 
-          build_telemetry
+          it do
+            expect(telemetry_client).to receive(:disable!)
+
+            build_telemetry
+          end
         end
       end
     end
@@ -1266,26 +1279,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             shutdown!
           end
-        end
-      end
-
-      context 'when telemetry is defined' do
-        include_context 'replacement' do
-          let(:runtime_metrics_worker) { components.runtime_metrics }
-          let(:health_metrics) { components.health_metrics }
-        end
-
-        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
-
-        before do
-          allow(components).to receive(:telemetry).and_return(telemetry)
-        end
-
-        it 'returns existing telemetry instance' do
-          expect(components.telemetry).to be(telemetry)
-          expect(Datadog::Core::Telemetry::Client).to_not receive(:new)
-
-          shutdown!
         end
       end
 

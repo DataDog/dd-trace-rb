@@ -102,6 +102,14 @@ module Datadog
           def get_option(option)
             Datadog.configuration.tracing[:rack].get_option(option)
           end
+
+          def patch_successful
+            MiddlewarePatcher.patch_successful || MiddlewareNamePatcher.patch_successful
+          end
+
+          def patch_error_result
+            MiddlewarePatcher.patch_error_result || MiddlewareNamePatcher.patch_error_result
+          end
         end
       end
     end
