@@ -1,6 +1,7 @@
 # typed: true
 
 require 'datadog/core/telemetry/emitter'
+require 'datadog/core/telemetry/heartbeat'
 require 'datadog/core/utils/sequence'
 
 module Datadog
@@ -18,10 +19,22 @@ module Datadog
           @enabled = enabled
           @emitter = Emitter.new(sequence: sequence)
           started!
+          @worker = Telemetry::Heartbeat.new(enabled: @enabled) do
+            heartbeat!
+          end
+          @stopped = false
+        end
+
+        def reenable!
+          unless @enabled
+            @enabled = true
+            @worker.enabled = true
+          end
         end
 
         def disable!
           @enabled = false
+          @worker.enabled = false
         end
 
         def started!
@@ -31,6 +44,12 @@ module Datadog
         end
 
         def stop!
+          return if @stopped
+
+          @worker.stop
+
+          @stopped = true
+
           return unless @enabled
 
           @emitter.request('app-closing')
@@ -40,6 +59,12 @@ module Datadog
           return unless @enabled
 
           @emitter.request('app-integrations-change')
+        end
+
+        def heartbeat!
+          return unless @enabled
+
+          @emitter.request('app-heartbeat')
         end
       end
     end
