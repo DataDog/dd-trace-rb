@@ -129,6 +129,10 @@ static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, v
 }
 #endif // USE_LEGACY_LIVING_THREADS_ST
 
+bool is_thread_alive(VALUE thread) {
+  return thread_struct_from_object(thread)->status != THREAD_KILLED;
+}
+
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.
