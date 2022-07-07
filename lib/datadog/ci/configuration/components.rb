@@ -7,7 +7,7 @@ module Datadog
     module Configuration
       # Adds CI behavior to Datadog trace components
       module Components
-        def initialize(settings)
+        def initialize(settings, previous_components: nil)
           # Activate CI mode if enabled
           activate_ci!(settings) if settings.ci.enabled
 

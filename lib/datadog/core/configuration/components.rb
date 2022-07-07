@@ -52,14 +52,18 @@ module Datadog
             Core::Workers::RuntimeMetrics.new(options)
           end
 
-          def build_telemetry(settings)
-            # Reuse a previous instance of the telemetry client if it already exists
-            if @telemetry
-              @telemetry.disable! unless settings.telemetry.enabled
-              @telemetry
-            else
-              Telemetry::Client.new(enabled: settings.telemetry.enabled)
+          def build_telemetry(settings, previous_components: nil)
+            unless previous_components && previous_components.telemetry
+              return Telemetry::Client.new(enabled: settings.telemetry.enabled)
             end
+
+            # Reuse a previous instance of the telemetry client if it already exists
+            if settings.telemetry.enabled
+              previous_components.telemetry.integrations_change!
+            else
+              previous_components.telemetry.disable!
+            end
+            previous_components.telemetry
           end
 
           def build_tracer(settings, agent_settings)
@@ -342,7 +346,7 @@ module Datadog
         # Telemetry instances persist across multiple component restarts
         attr_accessor :telemetry
 
-        def initialize(settings)
+        def initialize(settings, previous_components: nil)
           # Logger
           @logger = self.class.build_logger(settings)
 
@@ -361,7 +365,7 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings)
 
           # Telemetry
-          @telemetry = self.class.build_telemetry(settings)
+          @telemetry = self.class.build_telemetry(settings, previous_components: previous_components)
         end
 
         # Starts up components
@@ -418,9 +422,6 @@ module Datadog
 
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
-
-          # The telemetry client is stateful, thus needs to be preserved between reconfigurations
-          replacement.telemetry = @telemetry if replacement && @telemetry
 
           @telemetry.stop! if !replacement && @telemetry
         end
