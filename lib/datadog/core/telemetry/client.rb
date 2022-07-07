@@ -11,7 +11,8 @@ module Datadog
       class Client
         attr_reader \
           :enabled,
-          :emitter
+          :emitter,
+          :worker
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
@@ -44,11 +45,8 @@ module Datadog
         end
 
         def stop!
-          return if @stopped
-
           @worker.stop
-
-          @stopped = true
+          @worker.join
 
           return unless @enabled
 
@@ -60,6 +58,8 @@ module Datadog
 
           @emitter.request('app-integrations-change')
         end
+
+        private
 
         def heartbeat!
           return unless @enabled

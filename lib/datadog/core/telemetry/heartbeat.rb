@@ -23,6 +23,8 @@ module Datadog
           start
         end
 
+        private
+
         def start
           perform
         end

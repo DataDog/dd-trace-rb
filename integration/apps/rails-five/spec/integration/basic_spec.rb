@@ -23,10 +23,11 @@ RSpec.describe 'Basic scenarios' do
       )
     end
 
-    it 'should be sending telemetry app-started event' do
+    it 'should be sending telemetry events' do
       expect(json_result).to include(
         telemetry_enabled: true,
-        telemetry_client_enabled: true
+        telemetry_client_enabled: true,
+        telemetry_threads: contain_exactly('Datadog::Core::Telemetry::Heartbeat')
       )
     end
 
