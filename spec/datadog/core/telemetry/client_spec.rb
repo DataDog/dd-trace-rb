@@ -135,6 +135,21 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
 
       it { is_expected.to be(response) }
+
+      context 'when stop! has been called already' do
+        let(:stopped_client) { client.instance_variable_set(:@stopped, true) }
+
+        before do
+          allow(described_class).to receive(:new).and_return(stopped_client)
+        end
+
+        it do
+          stop!
+
+          expect(client.worker).to_not have_received(:stop)
+          expect(emitter).to_not have_received(:request).with('app-closing')
+        end
+      end
     end
   end
 

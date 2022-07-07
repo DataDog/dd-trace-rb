@@ -45,8 +45,11 @@ module Datadog
         end
 
         def stop!
+          return if @stopped
+
           @worker.stop
           @worker.join
+          @stopped = true
 
           return unless @enabled
 
