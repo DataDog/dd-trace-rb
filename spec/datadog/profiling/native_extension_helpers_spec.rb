@@ -29,7 +29,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
 
         expect(relative_path).to start_with('../')
         expect(File.exist?(full_libdatadog_path))
-          .to be(true), "Libddprof not available in expected path: #{full_libdatadog_path.inspect}"
+          .to be(true), "Libdatadog not available in expected path: #{full_libdatadog_path.inspect}"
       end
     end
 

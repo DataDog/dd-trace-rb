@@ -8,8 +8,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
   subject(:stack_recorder) { described_class.new }
 
-  # NOTE: A lot of libddprof integration behaviors are tested in the Collectors::Stack specs, since we need actual
-  # samples in order to observe what comes out of libddprof
+  # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
+  # samples in order to observe what comes out of libdatadog
 
   describe '#serialize' do
     subject(:serialize) { stack_recorder.serialize }

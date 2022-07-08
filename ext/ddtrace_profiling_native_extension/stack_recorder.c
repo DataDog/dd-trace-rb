@@ -31,9 +31,9 @@ void stack_recorder_init(VALUE profiling_module) {
 
   // Instances of the StackRecorder class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
-  // In our case, we're going to keep a libddprof profile reference inside our object.
+  // In our case, we're going to keep a libdatadog profile reference inside our object.
   //
-  // Because Ruby doesn't know how to initialize libddprof profiles, we MUST override the allocation function for objects
+  // Because Ruby doesn't know how to initialize libdatadog profiles, we MUST override the allocation function for objects
   // of this class so that we can manage this part. Not overriding or disabling the allocation function is a common
   // gotcha for "TypedData" objects that can very easily lead to VM crashes, see for instance
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
@@ -105,7 +105,7 @@ static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
   ddprof_ffi_Timespec ddprof_start = serialized_profile.ok.start;
   ddprof_ffi_Timespec ddprof_finish = serialized_profile.ok.end;
 
-  // Clean up libddprof object to avoid leaking in case ruby_time_from raises an exception
+  // Clean up libdatadog object to avoid leaking in case ruby_time_from raises an exception
   ddprof_ffi_SerializeResult_drop(serialized_profile);
 
   VALUE start = ruby_time_from(ddprof_start);

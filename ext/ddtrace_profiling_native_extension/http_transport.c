@@ -166,7 +166,7 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
       VALUE err_details = ruby_string_from_vec_u8(push_result.err);
       ddprof_ffi_PushTagResult_drop(push_result);
 
-      // libddprof validates tags and may catch invalid tags that ddtrace didn't actually catch.
+      // libdatadog validates tags and may catch invalid tags that ddtrace didn't actually catch.
       // We warn users about such tags, and then just ignore them.
       safely_log_failure_to_process_tag(tags, err_details);
     } else {
@@ -193,7 +193,7 @@ static void safely_log_failure_to_process_tag(ddprof_ffi_Vec_tag tags, VALUE err
   }
 }
 
-// Note: This function handles a bunch of libddprof dynamically-allocated objects, so it MUST not use any Ruby APIs
+// Note: This function handles a bunch of libdatadog dynamically-allocated objects, so it MUST not use any Ruby APIs
 // which can raise exceptions, otherwise the objects will be leaked.
 static VALUE perform_export(
   ddprof_ffi_NewProfileExporterV3Result valid_exporter_result, // Must be called with a valid exporter result
@@ -253,7 +253,7 @@ static VALUE perform_export(
   VALUE ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.err);
 
   ddprof_ffi_SendResult_drop(args.result);
-  // The request itself does not need to be freed as libddprof takes care of it as part of sending.
+  // The request itself does not need to be freed as libdatadog takes care of it as part of sending.
 
   return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }

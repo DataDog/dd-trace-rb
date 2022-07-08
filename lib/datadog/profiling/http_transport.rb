@@ -28,7 +28,7 @@ module Datadog
           upload_timeout_milliseconds: @upload_timeout_milliseconds,
 
           # why "timespec"?
-          # libddprof represents time using POSIX's struct timespec, see
+          # libdatadog represents time using POSIX's struct timespec, see
           # https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
           # aka it represents the seconds part separate from the nanoseconds part
           start_timespec_seconds: flush.start.tv_sec,
