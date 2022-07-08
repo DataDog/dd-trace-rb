@@ -137,8 +137,8 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
       // **IMPORTANT**: Be very careful when calling any `rb_profile_frame_...` API with a non-Ruby frame, as legacy
       // Rubies may assume that what's in a buffer will lead to a Ruby frame.
       //
-      // In particular for Ruby 2.2 and below the buffer contains a Ruby string (see the notes on our custom
-      // rb_profile_frames for Ruby 2.2 and below) and CALLING **ANY** OF THOSE APIs ON IT WILL CAUSE INSTANT VM CRASHES
+      // In particular for Ruby 2.2 the buffer contains a Ruby string (see the notes on our custom
+      // rb_profile_frames for Ruby 2.2) and CALLING **ANY** OF THOSE APIs ON IT WILL CAUSE INSTANT VM CRASHES
 
 #ifndef USE_LEGACY_RB_PROFILE_FRAMES // Modern Rubies
       name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);

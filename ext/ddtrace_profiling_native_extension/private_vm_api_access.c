@@ -68,7 +68,6 @@ ptrdiff_t stack_depth_for(VALUE thread) {
   #define ccan_list_for_each list_for_each
 #endif
 
-#ifndef USE_LEGACY_LIVING_THREADS_ST // Ruby > 2.1
 // Tries to match rb_thread_list() but that method isn't accessible to extensions
 VALUE ddtrace_thread_list(void) {
   VALUE result = rb_ary_new();
@@ -103,31 +102,6 @@ VALUE ddtrace_thread_list(void) {
 
   return result;
 }
-#else // USE_LEGACY_LIVING_THREADS_ST
-static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, void *result_object);
-
-// Alternative ddtrace_thread_list implementation for Ruby 2.1. In this Ruby version, living threads were stored in a
-// hashmap (st) instead of a list.
-VALUE ddtrace_thread_list() {
-  VALUE result = rb_ary_new();
-  st_foreach(thread_struct_from_object(rb_thread_current())->vm->living_threads, ddtrace_thread_list_each, result);
-  return result;
-}
-
-static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, void *result_object) {
-  VALUE result = (VALUE) result_object;
-  rb_thread_t *thread = thread_struct_from_object((VALUE) thread_object);
-  switch (thread->status) {
-    case THREAD_RUNNABLE:
-    case THREAD_STOPPED:
-    case THREAD_STOPPED_FOREVER:
-      rb_ary_push(result, thread->self);
-    default:
-      break;
-  }
-  return ST_CONTINUE;
-}
-#endif // USE_LEGACY_LIVING_THREADS_ST
 
 bool is_thread_alive(VALUE thread) {
   return thread_struct_from_object(thread)->status != THREAD_KILLED;
@@ -620,11 +594,11 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Check thread status and do not sample if thread has been killed.
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
-// I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
+// I opted not to try to extend support to Ruby 2.2 using the same custom function, and instead I started
 // anew from the Ruby 2.2 version of the function, applying some of the same fixes that we have for the modern version.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
 {
-    // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2 AND BELOW;
+    // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2;
     // SEE ABOVE FOR THE FUNCTION THAT GETS USED FOR MODERN RUBIES**
 
     int i;

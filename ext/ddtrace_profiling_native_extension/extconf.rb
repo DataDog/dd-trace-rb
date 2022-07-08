@@ -105,7 +105,7 @@ if RUBY_PLATFORM.include?('linux')
   # have_library 'pthread'
   # have_func 'pthread_getcpuclockid'
   # ```
-  # but it broke the build on Windows and on older Ruby versions (2.1 and 2.2)
+  # but it broke the build on Windows and on older Ruby versions (2.2)
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
@@ -134,9 +134,6 @@ if RUBY_VERSION < '2.3'
   # ...the VM changed enough that we need an alternative legacy rb_profile_frames
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
 end
-
-# In Ruby 2.1, living_threads were stored in a hashmap (st)
-$defs << '-DUSE_LEGACY_LIVING_THREADS_ST' if RUBY_VERSION < '2.2'
 
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
@@ -194,13 +191,6 @@ else
   # This gem ships source code copies of these VM headers for the different Ruby VM versions;
   # see https://github.com/ruby-debug/debase-ruby_core_source for details
 
-  thread_native_for_ruby_2_1 = proc { true }
-  if RUBY_VERSION < '2.2'
-    # This header became public in Ruby 2.2, but we need to pull it from the private headers folder for 2.1
-    thread_native_for_ruby_2_1 = proc { have_header('thread_native.h') }
-    $defs << '-DRUBY_2_1_WORKAROUND'
-  end
-
   create_header
 
   require 'debase/ruby_core_source'
@@ -208,7 +198,7 @@ else
 
   Debase::RubyCoreSource
     .create_makefile_with_core(
-      proc { have_header('vm_core.h') && have_header('iseq.h') && thread_native_for_ruby_2_1.call },
+      proc { have_header('vm_core.h') && have_header('iseq.h') },
       EXTENSION_NAME,
     )
 end
