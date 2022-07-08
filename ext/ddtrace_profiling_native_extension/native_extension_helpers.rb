@@ -150,7 +150,7 @@ module Datadog
         ].freeze
 
         UPGRADE_RUBY = [
-          "Upgrade to a modern Ruby to enable profiling for your app."
+          'Upgrade to a modern Ruby to enable profiling for your app.'
         ].freeze
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
