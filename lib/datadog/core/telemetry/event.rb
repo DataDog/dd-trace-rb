@@ -44,7 +44,7 @@ module Datadog
           case request_type
           when 'app-started'
             app_started
-          when 'app-closing'
+          when 'app-closing', 'app-heartbeat'
             {}
           when 'app-integrations-change'
             app_integrations_change

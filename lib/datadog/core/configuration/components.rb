@@ -59,6 +59,7 @@ module Datadog
 
             # Reuse a previous instance of the telemetry client if it already exists
             if settings.telemetry.enabled
+              previous_components.telemetry.reenable!
               previous_components.telemetry.integrations_change!
             else
               previous_components.telemetry.disable!
