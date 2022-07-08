@@ -34,14 +34,18 @@ module Datadog
             end
 
             def post(env)
-              post = ::Net::HTTP::Post.new(env.path, env.headers)
-              post.body = env.body
+              begin
+                post = ::Net::HTTP::Post.new(env.path, env.headers)
+                post.body = env.body
 
-              http_response = open do |http|
-                http.request(post)
+                http_response = open do |http|
+                  http.request(post)
+                end
+
+                Response.new(http_response)
+              rescue StandardError => e
+                Transport::InternalErrorResponse.new(e)
               end
-
-              Response.new(http_response)
             end
 
             # Data structure for an HTTP Response

@@ -30,7 +30,7 @@ module Datadog
                                                                             seq_id: @sequence.next).to_h
             @http_transport.request(request_type: request_type, payload: request.to_json)
           rescue StandardError => e
-            Datadog.logger.info("Unable to send telemetry request for event `#{request_type}`: #{e}")
+            Datadog.logger.debug("Unable to send telemetry request for event `#{request_type}`: #{e}")
           end
         end
       end
