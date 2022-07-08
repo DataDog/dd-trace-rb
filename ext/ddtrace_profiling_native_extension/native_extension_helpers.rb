@@ -126,6 +126,14 @@ module Datadog
           [*reason, *suggested].join(' ')
         end
 
+        # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
+        # this helper to decide if we can show more specific error message vs a generic "something went wrong".
+        def self.pkg_config_missing?(command: $PKGCONFIG) # rubocop:disable Style/GlobalVars
+          pkg_config_available = command && xsystem("#{command} --version")
+
+          pkg_config_available != true
+        end
+
         CONTACT_SUPPORT = [
           'For help solving this issue, please contact Datadog support at',
           '<https://docs.datadoghq.com/help/>.',
@@ -150,6 +158,17 @@ module Datadog
         COMPILATION_BROKEN = explain_issue(
           'compilation of the Ruby VM just-in-time header failed.',
           'Your C compiler or Ruby VM just-in-time compiler seem to be broken.',
+          suggested: CONTACT_SUPPORT,
+        )
+
+        # Validation for this check is done in extconf.rb because it relies on mkmf
+        PKG_CONFIG_IS_MISSING = explain_issue(
+          #+-----------------------------------------------------------------------------+
+          'the `pkg-config` system tool is missing.',
+          'This issue can usually be fixed by installing:',
+          '1. the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
+          '2. the `pkgconf` package on Arch and Alpine-based Linux;',
+          '3. the `pkgconf-pkg-config` package on Fedora/Red Hat-based Linux.',
           suggested: CONTACT_SUPPORT,
         )
 
