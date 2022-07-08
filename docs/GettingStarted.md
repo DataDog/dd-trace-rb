@@ -124,7 +124,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.4     | Full                                 | Latest              |
 |       |                            | 2.3     | Full                                 | Latest              |
 |       |                            | 2.2     | Full                                 | Latest              |
-|       |                            | 2.1     | Full                                 | Latest              |
+|       |                            | 2.1     | Full (except for Profiling)          | Latest              |
 |       |                            | 2.0     | EOL since June 7th, 2021             | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
@@ -143,7 +143,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type        | Documentation                                   | Version               | Gem version support |
 | ----------- | ----------------------------------------------- | --------------------- | ------------------- |
-| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | >= 0.16.0           |
+| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+                | >= 0.16.0           |
 
 *Full* support indicates all tracer features are available.
 
