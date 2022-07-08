@@ -1,6 +1,7 @@
 # typed: true
 
 require 'datadog/core/telemetry/emitter'
+require 'datadog/core/telemetry/heartbeat'
 require 'datadog/core/utils/sequence'
 
 module Datadog
@@ -10,7 +11,8 @@ module Datadog
       class Client
         attr_reader \
           :enabled,
-          :emitter
+          :emitter,
+          :worker
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
@@ -18,10 +20,22 @@ module Datadog
           @enabled = enabled
           @emitter = Emitter.new(sequence: sequence)
           started!
+          @worker = Telemetry::Heartbeat.new(enabled: @enabled) do
+            heartbeat!
+          end
+          @stopped = false
+        end
+
+        def reenable!
+          unless @enabled
+            @enabled = true
+            @worker.enabled = true
+          end
         end
 
         def disable!
           @enabled = false
+          @worker.enabled = false
         end
 
         def started!
@@ -31,6 +45,12 @@ module Datadog
         end
 
         def stop!
+          return if @stopped
+
+          @worker.stop
+          @worker.join
+          @stopped = true
+
           return unless @enabled
 
           @emitter.request('app-closing')
@@ -40,6 +60,14 @@ module Datadog
           return unless @enabled
 
           @emitter.request('app-integrations-change')
+        end
+
+        private
+
+        def heartbeat!
+          return unless @enabled
+
+          @emitter.request('app-heartbeat')
         end
       end
     end
