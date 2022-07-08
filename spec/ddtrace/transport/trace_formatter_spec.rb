@@ -113,6 +113,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     context 'when initialized with a TraceSegment' do
       shared_examples 'root span with no tags' do
         it do
+          format!
           expect(root_span).to have_metadata(
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE => nil,
             Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => nil,
@@ -130,6 +131,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
 
       shared_examples 'root span with tags' do
         it do
+          format!
           expect(root_span).to have_metadata(
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_AGENT_RATE => agent_sample_rate,
             Datadog::Tracing::Metadata::Ext::NET::TAG_HOSTNAME => hostname,
@@ -146,22 +148,32 @@ RSpec.describe Datadog::Transport::TraceFormatter do
 
         context 'but peer.service is set' do
           before do
+            allow(root_span).to receive(:get_tag).and_call_original
             allow(root_span).to receive(:get_tag)
               .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)
               .and_return('a-peer-service')
           end
 
-          it { expect(root_span).to have_metadata(Datadog::Core::Runtime::Ext::TAG_LANG => nil) }
+          it 'does not set language tag' do
+            format!
+            expect(root_span).to have_metadata(Datadog::Core::Runtime::Ext::TAG_LANG => nil)
+          end
         end
       end
 
       shared_examples 'root span with generic tags' do
         context 'metrics' do
-          it { expect(root_span.metrics).to include({ 'baz' => 42 }) }
+          it 'sets root span tags from trace tags' do
+            format!
+            expect(root_span.metrics).to include({ 'baz' => 42 })
+          end
         end
 
         context 'meta' do
-          it { expect(root_span.meta).to include({ 'foo' => 'bar' }) }
+          it 'sets root span tags from trace tags' do
+            format!
+            expect(root_span.meta).to include({ 'foo' => 'bar' })
+          end
         end
       end
 
@@ -178,11 +190,12 @@ RSpec.describe Datadog::Transport::TraceFormatter do
       context 'with no root span' do
         include_context 'no root span'
 
-        before { format! }
-
         context 'when trace has no metadata set' do
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with no tags'
         end
@@ -191,7 +204,10 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           include_context 'trace metadata'
 
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with tags'
         end
@@ -200,7 +216,10 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           include_context 'trace metadata with tags'
 
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with tags'
           it_behaves_like 'root span without generic tags'
@@ -210,11 +229,12 @@ RSpec.describe Datadog::Transport::TraceFormatter do
       context 'with missing root span' do
         include_context 'missing root span'
 
-        before { format! }
-
         context 'when trace has no metadata set' do
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with no tags'
         end
@@ -223,7 +243,10 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           include_context 'trace metadata'
 
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with tags'
         end
@@ -232,7 +255,10 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           include_context 'trace metadata with tags'
 
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with tags'
           it_behaves_like 'root span without generic tags'
@@ -242,11 +268,12 @@ RSpec.describe Datadog::Transport::TraceFormatter do
       context 'with a root span' do
         include_context 'available root span'
 
-        before { format! }
-
         context 'when trace has no metadata set' do
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq('my.job') }
+
+          it 'does not override the root span resource' do
+            expect { format! }.to_not(change { root_span.resource })
+          end
 
           it_behaves_like 'root span with no tags'
         end
@@ -255,7 +282,11 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           include_context 'trace metadata'
 
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq(resource) }
+
+          it 'sets the root span resource from trace resource' do
+            format!
+            expect(root_span.resource).to eq(resource)
+          end
 
           it_behaves_like 'root span with tags'
         end
@@ -264,7 +295,11 @@ RSpec.describe Datadog::Transport::TraceFormatter do
           include_context 'trace metadata with tags'
 
           it { is_expected.to be(trace) }
-          it { expect(root_span.resource).to eq(resource) }
+
+          it 'sets the root span resource from trace resource' do
+            format!
+            expect(root_span.resource).to eq(resource)
+          end
 
           it_behaves_like 'root span with tags'
           it_behaves_like 'root span with generic tags'
