@@ -86,6 +86,7 @@ module Datadog
             on_macos? ||
             on_unknown_os? ||
             not_on_amd64_or_arm64? ||
+            on_ruby_2_1? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_usable?
         end
@@ -146,6 +147,10 @@ module Datadog
 
         GET_IN_TOUCH = [
           "Get in touch with us if you're interested in profiling your app!"
+        ].freeze
+
+        UPGRADE_RUBY = [
+          "Upgrade to a modern Ruby to enable profiling for your app."
         ].freeze
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
@@ -240,6 +245,15 @@ module Datadog
           )
 
           architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64')
+        end
+
+        private_class_method def self.on_ruby_2_1?
+          ruby_version_not_supported = explain_issue(
+            'your Ruby version (2.1) is too old to be supported.',
+            suggested: UPGRADE_RUBY,
+          )
+
+          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.')
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip

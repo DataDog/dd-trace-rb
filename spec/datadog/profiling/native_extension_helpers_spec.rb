@@ -118,57 +118,67 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           it { is_expected.to include 'architecture is not supported' }
         end
 
-        shared_examples 'mjit header validation' do
-          shared_examples 'libdatadog usable' do
-            context 'when libdatadog DOES NOT HAVE binaries for the current platform' do
-              before do
-                expect(Libdatadog).to receive(:pkgconfig_folder).and_return(nil)
-                expect(Libdatadog).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+        shared_examples 'supported ruby validation' do
+          context 'when not on Ruby 2.1' do
+            before { stub_const('RUBY_VERSION', '2.2.0') }
+
+            shared_examples 'libdatadog usable' do
+              context 'when libdatadog DOES NOT HAVE binaries for the current platform' do
+                before do
+                  expect(Libdatadog).to receive(:pkgconfig_folder).and_return(nil)
+                  expect(Libdatadog).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+                end
+
+                it { is_expected.to include 'platform variant' }
               end
 
-              it { is_expected.to include 'platform variant' }
+              context 'when libdatadog HAS BINARIES for the current platform' do
+                before { expect(Libdatadog).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
+
+                it('marks the native extension as supported') { is_expected.to be nil }
+              end
             end
 
-            context 'when libdatadog HAS BINARIES for the current platform' do
-              before { expect(Libdatadog).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
-
-              it('marks the native extension as supported') { is_expected.to be nil }
-            end
-          end
-
-          context 'on a Ruby version where we CAN NOT use the MJIT header' do
-            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
-
-            include_examples 'libdatadog usable'
-          end
-
-          context 'on a Ruby version where we CAN use the MJIT header' do
-            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
-
-            context 'but DOES NOT have MJIT support' do
-              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
-
-              it { is_expected.to include 'without JIT' }
-            end
-
-            context 'and DOES have MJIT support' do
-              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
+            context 'on a Ruby version where we CAN NOT use the MJIT header' do
+              before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
 
               include_examples 'libdatadog usable'
             end
+
+            context 'on a Ruby version where we CAN use the MJIT header' do
+              before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
+
+              context 'but DOES NOT have MJIT support' do
+                before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
+
+                it { is_expected.to include 'without JIT' }
+              end
+
+              context 'and DOES have MJIT support' do
+                before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
+
+                include_examples 'libdatadog usable'
+              end
+            end
+          end
+
+          context 'when on Ruby 2.1' do
+            before { stub_const('RUBY_VERSION', '2.1.10') }
+
+            it { is_expected.to include '(2.1) is too old' }
           end
         end
 
         context 'when on amd64 (x86-64) linux' do
           before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
 
-          include_examples 'mjit header validation'
+          include_examples 'supported ruby validation'
         end
 
         context 'when on arm64 (aarch64) linux' do
           before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
 
-          include_examples 'mjit header validation'
+          include_examples 'supported ruby validation'
         end
 
         context 'when macOS testing override is enabled' do
@@ -176,7 +186,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
 
           before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
 
-          include_examples 'mjit header validation'
+          include_examples 'supported ruby validation'
         end
       end
     end
