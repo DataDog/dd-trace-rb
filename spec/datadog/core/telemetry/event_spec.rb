@@ -37,6 +37,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         it { expect(telemetry_request.payload).to eq({}) }
       end
 
+      context 'is app-heartbeat' do
+        let(:request_type) { 'app-heartbeat' }
+
+        it { expect(telemetry_request.payload).to eq({}) }
+      end
+
       context 'is app-integrations-change' do
         let(:request_type) { 'app-integrations-change' }
 
