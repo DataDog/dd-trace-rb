@@ -22,6 +22,9 @@ module Datadog
 
         TAG_KIND = 'span.kind'
 
+        # Set this tag to `1.0` if the span is a Service Entry span.
+        TAG_TOP_LEVEL = '_dd.top_level'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
