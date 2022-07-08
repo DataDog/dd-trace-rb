@@ -51,6 +51,32 @@ RSpec.describe Datadog::Tracing::Span do
         end
       end
     end
+
+    context 'service_entry' do
+      context 'with nil' do
+        let(:span_options) { { service_entry: nil } }
+
+        it 'does not tag as top-level' do
+          expect(span).to_not have_metadata('_dd.top_level')
+        end
+      end
+
+      context 'with false' do
+        let(:span_options) { { service_entry: false } }
+
+        it 'does not tag as top-level' do
+          expect(span).to_not have_metadata('_dd.top_level')
+        end
+      end
+
+      context 'with true' do
+        let(:span_options) { { service_entry: true } }
+
+        it 'tags as top-level' do
+          expect(span).to have_metadata('_dd.top_level' => 1.0)
+        end
+      end
+    end
   end
 
   context 'ids' do

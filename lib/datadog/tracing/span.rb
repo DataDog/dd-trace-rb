@@ -110,6 +110,9 @@ module Datadog
         @duration = duration
 
         @service_entry = service_entry
+
+        # Mark with the service entry span metric, if applicable
+        set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
       end
 
       # Return whether the duration is started or not
