@@ -264,6 +264,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           allow(telemetry_client).to receive(:disable!)
+          allow(telemetry_client).to receive(:reenable!)
           allow(telemetry_client).to receive(:integrations_change!)
           allow(settings.telemetry).to receive(:enabled).and_return(enabled)
           allow(previous_components).to receive(:telemetry).and_return(telemetry_client)
@@ -273,6 +274,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           let(:enabled) { true }
 
           it do
+            expect(telemetry_client).to receive(:reenable!)
             expect(telemetry_client).to receive(:integrations_change!)
 
             build_telemetry
