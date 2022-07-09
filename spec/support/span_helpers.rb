@@ -89,11 +89,36 @@ module SpanHelpers
     end
   end
 
-  RSpec::Matchers.define :have_metadata do |**tags|
+  # @param tags [Hash] key value pairs to tags/metrics to assert on
+  RSpec::Matchers.define :have_metadata do |tags|
     match do |actual|
       tags.all? do |key, value|
-        actual.get_tag(key) == value
+        values_match? value, actual.get_tag(key)
       end
+    end
+
+    match_when_negated do |actual|
+      if tags.respond_to?(:any?)
+        tags.any? do |key, value|
+          !values_match? value, actual.get_tag(key)
+        end
+      else
+        # Allows for `expect(span).to_not have_metadata('my.tag')` syntax
+        values_match? nil, actual.get_tag(tags)
+      end
+    end
+
+    def description_of(actual)
+      "Span with metadata #{actual.send(:meta).merge(actual.send(:metrics))}"
+    end
+  end
+
+  RSpec::Matchers.define :a_span_with do |expected|
+    match do |actual|
+      actual.instance_of?(Datadog::Tracing::Span) &&
+        expected.all? do |key, value|
+          actual.__send__(key) == value
+        end
     end
   end
 end

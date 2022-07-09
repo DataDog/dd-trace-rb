@@ -66,6 +66,7 @@ module Datadog
       # * +type+: the type of the span (such as +http+, +db+ and so on)
       # * +parent_id+: the identifier of the parent span
       # * +trace_id+: the identifier of the root span for this trace
+      # * +service_entry+: whether it is a service entry span.
       # TODO: Remove span_type
       def initialize(
         name,
@@ -81,7 +82,8 @@ module Datadog
         start_time: nil,
         status: 0,
         type: span_type,
-        trace_id: nil
+        trace_id: nil,
+        service_entry: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -106,6 +108,11 @@ module Datadog
         # duration_start and duration_end track monotonic clock, and may remain nil in cases where it
         # is known that we have to use wall clock to measure duration.
         @duration = duration
+
+        @service_entry = service_entry
+
+        # Mark with the service entry span metric, if applicable
+        set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
       end
 
       # Return whether the duration is started or not
@@ -209,6 +216,16 @@ module Datadog
       # @return [Integer] in nanoseconds since Epoch
       def duration_nano
         (duration * 1e9).to_i
+      end
+
+      # https://docs.datadoghq.com/tracing/visualization/#service-entry-span
+      # A span is a service entry span when it is the entrypoint method for a request to a service.
+      # You can visualize this within Datadog APM when the color of the immediate parent on a flame graph is a different
+      # color. Services are also listed on the right when viewing a flame graph.
+      #
+      # @return [Boolean] `true` if the span is a serivce entry span
+      def service_entry?
+        @service_entry == true
       end
     end
   end

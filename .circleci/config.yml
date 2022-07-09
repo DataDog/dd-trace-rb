@@ -7,6 +7,8 @@ job_defaults: &job_defaults
   # TODO: Changing this requires rebuilding all docker images.
   working_directory: /app
   shell: /bin/bash --login
+  environment:
+    - SPEC_OPTS: --format documentation # Ensures it's possible to debug hung tests in CI
 
 test_containers:
   - &job_parameters

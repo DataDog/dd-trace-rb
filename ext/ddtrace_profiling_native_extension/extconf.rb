@@ -143,7 +143,14 @@ ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 
 unless pkg_config('ddprof_ffi_with_rpath')
-  skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF)
+  skip_building_extension!(
+    if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
+      Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING
+    else
+      # Less specific error message
+      Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF
+    end
+  )
 end
 
 # See comments on the helper method being used for why we need to additionally set this

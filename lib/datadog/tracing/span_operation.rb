@@ -468,7 +468,8 @@ module Datadog
           start_time: @start_time,
           status: @status,
           type: @type,
-          trace_id: @trace_id
+          trace_id: @trace_id,
+          service_entry: parent.nil? || (service && parent.service != service)
         )
       end
 
