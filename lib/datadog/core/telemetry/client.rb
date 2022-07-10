@@ -46,13 +46,11 @@ module Datadog
 
           res = @emitter.request('app-started')
 
-          # Telemetry is only supported by agent versions 7.34 and up
-          if res.not_found?
+          if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
             @enabled = false
             @unsupported = true # Prevent telemetry from getting re-enabled
           end
-
           res
         end
 

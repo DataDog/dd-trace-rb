@@ -141,6 +141,15 @@ RSpec.describe Datadog::Core::Telemetry::Client do
         is_expected.to be(response)
       end
     end
+
+    context 'when internal error returned by emitter' do
+      let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
+
+      it do
+        started!
+        is_expected.to be(response)
+      end
+    end
   end
 
   describe '#stop!' do
