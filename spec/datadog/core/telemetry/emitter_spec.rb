@@ -44,7 +44,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
     before do
       logger = double(Datadog::Core::Logger)
-      allow(logger).to receive(:info)
+      allow(logger).to receive(:debug)
       allow(Datadog).to receive(:logger).and_return(logger)
     end
 
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
         let(:request_type) { 'app' }
         it do
           request
-          expect(Datadog.logger).to have_received(:info) do |message|
+          expect(Datadog.logger).to have_received(:debug) do |message|
             expect(message).to include('Unable to send telemetry request')
           end
         end
@@ -67,7 +67,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
           it 'no logs are produced' do
             is_expected.to eq(response)
-            expect(Datadog.logger).to_not have_received(:info)
+            expect(Datadog.logger).to_not have_received(:debug)
           end
 
           it 'seq_id is incremented' do
