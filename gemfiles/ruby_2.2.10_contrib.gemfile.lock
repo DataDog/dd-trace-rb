@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.1.0)
+    ddtrace (1.2.0)
       debase-ruby_core_source (= 0.10.16)
       libddprof (~> 0.6.0.1.0)
       libddwaf (~> 1.3.0.2.0)
@@ -1268,8 +1268,8 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.0)
-    libddprof (0.6.0.1.0-x86_64-linux)
-    libddwaf (1.3.0.2.0-x86_64-linux)
+    libddprof (0.6.0.1.0)
+    libddwaf (1.3.0.2.0)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)
@@ -1471,7 +1471,7 @@ DEPENDENCIES
   appraisal (~> 2.2)
   aws-sdk
   benchmark-ips (~> 2.8)
-  benchmark-memory (~> 0.1)
+  benchmark-memory (< 0.2)
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
@@ -1491,7 +1491,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
-  json-schema
+  json-schema (< 3)
   lograge (~> 0.11)
   makara (< 0.5.0)
   memory_profiler (~> 0.9)
