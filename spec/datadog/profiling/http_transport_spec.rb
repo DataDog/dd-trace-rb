@@ -12,8 +12,8 @@ require 'socket'
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
 #
-# We also have "integration" specs, where we exercise the Ruby code together with the C code and libddprof to ensure
-# that things come out of libddprof as we expected.
+# We also have "integration" specs, where we exercise the Ruby code together with the C code and libdatadog to ensure
+# that things come out of libdatadog as we expected.
 RSpec.describe Datadog::Profiling::HttpTransport do
   before { skip_if_profiling_not_supported(self) }
 

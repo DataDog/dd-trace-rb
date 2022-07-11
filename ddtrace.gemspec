@@ -64,8 +64,8 @@ Gem::Specification.new do |spec|
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.3.0.2.0'
 
-  # Used by profiling
-  spec.add_dependency 'libddprof', '~> 0.6.0.1.0'
+  # Used by profiling (and possibly others in the future)
+  spec.add_dependency 'libdatadog', '~> 0.7.0.1.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end

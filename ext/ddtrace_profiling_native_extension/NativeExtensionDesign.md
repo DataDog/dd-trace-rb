@@ -2,7 +2,7 @@
 
 The profiling native extension is used to:
 1. Implement features which are expensive (in terms of resources) or otherwise impossible to implement using Ruby code.
-2. Bridge between Ruby-specific profiling features and [`libddprof`](https://github.com/DataDog/libddprof), a Rust-based
+2. Bridge between Ruby-specific profiling features and [`libdatadog`](https://github.com/DataDog/libdatadog), a Rust-based
 library with common profiling functionality.
 
 Due to (1), this extension is quite coupled with MRI Ruby ("C Ruby") internals, and is not intended to support other rubies such as

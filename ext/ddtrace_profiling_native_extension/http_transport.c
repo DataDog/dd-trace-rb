@@ -166,7 +166,7 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
       VALUE err_details = ruby_string_from_vec_u8(push_result.err);
       ddprof_ffi_PushTagResult_drop(push_result);
 
-      // libddprof validates tags and may catch invalid tags that ddtrace didn't actually catch.
+      // libdatadog validates tags and may catch invalid tags that ddtrace didn't actually catch.
       // We warn users about such tags, and then just ignore them.
       safely_log_failure_to_process_tag(tags, err_details);
     } else {
@@ -193,7 +193,7 @@ static void safely_log_failure_to_process_tag(ddprof_ffi_Vec_tag tags, VALUE err
   }
 }
 
-// Note: This function handles a bunch of libddprof dynamically-allocated objects, so it MUST not use any Ruby APIs
+// Note: This function handles a bunch of libdatadog dynamically-allocated objects, so it MUST not use any Ruby APIs
 // which can raise exceptions, otherwise the objects will be leaked.
 static VALUE perform_export(
   ddprof_ffi_NewProfileExporterV3Result valid_exporter_result, // Must be called with a valid exporter result
@@ -229,39 +229,31 @@ static VALUE perform_export(
 
   while (!args.send_ran && !pending_exception) {
     rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
+
+    // To make sure we don't leak memory, we never check for pending exceptions if send ran
     if (!args.send_ran) pending_exception = check_if_pending_exception();
   }
 
-  VALUE ruby_status;
-  VALUE ruby_result;
+  // Cleanup exporter and token, no longer needed
+  ddprof_ffi_CancellationToken_drop(cancel_token);
+  ddprof_ffi_NewProfileExporterV3Result_drop(valid_exporter_result);
 
   if (pending_exception) {
-    // We're in a weird situation that libddprof doesn't quite support. The ddprof_ffi_Request payload is dynamically
-    // allocated and needs to be freed, but libddprof doesn't have an API for dropping a request.
-    //
-    // There's plans to add a `ddprof_ffi_Request_drop`
-    // (https://github.com/DataDog/dd-trace-rb/pull/1923#discussion_r882096221); once that happens, we can use it here.
-    //
-    // As a workaround, we get libddprof to clean up the request by asking for the send to be cancelled, and then calling
-    // it anyway. This will make libddprof free the request and return immediately which gets us the expected effect.
-    interrupt_exporter_call((void *) cancel_token);
-    call_exporter_without_gvl((void *) &args);
+    // If we got here send did not run, so we need to explicitly dispose of the request
+    ddprof_ffi_Request_drop(request);
+
+    // Let Ruby propagate the exception. This will not return.
+    rb_jump_tag(pending_exception);
   }
 
   ddprof_ffi_SendResult result = args.result;
   bool success = result.tag == DDPROF_FFI_SEND_RESULT_HTTP_RESPONSE;
 
-  ruby_status = success ? ok_symbol : error_symbol;
-  ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.failure);
+  VALUE ruby_status = success ? ok_symbol : error_symbol;
+  VALUE ruby_result = success ? UINT2NUM(result.http_response.code) : ruby_string_from_vec_u8(result.err);
 
-  // Clean up all dynamically-allocated things
   ddprof_ffi_SendResult_drop(args.result);
-  ddprof_ffi_CancellationToken_drop(cancel_token);
-  ddprof_ffi_NewProfileExporterV3Result_drop(valid_exporter_result);
-  // The request itself does not need to be freed as libddprof takes care of it.
-
-  // We've cleaned up everything, so if there's an exception to be raised, let's have it
-  if (pending_exception) rb_jump_tag(pending_exception);
+  // The request itself does not need to be freed as libdatadog takes care of it as part of sending.
 
   return rb_ary_new_from_args(2, ruby_status, ruby_result);
 }

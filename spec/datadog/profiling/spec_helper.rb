@@ -35,7 +35,7 @@ module ProfileHelpers
     testcase.skip('Profiling is not supported on JRuby') if PlatformHelpers.jruby?
     testcase.skip('Profiling is not supported on TruffleRuby') if PlatformHelpers.truffleruby?
 
-    # Profiling is not officially supported on macOS due to missing libddprof binaries,
+    # Profiling is not officially supported on macOS due to missing libdatadog binaries,
     # but it's still useful to allow it to be enabled for development.
     if PlatformHelpers.mac? && ENV['DD_PROFILING_MACOS_TESTING'] != 'true'
       testcase.skip(
