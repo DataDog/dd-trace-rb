@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.1.0)
+    ddtrace (1.2.0)
       debase-ruby_core_source (= 0.10.16)
       libddprof (~> 0.6.0.1.0)
       libddwaf (~> 1.3.0.2.0)
@@ -1464,7 +1464,7 @@ GEM
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
-    msgpack (1.5.1)
+    msgpack (1.5.3)
     multi_json (1.15.0)
     multi_test (0.1.2)
     multipart-post (2.1.1)
@@ -1672,7 +1672,7 @@ DEPENDENCIES
   appraisal (~> 2.2)
   aws-sdk
   benchmark-ips (~> 2.8)
-  benchmark-memory (~> 0.1)
+  benchmark-memory (< 0.2)
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
@@ -1692,7 +1692,7 @@ DEPENDENCIES
   hiredis
   http
   httpclient
-  json-schema
+  json-schema (< 3)
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
   mongo (>= 2.8.0, < 2.15.0)
