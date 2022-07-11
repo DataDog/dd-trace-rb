@@ -8,10 +8,12 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   let(:sequence) { Datadog::Core::Utils::Sequence.new(1) }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+  let(:not_found) { false }
 
   before do
     allow(Datadog::Core::Telemetry::Emitter).to receive(:new).and_return(emitter)
     allow(emitter).to receive(:request).and_return(response)
+    allow(response).to receive(:not_found?).and_return(not_found)
   end
 
   describe '#initialize' do
@@ -41,6 +43,24 @@ RSpec.describe Datadog::Core::Telemetry::Client do
         client
         expect(emitter).to have_received(:request).with('app-started')
         expect(client.worker.enabled?).to be(true)
+      end
+
+      context 'when response returns 404' do
+        let(:not_found) { true }
+
+        before do
+          logger = double(Datadog::Core::Logger)
+          allow(logger).to receive(:debug)
+          allow(Datadog).to receive(:logger).and_return(logger)
+        end
+
+        it do
+          expect(client.enabled).to be(false)
+          expect(client.unsupported).to be(true)
+          expect(Datadog.logger).to have_received(:debug) do |message|
+            expect(message).to eq('Agent does not support telemetry; disabling future telemetry events.')
+          end
+        end
       end
     end
   end
@@ -77,6 +97,23 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it { expect { client.reenable! }.to change { client.enabled }.from(false).to(true) }
       it { expect { client.reenable! }.to change { client.worker.enabled? }.from(false).to(true) }
+
+      context 'when unsupported' do
+        let(:unsupported_client) { client.instance_variable_set(:@unsupported, true) }
+        before do
+          allow(described_class).to receive(:new).and_return(unsupported_client)
+        end
+
+        it do
+          expect(client.enabled).to be(false)
+          expect(client.worker.enabled?).to be(false)
+
+          client.reenable!
+
+          expect(client.enabled).to be(false)
+          expect(client.worker.enabled?).to be(false)
+        end
+      end
     end
   end
 
@@ -98,6 +135,16 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
     context 'when enabled' do
       let(:enabled) { true }
+
+      it do
+        started!
+        is_expected.to be(response)
+      end
+    end
+
+    context 'when internal error returned by emitter' do
+      let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
+
       it do
         started!
         is_expected.to be(response)
