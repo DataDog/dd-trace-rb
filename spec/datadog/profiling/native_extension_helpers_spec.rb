@@ -165,7 +165,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           context 'when on Ruby 2.1' do
             before { stub_const('RUBY_VERSION', '2.1.10') }
 
-            it { is_expected.to include '(2.1) is too old' }
+            it { is_expected.to include 'profiler only supports Ruby 2.2 or newer' }
           end
         end
 

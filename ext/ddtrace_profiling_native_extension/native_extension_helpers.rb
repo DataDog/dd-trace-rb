@@ -249,7 +249,7 @@ module Datadog
 
         private_class_method def self.on_ruby_2_1?
           ruby_version_not_supported = explain_issue(
-            'your Ruby version (2.1) is too old to be supported.',
+            'the profiler only supports Ruby 2.2 or newer.',
             suggested: UPGRADE_RUBY,
           )
 
