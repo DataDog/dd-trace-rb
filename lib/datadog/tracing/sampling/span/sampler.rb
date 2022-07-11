@@ -23,7 +23,7 @@ module Datadog
           end
 
           # Applies sampling rules to the span if the trace has been rejected.
-          # The tracer can be outright rejected, and never reach the transport,
+          # The trace can be outright rejected, and never reach the transport,
           # or be set as rejected by priority sampling. In both cases, the trace
           # is considered rejected for Single Span Sampling purposes.
           #
