@@ -99,11 +99,18 @@ RSpec.describe Datadog::Core::Telemetry::Http::Adapters::Net do
 
     let(:http_response) { double('http_response') }
 
-    before { expect(http_connection).to receive(:request).and_return(http_response) }
+    context 'when request goes through' do
+      before { expect(http_connection).to receive(:request).and_return(http_response) }
 
-    it 'produces a response' do
-      is_expected.to be_a_kind_of(described_class::Response)
-      expect(post.http_response).to be(http_response)
+      it 'produces a response' do
+        is_expected.to be_a_kind_of(described_class::Response)
+        expect(post.http_response).to be(http_response)
+      end
+    end
+
+    context 'when error in connecting to agent' do
+      before { expect(http_connection).to receive(:request).and_raise(StandardError) }
+      it { expect(post).to be_a_kind_of(Datadog::Core::Telemetry::Http::InternalErrorResponse) }
     end
   end
 end
