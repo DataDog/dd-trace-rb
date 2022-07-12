@@ -5,6 +5,11 @@ module Datadog
     module Ext
       # Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
       # profiling abilities after the VM forks.
+      #
+      # Known limitations: Does not handle `BasicObject`s that include `Kernel` directly; e.g.
+      # `Class.new(BasicObject) { include(::Kernel); def call; fork { }; end }.new.call`.
+      #
+      # This will be fixed once we moved to hooking into `Process._fork`
       module Forking
         def self.supported?
           Process.respond_to?(:fork)
