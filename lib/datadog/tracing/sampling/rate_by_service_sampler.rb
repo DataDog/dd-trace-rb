@@ -6,7 +6,7 @@ require 'datadog/tracing/sampling/rate_by_key_sampler'
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog:::Tracing::Sampling::RateByServiceSampler} samples different services at different rates
+      # {Datadog::Tracing::Sampling::RateByServiceSampler} samples different services at different rates
       # @public_api
       class RateByServiceSampler < RateByKeySampler
         DEFAULT_KEY = 'service:,env:'.freeze

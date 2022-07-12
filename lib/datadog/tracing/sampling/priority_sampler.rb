@@ -8,7 +8,7 @@ require 'datadog/tracing/sampling/rate_by_service_sampler'
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog:::Tracing::Sampling::PrioritySampler}
+      # {Datadog::Tracing::Sampling::PrioritySampler}
       # @public_api
       class PrioritySampler
         # NOTE: We do not advise using a pre-sampler. It can save resources,
