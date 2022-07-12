@@ -23,6 +23,9 @@ module Datadog
         end
 
         # Extensions for kernel
+        #
+        # TODO: Consider hooking into `Process._fork` on Ruby 3.1+ instead, see
+        #       https://github.com/ruby/ruby/pull/5017 and https://bugs.ruby-lang.org/issues/17795
         module Kernel
           FORK_STAGES = [:prepare, :parent, :child].freeze
 
