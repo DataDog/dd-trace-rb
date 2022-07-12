@@ -23,8 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
   end
 
   before do
-    skip 'Profiling is not supported on JRuby' if PlatformHelpers.jruby?
-    skip 'Profiling is not supported on TruffleRuby' if PlatformHelpers.truffleruby?
+    skip_if_profiling_not_supported(self)
 
     allow(recorder)
       .to receive(:[])
@@ -86,9 +85,6 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
         # See cthread.rb for more details
 
         before do
-          if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
-            skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
-          end
           skip 'Test case only applies to MRI Ruby' if RUBY_ENGINE != 'ruby'
         end
 
@@ -484,9 +480,6 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
 
     context 'Process::Waiter crash regression tests' do
       before do
-        if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
-          skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
-        end
         skip 'Test case only applies to MRI Ruby' if RUBY_ENGINE != 'ruby'
       end
 
@@ -734,12 +727,6 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
 
   describe 'Process::Waiter crash regression tests' do
     # Related to https://bugs.ruby-lang.org/issues/17807 ; see comments on main class for details
-
-    before do
-      if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.2')
-        skip 'Test case only applies to Ruby 2.2+ (previous versions did not have the Process::Waiter class)'
-      end
-    end
 
     let(:process_waiter_thread) { Process.detach(fork { sleep }) }
 

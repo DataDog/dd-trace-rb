@@ -22,7 +22,7 @@ namespace :spec do
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
-  if RUBY_ENGINE == 'ruby' && OS.linux?
+  if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.2.0')
     # "bundle exec rake compile" currently only works on MRI Ruby on Linux
     Rake::Task[:main].enhance([:compile])
   end
