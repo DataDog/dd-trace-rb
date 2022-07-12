@@ -1,22 +1,16 @@
 # typed: false
 
-require 'spec_helper'
 require 'datadog/profiling/spec_helper'
 
-require 'datadog/profiling'
 require 'datadog/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Ext::Forking do
   describe '::apply!' do
+    before { skip_if_profiling_not_supported(self) }
+
     subject(:apply!) { described_class.apply! }
 
-    let(:toplevel_receiver) do
-      if TOPLEVEL_BINDING.respond_to?(:receiver)
-        TOPLEVEL_BINDING.receiver
-      else
-        TOPLEVEL_BINDING.eval('self')
-      end
-    end
+    let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
 
     context 'when forking is supported' do
       around do |example|
@@ -56,9 +50,6 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         #       The results of this will carry over into other tests...
         #       Just assert that the receiver was patched instead.
         #       Unfortunately means we can't test if "fork" works in main Object.
-        # expect(toplevel_receiver.class)
-        #   .to receive(:extend)
-        #   .with(described_class::Kernel)
 
         apply!
 
