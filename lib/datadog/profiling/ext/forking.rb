@@ -13,27 +13,13 @@ module Datadog
         def self.apply!
           return false unless supported?
 
-          modules = [::Process, ::Kernel]
-          # TODO: Ruby < 2.3 doesn't support Binding#receiver.
-          #       Remove "else #eval" clause when Ruby < 2.3 support is dropped.
-          # NOTE: Modifying the "main" object as we do here is (as far as I know) irreversible. During tests, this change
-          #       will stick around even if we otherwise stub `Process` and `Kernel`.
-          modules << (TOPLEVEL_BINDING.respond_to?(:receiver) ? TOPLEVEL_BINDING.receiver : TOPLEVEL_BINDING.eval('self'))
-
-          # Patch top-level binding, Kernel, Process.
-          # NOTE: We could instead do Kernel.module_eval { def fork; ... end }
-          #       however, this method rewrite is more invasive and irreversible.
-          #       It could also have collisions with other libraries that patch.
-          #       Opt to modify the inheritance of each relevant target instead.
-          modules.each do |mod|
-            clazz = if mod.class <= Module
-                      mod.singleton_class
-                    else
-                      mod.class
-                    end
-
-            clazz.prepend(Kernel)
-          end
+          [
+            ::Process.singleton_class, # Process.fork
+            ::Kernel.singleton_class,  # Kernel.fork
+            ::Object,                  # fork without explicit receiver (it's defined as a method in ::Kernel)
+            # Note: Modifying Object as we do here is irreversible. During tests, this
+            # change will stick around even if we otherwise stub `Process` and `Kernel`
+          ].each { |target| target.prepend(Kernel) }
         end
 
         # Extensions for kernel
