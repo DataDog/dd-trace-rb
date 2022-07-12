@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+include FileUtils
+
+# path to your application root.
+APP_ROOT = File.expand_path('..', __dir__)
+
+def system!(*args)
+  puts "Run: #{args.join(' ')}"
+  system(*args) || abort("\n== Command #{args} failed ==")
+end
+
+chdir APP_ROOT do
+  puts "\n== Installing dependencies =="
+  # system!('bin/init')
+  # system! 'gem install bundler --conservative'
+  # system('bundle check') || system!('bundle install')
+
+  # run this if there was a pre-existing database
+  system!('bundle exec rake db:drop')
+  system!('RAILS_ENV=test bundle exec rake db:drop')
+
+  # time to create the database and run migrations
+  system!('bundle exec rake db:create')
+  system!('bundle exec rake db:migrate')
+  system!('RAILS_ENV=test bundle exec rake db:create db:migrate')
+
+  # run the specs (optional)
+  system!('bundle exec rake autospec') # CTRL + C to stop
+
+  # launch discourse
+  #RUN bundle exec rails s -b 0.0.0.0 # open browser on http://localhost:3000 and you should see Discourse
+
+end
