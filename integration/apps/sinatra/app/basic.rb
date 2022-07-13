@@ -2,7 +2,7 @@ require 'sinatra/base'
 require 'ddtrace'
 
 class Basic < Sinatra::Base
-  register Datadog::Tracing::Contrib::Sinatra::Tracer
+  # register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   get '/basic/default' do
     status 204

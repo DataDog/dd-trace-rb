@@ -4,14 +4,12 @@ source 'https://rubygems.org' do
   gem 'puma'
   gem 'unicorn'
   gem 'sinatra'
-  gem 'rake'
+  gem 'sinatra-router'
 
   gem 'dogstatsd-ruby'
   # Choose correct specs for 'ddtrace' demo environment
-  gem 'ddtrace', path: "/vendor/dd-trace-rb", require: 'ddtrace/auto_instrument'
+  gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
 
-  # gem 'rack-parser', :require => 'rack/parser'
-  gem 'sinatra-router'
   # Needed for ddtrace profiling
   google_protobuf_versions = [
     '~> 3.0',

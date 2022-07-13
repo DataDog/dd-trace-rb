@@ -2,7 +2,7 @@ require 'sinatra/base'
 require 'ddtrace'
 
 class Health < Sinatra::Base
-  register Datadog::Tracing::Contrib::Sinatra::Tracer
+  # register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   get '/health' do
     204
