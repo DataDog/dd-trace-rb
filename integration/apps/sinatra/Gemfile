@@ -8,8 +8,10 @@ source 'https://rubygems.org' do
 
   gem 'dogstatsd-ruby'
   # Choose correct specs for 'ddtrace' demo environment
-  gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+  gem 'ddtrace', path: "/vendor/dd-trace-rb", require: 'ddtrace/auto_instrument'
 
+  # gem 'rack-parser', :require => 'rack/parser'
+  gem 'sinatra-router'
   # Needed for ddtrace profiling
   google_protobuf_versions = [
     '~> 3.0',
@@ -31,7 +33,6 @@ source 'https://rubygems.org' do
   # gem 'pry-stack_explorer', platform: :ruby
   # gem 'rbtrace'
   # gem 'ruby-prof'
-
   gem 'rspec'
   gem 'rspec-wait'
   gem 'webrick' if RUBY_VERSION >= '2.3' # Older Rubies can just use the built-in version of webrick

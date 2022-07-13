@@ -23,7 +23,7 @@ done
 
 echo "== Building Sinatra images... =="
 if [ -v APP_RUBY_VERSION ]; then
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-rack .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-sinatra .
 else
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.6 -t datadog/dd-apm-demo:rb-2.6-sinatra .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.7 -t datadog/dd-apm-demo:rb-2.7-sinatra .

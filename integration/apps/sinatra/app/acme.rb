@@ -1,5 +1,7 @@
 require 'sinatra/base'
+require 'sinatra/router'
 require 'ddtrace'
+# require 'ddtrace/auto_instrument'
 
 Datadog.configure do |c|
   c.service = 'acme-sinatra'
@@ -13,8 +15,7 @@ Datadog.configure do |c|
 
   if Datadog::DemoEnv.feature?('appsec')
     c.appsec.enabled = true
-
-    c.appsec.instrument :rack
+    c.appsec.instrument :sinatra
   end
 
   if Datadog::DemoEnv.feature?('pprof_to_file')
@@ -23,48 +24,23 @@ Datadog.configure do |c|
   end
 end
 
+require_relative './basic'
+require_relative './health'
+
 class Acme < Sinatra::Base
   register Datadog::Tracing::Contrib::Sinatra::Tracer
 
+  # # Use Sinatra App as middleware
+  # use Health
+  # use Basic
+
+  # # Use Sinatra::Router to mount different modular Sinatra applications
+  use Sinatra::Router do
+    mount ::Health
+    mount ::Basic
+  end
+
   get '/' do
     'Hello world!'
-  end
-
-  get '/health' do
-    204
-  end
-
-  get '/health/detailed' do
-    [
-      200,
-      { 'Content-Type' => 'application/json' },
-      JSON.generate(
-        webserver_process: $PROGRAM_NAME,
-        profiler_available: Datadog::Profiling.start_if_enabled,
-        # NOTE: Threads can't be named on Ruby 2.1 and 2.2
-        profiler_threads: ((Thread.list.map(&:name).select { |it| it && it.include?('Profiling') }) unless RUBY_VERSION < '2.3')
-      )
-    ]
-  end
-
-  get '/basic/default' do
-    status 204
-  end
-
-  get '/basic/fibonacci' do
-    n = rand(25..35)
-    result = fib(n)
-
-    [
-      200,
-      { 'Content-Type' => 'text/plain' },
-      ["Basic: Fibonacci(#{n}): #{result}"]
-    ]
-  end
-
-  private
-
-  def fib(n)
-    n <= 1 ? n : fib(n-1) + fib(n-2)
   end
 end

@@ -64,7 +64,7 @@ curl -v localhost/health
 
 # Basic demo scenarios
 curl -v localhost/basic/fibonacci
-curl -v -XPOST localhost/basic/default
+curl -v localhost/basic/default
 ```
 
 ### Load tester
