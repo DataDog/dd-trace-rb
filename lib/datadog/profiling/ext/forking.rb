@@ -25,6 +25,8 @@ module Datadog
             # Note: Modifying Object as we do here is irreversible. During tests, this
             # change will stick around even if we otherwise stub `Process` and `Kernel`
           ].each { |target| target.prepend(Kernel) }
+
+          ::Process.singleton_class.prepend(ProcessDaemonPatch)
         end
 
         # Extensions for kernel
@@ -72,6 +74,22 @@ module Datadog
             # rubocop:disable Style/ClassVars
             @@ddtrace_at_fork_blocks ||= {}
             # rubocop:enable Style/ClassVars
+          end
+        end
+
+        # A call to Process.daemon ( https://rubyapi.org/3.1/o/process#method-c-daemon ) forks the current process and
+        # keeps executing code in the child process, killing off the parent, thus effectively replacing it.
+        #
+        # This monkey patch makes the `Kernel#at_fork` mechanism defined above also work in this situation.
+        module ProcessDaemonPatch
+          def daemon(*args)
+            ddtrace_at_fork_blocks = Datadog::Profiling::Ext::Forking::Kernel.ddtrace_at_fork_blocks
+
+            result = super
+
+            ddtrace_at_fork_blocks[:child].each(&:call) if ddtrace_at_fork_blocks.key?(:child)
+
+            result
           end
         end
       end

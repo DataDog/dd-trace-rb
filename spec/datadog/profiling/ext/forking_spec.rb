@@ -35,12 +35,14 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
         # Check for leaks (make sure test is properly cleaned up)
         expect(::Process <= described_class::Kernel).to be nil
+        expect(::Process <= described_class::ProcessDaemonPatch).to be nil
         expect(::Kernel <= described_class::Kernel).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
 
         expect(::Process.method(:fork).source_location).to be nil
         expect(::Kernel.method(:fork).source_location).to be nil
+        expect(::Process.method(:daemon).source_location).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.method(:fork).source_location).to be nil
       end
@@ -54,10 +56,12 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         apply!
 
         expect(::Process.ancestors).to include(described_class::Kernel)
+        expect(::Process.ancestors).to include(described_class::ProcessDaemonPatch)
         expect(::Kernel.ancestors).to include(described_class::Kernel)
         expect(toplevel_receiver.class.ancestors).to include(described_class::Kernel)
 
         expect(::Process.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
+        expect(::Process.method(:daemon).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
         expect(::Kernel.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
         expect(toplevel_receiver.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
       end
@@ -237,6 +241,43 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
           other_fork_class.fork {}
         end
       end
+    end
+  end
+
+  describe Datadog::Profiling::Ext::Forking::ProcessDaemonPatch do
+    let(:process_module) { ::Process.dup }
+    let(:child_callback) { double('child', call: true) }
+
+    before do
+      allow(process_module).to receive(:daemon)
+
+      process_module.singleton_class.prepend(Datadog::Profiling::Ext::Forking::Kernel)
+      process_module.singleton_class.prepend(described_class)
+
+      process_module.at_fork(:child) { child_callback.call }
+    end
+
+    after do
+      Datadog::Profiling::Ext::Forking::Kernel.ddtrace_at_fork_blocks.clear
+    end
+
+    it 'calls the child at_fork callbacks after calling Process.daemon' do
+      expect(process_module).to receive(:daemon).ordered
+      expect(child_callback).to receive(:call).ordered
+
+      process_module.daemon
+    end
+
+    it 'passes any arguments to Process.daemon' do
+      expect(process_module).to receive(:daemon).with(true, true)
+
+      process_module.daemon(true, true)
+    end
+
+    it 'returns the result of calling Process.daemon' do
+      expect(process_module).to receive(:daemon).and_return(:process_daemon_result)
+
+      expect(process_module.daemon).to be :process_daemon_result
     end
   end
 end
