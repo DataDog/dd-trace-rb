@@ -30,7 +30,7 @@ fi
 
 # Set configuration
 APP_BASE_IMAGE=${APP_BASE_IMAGE:-datadog/dd-apm-demo:rb-$APP_RUBY_VERSION}
-APP_IMAGE=${APP_IMAGE:-$APP_BASE_IMAGE-sinatra}
+APP_IMAGE=${APP_IMAGE:-$APP_BASE_IMAGE-sinatra2-modular}
 APP_COMPOSE_FILES="-f docker-compose.ci.yml"
 
 echo "== Running integration tests... =="
