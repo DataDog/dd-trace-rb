@@ -116,14 +116,10 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
 
     shared_context 'at_fork callbacks' do
-      let(:prepare) { double('prepare') }
       let(:child) { double('child') }
-      let(:parent) { double('parent') }
 
       before do
-        fork_class.at_fork(:prepare) { prepare.call }
         fork_class.at_fork(:child) { child.call }
-        fork_class.at_fork(:parent) { parent.call }
       end
 
       after do
@@ -151,9 +147,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             let(:fork_result) { rand(100) }
 
             it do
-              expect(prepare).to receive(:call).ordered
               expect(child).to_not receive(:call)
-              expect(parent).to receive(:call).ordered
 
               is_expected.to be fork_result
             end
@@ -165,9 +159,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             let(:fork_result) { nil }
 
             it do
-              expect(prepare).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to_not receive(:call)
+              expect(child).to receive(:call)
 
               is_expected.to be nil
             end
@@ -190,9 +182,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             include_context 'at_fork callbacks'
 
             it 'invokes all the callbacks in order' do
-              expect(prepare).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
+              expect(child).to receive(:call)
 
               is_expected.to be fork_result
             end
@@ -206,41 +196,9 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         let(:callback) { double('callback') }
         let(:block) { proc { callback.call } }
 
-        context 'by default' do
-          subject(:at_fork) do
-            fork_class.at_fork(&block)
-          end
-
-          it 'adds a :prepare callback' do
-            at_fork
-
-            expect(prepare).to receive(:call).ordered
-            expect(callback).to receive(:call).ordered
-            expect(child).to receive(:call).ordered
-            expect(parent).to receive(:call).ordered
-
-            fork_class.fork {}
-          end
-        end
-
         context 'given a stage' do
           subject(:at_fork) do
             fork_class.at_fork(stage, &block)
-          end
-
-          context ':prepare' do
-            let(:stage) { :prepare }
-
-            it 'adds a prepare callback' do
-              at_fork
-
-              expect(prepare).to receive(:call).ordered
-              expect(callback).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
-
-              fork_class.fork {}
-            end
           end
 
           context ':child' do
@@ -249,24 +207,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             it 'adds a child callback' do
               at_fork
 
-              expect(prepare).to receive(:call).ordered
               expect(child).to receive(:call).ordered
-              expect(callback).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
-
-              fork_class.fork {}
-            end
-          end
-
-          context ':parent' do
-            let(:stage) { :parent }
-
-            it 'adds a parent callback' do
-              at_fork
-
-              expect(prepare).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
               expect(callback).to receive(:call).ordered
 
               fork_class.fork {}
@@ -285,17 +226,13 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         include_context 'at_fork callbacks'
 
         it 'applies the callback to the original class' do
-          expect(prepare).to receive(:call).ordered
-          expect(child).to receive(:call).ordered
-          expect(parent).to receive(:call).ordered
+          expect(child).to receive(:call)
 
           fork_class.fork {}
         end
 
         it 'applies the callback to the other class' do
-          expect(prepare).to receive(:call).ordered
-          expect(child).to receive(:call).ordered
-          expect(parent).to receive(:call).ordered
+          expect(child).to receive(:call)
 
           other_fork_class.fork {}
         end
