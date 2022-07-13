@@ -3,9 +3,12 @@
 require 'spec_helper'
 require 'ddtrace'
 require 'datadog/core/diagnostics/health'
+require 'datadog/statsd'
 
 RSpec.describe Datadog::Core::Diagnostics::Health::Metrics do
-  subject(:health_metrics) { described_class.new }
+  subject(:health_metrics) { described_class.new(service: service, statsd: statsd) }
+  let(:service) { nil }
+  let(:statsd) { instance_double(Datadog::Statsd) }
 
   shared_examples_for 'a health metric' do |type, name, stat|
     subject(:health_metric) { health_metrics.send(name, *args, &block) }
@@ -43,4 +46,24 @@ RSpec.describe Datadog::Core::Diagnostics::Health::Metrics do
   it_behaves_like 'a health metric', :gauge, :queue_spans, Datadog::Core::Diagnostics::Ext::Health::Metrics::METRIC_QUEUE_SPANS
   it_behaves_like 'a health metric', :gauge, :sampling_service_cache_length, Datadog::Core::Diagnostics::Ext::Health::Metrics::METRIC_SAMPLING_SERVICE_CACHE_LENGTH
   # rubocop:enable Layout/LineLength
+
+  describe '.new' do
+    context 'with service' do
+      let(:service) { 'srv' }
+
+      it 'sets the statsd service tag' do
+        expect(statsd).to receive(:count).with(any_args, tags: array_including('service:srv'))
+        health_metrics.api_requests(1)
+      end
+    end
+
+    context 'with no service' do
+      let(:service) { nil }
+
+      it 'does not set the statsd service tag' do
+        expect(statsd).to_not receive(:count).with(any_args, tags: array_including(include('service:')))
+        health_metrics.api_requests(1)
+      end
+    end
+  end
 end

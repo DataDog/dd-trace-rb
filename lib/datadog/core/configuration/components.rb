@@ -19,11 +19,13 @@ module Datadog
       class Components
         class << self
           def build_health_metrics(settings)
-            settings = settings.diagnostics.health_metrics
-            options = { enabled: settings.enabled }
-            options[:statsd] = settings.statsd unless settings.statsd.nil?
+            health_settings = settings.diagnostics.health_metrics
 
-            Core::Diagnostics::Health::Metrics.new(**options)
+            Core::Diagnostics::Health::Metrics.new(
+              service: settings.service,
+              enabled: health_settings.enabled,
+              statsd: health_settings.statsd
+            )
           end
 
           def build_logger(settings)
