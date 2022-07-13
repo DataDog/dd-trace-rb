@@ -61,7 +61,3 @@ services:
     #   - .:/app
     #   - ../../images/include:/vendor/dd-demo
     #   - ../../..:/vendor/dd-trace-rb
-  redis:
-    image: redis:6.2-buster
-    expose:
-      - "6379"
