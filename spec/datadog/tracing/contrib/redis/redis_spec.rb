@@ -204,11 +204,11 @@ RSpec.describe 'Redis test' do
 
       it do
         expect(responses).to eq([])
-        expect(all_spans).to have(1).items
+        expect(spans).to have(1).items
       end
 
       describe 'span' do
-        subject(:span) { all_spans[-1] }
+        subject(:span) { spans[-1] }
 
         it do
           expect(span.get_metric('redis.pipeline_length')).to eq(0)
