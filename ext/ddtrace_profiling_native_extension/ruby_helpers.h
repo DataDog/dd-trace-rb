@@ -9,6 +9,11 @@ static inline VALUE process_pending_interruptions(VALUE _unused) {
   return Qnil;
 }
 
+// RB_UNLIKELY is not supported on Ruby 2.2 and 2.3
+#ifndef RB_UNLIKELY
+  #define RB_UNLIKELY(x) x
+#endif
+
 // Calls process_pending_interruptions BUT "rescues" any exceptions to be raised, returning them instead as
 // a non-zero `pending_exception`.
 //
