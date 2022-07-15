@@ -196,7 +196,7 @@ RSpec.describe 'Redis test' do
     end
 
     context 'empty pipeline' do
-      before(:each) do
+      before do
         responses.push(*redis.pipelined {})
       end
 
