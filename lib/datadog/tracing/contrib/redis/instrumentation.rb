@@ -39,7 +39,7 @@ module Datadog
                 span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
                 span.span_type = Contrib::Redis::Ext::TYPE
                 commands = get_pipeline_commands(args)
-                span.resource = commands.join("\n")
+                span.resource = commands.any? ? commands.join("\n") : '(none)'
                 span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
                 Contrib::Redis::Tags.set_common_tags(self, span)
 
