@@ -87,7 +87,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       it 'encodes the sample with the metrics provided' do
-        expect(samples.first).to include(values: { 'cpu-time': 123, 'cpu-samples': 456, 'wall-time': 789 })
+        expect(samples.first).to include(values: { :'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789 })
       end
 
       it 'encodes the sample with the labels provided' do
