@@ -203,5 +203,32 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
           .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_ENQUEUE)
       end
     end
+
+    describe 'reserve_job span' do
+      subject(:span) { fetch_spans.first }
+
+      before { job_run }
+
+      include_context 'delayed_job common tags and resource'
+
+      it_behaves_like 'analytics for integration' do
+        let(:analytics_enabled_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
+        let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+      end
+
+      it_behaves_like 'measured span for integration', true
+
+      it 'has default service name' do
+        expect(span.service).to eq(tracer.default_service)
+      end
+
+      it 'has reserve job components and operation tags' do
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_COMPONENT)
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq(Datadog::Tracing::Contrib::DelayedJob::Ext::TAG_OPERATION_RESERVE_JOB)
+      end
+    end
   end
 end

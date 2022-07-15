@@ -89,3 +89,4 @@ module SidekiqServerExpectations
     app_tempfile.close
     app_tempfile.unlink
   end
+end

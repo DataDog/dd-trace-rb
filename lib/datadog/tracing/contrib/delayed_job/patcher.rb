@@ -19,10 +19,16 @@ module Datadog
           def patch
             require 'datadog/tracing/contrib/delayed_job/plugin'
             add_instrumentation(::Delayed::Worker)
+            patch_server_internals
           end
 
           def add_instrumentation(klass)
             klass.plugins << Plugin
+          end
+
+          def patch_server_internals
+            require 'datadog/tracing/contrib/delayed_job/server_internal_tracer/worker'
+            ::Delayed::Worker.prepend(ServerInternalTracer::Worker)
           end
         end
       end
