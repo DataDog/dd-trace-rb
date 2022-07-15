@@ -43,22 +43,22 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
 
   describe '#sample' do
-    it 'samples all threads' do
-      all_threads = Thread.list
-
-      decoded_profile = sample_and_decode
-
-      expect(decoded_profile.sample.size).to be all_threads.size
-    end
-
-    def sample_and_decode
-      cpu_and_wall_time_collector.sample
-
+    let(:pprof_result) do
       serialization_result = recorder.serialize
       raise 'Unexpected: Serialization failed' unless serialization_result
 
-      pprof_data = serialization_result.last
-      ::Perftools::Profiles::Profile.decode(pprof_data)
+      serialization_result.last
+    end
+    let(:samples) { samples_from_pprof(pprof_result) }
+
+    it 'samples all threads' do
+      all_threads = Thread.list
+
+      cpu_and_wall_time_collector.sample
+      samples = samples_from_pprof(pprof_result)
+
+      expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
+      expect(samples.size).to be all_threads.size
     end
   end
 
@@ -68,7 +68,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
   end
 
-  # Validate that we correctly clean up and don't leak per_thread_context
   describe '#per_thread_context' do
     context 'before sampling' do
       it do
