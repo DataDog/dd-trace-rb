@@ -60,6 +60,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
       expect(samples.size).to be all_threads.size
     end
+
+    it 'tags the samples with the object ids of the Threads they belong to' do
+      cpu_and_wall_time_collector.sample
+
+      samples = samples_from_pprof(pprof_result)
+
+      expect(samples.map { |it| it.fetch(:labels).fetch(:'thread id') })
+        .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
+    end
   end
 
   describe '#thread_list' do
@@ -82,6 +91,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       it 'contains all the sampled threads' do
         expect(cpu_and_wall_time_collector.per_thread_context.keys).to include(Thread.main, t1, t2, t3)
+      end
+
+      it 'contains the thread ids (object_ids) of all sampled threads' do
+        cpu_and_wall_time_collector.per_thread_context.each do |thread, context|
+          expect(context.fetch(:thread_id)).to eq thread.object_id
+        end
       end
     end
 
