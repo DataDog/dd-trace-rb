@@ -36,10 +36,10 @@ module Datadog
           define_singleton_method(:now, &block)
         end
 
-        def measure
-          before = get_time
+        def measure(unit = :float_second)
+          before = get_time(unit)
           yield
-          after = get_time
+          after = get_time(unit)
           after - before
         end
 
