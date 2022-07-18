@@ -1,11 +1,10 @@
 require 'active_record'
-require 'sidekiq'
 require 'redis'
 require 'ddtrace'
 
 Datadog.configure do |c|
   c.env = 'integration'
-  c.service = ENV['DD_SERVICE'] || 'acme-rails-seven'
+  c.service = ENV['DD_SERVICE'] || 'acme-rails-seven-delayed-job'
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')
   c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
@@ -18,6 +17,5 @@ Datadog.configure do |c|
     c.tracing.instrument :rack
     c.tracing.instrument :rails
     c.tracing.instrument :redis
-    c.tracing.instrument :sidekiq
   end
 end

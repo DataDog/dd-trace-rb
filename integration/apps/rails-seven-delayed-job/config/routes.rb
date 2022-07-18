@@ -9,5 +9,4 @@ Rails.application.routes.draw do
 
   # Job test scenarios
   post 'jobs', to: 'jobs#create'
-  get 'jobs', to: 'jobs#create'
 end

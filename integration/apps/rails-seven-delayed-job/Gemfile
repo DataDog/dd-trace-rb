@@ -97,6 +97,7 @@ source "https://rubygems.org" do
   gem 'unicorn'
 
   # Choose correct specs for 'ddtrace' demo environment
+  # gem 'ddtrace', '1.2.0'
   gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
   gem 'dogstatsd-ruby'
   gem 'rollbar'
