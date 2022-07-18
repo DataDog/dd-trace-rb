@@ -11,9 +11,7 @@ class HealthController < ApplicationController
 
   def detailed_check
     render json: {
-      webserver_process: $PROGRAM_NAME,
-      profiler_available: Datadog::Profiling.start_if_enabled,
-      profiler_threads: Thread.list.map(&:name).select { |it| it && it.include?('Profiling') }
+      webserver_process: $PROGRAM_NAME
     }
   end
 end

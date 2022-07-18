@@ -18,5 +18,10 @@ module IntegrationHelper
       uri = URI("http://#{hostname}:#{port}/#{path}")
       Net::HTTP.get_response(uri)
     end
+
+    def post(path, arguments: {})
+      uri = URI("http://#{hostname}:#{port}/#{path}")
+      Net::HTTP.post_form(uri, arguments)
+    end
   end
 end
