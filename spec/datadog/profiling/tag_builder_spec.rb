@@ -59,5 +59,26 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         expect(call).to include('foo' => 'bar', 'language' => 'ruby')
       end
     end
+
+    context 'when user tag keys and values are not strings' do
+      it 'encodes them as strings' do
+        settings.tags = { :symbol_key => :symbol_value, nil => 'nil key', 'nil value' => nil, 12 => 34 }
+
+        expect(call).to include('symbol_key' => 'symbol_value', '' => 'nil key', 'nil value' => '', '12' => '34')
+      end
+    end
+
+    context 'when tagging key or value is not utf-8' do
+      it 'converts them to utf-8' do
+        settings.tags = { 'ascii-key'.encode(Encoding::ASCII) => 'ascii-value'.encode(Encoding::ASCII) }
+
+        result = call
+
+        result.each do |key, value|
+          expect([key, value]).to all(have_attributes(encoding: Encoding::UTF_8))
+        end
+        expect(result).to include('ascii-key' => 'ascii-value')
+      end
+    end
   end
 end
