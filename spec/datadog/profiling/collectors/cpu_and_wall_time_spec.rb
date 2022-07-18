@@ -55,7 +55,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       all_threads = Thread.list
 
       cpu_and_wall_time_collector.sample
-      samples = samples_from_pprof(pprof_result)
 
       expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
       expect(samples.size).to be all_threads.size
@@ -64,10 +63,32 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     it 'tags the samples with the object ids of the Threads they belong to' do
       cpu_and_wall_time_collector.sample
 
-      samples = samples_from_pprof(pprof_result)
-
       expect(samples.map { |it| it.fetch(:labels).fetch(:'thread id') })
         .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
+    end
+
+    it 'includes the thread names, if available' do
+      skip 'Thread names not available on Ruby 2.2' if RUBY_VERSION < '2.3'
+
+      t1.name = 'thread t1'
+      t2.name = nil
+      t3.name = 'thread t3'
+
+      cpu_and_wall_time_collector.sample
+
+      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+      t2_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t2.object_id }
+      t3_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t3.object_id }
+
+      expect(t1_sample).to include(labels: include(:'thread name' => 'thread t1'))
+      expect(t2_sample.fetch(:labels).keys).to_not include(:'thread name')
+      expect(t3_sample).to include(labels: include(:'thread name' => 'thread t3'))
+    end
+
+    it 'does not include thread names on Ruby 2.2' do
+      skip 'Testcase only applies to Ruby 2.2' if RUBY_VERSION >= '2.3'
+
+      expect(samples.flat_map { |it| it.fetch(:labels).keys }).to_not include(':thread name')
     end
   end
 

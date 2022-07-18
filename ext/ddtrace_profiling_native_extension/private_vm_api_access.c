@@ -107,6 +107,14 @@ bool is_thread_alive(VALUE thread) {
   return thread_struct_from_object(thread)->status != THREAD_KILLED;
 }
 
+VALUE thread_name_for(VALUE thread) {
+  #ifdef NO_THREAD_NAMES
+    return Qnil;
+  #else
+    return thread_struct_from_object(thread)->name;
+  #endif
+}
+
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
 // Each function is annotated with its origin, why we imported it, and the changes made.

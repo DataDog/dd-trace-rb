@@ -133,6 +133,8 @@ if RUBY_VERSION < '2.3'
   $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
   # ...the VM changed enough that we need an alternative legacy rb_profile_frames
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
+  # ... you couldn't name threads
+  $defs << '-DNO_THREAD_NAMES'
 end
 
 # If we got here, libdatadog is available and loaded
