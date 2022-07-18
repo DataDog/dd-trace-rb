@@ -49,7 +49,7 @@ We avoid issues using a combination of:
 
 Non-exhaustive list of APIs that cause exceptions to be raised:
 
-* `Check_TypedStruct`, `Check_Type`
+* `Check_TypedStruct`, `Check_Type`, `ENFORCE_TYPE`
 * `rb_funcall`
 * `rb_thread_call_without_gvl`, `rb_thread_call_without_gvl2`
 * [Numeric conversion APIs, e.g. `NUM2LONG`, `NUM2INT`, etc.](https://silverhammermba.github.io/emberb/c/?#translation)
