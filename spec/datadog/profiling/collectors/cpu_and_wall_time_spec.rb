@@ -90,6 +90,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       expect(samples.flat_map { |it| it.fetch(:labels).keys }).to_not include(':thread name')
     end
+
+    it 'includes the wall time elapsed between samples' do
+      cpu_and_wall_time_collector.sample
+      wall_time_at_first_sample =
+        cpu_and_wall_time_collector.per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      cpu_and_wall_time_collector.sample
+      wall_time_at_second_sample =
+        cpu_and_wall_time_collector.per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      t1_samples = samples.select { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+      wall_time = t1_samples.first.fetch(:values).fetch(:'wall-time')
+
+      expect(t1_samples.size)
+        .to be(1), "Expected thread t1 to always have same stack trace (because it's sleeping), got #{t1_samples.inspect}"
+
+      expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
+    end
   end
 
   describe '#thread_list' do
@@ -107,7 +125,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
     context 'after sampling' do
       before do
+        @wall_time_before_sample_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
         cpu_and_wall_time_collector.sample
+        @wall_time_after_sample_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
       end
 
       it 'contains all the sampled threads' do
@@ -118,6 +138,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         cpu_and_wall_time_collector.per_thread_context.each do |thread, context|
           expect(context.fetch(:thread_id)).to eq thread.object_id
         end
+      end
+
+      it 'sets the wall_time_at_previous_sample_ns to the current wall clock value' do
+        expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+          include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
+        )
       end
     end
 

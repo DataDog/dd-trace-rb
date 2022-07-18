@@ -8,6 +8,7 @@
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
 
 static VALUE collectors_cpu_and_wall_time_class = Qnil;
+#define INVALID_TIME -1
 
 // Contains state for a single CpuAndWallTime instance
 struct cpu_and_wall_time_collector_state {
@@ -27,6 +28,7 @@ struct cpu_and_wall_time_collector_state {
 // Tracks per-thread state
 struct per_thread_context {
   long thread_id;
+  long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
 };
 
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
@@ -46,6 +48,8 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
 static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns);
+static long wall_time_now_ns(struct cpu_and_wall_time_collector_state *state);
 static long thread_id_for(VALUE thread);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
@@ -166,18 +170,23 @@ static void sample(VALUE collector_instance) {
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
+  long current_wall_time_ns = wall_time_now_ns(state);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
     VALUE thread = RARRAY_AREF(threads, i);
     struct per_thread_context *thread_context = get_or_create_context_for(thread, state);
 
+    long wall_time_elapsed_ns =
+      update_time_since_previous_sample(&thread_context->wall_time_at_previous_sample_ns, current_wall_time_ns);
+
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
 
     // FIXME: TODO These are just dummy values for now
-    metric_values[CPU_TIME_VALUE_POS] = 12;
-    metric_values[CPU_SAMPLES_VALUE_POS] = 34;
-    metric_values[WALL_TIME_VALUE_POS] = 56;
+    metric_values[CPU_TIME_VALUE_POS] = 12; // FIXME: Placeholder until actually implemented/tested
+    metric_values[CPU_SAMPLES_VALUE_POS] = 34; // FIXME: Placeholder until actually implemented/tested
+
+    metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
 
     VALUE thread_name = thread_name_for(thread);
     bool have_thread_name = thread_name != Qnil;
@@ -232,6 +241,9 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
   thread_context->thread_id = thread_id_for(thread);
+
+  // These will get initialized during actual sampling
+  thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
 }
 
 static VALUE _native_inspect(VALUE self, VALUE collector_instance) {
@@ -264,7 +276,8 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   rb_hash_aset(result, thread, context_as_hash);
 
   VALUE arguments[] = {
-    ID2SYM(rb_intern("thread_id")),  /* => */ LONG2NUM(thread_context->thread_id)
+    ID2SYM(rb_intern("thread_id")),  /* => */ LONG2NUM(thread_context->thread_id),
+    ID2SYM(rb_intern("wall_time_at_previous_sample_ns")), /* => */ LONG2NUM(thread_context->wall_time_at_previous_sample_ns)
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
@@ -291,6 +304,24 @@ static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance) {
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   return per_thread_context_st_table_as_ruby_hash(state);
+}
+
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns) {
+  // If we didn't have a time for the previous sample, we use the current one
+  if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
+
+  long elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns;
+  *time_at_previous_sample_ns = current_time_ns;
+
+  return elapsed_time_ns >= 0 ? elapsed_time_ns : 0 /* In case something really weird happened */;
+}
+
+static long wall_time_now_ns(struct cpu_and_wall_time_collector_state *state) {
+  struct timespec current_monotonic;
+
+  if (clock_gettime(CLOCK_MONOTONIC, &current_monotonic) != 0) rb_sys_fail("Failed to read CLOCK_MONOTONIC");
+
+  return current_monotonic.tv_nsec + (current_monotonic.tv_sec * 1000 * 1000 * 1000);
 }
 
 static long thread_id_for(VALUE thread) {
