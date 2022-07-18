@@ -25,7 +25,7 @@ struct cpu_and_wall_time_collector_state {
 
 // Tracks per-thread state
 struct per_thread_context {
-  int dummy_placeholder_will_be_removed_in_next_pr;
+  long thread_id;
 };
 
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
@@ -38,12 +38,14 @@ static VALUE _native_sample(VALUE self, VALUE collector_instance);
 static void sample(VALUE collector_instance);
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
+static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
 static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
+static long thread_id_for(VALUE thread);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -176,12 +178,16 @@ static void sample(VALUE collector_instance) {
     metric_values[CPU_SAMPLES_VALUE_POS] = 34;
     metric_values[WALL_TIME_VALUE_POS] = 56;
 
+    ddprof_ffi_Label labels[] = {
+      {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .num = thread_context->thread_id}
+    };
+
     sample_thread(
       thread,
       state->sampling_buffer,
       state->recorder_instance,
       (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddprof_ffi_Slice_label) {.ptr = NULL, .len = 0} // FIXME: TODO we need to gather the expected labels
+      (ddprof_ffi_Slice_label) {.ptr = labels, .len = 1}
     );
   }
 
@@ -206,10 +212,15 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
     thread_context = (struct per_thread_context*) value_context;
   } else {
     thread_context = ruby_xcalloc(1, sizeof(struct per_thread_context));
+    initialize_context(thread, thread_context);
     st_insert(state->hash_map_per_thread_context, (st_data_t) thread, (st_data_t) thread_context);
   }
 
   return thread_context;
+}
+
+static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
+  thread_context->thread_id = thread_id_for(thread);
 }
 
 static VALUE _native_inspect(VALUE self, VALUE collector_instance) {
@@ -236,11 +247,14 @@ static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_c
 
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash) {
   VALUE thread = (VALUE) key_thread;
+  struct per_thread_context *thread_context = (struct per_thread_context*) value_context;
   VALUE result = (VALUE) result_hash;
   VALUE context_as_hash = rb_hash_new();
   rb_hash_aset(result, thread, context_as_hash);
 
-  VALUE arguments[] = {};
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("thread_id")),  /* => */ LONG2NUM(thread_context->thread_id)
+  };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
   return ST_CONTINUE;
@@ -266,4 +280,21 @@ static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance) {
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   return per_thread_context_st_table_as_ruby_hash(state);
+}
+
+static long thread_id_for(VALUE thread) {
+  VALUE object_id = rb_obj_id(thread);
+
+  // The API docs for Ruby state that `rb_obj_id` COULD be a BIGNUM and that if you want to be really sure you don't
+  // get a BIGNUM, then you should use `rb_memory_id`. But `rb_memory_id` is less interesting because it's less visible
+  // at the user level than the result of calling `#object_id`.
+  //
+  // It also seems uncommon to me that we'd ever get a BIGNUM; on old Ruby versions (pre-GC compaction), the object id
+  // was the pointer to the object, so that's not going to be a BIGNUM; on modern Ruby versions, Ruby keeps
+  // a counter, and only increments it for objects for which `#object_id`/`rb_obj_id` is called (e.g. most objects
+  // won't actually have an object id allocated).
+  //
+  // So, for now, let's simplify: we only support FIXNUMs, and we won't break if we get a BIGNUM; we just won't
+  // record the thread_id (but samples will still be collected).
+  return FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1;
 }

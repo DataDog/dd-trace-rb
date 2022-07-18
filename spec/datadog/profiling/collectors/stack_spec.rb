@@ -343,22 +343,11 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     raise 'Unexpected: Serialization failed' unless serialization_result
 
     pprof_data = serialization_result.last
-    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
 
-    expect(decoded_profile.sample.size).to be 1
-    sample = decoded_profile.sample.first
+    samples = samples_from_pprof(pprof_data)
 
-    sample.location_id.map { |location_id| decode_frame(decoded_profile, location_id) }
-  end
-
-  def decode_frame(decoded_profile, location_id)
-    strings = decoded_profile.string_table
-    location = decoded_profile.location.find { |loc| loc.id == location_id }
-    expect(location.line.size).to be 1
-    line_entry = location.line.first
-    function = decoded_profile.function.find { |func| func.id == line_entry.function_id }
-
-    { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
+    expect(samples.size).to be 1
+    samples.first.fetch(:locations)
   end
 end
 
