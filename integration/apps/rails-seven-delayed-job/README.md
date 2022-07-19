@@ -1,6 +1,6 @@
-# Rails 7 Sidekiq/DelayedJob: Demo application for Datadog APM
+# Rails 7 DelayedJob: Demo application for Datadog APM
 
-A generic Rails 7 web application with scenarios using Sidekiq/DelayedJob.
+A generic Rails 7 web application with scenarios using DelayedJob.
 
 For generating Datadog APM traces.
 
@@ -23,13 +23,7 @@ docker run --rm --name dd-agent  -v /var/run/docker.sock:/var/run/docker.sock:ro
 ### Starting the web server
 
 ```
-# Run full application + load tester
-# Binds to localhost:80
-docker-compose up
-
-# OR
-
-# Run only the application (no load tester)
+# Run the application
 # Binds to localhost:80
 docker-compose run --rm -p 80:80 app "bin/run <process>"
 ```
@@ -118,35 +112,21 @@ Within the container, run `bin/dd-demo <process>` where `<process>` is one of th
 Set `DD_DEMO_ENV_FEATURES` to a comma-delimited list of any of the following values to activate the feature:
 
  - `tracing`: Tracing instrumentation
- - `profiling`: Profiling (NOTE: Must also set `DD_PROFILING_ENABLED` to match.)
  - `debug`: Enable diagnostic debug mode
  - `analytics`: Enable trace analytics
- - `runtime_metrics`: Enable runtime metrics
- - `pprof_to_file`: Dump profiling pprof to file instead of agent.
 
-e.g. `DD_DEMO_ENV_FEATURES=tracing,profiling`
+e.g. `DD_DEMO_ENV_FEATURES=tracing`
 
 ##### Routes
 
 ```sh
 # Health check
 curl -v localhost/health
-
-# Basic test scenarios
-curl -v localhost/basic/fibonacci
-curl -v -XPOST localhost/basic/everything
+curl -v localhost/health/detailed
 
 # Job test scenarios
 curl -v -XPOST localhost/jobs
 ```
-
-### Load tester
-
-Docker configuration automatically creates and runs [Wrk](https://github.com/wg/wrk) load testing containers. By default it runs the `basic/everything` scenario described in the `wrk` image to give a baseload.
-
-You can modify the `loadtester_a` container in `docker-compose.yml` to change the load type or scenario run. Set the container's `command` to any set of arguments `wrk` accepts.
-
-You can also define your own custom scenario by creating a LUA file, mounting it into the container, and passing it as an argument via `command`.
 
 ### Running integration tests
 
