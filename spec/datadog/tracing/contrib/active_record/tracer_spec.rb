@@ -105,9 +105,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
             Datadog.configure do |c|
               c.tracing.instrument :active_record, service_name: 'bad-no-match'
               c.tracing.instrument :active_record, describes: { makara_role: primary_role },
-                                                   service_name: primary_service_name
+                service_name: primary_service_name
               c.tracing.instrument :active_record, describes: { makara_role: secondary_role },
-                                                   service_name: secondary_service_name
+                service_name: secondary_service_name
             end
           end
 

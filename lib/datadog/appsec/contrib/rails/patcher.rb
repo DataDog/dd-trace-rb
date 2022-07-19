@@ -59,7 +59,7 @@ module Datadog
             # Add trace middleware
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
               app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-                                          Datadog::AppSec::Contrib::Rack::RequestMiddleware)
+                Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             else
               app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             end
@@ -82,8 +82,8 @@ module Datadog
 
               if request_response && request_response.any? { |action, _event| action == :block }
                 @_response = ::ActionDispatch::Response.new(403,
-                                                            { 'Content-Type' => 'text/html' },
-                                                            [Datadog::AppSec::Assets.blocked])
+                  { 'Content-Type' => 'text/html' },
+                  [Datadog::AppSec::Assets.blocked])
                 request_return = @_response.body
               end
 

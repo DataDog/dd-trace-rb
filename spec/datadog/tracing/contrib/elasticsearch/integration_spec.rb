@@ -59,13 +59,13 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Integration do
     context 'when "elastic-transport" gem is loaded with a version' do
       context 'that is less than the minimum' do
         include_context 'loaded gems', :'elastic-transport' => decrement_gem_version(described_class::MINIMUM_VERSION),
-                                       :'elasticsearch-transport' => nil
+          :'elasticsearch-transport' => nil
         it { is_expected.to be false }
       end
 
       context 'that meets the minimum version' do
         include_context 'loaded gems', :'elastic-transport' => described_class::MINIMUM_VERSION,
-                                       :'elasticsearch-transport' => nil
+          :'elasticsearch-transport' => nil
         it { is_expected.to be true }
       end
     end
@@ -73,15 +73,15 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Integration do
     context 'when "elasticsearch-transport" gem is loaded with a version' do
       context 'that is less than the minimum' do
         include_context 'loaded gems',
-                        :'elastic-transport' => nil,
-                        :'elasticsearch-transport' => decrement_gem_version(described_class::MINIMUM_VERSION)
+          :'elastic-transport' => nil,
+          :'elasticsearch-transport' => decrement_gem_version(described_class::MINIMUM_VERSION)
         it { is_expected.to be false }
       end
 
       context 'that meets the minimum version' do
         include_context 'loaded gems',
-                        :'elastic-transport' => nil,
-                        :'elasticsearch-transport' => described_class::MINIMUM_VERSION
+          :'elastic-transport' => nil,
+          :'elasticsearch-transport' => described_class::MINIMUM_VERSION
 
         it { is_expected.to be true }
       end

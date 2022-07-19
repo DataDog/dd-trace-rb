@@ -373,6 +373,15 @@ Naming/FileName:
 Style/OptionalBooleanParameter:
   Enabled: false
 
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
 Lint/UnusedBlockArgument:
   # Required keyword arguments normally cannot be omitted or renamed:
   # Example: in `proc{|unused:|}`, `unused` cannot be renamed to `_unused`.

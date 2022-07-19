@@ -22,12 +22,12 @@ module Datadog
               # to avoid any kind of issue.
               current_span = Tracing.active_span
               return if current_span.try(:name) == Ext::SPAN_CACHE &&
-                        (
-                          payload[:action] == Ext::RESOURCE_CACHE_GET &&
-                          current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
-                          payload[:action] == Ext::RESOURCE_CACHE_MGET &&
-                          current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
-                        )
+                (
+                  payload[:action] == Ext::RESOURCE_CACHE_GET &&
+                  current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
+                  payload[:action] == Ext::RESOURCE_CACHE_MGET &&
+                  current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
+                )
 
               tracing_context = payload.fetch(:tracing_context)
 
