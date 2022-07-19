@@ -1,7 +1,8 @@
 #include <ruby.h>
 #include "collectors_stack.h"
-#include "stack_recorder.h"
+#include "libddprof_helpers.h"
 #include "private_vm_api_access.h"
+#include "stack_recorder.h"
 
 // Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
@@ -178,16 +179,26 @@ static void sample(VALUE collector_instance) {
     metric_values[CPU_SAMPLES_VALUE_POS] = 34;
     metric_values[WALL_TIME_VALUE_POS] = 56;
 
-    ddprof_ffi_Label labels[] = {
-      {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .num = thread_context->thread_id}
-    };
+    VALUE thread_name = thread_name_for(thread);
+    bool have_thread_name = thread_name != Qnil;
+
+    int label_count = 1 + (have_thread_name ? 1 : 0);
+    ddprof_ffi_Label labels[label_count];
+
+    labels[0] = (ddprof_ffi_Label) {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .num = thread_context->thread_id};
+    if (have_thread_name) {
+      labels[1] = (ddprof_ffi_Label) {
+        .key = DDPROF_FFI_CHARSLICE_C("thread name"),
+        .str = char_slice_from_ruby_string(thread_name)
+      };
+    }
 
     sample_thread(
       thread,
       state->sampling_buffer,
       state->recorder_instance,
       (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddprof_ffi_Slice_label) {.ptr = labels, .len = 1}
+      (ddprof_ffi_Slice_label) {.ptr = labels, .len = label_count}
     );
   }
 
