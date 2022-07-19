@@ -21,28 +21,14 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
-      # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
       - DD_DEMO_ENV_FEATURES=tracing
-      # Use this for a local version of ddtrace
-      - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
-      # Use these for a specific revision of ddtrace
-      # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
-      # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
-      # Enable building the profiling native extension
     expose:
       - "80"
     ports:
       - "80:80"
     stdin_open: true
     tty: true
-    volumes:
-      - .:/app
-      - ./data/app:/data/app
-      - bundle:/usr/local/bundle
-      - ../../images/include:/vendor/dd-demo
-      - ../../..:/vendor/dd-trace-rb
-      - logs:/app/log
   ddagent:
     image: datadog/dd-apm-demo:agent
     environment:
@@ -56,24 +42,6 @@ services:
     expose:
       - "8125/udp"
       - "8126"
-    volumes:
-      - ../../images/agent/agent.yaml:/etc/datadog-agent/datadog.yaml
-      - ./config/agent_app_conf.yaml:/etc/datadog-agent/conf.d/rails-seven.d/conf.yaml
-      - logs:/var/log/rails-seven
-      # For monitoring performance of containers (e.g. CPU, Memory, etc...)
-      # - type: bind
-      #   source: ../../config/agent.yaml
-      #   target: /etc/datadog-agent/datadog.yaml
-      # - type: bind
-      #   source: /var/run/docker.sock
-      #   target: /var/run/docker.sock:ro
-      # - type: bind
-      #   source: /proc/
-      #   target: /host/proc/:ro
-      # - type: bind
-      # - type: bind
-      #   source: /sys/fs/cgroup/
-      #   target: /host/sys/fs/cgroup:ro
   worker-delayed-job:
     build:
       context: .
@@ -81,11 +49,6 @@ services:
         BASE_IMAGE: datadog/dd-apm-demo:rb-2.7
     command: bin/delayed_job run
     entrypoint: 'bundle exec bin/delayed_job run'
-    volumes:
-      - .:/app
-      - bundle:/usr/local/bundle
-      - ../../images/include:/vendor/dd-demo
-      - ../../..:/vendor/dd-trace-rb
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
       - DATABASE_URL=mysql2://mysql:mysql@mysql:3306
@@ -99,15 +62,8 @@ services:
       - RAILS_ENV=production
       - RAILS_LOG_TO_STDOUT=true
       - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
-      # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
       - DD_DEMO_ENV_FEATURES=tracing
-      # Use this for a local version of ddtrace
-      - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
-      # Use these for a specific revision of ddtrace
-      # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
-      # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
-      # Enable building the profiling native extension
     expose:
       - "81"
     stdin_open: true
