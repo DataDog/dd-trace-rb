@@ -31,11 +31,13 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         add
 
         expect(resolver.configurations)
-          .to eq({
-            adapter: 'adapter',
-            host: 'host',
-            port: 123
-          } => config)
+          .to eq(
+            {
+              adapter: 'adapter',
+              host: 'host',
+              port: 123
+            } => config
+          )
       end
     end
 
@@ -119,8 +121,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
 
         unless matcher == match_all
           expect(resolver.resolve({ host: Object.new }))
-            .to be_nil, "Expected pattern to match only the input, but it's matching everything. "\
-                        'Unless you explicitly wanted to match all patterns, this is unlikely to be desired.'
+            .to be_nil,
+              "Expected pattern to match only the input, but it's matching everything. "\
+                                      'Unless you explicitly wanted to match all patterns, this is unlikely to be desired.'
         end
       end
     end

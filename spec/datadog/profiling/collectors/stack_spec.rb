@@ -93,10 +93,12 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when sampling a top-level eval' do
       let(:do_in_background_thread) do
         proc do
-          eval(%(
+          eval(
+            %(
             ready_queue << true
             sleep
-          ))
+          )
+          )
         end
       end
 
@@ -382,7 +384,8 @@ class DeepStackSimulator
       next if respond_to?(:"deep_stack_#{depth}")
 
       # rubocop:disable Security/Eval
-      eval(%(
+      eval(
+        %(
         def deep_stack_#{depth}                               # def deep_stack_1
           if Thread.current.backtrace.size < @target_depth    #   if Thread.current.backtrace.size < @target_depth
             deep_stack_#{depth + 1}                           #     deep_stack_2
@@ -391,7 +394,11 @@ class DeepStackSimulator
             sleep                                             #     sleep
           end                                                 #   end
         end                                                   # end
-      ), binding, __FILE__, __LINE__ - 9)
+      ),
+        binding,
+        __FILE__,
+        __LINE__ - 12
+      )
       # rubocop:enable Security/Eval
     end
   end

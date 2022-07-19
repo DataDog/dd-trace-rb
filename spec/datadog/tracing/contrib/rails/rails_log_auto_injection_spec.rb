@@ -21,21 +21,27 @@ RSpec.describe 'Rails Log Auto Injection' do
   end
 
   let(:tagged_logging_controller) do
-    stub_const('TaggedLoggingTestController', Class.new(ActionController::Base) do
-      def index
-        Rails.logger.info('MINASWAN')
-        render inline: '<html> <head> </head> <body> <div> Hello from index </div> </body> </html>'
+    stub_const(
+      'TaggedLoggingTestController',
+      Class.new(ActionController::Base) do
+        def index
+          Rails.logger.info('MINASWAN')
+          render inline: '<html> <head> </head> <body> <div> Hello from index </div> </body> </html>'
+        end
       end
-    end)
+    )
   end
 
   let(:lograge_controller) do
-    stub_const('LogrageTestController', Class.new(ActionController::Base) do
-      def index
-        Rails.logger.info('MINASWAN')
-        render inline: '<html> <head> </head> <body> <div> Hello from index </div> </body> </html>'
+    stub_const(
+      'LogrageTestController',
+      Class.new(ActionController::Base) do
+        def index
+          Rails.logger.info('MINASWAN')
+          render inline: '<html> <head> </head> <body> <div> Hello from index </div> </body> </html>'
+        end
       end
-    end)
+    )
   end
 
   before do

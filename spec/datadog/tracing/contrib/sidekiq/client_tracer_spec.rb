@@ -66,9 +66,12 @@ RSpec.describe 'ClientTracerTest' do
         pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
       end
 
-      stub_const('DelayableClass', Class.new do
-        def self.do_work; end
-      end)
+      stub_const(
+        'DelayableClass',
+        Class.new do
+          def self.do_work; end
+        end
+      )
     end
 
     it 'traces with correct resource' do

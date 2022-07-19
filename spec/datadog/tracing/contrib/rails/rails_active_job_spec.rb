@@ -30,14 +30,17 @@ RSpec.describe 'ActiveJob' do
       stub_const('JobDiscardError', Class.new(StandardError))
       stub_const('JobRetryError', Class.new(StandardError))
 
-      stub_const('ExampleJob', Class.new(ActiveJob::Base) do
-        def perform(test_retry: false, test_discard: false)
-          ActiveJob::Base.logger.info 'MINASWAN'
-          JOB_EXECUTIONS.increment
-          raise JobRetryError if test_retry
-          raise JobDiscardError if test_discard
+      stub_const(
+        'ExampleJob',
+        Class.new(ActiveJob::Base) do
+          def perform(test_retry: false, test_discard: false)
+            ActiveJob::Base.logger.info 'MINASWAN'
+            JOB_EXECUTIONS.increment
+            raise JobRetryError if test_retry
+            raise JobDiscardError if test_discard
+          end
         end
-      end)
+      )
       ExampleJob.discard_on(JobDiscardError) if ExampleJob.respond_to?(:discard_on)
       ExampleJob.retry_on(JobRetryError, attempts: 2, wait: 2) { nil } if ExampleJob.respond_to?(:retry_on)
 
@@ -228,11 +231,14 @@ RSpec.describe 'ActiveJob' do
 
     context 'with a Sidekiq::Worker' do
       subject(:worker) do
-        stub_const('EmptyWorker', Class.new do
-          include Sidekiq::Worker
+        stub_const(
+          'EmptyWorker',
+          Class.new do
+            include Sidekiq::Worker
 
-          def perform; end
-        end)
+            def perform; end
+          end
+        )
       end
 
       it 'has correct Sidekiq span' do
@@ -249,9 +255,12 @@ RSpec.describe 'ActiveJob' do
 
     context 'with an ActiveJob' do
       subject(:worker) do
-        stub_const('EmptyJob', Class.new(ActiveJob::Base) do
-          def perform; end
-        end)
+        stub_const(
+          'EmptyJob',
+          Class.new(ActiveJob::Base) do
+            def perform; end
+          end
+        )
       end
 
       it 'has correct Sidekiq span' do

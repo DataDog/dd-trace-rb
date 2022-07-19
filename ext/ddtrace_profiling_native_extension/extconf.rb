@@ -42,7 +42,8 @@ unless Datadog::Profiling::NativeExtensionHelpers::Supported.supported?
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
 end
 
-$stderr.puts(%(
+$stderr.puts(
+  %(
 +------------------------------------------------------------------------------+
 | ** Preparing to build the ddtrace profiling native extension... **           |
 |                                                                              |
@@ -59,7 +60,8 @@ $stderr.puts(%(
 | Thanks for using ddtrace! You rock!                                          |
 +------------------------------------------------------------------------------+
 
-))
+)
+)
 
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.

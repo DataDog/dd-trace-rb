@@ -524,22 +524,28 @@ RSpec.describe 'Sinatra instrumentation' do
   context 'with modular app' do
     let(:sinatra_app) do
       mount_nested_app = self.mount_nested_app
-      stub_const('NestedApp', Class.new(Sinatra::Base) do
-        register Datadog::Tracing::Contrib::Sinatra::Tracer
+      stub_const(
+        'NestedApp',
+        Class.new(Sinatra::Base) do
+          register Datadog::Tracing::Contrib::Sinatra::Tracer
 
-        get '/nested' do
-          headers['X-Request-ID'] = 'test id'
-          'nested ok'
+          get '/nested' do
+            headers['X-Request-ID'] = 'test id'
+            'nested ok'
+          end
         end
-      end)
+      )
 
       sinatra_routes = self.sinatra_routes
-      stub_const('App', Class.new(Sinatra::Base) do
-        register Datadog::Tracing::Contrib::Sinatra::Tracer
-        use NestedApp if mount_nested_app
+      stub_const(
+        'App',
+        Class.new(Sinatra::Base) do
+          register Datadog::Tracing::Contrib::Sinatra::Tracer
+          use NestedApp if mount_nested_app
 
-        instance_exec(&sinatra_routes)
-      end)
+          instance_exec(&sinatra_routes)
+        end
+      )
     end
 
     let(:app_name) { top_app_name }
@@ -630,9 +636,12 @@ RSpec.describe 'Sinatra instrumentation' do
 
       let(:sinatra_app) do
         sinatra_routes = self.sinatra_routes
-        stub_const('App', Class.new(Sinatra::Base) do
-          instance_exec(&sinatra_routes)
-        end)
+        stub_const(
+          'App',
+          Class.new(Sinatra::Base) do
+            instance_exec(&sinatra_routes)
+          end
+        )
       end
 
       subject(:response) { get url }

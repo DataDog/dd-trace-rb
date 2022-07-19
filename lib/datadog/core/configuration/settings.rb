@@ -419,7 +419,8 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                  ], comma_separated_only: true
+                  ],
+                  comma_separated_only: true
                 )
               end
 
@@ -437,7 +438,8 @@ module Datadog
               o.default do
                 env_to_list(
                   Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
-                  [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG], comma_separated_only: true # Only inject Datadog headers by default
+                  [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG],
+                  comma_separated_only: true # Only inject Datadog headers by default
                 )
               end
 

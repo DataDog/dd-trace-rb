@@ -32,10 +32,12 @@ RSpec.describe 'Redis configuration resolver' do
         let(:matcher) { 'redis://127.0.0.1:6379/0' }
 
         it do
-          expect(parsed_key).to eq(host: '127.0.0.1',
+          expect(parsed_key).to eq(
+            host: '127.0.0.1',
             port: 6379,
             db: 0,
-            scheme: 'redis')
+            scheme: 'redis'
+          )
         end
       end
 
@@ -43,10 +45,12 @@ RSpec.describe 'Redis configuration resolver' do
         let(:matcher) { { url: 'redis://127.0.0.1:6379/0' } }
 
         it do
-          expect(parsed_key).to eq(host: '127.0.0.1',
+          expect(parsed_key).to eq(
+            host: '127.0.0.1',
             port: 6379,
             db: 0,
-            scheme: 'redis')
+            scheme: 'redis'
+          )
         end
       end
     end
@@ -62,10 +66,12 @@ RSpec.describe 'Redis configuration resolver' do
       end
 
       it do
-        expect(parsed_key).to eq(host: '127.0.0.1',
+        expect(parsed_key).to eq(
+          host: '127.0.0.1',
           port: 6379,
           db: 0,
-          scheme: 'redis')
+          scheme: 'redis'
+        )
       end
     end
 
@@ -79,10 +85,12 @@ RSpec.describe 'Redis configuration resolver' do
       end
 
       it do
-        expect(parsed_key).to eq(host: '127.0.0.1',
+        expect(parsed_key).to eq(
+          host: '127.0.0.1',
           port: 6379,
           db: 0,
-          scheme: 'redis')
+          scheme: 'redis'
+        )
       end
     end
 
@@ -95,10 +103,12 @@ RSpec.describe 'Redis configuration resolver' do
       end
 
       it do
-        expect(parsed_key).to eq(host: '127.0.0.1',
+        expect(parsed_key).to eq(
+          host: '127.0.0.1',
           port: 6379,
           db: 0,
-          scheme: 'redis')
+          scheme: 'redis'
+        )
       end
     end
   end

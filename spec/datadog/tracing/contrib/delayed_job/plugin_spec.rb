@@ -12,20 +12,26 @@ require_relative 'delayed_job_active_record'
 
 RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_active_record do
   let(:sample_job_object) do
-    stub_const('SampleJob', Class.new do
-      def perform; end
-    end)
+    stub_const(
+      'SampleJob',
+      Class.new do
+        def perform; end
+      end
+    )
   end
   let(:active_job_sample_job_object) do
-    stub_const('ActiveJobSampleJob', Class.new do
-      def perform; end
+    stub_const(
+      'ActiveJobSampleJob',
+      Class.new do
+        def perform; end
 
-      def job_data
-        {
-          'job_class' => 'UnderlyingJobClass'
-        }
+        def job_data
+          {
+            'job_class' => 'UnderlyingJobClass'
+          }
+        end
       end
-    end)
+    )
   end
 
   let(:configuration_options) { {} }
@@ -89,11 +95,14 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
       let(:error_handler) { proc { @error_handler_called = true } }
 
       let(:sample_job_object) do
-        stub_const('SampleJob', Class.new do
-          def perform
-            raise ZeroDivisionError, 'job error'
+        stub_const(
+          'SampleJob',
+          Class.new do
+            def perform
+              raise ZeroDivisionError, 'job error'
+            end
           end
-        end)
+        )
       end
 
       it 'uses custom error handler' do

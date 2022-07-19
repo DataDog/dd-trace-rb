@@ -36,13 +36,16 @@ RSpec.describe 'Tracer configuration' do
       let(:error_handler) { proc { @error_handler_called = true } }
 
       before do
-        stub_const('ErrorWorker', Class.new do
-          include Sidekiq::Worker
+        stub_const(
+          'ErrorWorker',
+          Class.new do
+            include Sidekiq::Worker
 
-          def perform
-            raise ZeroDivisionError, 'job error'
+            def perform
+              raise ZeroDivisionError, 'job error'
+            end
           end
-        end)
+        )
       end
 
       it 'uses custom error handler' do

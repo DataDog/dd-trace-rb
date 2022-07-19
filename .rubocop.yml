@@ -376,6 +376,21 @@ Style/OptionalBooleanParameter:
 Layout/ArgumentAlignment:
   EnforcedStyle: with_fixed_indentation
 
+Layout/BlockAlignment:
+  EnforcedStyleAlignWith: start_of_block
+
+Layout/FirstArgumentIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstMethodArgumentLineBreak:
+  Enabled: true
+
+Layout/FirstMethodParameterLineBreak:
+  Enabled: true
+
+Layout/MultilineMethodArgumentLineBreaks:
+  Enabled: true
+
 Layout/MultilineMethodCallIndentation:
   EnforcedStyle: indented
 

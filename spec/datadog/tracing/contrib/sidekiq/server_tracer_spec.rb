@@ -42,13 +42,16 @@ RSpec.describe 'Server tracer' do
     let(:job_class) { ErrorWorker }
 
     before do
-      stub_const('ErrorWorker', Class.new do
-        include Sidekiq::Worker
+      stub_const(
+        'ErrorWorker',
+        Class.new do
+          include Sidekiq::Worker
 
-        def perform
-          raise ZeroDivisionError, 'job error'
+          def perform
+            raise ZeroDivisionError, 'job error'
+          end
         end
-      end)
+      )
     end
 
     it 'traces async job run' do
@@ -73,11 +76,14 @@ RSpec.describe 'Server tracer' do
     before do
       allow(Datadog.configuration.tracing).to receive(:[]).with(:sidekiq).and_return(sidekiq_options)
 
-      stub_const('CustomWorker', Class.new do
-        include Sidekiq::Worker
+      stub_const(
+        'CustomWorker',
+        Class.new do
+          include Sidekiq::Worker
 
-        def perform(id) end
-      end)
+          def perform(id) end
+        end
+      )
     end
 
     it 'traces async job run' do
@@ -172,11 +178,14 @@ RSpec.describe 'Server tracer' do
         pending 'Broken in Ruby 3.1.0-preview1, see https://github.com/mperham/sidekiq/issues/5064'
       end
 
-      stub_const('DelayableClass', Class.new do
-        def self.do_work
-          puts 'a'
+      stub_const(
+        'DelayableClass',
+        Class.new do
+          def self.do_work
+            puts 'a'
+          end
         end
-      end)
+      )
     end
 
     it 'traces with correct resource' do
