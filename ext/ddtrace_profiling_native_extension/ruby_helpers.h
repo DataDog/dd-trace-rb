@@ -46,7 +46,7 @@ static inline int check_if_pending_exception(void) {
   { if (RB_UNLIKELY(!RB_TYPE_P(value, type))) raise_unexpected_type(value, type, ADD_QUOTES(value), ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
 
 // Called by ENFORCE_TYPE; should not be used directly
-void raise_unexpected_type(
+NORETURN(void raise_unexpected_type(
   VALUE value,
   enum ruby_value_type type,
   const char *value_name,
@@ -54,4 +54,4 @@ void raise_unexpected_type(
   const char *file,
   int line,
   const char* function_name
-);
+));
