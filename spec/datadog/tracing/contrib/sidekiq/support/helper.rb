@@ -89,4 +89,33 @@ module SidekiqServerExpectations
     app_tempfile.close
     app_tempfile.unlink
   end
+
+  def run_sidekiq_server(duration: 2)
+    app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
+
+    expect_in_fork do
+      # NB: This is needed because we want to patch within a forked process.
+      if Datadog::Tracing::Contrib::Sidekiq::Patcher.instance_variable_get(:@patch_only_once)
+        Datadog::Tracing::Contrib::Sidekiq::Patcher
+          .instance_variable_get(:@patch_only_once)
+          .send(:reset_ran_once_state_for_tests)
+      end
+
+      require 'sidekiq/cli'
+
+      configure_sidekiq
+
+      Thread.new do
+        cli = Sidekiq::CLI.instance
+        cli.parse(['--require', app_tempfile.path]) # boot the "app"
+        cli.run
+      end
+
+      sleep duration
+      exit
+    end
+  ensure
+    app_tempfile.close
+    app_tempfile.unlink
+  end
 end
