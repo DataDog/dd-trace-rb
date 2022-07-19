@@ -206,17 +206,18 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
 
     describe 'reserve_job span' do
       subject(:span) { fetch_spans.first }
+      let(:worker) { Delayed::Worker.new }
 
-      before { job_run }
-
-      include_context 'delayed_job common tags and resource'
+      before do
+        worker.send(:reserve_job)
+      end
 
       it_behaves_like 'analytics for integration' do
         let(:analytics_enabled_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_ENABLED }
         let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::DelayedJob::Ext::ENV_ANALYTICS_SAMPLE_RATE }
       end
 
-      it_behaves_like 'measured span for integration', true
+      it_behaves_like 'measured span for integration', false
 
       it 'has default service name' do
         expect(span.service).to eq(tracer.default_service)
