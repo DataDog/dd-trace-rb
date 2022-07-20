@@ -27,7 +27,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   stack_recorder_init(profiling_module);
 }
 
-static VALUE native_working_p(VALUE self) {
+static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   self_test_clock_id();
 
   return Qtrue;

@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include "extconf.h"
+#include "helpers.h"
 #include "libddprof_helpers.h"
 #include "ruby_helpers.h"
 #include "private_vm_api_access.h"
@@ -41,7 +42,7 @@ void collectors_stack_init(VALUE profiling_module) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
 

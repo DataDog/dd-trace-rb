@@ -91,6 +91,9 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
+# Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+add_compiler_flag '-Wunused-parameter'
+
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
 # it `dlopen`s the library.

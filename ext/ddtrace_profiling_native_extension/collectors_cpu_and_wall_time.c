@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include "helpers.h"
 #include "collectors_stack.h"
 #include "libddprof_helpers.h"
 #include "private_vm_api_access.h"
@@ -114,14 +115,14 @@ static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr) {
 }
 
 // Mark Ruby thread references we keep as keys in hash_map_per_thread_context
-static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument) {
+static int hash_map_per_thread_context_mark(st_data_t key_thread, DDTRACE_UNUSED st_data_t _value, DDTRACE_UNUSED st_data_t _argument) {
   VALUE thread = (VALUE) key_thread;
   rb_gc_mark(thread);
   return ST_CONTINUE;
 }
 
 // Used to clear each of the per_thread_contexts inside the hash_map_per_thread_context
-static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument) {
+static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thread, st_data_t value_per_thread_context, DDTRACE_UNUSED st_data_t _argument) {
   struct per_thread_context *per_thread_context = (struct per_thread_context*) value_per_thread_context;
   ruby_xfree(per_thread_context);
   return ST_CONTINUE;
@@ -141,7 +142,7 @@ static VALUE _native_new(VALUE klass) {
   return TypedData_Wrap_Struct(collectors_cpu_and_wall_time_class, &cpu_and_wall_time_collector_typed_data, state);
 }
 
-static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
   enforce_recorder_instance(recorder_instance);
 
   struct cpu_and_wall_time_collector_state *state;
@@ -160,7 +161,7 @@ static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE reco
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(VALUE self, VALUE collector_instance) {
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   sample(collector_instance);
   return Qtrue;
 }
@@ -220,7 +221,7 @@ static void sample(VALUE collector_instance) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_thread_list(VALUE self) {
+static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   return ddtrace_thread_list();
 }
 
@@ -246,7 +247,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
 }
 
-static VALUE _native_inspect(VALUE self, VALUE collector_instance) {
+static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -288,7 +289,7 @@ static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_s
   st_foreach(state->hash_map_per_thread_context, remove_if_dead_thread, 0 /* unused */);
 }
 
-static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument) {
+static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, DDTRACE_UNUSED st_data_t _argument) {
   VALUE thread = (VALUE) key_thread;
   struct per_thread_context* thread_context = (struct per_thread_context*) value_context;
 
@@ -299,7 +300,7 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
 }
 
 // Returns the whole contents of the per_thread_context structs being tracked, for debugging/testing
-static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance) {
+static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 

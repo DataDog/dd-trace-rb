@@ -2,9 +2,11 @@
 
 #include <ruby.h>
 
+#include "helpers.h"
+
 // Processes any pending interruptions, including exceptions to be raised.
 // If there's an exception to be raised, it raises it. In that case, this function does not return.
-static inline VALUE process_pending_interruptions(VALUE _unused) {
+static inline VALUE process_pending_interruptions(DDTRACE_UNUSED VALUE _) {
   rb_thread_check_ints();
   return Qnil;
 }

@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <ddprof/ffi.h>
+#include "helpers.h"
 #include "libddprof_helpers.h"
 #include "ruby_helpers.h"
 
@@ -68,7 +69,7 @@ inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   return byte_slice;
 }
 
-static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration) {
+static VALUE _native_validate_exporter(DDTRACE_UNUSED VALUE _self, VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
   ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, rb_ary_new());
 
@@ -259,7 +260,7 @@ static VALUE perform_export(
 }
 
 static VALUE _native_do_export(
-  VALUE self,
+  DDTRACE_UNUSED VALUE _self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
   VALUE start_timespec_seconds,
