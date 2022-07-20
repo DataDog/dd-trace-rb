@@ -119,14 +119,13 @@ bool is_thread_alive(VALUE thread) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 VALUE thread_name_for(VALUE thread) {
-#pragma GCC diagnostic pop
-
   #ifdef NO_THREAD_NAMES
     return Qnil;
   #else
     return thread_struct_from_object(thread)->name;
   #endif
 }
+#pragma GCC diagnostic pop
 
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
@@ -169,15 +168,14 @@ VALUE thread_name_for(VALUE thread) {
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
-inline static int
-calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno,
+//
 // `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
 // To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
 // with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-  int *node_id)
-#pragma GCC diagnostic pop
+inline static int
+calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 {
     VM_ASSERT(iseq);
     VM_ASSERT(ISEQ_BODY(iseq));
@@ -219,6 +217,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno,
         return 1;
     }
 }
+#pragma GCC diagnostic pop
 
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
