@@ -33,9 +33,9 @@ RSpec.describe 'Redis configuration resolver' do
 
         it do
           expect(parsed_key).to eq(host: '127.0.0.1',
-                                   port: 6379,
-                                   db: 0,
-                                   scheme: 'redis')
+            port: 6379,
+            db: 0,
+            scheme: 'redis')
         end
       end
 
@@ -44,9 +44,9 @@ RSpec.describe 'Redis configuration resolver' do
 
         it do
           expect(parsed_key).to eq(host: '127.0.0.1',
-                                   port: 6379,
-                                   db: 0,
-                                   scheme: 'redis')
+            port: 6379,
+            db: 0,
+            scheme: 'redis')
         end
       end
     end
@@ -63,9 +63,9 @@ RSpec.describe 'Redis configuration resolver' do
 
       it do
         expect(parsed_key).to eq(host: '127.0.0.1',
-                                 port: 6379,
-                                 db: 0,
-                                 scheme: 'redis')
+          port: 6379,
+          db: 0,
+          scheme: 'redis')
       end
     end
 
@@ -80,9 +80,9 @@ RSpec.describe 'Redis configuration resolver' do
 
       it do
         expect(parsed_key).to eq(host: '127.0.0.1',
-                                 port: 6379,
-                                 db: 0,
-                                 scheme: 'redis')
+          port: 6379,
+          db: 0,
+          scheme: 'redis')
       end
     end
 
@@ -96,9 +96,9 @@ RSpec.describe 'Redis configuration resolver' do
 
       it do
         expect(parsed_key).to eq(host: '127.0.0.1',
-                                 port: 6379,
-                                 db: 0,
-                                 scheme: 'redis')
+          port: 6379,
+          db: 0,
+          scheme: 'redis')
       end
     end
   end

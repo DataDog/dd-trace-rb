@@ -32,8 +32,8 @@ module Datadog
 
               if tracing_sinatra_framework.include_middleware?(tracing_middleware, builder)
                 tracing_sinatra_framework.add_middleware_after(tracing_middleware,
-                                                               Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-                                                               builder)
+                  Datadog::AppSec::Contrib::Rack::RequestMiddleware,
+                  builder)
               else
                 tracing_sinatra_framework.add_middleware(Datadog::AppSec::Contrib::Rack::RequestMiddleware, builder)
               end
@@ -60,8 +60,8 @@ module Datadog
 
             if request_response && request_response.any? { |action, _event| action == :block }
               self.response = ::Sinatra::Response.new([Datadog::AppSec::Assets.blocked],
-                                                      403,
-                                                      { 'Content-Type' => 'text/html' })
+                403,
+                { 'Content-Type' => 'text/html' })
               request_return = nil
             end
 

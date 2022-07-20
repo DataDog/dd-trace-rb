@@ -119,8 +119,8 @@ module Datadog
           build_id = env['BUILD_BUILDID']
 
           if build_id &&
-             (team_foundation_server_uri = env['SYSTEM_TEAMFOUNDATIONSERVERURI']) &&
-             (team_project_id = env['SYSTEM_TEAMPROJECTID'])
+              (team_foundation_server_uri = env['SYSTEM_TEAMFOUNDATIONSERVERURI']) &&
+              (team_project_id = env['SYSTEM_TEAMPROJECTID'])
 
             pipeline_url = "#{team_foundation_server_uri}#{team_project_id}/_build/results?buildId=#{build_id}"
 

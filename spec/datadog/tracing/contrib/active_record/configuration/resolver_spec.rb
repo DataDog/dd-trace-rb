@@ -32,10 +32,10 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
 
         expect(resolver.configurations)
           .to eq({
-                   adapter: 'adapter',
-                   host: 'host',
-                   port: 123
-                 } => config)
+            adapter: 'adapter',
+            host: 'host',
+            port: 123
+          } => config)
       end
     end
 

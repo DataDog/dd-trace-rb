@@ -738,7 +738,7 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
 
       it 'does not affect Ruby < 2.3 nor Ruby >= 2.7' do
         unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3') ||
-               Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
+            Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.7')
           skip 'Test case only applies to Ruby < 2.3 or Ruby >= 2.7'
         end
 
@@ -749,7 +749,7 @@ RSpec.describe Datadog::Profiling::Collectors::OldStack do
 
       it 'affects Ruby >= 2.3 and < 2.7' do
         unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3') &&
-               Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
+            Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.7')
           skip 'Test case only applies to Ruby >= 2.3 and < 2.7'
         end
 

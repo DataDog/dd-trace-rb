@@ -608,9 +608,9 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(trace.resource).to eq(resource)
 
               expect(top_span).to be_request_span resource: 'GET',
-                                                  app_name: top_app_name,
-                                                  matching_app: false,
-                                                  parent: top_rack_span
+                app_name: top_app_name,
+                matching_app: false,
+                parent: top_rack_span
               expect(top_rack_span).not_to be_nil
               expect(top_rack_span).to be_root_span
               expect(top_rack_span.resource).to eq('GET')

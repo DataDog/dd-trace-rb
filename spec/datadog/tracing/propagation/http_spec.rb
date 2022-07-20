@@ -21,8 +21,8 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         it do
           inject!
           expect(env).to eq('something' => 'alien',
-                            'x-datadog-trace-id' => '1000',
-                            'x-datadog-parent-id' => '2000')
+            'x-datadog-trace-id' => '1000',
+            'x-datadog-parent-id' => '2000')
         end
       end
 
@@ -34,9 +34,9 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
 
           it do
             expect(env).to eq('something' => 'alien',
-                              'x-datadog-sampling-priority' => '0',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+              'x-datadog-sampling-priority' => '0',
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000')
           end
         end
 
@@ -45,8 +45,8 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
 
           it do
             expect(env).to eq('something' => 'alien',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000')
           end
         end
       end
@@ -59,9 +59,9 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
 
           it do
             expect(env).to eq('something' => 'alien',
-                              'x-datadog-origin' => 'synthetics',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+              'x-datadog-origin' => 'synthetics',
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000')
           end
         end
 
@@ -70,8 +70,8 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
 
           it do
             expect(env).to eq('something' => 'alien',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000')
           end
         end
       end

@@ -221,9 +221,9 @@ module Datadog
 
           @uds_fallback =
             if configured_hostname.nil? &&
-               configured_port.nil? &&
-               deprecated_for_removal_transport_configuration_proc.nil? &&
-               File.exist?(Transport::Ext::UnixSocket::DEFAULT_PATH)
+                configured_port.nil? &&
+                deprecated_for_removal_transport_configuration_proc.nil? &&
+                File.exist?(Transport::Ext::UnixSocket::DEFAULT_PATH)
 
               Transport::Ext::UnixSocket::DEFAULT_PATH
             end
