@@ -354,17 +354,19 @@ RSpec.describe 'Rack integration tests' do
         let(:routes) do
           proc do
             map '/app/' do
-              run(proc do |env|
-                # This should be considered a web framework that can alter
-                # the request span after routing / controller processing
-                request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                request_span.resource = 'GET /app/'
-                request_span.set_tag('http.method', 'GET_V2')
-                request_span.set_tag('http.status_code', 201)
-                request_span.set_tag('http.url', '/app/static/')
+              run(
+                proc do |env|
+                  # This should be considered a web framework that can alter
+                  # the request span after routing / controller processing
+                  request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+                  request_span.resource = 'GET /app/'
+                  request_span.set_tag('http.method', 'GET_V2')
+                  request_span.set_tag('http.status_code', 201)
+                  request_span.set_tag('http.url', '/app/static/')
 
-                [200, { 'Content-Type' => 'text/html' }, ['OK']]
-              end)
+                  [200, { 'Content-Type' => 'text/html' }, ['OK']]
+                end
+              )
             end
           end
         end
@@ -410,15 +412,17 @@ RSpec.describe 'Rack integration tests' do
           let(:routes) do
             proc do
               map '/app/500/' do
-                run(proc do |env|
-                  # this should be considered a web framework that can alter
-                  # the request span after routing / controller processing
-                  request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                  request_span.status = 1
-                  request_span.set_tag('error.stack', 'Handled exception')
+                run(
+                  proc do |env|
+                    # this should be considered a web framework that can alter
+                    # the request span after routing / controller processing
+                    request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+                    request_span.status = 1
+                    request_span.set_tag('error.stack', 'Handled exception')
 
-                  [500, { 'Content-Type' => 'text/html' }, ['OK']]
-                end)
+                    [500, { 'Content-Type' => 'text/html' }, ['OK']]
+                  end
+                )
               end
             end
           end
@@ -450,14 +454,16 @@ RSpec.describe 'Rack integration tests' do
           let(:routes) do
             proc do
               map '/app/500/' do
-                run(proc do |env|
-                  # this should be considered a web framework that can alter
-                  # the request span after routing / controller processing
-                  request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
-                  request_span.set_tag('error.stack', 'Handled exception')
+                run(
+                  proc do |env|
+                    # this should be considered a web framework that can alter
+                    # the request span after routing / controller processing
+                    request_span = env[Datadog::Tracing::Contrib::Rack::Ext::RACK_ENV_REQUEST_SPAN]
+                    request_span.set_tag('error.stack', 'Handled exception')
 
-                  [500, { 'Content-Type' => 'text/html' }, ['OK']]
-                end)
+                    [500, { 'Content-Type' => 'text/html' }, ['OK']]
+                  end
+                )
               end
             end
           end
@@ -530,18 +536,20 @@ RSpec.describe 'Rack integration tests' do
       let(:routes) do
         proc do
           map '/headers/' do
-            run(proc do |_env|
-              response_headers = {
-                'Content-Type' => 'text/html',
-                'Cache-Control' => 'max-age=3600',
-                'ETag' => '"737060cd8c284d8af7ad3082f209582d"',
-                'Expires' => 'Thu, 01 Dec 1994 16:00:00 GMT',
-                'Last-Modified' => 'Tue, 15 Nov 1994 12:45:26 GMT',
-                'X-Request-ID' => 'f058ebd6-02f7-4d3f-942e-904344e8cde5',
-                'X-Fake-Response' => 'Don\'t tag me.'
-              }
-              [200, response_headers, ['OK']]
-            end)
+            run(
+              proc do |_env|
+                response_headers = {
+                  'Content-Type' => 'text/html',
+                  'Cache-Control' => 'max-age=3600',
+                  'ETag' => '"737060cd8c284d8af7ad3082f209582d"',
+                  'Expires' => 'Thu, 01 Dec 1994 16:00:00 GMT',
+                  'Last-Modified' => 'Tue, 15 Nov 1994 12:45:26 GMT',
+                  'X-Request-ID' => 'f058ebd6-02f7-4d3f-942e-904344e8cde5',
+                  'X-Fake-Response' => 'Don\'t tag me.'
+                }
+                [200, response_headers, ['OK']]
+              end
+            )
           end
         end
       end
@@ -549,22 +557,23 @@ RSpec.describe 'Rack integration tests' do
       context 'when configured to tag headers' do
         before do
           Datadog.configure do |c|
-            c.tracing.instrument :rack, headers: {
-              request: [
-                'Cache-Control'
-              ],
-              response: [
-                'Content-Type',
-                'Cache-Control',
-                'Content-Type',
-                'ETag',
-                'Expires',
-                'Last-Modified',
-                # This lowercase 'Id' header doesn't match.
-                # Ensure middleware allows for case-insensitive matching.
-                'X-Request-Id'
-              ]
-            }
+            c.tracing.instrument :rack,
+              headers: {
+                request: [
+                  'Cache-Control'
+                ],
+                response: [
+                  'Content-Type',
+                  'Cache-Control',
+                  'Content-Type',
+                  'ETag',
+                  'Expires',
+                  'Last-Modified',
+                  # This lowercase 'Id' header doesn't match.
+                  # Ensure middleware allows for case-insensitive matching.
+                  'X-Request-Id'
+                ]
+              }
           end
         end
 

@@ -18,9 +18,12 @@ end
 RSpec.describe 'ActiveRecord multi-database implementation' do
   let(:configuration_options) { { service_name: default_db_service_name } }
   let(:application_record) do
-    stub_const('ApplicationRecord', Class.new(ActiveRecord::Base) do
-      self.abstract_class = true
-    end)
+    stub_const(
+      'ApplicationRecord',
+      Class.new(ActiveRecord::Base) do
+        self.abstract_class = true
+      end
+    )
   end
   let!(:gadget_class) do
     stub_const('Gadget', Class.new(application_record)).tap do |klass|

@@ -25,8 +25,10 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::Datadog do
       end
 
       it do
-        expect(metadata).to eq(Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '10000',
-                               Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '20000')
+        expect(metadata).to eq(
+          Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '10000',
+          Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '20000'
+        )
       end
 
       context 'with sampling priority' do
@@ -39,9 +41,11 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::Datadog do
         end
 
         it do
-          expect(metadata).to eq(Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '50000',
-                                 Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '60000',
-                                 Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY => '1')
+          expect(metadata).to eq(
+            Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '50000',
+            Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '60000',
+            Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY => '1'
+          )
         end
 
         context 'with origin' do
@@ -55,10 +59,12 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::Datadog do
           end
 
           it do
-            expect(metadata).to eq(Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '70000',
-                                   Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '80000',
-                                   Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY => '1',
-                                   Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_ORIGIN => 'synthetics')
+            expect(metadata).to eq(
+              Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '70000',
+              Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '80000',
+              Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY => '1',
+              Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_ORIGIN => 'synthetics'
+            )
           end
         end
       end
@@ -73,9 +79,11 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::Datadog do
         end
 
         it do
-          expect(metadata).to eq(Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '90000',
-                                 Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '100000',
-                                 Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_ORIGIN => 'synthetics')
+          expect(metadata).to eq(
+            Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID => '90000',
+            Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID => '100000',
+            Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_ORIGIN => 'synthetics'
+          )
         end
       end
     end

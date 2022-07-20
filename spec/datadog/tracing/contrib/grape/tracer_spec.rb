@@ -22,8 +22,84 @@ RSpec.describe 'Grape instrumentation' do
     # patch Grape before the application
     Datadog::Tracing::Contrib::Grape::Patcher.patch
 
-    stub_const('TestingAPI', Class.new(Grape::API) do
-      namespace :base do
+    stub_const(
+      'TestingAPI',
+      Class.new(Grape::API) do
+        namespace :base do
+          desc 'Returns a success message'
+          get :success do
+            'OK'
+          end
+
+          desc 'Returns an error'
+          get :hard_failure do
+            raise StandardError, 'Ouch!'
+          end
+        end
+
+        namespace :filtered do
+          before do
+            sleep(0.01)
+          end
+
+          after do
+            sleep(0.01)
+          end
+
+          desc 'Returns a success message before and after filter processing'
+          get :before_after do
+            'OK'
+          end
+        end
+
+        namespace :filtered_exception do
+          before do
+            raise StandardError, 'Ouch!'
+          end
+
+          desc 'Returns an error in the filter'
+          get :before do
+            'OK'
+          end
+        end
+
+        resource :widgets do
+          desc 'Returns a list of widgets'
+          get do
+            '[]'
+          end
+
+          desc 'creates a widget'
+          post do
+            '{}'
+          end
+        end
+
+        namespace :nested do
+          resource :widgets do
+            desc 'Returns a list of widgets'
+            get do
+              '[]'
+            end
+          end
+        end
+
+        resource :span_resource do
+          get :span_resource do
+            'OK'
+          end
+        end
+      end
+    )
+  end
+
+  let(:rack_testing_api) do
+    # patch Grape before the application
+    Datadog::Tracing::Contrib::Grape::Patcher.patch
+
+    stub_const(
+      'RackTestingAPI',
+      Class.new(Grape::API) do
         desc 'Returns a success message'
         get :success do
           'OK'
@@ -33,84 +109,14 @@ RSpec.describe 'Grape instrumentation' do
         get :hard_failure do
           raise StandardError, 'Ouch!'
         end
-      end
 
-      namespace :filtered do
-        before do
-          sleep(0.01)
-        end
-
-        after do
-          sleep(0.01)
-        end
-
-        desc 'Returns a success message before and after filter processing'
-        get :before_after do
-          'OK'
-        end
-      end
-
-      namespace :filtered_exception do
-        before do
-          raise StandardError, 'Ouch!'
-        end
-
-        desc 'Returns an error in the filter'
-        get :before do
-          'OK'
-        end
-      end
-
-      resource :widgets do
-        desc 'Returns a list of widgets'
-        get do
-          '[]'
-        end
-
-        desc 'creates a widget'
-        post do
-          '{}'
-        end
-      end
-
-      namespace :nested do
-        resource :widgets do
-          desc 'Returns a list of widgets'
-          get do
-            '[]'
+        resource :span_resource_rack do
+          get :span_resource do
+            'OK'
           end
         end
       end
-
-      resource :span_resource do
-        get :span_resource do
-          'OK'
-        end
-      end
-    end)
-  end
-
-  let(:rack_testing_api) do
-    # patch Grape before the application
-    Datadog::Tracing::Contrib::Grape::Patcher.patch
-
-    stub_const('RackTestingAPI', Class.new(Grape::API) do
-      desc 'Returns a success message'
-      get :success do
-        'OK'
-      end
-
-      desc 'Returns an error'
-      get :hard_failure do
-        raise StandardError, 'Ouch!'
-      end
-
-      resource :span_resource_rack do
-        get :span_resource do
-          'OK'
-        end
-      end
-    end)
+    )
 
     # create a custom Rack application with the Rack middleware and a Grape API
     Rack::Builder.new do

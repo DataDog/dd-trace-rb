@@ -28,11 +28,14 @@ RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Tracer do
   shared_context 'Shoryuken::Worker' do
     let(:worker_class) do
       qn = queue_name
-      stub_const('TestWorker', Class.new do
-        include Shoryuken::Worker
-        shoryuken_options queue: qn
-        def perform(sqs_msg, body); end
-      end)
+      stub_const(
+        'TestWorker',
+        Class.new do
+          include Shoryuken::Worker
+          shoryuken_options queue: qn
+          def perform(sqs_msg, body); end
+        end
+      )
     end
     let(:worker) { worker_class.new }
     let(:queue_name) { 'default' }

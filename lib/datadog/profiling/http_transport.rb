@@ -80,8 +80,9 @@ module Datadog
       def validate_agent_settings(agent_settings)
         supported_adapters = [Datadog::Transport::Ext::HTTP::ADAPTER, Datadog::Transport::Ext::UnixSocket::ADAPTER]
         unless supported_adapters.include?(agent_settings.adapter)
-          raise ArgumentError, "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
-            ' is not supported'
+          raise ArgumentError,
+            "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
+                        ' is not supported'
         end
 
         if agent_settings.deprecated_for_removal_transport_configuration_proc

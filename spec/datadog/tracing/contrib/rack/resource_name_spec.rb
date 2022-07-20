@@ -45,25 +45,31 @@ RSpec.describe 'Rack integration with other middleware' do
     end
 
     let(:auth_middleware) do
-      stub_const('AuthMiddleware', Class.new do
-        def initialize(app)
-          @app = app
-        end
+      stub_const(
+        'AuthMiddleware',
+        Class.new do
+          def initialize(app)
+            @app = app
+          end
 
-        def call(env)
-          return [401, {}, []] if env['HTTP_AUTH_TOKEN'] != '1234'
+          def call(env)
+            return [401, {}, []] if env['HTTP_AUTH_TOKEN'] != '1234'
 
-          @app.call(env)
+            @app.call(env)
+          end
         end
-      end)
+      )
     end
 
     let(:bottom_middleware) do
-      stub_const('BottomMiddleware', Class.new do
-        def call(_)
-          [200, {}, []]
+      stub_const(
+        'BottomMiddleware',
+        Class.new do
+          def call(_)
+            [200, {}, []]
+          end
         end
-      end)
+      )
     end
   end
 

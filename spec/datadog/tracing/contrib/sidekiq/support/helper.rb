@@ -12,10 +12,13 @@ RSpec.shared_context 'Sidekiq testing' do
   before { configure_sidekiq }
 
   let!(:empty_worker) do
-    stub_const('EmptyWorker', Class.new do
-      include Sidekiq::Worker
-      def perform; end
-    end)
+    stub_const(
+      'EmptyWorker',
+      Class.new do
+        include Sidekiq::Worker
+        def perform; end
+      end
+    )
   end
 end
 

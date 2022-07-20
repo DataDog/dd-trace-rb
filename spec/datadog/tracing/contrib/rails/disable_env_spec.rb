@@ -30,11 +30,14 @@ MESSAGE
   let(:controllers) { [controller] }
 
   let(:controller) do
-    stub_const('TestController', Class.new(ActionController::Base) do
-      def index
-        head :ok
+    stub_const(
+      'TestController',
+      Class.new(ActionController::Base) do
+        def index
+          head :ok
+        end
       end
-    end)
+    )
   end
 
   it 'does not instrument' do
