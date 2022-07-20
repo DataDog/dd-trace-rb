@@ -1,6 +1,7 @@
 #include <ruby.h>
 
 #include "clock_id.h"
+#include "helpers.h"
 
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_init(VALUE profiling_module);
@@ -9,8 +10,6 @@ void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
 static VALUE native_working_p(VALUE self);
-
-#define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
 
 void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
