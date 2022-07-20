@@ -16,7 +16,6 @@ AllCops:
     - 'Rakefile'
   Exclude:
     - 'Appraisals'
-    - '*.gemspec'
     - 'lib/ddtrace/**/vendor/**/*.rb'
     - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
@@ -391,4 +390,11 @@ Style/TrailingCommaInHashLiteral:
   Enabled: false
 
 Naming/VariableNumber:
+  Enabled: false
+
+# Requires that the Rubocop linter should be configured to
+# match the same version as `spec.required_rubygems_version` in our gemspec file.
+# This is not currently possible, as we'd like to use updated versions of Rubocop
+# that have already dropped support for our minimum supported Ruby version.
+Gemspec/RequiredRubyVersion:
   Enabled: false
