@@ -127,9 +127,11 @@ module Datadog
             job_url = "#{pipeline_url}&view=logs&j=#{env['SYSTEM_JOBID']}&t=#{env['SYSTEM_TASKINSTANCEID']}"
           end
 
-          branch, tag = branch_or_tag(env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] ||
-                                        env['BUILD_SOURCEBRANCH'] ||
-                                        env['BUILD_SOURCEBRANCHNAME'])
+          branch, tag = branch_or_tag(
+            env['SYSTEM_PULLREQUEST_SOURCEBRANCH'] ||
+            env['BUILD_SOURCEBRANCH'] ||
+            env['BUILD_SOURCEBRANCHNAME']
+          )
 
           {
             TAG_PROVIDER_NAME => 'azurepipelines',

@@ -30,8 +30,10 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
       end
 
       it do
-        expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '10000',
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '20000')
+        expect(env).to eq(
+          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '10000',
+          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '20000'
+        )
       end
 
       context 'with sampling priority' do
@@ -44,9 +46,11 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
         end
 
         it do
-          expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '50000',
+          expect(env).to eq(
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '50000',
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '60000',
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '1')
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '1'
+          )
         end
 
         context 'with origin' do
@@ -60,10 +64,12 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
           end
 
           it do
-            expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '70000',
+            expect(env).to eq(
+              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '70000',
               Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '80000',
               Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '1',
-              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'synthetics')
+              Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'synthetics'
+            )
           end
         end
       end
@@ -78,9 +84,11 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
         end
 
         it do
-          expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '90000',
+          expect(env).to eq(
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '90000',
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '100000',
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'synthetics')
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'synthetics'
+          )
         end
       end
     end

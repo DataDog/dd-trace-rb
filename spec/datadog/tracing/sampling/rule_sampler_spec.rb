@@ -202,11 +202,14 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       context 'that responds to #update' do
         let(:default_sampler) { sampler_class.new }
         let(:sampler_class) do
-          stub_const('TestSampler', Class.new(Datadog::Tracing::Sampling::Sampler) do
-            def update(rates)
-              rates
+          stub_const(
+            'TestSampler',
+            Class.new(Datadog::Tracing::Sampling::Sampler) do
+              def update(rates)
+                rates
+              end
             end
-          end)
+          )
         end
 
         before do

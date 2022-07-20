@@ -545,11 +545,11 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
         it 'includes the given proc in the resolved settings as the ' \
           'deprecated_for_removal_transport_configuration_proc and falls back to the defaults' do
-          expect(resolver).to have_attributes(
-            **settings,
-            deprecated_for_removal_transport_configuration_proc: transport_options
-          )
-        end
+            expect(resolver).to have_attributes(
+              **settings,
+              deprecated_for_removal_transport_configuration_proc: transport_options
+            )
+          end
 
         it 'logs a debug message' do
           expect(logger).to receive(:debug)

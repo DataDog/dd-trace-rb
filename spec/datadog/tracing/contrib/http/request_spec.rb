@@ -274,15 +274,17 @@ RSpec.describe 'net/http requests' do
 
     def expect_request_without_distributed_headers
       # rubocop:disable Style/BlockDelimiters
-      expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
-        [
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID,
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID,
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY
-        ].none? do |header|
-          req.headers.key?(header.split('-').map(&:capitalize).join('-'))
-        end
-      })
+      expect(WebMock).to(
+        have_requested(:get, "#{uri}#{path}").with { |req|
+          [
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID,
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID,
+            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+          ].none? do |header|
+            req.headers.key?(header.split('-').map(&:capitalize).join('-'))
+          end
+        }
+      )
     end
 
     context 'by default' do
@@ -309,11 +311,13 @@ RSpec.describe 'net/http requests' do
           # The block syntax only works with Ruby < 2.3 and the hash syntax
           # only works with Ruby >= 2.3, so we need to support both.
           if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
-            expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
-              distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
-              end
-            })
+            expect(WebMock).to(
+              have_requested(:get, "#{uri}#{path}").with { |req|
+                distributed_tracing_headers.all? do |(header, value)|
+                  req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
+                end
+              }
+            )
           else
             expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
           end
@@ -353,11 +357,13 @@ RSpec.describe 'net/http requests' do
           # The block syntax only works with Ruby < 2.3 and the hash syntax
           # only works with Ruby >= 2.3, so we need to support both.
           if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3.0')
-            expect(WebMock).to(have_requested(:get, "#{uri}#{path}").with { |req|
-              distributed_tracing_headers.all? do |(header, value)|
-                req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
-              end
-            })
+            expect(WebMock).to(
+              have_requested(:get, "#{uri}#{path}").with { |req|
+                distributed_tracing_headers.all? do |(header, value)|
+                  req.headers[header.split('-').map(&:capitalize).join('-')] == value.to_s
+                end
+              }
+            )
           else
             expect(WebMock).to have_requested(:get, "#{uri}#{path}").with(headers: distributed_tracing_headers)
           end

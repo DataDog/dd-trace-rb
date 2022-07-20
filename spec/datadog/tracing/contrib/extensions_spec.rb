@@ -17,9 +17,12 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     end
 
     let(:configurable_module) do
-      stub_const('Configurable', Module.new do
-        include Datadog::Tracing::Contrib::Configurable
-      end)
+      stub_const(
+        'Configurable',
+        Module.new do
+          include Datadog::Tracing::Contrib::Configurable
+        end
+      )
     end
 
     before { registry.add(integration_name, integration) }
@@ -154,13 +157,16 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
 
               let(:patcher_module) do
-                stub_const('Patcher', Module.new do
-                  include Datadog::Tracing::Contrib::Patcher
+                stub_const(
+                  'Patcher',
+                  Module.new do
+                    include Datadog::Tracing::Contrib::Patcher
 
-                  def self.patch
-                    true
+                    def self.patch
+                      true
+                    end
                   end
-                end)
+                )
               end
             end
 

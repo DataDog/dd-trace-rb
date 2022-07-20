@@ -30,8 +30,10 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3 do
       end
 
       it do
-        expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16),
-          Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 20000.to_s(16))
+        expect(env).to eq(
+          Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16),
+          Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 20000.to_s(16)
+        )
       end
 
       [
@@ -50,9 +52,11 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3 do
           end
 
           it do
-            expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 50000.to_s(16),
+            expect(env).to eq(
+              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 50000.to_s(16),
               Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 60000.to_s(16),
-              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED => expected.to_s)
+              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED => expected.to_s
+            )
           end
         end
       end
@@ -67,8 +71,10 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3 do
         end
 
         it do
-          expect(env).to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 90000.to_s(16),
-            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 100000.to_s(16))
+          expect(env).to eq(
+            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 90000.to_s(16),
+            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 100000.to_s(16)
+          )
         end
       end
     end

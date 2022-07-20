@@ -144,10 +144,14 @@ RSpec.describe Datadog::Profiling::Pprof::Builder do
         .and_return(function)
 
       expect(build_location).to be_a_kind_of(Perftools::Profiles::Location)
-      expect(build_location.to_h).to match(hash_including(id: location_id,
-        line: [{
-          function_id: function.id, line: line_number
-        }]))
+      expect(build_location.to_h).to match(
+        hash_including(
+          id: location_id,
+          line: [{
+            function_id: function.id, line: line_number
+          }]
+        )
+      )
     end
   end
 

@@ -99,14 +99,16 @@ RSpec.describe Datadog::Core::Error do
           root_caller = /from.*in `middle'/
 
           expect(error.backtrace)
-            .to match(/
-                       #{wrapper_error_message}.*
-                       #{wrapper_caller}.*
-                       #{middle_error_message}.*
-                       #{middle_caller}.*
-                       #{root_error_message}.*
-                       #{root_caller}.*
-                       /mx)
+            .to match(
+              /
+             #{wrapper_error_message}.*
+             #{wrapper_caller}.*
+             #{middle_error_message}.*
+             #{middle_caller}.*
+             #{root_error_message}.*
+             #{root_caller}.*
+             /mx
+            )
 
           # Expect 2 "first-class" exception lines: 'root cause' and 'wrapper layer'.
           expect(error.backtrace.each_line.reject { |l| l.start_with?("\tfrom") }).to have(3).items

@@ -56,11 +56,14 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
 
     let(:middleware) do
-      stub_const('MyFaradayMiddleware', Class.new(Faraday::Middleware) do
-        def call(env)
-          @app.call(env)
+      stub_const(
+        'MyFaradayMiddleware',
+        Class.new(Faraday::Middleware) do
+          def call(env)
+            @app.call(env)
+          end
         end
-      end)
+      )
     end
 
     describe 'the handlers' do
