@@ -107,7 +107,14 @@ bool is_thread_alive(VALUE thread) {
   return thread_struct_from_object(thread)->status != THREAD_KILLED;
 }
 
+// `thread` gets used on all Rubies except 2.2
+// To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
+// with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 VALUE thread_name_for(VALUE thread) {
+#pragma GCC diagnostic pop
+
   #ifdef NO_THREAD_NAMES
     return Qnil;
   #else
