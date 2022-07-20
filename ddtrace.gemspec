@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
 
   spec.summary     = 'Datadog tracing code for your Ruby applications'
   spec.description = <<-DESC.gsub(/^\s+/, '')
-    ddtrace is Datadog’s tracing client for Ruby. It is used to trace requests
+    ddtrace is Datadog's tracing client for Ruby. It is used to trace requests
     as they flow across web servers, databases and microservices so that developers
     have great visiblity into bottlenecks and troublesome requests.
   DESC
