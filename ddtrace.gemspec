@@ -44,6 +44,12 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   # Used to serialize traces to send them to the Datadog Agent.
+  #
+  # msgpack 1.4 fails for Ruby 2.1 (see https://github.com/msgpack/msgpack-ruby/issues/205)
+  # so a restriction needs to be manually added for the `Gemfile`.
+  #
+  # We can't add a restriction here, since there's no way to add it only for older
+  # rubies, see #1739 and #1336 for an extended discussion about this
   spec.add_dependency 'msgpack'
 
   # Used by the profiler native extension to support older Rubies (see NativeExtensionDesign.md for notes)
