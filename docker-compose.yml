@@ -615,8 +615,7 @@ services:
     ports:
       - "${TEST_PRESTO_PORT}:8080"
   redis:
-    image: redis:3.0
-    platform: linux/x86_64
+    image: redis:3.2
     expose:
       - "6379"
     ports:
