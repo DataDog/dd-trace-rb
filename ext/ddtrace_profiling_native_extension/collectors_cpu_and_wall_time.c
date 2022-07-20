@@ -184,8 +184,8 @@ static void sample(VALUE collector_instance) {
 
     // FIXME: TODO These are just dummy values for now
     metric_values[CPU_TIME_VALUE_POS] = 12; // FIXME: Placeholder until actually implemented/tested
-    metric_values[CPU_SAMPLES_VALUE_POS] = 34; // FIXME: Placeholder until actually implemented/tested
 
+    metric_values[CPU_SAMPLES_VALUE_POS] = 1;
     metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
 
     VALUE thread_name = thread_name_for(thread);

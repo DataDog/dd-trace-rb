@@ -108,6 +108,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
+
+    it 'tags samples with how many times they were seen' do
+      5.times { cpu_and_wall_time_collector.sample }
+
+      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+
+      expect(t1_sample).to include(values: include(:'cpu-samples' => 5))
+    end
   end
 
   describe '#thread_list' do
