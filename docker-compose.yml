@@ -578,8 +578,7 @@ services:
     ports:
       - "${TEST_MEMCACHED_PORT}:11211"
   mongodb:
-    image: mongo:3.5
-    platform: linux/x86_64
+    image: mongo:3.6
     expose:
       - "27017"
     ports:
