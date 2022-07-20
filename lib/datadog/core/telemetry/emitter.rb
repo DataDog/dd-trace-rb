@@ -23,7 +23,7 @@ module Datadog
         def request(request_type)
           begin
             request = Datadog::Core::Telemetry::Event.new.telemetry_request(request_type: request_type,
-                                                                            seq_id: sequence.next).to_h
+                                                                            seq_id: self.class.sequence.next).to_h
             @http_transport.request(request_type: request_type, payload: request.to_json)
           rescue StandardError => e
             Datadog.logger.debug("Unable to send telemetry request for event `#{request_type}`: #{e}")
@@ -32,7 +32,7 @@ module Datadog
 
         # Initializes a SequenceNumeric object to track seq_id if not already initialized; else returns stored
         # SequenceNumeric object
-        def sequence
+        def self.sequence
           @sequence ||= Datadog::Core::Utils::SequenceNumeric.new(1)
         end
       end
