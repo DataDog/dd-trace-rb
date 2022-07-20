@@ -2,7 +2,7 @@
 #include <ruby/thread.h>
 #include <ddprof/ffi.h>
 #include "helpers.h"
-#include "libddprof_helpers.h"
+#include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
 
 // Used to report profiling data to Datadog.

@@ -2,7 +2,7 @@
 #include <ruby/thread.h>
 #include "helpers.h"
 #include "stack_recorder.h"
-#include "libddprof_helpers.h"
+#include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
 
 // Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs

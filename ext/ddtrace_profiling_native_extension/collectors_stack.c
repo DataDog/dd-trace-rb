@@ -2,7 +2,7 @@
 #include <ruby/debug.h>
 #include "extconf.h"
 #include "helpers.h"
-#include "libddprof_helpers.h"
+#include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"

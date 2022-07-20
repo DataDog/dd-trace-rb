@@ -1,7 +1,7 @@
 #include <ruby.h>
 #include "helpers.h"
 #include "collectors_stack.h"
-#include "libddprof_helpers.h"
+#include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 
