@@ -3,9 +3,8 @@ require 'spec_helper'
 require 'datadog/core/telemetry/client'
 
 RSpec.describe Datadog::Core::Telemetry::Client do
-  subject(:client) { described_class.new(enabled: enabled, sequence: sequence) }
+  subject(:client) { described_class.new(enabled: enabled) }
   let(:enabled) { true }
-  let(:sequence) { Datadog::Core::Utils::Sequence.new(1) }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
   let(:not_found) { false }

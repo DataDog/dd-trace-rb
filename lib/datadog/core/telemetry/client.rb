@@ -2,7 +2,6 @@
 
 require 'datadog/core/telemetry/emitter'
 require 'datadog/core/telemetry/heartbeat'
-require 'datadog/core/utils/sequence'
 
 module Datadog
   module Core
@@ -16,10 +15,9 @@ module Datadog
           :worker
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
-        def initialize(enabled: true, sequence: Datadog::Core::Utils::Sequence.new(1))
+        def initialize(enabled: true)
           @enabled = enabled
-          @emitter = Emitter.new(sequence: sequence)
+          @emitter = Emitter.new
           @stopped = false
           @unsupported = false
 

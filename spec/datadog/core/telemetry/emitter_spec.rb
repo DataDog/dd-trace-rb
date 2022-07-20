@@ -3,8 +3,7 @@ require 'spec_helper'
 require 'datadog/core/telemetry/emitter'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
-  subject(:emitter) { described_class.new(sequence: sequence, http_transport: http_transport) }
-  let(:sequence) { Datadog::Core::Utils::Sequence.new(1) }
+  subject(:emitter) { described_class.new(http_transport: http_transport) }
   let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
   let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
   let(:response_ok) { true }
@@ -18,12 +17,6 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     context 'when no params provided' do
       subject(:emitter) { described_class.new }
       it { is_expected.to be_a_kind_of(described_class) }
-    end
-
-    context 'when :sequence is provided' do
-      let(:sequence) { Datadog::Core::Utils::Sequence.new(1) }
-      it { is_expected.to be_a_kind_of(described_class) }
-      it { expect(emitter.sequence).to be(sequence) }
     end
 
     context 'when :http_transport is provided' do
