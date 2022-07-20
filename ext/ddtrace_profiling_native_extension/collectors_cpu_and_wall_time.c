@@ -49,7 +49,7 @@ static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_s
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns);
-static long wall_time_now_ns(struct cpu_and_wall_time_collector_state *state);
+static long wall_time_now_ns();
 static long thread_id_for(VALUE thread);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
@@ -170,7 +170,7 @@ static void sample(VALUE collector_instance) {
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
-  long current_wall_time_ns = wall_time_now_ns(state);
+  long current_wall_time_ns = wall_time_now_ns();
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -316,7 +316,7 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   return elapsed_time_ns >= 0 ? elapsed_time_ns : 0 /* In case something really weird happened */;
 }
 
-static long wall_time_now_ns(struct cpu_and_wall_time_collector_state *state) {
+static long wall_time_now_ns() {
   struct timespec current_monotonic;
 
   if (clock_gettime(CLOCK_MONOTONIC, &current_monotonic) != 0) rb_sys_fail("Failed to read CLOCK_MONOTONIC");
