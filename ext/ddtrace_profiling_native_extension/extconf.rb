@@ -102,6 +102,10 @@ add_compiler_flag '-Wunused-parameter'
 # For more details see https://gcc.gnu.org/wiki/Visibility
 add_compiler_flag '-fvisibility=hidden'
 
+# Enable all other compiler warnings
+add_compiler_flag '-Wall'
+add_compiler_flag '-Wextra'
+
 if RUBY_PLATFORM.include?('linux')
   # Supposedly, the correct way to do this is
   # ```
