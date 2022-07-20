@@ -10,6 +10,7 @@ RSpec.describe 'gem release process' do
           .dockerignore
           .editorconfig
           .env
+          .git-blame-ignore-revs
           .gitattributes
           .gitignore
           .gitlab-ci.yml
@@ -27,12 +28,13 @@ RSpec.describe 'gem release process' do
           docker-compose.yml
         ]
 
+        directories_excluded = %r{^(spec|docs|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}
+
         expect(files)
           .to match_array(
             `git ls-files -z`
               .split("\x0")
-              .reject { |f| f.match(%r{^(spec|\.circleci|\.github|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}) }
-              .reject { |f| f.match(%r{^docs/.*\.png}) }
+              .reject { |f| f.match(directories_excluded) }
               .reject { |f| single_files_excluded.include?(f) }
           )
       end

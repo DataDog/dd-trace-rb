@@ -36,7 +36,6 @@ Gem::Specification.new do |spec|
       NOTICE
       README.md
       bin/**/*
-      docs/**/*.md
       ext/**/*
       lib/**/*
     ]]
