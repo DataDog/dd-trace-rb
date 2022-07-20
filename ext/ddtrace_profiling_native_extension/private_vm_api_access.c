@@ -157,7 +157,14 @@ VALUE thread_name_for(VALUE thread) {
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
 inline static int
-calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
+calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno,
+// `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
+// To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
+// with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+  int *node_id)
+#pragma GCC diagnostic pop
 {
     VM_ASSERT(iseq);
     VM_ASSERT(ISEQ_BODY(iseq));
