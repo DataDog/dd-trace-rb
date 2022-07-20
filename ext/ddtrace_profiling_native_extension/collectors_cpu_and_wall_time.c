@@ -8,7 +8,6 @@
 // Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
 
-static VALUE collectors_cpu_and_wall_time_class = Qnil;
 #define INVALID_TIME -1
 
 // Contains state for a single CpuAndWallTime instance
@@ -55,7 +54,7 @@ static long thread_id_for(VALUE thread);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
-  collectors_cpu_and_wall_time_class = rb_define_class_under(collectors_module, "CpuAndWallTime", rb_cObject);
+  VALUE collectors_cpu_and_wall_time_class = rb_define_class_under(collectors_module, "CpuAndWallTime", rb_cObject);
 
   // Instances of the CpuAndWallTime class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -139,7 +138,7 @@ static VALUE _native_new(VALUE klass) {
   state->recorder_instance = Qnil;
   state->sample_count = 0;
 
-  return TypedData_Wrap_Struct(collectors_cpu_and_wall_time_class, &cpu_and_wall_time_collector_typed_data, state);
+  return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_collector_typed_data, state);
 }
 
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
