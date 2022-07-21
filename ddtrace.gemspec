@@ -29,17 +29,19 @@ Gem::Specification.new do |spec|
     raise 'RubyGems 2.0 or newer is required to protect against public gem pushes.'
   end
 
-  # rubocop:disable all
-  # DEV: `spec.files` is more problematic than a simple Rubocop pass.
   spec.files =
-    `git ls-files -z`
-    .split("\x0")
-    .reject { |f| f.match(%r{^(test|spec|features|[.]circleci|[.]github|[.]dd-ci|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}) }
-    .reject do |f|
-      ['.dockerignore', '.env', '.gitattributes', '.gitlab-ci.yml', '.rspec', '.rubocop.yml',
-       '.rubocop_todo.yml', '.simplecov', 'Appraisals', 'Gemfile', 'Rakefile', 'docker-compose.yml', '.pryrc', '.yardopts'].include?(f)
-    end
-  # rubocop:enable all
+    Dir[*%w[
+      CHANGELOG.md
+      LICENSE*
+      NOTICE
+      README.md
+      bin/**/*
+      ext/**/*
+      lib/**/*
+    ]]
+    .select { |fn| File.file?(fn) } # We don't want directories, only files
+    .reject { |fn| fn.end_with?('.so', '.bundle') } # Exclude local profiler binary artifacts
+
   spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
