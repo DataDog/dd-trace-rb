@@ -20,8 +20,6 @@ module Datadog
           @emitter = Emitter.new
           @stopped = false
           @unsupported = false
-
-          started!
           @worker = Telemetry::Heartbeat.new(enabled: @enabled) do
             heartbeat!
           end
@@ -40,23 +38,26 @@ module Datadog
         end
 
         def started!
-          return unless @enabled
+          return if !@enabled || self.class.started
 
           res = @emitter.request('app-started')
 
           if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
             @enabled = false
+            @worker.enabled = false
             @unsupported = true # Prevent telemetry from getting re-enabled
+          else
+            self.class.started = true
           end
+
           res
         end
 
         def stop!
           return if @stopped
 
-          @worker.stop
-          @worker.join
+          @worker.stop(true, 0)
           @stopped = true
 
           return unless @enabled
@@ -68,6 +69,14 @@ module Datadog
           return unless @enabled
 
           @emitter.request('app-integrations-change')
+        end
+
+        def self.started
+          @started ||= false
+        end
+
+        class << self
+          attr_writer :started
         end
 
         private

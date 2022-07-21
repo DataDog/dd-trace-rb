@@ -54,7 +54,9 @@ module Datadog
 
           def build_telemetry(settings, previous_components: nil)
             unless previous_components && previous_components.telemetry
-              return Telemetry::Client.new(enabled: settings.telemetry.enabled)
+              telemetry = Telemetry::Client.new(enabled: settings.telemetry.enabled)
+              telemetry.started!
+              return telemetry
             end
 
             # Reuse a previous instance of the telemetry client if it already exists
@@ -357,10 +359,8 @@ module Datadog
           :logger,
           :profiler,
           :runtime_metrics,
+          :telemetry,
           :tracer
-
-        # Telemetry instances persist across multiple component restarts
-        attr_accessor :telemetry
 
         def initialize(settings, previous_components: nil)
           # Logger
@@ -439,7 +439,7 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          @telemetry.stop! if !replacement && @telemetry
+          telemetry.stop! if !replacement && telemetry
         end
       end
       # rubocop:enable Metrics/ClassLength

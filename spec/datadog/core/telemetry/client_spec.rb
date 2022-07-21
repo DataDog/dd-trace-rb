@@ -38,29 +38,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     context 'when enabled' do
       let(:enabled) { true }
 
-      it do
-        client
-        expect(emitter).to have_received(:request).with('app-started')
-        expect(client.worker.enabled?).to be(true)
-      end
-
-      context 'when response returns 404' do
-        let(:not_found) { true }
-
-        before do
-          logger = double(Datadog::Core::Logger)
-          allow(logger).to receive(:debug)
-          allow(Datadog).to receive(:logger).and_return(logger)
-        end
-
-        it do
-          expect(client.enabled).to be(false)
-          expect(client.unsupported).to be(true)
-          expect(Datadog.logger).to have_received(:debug) do |message|
-            expect(message).to eq('Agent does not support telemetry; disabling future telemetry events.')
-          end
-        end
-      end
+      it { is_expected.to be_a_kind_of(described_class) }
+      it { expect(client.enabled).to be(true) }
+      it { expect(client.worker.enabled?).to be(true) }
     end
   end
 
@@ -119,6 +99,10 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   describe '#started!' do
     subject(:started!) { client.started! }
 
+    before do
+      client.class.started = false
+    end
+
     after do
       client.worker.stop(true)
       client.worker.join
@@ -141,12 +125,48 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
     end
 
+    context 'when already started' do
+      let(:enabled) { true }
+
+      before do
+        client.class.started = true
+      end
+
+      after do
+        client.class.started = false
+      end
+
+      it do
+        started!
+        expect(emitter).to_not have_received(:request).with('app-started')
+      end
+    end
+
     context 'when internal error returned by emitter' do
       let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
 
       it do
         started!
         is_expected.to be(response)
+      end
+    end
+
+    context 'when response returns 404' do
+      let(:not_found) { true }
+
+      before do
+        logger = double(Datadog::Core::Logger)
+        allow(logger).to receive(:debug)
+        allow(Datadog).to receive(:logger).and_return(logger)
+      end
+
+      it do
+        started!
+        expect(client.enabled).to be(false)
+        expect(client.unsupported).to be(true)
+        expect(Datadog.logger).to have_received(:debug) do |message|
+          expect(message).to eq('Agent does not support telemetry; disabling future telemetry events.')
+        end
       end
     end
   end
@@ -167,7 +187,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         stop!
         expect(client.worker).to have_received(:stop)
-        expect(client.worker).to have_received(:join)
         expect(emitter).to_not have_received(:request).with('app-closing')
       end
     end
