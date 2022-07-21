@@ -19,8 +19,7 @@ chdir APP_ROOT do
   puts "\n== Preparing database =="
   database_uri = URI(ENV['DATABASE_URL'])
   system! 'until wget mysql:3306 > /dev/null 2>&1; do : sleep 1; done'
-  system! 'bin/rails db:create'
-  system! 'bin/rails db:migrate'
+  system! 'bin/rails db:prepare'
 
   puts "\n== Removing old logs and tempfiles =="
   system! 'bin/rails log:clear tmp:clear'
