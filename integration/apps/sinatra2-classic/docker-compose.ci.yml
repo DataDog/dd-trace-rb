@@ -5,7 +5,7 @@ services:
     # and use it as the `ddtrace` gem.
     build:
       context: ../../..
-      dockerfile: integration/apps/sinatra2_classic/Dockerfile-ci
+      dockerfile: integration/apps/sinatra2-classic/Dockerfile-ci
       args:
         BASE_IMAGE: ${APP_IMAGE}
     depends_on:
@@ -43,7 +43,7 @@ services:
   integration-tester:
     build:
       context: ../../..
-      dockerfile: integration/apps/sinatra2_classic/Dockerfile-ci
+      dockerfile: integration/apps/sinatra2-classic/Dockerfile-ci
       args:
         BASE_IMAGE: ${APP_IMAGE}
     command: bin/test
