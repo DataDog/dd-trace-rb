@@ -13,7 +13,7 @@ services:
       - DD_METRIC_AGENT_PORT=8125
       - DD_TRACE_AGENT_PORT=8126
       - DD_HEALTH_METRICS_ENABLED=true
-      - DD_SERVICE=acme-sinatra
+      - DD_SERVICE=acme-sinatra2-classic
       - DD_PROFILING_ENABLED=true
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
@@ -24,7 +24,7 @@ services:
       # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
       # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
       # Enable building the profiling native extension
-      # - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
+      - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
     expose:
       - "80"
     stdin_open: true
@@ -67,7 +67,7 @@ services:
     build:
       context: ../../images
       dockerfile: wrk/Dockerfile
-    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/fibonacci
+    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/default
     depends_on:
       - app
     environment:

@@ -48,7 +48,7 @@ get '/health/detailed' do
 end
 
 get '/basic/default' do
-  status 204
+  204
 end
 
 get '/basic/fibonacci' do
@@ -61,8 +61,6 @@ get '/basic/fibonacci' do
     ["Basic: Fibonacci(#{n}): #{result}"]
   ]
 end
-
-  private
 
 def fib(n)
   n <= 1 ? n : fib(n - 1) + fib(n - 2)
