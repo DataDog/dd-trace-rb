@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <ruby.h>
+#include "helpers.h"
 #include "private_vm_api_access.h"
 #include "clock_id.h"
 
@@ -20,7 +21,7 @@ void self_test_clock_id(void) {
   if (expected_pthread_id != actual_pthread_id) rb_raise(rb_eRuntimeError, "pthread_id_for() self-test failed");
 }
 
-VALUE clock_id_for(VALUE self, VALUE thread) {
+VALUE clock_id_for(DDTRACE_UNUSED VALUE _self, VALUE thread) {
   rb_nativethread_id_t thread_id = pthread_id_for(thread);
 
   clockid_t clock_id;

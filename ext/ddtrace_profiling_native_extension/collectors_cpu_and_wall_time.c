@@ -1,13 +1,13 @@
 #include <ruby.h>
+#include "helpers.h"
 #include "collectors_stack.h"
-#include "libddprof_helpers.h"
+#include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 
 // Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
 
-static VALUE collectors_cpu_and_wall_time_class = Qnil;
 #define INVALID_TIME -1
 
 // Contains state for a single CpuAndWallTime instance
@@ -49,12 +49,12 @@ static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_s
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns);
-static long wall_time_now_ns(struct cpu_and_wall_time_collector_state *state);
+static long wall_time_now_ns();
 static long thread_id_for(VALUE thread);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
-  collectors_cpu_and_wall_time_class = rb_define_class_under(collectors_module, "CpuAndWallTime", rb_cObject);
+  VALUE collectors_cpu_and_wall_time_class = rb_define_class_under(collectors_module, "CpuAndWallTime", rb_cObject);
 
   // Instances of the CpuAndWallTime class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -114,14 +114,14 @@ static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr) {
 }
 
 // Mark Ruby thread references we keep as keys in hash_map_per_thread_context
-static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument) {
+static int hash_map_per_thread_context_mark(st_data_t key_thread, DDTRACE_UNUSED st_data_t _value, DDTRACE_UNUSED st_data_t _argument) {
   VALUE thread = (VALUE) key_thread;
   rb_gc_mark(thread);
   return ST_CONTINUE;
 }
 
 // Used to clear each of the per_thread_contexts inside the hash_map_per_thread_context
-static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument) {
+static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thread, st_data_t value_per_thread_context, DDTRACE_UNUSED st_data_t _argument) {
   struct per_thread_context *per_thread_context = (struct per_thread_context*) value_per_thread_context;
   ruby_xfree(per_thread_context);
   return ST_CONTINUE;
@@ -138,10 +138,10 @@ static VALUE _native_new(VALUE klass) {
   state->recorder_instance = Qnil;
   state->sample_count = 0;
 
-  return TypedData_Wrap_Struct(collectors_cpu_and_wall_time_class, &cpu_and_wall_time_collector_typed_data, state);
+  return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_collector_typed_data, state);
 }
 
-static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
   enforce_recorder_instance(recorder_instance);
 
   struct cpu_and_wall_time_collector_state *state;
@@ -160,7 +160,7 @@ static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE reco
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(VALUE self, VALUE collector_instance) {
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   sample(collector_instance);
   return Qtrue;
 }
@@ -170,7 +170,7 @@ static void sample(VALUE collector_instance) {
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
-  long current_wall_time_ns = wall_time_now_ns(state);
+  long current_wall_time_ns = wall_time_now_ns();
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -220,7 +220,7 @@ static void sample(VALUE collector_instance) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_thread_list(VALUE self) {
+static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   return ddtrace_thread_list();
 }
 
@@ -246,7 +246,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
 }
 
-static VALUE _native_inspect(VALUE self, VALUE collector_instance) {
+static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -288,7 +288,7 @@ static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_s
   st_foreach(state->hash_map_per_thread_context, remove_if_dead_thread, 0 /* unused */);
 }
 
-static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument) {
+static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, DDTRACE_UNUSED st_data_t _argument) {
   VALUE thread = (VALUE) key_thread;
   struct per_thread_context* thread_context = (struct per_thread_context*) value_context;
 
@@ -299,7 +299,7 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
 }
 
 // Returns the whole contents of the per_thread_context structs being tracked, for debugging/testing
-static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance) {
+static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -316,7 +316,7 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   return elapsed_time_ns >= 0 ? elapsed_time_ns : 0 /* In case something really weird happened */;
 }
 
-static long wall_time_now_ns(struct cpu_and_wall_time_collector_state *state) {
+static long wall_time_now_ns() {
   struct timespec current_monotonic;
 
   if (clock_gettime(CLOCK_MONOTONIC, &current_monotonic) != 0) rb_sys_fail("Failed to read CLOCK_MONOTONIC");
