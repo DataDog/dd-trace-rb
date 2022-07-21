@@ -12,6 +12,8 @@ module Datadog
       class Emitter
         attr_reader :http_transport
 
+        extend Core::Utils::Forking
+
         # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
         # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
         #   telemetry requests via the agent
@@ -28,6 +30,7 @@ module Datadog
             @http_transport.request(request_type: request_type, payload: request.to_json)
           rescue StandardError => e
             Datadog.logger.debug("Unable to send telemetry request for event `#{request_type}`: #{e}")
+            Telemetry::Http::InternalErrorResponse.new(e)
           end
         end
 

@@ -21,6 +21,10 @@ module Datadog
           start
         end
 
+        def loop_wait_before_first_iteration?
+          true
+        end
+
         private
 
         def start

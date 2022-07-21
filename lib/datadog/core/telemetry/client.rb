@@ -2,6 +2,7 @@
 
 require 'datadog/core/telemetry/emitter'
 require 'datadog/core/telemetry/heartbeat'
+require 'datadog/core/utils/forking'
 
 module Datadog
   module Core
@@ -13,6 +14,8 @@ module Datadog
           :enabled,
           :unsupported,
           :worker
+
+        include Core::Utils::Forking
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         def initialize(enabled: true)
@@ -55,7 +58,7 @@ module Datadog
         end
 
         def emit_closing!
-          return unless @enabled
+          return if !@enabled || forked? # Only emit app-closing event in main process
 
           @emitter.request('app-closing')
         end

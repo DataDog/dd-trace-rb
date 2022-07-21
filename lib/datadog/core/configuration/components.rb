@@ -433,10 +433,9 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          if !replacement && telemetry
-            telemetry.emit_closing!
-            telemetry.stop!
-          end
+          telemetry.stop!
+
+          telemetry.emit_closing! unless replacement
         end
       end
       # rubocop:enable Metrics/ClassLength
