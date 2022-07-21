@@ -171,6 +171,33 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     end
   end
 
+  describe '#emit_closing!' do
+    subject(:emit_closing!) { client.emit_closing! }
+
+    after do
+      client.worker.stop(true)
+      client.worker.join
+    end
+
+    context 'when disabled' do
+      let(:enabled) { false }
+      it do
+        emit_closing!
+        expect(emitter).to_not have_received(:request).with('app-closing')
+      end
+    end
+
+    context 'when enabled' do
+      let(:enabled) { true }
+      it do
+        emit_closing!
+        expect(emitter).to have_received(:request).with('app-closing')
+      end
+
+      it { is_expected.to be(response) }
+    end
+  end
+
   describe '#stop!' do
     subject(:stop!) { client.stop! }
     let(:worker) { instance_double(Datadog::Core::Telemetry::Heartbeat) }
@@ -179,7 +206,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       allow(Datadog::Core::Telemetry::Heartbeat).to receive(:new).and_return(worker)
       allow(worker).to receive(:start)
       allow(worker).to receive(:stop)
-      allow(worker).to receive(:join)
     end
 
     context 'when disabled' do
@@ -187,7 +213,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         stop!
         expect(client.worker).to have_received(:stop)
-        expect(emitter).to_not have_received(:request).with('app-closing')
       end
     end
 
@@ -196,10 +221,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         stop!
         expect(client.worker).to have_received(:stop)
-        expect(emitter).to have_received(:request).with('app-closing')
       end
-
-      it { is_expected.to be(response) }
 
       context 'when stop! has been called already' do
         let(:stopped_client) { client.instance_variable_set(:@stopped, true) }
@@ -212,7 +234,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
           stop!
 
           expect(client.worker).to_not have_received(:stop)
-          expect(emitter).to_not have_received(:request).with('app-closing')
         end
       end
     end

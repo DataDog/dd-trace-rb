@@ -54,15 +54,17 @@ module Datadog
           res
         end
 
+        def emit_closing!
+          return unless @enabled
+
+          @emitter.request('app-closing')
+        end
+
         def stop!
           return if @stopped
 
           @worker.stop(true, 0)
           @stopped = true
-
-          return unless @enabled
-
-          @emitter.request('app-closing')
         end
 
         def integrations_change!
