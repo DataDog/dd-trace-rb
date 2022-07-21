@@ -1,7 +1,8 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <ddprof/ffi.h>
-#include "libddprof_helpers.h"
+#include "helpers.h"
+#include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
 
 // Used to report profiling data to Datadog.
@@ -63,13 +64,13 @@ void http_transport_init(VALUE profiling_module) {
 }
 
 inline static ddprof_ffi_ByteSlice byte_slice_from_ruby_string(VALUE string) {
-  Check_Type(string, T_STRING);
+  ENFORCE_TYPE(string, T_STRING);
   ddprof_ffi_ByteSlice byte_slice = {.ptr = (uint8_t *) StringValuePtr(string), .len = RSTRING_LEN(string)};
   return byte_slice;
 }
 
-static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration) {
-  Check_Type(exporter_configuration, T_ARRAY);
+static VALUE _native_validate_exporter(DDTRACE_UNUSED VALUE _self, VALUE exporter_configuration) {
+  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
   ddprof_ffi_NewProfileExporterV3Result exporter_result = create_exporter(exporter_configuration, rb_ary_new());
 
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
@@ -83,8 +84,8 @@ static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration)
 }
 
 static ddprof_ffi_NewProfileExporterV3Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
-  Check_Type(exporter_configuration, T_ARRAY);
-  Check_Type(tags_as_array, T_ARRAY);
+  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
+  ENFORCE_TYPE(tags_as_array, T_ARRAY);
 
   // This needs to be called BEFORE convert_tags since it can raise an exception and thus cause the ddprof_ffi_Vec_tag
   // to be leaked.
@@ -111,7 +112,7 @@ static VALUE handle_exporter_failure(ddprof_ffi_NewProfileExporterV3Result expor
 }
 
 static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
-  Check_Type(exporter_configuration, T_ARRAY);
+  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
 
   ID working_mode = SYM2ID(rb_ary_entry(exporter_configuration, 0)); // SYM2ID verifies its input so we can do this safely
 
@@ -122,13 +123,13 @@ static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
   if (working_mode == agentless_id) {
     VALUE site = rb_ary_entry(exporter_configuration, 1);
     VALUE api_key = rb_ary_entry(exporter_configuration, 2);
-    Check_Type(site, T_STRING);
-    Check_Type(api_key, T_STRING);
+    ENFORCE_TYPE(site, T_STRING);
+    ENFORCE_TYPE(api_key, T_STRING);
 
     return ddprof_ffi_EndpointV3_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
   } else { // agent_id
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
-    Check_Type(base_url, T_STRING);
+    ENFORCE_TYPE(base_url, T_STRING);
 
     return ddprof_ffi_EndpointV3_agent(char_slice_from_ruby_string(base_url));
   }
@@ -136,7 +137,7 @@ static ddprof_ffi_EndpointV3 endpoint_from(VALUE exporter_configuration) {
 
 __attribute__((warn_unused_result))
 static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
-  Check_Type(tags_as_array, T_ARRAY);
+  ENFORCE_TYPE(tags_as_array, T_ARRAY);
 
   long tags_count = RARRAY_LEN(tags_as_array);
   ddprof_ffi_Vec_tag tags = ddprof_ffi_Vec_tag_new();
@@ -146,7 +147,7 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
 
     if (!RB_TYPE_P(name_value_pair, T_ARRAY)) {
       ddprof_ffi_Vec_tag_drop(tags);
-      Check_Type(name_value_pair, T_ARRAY);
+      ENFORCE_TYPE(name_value_pair, T_ARRAY);
     }
 
     // Note: We can index the array without checking its size first because rb_ary_entry returns Qnil if out of bounds
@@ -155,8 +156,8 @@ static ddprof_ffi_Vec_tag convert_tags(VALUE tags_as_array) {
 
     if (!(RB_TYPE_P(tag_name, T_STRING) && RB_TYPE_P(tag_value, T_STRING))) {
       ddprof_ffi_Vec_tag_drop(tags);
-      Check_Type(tag_name, T_STRING);
-      Check_Type(tag_value, T_STRING);
+      ENFORCE_TYPE(tag_name, T_STRING);
+      ENFORCE_TYPE(tag_value, T_STRING);
     }
 
     ddprof_ffi_PushTagResult push_result =
@@ -259,7 +260,7 @@ static VALUE perform_export(
 }
 
 static VALUE _native_do_export(
-  VALUE self,
+  DDTRACE_UNUSED VALUE _self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
   VALUE start_timespec_seconds,
@@ -272,18 +273,18 @@ static VALUE _native_do_export(
   VALUE code_provenance_data,
   VALUE tags_as_array
 ) {
-  Check_Type(upload_timeout_milliseconds, T_FIXNUM);
-  Check_Type(start_timespec_seconds, T_FIXNUM);
-  Check_Type(start_timespec_nanoseconds, T_FIXNUM);
-  Check_Type(finish_timespec_seconds, T_FIXNUM);
-  Check_Type(finish_timespec_nanoseconds, T_FIXNUM);
-  Check_Type(pprof_file_name, T_STRING);
-  Check_Type(pprof_data, T_STRING);
-  Check_Type(code_provenance_file_name, T_STRING);
+  ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
+  ENFORCE_TYPE(start_timespec_seconds, T_FIXNUM);
+  ENFORCE_TYPE(start_timespec_nanoseconds, T_FIXNUM);
+  ENFORCE_TYPE(finish_timespec_seconds, T_FIXNUM);
+  ENFORCE_TYPE(finish_timespec_nanoseconds, T_FIXNUM);
+  ENFORCE_TYPE(pprof_file_name, T_STRING);
+  ENFORCE_TYPE(pprof_data, T_STRING);
+  ENFORCE_TYPE(code_provenance_file_name, T_STRING);
 
   // Code provenance can be disabled and in that case will be set to nil
   bool have_code_provenance = !NIL_P(code_provenance_data);
-  if (have_code_provenance) Check_Type(code_provenance_data, T_STRING);
+  if (have_code_provenance) ENFORCE_TYPE(code_provenance_data, T_STRING);
 
   uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
 

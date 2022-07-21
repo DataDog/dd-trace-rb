@@ -1,4 +1,13 @@
-desc 'create a new indexed repository'
+Rake::Task["build"].enhance(["build:pre_check"])
+
+desc 'Checks executed before gem is built'
+task :'build:pre_check' do
+  require 'rspec'
+  ret = RSpec::Core::Runner.run(['spec/ddtrace/release_gem_spec.rb'])
+  raise "Release tests failed! See error output above." if ret != 0
+end
+
+desc 'Create a new indexed repository'
 task :'release:gem' do
   raise 'Missing environment variable S3_DIR' if !S3_DIR || S3_DIR.empty?
   # load existing deployed gems

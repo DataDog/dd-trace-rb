@@ -1,7 +1,8 @@
 #include <ruby.h>
 #include <ruby/thread.h>
+#include "helpers.h"
 #include "stack_recorder.h"
-#include "libddprof_helpers.h"
+#include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
 
 // Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
@@ -70,7 +71,7 @@ static void stack_recorder_typed_data_free(void *data) {
   ddprof_ffi_Profile_free((ddprof_ffi_Profile *) data);
 }
 
-static VALUE _native_serialize(VALUE self, VALUE recorder_instance) {
+static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   ddprof_ffi_Profile *profile;
   TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
 

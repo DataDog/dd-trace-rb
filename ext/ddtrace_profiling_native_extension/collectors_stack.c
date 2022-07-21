@@ -1,7 +1,9 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include "extconf.h"
-#include "libddprof_helpers.h"
+#include "helpers.h"
+#include "libdatadog_helpers.h"
+#include "ruby_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 #include "collectors_stack.h"
@@ -40,9 +42,9 @@ void collectors_stack_init(VALUE profiling_module) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
-  Check_Type(metric_values_hash, T_HASH);
-  Check_Type(labels_array, T_ARRAY);
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
+  ENFORCE_TYPE(metric_values_hash, T_HASH);
+  ENFORCE_TYPE(labels_array, T_ARRAY);
 
   if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
     rb_raise(

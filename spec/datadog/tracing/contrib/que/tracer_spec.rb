@@ -15,16 +15,22 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
     }
   end
   let(:job_class) do
-    stub_const('TestJobClass', Class.new(::Que::Job) do
-      def run(*args); end
-    end)
+    stub_const(
+      'TestJobClass',
+      Class.new(::Que::Job) do
+        def run(*args); end
+      end
+    )
   end
   let(:error_job_class) do
-    stub_const('ErrorJobClass', Class.new(::Que::Job) do
-      def run(*_args)
-        raise StandardError, 'with some error'
+    stub_const(
+      'ErrorJobClass',
+      Class.new(::Que::Job) do
+        def run(*_args)
+          raise StandardError, 'with some error'
+        end
       end
-    end)
+    )
   end
 
   before do

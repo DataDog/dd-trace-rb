@@ -305,8 +305,6 @@ module Datadog
                 old_recorder,
                 trace_identifiers_helper: trace_identifiers_helper,
                 max_frames: settings.profiling.advanced.max_frames
-                # TODO: Provide proc that identifies Datadog worker threads?
-                # ignore_thread: settings.profiling.ignore_profiler
               )
             ]
           end

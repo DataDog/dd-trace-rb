@@ -34,26 +34,32 @@ RSpec.shared_context 'GraphQL class-based schema' do
     ot = object_type
     oc = object_class
 
-    stub_const(qtn, Class.new(::GraphQL::Schema::Object) do
-      field ot.graphql_name.downcase, ot, null: false, description: 'Find an object by ID' do
-        argument :id, ::GraphQL::Types::ID, required: true
-      end
+    stub_const(
+      qtn,
+      Class.new(::GraphQL::Schema::Object) do
+        field ot.graphql_name.downcase, ot, null: false, description: 'Find an object by ID' do
+          argument :id, ::GraphQL::Types::ID, required: true
+        end
 
-      define_method ot.graphql_name.downcase do |args|
-        oc.new(args[:id])
+        define_method ot.graphql_name.downcase do |args|
+          oc.new(args[:id])
+        end
       end
-    end)
+    )
   end
 
   let(:object_type) do
     otn = object_type_name
 
-    stub_const(otn, Class.new(::GraphQL::Schema::Object) do
-      field :id, ::GraphQL::Types::ID, null: false
-      field :name, ::GraphQL::Types::String, null: true
-      field :created_at, ::GraphQL::Types::String, null: false
-      field :updated_at, ::GraphQL::Types::String, null: false
-    end)
+    stub_const(
+      otn,
+      Class.new(::GraphQL::Schema::Object) do
+        field :id, ::GraphQL::Types::ID, null: false
+        field :name, ::GraphQL::Types::String, null: true
+        field :created_at, ::GraphQL::Types::String, null: false
+        field :updated_at, ::GraphQL::Types::String, null: false
+      end
+    )
   end
 end
 

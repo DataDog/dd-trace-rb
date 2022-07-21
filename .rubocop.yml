@@ -1,6 +1,7 @@
 inherit_from: .rubocop_todo.yml
 
 require:
+  - rubocop-packaging
   - rubocop-performance
   - rubocop-rspec
 
@@ -16,7 +17,6 @@ AllCops:
     - 'Rakefile'
   Exclude:
     - 'Appraisals'
-    - '*.gemspec'
     - 'lib/ddtrace/**/vendor/**/*.rb'
     - 'lib/datadog/**/vendor/**/*.rb'
     - 'integration/apps/*/bin/*'
@@ -373,6 +373,30 @@ Naming/FileName:
 Style/OptionalBooleanParameter:
   Enabled: false
 
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/BlockAlignment:
+  EnforcedStyleAlignWith: start_of_block
+
+Layout/FirstArgumentIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstMethodArgumentLineBreak:
+  Enabled: true
+
+Layout/FirstMethodParameterLineBreak:
+  Enabled: true
+
+Layout/MultilineMethodArgumentLineBreaks:
+  Enabled: true
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
 Lint/UnusedBlockArgument:
   # Required keyword arguments normally cannot be omitted or renamed:
   # Example: in `proc{|unused:|}`, `unused` cannot be renamed to `_unused`.
@@ -391,4 +415,11 @@ Style/TrailingCommaInHashLiteral:
   Enabled: false
 
 Naming/VariableNumber:
+  Enabled: false
+
+# Requires that the Rubocop linter should be configured to
+# match the same version as `spec.required_rubygems_version` in our gemspec file.
+# This is not currently possible, as we'd like to use updated versions of Rubocop
+# that have already dropped support for our minimum supported Ruby version.
+Gemspec/RequiredRubyVersion:
   Enabled: false

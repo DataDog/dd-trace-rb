@@ -239,12 +239,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#instance=' do
       let(:logger) do
-        double(:logger,
-               debug: true,
-               info: true,
-               warn: true,
-               error: true,
-               level: true)
+        double(
+          :logger,
+          debug: true,
+          info: true,
+          warn: true,
+          error: true,
+          level: true
+        )
       end
 
       it 'updates the #instance setting' do

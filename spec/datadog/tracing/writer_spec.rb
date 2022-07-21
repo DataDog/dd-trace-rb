@@ -126,28 +126,34 @@ RSpec.describe Datadog::Tracing::Writer do
 
         context 'with multiple responses' do
           let(:response1) do
-            instance_double(Datadog::Transport::HTTP::Traces::Response,
-                            internal_error?: false,
-                            server_error?: false,
-                            ok?: true,
-                            trace_count: 10)
+            instance_double(
+              Datadog::Transport::HTTP::Traces::Response,
+              internal_error?: false,
+              server_error?: false,
+              ok?: true,
+              trace_count: 10
+            )
           end
           let(:response2) do
-            instance_double(Datadog::Transport::HTTP::Traces::Response,
-                            internal_error?: false,
-                            server_error?: false,
-                            ok?: true,
-                            trace_count: 20)
+            instance_double(
+              Datadog::Transport::HTTP::Traces::Response,
+              internal_error?: false,
+              server_error?: false,
+              ok?: true,
+              trace_count: 20
+            )
           end
 
           let(:responses) { [response1, response2] }
 
           context 'and at least one being server error' do
             let(:response2) do
-              instance_double(Datadog::Transport::HTTP::Traces::Response,
-                              internal_error?: false,
-                              server_error?: true,
-                              ok?: false)
+              instance_double(
+                Datadog::Transport::HTTP::Traces::Response,
+                internal_error?: false,
+                server_error?: true,
+                ok?: false
+              )
             end
 
             it do

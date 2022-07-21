@@ -11,9 +11,9 @@
 RSpec::Matchers.define :match_normalized_sql do |expected|
   match do |actual|
     @actual = actual
-              .gsub(/[`"]/, '') # Remove all query token quotations. String quotations are left untouched.
-              .gsub(/\$\d+/, '?') # Convert Postgres placeholder '$1' to '?'
-              .gsub(/:\w+/, '?') # Convert Sqlite placeholder ':value' to '?'
+      .gsub(/[`"]/, '') # Remove all query token quotations. String quotations are left untouched.
+      .gsub(/\$\d+/, '?') # Convert Postgres placeholder '$1' to '?'
+      .gsub(/:\w+/, '?') # Convert Sqlite placeholder ':value' to '?'
 
     values_match?(expected, @actual)
   end

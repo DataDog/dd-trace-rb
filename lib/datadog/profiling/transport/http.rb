@@ -100,12 +100,18 @@ module Datadog
         end
 
         # Add adapters to registry
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net,
-                                                        Datadog::Transport::Ext::HTTP::ADAPTER)
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test,
-                                                        Datadog::Transport::Ext::Test::ADAPTER)
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket,
-                                                        Datadog::Transport::Ext::UnixSocket::ADAPTER)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(
+          Datadog::Transport::HTTP::Adapters::Net,
+          Datadog::Transport::Ext::HTTP::ADAPTER
+        )
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(
+          Datadog::Transport::HTTP::Adapters::Test,
+          Datadog::Transport::Ext::Test::ADAPTER
+        )
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(
+          Datadog::Transport::HTTP::Adapters::UnixSocket,
+          Datadog::Transport::Ext::UnixSocket::ADAPTER
+        )
       end
     end
   end

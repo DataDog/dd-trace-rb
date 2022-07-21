@@ -51,6 +51,32 @@ module ProfileHelpers
     raise "Profiling does not seem to be available: #{Datadog::Profiling.unsupported_reason}. " \
       'Try running `bundle exec rake compile` before running this test.'
   end
+
+  def samples_from_pprof(pprof_data)
+    decoded_profile = ::Perftools::Profiles::Profile.decode(pprof_data)
+
+    string_table = decoded_profile.string_table
+    pretty_sample_types = decoded_profile.sample_type.map { |it| string_table[it.type].to_sym }
+
+    decoded_profile.sample.map do |sample|
+      {
+        locations: sample.location_id.map { |location_id| decode_frame_from_pprof(decoded_profile, location_id) },
+        values: pretty_sample_types.zip(sample.value).to_h,
+        labels: sample.label.map { |it| [string_table[it.key].to_sym, it.str != 0 ? string_table[it.str] : it.num] }.to_h,
+      }
+    end
+  end
+
+  def decode_frame_from_pprof(decoded_profile, location_id)
+    strings = decoded_profile.string_table
+    location = decoded_profile.location.find { |loc| loc.id == location_id }
+    raise 'Unexpected: Multiple lines for location' unless location.line.size == 1
+
+    line_entry = location.line.first
+    function = decoded_profile.function.find { |func| func.id == line_entry.function_id }
+
+    { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
+  end
 end
 
 RSpec.configure do |config|

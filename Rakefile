@@ -364,14 +364,16 @@ namespace :coverage do
     require 'simplecov'
 
     resultset_files = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
-                      Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
+      Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
 
     SimpleCov.collate resultset_files do
       coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
       if ENV['CI'] == 'true'
         require 'codecov'
-        formatter SimpleCov::Formatter::MultiFormatter.new([SimpleCov::Formatter::HTMLFormatter,
-                                                            SimpleCov::Formatter::Codecov])
+        formatter SimpleCov::Formatter::MultiFormatter.new(
+          [SimpleCov::Formatter::HTMLFormatter,
+           SimpleCov::Formatter::Codecov]
+        )
       else
         formatter SimpleCov::Formatter::HTMLFormatter
       end

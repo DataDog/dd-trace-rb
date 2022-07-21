@@ -43,22 +43,70 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
 
   describe '#sample' do
-    it 'samples all threads' do
-      all_threads = Thread.list
-
-      decoded_profile = sample_and_decode
-
-      expect(decoded_profile.sample.size).to be all_threads.size
-    end
-
-    def sample_and_decode
-      cpu_and_wall_time_collector.sample
-
+    let(:pprof_result) do
       serialization_result = recorder.serialize
       raise 'Unexpected: Serialization failed' unless serialization_result
 
-      pprof_data = serialization_result.last
-      ::Perftools::Profiles::Profile.decode(pprof_data)
+      serialization_result.last
+    end
+    let(:samples) { samples_from_pprof(pprof_result) }
+
+    it 'samples all threads' do
+      all_threads = Thread.list
+
+      cpu_and_wall_time_collector.sample
+
+      expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
+      expect(samples.size).to be all_threads.size
+    end
+
+    it 'tags the samples with the object ids of the Threads they belong to' do
+      cpu_and_wall_time_collector.sample
+
+      expect(samples.map { |it| it.fetch(:labels).fetch(:'thread id') })
+        .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
+    end
+
+    it 'includes the thread names, if available' do
+      skip 'Thread names not available on Ruby 2.2' if RUBY_VERSION < '2.3'
+
+      t1.name = 'thread t1'
+      t2.name = nil
+      t3.name = 'thread t3'
+
+      cpu_and_wall_time_collector.sample
+
+      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+      t2_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t2.object_id }
+      t3_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t3.object_id }
+
+      expect(t1_sample).to include(labels: include(:'thread name' => 'thread t1'))
+      expect(t2_sample.fetch(:labels).keys).to_not include(:'thread name')
+      expect(t3_sample).to include(labels: include(:'thread name' => 'thread t3'))
+    end
+
+    it 'does not include thread names on Ruby 2.2' do
+      skip 'Testcase only applies to Ruby 2.2' if RUBY_VERSION >= '2.3'
+
+      expect(samples.flat_map { |it| it.fetch(:labels).keys }).to_not include(':thread name')
+    end
+
+    it 'includes the wall time elapsed between samples' do
+      cpu_and_wall_time_collector.sample
+      wall_time_at_first_sample =
+        cpu_and_wall_time_collector.per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      cpu_and_wall_time_collector.sample
+      wall_time_at_second_sample =
+        cpu_and_wall_time_collector.per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
+
+      t1_samples = samples.select { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+      wall_time = t1_samples.first.fetch(:values).fetch(:'wall-time')
+
+      expect(t1_samples.size)
+        .to be(1), "Expected thread t1 to always have same stack trace (because it's sleeping), got #{t1_samples.inspect}"
+
+      expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
   end
 
@@ -68,7 +116,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
   end
 
-  # Validate that we correctly clean up and don't leak per_thread_context
   describe '#per_thread_context' do
     context 'before sampling' do
       it do
@@ -78,11 +125,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
     context 'after sampling' do
       before do
+        @wall_time_before_sample_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
         cpu_and_wall_time_collector.sample
+        @wall_time_after_sample_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
       end
 
       it 'contains all the sampled threads' do
         expect(cpu_and_wall_time_collector.per_thread_context.keys).to include(Thread.main, t1, t2, t3)
+      end
+
+      it 'contains the thread ids (object_ids) of all sampled threads' do
+        cpu_and_wall_time_collector.per_thread_context.each do |thread, context|
+          expect(context.fetch(:thread_id)).to eq thread.object_id
+        end
+      end
+
+      it 'sets the wall_time_at_previous_sample_ns to the current wall clock value' do
+        expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+          include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
+        )
       end
     end
 

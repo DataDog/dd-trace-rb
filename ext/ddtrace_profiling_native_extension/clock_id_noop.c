@@ -7,8 +7,9 @@
 #include <ruby.h>
 
 #include "clock_id.h"
+#include "helpers.h"
 
 void self_test_clock_id(void) { } // Nothing to check
-VALUE clock_id_for(VALUE self, VALUE thread) { return Qnil; } // Nothing to return
+VALUE clock_id_for(DDTRACE_UNUSED VALUE _self, DDTRACE_UNUSED VALUE _thread) { return Qnil; } // Nothing to return
 
 #endif
