@@ -205,6 +205,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
               include(cpu_time_at_previous_sample_ns: 0)
             )
           end
+
+          it 'marks the thread_cpu_time_ids as not valid' do
+            expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+              include(thread_cpu_time_id_valid?: false)
+            )
+          end
         end
 
         context 'on Linux' do
@@ -232,6 +238,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
             expect(sample_values.uniq.size).to be(3), 'Every sample is expected to have a differ cpu time value'
             expect(sample_values).to eq(sample_values.sort), 'Samples are expected to be in ascending order'
+          end
+
+          it 'marks the thread_cpu_time_ids as valid' do
+            expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+              include(thread_cpu_time_id_valid?: true)
+            )
           end
         end
       end
