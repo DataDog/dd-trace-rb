@@ -52,21 +52,15 @@ module Datadog
             Core::Workers::RuntimeMetrics.new(options)
           end
 
-          def build_telemetry(settings, previous_components: nil)
-            unless previous_components && previous_components.telemetry
-              telemetry = Telemetry::Client.new(enabled: settings.telemetry.enabled)
-              telemetry.started!
-              return telemetry
-            end
+          def build_telemetry(settings)
+            telemetry = Telemetry::Client.new(enabled: settings.telemetry.enabled)
 
-            # Reuse a previous instance of the telemetry client if it already exists
-            if settings.telemetry.enabled
-              previous_components.telemetry.reenable!
-              previous_components.telemetry.integrations_change!
+            if telemetry.class.started
+              telemetry.integrations_change!
             else
-              previous_components.telemetry.disable!
+              telemetry.started!
             end
-            previous_components.telemetry
+            telemetry
           end
 
           def build_tracer(settings, agent_settings)
@@ -362,7 +356,7 @@ module Datadog
           :telemetry,
           :tracer
 
-        def initialize(settings, previous_components: nil)
+        def initialize(settings)
           # Logger
           @logger = self.class.build_logger(settings)
 
@@ -381,7 +375,7 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings)
 
           # Telemetry
-          @telemetry = self.class.build_telemetry(settings, previous_components: previous_components)
+          @telemetry = self.class.build_telemetry(settings)
         end
 
         # Starts up components

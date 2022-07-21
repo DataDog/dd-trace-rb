@@ -71,12 +71,12 @@ module Datadog
           @emitter.request('app-integrations-change')
         end
 
-        def self.started
-          @started ||= false
-        end
-
         class << self
           attr_writer :started
+
+          def started
+            @started ||= false
+          end
         end
 
         private
