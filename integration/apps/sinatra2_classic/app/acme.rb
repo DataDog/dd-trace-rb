@@ -48,7 +48,7 @@ get '/health/detailed' do
 end
 
 get '/basic/default' do
-  204
+  200
 end
 
 get '/basic/fibonacci' do

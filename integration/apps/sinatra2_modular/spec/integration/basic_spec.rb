@@ -36,44 +36,4 @@ RSpec.describe 'Basic scenarios' do
       puts "      Webserver: #{json_result.fetch(:webserver_process)}"
     end
   end
-
-  context 'resque usage' do
-    let(:key) { SecureRandom.uuid }
-
-    before do
-      post('background_jobs/write_resque', key: key, value: 'it works!')
-    end
-
-    it 'runs a test task, with profiling enabled' do
-      body = nil
-      wait_for { body = get("background_jobs/read_resque?key=#{key}").body.to_s }.to include('it works!')
-
-      expect(JSON.parse(body, symbolize_names: true)).to include(
-        key: key,
-        resque_process: match(/resque/),
-        profiler_available: expected_profiler_available,
-        profiler_threads: expected_profiler_threads,
-      )
-    end
-  end
-
-  context 'sidekiq usage' do
-    let(:key) { SecureRandom.uuid }
-
-    before do
-      post('background_jobs/write_sidekiq', key: key, value: 'it works!')
-    end
-
-    it 'runs a test task, with profiling enabled' do
-      body = nil
-      wait_for { body = get("background_jobs/read_sidekiq?key=#{key}").body.to_s }.to include('it works!')
-
-      expect(JSON.parse(body, symbolize_names: true)).to include(
-        key: key,
-        sidekiq_process: match(/sidekiq/),
-        profiler_available: expected_profiler_available,
-        profiler_threads: expected_profiler_threads,
-      )
-    end
-  end
 end
