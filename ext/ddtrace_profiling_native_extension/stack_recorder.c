@@ -15,6 +15,11 @@ static ID ruby_time_from_id; // id of :ruby_time_from in Ruby
 
 static VALUE stack_recorder_class = Qnil;
 
+// Contains native state for each instance
+struct stack_recorder_state {
+  ddprof_ffi_Profile *profile;
+};
+
 struct call_serialize_without_gvl_arguments {
   ddprof_ffi_Profile *profile;
   ddprof_ffi_SerializeResult result;
@@ -32,9 +37,9 @@ void stack_recorder_init(VALUE profiling_module) {
 
   // Instances of the StackRecorder class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
-  // In our case, we're going to keep a libdatadog profile reference inside our object.
+  // In this case, it wraps the stack_recorder_state.
   //
-  // Because Ruby doesn't know how to initialize libdatadog profiles, we MUST override the allocation function for objects
+  // Because Ruby doesn't know how to initialize native-level structs, we MUST override the allocation function for objects
   // of this class so that we can manage this part. Not overriding or disabling the allocation function is a common
   // gotcha for "TypedData" objects that can very easily lead to VM crashes, see for instance
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
@@ -60,24 +65,30 @@ static const rb_data_type_t stack_recorder_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
+  struct stack_recorder_state *state = ruby_xcalloc(1, sizeof(struct stack_recorder_state));
+
   ddprof_ffi_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
 
-  ddprof_ffi_Profile *profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  state->profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
-  return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, profile);
+  return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 }
 
-static void stack_recorder_typed_data_free(void *data) {
-  ddprof_ffi_Profile_free((ddprof_ffi_Profile *) data);
+static void stack_recorder_typed_data_free(void *state_ptr) {
+  struct stack_recorder_state *state = (struct stack_recorder_state *) state_ptr;
+
+  ddprof_ffi_Profile_free(state->profile);
+
+  ruby_xfree(state);
 }
 
 static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
-  ddprof_ffi_Profile *profile;
-  TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_serialize_without_gvl_arguments args = {.profile = profile, .serialize_ran = false};
+  struct call_serialize_without_gvl_arguments args = {.profile = state->profile, .serialize_ran = false};
 
   while (!args.serialize_ran) {
     // Give the Ruby VM an opportunity to process any pending interruptions (including raising exceptions).
@@ -112,7 +123,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  if (!ddprof_ffi_Profile_reset(profile, NULL /* start_time is optional */ )) {
+  if (!ddprof_ffi_Profile_reset(state->profile, NULL /* start_time is optional */ )) {
     return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
   }
 
@@ -130,10 +141,10 @@ static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time) {
 }
 
 void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
-  ddprof_ffi_Profile *profile;
-  TypedData_Get_Struct(recorder_instance, ddprof_ffi_Profile, &stack_recorder_typed_data, profile);
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  ddprof_ffi_Profile_add(profile, sample);
+  ddprof_ffi_Profile_add(state->profile, sample);
 }
 
 static void *call_serialize_without_gvl(void *call_args) {
