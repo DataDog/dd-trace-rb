@@ -582,7 +582,6 @@ services:
       - "${TEST_MONGODB_PORT}:27017"
   mysql:
     image: mysql:8
-    platform: linux/x86_64
     environment:
       - MYSQL_DATABASE=$TEST_MYSQL_DB
       - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
