@@ -150,6 +150,8 @@ module Datadog
             # Set trace name if it hasn't been set yet (name == resource)
             trace.resource = request_span.resource if trace.resource == trace.name
 
+            request_span.resource = trace.resource unless trace.resource.nil?
+
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
