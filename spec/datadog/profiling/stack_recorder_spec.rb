@@ -11,6 +11,22 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
   # samples in order to observe what comes out of libdatadog
 
+  describe '#initialize' do
+    describe 'locking behavior' do
+      it 'sets slot one as the active slot' do
+        expect(stack_recorder.active_slot).to be 1
+      end
+
+      it 'keeps the slot one mutex unlocked' do
+        expect(stack_recorder.slot_one_mutex_locked?).to be false
+      end
+
+      it 'keeps the slot two mutex locked' do
+        expect(stack_recorder.slot_two_mutex_locked?).to be true
+      end
+    end
+  end
+
   describe '#serialize' do
     subject(:serialize) { stack_recorder.serialize }
 
@@ -31,6 +47,41 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       expect(message).to include start.iso8601
       expect(message).to include finish.iso8601
+    end
+
+    describe 'locking behavior' do
+      context 'when slot one was the active slot' do
+        it 'sets slot two as the active slot' do
+          expect { serialize }.to change { stack_recorder.active_slot }.from(1).to(2)
+        end
+
+        it 'locks the slot one mutex and keeps it locked' do
+          expect { serialize }.to change { stack_recorder.slot_one_mutex_locked? }.from(false).to(true)
+        end
+
+        it 'unlocks the slot two mutex and keeps it unlocked' do
+          expect { serialize }.to change { stack_recorder.slot_two_mutex_locked? }.from(true).to(false)
+        end
+      end
+
+      context 'when slot two was the active slot' do
+        before do
+          # Trigger serialization once, so that active slots get flipped
+          stack_recorder.serialize
+        end
+
+        it 'sets slot one as the active slot' do
+          expect { serialize }.to change { stack_recorder.active_slot }.from(2).to(1)
+        end
+
+        it 'unlocks the slot one mutex and keeps it unlocked' do
+          expect { serialize }.to change { stack_recorder.slot_one_mutex_locked? }.from(true).to(false)
+        end
+
+        it 'locks the slow two mutex and keeps it locked' do
+          expect { serialize }.to change { stack_recorder.slot_two_mutex_locked? }.from(false).to(true)
+        end
+      end
     end
 
     context 'when the profile is empty' do
