@@ -16,8 +16,11 @@ module Datadog
           SPAN_PUSH = 'sidekiq.push'.freeze
           SPAN_JOB = 'sidekiq.job'.freeze
           SPAN_JOB_FETCH = 'sidekiq.job_fetch'.freeze
+          SPAN_REDIS_INFO = 'sidekiq.redis_info'.freeze
           SPAN_HEARTBEAT = 'sidekiq.heartbeat'.freeze
           SPAN_SCHEDULED_PUSH = 'sidekiq.scheduled_push'.freeze
+          SPAN_SCHEDULED_WAIT = 'sidekiq.scheduled_poller_wait'.freeze
+          SPAN_STOP = 'sidekiq.stop'.freeze
           TAG_JOB_DELAY = 'sidekiq.job.delay'.freeze
           TAG_JOB_ID = 'sidekiq.job.id'.freeze
           TAG_JOB_QUEUE = 'sidekiq.job.queue'.freeze
@@ -29,8 +32,11 @@ module Datadog
           TAG_OPERATION_PUSH = 'push'.freeze
           TAG_OPERATION_JOB = 'job'.freeze
           TAG_OPERATION_JOB_FETCH = 'job_fetch'.freeze
+          TAG_OPERATION_REDIS_INFO = 'redis_info'.freeze
           TAG_OPERATION_HEARTBEAT = 'heartbeat'.freeze
           TAG_OPERATION_SCHEDULED_PUSH = 'scheduled_push'.freeze
+          TAG_OPERATION_SCHEDULED_WAIT = 'scheduled_poller_wait'.freeze
+          TAG_OPERATION_STOP = 'stop'.freeze
         end
       end
     end

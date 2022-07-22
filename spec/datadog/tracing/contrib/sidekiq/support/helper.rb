@@ -92,4 +92,22 @@ module SidekiqServerExpectations
     app_tempfile.close
     app_tempfile.unlink
   end
+
+  def run_sidekiq_server
+    app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
+
+    require 'sidekiq/cli'
+
+    configure_sidekiq
+    # binding.pry
+
+    cli = Sidekiq::CLI.instance
+    cli.parse(['--require', app_tempfile.path]) # boot the "app"
+    launcher = Sidekiq::Launcher.new(cli.send(:options))
+    launcher.stop
+    exit
+  ensure
+    app_tempfile.close
+    app_tempfile.unlink
+  end
 end

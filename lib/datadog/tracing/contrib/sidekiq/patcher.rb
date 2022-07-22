@@ -45,6 +45,7 @@ module Datadog
             patch_server_heartbeat
             patch_server_job_fetch
             patch_server_scheduled_push
+            patch_redis_info
           end
 
           def patch_server_heartbeat
@@ -60,9 +61,15 @@ module Datadog
           end
 
           def patch_server_scheduled_push
-            require 'datadog/tracing/contrib/sidekiq/server_internal_tracer/scheduled_push'
+            require 'datadog/tracing/contrib/sidekiq/server_internal_tracer/scheduled_poller'
 
-            ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPush)
+            ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPoller)
+          end
+
+          def patch_redis_info
+            require 'datadog/tracing/contrib/sidekiq/server_internal_tracer/redis_info'
+
+            ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
           end
         end
       end

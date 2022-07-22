@@ -5,16 +5,17 @@ module Datadog
     module Contrib
       module Sidekiq
         module ServerInternalTracer
-          # Trace when a Sidekiq process has a heartbeat
-          module Heartbeat
-            def stop
+          # Trace when Sidekiq checks to see if there are scheduled jobs that need to be worked
+          # https://github.com/mperham/sidekiq/wiki/Scheduled-Jobs
+          module ScheduledPoller
+            def enqueue
               configuration = Datadog.configuration.tracing[:sidekiq]
 
-              Datadog::Tracing.trace(Ext::SPAN_STOP, service: configuration[:service_name]) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_SCHEDULED_PUSH, service: configuration[:service_name]) do |span|
                 span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
                 span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_STOP)
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SCHEDULED_PUSH)
 
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
@@ -27,14 +28,14 @@ module Datadog
 
             private
 
-            def heartbeat
+            def wait
               configuration = Datadog.configuration.tracing[:sidekiq]
 
-              Datadog::Tracing.trace(Ext::SPAN_HEARTBEAT, service: configuration[:service_name]) do |span|
+              Datadog::Tracing.trace(Ext::SPAN_SCHEDULED_WAIT, service: configuration[:service_name]) do |span|
                 span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
                 span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HEARTBEAT)
+                span.set_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SCHEDULED_WAIT)
 
                 # Set analytics sample rate
                 if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

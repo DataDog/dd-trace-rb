@@ -14,20 +14,17 @@ RSpec.describe 'Server internal tracer' do
     skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)
   end
 
-  it 'traces the looping job fetching' do
-    # fetches block for 2 seconds when there is nothing in the queue
-    # https://github.com/mperham/sidekiq/blob/v6.2.2/lib/sidekiq/fetch.rb#L7-L9
-    # https://redis.io/commands/blpop#blocking-behavior
-    expect_in_sidekiq_server(duration: 3) do
-      span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.job_fetch' }
+  it 'traces the redis info command' do
+    expect_in_sidekiq_server do
+      span = spans.find { |s| s.service == tracer.default_service && s.name == 'sidekiq.redis_info' }
 
       expect(span.service).to eq(tracer.default_service)
-      expect(span.name).to eq('sidekiq.job_fetch')
+      expect(span.name).to eq('sidekiq.redis_info')
       expect(span.span_type).to eq('worker')
-      expect(span.resource).to eq('sidekiq.job_fetch')
+      expect(span.resource).to eq('sidekiq.redis_info')
       expect(span).to_not have_error
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job_fetch')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('redis_info')
     end
   end
 end
