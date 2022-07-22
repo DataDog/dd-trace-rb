@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include <ruby/thread.h>
+#include <pthread.h>
 #include "helpers.h"
 #include "stack_recorder.h"
 #include "libdatadog_helpers.h"
@@ -17,7 +18,11 @@ static VALUE stack_recorder_class = Qnil;
 
 // Contains native state for each instance
 struct stack_recorder_state {
-  ddprof_ffi_Profile *profile;
+  pthread_mutex_t slot_one_mutex;
+  ddprof_ffi_Profile *slot_one_profile;
+
+  pthread_mutex_t slot_two_mutex;
+  ddprof_ffi_Profile *slot_two_profile;
 };
 
 struct call_serialize_without_gvl_arguments {
@@ -69,7 +74,11 @@ static VALUE _native_new(VALUE klass) {
 
   ddprof_ffi_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
 
-  state->profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  state->slot_one_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  state->slot_one_profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  state->slot_two_profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
   return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 }
@@ -77,7 +86,11 @@ static VALUE _native_new(VALUE klass) {
 static void stack_recorder_typed_data_free(void *state_ptr) {
   struct stack_recorder_state *state = (struct stack_recorder_state *) state_ptr;
 
-  ddprof_ffi_Profile_free(state->profile);
+  pthread_mutex_destroy(&state->slot_one_mutex);
+  ddprof_ffi_Profile_free(state->slot_one_profile);
+
+  pthread_mutex_destroy(&state->slot_two_mutex);
+  ddprof_ffi_Profile_free(state->slot_two_profile);
 
   ruby_xfree(state);
 }
@@ -88,7 +101,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_serialize_without_gvl_arguments args = {.profile = state->profile, .serialize_ran = false};
+  struct call_serialize_without_gvl_arguments args = {.profile = state->slot_one_profile, .serialize_ran = false};
 
   while (!args.serialize_ran) {
     // Give the Ruby VM an opportunity to process any pending interruptions (including raising exceptions).
@@ -123,7 +136,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  if (!ddprof_ffi_Profile_reset(state->profile, NULL /* start_time is optional */ )) {
+  if (!ddprof_ffi_Profile_reset(state->slot_one_profile, NULL /* start_time is optional */ )) {
     return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
   }
 
@@ -144,7 +157,7 @@ void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  ddprof_ffi_Profile_add(state->profile, sample);
+  ddprof_ffi_Profile_add(state->slot_one_profile, sample);
 }
 
 static void *call_serialize_without_gvl(void *call_args) {
