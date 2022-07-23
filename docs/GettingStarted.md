@@ -1598,7 +1598,13 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 ### Rake
 
-You can add instrumentation around your Rake tasks by activating the `rake` integration. Each task and its subsequent subtasks will be traced.
+You can add instrumentation around your Rake tasks by activating the `rake` integration and
+providing a list of what Rake tasks need to be instrumented.
+
+**Avoid instrumenting long-running Rake tasks, as such tasks can aggregate large traces in
+memory that are never flushed until the task finishes.**
+
+For long-running tasks, use [Manual instrumentation](#manual-instrumentation) around recurring code paths.
 
 To activate Rake task tracing, add the following to your `Rakefile`:
 
@@ -1608,7 +1614,7 @@ require 'rake'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :rake, options
+  c.tracing.instrument :rake, tasks: ['my_task'], **options
 end
 
 task :my_task do
@@ -1625,6 +1631,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
 | `service_name` | Service name used for `rake` instrumentation | `'rake'` |
+| `tasks` | Names of the Rake tasks to instrument | `[]` |
 
 **Configuring task quantization behavior**
 
