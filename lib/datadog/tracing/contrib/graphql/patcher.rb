@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/patcher'
+require_relative '../../../tracing'
+require_relative '../analytics'
+require_relative '../patcher'
 
 module Datadog
   module Tracing

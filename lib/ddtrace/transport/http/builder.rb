@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core/configuration/agent_settings_resolver'
-require 'ddtrace/transport/http/adapters/registry'
-require 'ddtrace/transport/http/api/map'
-require 'ddtrace/transport/http/api/instance'
-require 'ddtrace/transport/http/client'
+require_relative '../../../datadog/core/configuration/agent_settings_resolver'
+require_relative 'adapters/registry'
+require_relative 'api/map'
+require_relative 'api/instance'
+require_relative 'client'
 
 module Datadog
   module Transport

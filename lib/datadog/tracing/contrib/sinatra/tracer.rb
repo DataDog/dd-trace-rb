@@ -2,14 +2,14 @@
 
 require 'sinatra/base'
 
-require 'datadog/core/utils/only_once'
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/propagation/http'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/sinatra/env'
-require 'datadog/tracing/contrib/sinatra/ext'
-require 'datadog/tracing/contrib/sinatra/tracer_middleware'
+require_relative '../../../core/utils/only_once'
+require_relative '../../../tracing'
+require_relative '../../metadata/ext'
+require_relative '../../propagation/http'
+require_relative '../analytics'
+require_relative 'env'
+require_relative 'ext'
+require_relative 'tracer_middleware'
 
 module Datadog
   module Tracing

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/configuration/option'
+require_relative 'option'
 
 module Datadog
   module Core

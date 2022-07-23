@@ -2,8 +2,8 @@
 
 require 'time'
 
-require 'datadog/tracing/context'
-require 'datadog/tracing/tracer'
+require_relative '../tracing/context'
+require_relative '../tracing/tracer'
 
 module Datadog
   module OpenTracer

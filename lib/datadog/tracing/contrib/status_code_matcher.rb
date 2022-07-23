@@ -2,8 +2,8 @@
 
 require 'set'
 
-require 'datadog/core'
-require 'datadog/tracing/metadata/ext'
+require_relative '../../core'
+require_relative '../metadata/ext'
 
 module Datadog
   module Tracing

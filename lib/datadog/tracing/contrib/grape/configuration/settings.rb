@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/configuration/settings'
-require 'datadog/tracing/contrib/grape/ext'
-require 'datadog/tracing/contrib/status_code_matcher'
+require_relative '../../configuration/settings'
+require_relative '../ext'
+require_relative '../../status_code_matcher'
 
 module Datadog
   module Tracing

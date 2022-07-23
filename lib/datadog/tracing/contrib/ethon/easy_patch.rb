@@ -2,11 +2,11 @@
 
 require 'uri'
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/propagation/http'
-require 'datadog/tracing/contrib/ethon/ext'
-require 'datadog/tracing/contrib/http_annotation_helper'
+require_relative '../../../tracing'
+require_relative '../../metadata/ext'
+require_relative '../../propagation/http'
+require_relative 'ext'
+require_relative '../http_annotation_helper'
 
 module Datadog
   module Tracing

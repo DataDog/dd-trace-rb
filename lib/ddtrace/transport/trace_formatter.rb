@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core/environment/identity'
-require 'datadog/core/environment/socket'
-require 'datadog/core/runtime/ext'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/trace_segment'
+require_relative '../../datadog/core/environment/identity'
+require_relative '../../datadog/core/environment/socket'
+require_relative '../../datadog/core/runtime/ext'
+require_relative '../../datadog/tracing/metadata/ext'
+require_relative '../../datadog/tracing/trace_segment'
 
 module Datadog
   module Transport

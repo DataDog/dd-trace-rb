@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core/environment/variable_helpers'
-require 'datadog/core/configuration/options'
+require_relative '../environment/variable_helpers'
+require_relative 'options'
 
 module Datadog
   module Core

@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/action_cable/ext'
-require 'datadog/tracing/contrib/action_cable/events'
-require 'datadog/tracing/contrib/action_cable/instrumentation'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'events'
+require_relative 'instrumentation'
 
 module Datadog
   module Tracing

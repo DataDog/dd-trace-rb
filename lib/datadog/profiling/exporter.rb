@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/profiling/ext'
-require 'datadog/core/utils/compression'
-require 'datadog/profiling/tag_builder'
+require_relative 'ext'
+require_relative '../core/utils/compression'
+require_relative 'tag_builder'
 
 module Datadog
   module Profiling

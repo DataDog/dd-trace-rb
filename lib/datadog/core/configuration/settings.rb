@@ -2,11 +2,11 @@
 
 require 'logger'
 
-require 'datadog/core/configuration/base'
-require 'datadog/core/environment/ext'
-require 'datadog/core/runtime/ext'
-require 'datadog/profiling/ext'
-require 'datadog/tracing/configuration/ext'
+require_relative 'base'
+require_relative '../environment/ext'
+require_relative '../runtime/ext'
+require_relative '../../profiling/ext'
+require_relative '../../tracing/configuration/ext'
 
 module Datadog
   module Core

@@ -1,12 +1,12 @@
 # typed: true
 
-require 'datadog/core'
+require_relative '../core'
 
-require 'datadog/tracing/event'
-require 'datadog/tracing/runtime/metrics'
-require 'datadog/tracing/workers'
+require_relative 'event'
+require_relative 'runtime/metrics'
+require_relative 'workers'
 
-require 'ddtrace/transport/http'
+require_relative '../../ddtrace/transport/http'
 
 module Datadog
   module Tracing

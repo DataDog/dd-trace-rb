@@ -1,12 +1,12 @@
 # typed: ignore
 
-require 'datadog/tracing/contrib/rack/middlewares'
+require_relative '../../../tracing/contrib/rack/middlewares'
 
-require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/rack/request_middleware'
-require 'datadog/appsec/contrib/sinatra/framework'
-require 'datadog/appsec/contrib/sinatra/gateway/watcher'
-require 'datadog/tracing/contrib/sinatra/framework'
+require_relative '../patcher'
+require_relative '../rack/request_middleware'
+require_relative 'framework'
+require_relative 'gateway/watcher'
+require_relative '../../../tracing/contrib/sinatra/framework'
 
 module Datadog
   module AppSec

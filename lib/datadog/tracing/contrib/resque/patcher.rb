@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/sidekiq/ext'
+require_relative '../patcher'
+require_relative '../sidekiq/ext'
 
 module Datadog
   module Tracing

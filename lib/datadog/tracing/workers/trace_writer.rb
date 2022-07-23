@@ -1,16 +1,16 @@
 # typed: false
 
-require 'datadog/core'
-require 'datadog/core/worker'
-require 'datadog/core/workers/async'
-require 'datadog/core/workers/polling'
-require 'datadog/core/workers/queue'
+require_relative '../../core'
+require_relative '../../core/worker'
+require_relative '../../core/workers/async'
+require_relative '../../core/workers/polling'
+require_relative '../../core/workers/queue'
 
-require 'datadog/tracing/buffer'
-require 'datadog/tracing/pipeline'
-require 'datadog/tracing/event'
+require_relative '../buffer'
+require_relative '../pipeline'
+require_relative '../event'
 
-require 'ddtrace/transport/http'
+require_relative '../../../ddtrace/transport/http'
 
 module Datadog
   module Tracing

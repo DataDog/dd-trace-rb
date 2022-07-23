@@ -1,12 +1,12 @@
 # typed: false
 
-require 'datadog/tracing/distributed/metadata/datadog'
-require 'datadog/tracing/distributed/metadata/b3'
-require 'datadog/tracing/distributed/metadata/b3_single'
+require_relative '../distributed/metadata/datadog'
+require_relative '../distributed/metadata/b3'
+require_relative '../distributed/metadata/b3_single'
 
-require 'datadog/tracing/span'
-require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/trace_operation'
+require_relative '../span'
+require_relative '../trace_digest'
+require_relative '../trace_operation'
 
 module Datadog
   module Tracing

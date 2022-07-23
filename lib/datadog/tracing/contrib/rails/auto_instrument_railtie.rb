@@ -1,6 +1,6 @@
 # typed: ignore
 
-require 'datadog/tracing/contrib/auto_instrument'
+require_relative '../auto_instrument'
 
 # Railtie to include AutoInstrumentation in rails loading
 class DatadogAutoInstrumentRailtie < Rails::Railtie

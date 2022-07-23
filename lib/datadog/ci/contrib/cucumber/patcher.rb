@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/ci/contrib/cucumber/instrumentation'
+require_relative '../../../tracing/contrib/patcher'
+require_relative 'instrumentation'
 
 module Datadog
   module CI

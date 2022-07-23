@@ -2,9 +2,9 @@
 
 require 'uri'
 
-require 'datadog/core/configuration/settings'
-require 'datadog/tracing/configuration/ext'
-require 'ddtrace/transport/ext'
+require_relative 'settings'
+require_relative '../../tracing/configuration/ext'
+require_relative '../../../ddtrace/transport/ext'
 
 module Datadog
   module Core

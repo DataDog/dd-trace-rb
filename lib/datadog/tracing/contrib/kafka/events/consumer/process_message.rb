@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/contrib/kafka/ext'
-require 'datadog/tracing/contrib/kafka/event'
-require 'datadog/tracing/contrib/kafka/consumer_event'
+require_relative '../../ext'
+require_relative '../../event'
+require_relative '../../consumer_event'
 
 module Datadog
   module Tracing

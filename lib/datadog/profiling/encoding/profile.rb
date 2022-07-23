@@ -2,7 +2,7 @@
 
 require 'time'
 
-require 'datadog/profiling/pprof/template'
+require_relative '../pprof/template'
 
 module Datadog
   module Profiling

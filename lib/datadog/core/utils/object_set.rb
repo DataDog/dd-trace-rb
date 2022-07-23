@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/utils/sequence'
+require_relative 'sequence'
 
 module Datadog
   module Core

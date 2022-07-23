@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/appsec/configuration'
-require 'datadog/appsec/extensions'
+require_relative 'appsec/configuration'
+require_relative 'appsec/extensions'
 
 module Datadog
   # Namespace for Datadog AppSec instrumentation
@@ -18,6 +18,6 @@ module Datadog
 end
 
 # Integrations
-require 'datadog/appsec/contrib/rack/integration'
-require 'datadog/appsec/contrib/sinatra/integration'
-require 'datadog/appsec/contrib/rails/integration'
+require_relative 'appsec/contrib/rack/integration'
+require_relative 'appsec/contrib/sinatra/integration'
+require_relative 'appsec/contrib/rails/integration'

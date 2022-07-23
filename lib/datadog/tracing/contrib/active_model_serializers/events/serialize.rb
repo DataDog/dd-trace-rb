@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/active_model_serializers/ext'
-require 'datadog/tracing/contrib/active_model_serializers/event'
+require_relative '../ext'
+require_relative '../event'
 
 module Datadog
   module Tracing

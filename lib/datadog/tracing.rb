@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core'
-require 'datadog/tracing/pipeline'
+require_relative 'core'
+require_relative 'tracing/pipeline'
 
 module Datadog
   # Datadog APM tracing public API.

@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/sucker_punch/configuration/settings'
-require 'datadog/tracing/contrib/sucker_punch/patcher'
+require_relative '../integration'
+require_relative 'configuration/settings'
+require_relative 'patcher'
 
 module Datadog
   module Tracing

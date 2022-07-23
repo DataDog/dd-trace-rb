@@ -1,9 +1,9 @@
 # typed: ignore
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/grpc/ext'
-require 'datadog/tracing/contrib/grpc/configuration/settings'
+require_relative '../../../tracing'
+require_relative '../analytics'
+require_relative 'ext'
+require_relative 'configuration/settings'
 
 module Datadog
   module Tracing

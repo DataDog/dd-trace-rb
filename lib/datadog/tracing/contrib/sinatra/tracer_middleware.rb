@@ -1,12 +1,12 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/rack/ext'
-require 'datadog/tracing/contrib/sinatra/env'
-require 'datadog/tracing/contrib/sinatra/ext'
-require 'datadog/tracing/contrib/sinatra/headers'
+require_relative '../../../tracing'
+require_relative '../../metadata/ext'
+require_relative '../analytics'
+require_relative '../rack/ext'
+require_relative 'env'
+require_relative 'ext'
+require_relative 'headers'
 
 module Datadog
   module Tracing

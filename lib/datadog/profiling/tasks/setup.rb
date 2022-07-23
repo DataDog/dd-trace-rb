@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core/utils/only_once'
-require 'datadog/profiling/ext/forking'
+require_relative '../../core/utils/only_once'
+require_relative '../ext/forking'
 
 module Datadog
   module Profiling

@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/active_support/notifications/event'
-require 'datadog/tracing/contrib/active_model_serializers/ext'
+require_relative '../../../tracing'
+require_relative '../../metadata/ext'
+require_relative '../analytics'
+require_relative '../active_support/notifications/event'
+require_relative 'ext'
 
 module Datadog
   module Tracing

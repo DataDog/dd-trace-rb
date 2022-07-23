@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core/chunker'
-require 'ddtrace/transport/parcel'
-require 'ddtrace/transport/request'
-require 'ddtrace/transport/serializable_trace'
-require 'ddtrace/transport/trace_formatter'
+require_relative '../../datadog/core/chunker'
+require_relative 'parcel'
+require_relative 'request'
+require_relative 'serializable_trace'
+require_relative 'trace_formatter'
 
 module Datadog
   module Transport

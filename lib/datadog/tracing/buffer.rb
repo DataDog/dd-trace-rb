@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core'
-require 'datadog/core/environment/ext'
-require 'datadog/core/buffer/thread_safe'
-require 'datadog/core/buffer/cruby'
-require 'datadog/core/diagnostics/health'
+require_relative '../core'
+require_relative '../core/environment/ext'
+require_relative '../core/buffer/thread_safe'
+require_relative '../core/buffer/cruby'
+require_relative '../core/diagnostics/health'
 
 module Datadog
   module Tracing

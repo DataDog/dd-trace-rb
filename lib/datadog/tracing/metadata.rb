@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/metadata/analytics'
-require 'datadog/tracing/metadata/tagging'
-require 'datadog/tracing/metadata/errors'
+require_relative 'metadata/analytics'
+require_relative 'metadata/tagging'
+require_relative 'metadata/errors'
 
 module Datadog
   module Tracing

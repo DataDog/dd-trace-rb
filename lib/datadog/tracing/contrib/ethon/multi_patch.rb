@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/propagation/http'
-require 'datadog/tracing/contrib/ethon/ext'
+require_relative '../../../tracing'
+require_relative '../../metadata/ext'
+require_relative '../../propagation/http'
+require_relative 'ext'
 
 module Datadog
   module Tracing

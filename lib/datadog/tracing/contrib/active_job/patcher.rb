@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/active_job/ext'
-require 'datadog/tracing/contrib/active_job/events'
-require 'datadog/tracing/contrib/active_job/log_injection'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'events'
+require_relative 'log_injection'
 
 module Datadog
   module Tracing

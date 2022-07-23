@@ -2,8 +2,8 @@
 
 require 'securerandom'
 
-require 'datadog/core/environment/ext'
-require 'datadog/core/utils/forking'
+require_relative 'ext'
+require_relative '../utils/forking'
 
 module Datadog
   module Core

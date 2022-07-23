@@ -2,7 +2,7 @@
 
 require 'etc'
 
-require 'datadog/core/environment/identity'
+require_relative 'identity'
 
 module Datadog
   module Core

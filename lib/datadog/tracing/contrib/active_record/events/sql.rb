@@ -1,11 +1,11 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/active_record/event'
-require 'datadog/tracing/contrib/active_record/ext'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/utils/database'
+require_relative '../../../../tracing'
+require_relative '../../../metadata/ext'
+require_relative '../event'
+require_relative '../ext'
+require_relative '../../analytics'
+require_relative '../../utils/database'
 
 module Datadog
   module Tracing

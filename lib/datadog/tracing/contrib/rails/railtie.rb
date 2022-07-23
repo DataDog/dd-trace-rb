@@ -1,8 +1,8 @@
 # typed: ignore
 
-require 'datadog/tracing/contrib/rails/framework'
-require 'datadog/tracing/contrib/rails/middlewares'
-require 'datadog/tracing/contrib/rack/middlewares'
+require_relative 'framework'
+require_relative 'middlewares'
+require_relative '../rack/middlewares'
 
 module Datadog
   # Railtie class initializes

@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core/environment/identity'
-require 'datadog/core/environment/socket'
+require_relative '../core/environment/identity'
+require_relative '../core/environment/socket'
 
 module Datadog
   module Profiling

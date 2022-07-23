@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/action_pack/utils'
+require_relative '../../../tracing'
+require_relative '../action_pack/utils'
 
 module Datadog
   module Tracing

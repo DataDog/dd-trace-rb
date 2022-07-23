@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'ddtrace/transport/ext'
+require_relative '../../../tracing'
+require_relative '../../../../ddtrace/transport/ext'
 
 module Datadog
   module Tracing

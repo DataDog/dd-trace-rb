@@ -1,6 +1,6 @@
 # typed: true
 
-require 'ddtrace/transport/http/response'
+require_relative '../../../../ddtrace/transport/http/response'
 
 module Datadog
   module Profiling

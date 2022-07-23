@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/environment/ext'
+require_relative 'ext'
 
 module Datadog
   module Core

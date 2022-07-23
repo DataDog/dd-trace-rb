@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/ci/ext/settings'
+require_relative '../ext/settings'
 
 module Datadog
   module CI

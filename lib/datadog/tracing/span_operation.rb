@@ -2,15 +2,15 @@
 
 require 'time'
 
-require 'datadog/core'
-require 'datadog/core/environment/identity'
-require 'datadog/core/utils'
-require 'datadog/core/utils/time'
+require_relative '../core'
+require_relative '../core/environment/identity'
+require_relative '../core/utils'
+require_relative '../core/utils/time'
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/event'
-require 'datadog/tracing/span'
-require 'datadog/tracing/metadata'
+require_relative 'metadata/ext'
+require_relative 'event'
+require_relative 'span'
+require_relative 'metadata'
 
 module Datadog
   module Tracing

@@ -1,13 +1,13 @@
 # typed: ignore
 
-require 'datadog/core/utils/only_once'
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/rack/middlewares'
-require 'datadog/tracing/contrib/rails/framework'
-require 'datadog/tracing/contrib/rails/log_injection'
-require 'datadog/tracing/contrib/rails/middlewares'
-require 'datadog/tracing/contrib/rails/utils'
-require 'datadog/tracing/contrib/semantic_logger/patcher'
+require_relative '../../../core/utils/only_once'
+require_relative '../../../tracing'
+require_relative '../rack/middlewares'
+require_relative 'framework'
+require_relative 'log_injection'
+require_relative 'middlewares'
+require_relative 'utils'
+require_relative '../semantic_logger/patcher'
 
 module Datadog
   module Tracing

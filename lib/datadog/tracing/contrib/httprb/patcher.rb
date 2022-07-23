@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/core/utils/only_once'
-require 'datadog/tracing/contrib/httprb/instrumentation'
-require 'datadog/tracing/contrib/patcher'
+require_relative '../../../core/utils/only_once'
+require_relative 'instrumentation'
+require_relative '../patcher'
 
 module Datadog
   module Tracing

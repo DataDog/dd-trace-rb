@@ -2,9 +2,9 @@
 
 require 'json'
 
-require 'datadog/appsec/contrib/rack/request'
-require 'datadog/appsec/contrib/rack/response'
-require 'datadog/appsec/rate_limiter'
+require_relative 'contrib/rack/request'
+require_relative 'contrib/rack/response'
+require_relative 'rate_limiter'
 
 module Datadog
   module AppSec
