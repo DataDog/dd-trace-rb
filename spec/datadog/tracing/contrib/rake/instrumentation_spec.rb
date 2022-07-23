@@ -10,8 +10,9 @@ require 'ddtrace'
 require 'datadog/tracing/contrib/rake/patcher'
 
 RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
-  let(:configuration_options) { { enabled: true } }
+  let(:configuration_options) { { enabled: true, tasks: instrumented_task_names } }
   let(:task_name) { :test_rake_instrumentation }
+  let(:instrumented_task_names) { [task_name] }
   let(:task_body) { proc { |task, args| spy.call(task, args) } }
   let(:task_arg_names) { [] }
   let(:task_class) do
@@ -65,7 +66,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
 
     before do
       ::Rake.application.instance_variable_set(:@top_level_tasks, [task_name.to_s])
-      expect(tracer).to receive(:shutdown!).with(no_args).once.and_call_original
+      expect(Datadog::Tracing).to receive(:shutdown!).once.and_call_original
     end
 
     let(:invoke_span) { spans.find { |s| s.name == Datadog::Tracing::Contrib::Rake::Ext::SPAN_INVOKE } }
@@ -273,6 +274,7 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
 
       context 'with a prerequisite task' do
         let(:prerequisite_task_name) { :test_rake_instrumentation_prerequisite }
+        let(:instrumented_task_names) { [task_name, prerequisite_task_name] }
         let(:prerequisite_task_execute_span) do
           spans.find do |s|
             s.name == Datadog::Tracing::Contrib::Rake::Ext::SPAN_EXECUTE \
@@ -391,7 +393,34 @@ RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do
           Datadog.configure { |c| c.tracing.enabled = false }
           expect(Datadog.logger).to_not receive(:error)
           expect(Datadog::Tracing).to_not receive(:trace)
+          expect(Datadog::Tracing).to receive(:shutdown!).once.and_call_original
           expect(spy).to receive(:call)
+        end
+
+        it 'returns task return value' do
+          allow(spy).to receive(:call)
+          expect(invoke).to contain_exactly(task_body)
+        end
+
+        it 'runs the task without tracing' do
+          expect { invoke }.to_not raise_error
+          expect(spans.length).to eq(0)
+        end
+      end
+
+      context 'with no instrumented tasks configured' do
+        let(:instrumented_task_names) { [] }
+
+        before do
+          expect(Datadog.logger).to_not receive(:error)
+          expect(Datadog::Tracing).to_not receive(:trace)
+          expect(Datadog::Tracing).to receive(:shutdown!).once.and_call_original
+          expect(spy).to receive(:call)
+        end
+
+        it 'returns task return value' do
+          allow(spy).to receive(:call)
+          expect(invoke).to contain_exactly(task_body)
         end
 
         it 'runs the task without tracing' do
