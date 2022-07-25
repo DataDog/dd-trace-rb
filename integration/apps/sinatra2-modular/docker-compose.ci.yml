@@ -5,7 +5,7 @@ services:
     # and use it as the `ddtrace` gem.
     build:
       context: ../../..
-      dockerfile: integration/apps/sinatra/Dockerfile-ci
+      dockerfile: integration/apps/sinatra2-modular/Dockerfile-ci
       args:
         BASE_IMAGE: ${APP_IMAGE}
     depends_on:
@@ -20,7 +20,7 @@ services:
       - DD_PROFILING_ENABLED=true
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS # needs to be specified, see README for available options
-      - DD_DEMO_ENV_FEATURES=tracing
+      - DD_DEMO_ENV_FEATURES=tracing,profiling
     expose:
       - "80"
     stdin_open: true
@@ -43,7 +43,7 @@ services:
   integration-tester:
     build:
       context: ../../..
-      dockerfile: integration/apps/sinatra/Dockerfile-ci
+      dockerfile: integration/apps/sinatra2-modular/Dockerfile-ci
       args:
         BASE_IMAGE: ${APP_IMAGE}
     command: bin/test

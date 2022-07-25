@@ -5,7 +5,7 @@ class Basic < Sinatra::Base
   # register Datadog::Tracing::Contrib::Sinatra::Tracer
 
   get '/basic/default' do
-    status 204
+    200
   end
 
   get '/basic/fibonacci' do

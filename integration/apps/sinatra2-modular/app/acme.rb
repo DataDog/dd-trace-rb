@@ -4,7 +4,7 @@ require 'ddtrace'
 # require 'ddtrace/auto_instrument'
 
 Datadog.configure do |c|
-  c.service = 'acme-sinatra-2-modular'
+  c.service = 'acme-sinatra2-modular'
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')
   c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
