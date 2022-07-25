@@ -607,7 +607,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_stack
       expect(request_span).to have_error_message
-      expect(request_span.resource).to_not eq(render_span.resource)
+      expect(request_span.resource).to eq('TestController#error_template')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
@@ -651,7 +651,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_stack
       expect(request_span).to have_error_message
-      expect(request_span.resource).to_not eq(render_span.resource)
+      expect(request_span.resource).to eq('TestController#error_partial')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
