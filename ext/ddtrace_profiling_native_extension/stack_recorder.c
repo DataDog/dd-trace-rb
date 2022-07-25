@@ -355,8 +355,6 @@ static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
 }
 
 static ddprof_ffi_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
-  // TODO: ENSURE THAT ONLY ONE SERIALIZE IS RUNNING AT A TIME
-
   int error;
   int previously_active_slot = state->active_slot;
 

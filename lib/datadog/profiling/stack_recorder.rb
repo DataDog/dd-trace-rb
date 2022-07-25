@@ -5,8 +5,12 @@ module Datadog
     # Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
     # Methods prefixed with _native_ are implemented in `stack_recorder.c`
     class StackRecorder
+      def initialize
+        @no_concurrent_synchronize_mutex = Thread::Mutex.new
+      end
+
       def serialize
-        status, result = self.class._native_serialize(self)
+        status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
 
         if status == :ok
           start, finish, encoded_pprof = result
