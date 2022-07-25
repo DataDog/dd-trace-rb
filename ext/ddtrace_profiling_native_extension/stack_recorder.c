@@ -54,7 +54,7 @@
 // stated above that only one sampler thread can exist kicks in -- this part would need to be more complex if multiple
 // sampler threads were in play.)
 //
-// On the flip side, this means that the inactive profile slot mutex is **kept locked** until such time the serializer
+// As a counterpart, the inactive profile slot mutex is **kept locked** until such time the serializer
 // thread is ready to work and decides to flip the slots.
 //
 // When a new StackRecorder is initialized, the `slot_one_mutex` is unlocked, and the `slot_two_mutex` is kept locked,
