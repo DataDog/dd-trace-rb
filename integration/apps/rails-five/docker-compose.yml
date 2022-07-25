@@ -91,9 +91,7 @@ services:
     expose:
       - "6379"
   load-tester:
-    build:
-      context: ../../images
-      dockerfile: wrk/Dockerfile
+    image: datadog/dd-apm-demo:wrk
     command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/default
     depends_on:
       - app
