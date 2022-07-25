@@ -263,7 +263,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#nonexistent_template')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.resource).to eq('GET 500')
+      expect(request_span.resource).to eq('TestController#nonexistent_template')
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::MissingTemplate')
       expect(request_span).to have_error_message(include('Missing template test/does_not_exist'))
@@ -316,7 +316,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#nonexistent_partial')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.resource).to eq('GET 500')
+      expect(request_span.resource).to eq('TestController#nonexistent_partial')
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_message(include('Missing partial test/no_partial_here'))
