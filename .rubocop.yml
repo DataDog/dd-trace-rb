@@ -182,8 +182,6 @@ Performance/Squeeze: # (new in 1.7)
   Enabled: true
 Performance/StringInclude: # (new in 1.7)
   Enabled: true
-Performance/Sum: # (new in 1.8)
-  Enabled: true
 
 # Requires Ruby 2.2
 Style/HashSyntax:
@@ -211,6 +209,10 @@ Style/CollectionCompact:
 
 # Requires Ruby 2.4
 Performance/RegexpMatch:
+  Enabled: false
+
+# Requires Ruby 2.4
+Performance/Sum:
   Enabled: false
 
 # Requires Ruby 2.5
