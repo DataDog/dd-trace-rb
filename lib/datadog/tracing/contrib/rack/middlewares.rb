@@ -41,6 +41,9 @@ module Datadog
               service: configuration[:web_service_name]
             )
 
+            # Will be set later, avoid setting the trace.resource to propagate to rack span resource
+            frontend_span.resource = nil
+
             # Tag this span as belonging to Rack
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
@@ -113,17 +116,12 @@ module Datadog
               request_span.finish
             end
 
-            frontend_span.finish unless frontend_span.nil?
-          end
-          # rubocop:enable Lint/RescueException
-
-          def resource_name_for(env, status)
-            if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
-              "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
-            else
-              "#{env['REQUEST_METHOD']} #{status}".strip
+            if frontend_span
+              frontend_span.resource = Ext::SPAN_HTTP_SERVER_QUEUE
+              frontend_span.finish
             end
           end
+          # rubocop:enable Lint/RescueException
 
           # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/CyclomaticComplexity
@@ -145,12 +143,12 @@ module Datadog
             request_headers = parse_request_headers(env)
             response_headers = parse_response_headers(headers || {})
 
-            request_span.resource ||= resource_name_for(env, status)
-
-            # Set trace name if it hasn't been set yet (name == resource)
-            trace.resource = request_span.resource if trace.resource == trace.name
-
-            request_span.resource = trace.resource unless trace.resource.nil?
+            request_span.resource ||=
+              if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
+                "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
+              else
+                trace.resource || "#{env['REQUEST_METHOD']} #{status}".strip
+              end
 
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
