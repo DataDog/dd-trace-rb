@@ -66,7 +66,7 @@ RSpec.describe 'ActionCable Rack override' do
       expect(trace.resource).to eq('ActionCable::Connection::Base#on_open')
 
       expect(rack.name).to eq('rack.request')
-      expect(rack.resource).to eq('GET -1')
+      expect(rack.resource).to eq('ActionCable::Connection::Base#on_open')
     end
   end
 end
