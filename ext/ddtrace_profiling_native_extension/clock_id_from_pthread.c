@@ -57,15 +57,15 @@ thread_cpu_time_id thread_cpu_time_id_for(VALUE thread) {
   }
 }
 
-thread_cpu_time thread_cpu_time_for(thread_cpu_time_id thread_cpu_time_id) {
+thread_cpu_time thread_cpu_time_for(thread_cpu_time_id time_id) {
   thread_cpu_time error = (thread_cpu_time) {.valid = false};
 
-  if (!thread_cpu_time_id.valid) { return error; }
+  if (!time_id.valid) { return error; }
 
   struct timespec current_cpu;
 
   // TODO: Include the error code in some way in the output?
-  if (clock_gettime(thread_cpu_time_id.clock_id, &current_cpu) != 0) return error;
+  if (clock_gettime(time_id.clock_id, &current_cpu) != 0) return error;
 
   return (thread_cpu_time) {.valid = true, .result_ns = current_cpu.tv_nsec + (current_cpu.tv_sec * 1000 * 1000 * 1000)};
 }

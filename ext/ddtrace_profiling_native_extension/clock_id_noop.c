@@ -16,7 +16,7 @@ thread_cpu_time_id thread_cpu_time_id_for(DDTRACE_UNUSED VALUE _thread) {
   return (thread_cpu_time_id) {.valid = false};
 }
 
-thread_cpu_time thread_cpu_time_for(DDTRACE_UNUSED thread_cpu_time_id _thread_cpu_time_id) {
+thread_cpu_time thread_cpu_time_for(DDTRACE_UNUSED thread_cpu_time_id _time_id) {
   return (thread_cpu_time) {.valid = false};
 }
 

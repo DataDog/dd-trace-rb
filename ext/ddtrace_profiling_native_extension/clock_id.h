@@ -21,4 +21,4 @@ void self_test_clock_id(void);
 VALUE clock_id_for(VALUE self, VALUE thread);
 
 thread_cpu_time_id thread_cpu_time_id_for(VALUE thread);
-thread_cpu_time thread_cpu_time_for(thread_cpu_time_id thread_cpu_time_id);
+thread_cpu_time thread_cpu_time_for(thread_cpu_time_id time_id);
