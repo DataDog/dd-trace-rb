@@ -18,6 +18,11 @@ the gem. Setting `DD_PROFILING_NO_EXTENSION` at installation time skips compilat
 In past releases, it was possible for the profiler to run without the native extension, but that's no longer the case,
 and disabling the extension will disable profiling.
 
+## Who is this page for?
+
+This documentation is intended to be used by dd-trace-rb developers. Please see the `docs/` folder for user-level
+documentation.
+
 ## Must not block or break users that cannot use it
 
 The profiling native extension is (and must always be) designed to **not cause failures** during gem installation, even
@@ -66,6 +71,8 @@ Because these private header files are not included in regular Ruby installation
 2. for Ruby versions < 2.6 (legacy Rubies) we make use of the `debase-ruby_core_source` gem
 
 Functions which make use of these headers are defined in the <private_vm_api_acccess.c> file.
+
+There is currently no way for disabling usage of the private MJIT header for Ruby 2.6+.
 
 **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 contribute upstream changes so that they become official public VM APIs.
