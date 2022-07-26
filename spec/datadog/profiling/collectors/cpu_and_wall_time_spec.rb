@@ -108,6 +108,54 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
+
+    it 'tags samples with how many times they were seen' do
+      5.times { cpu_and_wall_time_collector.sample }
+
+      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+
+      expect(t1_sample).to include(values: include(:'cpu-samples' => 5))
+    end
+
+    context 'cpu time behavior' do
+      context 'when not on Linux' do
+        before do
+          skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
+        end
+
+        it 'sets the cpu-time on every sample to zero' do
+          5.times { cpu_and_wall_time_collector.sample }
+
+          expect(samples).to all include(values: include(:'cpu-time' => 0))
+        end
+      end
+
+      context 'on Linux' do
+        before do
+          skip 'Test only runs on Linux' unless PlatformHelpers.linux?
+        end
+
+        it 'includes the cpu-time for the samples' do
+          rspec_thread_spent_time = Datadog::Core::Utils::Time.measure(:nanosecond) do
+            5.times { cpu_and_wall_time_collector.sample }
+            samples # to trigger serialization
+          end
+
+          # The only thread we're guaranteed has spent some time on cpu is the rspec thread, so let's check we have
+          # some data for it
+          total_cpu_for_rspec_thread =
+            samples
+              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id }
+              .map { |it| it.fetch(:values).fetch(:'cpu-time') }
+              .reduce(:+)
+
+          # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
+          # e.g. if it took 5 real world seconds to run the test, then at most the rspec thread spent those 5 seconds
+          # running on CPU, but possibly it spent slightly less.
+          expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_time)
+        end
+      end
+    end
   end
 
   describe '#thread_list' do
@@ -144,6 +192,60 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
           include(wall_time_at_previous_sample_ns: be_between(@wall_time_before_sample_ns, @wall_time_after_sample_ns))
         )
+      end
+
+      context 'cpu time behavior' do
+        context 'when not on Linux' do
+          before do
+            skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
+          end
+
+          it 'sets the cpu_time_at_previous_sample_ns to zero' do
+            expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+              include(cpu_time_at_previous_sample_ns: 0)
+            )
+          end
+
+          it 'marks the thread_cpu_time_ids as not valid' do
+            expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+              include(thread_cpu_time_id_valid?: false)
+            )
+          end
+        end
+
+        context 'on Linux' do
+          before do
+            skip 'Test only runs on Linux' unless PlatformHelpers.linux?
+          end
+
+          it 'sets the cpu_time_at_previous_sample_ns to the current cpu clock value' do
+            # It's somewhat difficult to validate the actual value since this is an operating system-specific value
+            # which should only be assessed in relation to other values for the same thread, not in absolute
+            expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+              include(cpu_time_at_previous_sample_ns: not_be(0))
+            )
+          end
+
+          it 'returns a bigger value for each sample' do
+            sample_values = []
+
+            3.times do
+              cpu_and_wall_time_collector.sample
+
+              sample_values <<
+                cpu_and_wall_time_collector.per_thread_context[Thread.main].fetch(:cpu_time_at_previous_sample_ns)
+            end
+
+            expect(sample_values.uniq.size).to be(3), 'Every sample is expected to have a differ cpu time value'
+            expect(sample_values).to eq(sample_values.sort), 'Samples are expected to be in ascending order'
+          end
+
+          it 'marks the thread_cpu_time_ids as valid' do
+            expect(cpu_and_wall_time_collector.per_thread_context.values).to all(
+              include(thread_cpu_time_id_valid?: true)
+            )
+          end
+        end
       end
     end
 

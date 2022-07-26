@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include "helpers.h"
+#include "clock_id.h"
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
@@ -28,6 +29,8 @@ struct cpu_and_wall_time_collector_state {
 // Tracks per-thread state
 struct per_thread_context {
   long thread_id;
+  thread_cpu_time_id thread_cpu_time_id;
+  long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
 };
 
@@ -49,6 +52,7 @@ static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_s
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns);
+static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long wall_time_now_ns();
 static long thread_id_for(VALUE thread);
 
@@ -177,15 +181,17 @@ static void sample(VALUE collector_instance) {
     VALUE thread = RARRAY_AREF(threads, i);
     struct per_thread_context *thread_context = get_or_create_context_for(thread, state);
 
+    long current_cpu_time_ns = cpu_time_now_ns(thread_context);
+
+    long cpu_time_elapsed_ns =
+      update_time_since_previous_sample(&thread_context->cpu_time_at_previous_sample_ns, current_cpu_time_ns);
     long wall_time_elapsed_ns =
       update_time_since_previous_sample(&thread_context->wall_time_at_previous_sample_ns, current_wall_time_ns);
 
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
 
-    // FIXME: TODO These are just dummy values for now
-    metric_values[CPU_TIME_VALUE_POS] = 12; // FIXME: Placeholder until actually implemented/tested
-    metric_values[CPU_SAMPLES_VALUE_POS] = 34; // FIXME: Placeholder until actually implemented/tested
-
+    metric_values[CPU_TIME_VALUE_POS] = cpu_time_elapsed_ns;
+    metric_values[CPU_SAMPLES_VALUE_POS] = 1;
     metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
 
     VALUE thread_name = thread_name_for(thread);
@@ -241,8 +247,10 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
   thread_context->thread_id = thread_id_for(thread);
+  thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
   // These will get initialized during actual sampling
+  thread_context->cpu_time_at_previous_sample_ns = INVALID_TIME;
   thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
 }
 
@@ -276,7 +284,10 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   rb_hash_aset(result, thread, context_as_hash);
 
   VALUE arguments[] = {
-    ID2SYM(rb_intern("thread_id")),  /* => */ LONG2NUM(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_id")),                       /* => */ LONG2NUM(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
+    ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
+    ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),
     ID2SYM(rb_intern("wall_time_at_previous_sample_ns")), /* => */ LONG2NUM(thread_context->wall_time_at_previous_sample_ns)
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
@@ -322,6 +333,19 @@ static long wall_time_now_ns() {
   if (clock_gettime(CLOCK_MONOTONIC, &current_monotonic) != 0) rb_sys_fail("Failed to read CLOCK_MONOTONIC");
 
   return current_monotonic.tv_nsec + (current_monotonic.tv_sec * 1000 * 1000 * 1000);
+}
+
+static long cpu_time_now_ns(struct per_thread_context *thread_context) {
+  thread_cpu_time cpu_time = thread_cpu_time_for(thread_context->thread_cpu_time_id);
+
+  if (!cpu_time.valid) {
+    // Invalidate previous state of the counter (if any), it's no longer accurate. We need to get two good reads
+    // in a row to have an accurate delta.
+    thread_context->cpu_time_at_previous_sample_ns = INVALID_TIME;
+    return 0;
+  }
+
+  return cpu_time.result_ns;
 }
 
 static long thread_id_for(VALUE thread) {

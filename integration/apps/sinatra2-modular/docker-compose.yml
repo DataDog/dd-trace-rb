@@ -1,15 +1,5 @@
 version: '3.4'
 services:
-  nginx:
-    image: nginx:stable
-    depends_on:
-      - app
-    expose:
-      - "80"
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
   app:
     build:
       context: .
@@ -17,33 +7,24 @@ services:
         BASE_IMAGE: datadog/dd-apm-demo:rb-2.7
     depends_on:
       - ddagent
-      - mysql
-      - redis
     environment:
       - BUNDLE_GEMFILE=/app/Gemfile
-      - DATABASE_URL=mysql2://mysql:mysql@mysql:3306
-      - DATABASE_ROOT_USER=root
-      - DATABASE_ROOT_PASSWORD=root
       - DD_AGENT_HOST=ddagent
       - DD_METRIC_AGENT_PORT=8125
       - DD_TRACE_AGENT_PORT=8126
       - DD_HEALTH_METRICS_ENABLED=true
-      - DD_SERVICE=acme-rails-seven
+      - DD_SERVICE=acme-sinatra
       - DD_PROFILING_ENABLED=true
-      - RAILS_ENV=production
-      - RAILS_LOG_TO_STDOUT=true
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
-      - DD_DEMO_ENV_FEATURES=tracing,profiling,runtime_metrics
+      - DD_DEMO_ENV_FEATURES=tracing,profiling
       # Use this for a local version of ddtrace
       - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
       # Use these for a specific revision of ddtrace
       # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
       # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
       # Enable building the profiling native extension
-      - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
+      # - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
     expose:
       - "80"
     stdin_open: true
@@ -54,7 +35,6 @@ services:
       - bundle:/usr/local/bundle
       - ../../images/include:/vendor/dd-demo
       - ../../..:/vendor/dd-trace-rb
-      - logs:/app/log
   ddagent:
     image: datadog/dd-apm-demo:agent
     environment:
@@ -70,11 +50,9 @@ services:
       - "8126"
     volumes:
       - ../../images/agent/agent.yaml:/etc/datadog-agent/datadog.yaml
-      - ./config/agent_app_conf.yaml:/etc/datadog-agent/conf.d/rails-seven.d/conf.yaml
-      - logs:/var/log/rails-seven
       # For monitoring performance of containers (e.g. CPU, Memory, etc...)
       # - type: bind
-      #   source: ../../config/agent.yaml
+      #   source: ../../images/agent/agent.yaml
       #   target: /etc/datadog-agent/datadog.yaml
       # - type: bind
       #   source: /var/run/docker.sock
@@ -85,33 +63,16 @@ services:
       # - type: bind
       #   source: /sys/fs/cgroup/
       #   target: /host/sys/fs/cgroup:ro
-  mysql:
-    image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      - MYSQL_DATABASE=acme_production
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_ROOT_HOST=%
-      - MYSQL_PASSWORD=mysql
-      - MYSQL_USER=mysql
-    expose:
-      - "3306"
-  redis:
-    image: redis:3.2
-    expose:
-      - "6379"
   load-tester:
     image: datadog/dd-apm-demo:wrk
-    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://nginx/basic/default
+    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/fibonacci
     depends_on:
       - app
     environment:
-      - HEALTH_CHECK_URL=http://nginx/health
+      - HEALTH_CHECK_URL=http://app/health
       - HEALTH_CHECK_INTERVAL=1
-      - HEALTH_CHECK_MAX_ATTEMPTS=120
+      - HEALTH_CHECK_MAX_ATTEMPTS=60
     volumes:
-      - ./data/wrk:/data
       - ../../images/wrk/scripts:/scripts
 volumes:
   bundle:
-  logs:
