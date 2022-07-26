@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/action_mailer/ext'
-require 'datadog/tracing/contrib/action_mailer/event'
+require_relative '../../../metadata/ext'
+require_relative '../ext'
+require_relative '../event'
 
 module Datadog
   module Tracing

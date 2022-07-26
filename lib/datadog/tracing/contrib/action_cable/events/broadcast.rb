@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/action_cable/event'
-require 'datadog/tracing/contrib/action_cable/ext'
-require 'datadog/tracing/contrib/analytics'
+require_relative '../../../metadata/ext'
+require_relative '../event'
+require_relative '../ext'
+require_relative '../../analytics'
 
 module Datadog
   module Tracing

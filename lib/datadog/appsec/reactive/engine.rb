@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/appsec/reactive/address_hash'
-require 'datadog/appsec/reactive/subscriber'
+require_relative 'address_hash'
+require_relative 'subscriber'
 
 module Datadog
   module AppSec

@@ -1,11 +1,10 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/elasticsearch/ext'
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/patcher'
+require_relative '../../metadata/ext'
+require_relative '../analytics'
+require_relative 'ext'
+require_relative '../integration'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -24,7 +23,7 @@ module Datadog
           def patch
             require 'uri'
             require 'json'
-            require 'datadog/tracing/contrib/elasticsearch/quantize'
+            require_relative 'quantize'
 
             patch_elasticsearch_transport_client
           end

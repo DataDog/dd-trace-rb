@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/sampling/all_sampler'
-require 'datadog/tracing/sampling/rate_sampler'
-require 'datadog/tracing/sampling/rate_by_service_sampler'
+require_relative 'ext'
+require_relative 'all_sampler'
+require_relative 'rate_sampler'
+require_relative 'rate_by_service_sampler'
 
 module Datadog
   module Tracing

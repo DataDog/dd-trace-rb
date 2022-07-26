@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/core/utils/sequence'
-require 'datadog/tracing/context'
+require_relative '../core/utils/sequence'
+require_relative 'context'
 
 module Datadog
   module Tracing

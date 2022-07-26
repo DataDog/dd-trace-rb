@@ -1,10 +1,9 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/context'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/active_support/notifications/event'
-require 'datadog/tracing/contrib/action_cable/ext'
+require_relative '../../context'
+require_relative '../analytics'
+require_relative '../active_support/notifications/event'
+require_relative 'ext'
 
 module Datadog
   module Tracing

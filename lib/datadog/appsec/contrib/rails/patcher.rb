@@ -1,14 +1,14 @@
 # typed: ignore
 
-require 'datadog/core/utils/only_once'
+require_relative '../../../core/utils/only_once'
 
-require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/rails/framework'
-require 'datadog/appsec/contrib/rack/request_middleware'
-require 'datadog/appsec/contrib/rack/request_body_middleware'
-require 'datadog/appsec/contrib/rails/gateway/watcher'
+require_relative '../patcher'
+require_relative 'framework'
+require_relative '../rack/request_middleware'
+require_relative '../rack/request_body_middleware'
+require_relative 'gateway/watcher'
 
-require 'datadog/tracing/contrib/rack/middlewares'
+require_relative '../../../tracing/contrib/rack/middlewares'
 
 module Datadog
   module AppSec

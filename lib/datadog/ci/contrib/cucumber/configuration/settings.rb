@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/configuration/settings'
-require 'datadog/ci/contrib/cucumber/ext'
+require_relative '../../../../tracing/contrib/configuration/settings'
+require_relative '../ext'
 
 module Datadog
   module CI

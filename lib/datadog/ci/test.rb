@@ -2,10 +2,10 @@
 
 # typed: false
 
-require 'datadog/tracing/contrib/analytics'
+require_relative '../tracing/contrib/analytics'
 
-require 'datadog/ci/ext/app_types'
-require 'datadog/ci/ext/test'
+require_relative 'ext/app_types'
+require_relative 'ext/test'
 
 require 'rbconfig'
 

@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core/configuration/components'
-require 'datadog/core/configuration/settings'
-require 'datadog/core/logger'
-require 'datadog/core/pin'
+require_relative 'configuration/components'
+require_relative 'configuration/settings'
+require_relative 'logger'
+require_relative 'pin'
 
 module Datadog
   module Core

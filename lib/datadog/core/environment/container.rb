@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/environment/cgroup'
+require_relative 'cgroup'
 
 module Datadog
   module Core

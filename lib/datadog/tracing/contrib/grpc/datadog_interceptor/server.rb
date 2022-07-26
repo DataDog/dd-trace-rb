@@ -1,11 +1,11 @@
 # typed: ignore
 
-require 'datadog/tracing'
-require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/propagation/grpc'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/grpc/ext'
+require_relative '../../../../tracing'
+require_relative '../../../distributed/headers/ext'
+require_relative '../../../metadata/ext'
+require_relative '../../../propagation/grpc'
+require_relative '../../analytics'
+require_relative '../ext'
 
 module Datadog
   module Tracing

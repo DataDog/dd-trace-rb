@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/appsec/contrib/configuration/settings'
-require 'datadog/appsec/contrib/rails/ext'
+require_relative '../../configuration/settings'
+require_relative '../ext'
 
 module Datadog
   module AppSec

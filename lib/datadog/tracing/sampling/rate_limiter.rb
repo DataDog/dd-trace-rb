@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/utils/time'
+require_relative '../../core/utils/time'
 
 module Datadog
   module Tracing

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/contrib/dalli/ext'
+require_relative 'ext'
 
 module Datadog
   module Tracing

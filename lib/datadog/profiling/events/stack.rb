@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/profiling/event'
+require_relative '../event'
 
 module Datadog
   module Profiling

@@ -1,7 +1,7 @@
 # typed: true
 
-require 'ddtrace/transport/http/statistics'
-require 'ddtrace/transport/http/env'
+require_relative 'statistics'
+require_relative 'env'
 
 module Datadog
   module Transport

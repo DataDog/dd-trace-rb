@@ -1,5 +1,5 @@
-require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/distributed/metadata/parser'
+require_relative '../headers/ext'
+require_relative 'parser'
 
 module Datadog
   module Tracing

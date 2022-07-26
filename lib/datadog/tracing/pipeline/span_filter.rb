@@ -1,7 +1,7 @@
 # typed: true
 
 require 'set'
-require 'datadog/tracing/pipeline/span_processor'
+require_relative 'span_processor'
 
 module Datadog
   module Tracing

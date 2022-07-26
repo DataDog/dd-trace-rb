@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/appsec/configuration/settings'
+require_relative 'configuration/settings'
 
 module Datadog
   module AppSec

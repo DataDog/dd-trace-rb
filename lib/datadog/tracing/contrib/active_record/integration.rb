@@ -1,11 +1,11 @@
 # typed: false
 
-require 'datadog/tracing/contrib/active_record/configuration/resolver'
-require 'datadog/tracing/contrib/active_record/configuration/settings'
-require 'datadog/tracing/contrib/active_record/events'
-require 'datadog/tracing/contrib/active_record/patcher'
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/rails/utils'
+require_relative 'configuration/resolver'
+require_relative 'configuration/settings'
+require_relative 'events'
+require_relative 'patcher'
+require_relative '../integration'
+require_relative '../rails/utils'
 
 module Datadog
   module Tracing

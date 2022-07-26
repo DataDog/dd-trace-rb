@@ -1,10 +1,10 @@
 # typed: false
 
-require 'datadog/core/runtime/metrics'
+require_relative '../runtime/metrics'
 
-require 'datadog/core/worker'
-require 'datadog/core/workers/async'
-require 'datadog/core/workers/polling'
+require_relative '../worker'
+require_relative 'async'
+require_relative 'polling'
 
 module Datadog
   module Core

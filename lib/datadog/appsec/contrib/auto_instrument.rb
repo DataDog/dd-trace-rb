@@ -1,7 +1,5 @@
 # typed: true
 
-require 'ddtrace'
-
 module Datadog
   module AppSec
     module Contrib

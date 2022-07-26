@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/profiling/ext'
-require 'datadog/profiling/events/stack'
-require 'datadog/profiling/pprof/builder'
-require 'datadog/profiling/pprof/converter'
+require_relative '../ext'
+require_relative '../events/stack'
+require_relative 'builder'
+require_relative 'converter'
 
 module Datadog
   module Profiling

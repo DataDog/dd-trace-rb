@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/contrib/configuration/settings'
+require_relative '../../configuration/settings'
 
 module Datadog
   module Tracing

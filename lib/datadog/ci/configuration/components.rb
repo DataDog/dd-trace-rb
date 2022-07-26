@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/ci/flush'
+require_relative '../flush'
 
 module Datadog
   module CI

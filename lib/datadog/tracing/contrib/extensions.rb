@@ -2,7 +2,7 @@
 
 require 'set'
 
-require 'datadog/core/configuration/settings'
+require_relative '../../core/configuration/settings'
 
 # Datadog
 module Datadog

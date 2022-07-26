@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/core'
-require 'datadog/core/environment/variable_helpers'
-require 'datadog/core/utils/only_once'
+require_relative 'core'
+require_relative 'core/environment/variable_helpers'
+require_relative 'core/utils/only_once'
 
 module Datadog
   # Contains profiler for generating stack profiles, etc.
@@ -132,7 +132,7 @@ module Datadog
 
     private_class_method def self.try_loading_native_library
       begin
-        require 'datadog/profiling/load_native_extension'
+        require_relative 'profiling/load_native_extension'
 
         success =
           defined?(Profiling::NativeExtension) && Profiling::NativeExtension.send(:native_working?)
@@ -145,22 +145,22 @@ module Datadog
     private_class_method def self.load_profiling
       return false unless supported?
 
-      require 'datadog/profiling/ext/forking'
-      require 'datadog/profiling/collectors/code_provenance'
-      require 'datadog/profiling/collectors/cpu_and_wall_time'
-      require 'datadog/profiling/collectors/old_stack'
-      require 'datadog/profiling/collectors/stack'
-      require 'datadog/profiling/stack_recorder'
-      require 'datadog/profiling/old_recorder'
-      require 'datadog/profiling/exporter'
-      require 'datadog/profiling/scheduler'
-      require 'datadog/profiling/tasks/setup'
-      require 'datadog/profiling/profiler'
-      require 'datadog/profiling/native_extension'
-      require 'datadog/profiling/trace_identifiers/helper'
-      require 'datadog/profiling/pprof/pprof_pb'
-      require 'datadog/profiling/tag_builder'
-      require 'datadog/profiling/http_transport'
+      require_relative 'profiling/ext/forking'
+      require_relative 'profiling/collectors/code_provenance'
+      require_relative 'profiling/collectors/cpu_and_wall_time'
+      require_relative 'profiling/collectors/old_stack'
+      require_relative 'profiling/collectors/stack'
+      require_relative 'profiling/stack_recorder'
+      require_relative 'profiling/old_recorder'
+      require_relative 'profiling/exporter'
+      require_relative 'profiling/scheduler'
+      require_relative 'profiling/tasks/setup'
+      require_relative 'profiling/profiler'
+      require_relative 'profiling/native_extension'
+      require_relative 'profiling/trace_identifiers/helper'
+      require_relative 'profiling/pprof/pprof_pb'
+      require_relative 'profiling/tag_builder'
+      require_relative 'profiling/http_transport'
 
       true
     end

@@ -6,8 +6,8 @@
 # software license details.
 #++
 
-require 'datadog/core/vendor/multipart-post/multipart/post/parts'
-require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
+require_relative 'parts'
+require_relative 'composite_read_io'
 require 'securerandom'
 
 module Datadog

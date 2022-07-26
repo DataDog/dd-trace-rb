@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib'
-require 'datadog/tracing/contrib/extensions'
+require_relative '../contrib'
+require_relative 'extensions'
 
 module Datadog
   module Tracing
@@ -9,11 +9,11 @@ module Datadog
     module Contrib
       # Auto-activate instrumentation
       def self.auto_instrument!
-        require 'datadog/tracing/contrib/rails/utils'
+        require_relative 'rails/utils'
 
         # Defer to Rails if this is a Rails application
         if Datadog::Tracing::Contrib::Rails::Utils.railtie_supported?
-          require 'datadog/tracing/contrib/rails/auto_instrument_railtie'
+          require_relative 'rails/auto_instrument_railtie'
         else
           AutoInstrument.patch_all!
         end

@@ -1,7 +1,7 @@
 # typed: strict
 
-require 'datadog/core/diagnostics/ext'
-require 'datadog/core/metrics/client'
+require_relative 'ext'
+require_relative '../metrics/client'
 
 module Datadog
   module Core

@@ -1,8 +1,7 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/presto/ext'
+require_relative '../../metadata/ext'
+require_relative 'ext'
 
 module Datadog
   module Tracing

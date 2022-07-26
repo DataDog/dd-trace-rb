@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core/utils/only_once'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/presto/ext'
-require 'datadog/tracing/contrib/presto/instrumentation'
+require_relative '../../../core/utils/only_once'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'instrumentation'
 
 module Datadog
   module Tracing

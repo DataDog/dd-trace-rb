@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core/utils/compression'
-require 'datadog/core/vendor/multipart-post/multipart/post/composite_read_io'
-require 'datadog/profiling/old_ext'
-require 'datadog/profiling/transport/http/response'
-require 'ddtrace/transport/http/api/endpoint'
+require_relative '../../../../core/utils/compression'
+require_relative '../../../../core/vendor/multipart-post/multipart/post/composite_read_io'
+require_relative '../../../old_ext'
+require_relative '../response'
+require_relative '../../../../../ddtrace/transport/http/api/endpoint'
 
 module Datadog
   module Profiling
