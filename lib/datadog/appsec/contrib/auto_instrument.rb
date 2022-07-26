@@ -1,7 +1,5 @@
 # typed: true
 
-require_relative '../../../ddtrace'
-
 module Datadog
   module AppSec
     module Contrib
