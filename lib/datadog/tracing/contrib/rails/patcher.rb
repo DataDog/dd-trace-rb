@@ -1,7 +1,6 @@
 # typed: ignore
 
 require_relative '../../../core/utils/only_once'
-require_relative '../../../tracing'
 require_relative '../rack/middlewares'
 require_relative 'framework'
 require_relative 'log_injection'

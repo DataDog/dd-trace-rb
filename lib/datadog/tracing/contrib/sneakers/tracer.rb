@@ -2,7 +2,6 @@
 
 # typed: true
 
-require_relative '../../../tracing'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 

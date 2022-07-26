@@ -1,7 +1,5 @@
 # typed: true
 
-require_relative '../../../tracing'
-
 module Datadog
   module Tracing
     module Contrib

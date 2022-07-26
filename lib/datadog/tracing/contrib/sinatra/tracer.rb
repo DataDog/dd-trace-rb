@@ -3,7 +3,6 @@
 require 'sinatra/base'
 
 require_relative '../../../core/utils/only_once'
-require_relative '../../../tracing'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
 require_relative '../analytics'

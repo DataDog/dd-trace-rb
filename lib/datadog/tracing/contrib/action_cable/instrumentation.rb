@@ -1,6 +1,5 @@
 # typed: false
 
-require_relative '../../../tracing'
 require_relative '../../metadata/ext'
 require_relative 'ext'
 require_relative '../analytics'

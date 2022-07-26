@@ -1,6 +1,5 @@
 # typed: true
 
-require_relative '../../../tracing'
 require_relative '../../context'
 require_relative '../analytics'
 require_relative '../active_support/notifications/event'

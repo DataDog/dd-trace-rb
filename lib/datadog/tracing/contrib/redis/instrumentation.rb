@@ -1,6 +1,5 @@
 # typed: false
 
-require_relative '../../../tracing'
 require_relative '../patcher'
 require_relative 'configuration/resolver'
 require_relative 'ext'

@@ -2,7 +2,6 @@
 
 require 'resque'
 
-require_relative '../../../tracing'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../sidekiq/ext'

@@ -1,6 +1,5 @@
 # typed: true
 
-require_relative '../../../tracing'
 require_relative '../../../core/logging/ext'
 
 module Datadog

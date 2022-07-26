@@ -2,7 +2,6 @@
 
 require 'uri'
 
-require_relative '../../../tracing'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'

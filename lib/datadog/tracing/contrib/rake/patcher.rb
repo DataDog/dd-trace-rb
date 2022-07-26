@@ -1,6 +1,5 @@
 # typed: true
 
-require_relative '../../../tracing'
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'instrumentation'
