@@ -1,0 +1,2 @@
+
+wrk.method = "POST"
