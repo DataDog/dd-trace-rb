@@ -11,7 +11,7 @@
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
 
 // ---
-// ## Concurrency-safe design notes
+// ## Synchronization mechanism for safe parallel access design notes
 //
 // The state of the StackRecorder is managed using a set of locks to avoid concurrency issues.
 //
