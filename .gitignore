@@ -15,6 +15,7 @@
 /log/
 TODO
 ext/**/skipped_reason.txt
+/.devcontainer/
 
 # Used by dotenv library to load environment variables.
 # .env

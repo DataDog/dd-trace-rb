@@ -1,3 +1,4 @@
+require 'resque/server'
 Rails.application.routes.draw do
   get '/', to: 'basic#default'
   get 'health', to: 'health#check'
@@ -9,4 +10,6 @@ Rails.application.routes.draw do
 
   # Job test scenarios
   post 'jobs', to: 'jobs#create'
+
+  mount Resque::Server, at: '/resque_jobs'
 end

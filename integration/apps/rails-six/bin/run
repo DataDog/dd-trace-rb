@@ -15,6 +15,8 @@ command = case process
             "bundle exec ddtracerb exec rails c"
           when 'irb'
             "bundle exec ddtracerb exec irb"
+          when 'resque'
+            "QUEUE=* bundle exec rake resque:work"
           when nil, ''
             abort("\n== ERROR: Must specify a application process! ==")
           else

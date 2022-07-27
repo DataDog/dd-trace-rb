@@ -36,8 +36,53 @@ services:
       - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
     expose:
       - "80"
+    ports:
+      - "80:80"
     stdin_open: true
     tty: true
+    volumes:
+      - .:/app
+      - ./data/app:/data/app
+      - bundle:/usr/local/bundle
+      - ../../images/include:/vendor/dd-demo
+      - ../../..:/vendor/dd-trace-rb
+      - logs:/app/log
+
+  resque-worker:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: datadog/dd-apm-demo:rb-2.7
+    depends_on:
+      - ddagent
+      - mysql
+      - redis
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DATABASE_URL=mysql2://mysql:mysql@mysql:3306
+      - DATABASE_ROOT_USER=root
+      - DATABASE_ROOT_PASSWORD=root
+      - DD_AGENT_HOST=ddagent
+      - DD_METRIC_AGENT_PORT=8125
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_HEALTH_METRICS_ENABLED=true
+      - DD_SERVICE=acme-rails-six-resque-worker
+      - DD_PROFILING_ENABLED=true
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
+      # Use these to choose what is run
+      - DD_DEMO_ENV_PROCESS=resque
+      - DD_DEMO_ENV_FEATURES=tracing,profiling,runtime_metrics
+      # Use this for a local version of ddtrace
+      - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
+      # Use these for a specific revision of ddtrace
+      # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
+      # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
+      # Enable building the profiling native extension
+      - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
+      # - QUEUE=*
     volumes:
       - .:/app
       - ./data/app:/data/app

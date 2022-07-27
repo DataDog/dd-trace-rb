@@ -94,5 +94,6 @@ module Acme
 
     config.cache_store = :redis_cache_store, { url: ENV['REDIS_URL'] }
     config.action_controller.perform_caching = true
+    config.active_job.queue_adapter = :resque
   end
 end
