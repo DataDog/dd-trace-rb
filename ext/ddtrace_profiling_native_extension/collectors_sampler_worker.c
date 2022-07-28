@@ -20,7 +20,6 @@ static void block_signal_handler_in_current_thread(void);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
-static void called_from_workqueue(void *data);
 static void called_from_postponed_job(void *data);
 
 void collectors_sampler_worker_init(VALUE profiling_module) {
@@ -122,9 +121,6 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   rb_postponed_job_register_one(0, called_from_postponed_job, NULL);
 }
 
-// FIXME: Experiment
-int rb_workqueue_register(unsigned flags, rb_postponed_job_func_t func, void *data);
-
 // From Ruby internal.h
 int ruby_thread_has_gvl_p(void);
 
@@ -134,9 +130,8 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
 
   while (state->should_run) {
     fprintf(stderr, "Hello from the sampling trigger loop in %p\n", rb_thread_current());
-    // kill(getpid(), SIGPROF); // TODO Improve this
+    kill(getpid(), SIGPROF); // TODO Improve this
     sleep(1);
-    rb_workqueue_register(0, called_from_workqueue, NULL);
   }
 
   fprintf(stderr, "should_run was false, stopping\n");
@@ -148,10 +143,6 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
   struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
 
   state->should_run = false;
-}
-
-static void called_from_workqueue(void *data) {
-  fprintf(stderr, "Called from workqueue in %p and have_gvl=%d!\n", rb_thread_current(), ruby_thread_has_gvl_p());
 }
 
 static void called_from_postponed_job(void *data) {
