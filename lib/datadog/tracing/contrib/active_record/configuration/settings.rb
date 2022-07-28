@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/configuration/settings'
-require 'datadog/tracing/contrib/active_record/ext'
-require 'datadog/tracing/contrib/active_record/utils'
+require_relative '../../configuration/settings'
+require_relative '../ext'
+require_relative '../utils'
 
 module Datadog
   module Tracing

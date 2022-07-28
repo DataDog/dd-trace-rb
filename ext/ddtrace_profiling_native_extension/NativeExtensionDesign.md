@@ -2,7 +2,7 @@
 
 The profiling native extension is used to:
 1. Implement features which are expensive (in terms of resources) or otherwise impossible to implement using Ruby code.
-2. Bridge between Ruby-specific profiling features and [`libddprof`](https://github.com/DataDog/libddprof), a Rust-based
+2. Bridge between Ruby-specific profiling features and [`libdatadog`](https://github.com/DataDog/libdatadog), a Rust-based
 library with common profiling functionality.
 
 Due to (1), this extension is quite coupled with MRI Ruby ("C Ruby") internals, and is not intended to support other rubies such as
@@ -17,6 +17,11 @@ the gem. Setting `DD_PROFILING_NO_EXTENSION` at installation time skips compilat
 
 In past releases, it was possible for the profiler to run without the native extension, but that's no longer the case,
 and disabling the extension will disable profiling.
+
+## Who is this page for?
+
+This documentation is intended to be used by dd-trace-rb developers. Please see the `docs/` folder for user-level
+documentation.
 
 ## Must not block or break users that cannot use it
 
@@ -49,7 +54,7 @@ We avoid issues using a combination of:
 
 Non-exhaustive list of APIs that cause exceptions to be raised:
 
-* `Check_TypedStruct`, `Check_Type`
+* `Check_TypedStruct`, `Check_Type`, `ENFORCE_TYPE`
 * `rb_funcall`
 * `rb_thread_call_without_gvl`, `rb_thread_call_without_gvl2`
 * [Numeric conversion APIs, e.g. `NUM2LONG`, `NUM2INT`, etc.](https://silverhammermba.github.io/emberb/c/?#translation)
@@ -66,6 +71,8 @@ Because these private header files are not included in regular Ruby installation
 2. for Ruby versions < 2.6 (legacy Rubies) we make use of the `debase-ruby_core_source` gem
 
 Functions which make use of these headers are defined in the <private_vm_api_acccess.c> file.
+
+There is currently no way for disabling usage of the private MJIT header for Ruby 2.6+.
 
 **Important Note**: Our medium/long-term plan is to stop relying on all private Ruby headers, and instead request and
 contribute upstream changes so that they become official public VM APIs.

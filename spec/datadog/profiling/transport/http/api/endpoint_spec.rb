@@ -104,9 +104,11 @@ RSpec.describe Datadog::Profiling::Transport::HTTP::API::Endpoint do
         it 'reports the additional tags as part of the tags field' do
           call
 
-          expect(env.form).to include('tags' => array_including(
-            'test_tag_key:test_tag_value', 'another_tag_key:another_tag_value'
-          ))
+          expect(env.form).to include(
+            'tags' => array_including(
+              'test_tag_key:test_tag_value', 'another_tag_key:another_tag_value'
+            )
+          )
         end
       end
     end

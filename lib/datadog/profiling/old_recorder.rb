@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/profiling/buffer'
-require 'datadog/profiling/encoding/profile'
+require_relative 'buffer'
+require_relative 'encoding/profile'
 
 module Datadog
   module Profiling

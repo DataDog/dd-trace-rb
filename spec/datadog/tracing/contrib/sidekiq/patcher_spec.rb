@@ -19,6 +19,7 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Patcher do
     stub_const('Sidekiq::Launcher', Class.new)
     stub_const('Sidekiq::Processor', Class.new)
     stub_const('Sidekiq::Scheduled::Poller', Class.new)
+    stub_const('Sidekiq::ServerInternalTracer::RedisInfo', Class.new)
 
     # NB: This is needed because we want to patch multiple times.
     if described_class.instance_variable_get(:@patch_only_once)

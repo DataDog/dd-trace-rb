@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/flush'
+require_relative '../tracing/metadata/ext'
+require_relative '../tracing/flush'
 
 module Datadog
   module CI

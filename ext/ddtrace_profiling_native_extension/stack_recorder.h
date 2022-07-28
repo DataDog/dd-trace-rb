@@ -3,7 +3,7 @@
 #include <ddprof/ffi.h>
 
 // Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDPROF_FFI_CHARSLICE_C`.
-// `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.1 and 2.2 CI test images)
+// `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
 // tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
 // `DDPROF_FFI_CHARSLICE_C` with the following error:
 //

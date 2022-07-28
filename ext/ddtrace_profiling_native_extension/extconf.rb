@@ -42,7 +42,8 @@ unless Datadog::Profiling::NativeExtensionHelpers::Supported.supported?
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported.unsupported_reason)
 end
 
-$stderr.puts(%(
+$stderr.puts(
+  %(
 +------------------------------------------------------------------------------+
 | ** Preparing to build the ddtrace profiling native extension... **           |
 |                                                                              |
@@ -59,7 +60,8 @@ $stderr.puts(%(
 | Thanks for using ddtrace! You rock!                                          |
 +------------------------------------------------------------------------------+
 
-))
+)
+)
 
 # NOTE: we MUST NOT require 'mkmf' before we check the #skip_building_extension? because the require triggers checks
 # that may fail on an environment not properly setup for building Ruby extensions.
@@ -91,6 +93,9 @@ add_compiler_flag '-Wno-declaration-after-statement'
 # cause a segfault later. Let's ensure that never happens.
 add_compiler_flag '-Werror-implicit-function-declaration'
 
+# Warn on unused parameters to functions. Use `DDTRACE_UNUSED` to mark things as known-to-not-be-used.
+add_compiler_flag '-Wunused-parameter'
+
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
 # the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
 # it `dlopen`s the library.
@@ -99,13 +104,17 @@ add_compiler_flag '-Werror-implicit-function-declaration'
 # For more details see https://gcc.gnu.org/wiki/Visibility
 add_compiler_flag '-fvisibility=hidden'
 
+# Enable all other compiler warnings
+add_compiler_flag '-Wall'
+add_compiler_flag '-Wextra'
+
 if RUBY_PLATFORM.include?('linux')
   # Supposedly, the correct way to do this is
   # ```
   # have_library 'pthread'
   # have_func 'pthread_getcpuclockid'
   # ```
-  # but it broke the build on Windows and on older Ruby versions (2.1 and 2.2)
+  # but it broke the build on Windows and on older Ruby versions (2.2)
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
@@ -133,13 +142,12 @@ if RUBY_VERSION < '2.3'
   $defs << '-DNO_RB_TIME_TIMESPEC_NEW'
   # ...the VM changed enough that we need an alternative legacy rb_profile_frames
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
+  # ... you couldn't name threads
+  $defs << '-DNO_THREAD_NAMES'
 end
 
-# In Ruby 2.1, living_threads were stored in a hashmap (st)
-$defs << '-DUSE_LEGACY_LIVING_THREADS_ST' if RUBY_VERSION < '2.2'
-
-# If we got here, libddprof is available and loaded
-ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libddprof.pkgconfig_folder}"
+# If we got here, libdatadog is available and loaded
+ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 
 unless pkg_config('ddprof_ffi_with_rpath')
@@ -148,18 +156,22 @@ unless pkg_config('ddprof_ffi_with_rpath')
       Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING
     else
       # Less specific error message
-      Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDDPROF
+      Datadog::Profiling::NativeExtensionHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG
     end
   )
 end
 
-# See comments on the helper method being used for why we need to additionally set this
+# See comments on the helper method being used for why we need to additionally set this.
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
 $LDFLAGS += \
   ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
-  "#{Datadog::Profiling::NativeExtensionHelpers.libddprof_folder_relative_to_native_lib_folder}"
+  "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
 Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
+
+Logging.message(" [ddtrace] Using compiler:\n")
+xsystem("#{CONFIG['CC']} --version")
+Logging.message(" [ddtrace] End of compiler information\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
@@ -194,13 +206,6 @@ else
   # This gem ships source code copies of these VM headers for the different Ruby VM versions;
   # see https://github.com/ruby-debug/debase-ruby_core_source for details
 
-  thread_native_for_ruby_2_1 = proc { true }
-  if RUBY_VERSION < '2.2'
-    # This header became public in Ruby 2.2, but we need to pull it from the private headers folder for 2.1
-    thread_native_for_ruby_2_1 = proc { have_header('thread_native.h') }
-    $defs << '-DRUBY_2_1_WORKAROUND'
-  end
-
   create_header
 
   require 'debase/ruby_core_source'
@@ -208,7 +213,7 @@ else
 
   Debase::RubyCoreSource
     .create_makefile_with_core(
-      proc { have_header('vm_core.h') && have_header('iseq.h') && thread_native_for_ruby_2_1.call },
+      proc { have_header('vm_core.h') && have_header('iseq.h') },
       EXTENSION_NAME,
     )
 end

@@ -1,11 +1,10 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/redis/configuration/resolver'
-require 'datadog/tracing/contrib/redis/ext'
-require 'datadog/tracing/contrib/redis/quantize'
-require 'datadog/tracing/contrib/redis/tags'
+require_relative '../patcher'
+require_relative 'configuration/resolver'
+require_relative 'ext'
+require_relative 'quantize'
+require_relative 'tags'
 
 module Datadog
   module Tracing
@@ -39,7 +38,7 @@ module Datadog
                 span.service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
                 span.span_type = Contrib::Redis::Ext::TYPE
                 commands = get_pipeline_commands(args)
-                span.resource = commands.join("\n")
+                span.resource = commands.any? ? commands.join("\n") : '(none)'
                 span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
                 Contrib::Redis::Tags.set_common_tags(self, span)
 

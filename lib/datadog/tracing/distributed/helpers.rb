@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/core/configuration'
-require 'datadog/tracing/sampling/ext'
+require_relative '../../core/configuration'
+require_relative '../sampling/ext'
 
 module Datadog
   module Tracing

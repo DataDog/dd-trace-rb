@@ -1,7 +1,7 @@
 # typed: true
 
-require 'ddtrace/transport/response'
-require 'datadog/core/vendor/multipart-post/net/http/post/multipart'
+require_relative '../../response'
+require_relative '../../../../datadog/core/vendor/multipart-post/net/http/post/multipart'
 
 module Datadog
   module Transport

@@ -1,9 +1,8 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/active_model_serializers/ext'
-require 'datadog/tracing/contrib/active_model_serializers/events'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'events'
 
 module Datadog
   module Tracing

@@ -151,7 +151,7 @@ module Datadog
         def sampling_rules
           sampler = Datadog.configuration.tracing.sampler
           return nil unless sampler.is_a?(Tracing::Sampling::PrioritySampler) &&
-                            sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
+            sampler.priority_sampler.is_a?(Tracing::Sampling::RuleSampler)
 
           sampler.priority_sampler.rules.map do |rule|
             next unless rule.is_a?(Tracing::Sampling::SimpleRule)

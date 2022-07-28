@@ -1,21 +1,21 @@
 # typed: true
 
-require 'datadog/core'
-require 'datadog/core/environment/ext'
-require 'datadog/core/environment/socket'
+require_relative '../core'
+require_relative '../core/environment/ext'
+require_relative '../core/environment/socket'
 
-require 'datadog/tracing/correlation'
-require 'datadog/tracing/event'
-require 'datadog/tracing/flush'
-require 'datadog/tracing/context_provider'
-require 'datadog/tracing/sampling/all_sampler'
-require 'datadog/tracing/sampling/rule_sampler'
-require 'datadog/tracing/sampling/priority_sampler'
-require 'datadog/tracing/sampling/span/sampler'
-require 'datadog/tracing/span_operation'
-require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/trace_operation'
-require 'datadog/tracing/writer'
+require_relative 'correlation'
+require_relative 'event'
+require_relative 'flush'
+require_relative 'context_provider'
+require_relative 'sampling/all_sampler'
+require_relative 'sampling/rule_sampler'
+require_relative 'sampling/priority_sampler'
+require_relative 'sampling/span/sampler'
+require_relative 'span_operation'
+require_relative 'trace_digest'
+require_relative 'trace_operation'
+require_relative 'writer'
 
 module Datadog
   module Tracing

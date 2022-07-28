@@ -1,5 +1,15 @@
 version: '3.4'
 services:
+  nginx:
+    image: nginx:stable
+    depends_on:
+      - app
+    expose:
+      - "80"
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
   app:
     build:
       context: .
@@ -87,20 +97,18 @@ services:
     expose:
       - "3306"
   redis:
-    image: redis:3.0
+    image: redis:3.2
     expose:
       - "6379"
   load-tester:
-    build:
-      context: ../../images
-      dockerfile: wrk/Dockerfile
-    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/default
+    image: datadog/dd-apm-demo:wrk
+    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://nginx/basic/default
     depends_on:
       - app
     environment:
-      - HEALTH_CHECK_URL=http://app/health
+      - HEALTH_CHECK_URL=http://nginx/health
       - HEALTH_CHECK_INTERVAL=1
-      - HEALTH_CHECK_MAX_ATTEMPTS=60
+      - HEALTH_CHECK_MAX_ATTEMPTS=120
     volumes:
       - ./data/wrk:/data
       - ../../images/wrk/scripts:/scripts

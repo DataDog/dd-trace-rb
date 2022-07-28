@@ -125,7 +125,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 |       |                            | 2.4     | Full                                 | Latest              |
 |       |                            | 2.3     | Full                                 | Latest              |
 |       |                            | 2.2     | Full                                 | Latest              |
-|       |                            | 2.1     | Full                                 | Latest              |
+|       |                            | 2.1     | Full (except for Profiling)          | Latest              |
 |       |                            | 2.0     | EOL since June 7th, 2021             | < 0.50.0            |
 |       |                            | 1.9.3   | EOL since August 6th, 2020           | < 0.27.0            |
 |       |                            | 1.9.1   | EOL since August 6th, 2020           | < 0.27.0            |
@@ -144,7 +144,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
 
 | Type        | Documentation                                   | Version               | Gem version support |
 | ----------- | ----------------------------------------------- | --------------------- | ------------------- |
-| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+ (w/ Ruby 2.1+) | >= 0.16.0           |
+| OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+                | >= 0.16.0           |
 
 *Full* support indicates all tracer features are available.
 
@@ -1578,8 +1578,6 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `cache_service` | Cache service name used when tracing cache activity | `'<app_name>-cache'` |
-| `database_service` | Database service name used when tracing database activity | `'<app_name>-<adapter_name>'` |
 | `distributed_tracing` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
 | `exception_controller` | Class or Module which identifies a custom exception controller class. Tracer provides improved error behavior when it can identify custom exception controllers. By default, without this option, it 'guesses' what a custom exception controller looks like. Providing this option aids this identification. | `nil` |
@@ -1601,7 +1599,13 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 
 ### Rake
 
-You can add instrumentation around your Rake tasks by activating the `rake` integration. Each task and its subsequent subtasks will be traced.
+You can add instrumentation around your Rake tasks by activating the `rake` integration and
+providing a list of what Rake tasks need to be instrumented.
+
+**Avoid instrumenting long-running Rake tasks, as such tasks can aggregate large traces in
+memory that are never flushed until the task finishes.**
+
+For long-running tasks, use [Manual instrumentation](#manual-instrumentation) around recurring code paths.
 
 To activate Rake task tracing, add the following to your `Rakefile`:
 
@@ -1611,7 +1615,7 @@ require 'rake'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :rake, options
+  c.tracing.instrument :rake, tasks: ['my_task'], **options
 end
 
 task :my_task do
@@ -1628,6 +1632,7 @@ Where `options` is an optional `Hash` that accepts the following parameters:
 | `enabled` | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true` |
 | `quantize` | Hash containing options for quantization of task arguments. See below for more details and examples. | `{}` |
 | `service_name` | Service name used for `rake` instrumentation | `'rake'` |
+| `tasks` | Names of the Rake tasks to instrument | `[]` |
 
 **Configuring task quantization behavior**
 

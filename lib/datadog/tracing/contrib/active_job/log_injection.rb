@@ -1,7 +1,5 @@
 # typed: false
 
-require 'datadog/tracing'
-
 module Datadog
   module Tracing
     module Contrib

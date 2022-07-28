@@ -2,10 +2,10 @@
 
 # typed: true
 
-require 'datadog/profiling/flush'
-require 'datadog/profiling/pprof/message_set'
-require 'datadog/profiling/pprof/string_table'
-require 'datadog/core/utils/time'
+require_relative '../flush'
+require_relative 'message_set'
+require_relative 'string_table'
+require_relative '../../core/utils/time'
 
 module Datadog
   module Profiling

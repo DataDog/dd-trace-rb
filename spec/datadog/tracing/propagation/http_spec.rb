@@ -20,9 +20,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       context 'without any explicit sampling priority or origin' do
         it do
           inject!
-          expect(env).to eq('something' => 'alien',
-                            'x-datadog-trace-id' => '1000',
-                            'x-datadog-parent-id' => '2000')
+          expect(env).to eq(
+            'something' => 'alien',
+            'x-datadog-trace-id' => '1000',
+            'x-datadog-parent-id' => '2000'
+          )
         end
       end
 
@@ -33,10 +35,12 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
           let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_sampling_priority: 0 } }
 
           it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-sampling-priority' => '0',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+            expect(env).to eq(
+              'something' => 'alien',
+              'x-datadog-sampling-priority' => '0',
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000'
+            )
           end
         end
 
@@ -44,9 +48,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
           let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_sampling_priority: nil } }
 
           it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+            expect(env).to eq(
+              'something' => 'alien',
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000'
+            )
           end
         end
       end
@@ -58,10 +64,12 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
           let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_origin: 'synthetics' } }
 
           it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-origin' => 'synthetics',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+            expect(env).to eq(
+              'something' => 'alien',
+              'x-datadog-origin' => 'synthetics',
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000'
+            )
           end
         end
 
@@ -69,9 +77,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
           let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_origin: nil } }
 
           it do
-            expect(env).to eq('something' => 'alien',
-                              'x-datadog-trace-id' => '1000',
-                              'x-datadog-parent-id' => '2000')
+            expect(env).to eq(
+              'something' => 'alien',
+              'x-datadog-trace-id' => '1000',
+              'x-datadog-parent-id' => '2000'
+            )
           end
         end
       end

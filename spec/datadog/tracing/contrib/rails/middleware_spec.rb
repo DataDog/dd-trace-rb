@@ -12,11 +12,14 @@ RSpec.describe 'Rails middleware' do
   let(:controllers) { [controller] }
 
   let(:controller) do
-    stub_const('TestController', Class.new(ActionController::Base) do
-      def index
-        head :ok
+    stub_const(
+      'TestController',
+      Class.new(ActionController::Base) do
+        def index
+          head :ok
+        end
       end
-    end)
+    )
   end
 
   RSpec::Matchers.define :have_kind_of_middleware do |expected|
@@ -40,15 +43,18 @@ RSpec.describe 'Rails middleware' do
   context 'with middleware' do
     context 'that does nothing' do
       let(:middleware) do
-        stub_const('PassthroughMiddleware', Class.new do
-          def initialize(app)
-            @app = app
-          end
+        stub_const(
+          'PassthroughMiddleware',
+          Class.new do
+            def initialize(app)
+              @app = app
+            end
 
-          def call(env)
-            @app.call(env)
+            def call(env)
+              @app.call(env)
+            end
           end
-        end)
+        )
       end
 
       context 'and added after tracing is enabled' do
@@ -72,17 +78,20 @@ RSpec.describe 'Rails middleware' do
 
     context 'that itself creates a span' do
       let(:middleware) do
-        stub_const('CustomSpanMiddleware', Class.new do
-          def initialize(app)
-            @app = app
-          end
+        stub_const(
+          'CustomSpanMiddleware',
+          Class.new do
+            def initialize(app)
+              @app = app
+            end
 
-          def call(env)
-            Datadog::Tracing.trace('custom.test') do
-              @app.call(env)
+            def call(env)
+              Datadog::Tracing.trace('custom.test') do
+                @app.call(env)
+              end
             end
           end
-        end)
+        )
       end
 
       context 'and added after tracing is enabled' do
@@ -115,16 +124,19 @@ RSpec.describe 'Rails middleware' do
 
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
-        stub_const('RaiseExceptionMiddleware', Class.new do
-          def initialize(app)
-            @app = app
-          end
+        stub_const(
+          'RaiseExceptionMiddleware',
+          Class.new do
+            def initialize(app)
+              @app = app
+            end
 
-          def call(env)
-            @app.call(env)
-            raise NotImplementedError
+            def call(env)
+              @app.call(env)
+              raise NotImplementedError
+            end
           end
-        end)
+        )
       end
 
       it do
@@ -158,16 +170,19 @@ RSpec.describe 'Rails middleware' do
 
       let(:rails_middleware) { [middleware] }
       let(:middleware) do
-        stub_const('RaiseNotFoundMiddleware', Class.new do
-          def initialize(app)
-            @app = app
-          end
+        stub_const(
+          'RaiseNotFoundMiddleware',
+          Class.new do
+            def initialize(app)
+              @app = app
+            end
 
-          def call(env)
-            @app.call(env)
-            raise ActionController::RoutingError, '/missing_route'
+            def call(env)
+              @app.call(env)
+              raise ActionController::RoutingError, '/missing_route'
+            end
           end
-        end)
+        )
       end
 
       it do
@@ -202,27 +217,33 @@ RSpec.describe 'Rails middleware' do
 
       let(:rails_middleware) { [middleware] }
       let(:error_class) do
-        stub_const('CustomError', Class.new(StandardError) do
-          def message
-            'Custom error message!'
+        stub_const(
+          'CustomError',
+          Class.new(StandardError) do
+            def message
+              'Custom error message!'
+            end
           end
-        end)
+        )
       end
 
       let(:middleware) do
         # Run this to define the error class
         error_class
 
-        stub_const('RaiseCustomErrorMiddleware', Class.new do
-          def initialize(app)
-            @app = app
-          end
+        stub_const(
+          'RaiseCustomErrorMiddleware',
+          Class.new do
+            def initialize(app)
+              @app = app
+            end
 
-          def call(env)
-            @app.call(env)
-            raise CustomError
+            def call(env)
+              @app.call(env)
+              raise CustomError
+            end
           end
-        end)
+        )
       end
 
       it do

@@ -20,7 +20,7 @@
 // This idea was shamelessly stolen from @lloeki's work in https://github.com/rubyjs/mini_racer/pull/179, big thanks!
 //
 // Extra note: Currently (May 2022), that we know of, the profiling native extension only exposes one potentially
-// problematic symbol: `rust_eh_personality` (coming from libddprof/libdatadog).
+// problematic symbol: `rust_eh_personality` (coming from libdatadog).
 // Future versions of Rust have been patched not to expose this
 // (see https://github.com/rust-lang/rust/pull/95604#issuecomment-1108563434) so we may want to revisit the need
 // for this loader in the future, and perhaps delete it if we no longer require its services :)

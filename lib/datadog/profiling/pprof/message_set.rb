@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/utils/object_set'
+require_relative '../../core/utils/object_set'
 
 module Datadog
   module Profiling

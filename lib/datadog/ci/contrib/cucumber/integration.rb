@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
+require_relative '../../../tracing/contrib/integration'
 
-require 'datadog/ci/contrib/cucumber/configuration/settings'
-require 'datadog/ci/contrib/cucumber/patcher'
+require_relative 'configuration/settings'
+require_relative 'patcher'
 
 module Datadog
   module CI

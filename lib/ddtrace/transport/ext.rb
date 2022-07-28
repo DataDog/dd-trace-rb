@@ -13,6 +13,13 @@ module Datadog
 
         HEADER_CONTAINER_ID = 'Datadog-Container-ID'.freeze
         HEADER_DD_API_KEY = 'DD-API-KEY'.freeze
+        # Tells agent that `_dd.top_level` metrics have been set by the tracer.
+        # The agent will not calculate top-level spans but instead trust the tracer tagging.
+        #
+        # This prevents partially flushed traces being mistakenly marked as top-level.
+        #
+        # Setting this header to any non-empty value enables this feature.
+        HEADER_CLIENT_COMPUTED_TOP_LEVEL = 'Datadog-Client-Computed-Top-Level'.freeze
         HEADER_META_LANG = 'Datadog-Meta-Lang'.freeze
         HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'.freeze
         HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'.freeze

@@ -1,15 +1,15 @@
 # typed: false
 
-require 'datadog/core/configuration/agent_settings_resolver'
-require 'datadog/core/diagnostics/environment_logger'
-require 'datadog/core/diagnostics/health'
-require 'datadog/core/logger'
-require 'datadog/core/runtime/metrics'
-require 'datadog/core/workers/runtime_metrics'
+require_relative 'agent_settings_resolver'
+require_relative '../diagnostics/environment_logger'
+require_relative '../diagnostics/health'
+require_relative '../logger'
+require_relative '../runtime/metrics'
+require_relative '../workers/runtime_metrics'
 
-require 'datadog/tracing/tracer'
-require 'datadog/tracing/flush'
-require 'datadog/tracing/sync_writer'
+require_relative '../../tracing/tracer'
+require_relative '../../tracing/flush'
+require_relative '../../tracing/sync_writer'
 
 module Datadog
   module Core
@@ -198,7 +198,7 @@ module Datadog
             # On the other hand, if datadog/core is loaded by a different product and no general `require 'ddtrace'` is
             # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
             # no-op if profiling is already loaded).
-            require 'datadog/profiling'
+            require_relative '../../profiling'
             return unless Profiling.supported?
 
             unless defined?(Profiling::Tasks::Setup)
@@ -305,8 +305,6 @@ module Datadog
                 old_recorder,
                 trace_identifiers_helper: trace_identifiers_helper,
                 max_frames: settings.profiling.advanced.max_frames
-                # TODO: Provide proc that identifies Datadog worker threads?
-                # ignore_thread: settings.profiling.ignore_profiler
               )
             ]
           end
@@ -314,7 +312,7 @@ module Datadog
           def build_profiler_transport(settings, agent_settings)
             settings.profiling.exporter.transport ||
               if settings.profiling.advanced.legacy_transport_enabled
-                require 'datadog/profiling/transport/http'
+                require_relative '../../profiling/transport/http'
 
                 Datadog.logger.warn('Using legacy profiling transport. Do not use unless instructed to by support.')
 

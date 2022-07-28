@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -17,8 +17,8 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/sidekiq/client_tracer'
-            require 'datadog/tracing/contrib/sidekiq/server_tracer'
+            require_relative 'client_tracer'
+            require_relative 'server_tracer'
 
             ::Sidekiq.configure_client do |config|
               config.client_middleware do |chain|
@@ -45,24 +45,31 @@ module Datadog
             patch_server_heartbeat
             patch_server_job_fetch
             patch_server_scheduled_push
+            patch_redis_info
           end
 
           def patch_server_heartbeat
-            require 'datadog/tracing/contrib/sidekiq/server_internal_tracer/heartbeat'
+            require_relative 'server_internal_tracer/heartbeat'
 
             ::Sidekiq::Launcher.prepend(ServerInternalTracer::Heartbeat)
           end
 
           def patch_server_job_fetch
-            require 'datadog/tracing/contrib/sidekiq/server_internal_tracer/job_fetch'
+            require_relative 'server_internal_tracer/job_fetch'
 
             ::Sidekiq::Processor.prepend(ServerInternalTracer::JobFetch)
           end
 
           def patch_server_scheduled_push
-            require 'datadog/tracing/contrib/sidekiq/server_internal_tracer/scheduled_push'
+            require_relative 'server_internal_tracer/scheduled_poller'
 
-            ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPush)
+            ::Sidekiq::Scheduled::Poller.prepend(ServerInternalTracer::ScheduledPoller)
+          end
+
+          def patch_redis_info
+            require_relative 'server_internal_tracer/redis_info'
+
+            ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
           end
         end
       end

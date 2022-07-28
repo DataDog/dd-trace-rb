@@ -180,13 +180,13 @@ RSpec.describe Datadog::Profiling do
   describe '::try_loading_native_library' do
     subject(:try_loading_native_library) { described_class.send(:try_loading_native_library) }
 
-    let(:native_extension_require) { 'datadog/profiling/load_native_extension' }
+    let(:native_extension_require_relative) { 'profiling/load_native_extension' }
 
     context 'when the profiling native library loads successfully' do
       before do
         expect(described_class)
-          .to receive(:require)
-          .with(native_extension_require)
+          .to receive(:require_relative)
+          .with(native_extension_require_relative)
         stub_const('Datadog::Profiling::NativeExtension', double(native_working?: true))
       end
 
@@ -195,7 +195,7 @@ RSpec.describe Datadog::Profiling do
 
     context 'when the profiling native library fails to load with a LoadError' do
       before do
-        expect(described_class).to receive(:require).with(native_extension_require).and_raise(loaderror)
+        expect(described_class).to receive(:require_relative).with(native_extension_require_relative).and_raise(loaderror)
       end
 
       let(:loaderror) { LoadError.new('Simulated require failure') }
@@ -205,7 +205,7 @@ RSpec.describe Datadog::Profiling do
 
     context 'when the profiling native library fails to load with a different error' do
       before do
-        expect(described_class).to receive(:require).with(native_extension_require).and_raise(error)
+        expect(described_class).to receive(:require_relative).with(native_extension_require_relative).and_raise(error)
       end
 
       let(:error) { StandardError.new('Simulated require failure') }
@@ -216,8 +216,8 @@ RSpec.describe Datadog::Profiling do
     context 'when the profiling native library loads but does not install code correctly' do
       before do
         expect(described_class)
-          .to receive(:require)
-          .with(native_extension_require)
+          .to receive(:require_relative)
+          .with(native_extension_require_relative)
         stub_const('Datadog::Profiling::NativeExtension', double(native_working?: false))
       end
 

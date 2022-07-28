@@ -27,11 +27,11 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
       it_behaves_like 'a quantized URL', '/my/thing/1two3/abc/', '/my/thing/?/abc/'
       it_behaves_like 'a quantized URL', '/my/thing231/1two3/abc/', '/my/thing?/?/abc/'
       it_behaves_like 'a quantized URL',
-                      '/my/thing/1447990c-811a-4a83-b7e2-c3e8a4a6ff54/_termvector',
-                      '/my/thing/?/_termvector'
+        '/my/thing/1447990c-811a-4a83-b7e2-c3e8a4a6ff54/_termvector',
+        '/my/thing/?/_termvector'
       it_behaves_like 'a quantized URL',
-                      'app_prod/user/1fff2c9dc2f3e/_termvector',
-                      'app_prod/user/?/_termvector'
+        'app_prod/user/1fff2c9dc2f3e/_termvector',
+        'app_prod/user/?/_termvector'
     end
 
     context 'when the URL looks like an index' do
@@ -60,22 +60,22 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
           let(:options) { { show: [:title] } }
 
           it_behaves_like 'a quantized body',
-                          '{"query":{"match":{"title":"test","subtitle":"test"}}}',
-                          '{"query":{"match":{"title":"test","subtitle":"?"}}}'
+            '{"query":{"match":{"title":"test","subtitle":"test"}}}',
+            '{"query":{"match":{"title":"test","subtitle":"?"}}}'
         end
 
         context ':all' do
           let(:options) { { show: :all } }
 
           it_behaves_like 'a quantized body',
-                          '{"query":{"match":{"title":"test","subtitle":"test"}}}',
-                          '{"query":{"match":{"title":"test","subtitle":"test"}}}'
+            '{"query":{"match":{"title":"test","subtitle":"test"}}}',
+            '{"query":{"match":{"title":"test","subtitle":"test"}}}'
           it_behaves_like 'a quantized body',
-                          '[{"foo":"foo"},{"bar":"bar"}]',
-                          '[{"foo":"foo"},{"bar":"bar"}]'
+            '[{"foo":"foo"},{"bar":"bar"}]',
+            '[{"foo":"foo"},{"bar":"bar"}]'
           it_behaves_like 'a quantized body',
-                          '["foo","bar"]',
-                          '["foo","bar"]'
+            '["foo","bar"]',
+            '["foo","bar"]'
         end
       end
 
@@ -84,8 +84,8 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
           let(:options) { { exclude: [:title] } }
 
           it_behaves_like 'a quantized body',
-                          '{"query":{"match":{"title":"test","subtitle":"test"}}}',
-                          '{"query":{"match":{"subtitle":"?"}}}'
+            '{"query":{"match":{"title":"test","subtitle":"test"}}}',
+            '{"query":{"match":{"subtitle":"?"}}}'
         end
       end
     end
@@ -94,27 +94,27 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Quantize do
       context 'is in a format for' do
         describe 'MGet' do
           it_behaves_like 'a quantized body',
-                          '{"ids":["1","2","3"]}',
-                          '{"ids":["?"]}'
+            '{"ids":["1","2","3"]}',
+            '{"ids":["?"]}'
         end
 
         describe 'Search' do
           it_behaves_like 'a quantized body',
-                          '{"query":{"match":{"title":"test"}}}',
-                          '{"query":{"match":{"title":"?"}}}'
+            '{"query":{"match":{"title":"test"}}}',
+            '{"query":{"match":{"title":"?"}}}'
         end
 
         # rubocop:disable Layout/LineLength
         describe 'MSearch' do
           it_behaves_like 'a quantized body',
-                          "{}\n{\"query\":{\"match_all\":{}}}\n{\"index\":\"myindex\",\"type\":\"mytype\"}\n{\"query\":{\"query_string\":{\"query\":\"\\\"test\\\"\"}}}\n{\"search_type\":\"count\"}\n{\"aggregations\":{\"published\":{\"terms\":{\"field\":\"published\"}}}}\n",
-                          "{}\n{\"query\":{\"match_all\":{}}}\n{\"index\":\"?\",\"type\":\"?\"}\n{\"query\":{\"query_string\":{\"query\":\"?\"}}}\n{\"search_type\":\"?\"}\n{\"aggregations\":{\"published\":{\"terms\":{\"field\":\"?\"}}}}"
+            "{}\n{\"query\":{\"match_all\":{}}}\n{\"index\":\"myindex\",\"type\":\"mytype\"}\n{\"query\":{\"query_string\":{\"query\":\"\\\"test\\\"\"}}}\n{\"search_type\":\"count\"}\n{\"aggregations\":{\"published\":{\"terms\":{\"field\":\"published\"}}}}\n",
+            "{}\n{\"query\":{\"match_all\":{}}}\n{\"index\":\"?\",\"type\":\"?\"}\n{\"query\":{\"query_string\":{\"query\":\"?\"}}}\n{\"search_type\":\"?\"}\n{\"aggregations\":{\"published\":{\"terms\":{\"field\":\"?\"}}}}"
         end
 
         describe 'Bulk' do
           it_behaves_like 'a quantized body',
-                          "{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":1}}\n{\"title\":\"foo\"}\n{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":2}}\n{\"title\":\"foo\"}\n",
-                          "{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":1}}\n{\"title\":\"?\"}\n{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":2}}\n{\"title\":\"?\"}"
+            "{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":1}}\n{\"title\":\"foo\"}\n{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":2}}\n{\"title\":\"foo\"}\n",
+            "{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":1}}\n{\"title\":\"?\"}\n{\"index\":{\"_index\":\"myindex\",\"_type\":\"mytype\",\"_id\":2}}\n{\"title\":\"?\"}"
         end
       end
     end

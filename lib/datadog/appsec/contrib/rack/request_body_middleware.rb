@@ -1,7 +1,7 @@
 # typed: ignore
 
-require 'datadog/appsec/instrumentation/gateway'
-require 'datadog/appsec/assets'
+require_relative '../../instrumentation/gateway'
+require_relative '../../assets'
 
 module Datadog
   module AppSec

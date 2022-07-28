@@ -1,7 +1,7 @@
 # typed: true
 
-require 'ddtrace/transport/http/client'
-require 'ddtrace/transport/request'
+require_relative '../../../../ddtrace/transport/http/client'
+require_relative '../../../../ddtrace/transport/request'
 
 module Datadog
   module Profiling

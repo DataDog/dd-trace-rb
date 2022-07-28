@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/core/utils'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/active_support/ext'
+require_relative '../../../../core/utils'
+require_relative '../../../metadata/ext'
+require_relative '../ext'
 
 module Datadog
   module Tracing
@@ -22,12 +22,12 @@ module Datadog
               # to avoid any kind of issue.
               current_span = Tracing.active_span
               return if current_span.try(:name) == Ext::SPAN_CACHE &&
-                        (
-                          payload[:action] == Ext::RESOURCE_CACHE_GET &&
-                          current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
-                          payload[:action] == Ext::RESOURCE_CACHE_MGET &&
-                          current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
-                        )
+                (
+                  payload[:action] == Ext::RESOURCE_CACHE_GET &&
+                  current_span.try(:resource) == Ext::RESOURCE_CACHE_GET ||
+                  payload[:action] == Ext::RESOURCE_CACHE_MGET &&
+                  current_span.try(:resource) == Ext::RESOURCE_CACHE_MGET
+                )
 
               tracing_context = payload.fetch(:tracing_context)
 

@@ -1,11 +1,11 @@
 # typed: false
 
-require 'datadog/ci/test'
+require_relative '../../test'
 
-require 'datadog/ci/ext/app_types'
-require 'datadog/ci/ext/environment'
-require 'datadog/ci/ext/test'
-require 'datadog/ci/contrib/rspec/ext'
+require_relative '../../ext/app_types'
+require_relative '../../ext/environment'
+require_relative '../../ext/test'
+require_relative 'ext'
 
 module Datadog
   module CI

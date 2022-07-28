@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/concurrent_ruby/patcher'
-require 'datadog/tracing/contrib/concurrent_ruby/configuration/settings'
+require_relative '../integration'
+require_relative 'patcher'
+require_relative 'configuration/settings'
 
 module Datadog
   module Tracing

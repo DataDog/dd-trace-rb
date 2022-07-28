@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'datadog/tracing/sampling/span/ext'
-require 'datadog/tracing/sampling/span/matcher'
-require 'datadog/tracing/sampling/span/rule'
+
+require_relative 'ext'
+require_relative 'matcher'
+require_relative 'rule'
 
 module Datadog
   module Tracing

@@ -28,7 +28,7 @@ module Datadog
           upload_timeout_milliseconds: @upload_timeout_milliseconds,
 
           # why "timespec"?
-          # libddprof represents time using POSIX's struct timespec, see
+          # libdatadog represents time using POSIX's struct timespec, see
           # https://www.gnu.org/software/libc/manual/html_node/Time-Types.html
           # aka it represents the seconds part separate from the nanoseconds part
           start_timespec_seconds: flush.start.tv_sec,
@@ -80,8 +80,9 @@ module Datadog
       def validate_agent_settings(agent_settings)
         supported_adapters = [Datadog::Transport::Ext::HTTP::ADAPTER, Datadog::Transport::Ext::UnixSocket::ADAPTER]
         unless supported_adapters.include?(agent_settings.adapter)
-          raise ArgumentError, "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
-            ' is not supported'
+          raise ArgumentError,
+            "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
+                        ' is not supported'
         end
 
         if agent_settings.deprecated_for_removal_transport_configuration_proc

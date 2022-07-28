@@ -8,7 +8,7 @@ RSpec.describe 'Server internal tracer' do
 
   before do
     unless Datadog::Tracing::Contrib::Sidekiq::Integration.compatible_with_server_internal_tracing?
-      skip 'Sidekiq internal server tracing is not support on this version.'
+      skip 'Sidekiq internal server tracing is not supported on this version.'
     end
 
     skip 'Fork not supported on current platform' unless Process.respond_to?(:fork)

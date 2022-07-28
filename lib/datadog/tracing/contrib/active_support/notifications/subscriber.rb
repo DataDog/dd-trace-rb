@@ -1,7 +1,7 @@
 # typed: true
 
 require 'set'
-require 'datadog/tracing/contrib/active_support/notifications/subscription'
+require_relative 'subscription'
 
 module Datadog
   module Tracing

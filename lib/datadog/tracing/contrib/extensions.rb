@@ -2,7 +2,7 @@
 
 require 'set'
 
-require 'datadog/core/configuration/settings'
+require_relative '../../core/configuration/settings'
 
 # Datadog
 module Datadog
@@ -86,8 +86,8 @@ module Datadog
                 # if patching failed, only log output if verbosity is unset
                 # or if patching failure is due to compatibility or integration specific reasons
                 next unless !ignore_integration_load_errors ||
-                            ((patch_results[:available] && patch_results[:loaded]) &&
-                            (!patch_results[:compatible] || !patch_results[:patchable]))
+                  ((patch_results[:available] && patch_results[:loaded]) &&
+                  (!patch_results[:compatible] || !patch_results[:patchable]))
 
                 desc = "Available?: #{patch_results[:available]}"
                 desc += ", Loaded? #{patch_results[:loaded]}"

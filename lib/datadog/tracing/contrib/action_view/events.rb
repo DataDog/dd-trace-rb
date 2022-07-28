@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/action_view/events/render_partial'
-require 'datadog/tracing/contrib/action_view/events/render_template'
+require_relative 'events/render_partial'
+require_relative 'events/render_template'
 
 module Datadog
   module Tracing

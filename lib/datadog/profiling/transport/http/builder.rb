@@ -1,9 +1,9 @@
 # typed: true
 
-require 'ddtrace/transport/http/builder'
+require_relative '../../../../ddtrace/transport/http/builder'
 
-require 'datadog/profiling/transport/http/api'
-require 'datadog/profiling/transport/http/client'
+require_relative 'api'
+require_relative 'client'
 
 module Datadog
   module Profiling

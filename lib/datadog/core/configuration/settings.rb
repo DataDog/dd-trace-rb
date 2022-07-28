@@ -2,11 +2,11 @@
 
 require 'logger'
 
-require 'datadog/core/configuration/base'
-require 'datadog/core/environment/ext'
-require 'datadog/core/runtime/ext'
-require 'datadog/profiling/ext'
-require 'datadog/tracing/configuration/ext'
+require_relative 'base'
+require_relative '../environment/ext'
+require_relative '../runtime/ext'
+require_relative '../../profiling/ext'
+require_relative '../../tracing/configuration/ext'
 
 module Datadog
   module Core
@@ -419,7 +419,8 @@ module Datadog
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                  ], comma_separated_only: true
+                  ],
+                  comma_separated_only: true
                 )
               end
 
@@ -437,7 +438,8 @@ module Datadog
               o.default do
                 env_to_list(
                   Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT,
-                  [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG], comma_separated_only: true # Only inject Datadog headers by default
+                  [Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG],
+                  comma_separated_only: true # Only inject Datadog headers by default
                 )
               end
 

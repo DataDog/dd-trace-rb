@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/action_mailer/ext'
-require 'datadog/tracing/contrib/action_mailer/events'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'events'
 
 module Datadog
   module Tracing

@@ -1,10 +1,10 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/active_support/configuration/settings'
-require 'datadog/tracing/contrib/active_support/patcher'
-require 'datadog/tracing/contrib/active_support/cache/redis'
-require 'datadog/tracing/contrib/rails/utils'
+require_relative '../integration'
+require_relative 'configuration/settings'
+require_relative 'patcher'
+require_relative 'cache/redis'
+require_relative '../rails/utils'
 
 module Datadog
   module Tracing

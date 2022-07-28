@@ -1,15 +1,15 @@
 # typed: false
 
-require 'datadog/core'
+require_relative '../../core'
 
-require 'datadog/tracing/configuration/ext'
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/distributed/headers/b3'
-require 'datadog/tracing/distributed/headers/b3_single'
-require 'datadog/tracing/distributed/headers/datadog'
+require_relative '../configuration/ext'
+require_relative '../sampling/ext'
+require_relative '../distributed/headers/b3'
+require_relative '../distributed/headers/b3_single'
+require_relative '../distributed/headers/datadog'
 
-require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/trace_operation'
+require_relative '../trace_digest'
+require_relative '../trace_operation'
 
 module Datadog
   module Tracing

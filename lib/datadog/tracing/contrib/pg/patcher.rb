@@ -1,7 +1,7 @@
 # typed: ignore
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/pg/instrumentation'
+require_relative '../patcher'
+require_relative 'instrumentation'
 
 module Datadog
   module Tracing

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/contrib/configuration/resolver'
+require_relative '../resolver'
 
 module Datadog
   module Tracing

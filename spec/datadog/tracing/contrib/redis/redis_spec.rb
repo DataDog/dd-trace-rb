@@ -195,6 +195,33 @@ RSpec.describe 'Redis test' do
       end
     end
 
+    context 'empty pipeline' do
+      before do
+        responses.push(*redis.pipelined {})
+      end
+
+      let(:responses) { [] }
+
+      it do
+        expect(responses).to eq([])
+        expect(spans).to have(1).items
+      end
+
+      describe 'span' do
+        subject(:span) { spans[-1] }
+
+        it do
+          expect(span.get_metric('redis.pipeline_length')).to eq(0)
+          expect(span.name).to eq('redis.command')
+          expect(span.service).to eq('redis')
+          expect(span.resource).to eq('(none)')
+          expect(span.get_tag('redis.raw_command')).to eq('(none)')
+        end
+
+        it_behaves_like 'a span with common tags'
+      end
+    end
+
     context 'error' do
       subject(:bad_call) do
         redis.call 'THIS_IS_NOT_A_REDIS_FUNC', 'THIS_IS_NOT_A_VALID_ARG'

@@ -1,10 +1,10 @@
 # typed: true
 
-require 'ddtrace/transport/http/api/map'
-require 'datadog/profiling/encoding/profile'
-require 'datadog/profiling/transport/http/api/spec'
-require 'datadog/profiling/transport/http/api/instance'
-require 'datadog/profiling/transport/http/api/endpoint'
+require_relative '../../../../ddtrace/transport/http/api/map'
+require_relative '../../encoding/profile'
+require_relative 'api/spec'
+require_relative 'api/instance'
+require_relative 'api/endpoint'
 
 module Datadog
   module Profiling

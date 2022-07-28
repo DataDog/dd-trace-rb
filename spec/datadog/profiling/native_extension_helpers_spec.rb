@@ -5,37 +5,37 @@ require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
 require 'datadog/profiling/spec_helper'
 
 RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
-  describe '.libddprof_folder_relative_to_native_lib_folder' do
-    context 'when libddprof is available' do
+  describe '.libdatadog_folder_relative_to_native_lib_folder' do
+    context 'when libdatadog is available' do
       before do
         skip_if_profiling_not_supported(self)
-        if PlatformHelpers.mac? && Libddprof.pkgconfig_folder.nil? && ENV['LIBDDPROF_VENDOR_OVERRIDE'].nil?
-          raise 'You have a libddprof setup without macOS support. Did you forget to set LIBDDPROF_VENDOR_OVERRIDE?'
+        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV['LIBDATADOG_VENDOR_OVERRIDE'].nil?
+          raise 'You have a libdatadog setup without macOS support. Did you forget to set LIBDATADOG_VENDOR_OVERRIDE?'
         end
       end
 
-      it 'returns a relative path to libddprof folder from the gem lib folder' do
-        relative_path = described_class.libddprof_folder_relative_to_native_lib_folder
+      it 'returns a relative path to libdatadog folder from the gem lib folder' do
+        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder
 
         # RbConfig::CONFIG['SOEXT'] was only introduced in Ruby 2.5, so we have a fallback for older Rubies...
-        libddprof_extension =
+        libdatadog_extension =
           RbConfig::CONFIG['SOEXT'] ||
           ('so' if PlatformHelpers.linux?) ||
           ('dylib' if PlatformHelpers.mac?) ||
           raise('Missing SOEXT for current platform')
 
         gem_lib_folder = "#{Gem.loaded_specs['ddtrace'].gem_dir}/lib"
-        full_libddprof_path = "#{gem_lib_folder}/#{relative_path}/libddprof_ffi.#{libddprof_extension}"
+        full_libdatadog_path = "#{gem_lib_folder}/#{relative_path}/libddprof_ffi.#{libdatadog_extension}"
 
         expect(relative_path).to start_with('../')
-        expect(File.exist?(full_libddprof_path))
-          .to be(true), "Libddprof not available in expected path: #{full_libddprof_path.inspect}"
+        expect(File.exist?(full_libdatadog_path))
+          .to be(true), "Libdatadog not available in expected path: #{full_libdatadog_path.inspect}"
       end
     end
 
-    context 'when libddprof is unsupported' do
+    context 'when libdatadog is unsupported' do
       it do
-        expect(described_class.libddprof_folder_relative_to_native_lib_folder(libddprof_pkgconfig_folder: nil)).to be nil
+        expect(described_class.libdatadog_folder_relative_to_native_lib_folder(libdatadog_pkgconfig_folder: nil)).to be nil
       end
     end
   end
@@ -118,57 +118,67 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           it { is_expected.to include 'architecture is not supported' }
         end
 
-        shared_examples 'mjit header validation' do
-          shared_examples 'libddprof usable' do
-            context 'when libddprof DOES NOT HAVE binaries for the current platform' do
-              before do
-                expect(Libddprof).to receive(:pkgconfig_folder).and_return(nil)
-                expect(Libddprof).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+        shared_examples 'supported ruby validation' do
+          context 'when not on Ruby 2.1' do
+            before { stub_const('RUBY_VERSION', '2.2.0') }
+
+            shared_examples 'libdatadog usable' do
+              context 'when libdatadog DOES NOT HAVE binaries for the current platform' do
+                before do
+                  expect(Libdatadog).to receive(:pkgconfig_folder).and_return(nil)
+                  expect(Libdatadog).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
+                end
+
+                it { is_expected.to include 'platform variant' }
               end
 
-              it { is_expected.to include 'platform variant' }
+              context 'when libdatadog HAS BINARIES for the current platform' do
+                before { expect(Libdatadog).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
+
+                it('marks the native extension as supported') { is_expected.to be nil }
+              end
             end
 
-            context 'when libddprof HAS BINARIES for the current platform' do
-              before { expect(Libddprof).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
+            context 'on a Ruby version where we CAN NOT use the MJIT header' do
+              before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
 
-              it('marks the native extension as supported') { is_expected.to be nil }
+              include_examples 'libdatadog usable'
+            end
+
+            context 'on a Ruby version where we CAN use the MJIT header' do
+              before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
+
+              context 'but DOES NOT have MJIT support' do
+                before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
+
+                it { is_expected.to include 'without JIT' }
+              end
+
+              context 'and DOES have MJIT support' do
+                before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
+
+                include_examples 'libdatadog usable'
+              end
             end
           end
 
-          context 'on a Ruby version where we CAN NOT use the MJIT header' do
-            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
+          context 'when on Ruby 2.1' do
+            before { stub_const('RUBY_VERSION', '2.1.10') }
 
-            include_examples 'libddprof usable'
-          end
-
-          context 'on a Ruby version where we CAN use the MJIT header' do
-            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
-
-            context 'but DOES NOT have MJIT support' do
-              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
-
-              it { is_expected.to include 'without JIT' }
-            end
-
-            context 'and DOES have MJIT support' do
-              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
-
-              include_examples 'libddprof usable'
-            end
+            it { is_expected.to include 'profiler only supports Ruby 2.2 or newer' }
           end
         end
 
         context 'when on amd64 (x86-64) linux' do
           before { stub_const('RUBY_PLATFORM', 'x86_64-linux') }
 
-          include_examples 'mjit header validation'
+          include_examples 'supported ruby validation'
         end
 
         context 'when on arm64 (aarch64) linux' do
           before { stub_const('RUBY_PLATFORM', 'aarch64-linux') }
 
-          include_examples 'mjit header validation'
+          include_examples 'supported ruby validation'
         end
 
         context 'when macOS testing override is enabled' do
@@ -176,7 +186,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
 
           before { stub_const('RUBY_PLATFORM', 'x86_64-darwin19') }
 
-          include_examples 'mjit header validation'
+          include_examples 'supported ruby validation'
         end
       end
     end

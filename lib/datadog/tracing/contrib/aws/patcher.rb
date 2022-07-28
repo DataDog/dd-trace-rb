@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/aws/ext'
+require_relative '../patcher'
+require_relative 'ext'
 
 module Datadog
   module Tracing
@@ -18,9 +18,9 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/aws/parsed_context'
-            require 'datadog/tracing/contrib/aws/instrumentation'
-            require 'datadog/tracing/contrib/aws/services'
+            require_relative 'parsed_context'
+            require_relative 'instrumentation'
+            require_relative 'services'
 
             add_plugin(Seahorse::Client::Base, *loaded_constants)
 

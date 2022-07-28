@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core/configuration/settings'
-require 'datadog/core/configuration/components'
+require_relative '../core/configuration/settings'
+require_relative '../core/configuration/components'
 
-require 'datadog/ci/configuration/settings'
-require 'datadog/ci/configuration/components'
+require_relative 'configuration/settings'
+require_relative 'configuration/components'
 
 module Datadog
   module CI

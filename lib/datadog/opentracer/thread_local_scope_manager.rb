@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/core/utils/sequence'
+require_relative '../core/utils/sequence'
 
 module Datadog
   module OpenTracer

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'ddtrace/version'
+require_relative '../../../ddtrace/version'
 
 module Datadog
   module Core

@@ -524,22 +524,28 @@ RSpec.describe 'Sinatra instrumentation' do
   context 'with modular app' do
     let(:sinatra_app) do
       mount_nested_app = self.mount_nested_app
-      stub_const('NestedApp', Class.new(Sinatra::Base) do
-        register Datadog::Tracing::Contrib::Sinatra::Tracer
+      stub_const(
+        'NestedApp',
+        Class.new(Sinatra::Base) do
+          register Datadog::Tracing::Contrib::Sinatra::Tracer
 
-        get '/nested' do
-          headers['X-Request-ID'] = 'test id'
-          'nested ok'
+          get '/nested' do
+            headers['X-Request-ID'] = 'test id'
+            'nested ok'
+          end
         end
-      end)
+      )
 
       sinatra_routes = self.sinatra_routes
-      stub_const('App', Class.new(Sinatra::Base) do
-        register Datadog::Tracing::Contrib::Sinatra::Tracer
-        use NestedApp if mount_nested_app
+      stub_const(
+        'App',
+        Class.new(Sinatra::Base) do
+          register Datadog::Tracing::Contrib::Sinatra::Tracer
+          use NestedApp if mount_nested_app
 
-        instance_exec(&sinatra_routes)
-      end)
+          instance_exec(&sinatra_routes)
+        end
+      )
     end
 
     let(:app_name) { top_app_name }
@@ -608,9 +614,9 @@ RSpec.describe 'Sinatra instrumentation' do
               expect(trace.resource).to eq(resource)
 
               expect(top_span).to be_request_span resource: 'GET',
-                                                  app_name: top_app_name,
-                                                  matching_app: false,
-                                                  parent: top_rack_span
+                app_name: top_app_name,
+                matching_app: false,
+                parent: top_rack_span
               expect(top_rack_span).not_to be_nil
               expect(top_rack_span).to be_root_span
               expect(top_rack_span.resource).to eq('GET')
@@ -630,9 +636,12 @@ RSpec.describe 'Sinatra instrumentation' do
 
       let(:sinatra_app) do
         sinatra_routes = self.sinatra_routes
-        stub_const('App', Class.new(Sinatra::Base) do
-          instance_exec(&sinatra_routes)
-        end)
+        stub_const(
+          'App',
+          Class.new(Sinatra::Base) do
+            instance_exec(&sinatra_routes)
+          end
+        )
       end
 
       subject(:response) { get url }

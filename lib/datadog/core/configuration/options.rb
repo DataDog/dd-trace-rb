@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/core/configuration/option_set'
-require 'datadog/core/configuration/option_definition'
-require 'datadog/core/configuration/option_definition_set'
+require_relative 'option_set'
+require_relative 'option_definition'
+require_relative 'option_definition_set'
 
 module Datadog
   module Core

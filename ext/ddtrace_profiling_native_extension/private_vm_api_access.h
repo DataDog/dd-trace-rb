@@ -6,11 +6,7 @@
 // so we use PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES to be able to include private_vm_api_access.h on that file
 // without also dragging the incompatible includes
 #ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
-  #ifdef RUBY_2_1_WORKAROUND
-    #include <thread_native.h>
-  #else
-    #include <ruby/thread_native.h>
-  #endif
+  #include <ruby/thread_native.h>
 #endif
 
 #include "extconf.h"
@@ -19,6 +15,7 @@ rb_nativethread_id_t pthread_id_for(VALUE thread);
 ptrdiff_t stack_depth_for(VALUE thread);
 VALUE ddtrace_thread_list(void);
 bool is_thread_alive(VALUE thread);
+VALUE thread_name_for(VALUE thread);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);
 

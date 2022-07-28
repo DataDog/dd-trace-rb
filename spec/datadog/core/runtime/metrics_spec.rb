@@ -118,14 +118,14 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     shared_examples_for 'a flush of all runtime metrics' do
       context 'including ClassCount' do
         it_behaves_like 'runtime metric flush',
-                        Datadog::Core::Environment::ClassCount,
-                        Datadog::Core::Runtime::Ext::Metrics::METRIC_CLASS_COUNT
+          Datadog::Core::Environment::ClassCount,
+          Datadog::Core::Runtime::Ext::Metrics::METRIC_CLASS_COUNT
       end
 
       context 'including ThreadCount' do
         it_behaves_like 'runtime metric flush',
-                        Datadog::Core::Environment::ThreadCount,
-                        Datadog::Core::Runtime::Ext::Metrics::METRIC_THREAD_COUNT
+          Datadog::Core::Environment::ThreadCount,
+          Datadog::Core::Runtime::Ext::Metrics::METRIC_THREAD_COUNT
       end
 
       context 'including GC stats' do

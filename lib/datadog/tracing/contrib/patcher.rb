@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core'
-require 'datadog/core/utils/only_once'
+require_relative '../../core'
+require_relative '../../core/utils/only_once'
 
 module Datadog
   module Tracing

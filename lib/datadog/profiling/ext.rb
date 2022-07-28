@@ -9,6 +9,7 @@ module Datadog
       ENV_AGENTLESS = 'DD_PROFILING_AGENTLESS'.freeze
       ENV_ENDPOINT_COLLECTION_ENABLED = 'DD_PROFILING_ENDPOINT_COLLECTION_ENABLED'.freeze
 
+      # TODO: Consider removing this once the Ruby-based pprof encoding is removed and replaced by libdatadog
       module Pprof
         LABEL_KEY_LOCAL_ROOT_SPAN_ID = 'local root span id'.freeze
         LABEL_KEY_SPAN_ID = 'span id'.freeze

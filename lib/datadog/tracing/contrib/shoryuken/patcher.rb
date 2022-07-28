@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/contrib/shoryuken/tracer'
+require_relative 'tracer'
 
 module Datadog
   module Tracing

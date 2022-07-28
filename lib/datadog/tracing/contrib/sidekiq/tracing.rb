@@ -2,8 +2,8 @@
 
 require 'yaml'
 
-require 'datadog/core'
-require 'datadog/tracing/contrib/sidekiq/ext'
+require_relative '../../../core'
+require_relative 'ext'
 
 module Datadog
   module Tracing

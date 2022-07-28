@@ -1,17 +1,17 @@
 # typed: true
 
-require 'datadog/core/environment/ext'
-require 'ddtrace/transport/ext'
+require_relative '../../core/environment/ext'
+require_relative '../../../ddtrace/transport/ext'
 
-require 'datadog/core/environment/container'
-require 'datadog/core/environment/variable_helpers'
+require_relative '../../core/environment/container'
+require_relative '../../core/environment/variable_helpers'
 
-require 'datadog/profiling/transport/http/builder'
-require 'datadog/profiling/transport/http/api'
+require_relative 'http/builder'
+require_relative 'http/api'
 
-require 'ddtrace/transport/http/adapters/net'
-require 'ddtrace/transport/http/adapters/test'
-require 'ddtrace/transport/http/adapters/unix_socket'
+require_relative '../../../ddtrace/transport/http/adapters/net'
+require_relative '../../../ddtrace/transport/http/adapters/test'
+require_relative '../../../ddtrace/transport/http/adapters/unix_socket'
 
 module Datadog
   module Profiling
@@ -100,12 +100,18 @@ module Datadog
         end
 
         # Add adapters to registry
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Net,
-                                                        Datadog::Transport::Ext::HTTP::ADAPTER)
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::Test,
-                                                        Datadog::Transport::Ext::Test::ADAPTER)
-        Datadog::Transport::HTTP::Builder::REGISTRY.set(Datadog::Transport::HTTP::Adapters::UnixSocket,
-                                                        Datadog::Transport::Ext::UnixSocket::ADAPTER)
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(
+          Datadog::Transport::HTTP::Adapters::Net,
+          Datadog::Transport::Ext::HTTP::ADAPTER
+        )
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(
+          Datadog::Transport::HTTP::Adapters::Test,
+          Datadog::Transport::Ext::Test::ADAPTER
+        )
+        Datadog::Transport::HTTP::Builder::REGISTRY.set(
+          Datadog::Transport::HTTP::Adapters::UnixSocket,
+          Datadog::Transport::Ext::UnixSocket::ADAPTER
+        )
       end
     end
   end

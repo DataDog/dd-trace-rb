@@ -1,10 +1,9 @@
 # typed: false
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/rake/ext'
-require 'datadog/tracing/contrib/utils/quantization/hash'
+require_relative '../../metadata/ext'
+require_relative '../analytics'
+require_relative 'ext'
+require_relative '../utils/quantization/hash'
 
 module Datadog
   module Tracing
@@ -19,7 +18,7 @@ module Datadog
           # Instance methods for Rake instrumentation
           module InstanceMethods
             def invoke(*args)
-              return super unless enabled?
+              return super if !enabled? || !instrumented_task?
 
               Tracing.trace(Ext::SPAN_INVOKE, **span_options) do |span|
                 annotate_invoke!(span, args)
@@ -30,7 +29,7 @@ module Datadog
             end
 
             def execute(args = nil)
-              return super unless enabled?
+              return super if !enabled? || !instrumented_task?
 
               Tracing.trace(Ext::SPAN_EXECUTE, **span_options) do |span|
                 annotate_execute!(span, args)
@@ -41,6 +40,12 @@ module Datadog
             end
 
             private
+
+            # Task names are verified dynamically, in order to be agnostic of
+            # when tracing is configured in relation to Rake task declaration.
+            def instrumented_task?
+              configuration[:tasks].include?(name)
+            end
 
             def shutdown_tracer!
               Tracing.shutdown! if Tracing.active_span.nil? && ::Rake.application.top_level_tasks.include?(name)

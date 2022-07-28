@@ -2,7 +2,8 @@
 
 module Datadog
   module Profiling
-    # Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
+    # Stores stack samples in a native libdatadog data structure and expose Ruby-level serialization APIs
+    # Note that `record_sample` is only accessible from native code.
     # Methods prefixed with _native_ are implemented in `stack_recorder.c`
     class StackRecorder
       def serialize
@@ -23,8 +24,7 @@ module Datadog
         end
       end
 
-      # Used only for Ruby 2.2 and below which don't have the native `rb_time_timespec_new` API
-      # Called from native code
+      # Used only for Ruby 2.2 which doesn't have the native `rb_time_timespec_new` API; called from native code
       def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
         Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
       end
