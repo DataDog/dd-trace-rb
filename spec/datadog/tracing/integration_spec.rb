@@ -359,13 +359,10 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     shared_examples 'set single span sampling tags' do
-      let(:rule_rate) { 1.0 }
-      let(:max_per_second) { -1 }
-
       it do
         expect(single_sampled_span.get_metric('_dd.span_sampling.mechanism')).to eq(8)
-        expect(single_sampled_span.get_metric('_dd.span_sampling.rule_rate')).to eq(rule_rate)
-        expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to eq(max_per_second)
+        expect(single_sampled_span.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
+        expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to eq(-1)
       end
     end
 
