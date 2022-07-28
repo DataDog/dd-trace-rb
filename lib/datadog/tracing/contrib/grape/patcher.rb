@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/tracing/contrib/grape/endpoint'
-require 'datadog/tracing/contrib/grape/ext'
-require 'datadog/tracing/contrib/grape/instrumentation'
-require 'datadog/tracing/contrib/patcher'
+require_relative 'endpoint'
+require_relative 'ext'
+require_relative 'instrumentation'
+require_relative '../patcher'
 
 module Datadog
   module Tracing

@@ -1,12 +1,12 @@
 # typed: true
 
-require 'datadog/core/runtime/ext'
+require_relative 'ext'
 
-require 'datadog/core/metrics/client'
-require 'datadog/core/environment/class_count'
-require 'datadog/core/environment/gc'
-require 'datadog/core/environment/thread_count'
-require 'datadog/core/environment/vm_cache'
+require_relative '../metrics/client'
+require_relative '../environment/class_count'
+require_relative '../environment/gc'
+require_relative '../environment/thread_count'
+require_relative '../environment/vm_cache'
 
 module Datadog
   module Core

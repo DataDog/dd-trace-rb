@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -17,7 +17,7 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/excon/middleware'
+            require_relative 'middleware'
             add_middleware
           end
 

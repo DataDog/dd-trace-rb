@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/core'
-require 'datadog/tracing/sampling/rate_by_key_sampler'
+require_relative '../../core'
+require_relative 'rate_by_key_sampler'
 
 module Datadog
   module Tracing

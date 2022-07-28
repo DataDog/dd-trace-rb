@@ -1,6 +1,6 @@
 # typed: ignore
 
-require 'datadog/appsec/assets'
+require_relative 'assets'
 
 module Datadog
   module AppSec

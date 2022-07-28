@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/sequel/database'
-require 'datadog/tracing/contrib/sequel/dataset'
+require_relative '../patcher'
+require_relative 'database'
+require_relative 'dataset'
 
 module Datadog
   module Tracing

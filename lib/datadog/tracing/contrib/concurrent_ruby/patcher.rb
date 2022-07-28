@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -18,7 +18,7 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/concurrent_ruby/future_patch'
+            require_relative 'future_patch'
             patch_future
           end
 

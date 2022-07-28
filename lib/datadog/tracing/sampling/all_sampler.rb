@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/sampling/sampler'
+require_relative 'sampler'
 
 module Datadog
   module Tracing

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/contrib/redis/vendor/resolver'
+require_relative '../vendor/resolver'
 
 module Datadog
   module Tracing

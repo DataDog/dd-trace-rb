@@ -2,8 +2,8 @@
 
 # typed: false
 
-require 'datadog/tracing/span_operation'
-require 'datadog/tracing/contrib/configuration/settings'
+require_relative '../../../span_operation'
+require_relative '../../configuration/settings'
 
 module Datadog
   module Tracing

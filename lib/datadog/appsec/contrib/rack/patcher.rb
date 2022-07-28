@@ -1,7 +1,7 @@
 # typed: ignore
 
-require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/rack/gateway/watcher'
+require_relative '../patcher'
+require_relative 'gateway/watcher'
 
 module Datadog
   module AppSec

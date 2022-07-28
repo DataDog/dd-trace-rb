@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/profiling/ext'
+require_relative '../ext'
 
 module Datadog
   module Profiling

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/utils'
+require_relative '../core/utils'
 
 module Datadog
   module Profiling

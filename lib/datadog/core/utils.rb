@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/core/utils/forking'
-require 'datadog/tracing/span'
+require_relative 'utils/forking'
+require_relative '../tracing/span'
 
 module Datadog
   module Core

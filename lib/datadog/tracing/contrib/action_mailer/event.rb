@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/active_support/notifications/event'
-require 'datadog/tracing/contrib/action_mailer/ext'
+require_relative '../analytics'
+require_relative '../active_support/notifications/event'
+require_relative 'ext'
 
 module Datadog
   module Tracing

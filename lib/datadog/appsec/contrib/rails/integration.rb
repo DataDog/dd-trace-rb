@@ -1,10 +1,10 @@
 # typed: ignore
 
-require 'datadog/appsec/contrib/integration'
+require_relative '../integration'
 
-require 'datadog/appsec/contrib/rails/configuration/settings'
-require 'datadog/appsec/contrib/rails/patcher'
-require 'datadog/appsec/contrib/rails/request_middleware'
+require_relative 'configuration/settings'
+require_relative 'patcher'
+require_relative 'request_middleware'
 
 module Datadog
   module AppSec

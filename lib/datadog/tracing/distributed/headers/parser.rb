@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/distributed/helpers'
+require_relative '../helpers'
 
 module Datadog
   module Tracing

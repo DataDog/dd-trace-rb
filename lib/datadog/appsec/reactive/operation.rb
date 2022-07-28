@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/appsec/reactive/engine'
+require_relative 'engine'
 
 module Datadog
   module AppSec

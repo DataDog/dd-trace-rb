@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/core/buffer/thread_safe'
-require 'datadog/core/utils/object_set'
-require 'datadog/core/utils/string_table'
+require_relative '../core/buffer/thread_safe'
+require_relative '../core/utils/object_set'
+require_relative '../core/utils/string_table'
 
 module Datadog
   module Profiling

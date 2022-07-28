@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core/utils/time'
+require_relative '../core/utils/time'
 
-require 'datadog/core/worker'
-require 'datadog/core/workers/polling'
+require_relative '../core/worker'
+require_relative '../core/workers/polling'
 
 module Datadog
   module Profiling

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'ddtrace/transport/http/api/fallbacks'
+require_relative 'fallbacks'
 
 module Datadog
   module Transport

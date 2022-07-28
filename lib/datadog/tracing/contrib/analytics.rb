@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/analytics'
+require_relative '../analytics'
 
 module Datadog
   module Tracing

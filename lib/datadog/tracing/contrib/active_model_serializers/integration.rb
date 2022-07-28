@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/active_model_serializers/configuration/settings'
-require 'datadog/tracing/contrib/active_model_serializers/patcher'
+require_relative '../integration'
+require_relative 'configuration/settings'
+require_relative 'patcher'
 
 module Datadog
   module Tracing

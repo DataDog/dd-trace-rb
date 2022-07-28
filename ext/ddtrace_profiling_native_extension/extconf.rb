@@ -169,6 +169,10 @@ $LDFLAGS += \
   "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
 Logging.message(" [ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
+Logging.message(" [ddtrace] Using compiler:\n")
+xsystem("#{CONFIG['CC']} --version")
+Logging.message(" [ddtrace] End of compiler information\n")
+
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.

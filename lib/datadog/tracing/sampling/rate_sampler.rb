@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core'
+require_relative '../../core'
 
-require 'datadog/tracing/sampling/sampler'
-require 'datadog/tracing/span'
+require_relative 'sampler'
+require_relative '../span'
 
 module Datadog
   module Tracing

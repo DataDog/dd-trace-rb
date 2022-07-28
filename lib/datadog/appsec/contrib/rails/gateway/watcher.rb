@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/appsec/instrumentation/gateway'
-require 'datadog/appsec/reactive/operation'
-require 'datadog/appsec/contrib/rails/reactive/action'
-require 'datadog/appsec/event'
+require_relative '../../../instrumentation/gateway'
+require_relative '../../../reactive/operation'
+require_relative '../reactive/action'
+require_relative '../../../event'
 
 module Datadog
   module AppSec

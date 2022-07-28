@@ -1,11 +1,11 @@
 # typed: false
 
-require 'datadog/tracing/contrib/configuration/resolvers/pattern_resolver'
-require 'datadog/tracing/contrib/http/circuit_breaker'
-require 'datadog/tracing/contrib/http/configuration/settings'
-require 'datadog/tracing/contrib/http/patcher'
-require 'datadog/tracing/contrib/integration'
-require 'ddtrace/version'
+require_relative '../configuration/resolvers/pattern_resolver'
+require_relative 'circuit_breaker'
+require_relative 'configuration/settings'
+require_relative 'patcher'
+require_relative '../integration'
+require_relative '../../../../ddtrace/version'
 
 module Datadog
   module Tracing

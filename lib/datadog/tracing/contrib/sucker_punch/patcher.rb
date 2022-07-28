@@ -1,8 +1,7 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/sucker_punch/ext'
+require_relative '../patcher'
+require_relative 'ext'
 
 module Datadog
   module Tracing
@@ -20,8 +19,8 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/sucker_punch/exception_handler'
-            require 'datadog/tracing/contrib/sucker_punch/instrumentation'
+            require_relative 'exception_handler'
+            require_relative 'instrumentation'
 
             ExceptionHandler.patch!
             Instrumentation.patch!

@@ -138,6 +138,8 @@ module Datadog
         CONTACT_SUPPORT = [
           'For help solving this issue, please contact Datadog support at',
           '<https://docs.datadoghq.com/help/>.',
+          'You can also check out the Continuous Profiler troubleshooting page at',
+          '<https://dtdg.co/ruby-profiler-troubleshooting>.'
         ].freeze
 
         REPORT_ISSUE = [

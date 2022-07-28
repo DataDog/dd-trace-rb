@@ -13,7 +13,7 @@ PATH
   specs:
     ddtrace (1.2.0)
       debase-ruby_core_source (= 0.10.16)
-      libddprof (~> 0.6.0.1.0)
+      libdatadog (~> 0.7.0.1.0)
       libddwaf (~> 1.3.0.2.0)
       msgpack
 
@@ -46,12 +46,13 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (4.8.3)
     ffi (1.15.5)
+    google-protobuf (3.19.4)
     google-protobuf (3.19.4-x86_64-linux)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddprof (0.6.0.1.0-x86_64-linux)
-    libddwaf (1.3.0.2.0-x86_64-linux)
+    libdatadog (0.7.0.1.0-aarch64-linux)
+    libddwaf (1.3.0.2.0-aarch64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
@@ -109,6 +110,8 @@ GEM
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.16.0)
       parser (>= 3.1.1.0)
+    rubocop-packaging (0.5.1)
+      rubocop (>= 0.89, < 2.0)
     rubocop-performance (1.13.3)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
@@ -118,14 +121,6 @@ GEM
     ruby-progressbar (1.11.0)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    sorbet (0.5.9672)
-      sorbet-static (= 0.5.9672)
-    sorbet-runtime (0.5.9807)
-    sorbet-static (0.5.9672-x86_64-linux)
-    spoom (1.1.9)
-      sorbet (>= 0.5.9204)
-      sorbet-runtime (>= 0.5.9204)
-      thor (>= 0.19.2)
     thor (1.2.1)
     unicode-display_width (2.1.0)
     warning (1.2.1)
@@ -138,6 +133,7 @@ GEM
       webrick (~> 1.7.0)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -167,12 +163,11 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
   rubocop (~> 1.10)
+  rubocop-packaging (~> 0.5)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
   simplecov!
-  sorbet (= 0.5.9672)
-  spoom (~> 1.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)

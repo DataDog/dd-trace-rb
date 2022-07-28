@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/contrib/action_cable/event'
-require 'datadog/tracing/contrib/action_cable/events/broadcast'
-require 'datadog/tracing/contrib/action_cable/events/perform_action'
-require 'datadog/tracing/contrib/action_cable/events/transmit'
+require_relative 'event'
+require_relative 'events/broadcast'
+require_relative 'events/perform_action'
+require_relative 'events/transmit'
 
 module Datadog
   module Tracing

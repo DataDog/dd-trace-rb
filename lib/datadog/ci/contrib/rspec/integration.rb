@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
+require_relative '../../../tracing/contrib/integration'
 
-require 'datadog/ci/contrib/rspec/configuration/settings'
-require 'datadog/ci/contrib/rspec/patcher'
+require_relative 'configuration/settings'
+require_relative 'patcher'
 
 module Datadog
   module CI

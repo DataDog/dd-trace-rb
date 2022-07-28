@@ -1,10 +1,10 @@
 # typed: true
 
-require 'datadog/core'
+require_relative '../../core'
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/sampling/rate_limiter'
-require 'datadog/tracing/sampling/rule'
+require_relative 'ext'
+require_relative 'rate_limiter'
+require_relative 'rule'
 
 module Datadog
   module Tracing

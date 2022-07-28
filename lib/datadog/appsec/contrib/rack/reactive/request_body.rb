@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/appsec/contrib/rack/request'
+require_relative '../request'
 
 module Datadog
   module AppSec

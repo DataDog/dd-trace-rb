@@ -1,8 +1,8 @@
 # typed: false
 
 require 'net/http'
-require 'ddtrace/transport/ext'
-require 'ddtrace/transport/http/adapters/net'
+require_relative '../../ext'
+require_relative 'net'
 
 module Datadog
   module Transport

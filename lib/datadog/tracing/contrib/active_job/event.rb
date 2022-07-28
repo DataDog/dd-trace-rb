@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/active_support/notifications/event'
-require 'datadog/tracing/contrib/active_job/ext'
+require_relative '../../metadata/ext'
+require_relative '../active_support/notifications/event'
+require_relative 'ext'
 
 module Datadog
   module Tracing

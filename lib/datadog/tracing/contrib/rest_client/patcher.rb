@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -18,7 +18,7 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/rest_client/request_patch'
+            require_relative 'request_patch'
 
             ::RestClient::Request.include(RequestPatch)
           end

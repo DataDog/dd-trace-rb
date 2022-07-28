@@ -2,14 +2,13 @@
 
 require 'date'
 
-require 'datadog/core/environment/variable_helpers'
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/propagation/http'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/rack/ext'
-require 'datadog/tracing/contrib/rack/request_queue'
-require 'datadog/tracing/contrib/utils/quantization/http'
+require_relative '../../../core/environment/variable_helpers'
+require_relative '../../metadata/ext'
+require_relative '../../propagation/http'
+require_relative '../analytics'
+require_relative 'ext'
+require_relative 'request_queue'
+require_relative '../utils/quantization/http'
 
 module Datadog
   module Tracing

@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/distributed/headers/parser'
-require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/trace_digest'
+require_relative 'parser'
+require_relative 'ext'
+require_relative '../../trace_digest'
 
 module Datadog
   module Tracing

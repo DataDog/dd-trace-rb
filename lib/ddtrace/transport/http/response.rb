@@ -1,6 +1,6 @@
 # typed: false
 
-require 'ddtrace/transport/response'
+require_relative '../response'
 
 module Datadog
   module Transport

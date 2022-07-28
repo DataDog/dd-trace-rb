@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing/contrib/grpc/ext'
-require 'datadog/tracing/contrib/patcher'
+require_relative 'ext'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -19,9 +19,9 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/propagation/grpc'
-            require 'datadog/tracing/contrib/grpc/datadog_interceptor'
-            require 'datadog/tracing/contrib/grpc/intercept_with_datadog'
+            require_relative '../../propagation/grpc'
+            require_relative 'datadog_interceptor'
+            require_relative 'intercept_with_datadog'
 
             prepend_interceptor
           end

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'ddtrace/transport/http/api/spec'
+require_relative '../../../../../ddtrace/transport/http/api/spec'
 
 module Datadog
   module Profiling

@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/configuration'
+require_relative 'configuration'
 
 # Global namespace that includes all Datadog functionality.
 # @public_api

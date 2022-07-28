@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core/utils/only_once'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/rack/middlewares'
-require 'datadog/tracing/contrib/sinatra/framework'
+require_relative '../../../core/utils/only_once'
+require_relative '../patcher'
+require_relative '../rack/middlewares'
+require_relative 'framework'
 
 module Datadog
   module Tracing
@@ -50,7 +50,7 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/sinatra/tracer'
+            require_relative 'tracer'
             register_tracer
 
             patch_default_middlewares

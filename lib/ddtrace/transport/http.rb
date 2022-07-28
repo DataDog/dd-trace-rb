@@ -4,15 +4,15 @@
 
 require 'uri'
 
-require 'datadog/core/environment/container'
-require 'datadog/core/environment/ext'
-require 'ddtrace/transport/ext'
-require 'ddtrace/transport/http/adapters/net'
-require 'ddtrace/transport/http/adapters/test'
-require 'ddtrace/transport/http/adapters/unix_socket'
-require 'ddtrace/transport/http/api'
-require 'ddtrace/transport/http/builder'
-require 'ddtrace/version'
+require_relative '../../datadog/core/environment/container'
+require_relative '../../datadog/core/environment/ext'
+require_relative 'ext'
+require_relative 'http/adapters/net'
+require_relative 'http/adapters/test'
+require_relative 'http/adapters/unix_socket'
+require_relative 'http/api'
+require_relative 'http/builder'
+require_relative '../version'
 
 module Datadog
   module Transport

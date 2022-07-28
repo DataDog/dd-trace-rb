@@ -2,7 +2,7 @@
 
 # typed: true
 
-require 'datadog/core/git/ext'
+require_relative '../../core/git/ext'
 
 require 'open3'
 

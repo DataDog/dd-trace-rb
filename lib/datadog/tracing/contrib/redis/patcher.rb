@@ -1,8 +1,8 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/redis/ext'
-require 'datadog/tracing/contrib/redis/configuration/resolver'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'configuration/resolver'
 
 module Datadog
   module Tracing
@@ -22,9 +22,9 @@ module Datadog
           def patch
             # do not require these by default, but only when actually patching
             require 'redis'
-            require 'datadog/tracing/contrib/redis/tags'
-            require 'datadog/tracing/contrib/redis/quantize'
-            require 'datadog/tracing/contrib/redis/instrumentation'
+            require_relative 'tags'
+            require_relative 'quantize'
+            require_relative 'instrumentation'
 
             ::Redis::Client.include(Instrumentation)
           end

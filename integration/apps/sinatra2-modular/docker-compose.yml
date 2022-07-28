@@ -64,9 +64,7 @@ services:
       #   source: /sys/fs/cgroup/
       #   target: /host/sys/fs/cgroup:ro
   load-tester:
-    build:
-      context: ../../images
-      dockerfile: wrk/Dockerfile
+    image: datadog/dd-apm-demo:wrk
     command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/fibonacci
     depends_on:
       - app

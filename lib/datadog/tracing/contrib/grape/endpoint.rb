@@ -1,10 +1,9 @@
 # typed: false
 
-require 'datadog/core'
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/analytics'
-require 'datadog/tracing/contrib/rack/ext'
+require_relative '../../../core'
+require_relative '../../metadata/ext'
+require_relative '../analytics'
+require_relative '../rack/ext'
 
 module Datadog
   module Tracing

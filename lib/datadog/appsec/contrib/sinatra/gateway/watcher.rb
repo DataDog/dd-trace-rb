@@ -1,10 +1,10 @@
 # typed: false
 
-require 'datadog/appsec/instrumentation/gateway'
-require 'datadog/appsec/reactive/operation'
-require 'datadog/appsec/contrib/rack/reactive/request_body'
-require 'datadog/appsec/contrib/sinatra/reactive/routed'
-require 'datadog/appsec/event'
+require_relative '../../../instrumentation/gateway'
+require_relative '../../../reactive/operation'
+require_relative '../../rack/reactive/request_body'
+require_relative '../reactive/routed'
+require_relative '../../../event'
 
 module Datadog
   module AppSec
