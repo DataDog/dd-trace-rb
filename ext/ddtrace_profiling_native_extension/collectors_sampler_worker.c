@@ -15,6 +15,7 @@ static void sampler_worker_collector_typed_data_free(void *data);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static void install_signal_handler(void);
 static void remove_signal_handler(void);
+static void block_signal_handler_in_current_thread(void);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
@@ -69,6 +70,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   state->should_run = true;
 
   install_signal_handler();
+  block_signal_handler_in_current_thread(); // We want to interrupt the thread with the GVL, never this one
 
   // Release the GVL while we're working
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
@@ -100,8 +102,19 @@ static void remove_signal_handler(void) {
   // TODO
 }
 
+static void block_signal_handler_in_current_thread(void) {
+  sigset_t signals_to_block;
+  sigemptyset(&signals_to_block);
+
+  sigaddset(&signals_to_block, SIGPROF);
+
+  pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
+}
+
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  fprintf(stderr, "Got sampling signal in %p!\n", rb_nativethread_self());
+  fprintf(stderr, "Got sampling signal in %p!\n", rb_thread_current());
+
+  if (!ruby_native_thread_p()) return; // Did we land on a Ruby thread?
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
@@ -109,8 +122,8 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
 
   while (state->should_run) {
-    fprintf(stderr, "Hello from the sampling trigger loop in %p\n", rb_nativethread_self());
-    raise(SIGPROF);
+    fprintf(stderr, "Hello from the sampling trigger loop in %p\n", rb_thread_current());
+    kill(getpid(), SIGPROF); // TODO Improve this
     sleep(1);
   }
 
