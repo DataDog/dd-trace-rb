@@ -294,8 +294,8 @@ RSpec.describe 'Tracer integration tests' do
   describe 'single span sampling' do
     subject(:trace) do
       tracer.trace('unrelated.top_level', service: 'other-service') do
-        tracer.trace('my.op', service: 'my-service') do # This is the span we are interested in
-          tracer.trace('other.trace', service: 'not-service') {}
+        tracer.trace('single.sampled_span', service: 'my-service') do
+          tracer.trace('unrelated.child_span', service: 'not-service') {}
         end
       end
     end
@@ -341,7 +341,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     let(:single_sampled_span) do
-      single_sampled_spans = spans.select { |s| s.name == 'my.op' }
+      single_sampled_spans = spans.select { |s| s.name == 'single.sampled_span' }
       expect(single_sampled_spans).to have(1).item
       single_sampled_spans[0]
     end
@@ -396,13 +396,13 @@ RSpec.describe 'Tracer integration tests' do
         context 'with rule matching' do
           context 'on name' do
             context 'with a dropped span' do
-              let(:rules) { [{ name: 'my.op', sample_rate: 0.0 }] }
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
 
               it_behaves_like 'flushed complete trace'
               it_behaves_like 'does not modify spans'
 
               context 'by rate limiting' do
-                let(:rules) { [{ name: 'my.op', sample_rate: 1.0, max_per_second: 0 }] }
+                let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
 
                 it_behaves_like 'flushed complete trace'
                 it_behaves_like 'does not modify spans'
@@ -410,7 +410,7 @@ RSpec.describe 'Tracer integration tests' do
             end
 
             context 'with a kept span' do
-              let(:rules) { [{ name: 'my.op', sample_rate: 1.0 }] }
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
               it_behaves_like 'flushed complete trace'
               it_behaves_like 'set single span sampling tags'
@@ -458,20 +458,20 @@ RSpec.describe 'Tracer integration tests' do
           context 'on name' do
             context 'with a dropped span' do
               context 'by sampling rate' do
-                let(:rules) { [{ name: 'my.op', sample_rate: 0.0 }] }
+                let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
 
                 it_behaves_like 'flushed no trace'
               end
 
               context 'by rate limiting' do
-                let(:rules) { [{ name: 'my.op', sample_rate: 1.0, max_per_second: 0 }] }
+                let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
 
                 it_behaves_like 'flushed no trace'
               end
             end
 
             context 'with a kept span' do
-              let(:rules) { [{ name: 'my.op', sample_rate: 1.0 }] }
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
               # it_behaves_like 'flushed complete trace', expected_span_count: 1
               it_behaves_like 'set single span sampling tags'
