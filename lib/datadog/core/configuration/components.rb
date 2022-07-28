@@ -53,14 +53,7 @@ module Datadog
           end
 
           def build_telemetry(settings)
-            telemetry = Telemetry::Client.new(enabled: settings.telemetry.enabled)
-
-            if telemetry.class.started
-              telemetry.integrations_change!
-            else
-              telemetry.started!
-            end
-            telemetry
+            Telemetry::Client.new(enabled: settings.telemetry.enabled)
           end
 
           def build_tracer(settings, agent_settings)
@@ -434,7 +427,6 @@ module Datadog
           unused_statsd.each(&:close)
 
           telemetry.stop!
-
           telemetry.emit_closing! unless replacement
         end
       end

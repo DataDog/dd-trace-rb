@@ -81,6 +81,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(health_metrics)
     end
 
+    after do
+      components.telemetry.worker.stop(true)
+      components.telemetry.worker.join
+    end
+
     it do
       expect(components.logger).to be logger
       expect(components.tracer).to be tracer
@@ -222,44 +227,19 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
       let(:default_options) { { enabled: enabled } }
-      let(:client_started) { false }
       let(:enabled) { true }
 
       before do
         expect(Datadog::Core::Telemetry::Client).to receive(:new).with(default_options).and_return(telemetry_client)
-        allow(telemetry_client).to receive(:started!)
-        allow(Datadog::Core::Telemetry::Client).to receive(:started).and_return(client_started)
-        allow(telemetry_client).to receive(:class).and_return(Datadog::Core::Telemetry::Client)
         allow(settings.telemetry).to receive(:enabled).and_return(enabled)
       end
 
       it { is_expected.to be(telemetry_client) }
 
-      context 'by default' do
-        it do
-          expect(telemetry_client).to receive(:started!)
-          build_telemetry
-        end
-      end
-
       context 'with :enabled' do
         let(:enabled) { double('enabled') }
 
         it { is_expected.to be(telemetry_client) }
-      end
-
-      context 'when telemetry has been initialized before' do
-        let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
-        let(:client_started) { true }
-
-        before do
-          allow(telemetry_client).to receive(:integrations_change!)
-        end
-
-        it do
-          expect(telemetry_client).to receive(:integrations_change!)
-          build_telemetry
-        end
       end
     end
   end
@@ -1101,6 +1081,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe '#startup!' do
     subject(:startup!) { components.startup!(settings) }
 
+    after do
+      components.telemetry.worker.terminate
+      components.telemetry.worker.join
+    end
+
     context 'when profiling' do
       context 'is unsupported' do
         before do
@@ -1185,6 +1170,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
   describe '#shutdown!' do
     subject(:shutdown!) { components.shutdown!(replacement) }
+
+    after do
+      components.telemetry.worker.terminate
+      components.telemetry.worker.join
+    end
 
     context 'given no replacement' do
       let(:replacement) { nil }

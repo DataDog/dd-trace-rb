@@ -41,17 +41,14 @@ module Datadog
         end
 
         def started!
-          return if !@enabled || self.class.started || forked?
+          return if !@enabled || forked?
 
           res = @emitter.request(:'app-started')
 
           if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
-            @enabled = false
-            @worker.enabled = false
+            disable!
             @unsupported = true # Prevent telemetry from getting re-enabled
-          else
-            self.class.started = true
           end
 
           res
@@ -74,14 +71,6 @@ module Datadog
           return if !@enabled || forked?
 
           @emitter.request(:'app-integrations-change')
-        end
-
-        class << self
-          attr_writer :started
-
-          def started
-            @started ||= false
-          end
         end
 
         private

@@ -99,10 +99,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   describe '#started!' do
     subject(:started!) { client.started! }
 
-    before do
-      client.class.started = false
-    end
-
     after do
       client.worker.stop(true)
       client.worker.join
@@ -122,23 +118,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         started!
         is_expected.to be(response)
-      end
-    end
-
-    context 'when already started' do
-      let(:enabled) { true }
-
-      before do
-        client.class.started = true
-      end
-
-      after do
-        client.class.started = false
-      end
-
-      it do
-        started!
-        expect(emitter).to_not have_received(:request).with(:'app-started')
       end
     end
 
@@ -163,9 +142,10 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         started!
         expect(client.enabled).to be(false)
+        expect(client.worker.enabled?).to be(false)
         expect(client.unsupported).to be(true)
         expect(Datadog.logger).to have_received(:debug) do |message|
-          expect(message).to eq('Agent does not support telemetry; disabling future telemetry events.')
+          expect(message).to eq('Agent does not support telemetry; future telemetry events disabled.')
         end
       end
     end
