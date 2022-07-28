@@ -315,9 +315,9 @@ RSpec.describe 'Tracer integration tests' do
       # Capture trace segments as they are about to be serialized
       allow_any_instance_of(Datadog::Transport::Traces::Transport)
         .to receive(:send_traces).and_wrap_original do |function, traces|
-        trace_segments.concat(traces)
-        function.call(traces)
-      end
+          trace_segments.concat(traces)
+          function.call(traces)
+        end
 
       trace # Run test subject
       tracer.shutdown! # Ensure trace is flushed, so we can read writer statistics

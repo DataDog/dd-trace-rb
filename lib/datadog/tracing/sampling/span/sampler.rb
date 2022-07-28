@@ -36,7 +36,6 @@ module Datadog
             @rules = rules
           end
 
-
           # Applies Single Span Sampling rules to the span if the trace has been rejected.
           #
           # The trace can be outright rejected, and never reach the transport,
