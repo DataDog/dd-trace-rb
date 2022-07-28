@@ -1,6 +1,8 @@
 #include <ruby.h>
 #include <ruby/thread.h>
+#include <ruby/thread_native.h>
 #include <stdbool.h>
+#include <signal.h>
 #include "helpers.h"
 
 // Contains state for a single SamplerWorker instance
@@ -13,6 +15,7 @@ static void sampler_worker_collector_typed_data_free(void *data);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static void install_signal_handler(void);
 static void remove_signal_handler(void);
+static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 
@@ -80,15 +83,25 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 }
 
 static void install_signal_handler(void) {
-  // struct sigaction our_signal_handler;
-  // struct sigaction old_signal_handler;
+  struct sigaction signal_handler_config;
+  struct sigaction existing_signal_handler_config; // TODO: Do something with this
 
-  // sigemptyset(&our_signal_handler.sa_mask);
-  // our_signal_handler.sa_flags =
+  sigemptyset(&signal_handler_config.sa_mask);
+  signal_handler_config.sa_handler = NULL;
+  signal_handler_config.sa_flags = SA_RESTART | SA_SIGINFO; // TODO: Do we really need siginfo?
+  signal_handler_config.sa_sigaction = handle_sampling_signal;
+
+  if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
+    rb_sys_fail("Could not install signal handler");
+  }
 }
 
 static void remove_signal_handler(void) {
   // TODO
+}
+
+static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
+  fprintf(stderr, "Got sampling signal in %p!\n", rb_nativethread_self());
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
@@ -96,8 +109,9 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
 
   while (state->should_run) {
+    fprintf(stderr, "Hello from the sampling trigger loop in %p\n", rb_nativethread_self());
+    raise(SIGPROF);
     sleep(1);
-    fprintf(stderr, "Hello from the sampling trigger loop\n");
   }
 
   fprintf(stderr, "should_run was false, stopping\n");
