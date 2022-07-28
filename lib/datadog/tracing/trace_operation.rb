@@ -135,6 +135,10 @@ module Datadog
         @resource || (root_span && root_span.resource)
       end
 
+      def resource_override?
+        !@resource.nil?
+      end
+
       def service
         @service || (root_span && root_span.service)
       end

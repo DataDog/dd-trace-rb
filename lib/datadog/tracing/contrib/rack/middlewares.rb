@@ -41,9 +41,6 @@ module Datadog
               service: configuration[:web_service_name]
             )
 
-            # Will be set later, avoid setting the trace.resource to propagate to rack span resource
-            frontend_span.resource = nil
-
             # Tag this span as belonging to Rack
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             frontend_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
@@ -116,10 +113,7 @@ module Datadog
               request_span.finish
             end
 
-            if frontend_span
-              frontend_span.resource = Ext::SPAN_HTTP_SERVER_QUEUE
-              frontend_span.finish
-            end
+            frontend_span.finish if frontend_span
           end
           # rubocop:enable Lint/RescueException
 
@@ -143,11 +137,18 @@ module Datadog
             request_headers = parse_request_headers(env)
             response_headers = parse_response_headers(headers || {})
 
+            # The priority
+            # 1. User overrides span.resource
+            # 2. Configuration
+            # 3. Nested App override trace.resource
+            # 4. Fallback with verb + status, eq `GET 200`
             request_span.resource ||=
               if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
                 "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
+              elsif trace.resource_override?
+                trace.resource
               else
-                trace.resource || "#{env['REQUEST_METHOD']} #{status}".strip
+                "#{env['REQUEST_METHOD']} #{status}".strip
               end
 
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
