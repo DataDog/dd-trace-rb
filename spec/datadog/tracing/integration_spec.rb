@@ -391,50 +391,25 @@ RSpec.describe 'Tracer integration tests' do
         let(:trace_sampling_rate) { 0.0 }
 
         context 'with rule matching' do
-          context 'on name' do
-            context 'with a dropped span' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
+          context 'with a dropped span' do
+            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
+
+            it_behaves_like 'flushed complete trace'
+            it_behaves_like 'does not modify spans'
+
+            context 'by rate limiting' do
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
 
               it_behaves_like 'flushed complete trace'
               it_behaves_like 'does not modify spans'
-
-              context 'by rate limiting' do
-                let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
-
-                it_behaves_like 'flushed complete trace'
-                it_behaves_like 'does not modify spans'
-              end
-            end
-
-            context 'with a kept span' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
-
-              it_behaves_like 'flushed complete trace'
-              it_behaves_like 'set single span sampling tags'
             end
           end
 
-          context 'on service' do
-            context 'with a dropped span' do
-              let(:rules) { [{ service: 'my-ser*', sample_rate: 0.0 }] }
+          context 'with a kept span' do
+            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
-              it_behaves_like 'flushed complete trace'
-              it_behaves_like 'does not modify spans'
-
-              context 'by rate limiting' do
-                let(:rules) { [{ service: 'my-ser*', sample_rate: 1.0, max_per_second: 0 }] }
-
-                it_behaves_like 'flushed complete trace'
-                it_behaves_like 'does not modify spans'
-              end
-            end
-
-            context 'with a kept span' do
-              let(:rules) { [{ service: 'my-ser*', sample_rate: 1.0 }] }
-
-              it_behaves_like 'flushed complete trace'
-              it_behaves_like 'set single span sampling tags'
-            end
+            it_behaves_like 'flushed complete trace'
+            it_behaves_like 'set single span sampling tags'
           end
         end
       end
@@ -452,50 +427,25 @@ RSpec.describe 'Tracer integration tests' do
         end
 
         context 'with rule matching' do
-          context 'on name' do
-            context 'with a dropped span' do
-              context 'by sampling rate' do
-                let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
+          context 'with a dropped span' do
+            context 'by sampling rate' do
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
 
-                it_behaves_like 'flushed no trace'
-              end
-
-              context 'by rate limiting' do
-                let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
-
-                it_behaves_like 'flushed no trace'
-              end
+              it_behaves_like 'flushed no trace'
             end
 
-            context 'with a kept span' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
+            context 'by rate limiting' do
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
 
-              # it_behaves_like 'flushed complete trace', expected_span_count: 1
-              it_behaves_like 'set single span sampling tags'
+              it_behaves_like 'flushed no trace'
             end
           end
 
-          context 'on service' do
-            context 'with a dropped span' do
-              context 'by sampling rate' do
-                let(:rules) { [{ service: 'my-ser*', sample_rate: 0.0 }] }
+          context 'with a kept span' do
+            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
-                it_behaves_like 'flushed no trace'
-              end
-
-              context 'by rate limiting' do
-                let(:rules) { [{ service: 'my-ser*', sample_rate: 1.0, max_per_second: 0 }] }
-
-                it_behaves_like 'flushed no trace'
-              end
-            end
-
-            context 'with a kept span' do
-              let(:rules) { [{ service: 'my-ser*', sample_rate: 1.0 }] }
-
-              it_behaves_like 'flushed complete trace', expected_span_count: 1
-              it_behaves_like 'set single span sampling tags'
-            end
+            it_behaves_like 'flushed complete trace', expected_span_count: 1
+            it_behaves_like 'set single span sampling tags'
           end
         end
       end
