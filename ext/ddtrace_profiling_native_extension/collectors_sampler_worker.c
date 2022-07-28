@@ -1,6 +1,7 @@
 #include <ruby.h>
 #include <ruby/thread.h>
 #include <ruby/thread_native.h>
+#include <ruby/debug.h>
 #include <stdbool.h>
 #include <signal.h>
 #include "helpers.h"
@@ -19,6 +20,7 @@ static void block_signal_handler_in_current_thread(void);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
+static void called_from_postponed_job(void *data);
 
 void collectors_sampler_worker_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -112,10 +114,15 @@ static void block_signal_handler_in_current_thread(void) {
 }
 
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  fprintf(stderr, "Got sampling signal in %p!\n", rb_thread_current());
+  fprintf(stderr, "Got sampling signal in %p in a ruby_thread=%d!\n", rb_thread_current(), ruby_native_thread_p());
 
   if (!ruby_native_thread_p()) return; // Did we land on a Ruby thread?
+
+  rb_postponed_job_register_one(0, called_from_postponed_job, NULL);
 }
+
+// From Ruby internal.h
+int ruby_thread_has_gvl_p(void);
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
 static void *run_sampling_trigger_loop(void *state_ptr) {
@@ -136,6 +143,12 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
   struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
 
   state->should_run = false;
+}
+
+static void called_from_postponed_job(void *data) {
+  fprintf(stderr, "Called from postponed job in %p and have_gvl=%d!\n", rb_thread_current(), ruby_thread_has_gvl_p());
+  sleep(10);
+  fprintf(stderr, "Woke up!\n");
 }
 
 // signal handler
