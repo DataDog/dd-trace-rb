@@ -41,7 +41,7 @@ module Datadog
         end
 
         def started!
-          return if !@enabled || self.class.started
+          return if !@enabled || self.class.started || forked?
 
           res = @emitter.request('app-started')
 
@@ -58,7 +58,7 @@ module Datadog
         end
 
         def emit_closing!
-          return if !@enabled || forked? # Only emit app-closing event in main process
+          return if !@enabled || forked?
 
           @emitter.request('app-closing')
         end
@@ -71,7 +71,7 @@ module Datadog
         end
 
         def integrations_change!
-          return unless @enabled
+          return if !@enabled || forked?
 
           @emitter.request('app-integrations-change')
         end
@@ -87,7 +87,7 @@ module Datadog
         private
 
         def heartbeat!
-          return unless @enabled
+          return if !@enabled || forked?
 
           @emitter.request('app-heartbeat')
         end
