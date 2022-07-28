@@ -74,6 +74,9 @@ RSpec.describe 'Rack integration configuration' do
 
       it 'produces a queued Rack trace' do
         is_expected.to be_ok
+
+        expect(trace.resource).to eq('GET 200')
+
         expect(spans).to have(2).items
 
         web_service_name = Datadog.configuration.tracing[:rack][:web_service_name]
@@ -108,6 +111,9 @@ RSpec.describe 'Rack integration configuration' do
     shared_examples_for 'a Rack request without queuing' do
       it 'produces a non-queued Rack trace' do
         is_expected.to be_ok
+
+        expect(trace.resource).to eq('GET 200')
+
         expect(spans).to have(1).items
 
         expect(span).to_not be nil

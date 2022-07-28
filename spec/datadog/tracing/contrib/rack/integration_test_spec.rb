@@ -106,6 +106,8 @@ RSpec.describe 'Rack integration tests' do
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span).to be_root_span
           end
+
+          it { expect(trace.resource).to eq('GET 200') }
         end
 
         context 'with query string parameters' do
@@ -210,6 +212,8 @@ RSpec.describe 'Rack integration tests' do
           get 'request_queuing_enabled',
             nil,
             { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
+
+          expect(trace.resource).to eq('GET 200')
 
           expect(spans).to have(2).items
 
@@ -424,6 +428,8 @@ RSpec.describe 'Rack integration tests' do
             let(:route) { '/app/posts/100' }
 
             it do
+              expect(trace.resource).to eq('GET /app/')
+
               expect(span.name).to eq('rack.request')
               expect(span.span_type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
@@ -465,6 +471,8 @@ RSpec.describe 'Rack integration tests' do
           get '/resource_override',
             nil,
             { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
+
+          expect(trace.resource).to eq('UserController#show')
 
           expect(spans).to have(3).items
 
