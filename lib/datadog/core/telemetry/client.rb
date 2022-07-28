@@ -43,7 +43,7 @@ module Datadog
         def started!
           return if !@enabled || self.class.started || forked?
 
-          res = @emitter.request('app-started')
+          res = @emitter.request(:'app-started')
 
           if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
@@ -60,7 +60,7 @@ module Datadog
         def emit_closing!
           return if !@enabled || forked?
 
-          @emitter.request('app-closing')
+          @emitter.request(:'app-closing')
         end
 
         def stop!
@@ -73,7 +73,7 @@ module Datadog
         def integrations_change!
           return if !@enabled || forked?
 
-          @emitter.request('app-integrations-change')
+          @emitter.request(:'app-integrations-change')
         end
 
         class << self
@@ -89,7 +89,7 @@ module Datadog
         def heartbeat!
           return if !@enabled || forked?
 
-          @emitter.request('app-heartbeat')
+          @emitter.request(:'app-heartbeat')
         end
       end
     end

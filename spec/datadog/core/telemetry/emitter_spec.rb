@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
   describe '#request' do
     subject(:request) { emitter.request(request_type) }
-    let(:request_type) { 'app-started' }
+    let(:request_type) { :'app-started' }
 
     before do
       logger = double(Datadog::Core::Logger)
@@ -56,7 +56,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       end
 
       context 'is app-started' do
-        let(:request_type) { 'app-started' }
+        let(:request_type) { :'app-started' }
 
         context 'when call is successful' do
           let(:response_ok) { true }

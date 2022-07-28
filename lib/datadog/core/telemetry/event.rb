@@ -42,11 +42,11 @@ module Datadog
 
         def payload(request_type)
           case request_type
-          when 'app-started'
+          when :'app-started'
             app_started
-          when 'app-closing', 'app-heartbeat'
+          when :'app-closing', :'app-heartbeat'
             {}
-          when 'app-integrations-change'
+          when :'app-integrations-change'
             app_integrations_change
           else
             raise ArgumentError, "Request type invalid, received request_type: #{@request_type}"

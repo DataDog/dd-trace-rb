@@ -112,7 +112,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         started!
-        expect(emitter).to_not have_received(:request).with('app-started')
+        expect(emitter).to_not have_received(:request).with(:'app-started')
       end
     end
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
       it do
         started!
-        expect(emitter).to_not have_received(:request).with('app-started')
+        expect(emitter).to_not have_received(:request).with(:'app-started')
       end
     end
 
@@ -183,7 +183,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         emit_closing!
-        expect(emitter).to_not have_received(:request).with('app-closing')
+        expect(emitter).to_not have_received(:request).with(:'app-closing')
       end
     end
 
@@ -191,7 +191,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { true }
       it do
         emit_closing!
-        expect(emitter).to have_received(:request).with('app-closing')
+        expect(emitter).to have_received(:request).with(:'app-closing')
       end
 
       it { is_expected.to be(response) }
@@ -251,7 +251,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         integrations_change!
-        expect(emitter).to_not have_received(:request).with('app-integrations-change')
+        expect(emitter).to_not have_received(:request).with(:'app-integrations-change')
       end
     end
 
@@ -259,7 +259,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { true }
       it do
         integrations_change!
-        expect(emitter).to have_received(:request).with('app-integrations-change')
+        expect(emitter).to have_received(:request).with(:'app-integrations-change')
       end
 
       it { is_expected.to be(response) }
