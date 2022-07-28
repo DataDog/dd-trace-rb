@@ -8,26 +8,31 @@ For a more practical view of getting started with development of `ddtrace`, see 
 
 Components below live inside <../lib/datadog/profiling>:
 
-* `Collectors::OldStack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
+* (Deprecated) `Collectors::OldStack`: Collects stack trace samples from Ruby threads for both CPU-time (if available) and wall-clock.
   Runs on its own background thread.
 * `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code, from libraries, from the standard library, etc).
-* `Encoding::Profile::Protobuf`: Encodes gathered data into the pprof format.
-* `Events::Stack`, `Events::StackSample`: Entity classes used to represent stacks.
+* (Deprecated) `Encoding::Profile::Protobuf`: Encodes gathered data into the pprof format.
+* (Deprecated) `Events::Stack`, `Events::StackSample`: Entity classes used to represent stacks.
 * `Ext::Forking`: Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
   profiling abilities after the VM forks (such as re-instrumenting the main thread, and restarting profiler threads).
-* `Pprof::*` (in <../lib/datadog/profiling/pprof>): Used by `Encoding::Profile::Protobuf` to convert samples captured in
+* (Deprecated) `Pprof::*` (in <../lib/datadog/profiling/pprof>): Used by `Encoding::Profile::Protobuf` to convert samples captured in
   the `OldRecorder` into the pprof format.
-* `Tasks::Setup`: Takes care of loading our extensions/monkey patches to handle `fork()`.
+* `Tasks::Setup`: Takes care of loading and applying `Ext::Forking``.
 * `HttpTransport`: Implements transmission of profiling payloads to the Datadog agent or backend.
-* `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
-* `BacktraceLocation`: Entity class used to represent an entry in a stack trace.
-* `Buffer`: Bounded buffer used to store profiling events.
+* (Deprecated) `TraceIdentifiers::*`: Used to retrieve trace id and span id from tracers, to be used to connect traces to profiles.
+* (Deprecated) `BacktraceLocation`: Entity class used to represent an entry in a stack trace.
+* (Deprecated) `Buffer`: Bounded buffer used to store profiling events.
 * `Flush`: Entity class used to represent the payload to be reported for a given profile.
 * `Profiler`: Profiling entry point, which coordinates collectors and a scheduler.
-* `OldRecorder`: Stores profiling events gathered by the `Collector::OldStack`. (To be removed after migration to libddprof aggregation)
+* (Deprecated) `OldRecorder`: Stores profiling events gathered by the `Collector::OldStack`. (To be removed after migration to libddprof aggregation)
 * `Exporter`: Gathers data from `OldRecorder` and `Collectors::CodeProvenance` to be reported as a profile.
 * `Scheduler`: Periodically (every 1 minute) takes data from the `Exporter` and pushes them to the configured transport.
   Runs on its own background thread.
+* `Collectors::CpuAndWallTime`: TODO
+* `Collectors::Stack`: Used to gather a stack trace from a given Ruby thread. Used to gather a stack trace from a given Ruby thread.
+  Stores its output on a `StackRecorder`.
+* `StackRecorder`: Stores stack samples in a native libdatadog data structure and exposes Ruby-level serialization APIs.
+* `TagBuilder`: Builds a hash of default plus user tags to be included in a profile
 
 ## Initialization
 
@@ -67,6 +72,36 @@ flow:
     ```
 6. The profiler gets started when `startup!` is called by `Datadog::Configuration` after component creation.
 
+### Work in progress
+
+The profiler is undergoing a lot of refactoring. After this work is done, this is how we expect it will be wired up:
+
+```asciiflow
+        +------------------------+
+        |        Profiler        |
+        +-+--------------------+-+
+          |                    |
+          v                    v
++---------+--------------+   +-+---------+
+| Collectors::CpuAndWall |   | Scheduler |
++---------+--------------+   +-+-------+-+
+          |                    |       |
+          v                    |       v
++---------+---------+          |  +----+----------+
+| Collectors::Stack |          |  | HttpTransport |
++---------+---------+          |  +---------------+
+          |                    |
+          v                    v
+  +-------+-------+         +--+-------+
+  | StackRecorder |<--------| Exporter |
+  +---------------+         +--+-------+
+                               |
+                               v
+                +--------------+--+
+                | Code Provenance |
+                +-----------------+
+```
+
 ## Run-time execution
 
 During run-time, the `Scheduler` and the `Collectors::OldStack` each execute on their own background thread.
@@ -77,10 +112,6 @@ them in the `OldRecorder`.
 The `Scheduler` wakes up every 1 minute to flush the results of the `Exporter` into the transport.
 By default, the `Scheduler` gets created with the default `HttpTransport`, which
 takes care of encoding the data and reporting it to the Datadog agent.
-
-## How CPU-time profiling works
-
-**TODO**: Document our pthread-based approach to getting CPU-time for threads.
 
 ## How linking of traces to profiles works
 

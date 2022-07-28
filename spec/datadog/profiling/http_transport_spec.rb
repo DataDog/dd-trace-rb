@@ -12,8 +12,8 @@ require 'socket'
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
 #
-# We also have "integration" specs, where we exercise the Ruby code together with the C code and libddprof to ensure
-# that things come out of libddprof as we expected.
+# We also have "integration" specs, where we exercise the Ruby code together with the C code and libdatadog to ensure
+# that things come out of libdatadog as we expected.
 RSpec.describe Datadog::Profiling::HttpTransport do
   before { skip_if_profiling_not_supported(self) }
 
@@ -358,7 +358,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         if RUBY_VERSION.start_with?('2.2.')
           # Workaround for webrick bug in Ruby 2.2.
-          # This `setup_shutdown_pipe` method was added in 2.2 (so 2.1 is not affected) but it had a bug when webrick
+          # This `setup_shutdown_pipe` method was added in 2.2 but it had a bug when webrick
           # was configured with `DoNotListen: true` and was never called, which led to failures as webrick requires and
           # expects it to have been called.
           # In Ruby 2.3 this was fixed and this method always gets called, even with `DoNotListen: true`.

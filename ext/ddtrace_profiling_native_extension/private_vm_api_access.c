@@ -13,7 +13,13 @@
   #include RUBY_MJIT_HEADER
 #else
   // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
-  #include <vm_core.h>
+
+  // We can't do anything about warnings in VM headers, so we just use this technique to surpress them.
+  // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+  #pragma GCC diagnostic push
+  #pragma GCC diagnostic ignored "-Wunused-parameter"
+    #include <vm_core.h>
+  #pragma GCC diagnostic pop
   #include <iseq.h>
 #endif
 
@@ -68,7 +74,6 @@ ptrdiff_t stack_depth_for(VALUE thread) {
   #define ccan_list_for_each list_for_each
 #endif
 
-#ifndef USE_LEGACY_LIVING_THREADS_ST // Ruby > 2.1
 // Tries to match rb_thread_list() but that method isn't accessible to extensions
 VALUE ddtrace_thread_list(void) {
   VALUE result = rb_ary_new();
@@ -103,35 +108,24 @@ VALUE ddtrace_thread_list(void) {
 
   return result;
 }
-#else // USE_LEGACY_LIVING_THREADS_ST
-static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, void *result_object);
-
-// Alternative ddtrace_thread_list implementation for Ruby 2.1. In this Ruby version, living threads were stored in a
-// hashmap (st) instead of a list.
-VALUE ddtrace_thread_list() {
-  VALUE result = rb_ary_new();
-  st_foreach(thread_struct_from_object(rb_thread_current())->vm->living_threads, ddtrace_thread_list_each, result);
-  return result;
-}
-
-static int ddtrace_thread_list_each(st_data_t thread_object, st_data_t _value, void *result_object) {
-  VALUE result = (VALUE) result_object;
-  rb_thread_t *thread = thread_struct_from_object((VALUE) thread_object);
-  switch (thread->status) {
-    case THREAD_RUNNABLE:
-    case THREAD_STOPPED:
-    case THREAD_STOPPED_FOREVER:
-      rb_ary_push(result, thread->self);
-    default:
-      break;
-  }
-  return ST_CONTINUE;
-}
-#endif // USE_LEGACY_LIVING_THREADS_ST
 
 bool is_thread_alive(VALUE thread) {
   return thread_struct_from_object(thread)->status != THREAD_KILLED;
 }
+
+// `thread` gets used on all Rubies except 2.2
+// To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
+// with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+VALUE thread_name_for(VALUE thread) {
+  #ifdef NO_THREAD_NAMES
+    return Qnil;
+  #else
+    return thread_struct_from_object(thread)->name;
+  #endif
+}
+#pragma GCC diagnostic pop
 
 // -----------------------------------------------------------------------------
 // The sources below are modified versions of code extracted from the Ruby project.
@@ -174,6 +168,12 @@ bool is_thread_alive(VALUE thread) {
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
+//
+// `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
+// To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
+// with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 inline static int
 calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 {
@@ -217,6 +217,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
         return 1;
     }
 }
+#pragma GCC diagnostic pop
 
 // Taken from upstream vm_backtrace.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
@@ -620,11 +621,11 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Check thread status and do not sample if thread has been killed.
 //
 // The `rb_profile_frames` function changed quite a bit between Ruby 2.2 and 2.3. Since the change was quite complex
-// I opted not to try to extend support to Ruby 2.2 and below using the same custom function, and instead I started
+// I opted not to try to extend support to Ruby 2.2 using the same custom function, and instead I started
 // anew from the Ruby 2.2 version of the function, applying some of the same fixes that we have for the modern version.
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame)
 {
-    // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2 AND BELOW;
+    // **IMPORTANT: THIS IS A CUSTOM RB_PROFILE_FRAMES JUST FOR RUBY 2.2;
     // SEE ABOVE FOR THE FUNCTION THAT GETS USED FOR MODERN RUBIES**
 
     int i;

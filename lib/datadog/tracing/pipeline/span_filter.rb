@@ -1,7 +1,7 @@
 # typed: true
 
 require 'set'
-require 'datadog/tracing/pipeline/span_processor'
+require_relative 'span_processor'
 
 module Datadog
   module Tracing
@@ -15,17 +15,21 @@ module Datadog
       #
       # @public_api
       class SpanFilter < SpanProcessor
-        # NOTE: this SpanFilter implementation only handles traces in which child spans appear
-        # after parent spans in the trace array. If in the future child spans can be before
+        # NOTE: This SpanFilter implementation only handles traces in which child spans appear
+        # before parent spans in the trace array. If in the future child spans can be after
         # parent spans, then the code below will need to be updated.
         # @!visibility private
         def call(trace)
           deleted = Set.new
 
-          trace.spans.delete_if do |span|
+          span_count = trace.spans.length
+          trace.spans.reverse_each.with_index do |span, i|
             should_delete = deleted.include?(span.parent_id) || drop_it?(span)
-            deleted << span.id if should_delete
-            should_delete
+
+            if should_delete
+              deleted << span.id
+              trace.spans.delete_at(span_count - 1 - i)
+            end
           end
 
           trace

@@ -1,22 +1,16 @@
 # typed: false
 
-require 'spec_helper'
 require 'datadog/profiling/spec_helper'
 
-require 'datadog/profiling'
 require 'datadog/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Ext::Forking do
   describe '::apply!' do
+    before { skip_if_profiling_not_supported(self) }
+
     subject(:apply!) { described_class.apply! }
 
-    let(:toplevel_receiver) do
-      if TOPLEVEL_BINDING.respond_to?(:receiver)
-        TOPLEVEL_BINDING.receiver
-      else
-        TOPLEVEL_BINDING.eval('self')
-      end
-    end
+    let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
 
     context 'when forking is supported' do
       around do |example|
@@ -41,12 +35,14 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
         # Check for leaks (make sure test is properly cleaned up)
         expect(::Process <= described_class::Kernel).to be nil
+        expect(::Process <= described_class::ProcessDaemonPatch).to be nil
         expect(::Kernel <= described_class::Kernel).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
 
         expect(::Process.method(:fork).source_location).to be nil
         expect(::Kernel.method(:fork).source_location).to be nil
+        expect(::Process.method(:daemon).source_location).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.method(:fork).source_location).to be nil
       end
@@ -56,17 +52,16 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         #       The results of this will carry over into other tests...
         #       Just assert that the receiver was patched instead.
         #       Unfortunately means we can't test if "fork" works in main Object.
-        # expect(toplevel_receiver.class)
-        #   .to receive(:extend)
-        #   .with(described_class::Kernel)
 
         apply!
 
         expect(::Process.ancestors).to include(described_class::Kernel)
+        expect(::Process.ancestors).to include(described_class::ProcessDaemonPatch)
         expect(::Kernel.ancestors).to include(described_class::Kernel)
         expect(toplevel_receiver.class.ancestors).to include(described_class::Kernel)
 
         expect(::Process.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
+        expect(::Process.method(:daemon).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
         expect(::Kernel.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
         expect(toplevel_receiver.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
       end
@@ -125,14 +120,10 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
 
     shared_context 'at_fork callbacks' do
-      let(:prepare) { double('prepare') }
       let(:child) { double('child') }
-      let(:parent) { double('parent') }
 
       before do
-        fork_class.at_fork(:prepare) { prepare.call }
         fork_class.at_fork(:child) { child.call }
-        fork_class.at_fork(:parent) { parent.call }
       end
 
       after do
@@ -160,9 +151,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             let(:fork_result) { rand(100) }
 
             it do
-              expect(prepare).to receive(:call).ordered
               expect(child).to_not receive(:call)
-              expect(parent).to receive(:call).ordered
 
               is_expected.to be fork_result
             end
@@ -174,9 +163,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             let(:fork_result) { nil }
 
             it do
-              expect(prepare).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to_not receive(:call)
+              expect(child).to receive(:call)
 
               is_expected.to be nil
             end
@@ -199,9 +186,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             include_context 'at_fork callbacks'
 
             it 'invokes all the callbacks in order' do
-              expect(prepare).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
+              expect(child).to receive(:call)
 
               is_expected.to be fork_result
             end
@@ -215,41 +200,9 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         let(:callback) { double('callback') }
         let(:block) { proc { callback.call } }
 
-        context 'by default' do
-          subject(:at_fork) do
-            fork_class.at_fork(&block)
-          end
-
-          it 'adds a :prepare callback' do
-            at_fork
-
-            expect(prepare).to receive(:call).ordered
-            expect(callback).to receive(:call).ordered
-            expect(child).to receive(:call).ordered
-            expect(parent).to receive(:call).ordered
-
-            fork_class.fork {}
-          end
-        end
-
         context 'given a stage' do
           subject(:at_fork) do
             fork_class.at_fork(stage, &block)
-          end
-
-          context ':prepare' do
-            let(:stage) { :prepare }
-
-            it 'adds a prepare callback' do
-              at_fork
-
-              expect(prepare).to receive(:call).ordered
-              expect(callback).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
-
-              fork_class.fork {}
-            end
           end
 
           context ':child' do
@@ -258,24 +211,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
             it 'adds a child callback' do
               at_fork
 
-              expect(prepare).to receive(:call).ordered
               expect(child).to receive(:call).ordered
-              expect(callback).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
-
-              fork_class.fork {}
-            end
-          end
-
-          context ':parent' do
-            let(:stage) { :parent }
-
-            it 'adds a parent callback' do
-              at_fork
-
-              expect(prepare).to receive(:call).ordered
-              expect(child).to receive(:call).ordered
-              expect(parent).to receive(:call).ordered
               expect(callback).to receive(:call).ordered
 
               fork_class.fork {}
@@ -294,21 +230,54 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         include_context 'at_fork callbacks'
 
         it 'applies the callback to the original class' do
-          expect(prepare).to receive(:call).ordered
-          expect(child).to receive(:call).ordered
-          expect(parent).to receive(:call).ordered
+          expect(child).to receive(:call)
 
           fork_class.fork {}
         end
 
         it 'applies the callback to the other class' do
-          expect(prepare).to receive(:call).ordered
-          expect(child).to receive(:call).ordered
-          expect(parent).to receive(:call).ordered
+          expect(child).to receive(:call)
 
           other_fork_class.fork {}
         end
       end
+    end
+  end
+
+  describe Datadog::Profiling::Ext::Forking::ProcessDaemonPatch do
+    let(:process_module) { Module.new { def self.daemon(nochdir = nil, noclose = nil); end } }
+    let(:child_callback) { double('child', call: true) }
+
+    before do
+      allow(process_module).to receive(:daemon)
+
+      process_module.singleton_class.prepend(Datadog::Profiling::Ext::Forking::Kernel)
+      process_module.singleton_class.prepend(described_class)
+
+      process_module.at_fork(:child) { child_callback.call }
+    end
+
+    after do
+      Datadog::Profiling::Ext::Forking::Kernel.ddtrace_at_fork_blocks.clear
+    end
+
+    it 'calls the child at_fork callbacks after calling Process.daemon' do
+      expect(process_module).to receive(:daemon).ordered
+      expect(child_callback).to receive(:call).ordered
+
+      process_module.daemon
+    end
+
+    it 'passes any arguments to Process.daemon' do
+      expect(process_module).to receive(:daemon).with(true, true)
+
+      process_module.daemon(true, true)
+    end
+
+    it 'returns the result of calling Process.daemon' do
+      expect(process_module).to receive(:daemon).and_return(:process_daemon_result)
+
+      expect(process_module.daemon).to be :process_daemon_result
     end
   end
 end

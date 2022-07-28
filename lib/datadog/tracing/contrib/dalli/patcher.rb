@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/contrib/dalli/ext'
-require 'datadog/tracing/contrib/dalli/instrumentation'
-require 'datadog/tracing/contrib/patcher'
+require_relative 'ext'
+require_relative 'instrumentation'
+require_relative '../patcher'
 
 module Datadog
   module Tracing

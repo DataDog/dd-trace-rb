@@ -1,11 +1,11 @@
 # typed: true
 
-require 'datadog/core/runtime/ext'
-require 'datadog/core/utils/safe_dup'
+require_relative '../core/runtime/ext'
+require_relative '../core/utils/safe_dup'
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/metadata/tagging'
+require_relative 'sampling/ext'
+require_relative 'metadata/ext'
+require_relative 'metadata/tagging'
 
 module Datadog
   module Tracing

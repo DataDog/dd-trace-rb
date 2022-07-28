@@ -22,7 +22,7 @@ namespace :spec do
                         ' spec/**/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
-  if RUBY_ENGINE == 'ruby' && OS.linux?
+  if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.2.0')
     # "bundle exec rake compile" currently only works on MRI Ruby on Linux
     Rake::Task[:main].enhance([:compile])
   end
@@ -364,14 +364,16 @@ namespace :coverage do
     require 'simplecov'
 
     resultset_files = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/.resultset.json"] +
-                      Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
+      Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/**/.resultset.json"]
 
     SimpleCov.collate resultset_files do
       coverage_dir "#{ENV.fetch('COVERAGE_DIR', 'coverage')}/report"
       if ENV['CI'] == 'true'
         require 'codecov'
-        formatter SimpleCov::Formatter::MultiFormatter.new([SimpleCov::Formatter::HTMLFormatter,
-                                                            SimpleCov::Formatter::Codecov])
+        formatter SimpleCov::Formatter::MultiFormatter.new(
+          [SimpleCov::Formatter::HTMLFormatter,
+           SimpleCov::Formatter::Codecov]
+        )
       else
         formatter SimpleCov::Formatter::HTMLFormatter
       end

@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/contrib/concurrent_ruby/context_composite_executor_service'
+require_relative 'context_composite_executor_service'
 
 module Datadog
   module Tracing

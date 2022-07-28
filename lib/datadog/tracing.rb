@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core'
-require 'datadog/tracing/pipeline'
+require_relative 'core'
+require_relative 'tracing/pipeline'
 
 module Datadog
   # Datadog APM tracing public API.
@@ -18,7 +18,7 @@ module Datadog
         tracer.trace(name, continue_from: continue_from, **span_options, &block)
       end
 
-      # (see Datadog:::Tracing::Tracer#continue_trace!)
+      # (see Datadog::Tracing::Tracer#continue_trace!)
       # @public_api
       def continue_trace!(digest, &block)
         tracer.continue_trace!(digest, &block)
@@ -45,7 +45,7 @@ module Datadog
         current_tracer.active_trace
       end
 
-      # (see Datadog:::Tracing::Tracer#active_span)
+      # (see Datadog::Tracing::Tracer#active_span)
       # @public_api
       def active_span
         current_tracer = tracer
@@ -54,7 +54,7 @@ module Datadog
         current_tracer.active_span
       end
 
-      # (see Datadog:::Tracing::TraceSegment#keep!)
+      # (see Datadog::Tracing::TraceSegment#keep!)
       # If no trace is active, no action is taken.
       # @public_api
       def keep!
@@ -62,7 +62,7 @@ module Datadog
         active_trace.keep! if trace
       end
 
-      # (see Datadog:::Tracing::TraceSegment#reject!)
+      # (see Datadog::Tracing::TraceSegment#reject!)
       # If no trace is active, no action is taken.
       # @public_api
       def reject!
@@ -70,7 +70,7 @@ module Datadog
         active_trace.reject! if trace
       end
 
-      # (see Datadog:::Tracing::Tracer#active_correlation)
+      # (see Datadog::Tracing::Tracer#active_correlation)
       # @public_api
       def correlation
         current_tracer = tracer
@@ -113,7 +113,7 @@ module Datadog
         current_tracer.shutdown!
       end
 
-      # (see Datadog:::Tracing::Pipeline.before_flush)
+      # (see Datadog::Tracing::Pipeline.before_flush)
       def before_flush(*processors, &processor_block)
         Pipeline.before_flush(*processors, &processor_block)
       end

@@ -5,11 +5,14 @@ require 'datadog/tracing/contrib/rails/rails_helper'
 RSpec.describe 'Rails ActionController' do
   let(:rails_options) { {} }
   let(:controller) do
-    stub_const('TestController', Class.new(base_class) do
-      def index
-        # Do nothing
+    stub_const(
+      'TestController',
+      Class.new(base_class) do
+        def index
+          # Do nothing
+        end
       end
-    end)
+    )
   end
   let(:name) { :index }
   let(:base_class) { ActionController::Base }
@@ -110,11 +113,14 @@ RSpec.describe 'Rails ActionController' do
           let(:observed) { {} }
           let(:controller) do
             observed = self.observed
-            stub_const('TestController', Class.new(base_class) do
-              define_method(:index) do
-                observed[:active_span_resource] = Datadog::Tracing.active_span.resource
+            stub_const(
+              'TestController',
+              Class.new(base_class) do
+                define_method(:index) do
+                  observed[:active_span_resource] = Datadog::Tracing.active_span.resource
+                end
               end
-            end)
+            )
           end
 
           it 'sets the span resource before calling the controller' do

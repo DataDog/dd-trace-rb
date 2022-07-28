@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/racecar/ext'
-require 'datadog/tracing/contrib/racecar/event'
+require_relative '../ext'
+require_relative '../event'
 
 module Datadog
   module Tracing

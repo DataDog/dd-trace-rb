@@ -1,0 +1,5 @@
+# .git-blame-ignore-revs
+# Ensure multi-line arguments align close to left margin
+372f7c20696e30f319cf20622758f7f0ef585875
+# First multi-line argument has line break
+6e8ae58d320d6a48f6c1d21db894d414bdf140b2

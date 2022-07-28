@@ -1,19 +1,19 @@
 # typed: true
 
-require 'datadog/core'
+require_relative '../../core'
 
-require 'datadog/tracing/sampling/sampler'
-require 'datadog/tracing/span'
+require_relative 'sampler'
+require_relative '../span'
 
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog:::Tracing::Sampling::RateSampler} is based on a sample rate.
+      # {Datadog::Tracing::Sampling::RateSampler} is based on a sample rate.
       # @public_api
       class RateSampler < Sampler
         KNUTH_FACTOR = 1111111111111111111
 
-        # Initialize a {Datadog:::Tracing::Sampling::RateSampler}.
+        # Initialize a {Datadog::Tracing::Sampling::RateSampler}.
         # This sampler keeps a random subset of the traces. Its main purpose is to
         # reduce the instrumentation footprint.
         #

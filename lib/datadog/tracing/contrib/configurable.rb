@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing/contrib/configuration/resolver'
-require 'datadog/tracing/contrib/configuration/settings'
+require_relative 'configuration/resolver'
+require_relative 'configuration/settings'
 
 module Datadog
   module Tracing

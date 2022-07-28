@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/tracing/contrib/active_support/cache/patcher'
+require_relative 'patcher'
 
 module Datadog
   module Tracing

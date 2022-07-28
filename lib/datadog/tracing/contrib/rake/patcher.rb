@@ -1,9 +1,8 @@
 # typed: true
 
-require 'datadog/tracing'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/rake/ext'
-require 'datadog/tracing/contrib/rake/instrumentation'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'instrumentation'
 
 module Datadog
   module Tracing

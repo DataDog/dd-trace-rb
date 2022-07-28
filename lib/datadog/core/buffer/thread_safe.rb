@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/buffer/random'
+require_relative 'random'
 
 module Datadog
   module Core

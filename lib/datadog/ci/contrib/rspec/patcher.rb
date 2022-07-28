@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/ci/contrib/rspec/example'
+require_relative '../../../tracing/contrib/patcher'
+require_relative 'example'
 
 module Datadog
   module CI

@@ -1,6 +1,6 @@
 # typed: strict
 
-require 'datadog/core/utils/string_table'
+require_relative '../../core/utils/string_table'
 
 module Datadog
   module Profiling

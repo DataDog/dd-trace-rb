@@ -2,9 +2,9 @@
 
 require 'json'
 
-require 'datadog/appsec/instrumentation/gateway'
-require 'datadog/appsec/processor'
-require 'datadog/appsec/assets'
+require_relative '../../instrumentation/gateway'
+require_relative '../../processor'
+require_relative '../../assets'
 
 module Datadog
   module AppSec

@@ -1,13 +1,13 @@
 # typed: false
 
-require 'datadog/core/utils/time'
-require 'datadog/core/utils/only_once'
+require_relative '../utils/time'
+require_relative '../utils/only_once'
 
-require 'datadog/core/metrics/ext'
-require 'datadog/core/metrics/options'
-require 'datadog/core/metrics/helpers'
-require 'datadog/core/metrics/logging'
-require 'datadog/core/metrics/metric'
+require_relative 'ext'
+require_relative 'options'
+require_relative 'helpers'
+require_relative 'logging'
+require_relative 'metric'
 
 module Datadog
   module Core

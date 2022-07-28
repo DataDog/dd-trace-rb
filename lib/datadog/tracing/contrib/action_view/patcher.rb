@@ -1,12 +1,12 @@
 # typed: true
 
-require 'datadog/core'
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/action_view/events'
-require 'datadog/tracing/contrib/action_view/ext'
-require 'datadog/tracing/contrib/action_view/instrumentation/partial_renderer'
-require 'datadog/tracing/contrib/action_view/instrumentation/template_renderer'
-require 'datadog/tracing/contrib/action_view/utils'
+require_relative '../../../core'
+require_relative '../patcher'
+require_relative 'events'
+require_relative 'ext'
+require_relative 'instrumentation/partial_renderer'
+require_relative 'instrumentation/template_renderer'
+require_relative 'utils'
 
 module Datadog
   module Tracing

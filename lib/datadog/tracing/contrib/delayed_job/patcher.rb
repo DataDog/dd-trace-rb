@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/tracing/contrib/patcher'
+require_relative '../patcher'
 
 module Datadog
   module Tracing
@@ -17,12 +17,18 @@ module Datadog
           end
 
           def patch
-            require 'datadog/tracing/contrib/delayed_job/plugin'
+            require_relative 'plugin'
             add_instrumentation(::Delayed::Worker)
+            patch_server_internals
           end
 
           def add_instrumentation(klass)
             klass.plugins << Plugin
+          end
+
+          def patch_server_internals
+            require_relative 'server_internal_tracer/worker'
+            ::Delayed::Worker.prepend(ServerInternalTracer::Worker)
           end
         end
       end

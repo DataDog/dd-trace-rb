@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/tracing/context'
-require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/trace_operation'
-require 'datadog/opentracer/propagator'
+require_relative '../tracing/context'
+require_relative '../tracing/distributed/headers/ext'
+require_relative '../tracing/trace_operation'
+require_relative 'propagator'
 
 module Datadog
   module OpenTracer

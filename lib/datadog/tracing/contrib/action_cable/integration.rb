@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/action_cable/configuration/settings'
-require 'datadog/tracing/contrib/action_cable/patcher'
-require 'datadog/tracing/contrib/rails/utils'
+require_relative '../integration'
+require_relative 'configuration/settings'
+require_relative 'patcher'
+require_relative '../rails/utils'
 
 module Datadog
   module Tracing

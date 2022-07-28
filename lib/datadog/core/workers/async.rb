@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/core/logger'
+require_relative '../logger'
 
 module Datadog
   module Core

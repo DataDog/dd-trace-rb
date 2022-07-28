@@ -1,11 +1,11 @@
 # typed: false
 
-require 'datadog/core/encoding'
+require_relative '../../../datadog/core/encoding'
 
-require 'ddtrace/transport/http/api/map'
-require 'ddtrace/transport/http/api/spec'
+require_relative 'api/map'
+require_relative 'api/spec'
 
-require 'ddtrace/transport/http/traces'
+require_relative 'traces'
 
 module Datadog
   module Transport

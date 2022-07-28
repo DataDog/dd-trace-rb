@@ -1,14 +1,14 @@
 # typed: true
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/sampling/all_sampler'
-require 'datadog/tracing/sampling/rate_sampler'
-require 'datadog/tracing/sampling/rate_by_service_sampler'
+require_relative 'ext'
+require_relative 'all_sampler'
+require_relative 'rate_sampler'
+require_relative 'rate_by_service_sampler'
 
 module Datadog
   module Tracing
     module Sampling
-      # {Datadog:::Tracing::Sampling::PrioritySampler}
+      # {Datadog::Tracing::Sampling::PrioritySampler}
       # @public_api
       class PrioritySampler
         # NOTE: We do not advise using a pre-sampler. It can save resources,

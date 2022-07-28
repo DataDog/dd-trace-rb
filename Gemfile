@@ -58,6 +58,7 @@ gem 'yard', '~> 0.9'
 
 if RUBY_VERSION >= '2.4.0'
   gem 'rubocop', '~> 1.10', require: false
+  gem 'rubocop-packaging', '~> 0.5', require: false
   gem 'rubocop-performance', '~> 1.9', require: false
   gem 'rubocop-rspec', '~> 2.2', require: false
 end

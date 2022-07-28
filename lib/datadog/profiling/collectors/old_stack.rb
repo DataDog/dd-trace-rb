@@ -1,12 +1,12 @@
 # typed: true
 
-require 'datadog/core/utils/only_once'
-require 'datadog/core/utils/time'
-require 'datadog/core/worker'
-require 'datadog/core/workers/polling'
-require 'datadog/profiling/backtrace_location'
-require 'datadog/profiling/events/stack'
-require 'datadog/profiling/native_extension'
+require_relative '../../core/utils/only_once'
+require_relative '../../core/utils/time'
+require_relative '../../core/worker'
+require_relative '../../core/workers/polling'
+require_relative '../backtrace_location'
+require_relative '../events/stack'
+require_relative '../native_extension'
 
 module Datadog
   module Profiling

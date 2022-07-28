@@ -12,6 +12,7 @@ module Datadog
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_DELAYED_JOB_ANALYTICS_SAMPLE_RATE'.freeze
           SPAN_JOB = 'delayed_job'.freeze
           SPAN_ENQUEUE = 'delayed_job.enqueue'.freeze
+          SPAN_RESERVE_JOB = 'delayed_job.reserve_job'.freeze
           TAG_ATTEMPTS = 'delayed_job.attempts'.freeze
           TAG_ID = 'delayed_job.id'.freeze
           TAG_PRIORITY = 'delayed_job.priority'.freeze
@@ -19,6 +20,7 @@ module Datadog
           TAG_COMPONENT = 'delayed_job'.freeze
           TAG_OPERATION_ENQUEUE = 'enqueue'.freeze
           TAG_OPERATION_JOB = 'job'.freeze
+          TAG_OPERATION_RESERVE_JOB = 'reserve_job'.freeze
         end
       end
     end

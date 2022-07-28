@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core'
+require_relative '../core'
 
-require 'datadog/tracing/pipeline/span_filter'
-require 'datadog/tracing/pipeline/span_processor'
+require_relative 'pipeline/span_filter'
+require_relative 'pipeline/span_processor'
 
 module Datadog
   module Tracing

@@ -2,9 +2,9 @@
 
 # typed: false
 
-require 'datadog/tracing/span_operation'
-require 'datadog/tracing/contrib/configuration/settings'
-require 'datadog/tracing/contrib/que/ext'
+require_relative '../../../span_operation'
+require_relative '../../configuration/settings'
+require_relative '../ext'
 
 module Datadog
   module Tracing

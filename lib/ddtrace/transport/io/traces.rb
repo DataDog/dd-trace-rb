@@ -1,9 +1,9 @@
 # typed: false
 
-require 'ddtrace/transport/traces'
+require_relative '../traces'
 
-require 'ddtrace/transport/io/response'
-require 'ddtrace/transport/io/client'
+require_relative 'response'
+require_relative 'client'
 
 module Datadog
   module Transport

@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/tracing/contrib/configuration/settings'
-require 'datadog/tracing/contrib/redis/ext'
+require_relative '../../configuration/settings'
+require_relative '../ext'
 
 module Datadog
   module Tracing

@@ -1,7 +1,9 @@
 #include <ruby.h>
 #include <ruby/debug.h>
 #include "extconf.h"
-#include "libddprof_helpers.h"
+#include "helpers.h"
+#include "libdatadog_helpers.h"
+#include "ruby_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 #include "collectors_stack.h"
@@ -40,9 +42,9 @@ void collectors_stack_init(VALUE profiling_module) {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
-  Check_Type(metric_values_hash, T_HASH);
-  Check_Type(labels_array, T_ARRAY);
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames) {
+  ENFORCE_TYPE(metric_values_hash, T_HASH);
+  ENFORCE_TYPE(labels_array, T_ARRAY);
 
   if (RHASH_SIZE(metric_values_hash) != ENABLED_VALUE_TYPES_COUNT) {
     rb_raise(
@@ -137,8 +139,8 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
       // **IMPORTANT**: Be very careful when calling any `rb_profile_frame_...` API with a non-Ruby frame, as legacy
       // Rubies may assume that what's in a buffer will lead to a Ruby frame.
       //
-      // In particular for Ruby 2.2 and below the buffer contains a Ruby string (see the notes on our custom
-      // rb_profile_frames for Ruby 2.2 and below) and CALLING **ANY** OF THOSE APIs ON IT WILL CAUSE INSTANT VM CRASHES
+      // In particular for Ruby 2.2 the buffer contains a Ruby string (see the notes on our custom
+      // rb_profile_frames for Ruby 2.2) and CALLING **ANY** OF THOSE APIs ON IT WILL CAUSE INSTANT VM CRASHES
 
 #ifndef USE_LEGACY_RB_PROFILE_FRAMES // Modern Rubies
       name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);

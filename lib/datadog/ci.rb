@@ -1,8 +1,8 @@
 # typed: strict
 
-require 'datadog/core'
-require 'datadog/tracing'
-require 'datadog/tracing/contrib'
+require_relative 'core'
+require_relative 'tracing'
+require_relative 'tracing/contrib'
 
 module Datadog
   # Namespace for Datadog CI instrumentation:
@@ -12,9 +12,9 @@ module Datadog
 end
 
 # Integrations
-require 'datadog/ci/contrib/cucumber/integration'
-require 'datadog/ci/contrib/rspec/integration'
+require_relative 'ci/contrib/cucumber/integration'
+require_relative 'ci/contrib/rspec/integration'
 
 # Extensions
-require 'datadog/ci/extensions'
+require_relative 'ci/extensions'
 Datadog::CI::Extensions.activate!

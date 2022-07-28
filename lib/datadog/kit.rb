@@ -8,4 +8,4 @@ module Datadog
   end
 end
 
-require 'datadog/kit/identity'
+require_relative 'kit/identity'

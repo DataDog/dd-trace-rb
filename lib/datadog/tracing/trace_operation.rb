@@ -1,15 +1,15 @@
 # typed: false
 
-require 'datadog/core'
-require 'datadog/core/environment/identity'
-require 'datadog/core/utils'
+require_relative '../core'
+require_relative '../core/environment/identity'
+require_relative '../core/utils'
 
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/event'
-require 'datadog/tracing/span_operation'
-require 'datadog/tracing/trace_segment'
-require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/metadata/tagging'
+require_relative 'sampling/ext'
+require_relative 'event'
+require_relative 'span_operation'
+require_relative 'trace_segment'
+require_relative 'trace_digest'
+require_relative 'metadata/tagging'
 
 module Datadog
   module Tracing

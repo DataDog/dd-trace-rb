@@ -1,6 +1,6 @@
 # typed: false
 
-require 'datadog/appsec/configuration'
+require_relative 'configuration'
 
 module Datadog
   module AppSec

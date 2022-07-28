@@ -117,7 +117,7 @@ RSpec.shared_context 'Rails 3 base application' do
     allow(Rails.application.config.action_view).to receive(:delete).with(:stylesheet_expansions).and_return({})
     allow(Rails.application.config.action_view)
       .to receive(:delete).with(:javascript_expansions)
-                          .and_return(defaults: %w[prototype effects dragdrop controls rails])
+      .and_return(defaults: %w[prototype effects dragdrop controls rails])
     allow(Rails.application.config.action_view).to receive(:delete)
       .with(:embed_authenticity_token_in_remote_forms).and_return(true)
   end

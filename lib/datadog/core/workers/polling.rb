@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core/workers/async'
-require 'datadog/core/workers/interval_loop'
+require_relative 'async'
+require_relative 'interval_loop'
 
 module Datadog
   module Core

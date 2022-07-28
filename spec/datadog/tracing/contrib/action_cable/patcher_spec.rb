@@ -94,13 +94,16 @@ RSpec.describe 'ActionCable patcher' do
 
   context 'with channel' do
     let(:channel_class) do
-      stub_const('ChatChannel', Class.new(ActionCable::Channel::Base) do
-        def subscribed; end
+      stub_const(
+        'ChatChannel',
+        Class.new(ActionCable::Channel::Base) do
+          def subscribed; end
 
-        def unsubscribed; end
+          def unsubscribed; end
 
-        def foo(_data); end
-      end)
+          def foo(_data); end
+        end
+      )
     end
 
     let(:channel_instance) { channel_class.new(connection, '{id: 1}', id: 1) }
@@ -202,11 +205,14 @@ RSpec.describe 'ActionCable patcher' do
 
       let(:data) { { 'action' => 'foo', 'extra' => 'data' } }
       let(:channel_class) do
-        stub_const('ChatChannel', Class.new(ActionCable::Channel::Base) do
-          def foo(_data)
-            transmit({ mock: 'data' }, via: 'streamed from chat_channel')
+        stub_const(
+          'ChatChannel',
+          Class.new(ActionCable::Channel::Base) do
+            def foo(_data)
+              transmit({ mock: 'data' }, via: 'streamed from chat_channel')
+            end
           end
-        end)
+        )
       end
 
       let(:span) { spans.last } # Skip 'perform_action' span

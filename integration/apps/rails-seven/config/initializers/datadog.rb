@@ -11,7 +11,7 @@ Datadog.configure do |c|
   if Datadog::DemoEnv.feature?('tracing')
     c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
 
-    c.tracing.instrument :rails
+    c.tracing.instrument :rails, request_queuing: true
     c.tracing.instrument :redis, service_name: 'acme-redis'
     c.tracing.instrument :resque
   end
@@ -22,10 +22,8 @@ Datadog.configure do |c|
     c.appsec.instrument :rails
   end
 
-  if Datadog::DemoEnv.feature?('profiling')
-    if Datadog::DemoEnv.feature?('pprof_to_file')
-      # Reconfigure transport to write pprof to file
-      c.profiling.exporter.transport = Datadog::DemoEnv.profiler_file_transport
-    end
+  if Datadog::DemoEnv.feature?('profiling') && Datadog::DemoEnv.feature?('pprof_to_file')
+    # Reconfigure transport to write pprof to file
+    c.profiling.exporter.transport = Datadog::DemoEnv.profiler_file_transport
   end
 end

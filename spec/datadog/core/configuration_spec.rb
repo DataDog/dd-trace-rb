@@ -21,11 +21,11 @@ RSpec.describe Datadog::Core::Configuration do
         before do
           allow(Datadog::Core::Configuration::Components).to receive(:new)
             .and_wrap_original do |m, *args|
-            new_components = m.call(*args)
-            allow(new_components).to receive(:shutdown!)
-            allow(new_components).to receive(:startup!)
-            new_components
-          end
+              new_components = m.call(*args)
+              allow(new_components).to receive(:shutdown!)
+              allow(new_components).to receive(:startup!)
+              new_components
+            end
         end
 
         context 'and components have been initialized' do

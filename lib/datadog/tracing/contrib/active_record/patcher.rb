@@ -1,7 +1,7 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/active_record/events'
+require_relative '../patcher'
+require_relative 'events'
 
 module Datadog
   module Tracing

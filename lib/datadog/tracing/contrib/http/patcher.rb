@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/tracing/contrib/patcher'
-require 'datadog/tracing/contrib/http/ext'
-require 'datadog/tracing/contrib/http/instrumentation'
+require_relative '../patcher'
+require_relative 'ext'
+require_relative 'instrumentation'
 
 module Datadog
   module Tracing

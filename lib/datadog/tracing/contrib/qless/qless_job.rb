@@ -2,9 +2,8 @@
 
 require 'qless'
 
-require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/contrib/analytics'
+require_relative '../../metadata/ext'
+require_relative '../analytics'
 
 module Datadog
   module Tracing

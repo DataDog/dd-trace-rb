@@ -1,8 +1,5 @@
 # typed: false
 
-require 'datadog/core/environment/identity'
-require 'datadog/core/environment/socket'
-
 module Datadog
   module Profiling
     # Represents a collection of events of a specific type being flushed.

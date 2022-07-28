@@ -9,6 +9,7 @@
 #include <errno.h>
 
 #include <ruby.h>
+#include "helpers.h"
 #include "private_vm_api_access.h"
 #include "clock_id.h"
 
@@ -20,7 +21,8 @@ void self_test_clock_id(void) {
   if (expected_pthread_id != actual_pthread_id) rb_raise(rb_eRuntimeError, "pthread_id_for() self-test failed");
 }
 
-VALUE clock_id_for(VALUE self, VALUE thread) {
+// TODO: Remove this after the OldStack profiler gets removed
+VALUE clock_id_for(DDTRACE_UNUSED VALUE _self, VALUE thread) {
   rb_nativethread_id_t thread_id = pthread_id_for(thread);
 
   clockid_t clock_id;
@@ -39,6 +41,33 @@ VALUE clock_id_for(VALUE self, VALUE thread) {
         rb_exc_raise(rb_syserr_new(error, "Failed to get clock_id for given thread"));
     }
   }
+}
+
+thread_cpu_time_id thread_cpu_time_id_for(VALUE thread) {
+  rb_nativethread_id_t thread_id = pthread_id_for(thread);
+  clockid_t clock_id;
+
+  int error = pthread_getcpuclockid(thread_id, &clock_id);
+
+  if (error == 0) {
+    return (thread_cpu_time_id) {.valid = true, .clock_id = clock_id};
+  } else {
+    // TODO: Include the error code in some way in the output?
+    return (thread_cpu_time_id) {.valid = false};
+  }
+}
+
+thread_cpu_time thread_cpu_time_for(thread_cpu_time_id time_id) {
+  thread_cpu_time error = (thread_cpu_time) {.valid = false};
+
+  if (!time_id.valid) { return error; }
+
+  struct timespec current_cpu;
+
+  // TODO: Include the error code in some way in the output?
+  if (clock_gettime(time_id.clock_id, &current_cpu) != 0) return error;
+
+  return (thread_cpu_time) {.valid = true, .result_ns = current_cpu.tv_nsec + (current_cpu.tv_sec * 1000 * 1000 * 1000)};
 }
 
 #endif

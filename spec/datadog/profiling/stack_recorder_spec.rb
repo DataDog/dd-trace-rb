@@ -8,8 +8,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
   subject(:stack_recorder) { described_class.new }
 
-  # NOTE: A lot of libddprof integration behaviors are tested in the Collectors::Stack specs, since we need actual
-  # samples in order to observe what comes out of libddprof
+  # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
+  # samples in order to observe what comes out of libdatadog
 
   describe '#serialize' do
     subject(:serialize) { stack_recorder.serialize }
@@ -79,28 +79,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
 
+      let(:samples) { samples_from_pprof(encoded_pprof) }
+
       before do
         collectors_stack.sample(Thread.current, stack_recorder, metric_values, labels)
-        expect(decoded_profile.sample.size).to be 1
+        expect(samples.size).to be 1
       end
 
       it 'encodes the sample with the metrics provided' do
-        sample = decoded_profile.sample.first
-        strings = decoded_profile.string_table
-
-        decoded_metric_values =
-          sample.value.map.with_index { |value, index| [strings[decoded_profile.sample_type[index].type], value] }.to_h
-
-        expect(decoded_metric_values).to eq metric_values
+        expect(samples.first).to include(values: { :'cpu-time' => 123, :'cpu-samples' => 456, :'wall-time' => 789 })
       end
 
       it 'encodes the sample with the labels provided' do
-        sample = decoded_profile.sample.first
-        strings = decoded_profile.string_table
-
-        decoded_labels = sample.label.map { |label| [strings[label.key], strings[label.str]] }
-
-        expect(decoded_labels).to eq labels
+        expect(samples.first).to include(labels: { label_a: 'value_a', label_b: 'value_b' })
       end
 
       it 'encodes a single empty mapping' do

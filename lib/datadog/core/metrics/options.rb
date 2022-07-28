@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/core/metrics/ext'
-require 'datadog/core/environment/ext'
-require 'datadog/core/environment/identity'
+require_relative 'ext'
+require_relative '../environment/ext'
+require_relative '../environment/identity'
 
 module Datadog
   module Core

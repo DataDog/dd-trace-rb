@@ -1,11 +1,11 @@
 # typed: false
 
-require 'datadog/profiling/pprof/payload'
-require 'datadog/profiling/pprof/message_set'
-require 'datadog/profiling/pprof/builder'
+require_relative 'payload'
+require_relative 'message_set'
+require_relative 'builder'
 
-require 'datadog/profiling/events/stack'
-require 'datadog/profiling/pprof/stack_sample'
+require_relative '../events/stack'
+require_relative 'stack_sample'
 
 module Datadog
   module Profiling

@@ -442,8 +442,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           expect(writer.events.after_send).to receive(:subscribe) do |&block|
             expect(block)
-              .to be(Datadog::Core::Configuration::Components
-                       .singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK)
+              .to be(
+                Datadog::Core::Configuration::Components
+                                       .singleton_class::WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK
+              )
           end
 
           expect(writer.events.after_send).to receive(:subscribe) do |&block|

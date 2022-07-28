@@ -1,23 +1,24 @@
-# coding: utf-8
+# frozen_string_literal: true
 
-lib = File.expand_path('../lib', __FILE__)
+lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'ddtrace/version'
 
 Gem::Specification.new do |spec|
   spec.name                  = 'ddtrace'
   spec.version               = DDTrace::VERSION::STRING
-  spec.required_ruby_version = [">= #{DDTrace::VERSION::MINIMUM_RUBY_VERSION}", "< #{DDTrace::VERSION::MAXIMUM_RUBY_VERSION}"]
+  spec.required_ruby_version = [">= #{DDTrace::VERSION::MINIMUM_RUBY_VERSION}",
+                                "< #{DDTrace::VERSION::MAXIMUM_RUBY_VERSION}"]
   spec.required_rubygems_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
 
   spec.summary     = 'Datadog tracing code for your Ruby applications'
-  spec.description = <<-EOS.gsub(/^[\s]+/, '')
-    ddtrace is Datadog’s tracing client for Ruby. It is used to trace requests
+  spec.description = <<-DESC.gsub(/^\s+/, '')
+    ddtrace is Datadog's tracing client for Ruby. It is used to trace requests
     as they flow across web servers, databases and microservices so that developers
     have great visiblity into bottlenecks and troublesome requests.
-  EOS
+  DESC
 
   spec.homepage = 'https://github.com/DataDog/dd-trace-rb'
   spec.license  = 'BSD-3-Clause'
@@ -29,28 +30,29 @@ Gem::Specification.new do |spec|
   end
 
   spec.files =
-    `git ls-files -z`
-    .split("\x0")
-    .reject { |f| f.match(%r{^(test|spec|features|[.]circleci|[.]github|[.]dd-ci|benchmarks|gemfiles|integration|tasks|sorbet|yard)/}) }
-    .reject do |f|
-      ['.dockerignore', '.env', '.gitattributes', '.gitlab-ci.yml', '.rspec', '.rubocop.yml',
-       '.rubocop_todo.yml', '.simplecov', 'Appraisals', 'Gemfile', 'Rakefile', 'docker-compose.yml', '.pryrc', '.yardopts'].include?(f)
-    end
+    Dir[*%w[
+      CHANGELOG.md
+      LICENSE*
+      NOTICE
+      README.md
+      bin/**/*
+      ext/**/*
+      lib/**/*
+    ]]
+    .select { |fn| File.file?(fn) } # We don't want directories, only files
+    .reject { |fn| fn.end_with?('.so', '.bundle') } # Exclude local profiler binary artifacts
+
   spec.executables   = ['ddtracerb']
   spec.require_paths = ['lib']
 
-  # Important note: This `if` ONLY works for development. When packaging up the gem, Ruby runs this code, and hardcodes
-  # the output in the `.gem` file that gets uploaded to rubygems. So the decision here gets hardcoded, we don't actually
-  # pick a version depending on the Ruby customers are running, as it may appear.
-  # For more context, see the discussion in
-  # * https://github.com/DataDog/dd-trace-rb/pull/1739
-  # * https://github.com/DataDog/dd-trace-rb/pull/1336
-  if RUBY_VERSION >= '2.2.0'
-    spec.add_dependency 'msgpack'
-  else
-    # msgpack 1.4 fails for Ruby 2.1: https://github.com/msgpack/msgpack-ruby/issues/205
-    spec.add_dependency 'msgpack', '< 1.4'
-  end
+  # Used to serialize traces to send them to the Datadog Agent.
+  #
+  # msgpack 1.4 fails for Ruby 2.1 (see https://github.com/msgpack/msgpack-ruby/issues/205)
+  # so a restriction needs to be manually added for the `Gemfile`.
+  #
+  # We can't add a restriction here, since there's no way to add it only for older
+  # rubies, see #1739 and #1336 for an extended discussion about this
+  spec.add_dependency 'msgpack'
 
   # Used by the profiler native extension to support older Rubies (see NativeExtensionDesign.md for notes)
   #
@@ -64,8 +66,8 @@ Gem::Specification.new do |spec|
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.3.0.2.0'
 
-  # Used by profiling
-  spec.add_dependency 'libddprof', '~> 0.6.0.1.0'
+  # Used by profiling (and possibly others in the future)
+  spec.add_dependency 'libdatadog', '~> 0.7.0.1.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end

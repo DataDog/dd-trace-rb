@@ -1,9 +1,9 @@
 # typed: false
 
-require 'datadog/tracing/contrib/integration'
-require 'datadog/tracing/contrib/configuration/resolvers/pattern_resolver'
-require 'datadog/tracing/contrib/faraday/configuration/settings'
-require 'datadog/tracing/contrib/faraday/patcher'
+require_relative '../integration'
+require_relative '../configuration/resolvers/pattern_resolver'
+require_relative 'configuration/settings'
+require_relative 'patcher'
 
 module Datadog
   module Tracing

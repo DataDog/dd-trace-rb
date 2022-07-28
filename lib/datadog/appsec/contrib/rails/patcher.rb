@@ -1,14 +1,14 @@
 # typed: ignore
 
-require 'datadog/core/utils/only_once'
+require_relative '../../../core/utils/only_once'
 
-require 'datadog/appsec/contrib/patcher'
-require 'datadog/appsec/contrib/rails/framework'
-require 'datadog/appsec/contrib/rack/request_middleware'
-require 'datadog/appsec/contrib/rack/request_body_middleware'
-require 'datadog/appsec/contrib/rails/gateway/watcher'
+require_relative '../patcher'
+require_relative 'framework'
+require_relative '../rack/request_middleware'
+require_relative '../rack/request_body_middleware'
+require_relative 'gateway/watcher'
 
-require 'datadog/tracing/contrib/rack/middlewares'
+require_relative '../../../tracing/contrib/rack/middlewares'
 
 module Datadog
   module AppSec
@@ -58,8 +58,10 @@ module Datadog
           def add_middleware(app)
             # Add trace middleware
             if include_middleware?(Datadog::Tracing::Contrib::Rack::TraceMiddleware, app)
-              app.middleware.insert_after(Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-                                          Datadog::AppSec::Contrib::Rack::RequestMiddleware)
+              app.middleware.insert_after(
+                Datadog::Tracing::Contrib::Rack::TraceMiddleware,
+                Datadog::AppSec::Contrib::Rack::RequestMiddleware
+              )
             else
               app.middleware.insert_before(0, Datadog::AppSec::Contrib::Rack::RequestMiddleware)
             end
@@ -81,9 +83,11 @@ module Datadog
               end
 
               if request_response && request_response.any? { |action, _event| action == :block }
-                @_response = ::ActionDispatch::Response.new(403,
-                                                            { 'Content-Type' => 'text/html' },
-                                                            [Datadog::AppSec::Assets.blocked])
+                @_response = ::ActionDispatch::Response.new(
+                  403,
+                  { 'Content-Type' => 'text/html' },
+                  [Datadog::AppSec::Assets.blocked]
+                )
                 request_return = @_response.body
               end
 
