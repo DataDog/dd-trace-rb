@@ -26,6 +26,41 @@
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
+typedef void (*rb_postponed_job_func_t)(void *arg);
+
+typedef struct rb_postponed_job_struct {
+    rb_postponed_job_func_t func;
+    void *data;
+} rb_postponed_job_t;
+
+struct rb_workqueue_job {
+    struct list_node jnode; /* <=> vm->workqueue */
+    rb_postponed_job_t job;
+};
+
+/*
+ * thread-safe and called from non-Ruby thread
+ * returns FALSE on failure (ENOMEM), TRUE otherwise
+ */
+int
+rb_workqueue_register(unsigned flags, rb_postponed_job_func_t func, void *data)
+{
+    struct rb_workqueue_job *wq_job = malloc(sizeof(*wq_job));
+    rb_vm_t *vm = GET_VM();
+
+    if (!wq_job) return FALSE;
+    wq_job->job.func = func;
+    wq_job->job.data = data;
+
+    rb_nativethread_lock_lock(&vm->workqueue_lock);
+    list_add_tail(&vm->workqueue, &wq_job->jnode);
+    rb_nativethread_lock_unlock(&vm->workqueue_lock);
+
+    RUBY_VM_SET_POSTPONED_JOB_INTERRUPT(GET_EC());
+
+    return TRUE;
+}
+
 // MRI has a similar rb_thread_ptr() function which we can't call it directly
 // because Ruby does not expose the thread_data_type publicly.
 // Instead, we have our own version of that function, and we lazily initialize the thread_data_type pointer
