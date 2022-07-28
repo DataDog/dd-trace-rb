@@ -113,8 +113,22 @@ module Datadog
         @finished == true
       end
 
+      # Will this trace be flushed by the tracer transport?
+      # This includes cases where the span is kept solely due to priority sampling.
+      #
+      # This is not the ultimate Datadog App sampling decision. Downstream systems
+      # can decide to reject this trace, especially for cases where priority
+      # sampling is set to AUTO_KEEP.
+      #
+      # @return [Boolean]
       def sampled?
-        @sampled == true || (!@sampling_priority.nil? && @sampling_priority > 0)
+        @sampled == true || priority_sampled?
+      end
+
+      # Has the priority sampling chosen to keep this span?
+      # @return [Boolean]
+      def priority_sampled?
+        !@sampling_priority.nil? && @sampling_priority > 0
       end
 
       def keep!

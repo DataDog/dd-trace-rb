@@ -60,6 +60,15 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
           end
         end
       end
+
+      context 'a trace rejected by priority sampling only' do
+        before do
+          trace_op.keep!
+          trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT
+        end
+
+        it_behaves_like 'tags span with sampling decision'
+      end
     end
   end
 end
