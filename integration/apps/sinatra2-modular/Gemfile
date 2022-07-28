@@ -1,5 +1,7 @@
 require 'datadog/demo_env'
 
+source "https://rubygems.org"
+
 source 'https://rubygems.org' do
   gem 'puma'
   gem 'unicorn'
