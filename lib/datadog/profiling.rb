@@ -149,6 +149,7 @@ module Datadog
       require_relative 'profiling/collectors/code_provenance'
       require_relative 'profiling/collectors/cpu_and_wall_time'
       require_relative 'profiling/collectors/old_stack'
+      require_relative 'profiling/collectors/sampler_worker'
       require_relative 'profiling/collectors/stack'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/old_recorder'
