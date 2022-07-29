@@ -127,7 +127,7 @@ static void install_sigprof_signal_handler(void) {
 
   sigemptyset(&signal_handler_config.sa_mask);
   signal_handler_config.sa_handler = NULL;
-  signal_handler_config.sa_flags = SA_RESTART | SA_SIGINFO; // TODO: Do we really need siginfo?
+  signal_handler_config.sa_flags = SA_RESTART | SA_SIGINFO;
   signal_handler_config.sa_sigaction = handle_sampling_signal;
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
@@ -151,7 +151,6 @@ static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
 // From Ruby internal.h
 int ruby_thread_has_gvl_p(void);
 
-// TODO: Use simpler handler?
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   fprintf(stderr, "Got sampling signal in %p in a ruby_thread=%d!\n", rb_thread_current(), ruby_native_thread_p());
 
