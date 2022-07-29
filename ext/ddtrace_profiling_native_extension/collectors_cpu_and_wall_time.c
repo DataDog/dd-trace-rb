@@ -371,3 +371,7 @@ static long thread_id_for(VALUE thread) {
   // record the thread_id (but samples will still be collected).
   return FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1;
 }
+
+void enforce_cpu_and_wall_time_collector_instance(VALUE object) {
+  Check_TypedStruct(object, &cpu_and_wall_time_collector_typed_data);
+}
