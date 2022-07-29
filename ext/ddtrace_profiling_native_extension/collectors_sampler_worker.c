@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <signal.h>
 #include "helpers.h"
+#include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
 
 // Contains state for a single SamplerWorker instance
@@ -147,9 +148,6 @@ static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
 
   pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
 }
-
-// From Ruby internal.h
-int ruby_thread_has_gvl_p(void);
 
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   fprintf(stderr, "Got sampling signal in %p in a ruby_thread=%d!\n", rb_thread_current(), ruby_native_thread_p());
