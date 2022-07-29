@@ -135,17 +135,28 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
       before do
         logger = double(Datadog::Core::Logger)
-        allow(logger).to receive(:debug)
+        allow(logger).to receive(:debug).with(any_args)
         allow(Datadog).to receive(:logger).and_return(logger)
       end
 
       it do
         started!
         expect(client.enabled).to be(false)
-        expect(client.worker.enabled?).to be(false)
         expect(client.unsupported).to be(true)
-        expect(Datadog.logger).to have_received(:debug) do |message|
-          expect(message).to eq('Agent does not support telemetry; future telemetry events disabled.')
+        expect(Datadog.logger).to have_received(:debug).with(
+          'Agent does not support telemetry; disabling future telemetry events.'
+        )
+      end
+    end
+
+    context 'when in fork' do
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+      it do
+        client
+        expect_in_fork do
+          client.started!
+          expect(emitter).to_not receive(:request).with(:'app-started')
         end
       end
     end
@@ -175,6 +186,18 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
 
       it { is_expected.to be(response) }
+    end
+
+    context 'when in fork' do
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+      it do
+        client
+        expect_in_fork do
+          client.started!
+          expect(emitter).to_not receive(:request).with(:'app-closing')
+        end
+      end
     end
   end
 
@@ -243,6 +266,18 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
 
       it { is_expected.to be(response) }
+    end
+
+    context 'when in fork' do
+      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
+
+      it do
+        client
+        expect_in_fork do
+          client.started!
+          expect(emitter).to_not receive(:request).with(:'app-integrations-change')
+        end
+      end
     end
   end
 end
