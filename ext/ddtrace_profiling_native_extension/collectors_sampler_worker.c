@@ -92,7 +92,7 @@ static void sampler_worker_collector_typed_data_mark(void *state_ptr) {
 
 static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   if (active_sampler_instance != Qnil) {
-    rb_raise(rb_eRuntimeError, "Cannot start SamplerWorker: There's already another instance of SamplerWorker active");
+    rb_raise(rb_eRuntimeError, "Could not start SamplerWorker: There's already another instance of SamplerWorker active");
   }
 
   struct sampler_worker_collector_state *state;
@@ -124,7 +124,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
 static void install_sigprof_signal_handler(void) {
   struct sigaction signal_handler_config;
-  struct sigaction existing_signal_handler_config; // TODO: Do something with this
+  struct sigaction existing_signal_handler_config = {0};
 
   sigemptyset(&signal_handler_config.sa_mask);
   signal_handler_config.sa_handler = NULL;
@@ -132,12 +132,31 @@ static void install_sigprof_signal_handler(void) {
   signal_handler_config.sa_sigaction = handle_sampling_signal;
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    rb_sys_fail("Could not install signal handler");
+    rb_sys_fail("Could not start SamplerWorker: Could not install signal handler");
+  }
+
+  if (existing_signal_handler_config.sa_handler != NULL || existing_signal_handler_config.sa_sigaction != NULL) {
+    // A previous signal handler already existed. Currently we don't support this situation, so let's just back out
+    // of the installation.
+
+    if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
+      rb_sys_fail(
+        "Could not start SamplerWorker: Could not re-install pre-existing SIGPROF signal handler. This may break the component had installed it."
+      );
+    }
+
+    rb_raise(rb_eRuntimeError, "Could not start SamplerWorker: There's a pre-existing SIGPROF signal handler");
   }
 }
 
 static void remove_sigprof_signal_handler(void) {
-  // TODO
+  struct sigaction signal_handler_config;
+
+  sigemptyset(&signal_handler_config.sa_mask);
+  signal_handler_config.sa_handler = SIG_DFL; // Reset back to default
+  signal_handler_config.sa_flags = SA_RESTART; // Unclear if this is actually needed/does anything at all
+
+  if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
 }
 
 static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
