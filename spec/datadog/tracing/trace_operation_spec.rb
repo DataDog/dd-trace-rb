@@ -911,8 +911,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe '#set_tag' do
-    include_context 'trace attributes'
-
     it 'sets tag on trace before a measurement' do
       trace_op.set_tag('foo', 'bar')
       trace_op.measure('top') {}
@@ -1553,226 +1551,138 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
       end
 
-      context 'is sampled' do
-        let(:sampled) { true }
-        context 'is finished' do
-          before do
+      context 'is finished' do
+        before do
+          trace_op.measure(
+            'grandparent',
+            service: 'boo',
+            resource: 'far',
+            type: 'faz'
+          ) do
             trace_op.measure(
-              'grandparent',
-              service: 'boo',
-              resource: 'far',
-              type: 'faz'
+              'parent',
+              service: 'foo',
+              resource: 'bar',
+              type: 'baz'
             ) do
-              trace_op.measure(
-                'parent',
-                service: 'foo',
-                resource: 'bar',
-                type: 'baz'
-              ) do
-                # Do something
-              end
+              # Do something
             end
-          end
-
-          it 'flushes a trace with all spans' do
-            expect(trace_op.finished?).to be true
-
-            is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
-            expect(trace.spans).to have(2).items
-            expect(trace.spans.map(&:name)).to include('parent', 'grandparent')
-            expect(trace.send(:root_span_id)).to be_a_kind_of(Integer)
-
-            expect(trace).to have_attributes(
-              agent_sample_rate: agent_sample_rate,
-              hostname: hostname,
-              id: trace_op.id,
-              lang: Datadog::Core::Environment::Identity.lang,
-              name: name,
-              origin: origin,
-              process_id: Datadog::Core::Environment::Identity.pid,
-              rate_limiter_rate: rate_limiter_rate,
-              resource: resource,
-              rule_sample_rate: rule_sample_rate,
-              runtime_id: Datadog::Core::Environment::Identity.id,
-              sample_rate: sample_rate,
-              sampling_priority: sampling_priority,
-              service: service
-            )
-          end
-
-          it 'does not yield duplicate spans' do
-            expect(trace_op.flush!.spans).to have(2).items
-            expect(trace_op.flush!.spans).to have(0).items
           end
         end
 
-        context 'is partially finished' do
-          it 'flushes spans as they finish' do
-            trace_op.measure('grandparent') do
-              trace_op.measure('parent') do
-                # Do something
-              end
+        it 'flushes a trace with all spans' do
+          expect(trace_op.finished?).to be true
 
-              # Partial flush
-              flush!
-            end
+          is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
+          expect(trace.spans).to have(2).items
+          expect(trace.spans.map(&:name)).to include('parent', 'grandparent')
+          expect(trace.send(:root_span_id)).to be_a_kind_of(Integer)
 
-            # Verify partial flush
-            is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
-            expect(trace.spans).to have(1).items
-            expect(trace.spans.map(&:name)).to include('parent')
-            expect(trace.send(:root_span_id)).to be nil
+          expect(trace).to have_attributes(
+            agent_sample_rate: agent_sample_rate,
+            hostname: hostname,
+            id: trace_op.id,
+            lang: Datadog::Core::Environment::Identity.lang,
+            name: name,
+            origin: origin,
+            process_id: Datadog::Core::Environment::Identity.pid,
+            rate_limiter_rate: rate_limiter_rate,
+            resource: resource,
+            rule_sample_rate: rule_sample_rate,
+            runtime_id: Datadog::Core::Environment::Identity.id,
+            sample_rate: sample_rate,
+            sampling_priority: sampling_priority,
+            service: service
+          )
+        end
 
-            expect(trace).to have_attributes(
-              agent_sample_rate: agent_sample_rate,
-              hostname: hostname,
-              id: trace_op.id,
-              lang: Datadog::Core::Environment::Identity.lang,
-              name: name,
-              origin: origin,
-              process_id: Datadog::Core::Environment::Identity.pid,
-              rate_limiter_rate: rate_limiter_rate,
-              resource: resource,
-              rule_sample_rate: rule_sample_rate,
-              runtime_id: Datadog::Core::Environment::Identity.id,
-              sample_rate: sample_rate,
-              sampling_priority: sampling_priority,
-              service: service
+        it 'does not yield duplicate spans' do
+          expect(trace_op.flush!.spans).to have(2).items
+          expect(trace_op.flush!.spans).to have(0).items
+        end
+
+        context 'with a block' do
+          subject(:flush!) { trace_op.flush! { |spans| spans } }
+
+          it 'yields spans' do
+            expect { |b| trace_op.flush!(&b) }.to yield_with_args(
+              [
+                have_attributes(name: 'parent'),
+                have_attributes(name: 'grandparent')
+              ]
             )
+          end
 
-            # There should be finished spans pending
-            expect(trace_op.finished?).to be true
-            expect(trace_op.finished_span_count).to eq(1)
-
-            # Verify final flush
-            final_flush = trace_op.flush!
-            expect(final_flush.spans).to have(1).items
-            expect(final_flush.spans.map(&:name)).to include('grandparent')
-            expect(final_flush.send(:root_span_id)).to be_a_kind_of(Integer)
-
-            expect(final_flush).to have_attributes(
-              agent_sample_rate: agent_sample_rate,
-              hostname: hostname,
-              id: trace_op.id,
-              lang: Datadog::Core::Environment::Identity.lang,
-              name: name,
-              origin: origin,
-              process_id: Datadog::Core::Environment::Identity.pid,
-              rate_limiter_rate: rate_limiter_rate,
-              resource: resource,
-              rule_sample_rate: rule_sample_rate,
-              runtime_id: Datadog::Core::Environment::Identity.id,
-              sample_rate: sample_rate,
-              sampling_priority: sampling_priority,
-              service: service
-            )
-
-            # Make sure its actually empty
-            expect(trace_op.flush!.spans).to have(0).items
+          it 'uses block return as new span list' do
+            new_list = [double('span')]
+            expect(trace_op.flush! { new_list }).to have_attributes(spans: new_list)
           end
         end
       end
 
-      context 'is not sampled' do
-        let(:sampled) { false }
-        let(:sampling_priority) { nil }
-
-        context 'is finished' do
-          before do
-            trace_op.measure(
-              'grandparent',
-              service: 'boo',
-              resource: 'far',
-              type: 'faz'
-            ) do
-              trace_op.measure(
-                'parent',
-                service: 'foo',
-                resource: 'bar',
-                type: 'baz',
-                tags: { '_dd.span_sampling.mechanism' => 8 }
-              ) do
-                # Do something
-              end
-            end
-          end
-
-          it 'flushes a trace with single sampled spans' do
-            expect(trace_op.finished?).to be true
-
-            is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
-            expect(trace.spans).to have(1).items
-            expect(trace.spans.map(&:name)).to include('parent')
-            expect(trace.send(:root_span_id)).to be nil
-
-            expect(trace).to have_attributes(
-              agent_sample_rate: agent_sample_rate,
-              hostname: hostname,
-              id: trace_op.id,
-              lang: Datadog::Core::Environment::Identity.lang,
-              name: name,
-              origin: origin,
-              process_id: Datadog::Core::Environment::Identity.pid,
-              rate_limiter_rate: rate_limiter_rate,
-              resource: resource,
-              rule_sample_rate: rule_sample_rate,
-              runtime_id: Datadog::Core::Environment::Identity.id,
-              sample_rate: sample_rate,
-              sampling_priority: sampling_priority,
-              service: service
-            )
-
-            # Verify that final flush is empty
-            expect(trace_op.flush!.spans).to have(0).items
-          end
-
-          it 'does not yield duplicate spans' do
-            expect(trace_op.flush!.spans).to have(1).items
-            expect(trace_op.flush!.spans).to have(0).items
-          end
-        end
-
-        context 'is partially finished' do
-          it 'flushes spans as they finish' do
-            trace_op.measure('grandparent') do
-              trace_op.measure('parent', tags: { '_dd.span_sampling.mechanism' => 8 }) do
-                # Do something
-              end
-
-              # Partial flush
-              flush!
+      context 'is partially finished' do
+        it 'flushes spans as they finish' do
+          trace_op.measure('grandparent') do
+            trace_op.measure('parent') do
+              # Do something
             end
 
-            # Verify partial flush
-            is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
-            expect(trace.spans).to have(1).items
-            expect(trace.spans.map(&:name)).to include('parent')
-            expect(trace.send(:root_span_id)).to be nil
-
-            expect(trace).to have_attributes(
-              agent_sample_rate: agent_sample_rate,
-              hostname: hostname,
-              id: trace_op.id,
-              lang: Datadog::Core::Environment::Identity.lang,
-              name: name,
-              origin: origin,
-              process_id: Datadog::Core::Environment::Identity.pid,
-              rate_limiter_rate: rate_limiter_rate,
-              resource: resource,
-              rule_sample_rate: rule_sample_rate,
-              runtime_id: Datadog::Core::Environment::Identity.id,
-              sample_rate: sample_rate,
-              sampling_priority: sampling_priority,
-              service: service
-            )
-
-            # There should be finished spans pending
-            expect(trace_op.finished?).to be true
-            expect(trace_op.finished_span_count).to eq(1)
-
-            # Verify that final flush is empty
-            expect(trace_op.flush!.spans).to have(0).items
+            # Partial flush
+            flush!
           end
+
+          # Verify partial flush
+          is_expected.to be_a_kind_of(Datadog::Tracing::TraceSegment)
+          expect(trace.spans).to have(1).items
+          expect(trace.spans.map(&:name)).to include('parent')
+          expect(trace.send(:root_span_id)).to be nil
+
+          expect(trace).to have_attributes(
+            agent_sample_rate: agent_sample_rate,
+            hostname: hostname,
+            id: trace_op.id,
+            lang: Datadog::Core::Environment::Identity.lang,
+            name: name,
+            origin: origin,
+            process_id: Datadog::Core::Environment::Identity.pid,
+            rate_limiter_rate: rate_limiter_rate,
+            resource: resource,
+            rule_sample_rate: rule_sample_rate,
+            runtime_id: Datadog::Core::Environment::Identity.id,
+            sample_rate: sample_rate,
+            sampling_priority: sampling_priority,
+            service: service
+          )
+
+          # There should be finished spans pending
+          expect(trace_op.finished?).to be true
+          expect(trace_op.finished_span_count).to eq(1)
+
+          # Verify final flush
+          final_flush = trace_op.flush!
+          expect(final_flush.spans).to have(1).items
+          expect(final_flush.spans.map(&:name)).to include('grandparent')
+          expect(final_flush.send(:root_span_id)).to be_a_kind_of(Integer)
+
+          expect(final_flush).to have_attributes(
+            agent_sample_rate: agent_sample_rate,
+            hostname: hostname,
+            id: trace_op.id,
+            lang: Datadog::Core::Environment::Identity.lang,
+            name: name,
+            origin: origin,
+            process_id: Datadog::Core::Environment::Identity.pid,
+            rate_limiter_rate: rate_limiter_rate,
+            resource: resource,
+            rule_sample_rate: rule_sample_rate,
+            runtime_id: Datadog::Core::Environment::Identity.id,
+            sample_rate: sample_rate,
+            sampling_priority: sampling_priority,
+            service: service
+          )
+
+          # Make sure its actually empty
+          expect(trace_op.flush!.spans).to have(0).items
         end
       end
     end
@@ -2325,8 +2235,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   end
 
   describe 'integration tests' do
-    include_context 'trace attributes'
-
     context 'service_entry attributes' do
       context 'when service not given' do
         it do

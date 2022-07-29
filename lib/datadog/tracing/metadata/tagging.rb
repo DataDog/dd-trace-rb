@@ -68,12 +68,9 @@ module Datadog
         # Returns true if the provided `tag` was set to a non-nil value.
         # False otherwise.
         #
-        # DEV: This method enables short-hand assertions on span tags:
-        # DEV: `expect(spans).to have_tag('http.method')`
-        #
         # @param [String] tag the tag or metric to check for presence
         # @return [Boolean] if the tag is present and not nil
-        def tag?(tag)
+        def has_tag?(tag) # rubocop:disable Naming/PredicateName
           !get_tag(tag).nil? # nil is considered not present, thus we can't use `Hash#has_key?`
         end
 

@@ -204,13 +204,6 @@ module Datadog
         end
       end
 
-      # Single Span Sampling has chosen to keep this span
-      # regardless of the trace-level sampling decision
-      # @!visibility private
-      def single_sampled?
-        get_metric(Sampling::Span::Ext::TAG_MECHANISM) == Sampling::Span::Ext::MECHANISM_SPAN_SAMPLING_RATE
-      end
-
       private
 
       # Used for serialization

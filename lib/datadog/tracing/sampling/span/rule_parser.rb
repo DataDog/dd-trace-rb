@@ -29,7 +29,7 @@ module Datadog
               rescue => e
                 Datadog.logger.warn(
                   "Error parsing Span Sampling Rules `#{rules.inspect}`: "\
-                                                      "#{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+                  "#{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
                 )
                 return nil
               end
@@ -61,7 +61,7 @@ module Datadog
                 rescue => e
                   Datadog.logger.warn(
                     "Cannot parse Span Sampling Rule #{hash.inspect}: " \
-                                      "#{e.class.name} #{e} at #{Array(e.backtrace).first}"
+                    "#{e.class.name} #{e} at #{Array(e.backtrace).first}"
                   )
                   return nil
                 end

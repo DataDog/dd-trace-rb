@@ -25,6 +25,34 @@ RSpec.shared_examples_for 'a trace flusher' do
 
     it { is_expected.to eq(trace) }
   end
+
+  context 'with a single sampled span' do
+    let(:trace_op) { Datadog::Tracing::TraceOperation.new(sampled: sampled) }
+
+    before do
+      trace_op.measure('single.sampled') do |span|
+        span.set_metric(Datadog::Tracing::Sampling::Span::Ext::TAG_MECHANISM, 8)
+
+        trace_op.measure('not_single.sampled') {}
+      end
+    end
+
+    context 'and a kept trace' do
+      let(:sampled) { true }
+
+      it 'returns all spans' do
+        is_expected.to have_attributes(spans: have(2).items)
+      end
+    end
+
+    context 'and a rejected trace' do
+      let(:sampled) { false }
+
+      it 'returns only single sampled spans' do
+        is_expected.to have_attributes(spans: [have_attributes(name: 'single.sampled')])
+      end
+    end
+  end
 end
 
 RSpec.describe Datadog::Tracing::Flush::Finished do

@@ -28,8 +28,8 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
     end
   end
 
-  describe '#tag?' do
-    subject(:tag?) { test_object.tag?(key) }
+  describe '#has_tag?' do
+    subject(:has_tag?) { test_object.has_tag?(key) }
     let(:key) { 'test_tag' }
     let(:value) { 'test_value' }
 
