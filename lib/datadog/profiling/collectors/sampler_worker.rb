@@ -7,12 +7,12 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_sampler_worker.c`
       class SamplerWorker
-        def start
+        def start(cpu_and_wall_time_collector:)
           Thread.new do
             begin
               Thread.current.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
 
-              self.class._native_sampling_loop(self)
+              self.class._native_sampling_loop(self, cpu_and_wall_time_collector)
             rescue Exception => e
               @error = e
               Datadog.logger.warn(

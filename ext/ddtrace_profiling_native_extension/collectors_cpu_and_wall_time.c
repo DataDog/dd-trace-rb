@@ -43,7 +43,7 @@ static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t 
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
 static VALUE _native_sample(VALUE self, VALUE collector_instance);
-static void sample(VALUE collector_instance);
+void cpu_and_wall_time_collector_sample(VALUE collector_instance);
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
@@ -167,11 +167,11 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  sample(collector_instance);
+  cpu_and_wall_time_collector_sample(collector_instance);
   return Qtrue;
 }
 
-static void sample(VALUE collector_instance) {
+void cpu_and_wall_time_collector_sample(VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 

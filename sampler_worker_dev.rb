@@ -5,9 +5,12 @@ raise "Profiling broken: #{Datadog::Profiling.unsupported_reason}" unless Datado
 
 puts "Main thread is #{Thread.main}"
 
+$HACK_RECORDER = stack_recorder = Datadog::Profiling::StackRecorder.new
+cpu_and_wall_time_collector = Datadog::Profiling::Collectors::CpuAndWallTime.new(recorder: stack_recorder, max_frames: 400)
+
 sampler_worker = Datadog::Profiling::Collectors::SamplerWorker.new
 
-sampler_worker.start
+sampler_worker.start(cpu_and_wall_time_collector: cpu_and_wall_time_collector)
 
 sleep
 

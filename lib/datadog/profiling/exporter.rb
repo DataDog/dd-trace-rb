@@ -44,7 +44,13 @@ module Datadog
       end
 
       def flush
-        start, finish, uncompressed_pprof = pprof_recorder.serialize
+        start, finish, uncompressed_pprof =
+          if $HACK_RECORDER.nil?
+            pprof_recorder.serialize
+          else
+            Datadog.logger.debug("Serializing using hack recorder")
+            $HACK_RECORDER.serialize
+          end
         @last_flush_finish_at = finish
 
         return if uncompressed_pprof.nil? # We don't want to report empty profiles

@@ -12,7 +12,7 @@ module Datadog
     class Scheduler < Core::Worker
       include Core::Workers::Polling
 
-      DEFAULT_INTERVAL_SECONDS = 60
+      DEFAULT_INTERVAL_SECONDS = 10
       MINIMUM_INTERVAL_SECONDS = 0
 
       # We sleep for at most this duration seconds before reporting data to avoid multi-process applications all

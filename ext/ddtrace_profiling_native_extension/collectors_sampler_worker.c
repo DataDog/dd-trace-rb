@@ -13,7 +13,7 @@ struct sampler_worker_collector_state {
 
 static VALUE _native_new(VALUE klass);
 static void sampler_worker_collector_typed_data_free(void *data);
-static VALUE _native_sampling_loop(VALUE self, VALUE instance);
+static VALUE _native_sampling_loop(VALUE self, VALUE instance, VALUE cpu_and_wall_time_collector);
 static void install_signal_handler(void);
 static void remove_signal_handler(void);
 static void block_signal_handler_in_current_thread(void);
@@ -21,6 +21,11 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 static void called_from_postponed_job(void *data);
+
+// Global state -- be very careful when accessing or modifying it
+// TODO: Protect this, a lot!
+static struct sampler_worker_collector_state* active_sampler_state = NULL;
+static VALUE hack_collector = Qnil;
 
 void collectors_sampler_worker_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -36,7 +41,7 @@ void collectors_sampler_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_sampler_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_sampler_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
+  rb_define_singleton_method(collectors_sampler_worker_class, "_native_sampling_loop", _native_sampling_loop, 2);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct sampler_worker_collector_state
@@ -63,13 +68,14 @@ static void sampler_worker_collector_typed_data_free(void *state_ptr) {
   ruby_xfree(state_ptr); // FIXME: Maybe can be simplified?
 }
 
-static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
+static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance, VALUE cpu_and_wall_time_collector) {
   struct sampler_worker_collector_state *state;
   TypedData_Get_Struct(instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
 
   fprintf(stderr, "Started native sampling loop\n");
 
   state->should_run = true;
+  hack_collector = cpu_and_wall_time_collector;
 
   install_signal_handler();
   block_signal_handler_in_current_thread(); // We want to interrupt the thread with the GVL, never this one
@@ -82,6 +88,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // Ensure that instance is not garbage collected while the native sampling loop is running; this is probably...?
   // not needed, but just in case
   RB_GC_GUARD(instance);
+
+  // Hack
+  RB_GC_GUARD(cpu_and_wall_time_collector);
 
   return Qnil;
 }
@@ -145,10 +154,14 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
   state->should_run = false;
 }
 
+// FIXME
+void cpu_and_wall_time_collector_sample(VALUE collector_instance);
+
 static void called_from_postponed_job(void *data) {
   fprintf(stderr, "Called from postponed job in %p and have_gvl=%d!\n", rb_thread_current(), ruby_thread_has_gvl_p());
-  sleep(10);
-  fprintf(stderr, "Woke up!\n");
+  // TODO <--- WASHERE next step is to call the CpuAndWallCollector from here
+  cpu_and_wall_time_collector_sample(hack_collector);
+  fprintf(stderr, "Sampling finished\n");
 }
 
 // signal handler
