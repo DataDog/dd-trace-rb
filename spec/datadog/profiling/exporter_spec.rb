@@ -7,7 +7,7 @@ require 'datadog/core/logger'
 
 RSpec.describe Datadog::Profiling::Exporter do
   subject(:exporter) do
-    described_class.new(pprof_recorder: pprof_recorder, code_provenance_collector: code_provenance_collector)
+    described_class.new(pprof_recorder: pprof_recorder, code_provenance_collector: code_provenance_collector, **options)
   end
 
   let(:start) { Time.now }
@@ -22,6 +22,7 @@ RSpec.describe Datadog::Profiling::Exporter do
     collector
   end
   let(:logger) { Datadog.logger }
+  let(:options) { {} }
 
   describe '#flush' do
     subject(:flush) { exporter.flush }
@@ -73,11 +74,46 @@ RSpec.describe Datadog::Profiling::Exporter do
     end
   end
 
-  describe '#empty?' do
-    it 'delegates to the pprof_recorder' do
-      expect(pprof_recorder).to receive(:empty?).and_return(:empty_result)
+  describe '#can_flush?' do
+    let(:time_provider) { class_double(Time) }
+    let(:created_at) { start - 60 }
+    let(:options) { { **super(), time_provider: time_provider } }
 
-      expect(exporter.empty?).to be :empty_result
+    subject(:can_flush?) { exporter.can_flush? }
+
+    before do
+      expect(time_provider).to receive(:now).and_return(created_at).once
+      exporter
+    end
+
+    context 'when exporter has flushed before' do
+      before { exporter.flush }
+
+      context 'when less than 1s has elapsed since last flush' do
+        before { expect(time_provider).to receive(:now).and_return(finish + 0.99).once }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when 1s or more has elapsed since last flush' do
+        before { expect(time_provider).to receive(:now).and_return(finish + 1).once }
+
+        it { is_expected.to be true }
+      end
+    end
+
+    context 'when exporter has never flushed' do
+      context 'when less than 1s has elapsed since exporter was created' do
+        before { expect(time_provider).to receive(:now).and_return(created_at + 0.99).once }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when 1s or more has elapsed since exporter was created' do
+        before { expect(time_provider).to receive(:now).and_return(created_at + 1).once }
+
+        it { is_expected.to be true }
+      end
     end
   end
 end
