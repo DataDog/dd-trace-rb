@@ -22,18 +22,18 @@ module Datadog
       attr_reader \
         :pprof_recorder,
         :code_provenance_collector, # The code provenance collector acts both as collector and as a recorder
-        :minimum_duration
+        :minimum_duration_seconds
 
       public
 
       def initialize(
         pprof_recorder:,
         code_provenance_collector:,
-        minimum_duration: PROFILE_DURATION_THRESHOLD_SECONDS
+        minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS
       )
         @pprof_recorder = pprof_recorder
         @code_provenance_collector = code_provenance_collector
-        @minimum_duration = minimum_duration
+        @minimum_duration_seconds = minimum_duration_seconds
       end
 
       def flush
@@ -67,7 +67,7 @@ module Datadog
       private
 
       def duration_below_threshold?(start, finish)
-        (finish - start) < @minimum_duration
+        (finish - start) < minimum_duration_seconds
       end
     end
   end
