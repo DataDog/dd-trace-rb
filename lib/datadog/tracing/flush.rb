@@ -9,6 +9,8 @@ module Datadog
       # Only finished spans are consumed. Any spans consumed are
       # removed from +trace_op+ as a side effect. Unfinished spans are
       # unaffected.
+      #
+      # @abstract
       class Base
         # Consumes and returns a {TraceSegment} to be flushed, from
         # the provided {TraceSegment}.
@@ -23,6 +25,12 @@ module Datadog
           return unless flush?(trace_op)
 
           get_trace(trace_op)
+        end
+
+        # Should we consume spans from the +trace_op+?
+        # @abstract
+        def flush?(trace_op)
+          raise NotImplementedError
         end
 
         protected
