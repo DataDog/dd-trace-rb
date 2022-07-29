@@ -5,6 +5,7 @@
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
+#include "collectors_cpu_and_wall_time.h"
 
 // Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
@@ -43,7 +44,6 @@ static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t 
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
 static VALUE _native_sample(VALUE self, VALUE collector_instance);
-void cpu_and_wall_time_collector_sample(VALUE collector_instance);
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
@@ -171,9 +171,12 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance
   return Qtrue;
 }
 
-void cpu_and_wall_time_collector_sample(VALUE collector_instance) {
+// This is not static as it gets called from the Collectors::SamplerWorker
+// Assumption 1: This function is executed by a thread that is holding the Global VM Lock. Caller is responsible for ensuring this.
+// Assumption 2: This function is allowed to raise exceptions. Caller is responsible for catching them, if needed.
+void cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
   long current_wall_time_ns = wall_time_now_ns();
