@@ -28,13 +28,6 @@ module Datadog
           end
         end
 
-        def reenable!
-          unless @enabled || @unsupported
-            @enabled = true
-            @worker.enabled = true
-          end
-        end
-
         def disable!
           @enabled = false
           @worker.enabled = false

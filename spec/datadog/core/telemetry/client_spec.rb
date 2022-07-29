@@ -54,48 +54,6 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     it { expect { client.disable! }.to change { client.worker.enabled? }.from(true).to(false) }
   end
 
-  describe '#reenable!' do
-    after do
-      client.worker.stop(true)
-      client.worker.join
-    end
-
-    context 'when already enabled' do
-      it do
-        expect(client.enabled).to be(true)
-        expect(client.worker.enabled?).to be(true)
-
-        client.reenable!
-
-        expect(client.enabled).to be(true)
-        expect(client.worker.enabled?).to be(true)
-      end
-    end
-
-    context 'when disabled' do
-      let(:enabled) { false }
-      it { expect { client.reenable! }.to change { client.enabled }.from(false).to(true) }
-      it { expect { client.reenable! }.to change { client.worker.enabled? }.from(false).to(true) }
-
-      context 'when unsupported' do
-        let(:unsupported_client) { client.instance_variable_set(:@unsupported, true) }
-        before do
-          allow(described_class).to receive(:new).and_return(unsupported_client)
-        end
-
-        it do
-          expect(client.enabled).to be(false)
-          expect(client.worker.enabled?).to be(false)
-
-          client.reenable!
-
-          expect(client.enabled).to be(false)
-          expect(client.worker.enabled?).to be(false)
-        end
-      end
-    end
-  end
-
   describe '#started!' do
     subject(:started!) { client.started! }
 
