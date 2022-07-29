@@ -25,7 +25,7 @@ static void block_sigprof_signal_handler_from_running_in_current_thread(void);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
-static void called_from_postponed_job(void *data);
+static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -156,7 +156,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     return; // Not safe to enqueue a sample from this thread
   }
 
-  rb_postponed_job_register_one(0, called_from_postponed_job, NULL);
+  rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
@@ -180,7 +180,7 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
   state->should_run = false;
 }
 
-static void called_from_postponed_job(void *data) {
+static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   fprintf(stderr, "Called from postponed job in %p and have_gvl=%d!\n", rb_thread_current(), ruby_thread_has_gvl_p());
 
   VALUE instance = active_sampler_instance;
