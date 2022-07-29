@@ -13,6 +13,7 @@ struct sampler_worker_collector_state {
   volatile bool should_run;
 
   VALUE cpu_and_wall_time_collector_instance;
+  VALUE failure_exception;
 };
 
 static VALUE _native_new(VALUE klass);
@@ -26,6 +27,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -69,6 +71,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->should_run = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
+  state->failure_exception = Qnil;
 
   return TypedData_Wrap_Struct(klass, &sampler_worker_collector_typed_data, state);
 }
@@ -88,6 +91,7 @@ static void sampler_worker_collector_typed_data_mark(void *state_ptr) {
   struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
+  rb_gc_mark(state->failure_exception);
 }
 
 static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
@@ -115,6 +119,9 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   remove_sigprof_signal_handler();
 
   active_sampler_instance = Qnil;
+
+  // If we stopped sampling due to an exception, re-raise it
+  if (state->failure_exception != Qnil) rb_exc_raise(state->failure_exception);
 
   // Ensure that instance is not garbage collected while the native sampling loop is running; this is probably not needed, but just in case
   RB_GC_GUARD(instance);
@@ -204,24 +211,35 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   VALUE instance = active_sampler_instance;
 
-  // This can potentially happen when the SamplerWorker was stopped while the postponed job was waiting to be executed; nothing to do
+  // This can potentially happen if the SamplerWorker was stopped while the postponed job was waiting to be executed; nothing to do
   if (instance == Qnil) return;
 
   struct sampler_worker_collector_state *state;
   TypedData_Get_Struct(instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
 
-  cpu_and_wall_time_collector_sample(state->cpu_and_wall_time_collector_instance);
+  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
+  VALUE (*function_to_call_safely)(VALUE) = cpu_and_wall_time_collector_sample;
+  VALUE function_to_call_safely_arg = state->cpu_and_wall_time_collector_instance;
+  VALUE (*exception_handler_function)(VALUE, VALUE) = handle_sampling_failure;
+  VALUE exception_handler_function_arg = instance;
+  rb_rescue2(
+    function_to_call_safely,
+    function_to_call_safely_arg,
+    exception_handler_function,
+    exception_handler_function_arg,
+    rb_eException, // rb_eException is the base class of all Ruby exceptions
+    0 // Required by API to be the last argument
+  );
+
   fprintf(stderr, "Sampling finished\n");
 }
 
+static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
+  struct sampler_worker_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
 
-// TODO: COUNTERS
+  state->should_run = false;
+  state->failure_exception = exception;
 
-// signal handler
-  // ensure GVL
-  // enqueue sample for later
-
-// sampler for later handler
-  // ensure GVL (?)
-  // handle exceptions
-  // trigger cpu_and_wall_time collector
+  return Qnil;
+}

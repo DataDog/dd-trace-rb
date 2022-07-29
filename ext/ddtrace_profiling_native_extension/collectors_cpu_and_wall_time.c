@@ -174,7 +174,7 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance
 // This is not static as it gets called from the Collectors::SamplerWorker
 // Assumption 1: This function is executed by a thread that is holding the Global VM Lock. Caller is responsible for ensuring this.
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for catching them, if needed.
-void cpu_and_wall_time_collector_sample(VALUE self_instance) {
+VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -227,6 +227,9 @@ void cpu_and_wall_time_collector_sample(VALUE self_instance) {
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just doing every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
+
+  // Return a VALUE to make it easier to call this function from rb_rescue2
+  return Qnil;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
