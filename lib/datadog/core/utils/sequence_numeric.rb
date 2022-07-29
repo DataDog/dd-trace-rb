@@ -9,21 +9,16 @@ module Datadog
           @seed = seed
           @increment = increment
           @current = seed
-          @mutex = Mutex.new
         end
 
         def next
-          @mutex.synchronize do
-            next_item = @current
-            @current += @increment
-            next_item
-          end
+          next_item = @current
+          @current += @increment
+          next_item
         end
 
         def reset!
-          @mutex.synchronize do
-            @current = @seed
-          end
+          @current = @seed
         end
       end
     end
