@@ -49,6 +49,7 @@ module Datadog
             pprof_recorder.serialize
           else
             Datadog.logger.debug("Serializing using hack recorder")
+            pprof_recorder.serialize # dummy empty
             $HACK_RECORDER.serialize
           end
         @last_flush_finish_at = finish
