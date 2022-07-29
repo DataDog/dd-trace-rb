@@ -2191,7 +2191,7 @@ trace.keep!
 
 You can configure sampling rule that allow you keep spans despite their respective traces being dropped by a trace-level sampling rule.
 
-See (TODO: Insert documentation URL here when published. Search for references of this TODO) for the full documentation on Single Span Sampling.
+[//]: # (TODO: See <Single Span Sampling documentation URL here> for the full documentation on Single Span Sampling.)
 
 ### Distributed Tracing
 

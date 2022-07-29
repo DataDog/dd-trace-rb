@@ -27,13 +27,14 @@ module Datadog
         # that has been accepted by trace-level sampling rules: all spans from such
         # trace are guaranteed to reach the Datadog App.
         class Sampler
+          attr_reader :rules
+
           # Receives sampling rules to apply to individual spans.
           #
           # @param [Array<Datadog::Tracing::Sampling::Span::Rule>] rules list of rules to apply to spans
           def initialize(rules = [])
             @rules = rules
           end
-
 
           # Applies Single Span Sampling rules to the span if the trace has been rejected.
           #

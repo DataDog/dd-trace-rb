@@ -561,7 +561,7 @@ module Datadog
             # These rules allow a span to be kept when its encompassing trace is dropped.
             #
             # The syntax for single span sampling rules can be found here:
-            # TODO: Insert documentation URL here when published. Search for references of this TODO
+            # TODO: <Single Span Sampling documentation URL here>
             #
             # @default `DD_SPAN_SAMPLING_RULES` environment variable.
             #   Otherwise, `ENV_SPAN_SAMPLING_RULES_FILE` environment variable.

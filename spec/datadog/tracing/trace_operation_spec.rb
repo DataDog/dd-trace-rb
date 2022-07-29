@@ -1600,6 +1600,24 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           expect(trace_op.flush!.spans).to have(2).items
           expect(trace_op.flush!.spans).to have(0).items
         end
+
+        context 'with a block' do
+          subject(:flush!) { trace_op.flush! { |spans| spans } }
+
+          it 'yields spans' do
+            expect { |b| trace_op.flush!(&b) }.to yield_with_args(
+              [
+                have_attributes(name: 'parent'),
+                have_attributes(name: 'grandparent')
+              ]
+            )
+          end
+
+          it 'uses block return as new span list' do
+            new_list = [double('span')]
+            expect(trace_op.flush! { new_list }).to have_attributes(spans: new_list)
+          end
+        end
       end
 
       context 'is partially finished' do

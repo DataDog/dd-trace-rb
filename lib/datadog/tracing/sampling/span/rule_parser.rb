@@ -22,11 +22,15 @@ module Datadog
             # @return [Array<Datadog::Tracing::Sampling::Span::Rule>] a list of parsed rules
             # @return [nil] if parsing failed
             def parse_json(rules)
+              return nil unless rules
+
               begin
                 list = JSON.parse(rules)
               rescue => e
-                Datadog.logger.warn("Error parsing Span Sampling Rules `#{rules.inspect}`: "\
-                                    "#{e.class.name} #{e.message} at #{Array(e.backtrace).first}")
+                Datadog.logger.warn(
+                  "Error parsing Span Sampling Rules `#{rules.inspect}`: "\
+                  "#{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
+                )
                 return nil
               end
 
@@ -55,8 +59,10 @@ module Datadog
                 begin
                   parse_rule(hash)
                 rescue => e
-                  Datadog.logger.warn("Cannot parse Span Sampling Rule #{hash.inspect}: " \
-                  "#{e.class.name} #{e} at #{Array(e.backtrace).first}")
+                  Datadog.logger.warn(
+                    "Cannot parse Span Sampling Rule #{hash.inspect}: " \
+                    "#{e.class.name} #{e} at #{Array(e.backtrace).first}"
+                  )
                   return nil
                 end
               end

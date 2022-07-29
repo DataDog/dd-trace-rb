@@ -31,11 +31,18 @@ RSpec.describe 'Tracer integration tests' do
 
   shared_examples 'flushed trace' do
     it do
-      expect(stats[:traces_flushed]).to eq(1)
-      expect(stats[:transport].client_error).to eq(0)
-      expect(stats[:transport].server_error).to eq(0)
-      expect(stats[:transport].internal_error).to eq(0)
+      expect(stats).to include(traces_flushed: 1)
+      expect(stats[:transport])
+        .to have_attributes(
+          client_error: 0,
+          server_error: 0,
+          internal_error: 0
+        )
     end
+  end
+
+  shared_examples 'flushed no trace' do
+    it { expect(stats).to include(traces_flushed: 0) }
   end
 
   after { tracer.shutdown! }
@@ -280,6 +287,174 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
         it_behaves_like 'rule sampling rate metric', nil
         it_behaves_like 'rate limit metric', nil
+      end
+    end
+  end
+
+  describe 'single span sampling' do
+    subject(:trace) do
+      tracer.trace('unrelated.top_level', service: 'other-service') do
+        tracer.trace('single.sampled_span', service: 'my-service') do
+          tracer.trace('unrelated.child_span', service: 'not-service') {}
+        end
+      end
+    end
+
+    include_context 'agent-based test'
+
+    before do
+      Datadog.configure do |c|
+        c.tracing.sampling.span_rules = json_rules if json_rules
+        c.tracing.sampling.default_rate = trace_sampling_rate if trace_sampling_rate
+
+        # Test setup
+        c.tracing.sampler = custom_sampler if custom_sampler
+        c.tracing.priority_sampling = priority_sampling if priority_sampling
+      end
+
+      # Capture trace segments as they are about to be serialized
+      allow_any_instance_of(Datadog::Transport::Traces::Transport)
+        .to receive(:send_traces).and_wrap_original do |function, traces|
+          trace_segments.concat(traces)
+          function.call(traces)
+        end
+
+      trace # Run test subject
+      tracer.shutdown! # Ensure trace is flushed, so we can read writer statistics
+    end
+
+    let(:trace_segments) { [] }
+
+    let(:trace_op) { @trace_op }
+    let(:stats) { tracer.writer.stats }
+
+    let(:custom_sampler) { nil }
+    let(:priority_sampling) { false }
+
+    let(:trace_sampling_rate) { nil }
+    let(:json_rules) { JSON.dump(rules) if rules }
+    let(:rules) { nil }
+
+    let(:spans) do
+      expect(trace_segments).to have(1).item
+      trace_segments[0].spans
+    end
+
+    let(:single_sampled_span) do
+      single_sampled_spans = spans.select { |s| s.name == 'single.sampled_span' }
+      expect(single_sampled_spans).to have(1).item
+      single_sampled_spans[0]
+    end
+
+    after do
+      Datadog.configuration.tracing.sampling.reset!
+    end
+
+    shared_examples 'does not modify spans' do
+      it do
+        expect(spans).to_not include(have_tag('_dd.span_sampling.mechanism'))
+        expect(spans).to_not include(have_tag('_dd.span_sampling.rule_rate'))
+        expect(spans).to_not include(have_tag('_dd.span_sampling.max_per_second'))
+      end
+    end
+
+    shared_examples 'set single span sampling tags' do
+      it do
+        expect(single_sampled_span.get_metric('_dd.span_sampling.mechanism')).to eq(8)
+        expect(single_sampled_span.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
+        expect(single_sampled_span.get_metric('_dd.span_sampling.max_per_second')).to eq(-1)
+      end
+    end
+
+    shared_examples 'flushed complete trace' do |expected_span_count: 3|
+      it_behaves_like 'flushed trace'
+
+      it 'flushed all spans' do
+        expect(spans).to have(expected_span_count).items
+      end
+    end
+
+    context 'with default settings' do
+      it_behaves_like 'flushed complete trace'
+      it_behaves_like 'does not modify spans'
+    end
+
+    context 'with a kept trace' do
+      let(:trace_sampling_rate) { 1.0 }
+
+      it_behaves_like 'flushed complete trace'
+      it_behaves_like 'does not modify spans'
+    end
+
+    context 'with a dropped trace' do
+      context 'by priority sampling' do
+        let(:trace_sampling_rate) { 0.0 }
+
+        context 'with rule matching' do
+          context 'with a dropped span' do
+            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
+
+            it_behaves_like 'flushed complete trace'
+            it_behaves_like 'does not modify spans'
+
+            context 'by rate limiting' do
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
+
+              it_behaves_like 'flushed complete trace'
+              it_behaves_like 'does not modify spans'
+            end
+          end
+
+          context 'with a kept span' do
+            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
+
+            it_behaves_like 'flushed complete trace'
+            it_behaves_like 'set single span sampling tags'
+          end
+        end
+      end
+
+      context 'by direct sampling' do
+        let(:custom_sampler) { no_sampler }
+        let(:priority_sampling) { false }
+
+        let(:no_sampler) do
+          Class.new do
+            def sample!(trace)
+              trace.reject!
+            end
+          end.new
+        end
+
+        context 'with rule matching' do
+          context 'with a dropped span' do
+            context 'by sampling rate' do
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
+
+              it_behaves_like 'flushed no trace'
+            end
+
+            context 'by rate limiting' do
+              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
+
+              it_behaves_like 'flushed no trace'
+            end
+          end
+
+          context 'with a kept span' do
+            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
+
+            it_behaves_like 'flushed complete trace', expected_span_count: 1
+            it_behaves_like 'set single span sampling tags'
+          end
+        end
+      end
+
+      context 'ensures correct stats calculation in the agent' do
+        it 'sets the Datadog-Client-Computed-Top-Level header to a non-empty value' do
+          expect(WebMock)
+            .to have_requested(:post, %r{/traces}).with(headers: { 'Datadog-Client-Computed-Top-Level' => /.+/ })
+        end
       end
     end
   end

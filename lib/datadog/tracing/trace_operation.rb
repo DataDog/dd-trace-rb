@@ -240,12 +240,19 @@ module Datadog
         end
       end
 
+      # Returns a {TraceSegment} with all finished spans that can be flushed
+      # at invocation time. All other **finished** spans are discarded.
+      #
+      # @yield [spans] spans that will be returned as part of the trace segment returned
+      # @return [TraceSegment]
       def flush!
         finished = finished?
 
         # Copy out completed spans
         spans = @spans.dup
         @spans = []
+
+        spans = yield(spans) if block_given?
 
         # Use them to build a trace
         build_trace(spans, !finished)

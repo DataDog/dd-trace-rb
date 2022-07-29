@@ -10,6 +10,14 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
       it { expect { sample! }.to_not(change { span_op.send(:build_span).to_hash }) }
     end
 
+    context 'with nil' do
+      let(:rules_string) { nil }
+
+      it 'returns nil' do
+        is_expected.to be(nil)
+      end
+    end
+
     context 'invalid JSON' do
       let(:rules_string) { '-not-json-' }
 

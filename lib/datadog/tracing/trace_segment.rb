@@ -36,6 +36,7 @@ module Datadog
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
+      # @param spans [Array<Datadog::Span>]
       def initialize(
         spans,
         agent_sample_rate: nil,
