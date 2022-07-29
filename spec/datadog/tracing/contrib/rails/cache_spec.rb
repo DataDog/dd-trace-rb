@@ -32,7 +32,7 @@ RSpec.describe 'Rails cache' do
       after { Datadog.configuration.tracing[:active_support].reset! }
 
       it 'does not instrument' do
-        expect { subject }.to_not change { fetch_spans }
+        expect { subject }.to_not(change { fetch_spans })
       end
     end
 
@@ -46,7 +46,7 @@ RSpec.describe 'Rails cache' do
       after { Datadog.configuration.tracing.reset! }
 
       it 'does not instrument' do
-        expect { subject }.to_not change { fetch_spans }
+        expect { subject }.to_not(change { fetch_spans })
       end
     end
   end
