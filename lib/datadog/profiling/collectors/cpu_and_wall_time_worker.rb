@@ -3,7 +3,9 @@
 module Datadog
   module Profiling
     module Collectors
-      # TODO: Add description
+      # Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
+      # itself; this class only implements the "doing it periodically" part.
+      # Almost all of this class is implemented as native code.
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time_worker.c`
       class CpuAndWallTimeWorker

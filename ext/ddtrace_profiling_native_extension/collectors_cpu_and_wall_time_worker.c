@@ -8,6 +8,55 @@
 #include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
 
+// Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
+// itself; this class only implements the "doing it periodically" part.
+//
+// This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTimeWorker class
+
+// ---
+// Here be dragons: This component is quite fiddly and probably one of the more complex in the profiler as it deals with
+// multiple threads, signal handlers, global state, etc.
+//
+// ## Design notes for this class:
+//
+// ### Constraints
+//
+// Currently, sampling Ruby threads requires calling Ruby VM APIs that are only safe to call while holding on to the
+// global VM lock (and are not async-signal safe).
+//
+// @ivoanjo: As a note, I don't we should think of this constraint is set in stone. Since can reach into the Ruby
+// internals, we may be able to figure out a way of overcoming it. But it's definitely going to be hard so for now
+// we're considering it as a given.
+//
+// ### Flow for triggering samples
+//
+// The flow for triggering samples is as follows:
+//
+// 1. Inside the `run_sampling_trigger_loop` function (running in the `CpuAndWallTimeWorker` background thread),
+// a `SIGPROF` signal gets sent to the current process.
+//
+// 2. The `handle_sampling_signal` signal handler function gets called to handle the `SIGPROF` signal.
+//
+//   Which thread the signal handler function gets called by the operating system is quite important. We need to perform
+// an operation -- calling the `rb_postponed_job_register_one` API -- that can only be called from the thread that
+// is holding on to the global VM lock. So this is the thread we're "hoping" our signal lands on.
+//
+//   The signal never lands on the `CpuAndWallTimeWorker` background thread because we explicitly block it off from that
+// thread in `block_sigprof_signal_handler_from_running_in_current_thread`.
+//
+//   If the signal lands on a thread that is not holding onto the global VM lock, we can't proceed to the next step,
+// and we need to restart the sampling flow from step 1. (There's still quite a few improvements we can make here,
+// but this is the current state of the implementation).
+//
+// 3. Inside `handle_sampling_signal`, if it's getting executed by the Ruby thread that is holding the global VM lock,
+// we can call `rb_postponed_job_register_one` to ask the Ruby VM to call our `sample_from_postponed_job` function
+// "as soon as it can".
+//
+// 4. The Ruby VM calls our `sample_from_postponed_job` from a thread holding the global VM lock. A sample is recorded by
+// calling `cpu_and_wall_time_collector_sample`.
+//
+// ---
+
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
   volatile bool should_run;
