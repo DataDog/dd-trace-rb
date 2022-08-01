@@ -10,6 +10,7 @@
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
 
 #define INVALID_TIME -1
+#define THREAD_ID_LIMIT_CHARS 20
 
 // Contains state for a single CpuAndWallTime instance
 struct cpu_and_wall_time_collector_state {
@@ -28,7 +29,8 @@ struct cpu_and_wall_time_collector_state {
 
 // Tracks per-thread state
 struct per_thread_context {
-  long thread_id;
+  char thread_id[THREAD_ID_LIMIT_CHARS];
+  ddprof_ffi_CharSlice thread_id_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
@@ -200,7 +202,7 @@ static void sample(VALUE collector_instance) {
     int label_count = 1 + (have_thread_name ? 1 : 0);
     ddprof_ffi_Label labels[label_count];
 
-    labels[0] = (ddprof_ffi_Label) {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .num = thread_context->thread_id};
+    labels[0] = (ddprof_ffi_Label) {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
     if (have_thread_name) {
       labels[1] = (ddprof_ffi_Label) {
         .key = DDPROF_FFI_CHARSLICE_C("thread name"),
@@ -246,7 +248,9 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
 }
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
-  thread_context->thread_id = thread_id_for(thread);
+  snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%ld", thread_id_for(thread));
+  thread_context->thread_id_char_slice = (ddprof_ffi_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
+
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 
   // These will get initialized during actual sampling
@@ -284,7 +288,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   rb_hash_aset(result, thread, context_as_hash);
 
   VALUE arguments[] = {
-    ID2SYM(rb_intern("thread_id")),                       /* => */ LONG2NUM(thread_context->thread_id),
+    ID2SYM(rb_intern("thread_id")),                       /* => */ rb_str_new2(thread_context->thread_id),
     ID2SYM(rb_intern("thread_cpu_time_id_valid?")),       /* => */ thread_context->thread_cpu_time_id.valid ? Qtrue : Qfalse,
     ID2SYM(rb_intern("thread_cpu_time_id")),              /* => */ CLOCKID2NUM(thread_context->thread_cpu_time_id.clock_id),
     ID2SYM(rb_intern("cpu_time_at_previous_sample_ns")),  /* => */ LONG2NUM(thread_context->cpu_time_at_previous_sample_ns),

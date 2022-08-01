@@ -64,7 +64,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       cpu_and_wall_time_collector.sample
 
       expect(samples.map { |it| it.fetch(:labels).fetch(:'thread id') })
-        .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
+        .to include(*[Thread.main, t1, t2, t3].map(&:object_id).map(&:to_s))
     end
 
     it 'includes the thread names, if available' do
@@ -76,9 +76,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       cpu_and_wall_time_collector.sample
 
-      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
-      t2_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t2.object_id }
-      t3_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t3.object_id }
+      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
+      t2_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t2.object_id.to_s }
+      t3_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t3.object_id.to_s }
 
       expect(t1_sample).to include(labels: include(:'thread name' => 'thread t1'))
       expect(t2_sample.fetch(:labels).keys).to_not include(:'thread name')
@@ -100,7 +100,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       wall_time_at_second_sample =
         cpu_and_wall_time_collector.per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
 
-      t1_samples = samples.select { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+      t1_samples = samples.select { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
       wall_time = t1_samples.first.fetch(:values).fetch(:'wall-time')
 
       expect(t1_samples.size)
@@ -112,7 +112,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     it 'tags samples with how many times they were seen' do
       5.times { cpu_and_wall_time_collector.sample }
 
-      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id }
+      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
 
       expect(t1_sample).to include(values: include(:'cpu-samples' => 5))
     end
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           # some data for it
           total_cpu_for_rspec_thread =
             samples
-              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id }
+              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
               .map { |it| it.fetch(:values).fetch(:'cpu-time') }
               .reduce(:+)
 
@@ -184,7 +184,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       it 'contains the thread ids (object_ids) of all sampled threads' do
         cpu_and_wall_time_collector.per_thread_context.each do |thread, context|
-          expect(context.fetch(:thread_id)).to eq thread.object_id
+          expect(context.fetch(:thread_id)).to eq thread.object_id.to_s
         end
       end
 

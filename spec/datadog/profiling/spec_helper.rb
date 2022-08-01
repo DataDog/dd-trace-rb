@@ -62,7 +62,12 @@ module ProfileHelpers
       {
         locations: sample.location_id.map { |location_id| decode_frame_from_pprof(decoded_profile, location_id) },
         values: pretty_sample_types.zip(sample.value).to_h,
-        labels: sample.label.map { |it| [string_table[it.key].to_sym, it.str != 0 ? string_table[it.str] : it.num] }.to_h,
+        labels: sample.label.map do |it|
+          [
+            string_table[it.key].to_sym,
+            it.str != 0 ? string_table[it.str] : raise('Unexpected: label encoded as number instead of string'),
+          ]
+        end.to_h,
       }
     end
   end
