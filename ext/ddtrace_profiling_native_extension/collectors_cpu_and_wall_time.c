@@ -7,8 +7,11 @@
 #include "stack_recorder.h"
 #include "collectors_cpu_and_wall_time.h"
 
-// Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
+// Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
+//
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
+//
+// Triggering of this component (e.g. deciding when to take a sample) is implemented in Collectors::CpuAndWallTimeWorker.
 
 #define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 20

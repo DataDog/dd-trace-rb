@@ -3,8 +3,11 @@
 module Datadog
   module Profiling
     module Collectors
-      # Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
+      # Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
+      # Triggering of this component (e.g. deciding when to take a sample) is implemented in
+      # Collectors::CpuAndWallTimeWorker.
       # The stack collection itself is handled using the Datadog::Profiling::Collectors::Stack.
+      # Almost all of this class is implemented as native code.
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time.c`
       class CpuAndWallTime
