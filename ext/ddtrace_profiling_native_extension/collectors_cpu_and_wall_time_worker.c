@@ -8,8 +8,8 @@
 #include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
 
-// Contains state for a single SamplerWorker instance
-struct sampler_worker_collector_state {
+// Contains state for a single CpuAndWallTimeWorker instance
+struct cpu_and_wall_time_worker_state {
   volatile bool should_run;
 
   VALUE cpu_and_wall_time_collector_instance;
@@ -18,7 +18,7 @@ struct sampler_worker_collector_state {
 
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE cpu_and_wall_time_collector_instance);
-static void sampler_worker_collector_typed_data_mark(void *state_ptr);
+static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static void install_sigprof_signal_handler(void);
 static void remove_sigprof_signal_handler(void);
@@ -35,30 +35,30 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
 // the global VM lock (e.g. we piggy back on it to ensure correctness).
 static VALUE active_sampler_instance = Qnil;
 
-void collectors_sampler_worker_init(VALUE profiling_module) {
+void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
-  VALUE collectors_sampler_worker_class = rb_define_class_under(collectors_module, "SamplerWorker", rb_cObject);
+  VALUE collectors_cpu_and_wall_time_worker_class = rb_define_class_under(collectors_module, "CpuAndWallTimeWorker", rb_cObject);
 
-  // Instances of the SamplerWorker class are "TypedData" objects.
+  // Instances of the CpuAndWallTimeWorker class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
-  // In this case, it wraps the sampler_worker_collector_state.
+  // In this case, it wraps the cpu_and_wall_time_worker_state.
   //
   // Because Ruby doesn't know how to initialize native-level structs, we MUST override the allocation function for objects
   // of this class so that we can manage this part. Not overriding or disabling the allocation function is a common
   // gotcha for "TypedData" objects that can very easily lead to VM crashes, see for instance
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
-  rb_define_alloc_func(collectors_sampler_worker_class, _native_new);
+  rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_sampler_worker_class, "_native_initialize", _native_initialize, 2);
-  rb_define_singleton_method(collectors_sampler_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 2);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
 }
 
-// This structure is used to define a Ruby object that stores a pointer to a struct sampler_worker_collector_state
+// This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
-static const rb_data_type_t sampler_worker_collector_typed_data = {
-  .wrap_struct_name = "Datadog::Profiling::Collectors::SamplerWorker",
+static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
+  .wrap_struct_name = "Datadog::Profiling::Collectors::CpuAndWallTimeWorker",
   .function = {
-    .dmark = sampler_worker_collector_typed_data_mark,
+    .dmark = cpu_and_wall_time_worker_typed_data_mark,
     .dfree = RUBY_DEFAULT_FREE,
     .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
     //.dcompact = NULL, // FIXME: Add support for compaction
@@ -67,28 +67,28 @@ static const rb_data_type_t sampler_worker_collector_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
-  struct sampler_worker_collector_state *state = ruby_xcalloc(1, sizeof(struct sampler_worker_collector_state));
+  struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
   state->should_run = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->failure_exception = Qnil;
 
-  return TypedData_Wrap_Struct(klass, &sampler_worker_collector_typed_data, state);
+  return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
 
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE cpu_and_wall_time_collector_instance) {
   enforce_cpu_and_wall_time_collector_instance(cpu_and_wall_time_collector_instance);
 
-  struct sampler_worker_collector_state *state;
-  TypedData_Get_Struct(self_instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->cpu_and_wall_time_collector_instance = cpu_and_wall_time_collector_instance;
 
   return Qtrue;
 }
 
-static void sampler_worker_collector_typed_data_mark(void *state_ptr) {
-  struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
+static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
+  struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
   rb_gc_mark(state->failure_exception);
@@ -96,11 +96,11 @@ static void sampler_worker_collector_typed_data_mark(void *state_ptr) {
 
 static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   if (active_sampler_instance != Qnil) {
-    rb_raise(rb_eRuntimeError, "Could not start SamplerWorker: There's already another instance of SamplerWorker active");
+    rb_raise(rb_eRuntimeError, "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active");
   }
 
-  struct sampler_worker_collector_state *state;
-  TypedData_Get_Struct(instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance = instance;
@@ -139,7 +139,7 @@ static void install_sigprof_signal_handler(void) {
   signal_handler_config.sa_sigaction = handle_sampling_signal;
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    rb_sys_fail("Could not start SamplerWorker: Could not install signal handler");
+    rb_sys_fail("Could not start CpuAndWallTimeWorker: Could not install signal handler");
   }
 
   if (existing_signal_handler_config.sa_handler != NULL || existing_signal_handler_config.sa_sigaction != NULL) {
@@ -148,11 +148,11 @@ static void install_sigprof_signal_handler(void) {
 
     if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
       rb_sys_fail(
-        "Could not start SamplerWorker: Could not re-install pre-existing SIGPROF signal handler. This may break the component had installed it."
+        "Could not start CpuAndWallTimeWorker: Could not re-install pre-existing SIGPROF signal handler. This may break the component had installed it."
       );
     }
 
-    rb_raise(rb_eRuntimeError, "Could not start SamplerWorker: There's a pre-existing SIGPROF signal handler");
+    rb_raise(rb_eRuntimeError, "Could not start CpuAndWallTimeWorker: There's a pre-existing SIGPROF signal handler");
   }
 }
 
@@ -187,7 +187,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
 static void *run_sampling_trigger_loop(void *state_ptr) {
-  struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
+  struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   while (state->should_run) {
     fprintf(stderr, "Hello from the sampling trigger loop in %p\n", rb_thread_current());
@@ -201,7 +201,7 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
 }
 
 static void interrupt_sampling_trigger_loop(void *state_ptr) {
-  struct sampler_worker_collector_state *state = (struct sampler_worker_collector_state *) state_ptr;
+  struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   state->should_run = false;
 }
@@ -211,11 +211,11 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   VALUE instance = active_sampler_instance;
 
-  // This can potentially happen if the SamplerWorker was stopped while the postponed job was waiting to be executed; nothing to do
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
   if (instance == Qnil) return;
 
-  struct sampler_worker_collector_state *state;
-  TypedData_Get_Struct(instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
   VALUE (*function_to_call_safely)(VALUE) = cpu_and_wall_time_collector_sample;
@@ -235,8 +235,8 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
-  struct sampler_worker_collector_state *state;
-  TypedData_Get_Struct(self_instance, struct sampler_worker_collector_state, &sampler_worker_collector_typed_data, state);
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->should_run = false;
   state->failure_exception = exception;

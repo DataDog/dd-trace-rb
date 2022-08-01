@@ -5,8 +5,8 @@ module Datadog
     module Collectors
       # TODO: Add description
       #
-      # Methods prefixed with _native_ are implemented in `collectors_sampler_worker.c`
-      class SamplerWorker
+      # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time_worker.c`
+      class CpuAndWallTimeWorker
         def initialize(cpu_and_wall_time_collector:)
           self.class._native_initialize(self, cpu_and_wall_time_collector)
         end
