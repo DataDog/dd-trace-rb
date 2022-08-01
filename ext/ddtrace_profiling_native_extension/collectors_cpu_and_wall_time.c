@@ -7,8 +7,11 @@
 #include "stack_recorder.h"
 #include "collectors_cpu_and_wall_time.h"
 
-// Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
+// Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
+//
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
+//
+// Triggering of this component (e.g. deciding when to take a sample) is implemented in Collectors::CpuAndWallTimeWorker.
 
 #define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 20
@@ -171,9 +174,10 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance
   return Qtrue;
 }
 
-// This is not static as it gets called from the Collectors::SamplerWorker
-// Assumption 1: This function is executed by a thread that is holding the Global VM Lock. Caller is responsible for ensuring this.
-// Assumption 2: This function is allowed to raise exceptions. Caller is responsible for catching them, if needed.
+// This function gets called from the Collectors::CpuAndWallTimeWorker to trigger the actual sampling.
+//
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
 VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
@@ -228,7 +232,7 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
 
-  // Return a VALUE to make it easier to call this function from rb_rescue2
+  // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
 }
 
