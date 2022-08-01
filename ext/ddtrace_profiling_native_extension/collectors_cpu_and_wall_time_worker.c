@@ -62,6 +62,8 @@ struct cpu_and_wall_time_worker_state {
   volatile bool should_run;
 
   VALUE cpu_and_wall_time_collector_instance;
+  // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
+  // the CpuAndWallTimeWorker thread
   VALUE failure_exception;
 };
 
@@ -82,6 +84,8 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
 
 // This needs to be global because we access it from the signal handler. This MUST only be written from a thread holding
 // the global VM lock (e.g. we piggy back on it to ensure correctness).
+//
+// TODO: This MUST be reset when the Ruby VM forks
 static VALUE active_sampler_instance = Qnil;
 
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
@@ -136,6 +140,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance,
   return Qtrue;
 }
 
+// Since our state contains references to Ruby objects, we need to tell the Ruby GC about them
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
@@ -143,6 +148,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->failure_exception);
 }
 
+// Called in a background thread created in CpuAndWallTimeWorker#start
 static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   if (active_sampler_instance != Qnil) {
     rb_raise(rb_eRuntimeError, "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active");
@@ -154,22 +160,21 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance = instance;
 
-  fprintf(stderr, "Started native sampling loop\n");
-
   state->should_run = true;
 
-  install_sigprof_signal_handler();
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
+
+  install_sigprof_signal_handler();
 
   // Release the global VM lock, and start the sampling loop
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 
-  // Once run_sampling_trigger_loop returns, sampling has either failed in some issue or was asked to stop, let's clean up
+  // Once run_sampling_trigger_loop returns, sampling has either failed with some issue or we were asked to stop, so let's clean up
   remove_sigprof_signal_handler();
 
   active_sampler_instance = Qnil;
 
-  // If we stopped sampling due to an exception, re-raise it
+  // If we stopped sampling due to an exception, re-raise it (in the background thread)
   if (state->failure_exception != Qnil) rb_exc_raise(state->failure_exception);
 
   // Ensure that instance is not garbage collected while the native sampling loop is running; this is probably not needed, but just in case
@@ -218,15 +223,11 @@ static void remove_sigprof_signal_handler(void) {
 static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
   sigset_t signals_to_block;
   sigemptyset(&signals_to_block);
-
   sigaddset(&signals_to_block, SIGPROF);
-
   pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
 }
 
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  fprintf(stderr, "Got sampling signal in %p in a ruby_thread=%d!\n", rb_thread_current(), ruby_native_thread_p());
-
   if (!ruby_native_thread_p() && !ruby_thread_has_gvl_p()) {
     return; // Not safe to enqueue a sample from this thread
   }
@@ -239,16 +240,18 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   while (state->should_run) {
-    fprintf(stderr, "Hello from the sampling trigger loop in %p\n", rb_thread_current());
-    kill(getpid(), SIGPROF); // TODO Improve this
+    // TODO: This is still a placeholder for a more complex mechanism. In particular:
+    // * We probably want to signal a particular thread or threads, not the process in general
+    // * We probably want to track if a signal landed on the thread holding the global vm lock and do something about it
+    // * We want to use a different, faster sampling rate -- here is only once a second which is very much a placeholder
+    kill(getpid(), SIGPROF);
     sleep(1);
   }
-
-  fprintf(stderr, "should_run was false, stopping\n");
 
   return NULL; // Unused
 }
 
+// This is called by the Ruby VM when it wants to shut down the background thread
 static void interrupt_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
@@ -256,8 +259,6 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
 }
 
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  fprintf(stderr, "Called from postponed job in %p and have_gvl=%d!\n", rb_thread_current(), ruby_thread_has_gvl_p());
-
   VALUE instance = active_sampler_instance;
 
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
@@ -279,8 +280,6 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
     rb_eException, // rb_eException is the base class of all Ruby exceptions
     0 // Required by API to be the last argument
   );
-
-  fprintf(stderr, "Sampling finished\n");
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
