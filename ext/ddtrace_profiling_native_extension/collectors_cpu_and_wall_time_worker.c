@@ -59,6 +59,9 @@
 
 // Contains state for a single CpuAndWallTimeWorker instance
 struct cpu_and_wall_time_worker_state {
+  // Important: This is not atomic nor is it guaranteed to replace memory barriers and the like. Aka this works for
+  // telling the sampling trigger loop to stop, but if we ever need to communicate more, we should move to actual
+  // atomic operations. stdatomic.h seems a nice thing to reach out for.
   volatile bool should_run;
 
   VALUE cpu_and_wall_time_collector_instance;
