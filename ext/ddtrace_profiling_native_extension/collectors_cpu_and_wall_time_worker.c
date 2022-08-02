@@ -234,10 +234,17 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     return; // Not safe to enqueue a sample from this thread
   }
 
+  // We implicitly assume there can be no nested calls to handle_sampling_signal because
+  // a) we get triggered using SIGPROF, and the docs state second SIGPROF will not interrupt this one
+  // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
+  //    because it will not have the global VM lock
+  // TODO: Validate that this does not impact Ractors
+
   // Note: rb_postponed_job_register_one ensures that if there's a previous sample_from_postponed_job queued for execution
   // then we will not queue a second one. It does this by doing a linear scan on the existing jobs; in the future we
   // may wat to implement that check ourselves.
-  rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
+  int result = rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
+  // TODO: Do something with result (potentially update tracking counters?)
 }
 
 // The actual sampling trigger loop always runs **without** the global vm lock.
