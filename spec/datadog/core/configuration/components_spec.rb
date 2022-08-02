@@ -899,13 +899,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         it 'has a Stack collector' do
           expect(profiler.collectors).to have(1).item
           expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::OldStack))
-          is_expected.to have_attributes(
-            enabled?: true,
-            started?: false,
-            ignore_thread: nil,
-            max_frames: settings.profiling.advanced.max_frames,
-            max_time_usage_pct: 2.0
-          )
+          is_expected.to have_attributes(max_frames: settings.profiling.advanced.max_frames)
         end
       end
 
@@ -914,11 +908,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         it do
           is_expected.to be_a_kind_of(Datadog::Profiling::Scheduler)
-          is_expected.to have_attributes(
-            enabled?: true,
-            started?: false,
-            loop_base_interval: 60.0
-          )
         end
       end
 
