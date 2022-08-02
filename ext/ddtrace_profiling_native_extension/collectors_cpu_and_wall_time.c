@@ -180,6 +180,8 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
+// Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
+// Assumption 4: This function IS NOT called in a reentrant way.
 VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
