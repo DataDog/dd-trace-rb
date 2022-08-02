@@ -964,13 +964,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'creates a scheduler with an HttpTransport' do
-            http_transport = instance_double(Datadog::Profiling::HttpTransport)
-
-            expect(Datadog::Profiling::HttpTransport).to receive(:new).and_return(http_transport)
+            expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
+              expect(transport).to be_a_kind_of(Datadog::Profiling::HttpTransport)
+            end
 
             build_profiler
-
-            expect(profiler.scheduler.send(:transport)).to be http_transport
           end
 
           [true, false].each do |value|
