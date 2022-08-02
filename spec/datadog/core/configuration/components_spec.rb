@@ -893,15 +893,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       before { skip_if_profiling_not_supported(self) }
 
-      shared_context 'enabled profiler' do
-        before do
-          allow(settings.profiling)
-            .to receive(:enabled)
-            .and_return(true)
-          allow(profiler_setup_task).to receive(:run)
-        end
-      end
-
       shared_examples_for 'profiler with default collectors' do
         subject(:stack_collector) { profiler.collectors.first }
 
@@ -956,7 +947,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'with :enabled true' do
-        include_context 'enabled profiler'
+        before do
+          allow(settings.profiling).to receive(:enabled).and_return(true)
+          allow(profiler_setup_task).to receive(:run)
+        end
 
         context 'by default' do
           it_behaves_like 'profiler with default collectors'
