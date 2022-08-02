@@ -11,18 +11,30 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   # NOTE: A lot of libdatadog integration behaviors are tested in the Collectors::Stack specs, since we need actual
   # samples in order to observe what comes out of libdatadog
 
+  def active_slot
+    described_class::Testing._native_active_slot(stack_recorder)
+  end
+
+  def slot_one_mutex_locked?
+    described_class::Testing._native_slot_one_mutex_locked?(stack_recorder)
+  end
+
+  def slot_two_mutex_locked?
+    described_class::Testing._native_slot_two_mutex_locked?(stack_recorder)
+  end
+
   describe '#initialize' do
     describe 'locking behavior' do
       it 'sets slot one as the active slot' do
-        expect(stack_recorder.active_slot).to be 1
+        expect(active_slot).to be 1
       end
 
       it 'keeps the slot one mutex unlocked' do
-        expect(stack_recorder.slot_one_mutex_locked?).to be false
+        expect(slot_one_mutex_locked?).to be false
       end
 
       it 'keeps the slot two mutex locked' do
-        expect(stack_recorder.slot_two_mutex_locked?).to be true
+        expect(slot_two_mutex_locked?).to be true
       end
     end
   end
@@ -52,15 +64,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     describe 'locking behavior' do
       context 'when slot one was the active slot' do
         it 'sets slot two as the active slot' do
-          expect { serialize }.to change { stack_recorder.active_slot }.from(1).to(2)
+          expect { serialize }.to change { active_slot }.from(1).to(2)
         end
 
         it 'locks the slot one mutex and keeps it locked' do
-          expect { serialize }.to change { stack_recorder.slot_one_mutex_locked? }.from(false).to(true)
+          expect { serialize }.to change { slot_one_mutex_locked? }.from(false).to(true)
         end
 
         it 'unlocks the slot two mutex and keeps it unlocked' do
-          expect { serialize }.to change { stack_recorder.slot_two_mutex_locked? }.from(true).to(false)
+          expect { serialize }.to change { slot_two_mutex_locked? }.from(true).to(false)
         end
       end
 
@@ -71,15 +83,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         it 'sets slot one as the active slot' do
-          expect { serialize }.to change { stack_recorder.active_slot }.from(2).to(1)
+          expect { serialize }.to change { active_slot }.from(2).to(1)
         end
 
         it 'unlocks the slot one mutex and keeps it unlocked' do
-          expect { serialize }.to change { stack_recorder.slot_one_mutex_locked? }.from(true).to(false)
+          expect { serialize }.to change { slot_one_mutex_locked? }.from(true).to(false)
         end
 
         it 'locks the slow two mutex and keeps it locked' do
-          expect { serialize }.to change { stack_recorder.slot_two_mutex_locked? }.from(false).to(true)
+          expect { serialize }.to change { slot_two_mutex_locked? }.from(false).to(true)
         end
       end
     end
@@ -133,7 +145,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       before do
-        collectors_stack.sample(Thread.current, stack_recorder, metric_values, labels)
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400)
         expect(samples.size).to be 1
       end
 

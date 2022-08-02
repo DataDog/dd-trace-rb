@@ -33,8 +33,10 @@ static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddp
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
+  // Hosts methods used for testing the native code using RSpec
+  VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(collectors_stack_class, "_native_sample", _native_sample, 5);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 5);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);

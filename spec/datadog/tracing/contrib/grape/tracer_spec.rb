@@ -670,7 +670,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq(tracer.default_service)
-        expect(rack_span.resource).to eq('GET 200')
+        expect(rack_span.resource).to eq('RackTestingAPI GET /success')
         expect(rack_span).to_not have_error
         expect(rack_span).to be_root_span
       end
@@ -735,7 +735,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.name).to eq('rack.request')
         expect(rack_span.span_type).to eq('web')
         expect(rack_span.service).to eq(tracer.default_service)
-        expect(rack_span.resource).to eq('GET')
+        expect(rack_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(rack_span).to have_error
         expect(rack_span).to be_root_span
       end

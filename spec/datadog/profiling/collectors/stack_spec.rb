@@ -19,6 +19,10 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
   let(:gathered_stack) { stacks.fetch(:gathered) }
 
+  def sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames: 400)
+    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames)
+  end
+
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
   # main thread than the reference Ruby API. This is almost-surely a bug in rb_profile_frames, since the same frame
   # gets excluded from the reference Ruby API.
@@ -311,7 +315,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when trying to sample something which is not a thread' do
     it 'raises a TypeError' do
       expect do
-        collectors_stack.sample(:not_a_thread, Datadog::Profiling::StackRecorder.new, metric_values, labels)
+        sample(:not_a_thread, Datadog::Profiling::StackRecorder.new, metric_values, labels)
       end.to raise_error(TypeError)
     end
   end
@@ -319,7 +323,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when max_frames is too small' do
     it 'raises an ArgumentError' do
       expect do
-        collectors_stack.sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 4)
+        sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 4)
       end.to raise_error(ArgumentError)
     end
   end
@@ -327,7 +331,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when max_frames is too large' do
     it 'raises an ArgumentError' do
       expect do
-        collectors_stack.sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 10_001)
+        sample(Thread.current, Datadog::Profiling::StackRecorder.new, metric_values, labels, max_frames: 10_001)
       end.to raise_error(ArgumentError)
     end
   end
@@ -339,7 +343,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   end
 
   def sample_and_decode(thread, max_frames: 400, recorder: Datadog::Profiling::StackRecorder.new)
-    collectors_stack.sample(thread, recorder, metric_values, labels, max_frames: max_frames)
+    sample(thread, recorder, metric_values, labels, max_frames: max_frames)
 
     serialization_result = recorder.serialize
     raise 'Unexpected: Serialization failed' unless serialization_result

@@ -38,24 +38,6 @@ module Datadog
       def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
         Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
       end
-
-      # This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
-      # It SHOULD NOT be used for other purposes.
-      def active_slot
-        self.class._native_active_slot(self)
-      end
-
-      # This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
-      # It SHOULD NOT be used for other purposes.
-      def slot_one_mutex_locked?
-        self.class._native_slot_one_mutex_locked?(self)
-      end
-
-      # This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
-      # It SHOULD NOT be used for other purposes.
-      def slot_two_mutex_locked?
-        self.class._native_slot_two_mutex_locked?(self)
-      end
     end
   end
 end
