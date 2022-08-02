@@ -241,13 +241,16 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
+  struct timespec time_between_signals = {.tv_nsec = 10 * 1000 * 1000 /* 10ms */};
+
   while (state->should_run) {
     // TODO: This is still a placeholder for a more complex mechanism. In particular:
     // * We probably want to signal a particular thread or threads, not the process in general
     // * We probably want to track if a signal landed on the thread holding the global vm lock and do something about it
-    // * We want to use a different, faster sampling rate -- here is only once a second which is very much a placeholder
+    // * We want to do more than having a fixed sampling rate
+
     kill(getpid(), SIGPROF);
-    sleep(1);
+    nanosleep(&time_between_signals, NULL);
   }
 
   return NULL; // Unused
