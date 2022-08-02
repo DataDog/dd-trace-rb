@@ -989,7 +989,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           it 'initializes the exporter with a code provenance collector' do
             expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
               expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
-            end.and_call_original
+            end
 
             build_profiler
           end
@@ -1000,7 +1000,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             it 'initializes the exporter with a nil code provenance collector' do
               expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
                 expect(code_provenance_collector).to be nil
-              end.and_call_original
+              end
 
               build_profiler
             end
