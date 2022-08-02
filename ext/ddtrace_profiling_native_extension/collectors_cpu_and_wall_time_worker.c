@@ -234,6 +234,9 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     return; // Not safe to enqueue a sample from this thread
   }
 
+  // Note: rb_postponed_job_register_one ensures that if there's a previous sample_from_postponed_job queued for execution
+  // then we will not queue a second one. It does this by doing a linear scan on the existing jobs; in the future we
+  // may wat to implement that check ourselves.
   rb_postponed_job_register_one(0, sample_from_postponed_job, NULL);
 }
 
