@@ -893,10 +893,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       before { skip_if_profiling_not_supported(self) }
 
-      shared_examples_for 'disabled profiler' do
-        it { is_expected.to be nil }
-      end
-
       shared_context 'enabled profiler' do
         before do
           allow(settings.profiling)
@@ -944,17 +940,19 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       context 'by default' do
-        it_behaves_like 'disabled profiler'
+        it 'does not build a profiler' do
+          is_expected.to be nil
+        end
       end
 
       context 'with :enabled false' do
         before do
-          allow(settings.profiling)
-            .to receive(:enabled)
-            .and_return(false)
+          allow(settings.profiling).to receive(:enabled).and_return(false)
         end
 
-        it_behaves_like 'disabled profiler'
+        it 'does not build a profiler' do
+          is_expected.to be nil
+        end
       end
 
       context 'with :enabled true' do
