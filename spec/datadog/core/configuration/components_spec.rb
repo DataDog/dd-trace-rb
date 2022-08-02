@@ -879,6 +879,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_profiler' do
+    before { skip_if_profiling_not_supported(self) }
+
     let(:profiler) { build_profiler }
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
@@ -890,136 +892,132 @@ RSpec.describe Datadog::Core::Configuration::Components do
       it { is_expected.to be nil }
     end
 
-    context 'given settings' do
-      before { skip_if_profiling_not_supported(self) }
+    context 'by default' do
+      it 'does not build a profiler' do
+        is_expected.to be nil
+      end
+    end
 
-      context 'by default' do
-        it 'does not build a profiler' do
-          is_expected.to be nil
+    context 'with :enabled false' do
+      before do
+        allow(settings.profiling).to receive(:enabled).and_return(false)
+      end
+
+      it 'does not build a profiler' do
+        is_expected.to be nil
+      end
+    end
+
+    context 'with :enabled true' do
+      before do
+        allow(settings.profiling).to receive(:enabled).and_return(true)
+        allow(profiler_setup_task).to receive(:run)
+      end
+
+      it 'sets up the Profiler with the OldStack collector' do
+        expect(Datadog::Profiling::Profiler).to receive(:new).with(
+          [instance_of(Datadog::Profiling::Collectors::OldStack)],
+          anything,
+        )
+
+        build_profiler
+      end
+
+      it 'initializes the OldStack collector with the max_frames setting' do
+        expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
+          instance_of(Datadog::Profiling::OldRecorder),
+          hash_including(max_frames: settings.profiling.advanced.max_frames),
+        )
+
+        build_profiler
+      end
+
+      it 'initializes the OldRecorder with the correct event classes and max_events setting' do
+        expect(Datadog::Profiling::OldRecorder)
+          .to receive(:new)
+          .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
+          .and_call_original
+
+        build_profiler
+      end
+
+      it 'runs the setup task to set up any needed extensions for profiling' do
+        expect(profiler_setup_task).to receive(:run)
+
+        build_profiler
+      end
+
+      it 'builds an HttpTransport with the current settings' do
+        expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
+          agent_settings: agent_settings,
+          site: settings.site,
+          api_key: settings.api_key,
+          upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+        )
+
+        build_profiler
+      end
+
+      it 'creates a scheduler with an HttpTransport' do
+        expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
+          expect(transport).to be_a_kind_of(Datadog::Profiling::HttpTransport)
+        end
+
+        build_profiler
+      end
+
+      [true, false].each do |value|
+        context "when endpoint_collection_enabled is #{value}" do
+          before { settings.profiling.advanced.endpoint.collection.enabled = value }
+
+          it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
+            expect(Datadog::Profiling::TraceIdentifiers::Helper)
+              .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
+
+            build_profiler
+          end
         end
       end
 
-      context 'with :enabled false' do
-        before do
-          allow(settings.profiling).to receive(:enabled).and_return(false)
+      it 'initializes the exporter with a code provenance collector' do
+        expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
+          expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
         end
 
-        it 'does not build a profiler' do
-          is_expected.to be nil
-        end
+        build_profiler
       end
 
-      context 'with :enabled true' do
-        before do
-          allow(settings.profiling).to receive(:enabled).and_return(true)
-          allow(profiler_setup_task).to receive(:run)
-        end
+      context 'when code provenance is disabled' do
+        before { settings.profiling.advanced.code_provenance_enabled = false }
 
-        it 'sets up the Profiler with the OldStack collector' do
-          expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            [instance_of(Datadog::Profiling::Collectors::OldStack)],
-            anything,
-          )
-
-          build_profiler
-        end
-
-        it 'initializes the OldStack collector with the max_frames setting' do
-          expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
-            instance_of(Datadog::Profiling::OldRecorder),
-            hash_including(max_frames: settings.profiling.advanced.max_frames),
-          )
-
-          build_profiler
-        end
-
-        it 'initializes the OldRecorder with the correct event classes and max_events setting' do
-          expect(Datadog::Profiling::OldRecorder)
-            .to receive(:new)
-            .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
-            .and_call_original
-
-          build_profiler
-        end
-
-        it 'runs the setup task to set up any needed extensions for profiling' do
-          expect(profiler_setup_task).to receive(:run)
-
-          build_profiler
-        end
-
-        it 'builds an HttpTransport with the current settings' do
-          expect(Datadog::Profiling::HttpTransport).to receive(:new).with(
-            agent_settings: agent_settings,
-            site: settings.site,
-            api_key: settings.api_key,
-            upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-          )
-
-          build_profiler
-        end
-
-        it 'creates a scheduler with an HttpTransport' do
-          expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
-            expect(transport).to be_a_kind_of(Datadog::Profiling::HttpTransport)
-          end
-
-          build_profiler
-        end
-
-        [true, false].each do |value|
-          context "when endpoint_collection_enabled is #{value}" do
-            before { settings.profiling.advanced.endpoint.collection.enabled = value }
-
-            it "initializes the TraceIdentifiers::Helper with endpoint_collection_enabled: #{value}" do
-              expect(Datadog::Profiling::TraceIdentifiers::Helper)
-                .to receive(:new).with(tracer: tracer, endpoint_collection_enabled: value)
-
-              build_profiler
-            end
-          end
-        end
-
-        it 'initializes the exporter with a code provenance collector' do
+        it 'initializes the exporter with a nil code provenance collector' do
           expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
-            expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
+            expect(code_provenance_collector).to be nil
           end
 
           build_profiler
         end
+      end
 
-        context 'when code provenance is disabled' do
-          before { settings.profiling.advanced.code_provenance_enabled = false }
+      context 'when a custom transport is provided' do
+        let(:custom_transport) { double('Custom transport') }
 
-          it 'initializes the exporter with a nil code provenance collector' do
-            expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
-              expect(code_provenance_collector).to be nil
-            end
-
-            build_profiler
-          end
+        before do
+          settings.profiling.exporter.transport = custom_transport
         end
 
-        context 'when a custom transport is provided' do
-          let(:custom_transport) { double('Custom transport') }
+        it 'does not initialize an HttpTransport' do
+          expect(Datadog::Profiling::HttpTransport).to_not receive(:new)
 
-          before do
-            settings.profiling.exporter.transport = custom_transport
+          build_profiler
+        end
+
+        it 'sets up the scheduler to use the custom transport' do
+          expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
+            expect(transport).to be custom_transport
           end
 
-          it 'does not initialize an HttpTransport' do
-            expect(Datadog::Profiling::HttpTransport).to_not receive(:new)
-
-            build_profiler
-          end
-
-          it 'sets up the scheduler to use the custom transport' do
-            expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
-              expect(transport).to be custom_transport
-            end
-
-            build_profiler
-          end
+          build_profiler
         end
       end
     end
