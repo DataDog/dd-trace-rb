@@ -187,13 +187,12 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 }
 
 static void install_sigprof_signal_handler(void) {
-  struct sigaction signal_handler_config;
   struct sigaction existing_signal_handler_config = {0};
-
+  struct sigaction signal_handler_config = {
+    .sa_flags = SA_RESTART | SA_SIGINFO,
+    .sa_sigaction = handle_sampling_signal
+  };
   sigemptyset(&signal_handler_config.sa_mask);
-  signal_handler_config.sa_handler = NULL;
-  signal_handler_config.sa_flags = SA_RESTART | SA_SIGINFO;
-  signal_handler_config.sa_sigaction = handle_sampling_signal;
 
   if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
     rb_sys_fail("Could not start CpuAndWallTimeWorker: Could not install signal handler");
@@ -214,11 +213,11 @@ static void install_sigprof_signal_handler(void) {
 }
 
 static void remove_sigprof_signal_handler(void) {
-  struct sigaction signal_handler_config;
-
+  struct sigaction signal_handler_config = {
+    .sa_handler = SIG_DFL, // Reset back to default
+    .sa_flags = SA_RESTART // Unclear if this is actually needed/does anything at all
+  };
   sigemptyset(&signal_handler_config.sa_mask);
-  signal_handler_config.sa_handler = SIG_DFL; // Reset back to default
-  signal_handler_config.sa_flags = SA_RESTART; // Unclear if this is actually needed/does anything at all
 
   if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
 }
