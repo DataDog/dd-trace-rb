@@ -61,6 +61,8 @@ static long thread_id_for(VALUE thread);
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_cpu_and_wall_time_class = rb_define_class_under(collectors_module, "CpuAndWallTime", rb_cObject);
+  // Hosts methods used for testing the native code using RSpec
+  VALUE testing_module = rb_define_module_under(collectors_cpu_and_wall_time_class, "Testing");
 
   // Instances of the CpuAndWallTime class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -73,10 +75,10 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_alloc_func(collectors_cpu_and_wall_time_class, _native_new);
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 3);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_sample", _native_sample, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_inspect", _native_inspect, 1);
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_per_thread_context", _native_per_thread_context, 1);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 1);
+  rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
+  rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -313,7 +315,10 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
   return ST_DELETE;
 }
 
-// Returns the whole contents of the per_thread_context structs being tracked, for debugging/testing
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+//
+// Returns the whole contents of the per_thread_context structs being tracked.
 static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);

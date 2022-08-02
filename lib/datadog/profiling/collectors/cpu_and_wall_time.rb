@@ -12,24 +12,6 @@ module Datadog
           self.class._native_initialize(self, recorder, max_frames)
         end
 
-        # This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
-        # It SHOULD NOT be used for other purposes.
-        def sample
-          self.class._native_sample(self)
-        end
-
-        # This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
-        # It SHOULD NOT be used for other purposes.
-        def thread_list
-          self.class._native_thread_list
-        end
-
-        # This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
-        # It SHOULD NOT be used for other purposes.
-        def per_thread_context
-          self.class._native_per_thread_context(self)
-        end
-
         def inspect
           # Compose Ruby's default inspect with our custom inspect for the native parts
           result = super()
