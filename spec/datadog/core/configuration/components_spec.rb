@@ -893,32 +893,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       before { skip_if_profiling_not_supported(self) }
 
-      shared_examples_for 'profiler with default collectors' do
-        subject(:stack_collector) { profiler.collectors.first }
-
-        it 'has a Stack collector' do
-          expect(profiler.collectors).to have(1).item
-          expect(profiler.collectors).to include(kind_of(Datadog::Profiling::Collectors::OldStack))
-          is_expected.to have_attributes(max_frames: settings.profiling.advanced.max_frames)
-        end
-      end
-
-      shared_examples_for 'profiler with default scheduler' do
-        subject(:scheduler) { profiler.scheduler }
-
-        it do
-          is_expected.to be_a_kind_of(Datadog::Profiling::Scheduler)
-        end
-      end
-
-      shared_examples_for 'profiler with default recorder' do
-        subject(:old_recorder) { profiler.scheduler.send(:exporter).send(:pprof_recorder) }
-
-        it do
-          is_expected.to have_attributes(max_size: settings.profiling.advanced.max_events)
-        end
-      end
-
       context 'by default' do
         it 'does not build a profiler' do
           is_expected.to be nil
@@ -941,9 +915,32 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(profiler_setup_task).to receive(:run)
         end
 
-        it_behaves_like 'profiler with default collectors'
-        it_behaves_like 'profiler with default scheduler'
-        it_behaves_like 'profiler with default recorder'
+        it 'sets up the Profiler with the OldStack collector' do
+          expect(Datadog::Profiling::Profiler).to receive(:new).with(
+            [instance_of(Datadog::Profiling::Collectors::OldStack)],
+            anything,
+          )
+
+          build_profiler
+        end
+
+        it 'initializes the OldStack collector with the max_frames setting' do
+          expect(Datadog::Profiling::Collectors::OldStack).to receive(:new).with(
+            instance_of(Datadog::Profiling::OldRecorder),
+            hash_including(max_frames: settings.profiling.advanced.max_frames),
+          )
+
+          build_profiler
+        end
+
+        it 'initializes the OldRecorder with the correct event classes and max_events setting' do
+          expect(Datadog::Profiling::OldRecorder)
+            .to receive(:new)
+            .with([Datadog::Profiling::Events::StackSample], settings.profiling.advanced.max_events)
+            .and_call_original
+
+          build_profiler
+        end
 
         it 'runs the setup task to set up any needed extensions for profiling' do
           expect(profiler_setup_task).to receive(:run)
