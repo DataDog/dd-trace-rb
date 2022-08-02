@@ -186,14 +186,14 @@ RSpec.describe 'Rails cache' do
 
     subject(:write_multi) { cache.write_multi(Hash[multi_keys.zip(values)], opt_name: :opt_value) }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-
     context 'when the method is defined' do
       before do
         unless ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
           skip 'Test is not applicable to this Rails version'
         end
       end
+
+      it_behaves_like 'a no-op when instrumentation is disabled'
 
       it_behaves_like 'measured span for integration', false do
         before { write_multi }
@@ -321,14 +321,14 @@ RSpec.describe 'Rails cache' do
   describe '#fetch_multi' do
     subject(:fetch_multi) { cache.fetch_multi(*multi_keys, expires_in: 42) { |key| 50 + key[-1].to_i } }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-
     context 'when the method is defined' do
       before do
         unless ::ActiveSupport::Cache::Store.public_method_defined?(:fetch_multi)
           skip 'Test is not applicable to this Rails version'
         end
       end
+
+      it_behaves_like 'a no-op when instrumentation is disabled'
 
       it_behaves_like 'measured span for integration', false do
         before { fetch_multi }
