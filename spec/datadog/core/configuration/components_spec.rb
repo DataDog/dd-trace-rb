@@ -1003,23 +1003,25 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
 
-        context 'and :transport' do
-          context 'is given' do
-            let(:transport) { double('Custom transport') }
+        context 'when a custom transport is provided' do
+          let(:custom_transport) { double('Custom transport') }
 
-            before do
-              allow(settings.profiling.exporter)
-                .to receive(:transport)
-                .and_return(transport)
+          before do
+            settings.profiling.exporter.transport = custom_transport
+          end
+
+          it 'does not initialize an HttpTransport' do
+            expect(Datadog::Profiling::HttpTransport).to_not receive(:new)
+
+            build_profiler
+          end
+
+          it 'sets up the scheduler to use the custom transport' do
+            expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
+              expect(transport).to be custom_transport
             end
 
-            it_behaves_like 'profiler with default collectors'
-            it_behaves_like 'profiler with default scheduler'
-            it_behaves_like 'profiler with default recorder'
-
-            it 'uses the custom transport' do
-              expect(profiler.scheduler.send(:transport)).to be transport
-            end
+            build_profiler
           end
         end
       end
