@@ -36,6 +36,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   subject(:components) { described_class.new(settings) }
 
   let(:settings) { Datadog::Core::Configuration::Settings.new }
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
 
@@ -344,8 +345,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
-
     subject(:build_tracer) { described_class.build_tracer(settings, agent_settings) }
 
     context 'given an instance' do
@@ -880,7 +879,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_profiler' do
-    let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
     let(:profiler) { build_profiler }
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
