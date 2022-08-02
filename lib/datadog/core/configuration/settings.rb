@@ -240,6 +240,16 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_LEGACY_TRANSPORT_ENABLED', false) }
               o.lazy
             end
+
+            # Forces enabling the new profiler. We do not yet recommend turning on this option.
+            #
+            # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
+            # being automatically used in the future.
+            # This option will be deprecated for removal once the new profiler gets enabled by default for all customers.
+            option :force_enable_new_profiler do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
+              o.lazy
+            end
           end
 
           # @public_api

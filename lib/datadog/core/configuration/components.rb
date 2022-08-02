@@ -235,13 +235,21 @@ module Datadog
 
             # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-            trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
-              tracer: tracer,
-              endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
-            )
+            if settings.profiling.advanced.force_enable_new_profiler
+              recorder = Datadog::Profiling::StackRecorder.new
+              collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
+                recorder: recorder,
+                max_frames: settings.profiling.advanced.max_frames
+              )
+            else
+              trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
+                tracer: tracer,
+                endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
+              )
 
-            recorder = build_profiler_old_recorder(settings)
-            collector = build_profiler_oldstack_collector(settings, recorder, trace_identifiers_helper)
+              recorder = build_profiler_old_recorder(settings)
+              collector = build_profiler_oldstack_collector(settings, recorder, trace_identifiers_helper)
+            end
 
             exporter = build_profiler_exporter(settings, recorder)
             transport = build_profiler_transport(settings, agent_settings)
