@@ -31,9 +31,10 @@ RSpec.describe 'tracing on the client connection' do
   end
 
   context 'using client-specific configurations' do
+    let(:deadline) { Time.utc(2022, 1, 2, 3, 4, 5, 678901) }
     let(:keywords) do
       { request: instance_double(Object),
-        call: instance_double('GRPC::ActiveCall', peer: peer),
+        call: instance_double('GRPC::ActiveCall', peer: peer, deadline: deadline),
         method: 'MyService.Endpoint',
         metadata: { some: 'datum' } }
     end
@@ -60,6 +61,7 @@ RSpec.describe 'tracing on the client connection' do
       span = fetch_spans.last
       expect(span.service).to eq 'cepsr'
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq('cepsr')
+      expect(span.get_tag(Datadog::Tracing::Contrib::GRPC::Ext::TAG_CLIENT_DEADLINE)).to eq(1641092645678)
     end
   end
 
@@ -68,6 +70,7 @@ RSpec.describe 'tracing on the client connection' do
     specify { expect(span.span_type).to eq 'http' }
     specify { expect(span.service).to eq 'rspec' }
     specify { expect(span.resource).to eq 'myservice.endpoint' }
+    specify { expect(span.get_tag('grpc.client.deadline')).to be_nil }
     specify { expect(span.get_tag('error.stack')).to be_nil }
     specify { expect(span.get_tag('some')).to eq 'datum' }
 
