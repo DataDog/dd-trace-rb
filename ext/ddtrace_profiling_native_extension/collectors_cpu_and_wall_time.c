@@ -38,6 +38,10 @@ struct per_thread_context {
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
+
+  // Used to track time spent garbage collecting
+  long cpu_time_at_gc_start_ns; // Will be INVALID_TIME if there is not an ongoing garbage collection for this thread
+  long wall_time_at_gc_start_ns; // Will be INVALID_TIME if there is not an ongoing garbage collection for this thread
 };
 
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
@@ -56,7 +60,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
 static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns);
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns);
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long wall_time_now_ns();
 static long thread_id_for(VALUE thread);
@@ -196,10 +200,16 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
 
     long current_cpu_time_ns = cpu_time_now_ns(thread_context);
 
-    long cpu_time_elapsed_ns =
-      update_time_since_previous_sample(&thread_context->cpu_time_at_previous_sample_ns, current_cpu_time_ns);
-    long wall_time_elapsed_ns =
-      update_time_since_previous_sample(&thread_context->wall_time_at_previous_sample_ns, current_wall_time_ns);
+    long cpu_time_elapsed_ns = update_time_since_previous_sample(
+      &thread_context->cpu_time_at_previous_sample_ns,
+      current_cpu_time_ns,
+      thread_context->cpu_time_at_gc_start_ns
+    );
+    long wall_time_elapsed_ns = update_time_since_previous_sample(
+      &thread_context->wall_time_at_previous_sample_ns,
+      current_wall_time_ns,
+      thread_context->wall_time_at_gc_start_ns
+    );
 
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
 
@@ -226,7 +236,8 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
       state->sampling_buffer,
       state->recorder_instance,
       (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddprof_ffi_Slice_label) {.ptr = labels, .len = label_count}
+      (ddprof_ffi_Slice_label) {.ptr = labels, .len = label_count},
+      THREAD_NOT_IN_GC
     );
   }
 
@@ -244,6 +255,80 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   return ddtrace_thread_list();
+}
+
+// This function gets called when Ruby is about to start running the Garbage Collector on the current thread.
+// It updates the per_thread_context of the current thread to include the current cpu/wall times, to be used to later
+// create a stack sample that blames the time from now until the end of GC on GC.
+//
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
+VALUE cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  struct per_thread_context *thread_context = get_or_create_context_for(rb_thread_current(), state);
+
+  thread_context->cpu_time_at_gc_start_ns = cpu_time_now_ns(thread_context);
+  thread_context->wall_time_at_gc_start_ns = wall_time_now_ns();
+
+  // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
+  return Qnil;
+}
+
+VALUE cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  VALUE thread = rb_thread_current();
+  struct per_thread_context *thread_context = get_or_create_context_for(thread, state);
+
+  long gc_cpu_time_elapsed_ns = cpu_time_now_ns(thread_context) - thread_context->cpu_time_at_gc_start_ns;
+  long gc_wall_time_elapsed_ns = wall_time_now_ns() - thread_context->wall_time_at_gc_start_ns;
+
+  int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
+
+  metric_values[CPU_TIME_VALUE_POS] = gc_cpu_time_elapsed_ns;
+  metric_values[CPU_SAMPLES_VALUE_POS] = 1;
+  metric_values[WALL_TIME_VALUE_POS] = gc_wall_time_elapsed_ns;
+
+  VALUE thread_name = thread_name_for(thread);
+  bool have_thread_name = thread_name != Qnil;
+
+  int label_count = 1 + (have_thread_name ? 1 : 0);
+  ddprof_ffi_Label labels[label_count];
+
+  labels[0] = (ddprof_ffi_Label) {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
+  if (have_thread_name) {
+    labels[1] = (ddprof_ffi_Label) {
+      .key = DDPROF_FFI_CHARSLICE_C("thread name"),
+      .str = char_slice_from_ruby_string(thread_name)
+    };
+  }
+
+  sample_thread(
+    thread,
+    state->sampling_buffer,
+    state->recorder_instance,
+    (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    (ddprof_ffi_Slice_label) {.ptr = labels, .len = label_count},
+    THREAD_IN_GC
+  );
+
+  // Thread is no longer in GC
+  thread_context->cpu_time_at_gc_start_ns = INVALID_TIME;
+  thread_context->wall_time_at_gc_start_ns = INVALID_TIME;
+
+  // Update counters so that they won't include the time in GC
+  if (thread_context->cpu_time_at_previous_sample_ns != INVALID_TIME) {
+    thread_context->cpu_time_at_previous_sample_ns += gc_cpu_time_elapsed_ns;
+  }
+  if (thread_context->wall_time_at_previous_sample_ns != INVALID_TIME) {
+    thread_context->wall_time_at_previous_sample_ns += gc_wall_time_elapsed_ns;
+  }
+
+  // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
+  return Qnil;
 }
 
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state) {
@@ -270,6 +355,10 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   // These will get initialized during actual sampling
   thread_context->cpu_time_at_previous_sample_ns = INVALID_TIME;
   thread_context->wall_time_at_previous_sample_ns = INVALID_TIME;
+
+  // These will only be used during a GC operation
+  thread_context->cpu_time_at_gc_start_ns = INVALID_TIME;
+  thread_context->wall_time_at_gc_start_ns = INVALID_TIME;
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
@@ -338,11 +427,18 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   return per_thread_context_st_table_as_ruby_hash(state);
 }
 
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns) {
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns) {
   // If we didn't have a time for the previous sample, we use the current one
   if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
 
-  long elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns;
+  // If we found a thread in the middle of doing GC, we don't assign the time actually spent doing GC during a normal
+  // sample; we will separately sample this thread after GC is done and assign that time there to a GC stack
+  long time_doing_gc = 0;
+  if (gc_start_time_ns != INVALID_TIME && *time_at_previous_sample_ns < gc_start_time_ns) {
+    time_doing_gc = gc_start_time_ns - *time_at_previous_sample_ns;
+  }
+
+  long elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns - time_doing_gc;
   *time_at_previous_sample_ns = current_time_ns;
 
   return elapsed_time_ns >= 0 ? elapsed_time_ns : 0 /* In case something really weird happened */;

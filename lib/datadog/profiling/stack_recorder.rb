@@ -14,6 +14,9 @@ module Datadog
         # C-level mutexes (that there is a single serializer thread), we add it here as an extra safeguard against it
         # accidentally happening.
         @no_concurrent_synchronize_mutex = Thread::Mutex.new
+
+        GC::Profiler.enable
+        @gc_at_last_export = GC::Profiler.total_time
       end
 
       def serialize
@@ -22,7 +25,11 @@ module Datadog
         if status == :ok
           start, finish, encoded_pprof = result
 
-          Datadog.logger.debug { "Encoded profile covering #{start.iso8601} to #{finish.iso8601}" }
+          time_in_gc_now = GC::Profiler.total_time
+          time_in_gc_spent = time_in_gc_now - @gc_at_last_export
+          @gc_at_last_export = time_in_gc_now
+
+          Datadog.logger.debug { "Encoded profile covering #{start.iso8601} to #{finish.iso8601} (#{time_in_gc_spent} spent in GC)" }
 
           [start, finish, encoded_pprof]
         else

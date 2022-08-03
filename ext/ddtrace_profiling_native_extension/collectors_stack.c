@@ -85,7 +85,8 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
     buffer,
     recorder_instance,
     (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-    (ddprof_ffi_Slice_label) {.ptr = labels, .len = labels_count}
+    (ddprof_ffi_Slice_label) {.ptr = labels, .len = labels_count},
+    THREAD_NOT_IN_GC
   );
 
   sampling_buffer_free(buffer);
@@ -93,7 +94,14 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
   return Qtrue;
 }
 
-void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
+void sample_thread(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddprof_ffi_Slice_i64 metric_values,
+  ddprof_ffi_Slice_label labels,
+  bool thread_in_gc
+) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
     0 /* stack starting depth */,
@@ -165,6 +173,7 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
       .line = line,
     };
 
+    // TODO: Maybe just do this at init and be done with it?
     buffer->locations[i] = (ddprof_ffi_Location) {.lines = (ddprof_ffi_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
   }
 
@@ -176,6 +185,18 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
   // with that info.
   if (captured_frames == (long) buffer->max_frames) {
     maybe_add_placeholder_frames_omitted(thread, buffer, frames_omitted_message, frames_omitted_message_size);
+  }
+
+  if (thread_in_gc) {
+    // TODO: Make it so that thread_in_GC doesn't clobber the last frame
+    // or maybe it doesn't matter since this is usually a #new or #allocate and thus it's fine-ish to blame it on the caller anyway
+    buffer->lines[0] = (ddprof_ffi_Line) {
+      .function = (ddprof_ffi_Function) {
+        .name = DDPROF_FFI_CHARSLICE_C(""),
+        .filename = DDPROF_FFI_CHARSLICE_C("In GC")
+      },
+      .line = 0
+    };
   }
 
   record_sample(

@@ -65,6 +65,7 @@ struct cpu_and_wall_time_worker_state {
   volatile bool should_run;
 
   VALUE cpu_and_wall_time_collector_instance;
+  VALUE gc_tracepoint;
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
   VALUE failure_exception;
@@ -83,6 +84,9 @@ static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception);
+static void install_gc_tracepoint(struct cpu_and_wall_time_worker_state *state);
+static void remove_gc_tracepoint(struct cpu_and_wall_time_worker_state *state);
+static void on_gc_event(VALUE tracepoint_data, void *state_ptr);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -129,6 +133,7 @@ static VALUE _native_new(VALUE klass) {
 
   state->should_run = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
+  state->gc_tracepoint = Qnil;
   state->failure_exception = Qnil;
 
   return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
@@ -150,6 +155,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
+  rb_gc_mark(state->gc_tracepoint);
   rb_gc_mark(state->failure_exception);
 }
 
@@ -170,11 +176,14 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
 
   install_sigprof_signal_handler();
+  install_gc_tracepoint(state);
 
   // Release the global VM lock, and start the sampling loop
   rb_thread_call_without_gvl(run_sampling_trigger_loop, state, interrupt_sampling_trigger_loop, state);
 
   // Once run_sampling_trigger_loop returns, sampling has either failed with some issue or we were asked to stop, so let's clean up
+
+  remove_gc_tracepoint(state);
   remove_sigprof_signal_handler();
 
   active_sampler_instance = Qnil;
@@ -316,4 +325,28 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
   state->failure_exception = exception;
 
   return Qnil;
+}
+
+static void install_gc_tracepoint(struct cpu_and_wall_time_worker_state *state) {
+  state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, state);
+  rb_tracepoint_enable(state->gc_tracepoint);
+}
+
+static void remove_gc_tracepoint(struct cpu_and_wall_time_worker_state *state) {
+  rb_tracepoint_disable(state->gc_tracepoint);
+  state->gc_tracepoint = Qnil;
+}
+
+static void on_gc_event(VALUE tracepoint_data, void *state_ptr) {
+  struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
+
+  int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
+
+  // TODO: Exception handling
+
+  if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
+    cpu_and_wall_time_collector_on_gc_start(state->cpu_and_wall_time_collector_instance);
+  } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
+    cpu_and_wall_time_collector_on_gc_finish(state->cpu_and_wall_time_collector_instance);
+  }
 }
