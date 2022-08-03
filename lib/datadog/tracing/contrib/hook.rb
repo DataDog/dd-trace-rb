@@ -27,6 +27,7 @@ module Datadog
               trace_hook.invoke(stack, env)
             end
           end
+          # binding.pry
 
           hook.install
         end
@@ -36,6 +37,7 @@ module Datadog
           self
         end
 
+        # Class defining the Env object that can be used to extract information passed to the method to be traced
         class Env
           attr_accessor \
             :self,
