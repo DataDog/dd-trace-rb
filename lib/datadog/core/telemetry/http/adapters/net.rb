@@ -1,6 +1,6 @@
 # typed: true
 
-require 'datadog/core/telemetry/http/response'
+require_relative '../response'
 
 module Datadog
   module Core

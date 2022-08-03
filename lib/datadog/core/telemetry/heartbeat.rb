@@ -1,7 +1,7 @@
 # typed: false
 
-require 'datadog/core/worker'
-require 'datadog/core/workers/polling'
+require_relative '../worker'
+require_relative '../workers/polling'
 
 module Datadog
   module Core

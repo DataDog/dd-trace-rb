@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core/telemetry/event'
-require 'datadog/core/telemetry/http/transport'
-require 'datadog/core/utils/sequence'
-require 'datadog/core/utils/forking'
+require_relative 'event'
+require_relative 'http/transport'
+require_relative '../utils/sequence'
+require_relative '../utils/forking'
 
 module Datadog
   module Core
