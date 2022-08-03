@@ -2,7 +2,7 @@
 
 require 'datadog/core/telemetry/event'
 require 'datadog/core/telemetry/http/transport'
-require 'datadog/core/utils/sequence_numeric'
+require 'datadog/core/utils/sequence'
 require 'datadog/core/utils/forking'
 
 module Datadog
@@ -34,11 +34,11 @@ module Datadog
           end
         end
 
-        # Initializes a SequenceNumeric object to track seq_id if not already initialized; else returns stored
-        # SequenceNumeric object
+        # Initializes a Sequence object to track seq_id if not already initialized; else returns stored
+        # Sequence object
         def self.sequence
-          after_fork! { @sequence = Datadog::Core::Utils::SequenceNumeric.new(1) }
-          @sequence ||= Datadog::Core::Utils::SequenceNumeric.new(1)
+          after_fork! { @sequence = Datadog::Core::Utils::Sequence.new(1) }
+          @sequence ||= Datadog::Core::Utils::Sequence.new(1)
         end
       end
     end
