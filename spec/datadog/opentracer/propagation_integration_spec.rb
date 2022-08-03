@@ -126,6 +126,7 @@ RSpec.describe 'OpenTracer context propagation' do
       let(:receiver_span_name) { 'operation.receiver' }
       let(:baggage) { { 'account_name' => 'acme' } }
       let(:carrier) { {} }
+      let(:another_carrier) { {} }
       let(:datadog_sender_trace) { datadog_traces.last }
       let(:datadog_receiver_trace) { datadog_traces.first }
 
@@ -144,6 +145,8 @@ RSpec.describe 'OpenTracer context propagation' do
           tracer.start_active_span(receiver_span_name, child_of: span_context) do |receiver_scope|
             @receiver_scope = receiver_scope
             # Do some work.
+
+            tracer.inject(receiver_scope.span.context, OpenTracing::FORMAT_TEXT_MAP, another_carrier)
           end
         end
       end
@@ -163,6 +166,27 @@ RSpec.describe 'OpenTracer context propagation' do
       it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
       it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
       it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
+
+      it do
+        expect(carrier).to include(
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(Integer),
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(Integer),
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer),
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
+          'ot-baggage-account_name' => 'acme'
+        )
+      end
+
+      it do
+        expect(another_carrier).to include(
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(Integer),
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(Integer),
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer),
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
+          'ot-baggage-account_name' => 'acme'
+        )
+      end
+
     end
   end
 
@@ -287,19 +311,18 @@ RSpec.describe 'OpenTracer context propagation' do
           sender_scope.span.context.datadog_context.active_trace.origin = 'synthetics'
           baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
 
-          carrier = {}
-          tracer.inject(
-            sender_scope.span.context,
-            OpenTracing::FORMAT_RACK,
-            carrier
-          )
+          @carrier = {}.tap do |c|
+            tracer.inject(sender_scope.span.context, OpenTracing::FORMAT_RACK, c)
+          end
 
-          carrier = carrier_to_rack_format(carrier)
-
-          span_context = tracer.extract(OpenTracing::FORMAT_RACK, carrier)
+          span_context = tracer.extract(OpenTracing::FORMAT_RACK, carrier_to_rack_format(@carrier))
           tracer.start_active_span(receiver_span_name, child_of: span_context) do |receiver_scope|
             @receiver_scope = receiver_scope
             # Do some work.
+
+            @another_carrier = {}.tap do |c|
+              tracer.inject(receiver_scope.span.context, OpenTracing::FORMAT_RACK, c)
+            end
           end
         end
       end
@@ -317,6 +340,24 @@ RSpec.describe 'OpenTracer context propagation' do
       it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
       it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
       it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
+      it do
+        expect(@carrier).to include(
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(String),
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String),
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
+          'ot-baggage-account_name' => 'acme'
+        )
+      end
+      it do
+        expect(@another_carrier).to include(
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(String),
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String),
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
+          'ot-baggage-account_name' => 'acme'
+        )
+      end
     end
   end
 end
