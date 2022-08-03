@@ -7,6 +7,13 @@ module Datadog
     module Contrib
       # Class defining hook used to implement method tracing
       class Hook
+        attr_reader \
+          :around_block,
+          :hook,
+          :name,
+          :span_options,
+          :target
+
         def initialize(name, target, span_options = {})
           @name = name
           @target = target
@@ -15,31 +22,18 @@ module Datadog
 
         def inject!
           trace_hook = self
-          @hook = Datadog::Instrumentation::Hook[@target].add do
+          @hook = Datadog::Instrumentation::Hook[target].add do
             append do |stack, env|
               trace_hook.invoke(stack, env)
             end
           end
 
-          @hook.install
+          hook.install
         end
 
         def around(&block)
-          @around = block
+          @around_block = block
           self
-        end
-
-        def invoke(stack, env)
-          Datadog::Tracing.trace(@name, **@span_options) do |span, trace|
-            env_obj = Env.new(env)
-            if @around
-              @around.call(env_obj, span, trace) do
-                stack.call(env)[:return]
-              end
-            else
-              stack.call(env)[:return]
-            end
-          end
         end
 
         class Env
@@ -52,6 +46,21 @@ module Datadog
             @self = env[:self]
             @args = env[:args]
             @kwargs = env[:kwargs]
+          end
+        end
+
+        private
+
+        def invoke(stack, env)
+          Datadog::Tracing.trace(name, **span_options) do |span, trace|
+            env_obj = Env.new(env)
+            if around_block
+              around_block.call(env_obj, span, trace) do
+                stack.call(env)[:return]
+              end
+            else
+              stack.call(env)[:return]
+            end
           end
         end
       end
