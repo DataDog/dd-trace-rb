@@ -31,10 +31,16 @@ module Datadog
           # @param service_name [String] Service’s name (DD_SERVICE)
           # @param service_version [String] Service’s version (DD_VERSION)
           # @param tracer_version [String] Version of the used tracer
-          def initialize(language_name:, language_version:, service_name:, tracer_version:, env: nil, products: nil,
-                         runtime_name: nil, runtime_patches: nil, runtime_version: nil, service_version: nil)
-            validate(language_name: language_name, language_version: language_version, service_name: service_name,
-                     tracer_version: tracer_version)
+          def initialize(
+            language_name:, language_version:, service_name:, tracer_version:, env: nil, products: nil,
+            runtime_name: nil, runtime_patches: nil, runtime_version: nil, service_version: nil
+          )
+            validate(
+              language_name: language_name,
+              language_version: language_version,
+              service_name: service_name,
+              tracer_version: tracer_version
+            )
             @env = env
             @language_name = language_name
             @language_version = language_version

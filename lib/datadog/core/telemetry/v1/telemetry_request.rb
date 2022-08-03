@@ -37,10 +37,20 @@ module Datadog
           # @param debug [Boolean] Flag that enables payload debug mode
           # @param session_id [String] V4 UUID that represents the session of the top level tracer process, often same\
           #   as runtime_id
-          def initialize(api_version:, application:, host:, payload:, request_type:, runtime_id:, seq_id:, tracer_time:,
-                         debug: nil, session_id: nil)
-            validate(api_version: api_version, application: application, host: host, payload: payload,
-                     request_type: request_type, runtime_id: runtime_id, seq_id: seq_id, tracer_time: tracer_time)
+          def initialize(
+            api_version:, application:, host:, payload:, request_type:, runtime_id:, seq_id:, tracer_time:,
+            debug: nil, session_id: nil
+          )
+            validate(
+              api_version: api_version,
+              application: application,
+              host: host,
+              payload: payload,
+              request_type: request_type,
+              runtime_id: runtime_id,
+              seq_id: seq_id,
+              tracer_time: tracer_time
+            )
             @api_version = api_version
             @application = application
             @debug = debug

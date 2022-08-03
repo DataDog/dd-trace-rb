@@ -20,8 +20,10 @@ module Datadog
           # @param kernel_version [String] uname -v
           # @param os [String] uname -o
           # @param os_version [String] Version of OS running
-          def initialize(container_id: nil, hostname: nil, kernel_name: nil, kernel_release: nil, kernel_version: nil,
-                         os_version: nil, os: nil)
+          def initialize(
+            container_id: nil, hostname: nil, kernel_name: nil, kernel_release: nil, kernel_version: nil,
+            os_version: nil, os: nil
+          )
             @container_id = container_id
             @hostname = hostname
             @kernel_name = kernel_name

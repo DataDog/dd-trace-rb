@@ -25,8 +25,12 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
 
   let(:api_version) { 'v1' }
   let(:application) do
-    Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
-                                                  service_name: 'myapp', tracer_version: '1.0')
+    Datadog::Core::Telemetry::V1::Application.new(
+      language_name: 'ruby',
+      language_version: '3.0',
+      service_name: 'myapp',
+      tracer_version: '1.0'
+    )
   end
   let(:debug) { false }
   let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
@@ -95,8 +99,12 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
 
       context 'is valid' do
         let(:application) do
-          Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
-                                                        service_name: 'myapp', tracer_version: '1.0')
+          Datadog::Core::Telemetry::V1::Application.new(
+            language_name: 'ruby',
+            language_version: '3.0',
+            service_name: 'myapp',
+            tracer_version: '1.0'
+          )
         end
         it { is_expected.to be_a_kind_of(described_class) }
       end
@@ -170,8 +178,12 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
 
     let(:api_version) { 'v1' }
     let(:application) do
-      Datadog::Core::Telemetry::V1::Application.new(language_name: 'ruby', language_version: '3.0',
-                                                    service_name: 'myapp', tracer_version: '1.0')
+      Datadog::Core::Telemetry::V1::Application.new(
+        language_name: 'ruby',
+        language_version: '3.0',
+        service_name: 'myapp',
+        tracer_version: '1.0'
+      )
     end
     let(:debug) { false }
     let(:host) { Datadog::Core::Telemetry::V1::Host.new(container_id: 'd39b145254d1f9c337fdd2be132f6') }
