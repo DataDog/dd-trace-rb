@@ -127,6 +127,12 @@ module Datadog
         current_tracer.enabled
       end
 
+      # (see Datadog::Tracing::Tracer#trace_method)
+      # @public_api
+      def trace_method(name, target, span_options = {})
+        tracer.trace_method(name, target, span_options)
+      end
+
       private
 
       # DEV: components hosts both tracing and profiling inner objects today
