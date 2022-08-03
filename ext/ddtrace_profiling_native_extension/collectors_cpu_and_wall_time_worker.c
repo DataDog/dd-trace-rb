@@ -74,6 +74,7 @@ static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE cpu_and_wall_time_collector_instance);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
+static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance);
 static void install_sigprof_signal_handler(void);
 static void remove_sigprof_signal_handler(void);
 static void block_sigprof_signal_handler_from_running_in_current_thread(void);
@@ -107,6 +108,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -184,6 +186,15 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   RB_GC_GUARD(instance);
 
   return Qnil;
+}
+
+static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  state->should_run = false;
+
+  return Qtrue;
 }
 
 static void install_sigprof_signal_handler(void) {
