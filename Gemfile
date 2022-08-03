@@ -92,3 +92,5 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
+
+gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'
