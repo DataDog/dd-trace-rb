@@ -27,7 +27,6 @@ module Datadog
               trace_hook.invoke(stack, env)
             end
           end
-          # binding.pry
 
           hook.install
         end
@@ -35,6 +34,19 @@ module Datadog
         def around(&block)
           @around_block = block
           self
+        end
+
+        def invoke(stack, env)
+          Datadog::Tracing.trace(name, **span_options) do |span, trace|
+            env_obj = Env.new(env)
+            if around_block
+              around_block.call(env_obj, span, trace) do
+                stack.call(env)[:return]
+              end
+            else
+              stack.call(env)[:return]
+            end
+          end
         end
 
         # Class defining the Env object that can be used to extract information passed to the method to be traced
@@ -48,21 +60,6 @@ module Datadog
             @self = env[:self]
             @args = env[:args]
             @kwargs = env[:kwargs]
-          end
-        end
-
-        private
-
-        def invoke(stack, env)
-          Datadog::Tracing.trace(name, **span_options) do |span, trace|
-            env_obj = Env.new(env)
-            if around_block
-              around_block.call(env_obj, span, trace) do
-                stack.call(env)[:return]
-              end
-            else
-              stack.call(env)[:return]
-            end
           end
         end
       end
