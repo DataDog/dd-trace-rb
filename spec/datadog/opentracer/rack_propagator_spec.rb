@@ -13,30 +13,6 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
   describe '#inject' do
     subject { described_class.inject(span_context, carrier) }
 
-    let(:span_context) do
-      instance_double(
-        Datadog::OpenTracer::SpanContext,
-        datadog_context: datadog_context,
-        baggage: baggage
-      )
-    end
-
-    let(:datadog_context) do
-      instance_double(
-        Datadog::Tracing::Context,
-        active_trace: datadog_trace
-      )
-    end
-
-    let(:datadog_trace) do
-      Datadog::Tracing::TraceOperation.new(
-        id: trace_id,
-        parent_span_id: span_id,
-        sampling_priority: sampling_priority,
-        origin: origin
-      )
-    end
-
     let(:trace_id) { double('trace ID') }
     let(:span_id) { double('span ID') }
     let(:sampling_priority) { double('sampling priority') }
@@ -46,8 +22,8 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
 
     let(:carrier) { instance_double(Datadog::OpenTracer::Carrier) }
 
-    # Expect carrier to be set with Datadog trace properties
     before do
+      # Expect carrier to be set with Datadog trace properties
       expect(carrier).to receive(:[]=)
         .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID, trace_id.to_s)
       expect(carrier).to receive(:[]=)
@@ -56,17 +32,63 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
         .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
       expect(carrier).to receive(:[]=)
         .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN, origin.to_s)
-    end
 
-    # Expect carrier to be set with OpenTracing baggage
-    before do
+      # Expect carrier to be set with OpenTracing baggage
       baggage.each do |key, value|
         expect(carrier).to receive(:[]=)
           .with(described_class::BAGGAGE_PREFIX + key, value)
       end
     end
 
-    it { is_expected.to be nil }
+    context 'when given span context with datadog context' do
+      let(:span_context) do
+        instance_double(
+          Datadog::OpenTracer::SpanContext,
+          datadog_context: datadog_context,
+          baggage: baggage
+        )
+      end
+
+      let(:datadog_context) do
+        instance_double(
+          Datadog::Tracing::Context,
+          active_trace: datadog_trace
+        )
+      end
+
+      let(:datadog_trace) do
+        Datadog::Tracing::TraceOperation.new(
+          id: trace_id,
+          parent_span_id: span_id,
+          sampling_priority: sampling_priority,
+          origin: origin
+        )
+      end
+
+      it { is_expected.to be nil }
+    end
+
+    context 'when given span context with datadog trace digest' do
+      let(:span_context) do
+        instance_double(
+          Datadog::OpenTracer::SpanContext,
+          datadog_context: nil,
+          datadog_trace_digest: datadog_trace_digest,
+          baggage: baggage
+        )
+      end
+
+      let(:datadog_trace_digest) do
+        instance_double(
+          Datadog::Tracing::TraceDigest,
+          span_id: span_id,
+          trace_id: trace_id,
+          trace_origin: origin,
+          trace_sampling_priority: sampling_priority
+        )
+      end
+      it { is_expected.to be nil }
+    end
   end
 
   describe '#extract' do

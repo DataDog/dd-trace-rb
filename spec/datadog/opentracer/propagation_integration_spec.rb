@@ -186,7 +186,6 @@ RSpec.describe 'OpenTracer context propagation' do
           'ot-baggage-account_name' => 'acme'
         )
       end
-
     end
   end
 
@@ -340,6 +339,7 @@ RSpec.describe 'OpenTracer context propagation' do
       it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
       it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
       it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
+
       it do
         expect(@carrier).to include(
           Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
@@ -349,6 +349,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'ot-baggage-account_name' => 'acme'
         )
       end
+
       it do
         expect(@another_carrier).to include(
           Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
