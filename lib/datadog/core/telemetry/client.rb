@@ -2,7 +2,7 @@
 
 require 'datadog/core/telemetry/emitter'
 require 'datadog/core/telemetry/heartbeat'
-require 'datadog/core/utils/sequence'
+require 'datadog/core/utils/forking'
 
 module Datadog
   module Core
@@ -15,24 +15,16 @@ module Datadog
           :unsupported,
           :worker
 
+        include Core::Utils::Forking
+
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
-        # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
-        def initialize(enabled: true, sequence: Datadog::Core::Utils::Sequence.new(1))
+        def initialize(enabled: true)
           @enabled = enabled
-          @emitter = Emitter.new(sequence: sequence)
+          @emitter = Emitter.new
           @stopped = false
           @unsupported = false
-
-          started!
           @worker = Telemetry::Heartbeat.new(enabled: @enabled) do
             heartbeat!
-          end
-        end
-
-        def reenable!
-          unless @enabled || @unsupported
-            @enabled = true
-            @worker.enabled = true
           end
         end
 
@@ -42,42 +34,44 @@ module Datadog
         end
 
         def started!
-          return unless @enabled
+          return if !@enabled || forked?
 
-          res = @emitter.request('app-started')
+          res = @emitter.request(:'app-started')
 
           if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
-            @enabled = false
+            disable!
             @unsupported = true # Prevent telemetry from getting re-enabled
           end
+
           res
+        end
+
+        def emit_closing!
+          return if !@enabled || forked?
+
+          @emitter.request(:'app-closing')
         end
 
         def stop!
           return if @stopped
 
-          @worker.stop
-          @worker.join
+          @worker.stop(true, 0)
           @stopped = true
-
-          return unless @enabled
-
-          @emitter.request('app-closing')
         end
 
         def integrations_change!
-          return unless @enabled
+          return if !@enabled || forked?
 
-          @emitter.request('app-integrations-change')
+          @emitter.request(:'app-integrations-change')
         end
 
         private
 
         def heartbeat!
-          return unless @enabled
+          return if !@enabled || forked?
 
-          @emitter.request('app-heartbeat')
+          @emitter.request(:'app-heartbeat')
         end
       end
     end
