@@ -153,4 +153,17 @@ RSpec.describe Datadog::Tracing do
       enabled?
     end
   end
+
+  describe '.trace_method' do
+    subject(:trace_method) { described_class.trace_method(name, target, span_options) }
+    let(:name) { double('name') }
+    let(:target) { double('target') }
+    let(:span_options) { { resource: double('option') } }
+
+    it 'delegates to the tracer' do
+      expect(Datadog.send(:components).tracer).to receive(:trace_method)
+        .with(name, target, span_options).and_return(returned)
+      expect(trace_method).to eq(returned)
+    end
+  end
 end
