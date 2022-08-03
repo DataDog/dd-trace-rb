@@ -4,6 +4,7 @@ require_relative '../core'
 require_relative '../core/environment/ext'
 require_relative '../core/environment/socket'
 
+require_relative 'contrib/hook'
 require_relative 'correlation'
 require_relative 'event'
 require_relative 'flush'
@@ -296,6 +297,18 @@ module Datadog
         return unless @enabled
 
         @writer.stop if @writer
+      end
+
+      # Setup a Datadog::Tracing::Contrib::Hook object to trace a method.
+      #
+      # @param [String] name Defines the name of the span
+      # @param [String] target Defines the method to be traced
+      # @param [Hash] span_options Optional value to be added to the produced span
+      # @return [Datadog::Tracing::Contrib::Hook] The newly defined Datadog::Tracing::Contrib::Hook object
+      def trace_method(name, target, span_options = {})
+        trace_hook = Datadog::Tracing::Contrib::Hook.new(name, target, span_options)
+        trace_hook.inject!
+        trace_hook
       end
 
       private
