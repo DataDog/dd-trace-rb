@@ -34,7 +34,11 @@ RSpec.describe Datadog::CI::Configuration::Components do
       end
     end
 
-    after { components.shutdown! }
+    after do
+      components.telemetry.worker.stop(true)
+      components.telemetry.worker.join
+      components.shutdown!
+    end
 
     describe '::new' do
       context 'when #ci' do

@@ -17,8 +17,13 @@ module Datadog
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = interval
+          self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
           super(&block)
           start
+        end
+
+        def loop_wait_before_first_iteration?
+          true
         end
 
         private
