@@ -41,6 +41,7 @@ RSpec.describe Datadog::Tracing::Contrib::Hook do
       inject!
 
       expect(hook).to have_attributes(hook: be_a_kind_of(Datadog::Instrumentation::Hook))
+      expect(hook.hook.point.to_s).to eq(target)
     end
   end
 
