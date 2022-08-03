@@ -90,7 +90,9 @@ module Datadog
             if components?
               replace_components!(configuration, @components)
             else
-              build_components(configuration)
+              components = build_components(configuration)
+              components.telemetry.started!
+              components
             end
           )
         end
@@ -249,7 +251,7 @@ module Datadog
       end
 
       def replace_components!(settings, old)
-        components = Components.new(settings, previous_components: old)
+        components = Components.new(settings)
 
         old.shutdown!(components)
         components.startup!(settings)

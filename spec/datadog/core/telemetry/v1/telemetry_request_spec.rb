@@ -37,7 +37,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       )]
     )
   end
-  let(:request_type) { 'app-started' }
+  let(:request_type) { :'app-started' }
   let(:dummy_runtime_id) { 'dummy_runtime_id' }
   let(:seq_id) { 42 }
   let(:dummy_session_id) { 'dummy_session_id' }
@@ -127,7 +127,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
       end
 
       context 'is valid string' do
-        let(:request_type) { 'app-started' }
+        let(:request_type) { :'app-started' }
         it { is_expected.to be_a_kind_of(described_class) }
       end
     end
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::TelemetryRequest do
         )]
       )
     end
-    let(:request_type) { 'app-started' }
+    let(:request_type) { :'app-started' }
     let(:dummy_runtime_id) { 'dummy_runtime_id' }
     let(:seq_id) { 42 }
     let(:dummy_session_id) { 'dummy_session_id' }

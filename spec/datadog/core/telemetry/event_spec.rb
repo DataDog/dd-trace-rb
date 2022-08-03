@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   describe '#telemetry_request' do
     subject(:telemetry_request) { event.telemetry_request(request_type: request_type, seq_id: seq_id) }
 
-    let(:request_type) { 'app-started' }
+    let(:request_type) { :'app-started' }
     let(:seq_id) { 1 }
 
     it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
@@ -26,25 +26,25 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
     context 'when :request_type' do
       context 'is app-started' do
-        let(:request_type) { 'app-started' }
+        let(:request_type) { :'app-started' }
 
         it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
       end
 
       context 'is app-closing' do
-        let(:request_type) { 'app-closing' }
+        let(:request_type) { :'app-closing' }
 
         it { expect(telemetry_request.payload).to eq({}) }
       end
 
       context 'is app-heartbeat' do
-        let(:request_type) { 'app-heartbeat' }
+        let(:request_type) { :'app-heartbeat' }
 
         it { expect(telemetry_request.payload).to eq({}) }
       end
 
       context 'is app-integrations-change' do
-        let(:request_type) { 'app-integrations-change' }
+        let(:request_type) { :'app-integrations-change' }
 
         it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
       end
