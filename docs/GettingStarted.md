@@ -1056,7 +1056,7 @@ To activate your integration, use the `Datadog.configure` method:
 ```ruby
 # Inside Rails initializer or equivalent
 Datadog.configure do |c|
-  c.tracing.instrument :graphql, schemas: [YourSchema], options
+  c.tracing.instrument :graphql, schemas: [YourSchema], **options
 end
 
 # Then run a GraphQL query
@@ -1068,6 +1068,9 @@ The `use :graphql` method accepts the following parameters. Additional options c
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
+| `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
+| `analytics_enabled` | Enable analytics for spans. `true` for on, `nil` to defer to Datadog global setting, `false` for off. | `false` |
+| `analytics_sample_rate` | Rate which tracing data should be sampled for Datadog analytics. Must be a float between `0` and `1.0`. | `1.0` |
 
 **Manually configuring GraphQL schemas**
 
