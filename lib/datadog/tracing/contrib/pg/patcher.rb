@@ -42,17 +42,14 @@ module Datadog
                 target,
                 { type: Tracing::Metadata::Ext::SQL::TYPE }
               ).around do |env, span, _trace, &block|
-                trace(env, span, env.args.first, block)
+                service = Datadog.configuration_for(env.self, :service_name) || datadog_configuration[:service_name]
+                Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
+                annotate_span_with_query!(span, env, service, env.args.first)
+                result = block.call
+                annotate_span_with_result!(span, result)
+                result
               end
             end
-          end
-
-          def trace(env, span, resource, block)
-            service = Datadog.configuration_for(env.self, :service_name) || datadog_configuration[:service_name]
-            Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
-            annotate_span_with_query!(span, env, service, resource)
-            result = block.call
-            annotate_span_with_result!(span, result)
           end
 
           def annotate_span_with_query!(span, env, service, resource)
