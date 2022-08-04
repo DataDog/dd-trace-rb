@@ -354,7 +354,7 @@ end
 
 Where `name` should be a `String` that describes the generic kind of operation being done (e.g. `'web.request'`, or `'request.parse'`)
 
-And `options` the following are optional keyword arguments:
+And `options` are the following optional keyword arguments:
 
 | Key | Type | Description | Default |
 | --------------- | ----------------------- | --- | --- |
