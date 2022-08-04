@@ -9,3 +9,5 @@ gem 'google-protobuf'
 gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
 
 gem 'byebug'
+
+gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'

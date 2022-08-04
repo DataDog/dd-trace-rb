@@ -12,3 +12,5 @@ gem 'byebug'
 
 # Testing/CI
 gem 'rspec'
+
+gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'
