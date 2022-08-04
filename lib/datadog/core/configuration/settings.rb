@@ -687,6 +687,19 @@ module Datadog
               o.lazy
             end
           end
+
+          # Maximum size for the `x-datadog-tags` distributed trace tags header.
+          #
+          # If the serialized size of distributed trace tags is larger than this value, it will
+          # not be parsed if incoming, nor exported if outgoing. An error message will be logged
+          # in this case.
+          #
+          # @default `DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH` environment variable, otherwise `512`
+          # @return [Integer]
+          option :x_datadog_tags_max_length do |o|
+            o.default { env_to_int(Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH, 512) }
+            o.lazy
+          end
         end
 
         # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
