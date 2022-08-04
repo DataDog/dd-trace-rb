@@ -91,6 +91,30 @@ RSpec.describe Datadog::Tracing::Contrib::Hook do
     end
   end
 
+  describe '#disable!' do
+    subject(:disable!) { hook.disable! }
+
+    before do
+      hook.inject!
+    end
+
+    it do
+      expect { disable! }.to change { hook.disabled? }.from(false).to(true)
+    end
+  end
+
+  describe '#enable!' do
+    subject(:enable!) { hook.enable! }
+
+    before do
+      hook.inject!
+    end
+
+    it do
+      expect { enable! }.to change { hook.disabled? }.to(false)
+    end
+  end
+
   describe '::Env' do
     subject(:env) { Datadog::Tracing::Contrib::Hook::Env.new(env_hash) }
     let(:env_hash) { { self: self_instance, args: args, kwargs: kwargs } }
