@@ -176,6 +176,8 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
+  // Hosts methods used for testing the native code using RSpec
+  VALUE testing_module = rb_define_module_under(stack_recorder_class, "Testing");
 
   // Instances of the StackRecorder class are "TypedData" objects.
   // "TypedData" objects are special objects in the Ruby VM that can wrap C structs.
@@ -188,9 +190,9 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
-  rb_define_singleton_method(stack_recorder_class, "_native_active_slot", _native_active_slot, 1);
-  rb_define_singleton_method(stack_recorder_class, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
-  rb_define_singleton_method(stack_recorder_class, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
+  rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
+  rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
+  rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
