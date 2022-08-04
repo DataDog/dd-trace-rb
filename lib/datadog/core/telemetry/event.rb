@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/core/telemetry/collector'
-require 'datadog/core/telemetry/v1/app_event'
-require 'datadog/core/telemetry/v1/telemetry_request'
+require_relative 'collector'
+require_relative 'v1/app_event'
+require_relative 'v1/telemetry_request'
 
 module Datadog
   module Core

@@ -1,9 +1,9 @@
 # typed: true
 
-require 'datadog/core/configuration/settings'
-require 'datadog/core/telemetry/http/env'
-require 'datadog/core/telemetry/http/ext'
-require 'datadog/core/telemetry/http/adapters/net'
+require_relative '../../configuration/settings'
+require_relative 'env'
+require_relative 'ext'
+require_relative 'adapters/net'
 
 module Datadog
   module Core

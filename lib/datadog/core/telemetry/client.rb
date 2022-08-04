@@ -1,8 +1,8 @@
 # typed: true
 
-require 'datadog/core/telemetry/emitter'
-require 'datadog/core/telemetry/heartbeat'
-require 'datadog/core/utils/forking'
+require_relative 'emitter'
+require_relative 'heartbeat'
+require_relative '../utils/forking'
 
 module Datadog
   module Core

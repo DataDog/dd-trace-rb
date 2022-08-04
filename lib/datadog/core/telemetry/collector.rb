@@ -4,15 +4,15 @@
 
 require 'etc'
 
-require 'datadog/core/configuration/agent_settings_resolver'
-require 'datadog/core/environment/ext'
-require 'datadog/core/environment/platform'
-require 'datadog/core/telemetry/v1/application'
-require 'datadog/core/telemetry/v1/dependency'
-require 'datadog/core/telemetry/v1/host'
-require 'datadog/core/telemetry/v1/integration'
-require 'datadog/core/telemetry/v1/product'
-require 'ddtrace/transport/ext'
+require_relative '../configuration/agent_settings_resolver'
+require_relative '../environment/ext'
+require_relative '../environment/platform'
+require_relative 'v1/application'
+require_relative 'v1/dependency'
+require_relative 'v1/host'
+require_relative 'v1/integration'
+require_relative 'v1/product'
+require_relative '../../../ddtrace/transport/ext'
 
 module Datadog
   module Core
