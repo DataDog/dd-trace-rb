@@ -104,3 +104,5 @@ group :test, :development do
 
   gem 'listen'
 end
+
+gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'

@@ -106,3 +106,5 @@ google_protobuf_versions = [
   '!= 3.8.0.rc.1'
 ]
 gem 'google-protobuf', *google_protobuf_versions
+
+gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'
