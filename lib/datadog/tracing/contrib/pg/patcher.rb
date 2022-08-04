@@ -24,68 +24,26 @@ module Datadog
           def patch_pg_connection
             # ::PG::Connection.include(Instrumentation)
 
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_EXEC,
-              'PG::Connection#exec',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_EXEC_PARAMS,
-              'PG::Connection#exec_params',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_EXEC_PREPARED,
-              'PG::Connection#exec_prepared',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_ASYNC_EXEC,
-              'PG::Connection#async_exec',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_ASYNC_EXEC_PARAMS,
-              'PG::Connection#async_exec_params',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_ASYNC_EXEC_PREPARED,
-              'PG::Connection#async_exec_prepared',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_SYNC_EXEC,
-              'PG::Connection#sync_exec',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_SYNC_EXEC_PARAMS,
-              'PG::Connection#sync_exec_params',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
-            end
-            Datadog::Tracing.trace_method(
-              Ext::SPAN_SYNC_EXEC_PREPARED,
-              'PG::Connection#sync_exec_prepared',
-              { type: Tracing::Metadata::Ext::SQL::TYPE }
-            ).around do |env, span, _trace, &block|
-              trace(env, span, env.args.first, block)
+            instrumentation_points = [
+              [Ext::SPAN_EXEC, 'PG::Connection#exec'],
+              [Ext::SPAN_EXEC_PARAMS, 'PG::Connection#exec_params'],
+              [Ext::SPAN_EXEC_PREPARED, 'PG::Connection#exec_prepared'],
+              [Ext::SPAN_ASYNC_EXEC, 'PG::Connection#async_exec'],
+              [Ext::SPAN_ASYNC_EXEC_PARAMS, 'PG::Connection#async_exec_params'],
+              [Ext::SPAN_ASYNC_EXEC_PREPARED, 'PG::Connection#async_exec_prepared'],
+              [Ext::SPAN_SYNC_EXEC, 'PG::Connection#sync_exec'],
+              [Ext::SPAN_SYNC_EXEC_PARAMS, 'PG::Connection#sync_exec_params'],
+              [Ext::SPAN_SYNC_EXEC_PREPARED, 'PG::Connection#sync_exec_prepared']
+            ]
+
+            instrumentation_points.each do |name, target|
+              Datadog::Tracing.trace_method(
+                name,
+                target,
+                { type: Tracing::Metadata::Ext::SQL::TYPE }
+              ).around do |env, span, _trace, &block|
+                trace(env, span, env.args.first, block)
+              end
             end
           end
 
