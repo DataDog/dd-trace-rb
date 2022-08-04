@@ -5,9 +5,13 @@
 #include "libdatadog_helpers.h"
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
+#include "collectors_cpu_and_wall_time.h"
 
-// Used to periodically (time-based) sample threads, recording elapsed CPU-time and Wall-time between samples.
+// Used to periodically sample threads, recording elapsed CPU-time and Wall-time between samples.
+//
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTime class
+//
+// Triggering of this component (e.g. deciding when to take a sample) is implemented in Collectors::CpuAndWallTimeWorker.
 
 #define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 20
@@ -43,7 +47,6 @@ static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t 
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
 static VALUE _native_sample(VALUE self, VALUE collector_instance);
-static void sample(VALUE collector_instance);
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
@@ -169,13 +172,17 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
-  sample(collector_instance);
+  cpu_and_wall_time_collector_sample(collector_instance);
   return Qtrue;
 }
 
-static void sample(VALUE collector_instance) {
+// This function gets called from the Collectors::CpuAndWallTimeWorker to trigger the actual sampling.
+//
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
+VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   VALUE threads = ddtrace_thread_list();
   long current_wall_time_ns = wall_time_now_ns();
@@ -226,6 +233,9 @@ static void sample(VALUE collector_instance) {
   // TODO: This seems somewhat overkill and inefficient to do often; right now we just doing every few samples
   // but there's probably a better way to do this if we actually track when threads finish
   if (state->sample_count % 100 == 0) remove_context_for_dead_threads(state);
+
+  // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
+  return Qnil;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
@@ -372,4 +382,8 @@ static long thread_id_for(VALUE thread) {
   // So, for now, let's simplify: we only support FIXNUMs, and we won't break if we get a BIGNUM; we just won't
   // record the thread_id (but samples will still be collected).
   return FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1;
+}
+
+void enforce_cpu_and_wall_time_collector_instance(VALUE object) {
+  Check_TypedStruct(object, &cpu_and_wall_time_collector_typed_data);
 }
