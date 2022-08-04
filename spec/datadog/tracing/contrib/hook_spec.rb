@@ -45,6 +45,40 @@ RSpec.describe Datadog::Tracing::Contrib::Hook do
     end
   end
 
+  describe '#invoke' do
+    subject(:invoke) { hook.invoke(stack, env) }
+    let(:stack) { double('stack') }
+    let(:env) { double('env') }
+    let(:return_object) { double('return') }
+
+    before do
+      allow(stack).to receive(:call).and_return({ return: return_object })
+      allow(env).to receive(:[]).and_return(double('attr'))
+    end
+
+    context 'when around block provided' do
+      let(:block) { proc { |_env, _span, _trace, &block| block.call } }
+
+      before do
+        hook.around(&block)
+      end
+
+      it do
+        res = invoke
+        expect(stack).to have_received(:call).with(env)
+        expect(res).to be(return_object)
+      end
+    end
+
+    context 'when around block not provided' do
+      it do
+        res = invoke
+        expect(stack).to have_received(:call).with(env)
+        expect(res).to be(return_object)
+      end
+    end
+  end
+
   describe '#around' do
     subject(:around) { hook.around(&block) }
     let(:block) { nil }

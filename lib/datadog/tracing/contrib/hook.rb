@@ -38,8 +38,8 @@ module Datadog
 
         def invoke(stack, env)
           Datadog::Tracing.trace(name, **span_options) do |span, trace|
-            env_obj = Env.new(env)
             if around_block
+              env_obj = Env.new(env)
               around_block.call(env_obj, span, trace) do
                 stack.call(env)[:return]
               end
