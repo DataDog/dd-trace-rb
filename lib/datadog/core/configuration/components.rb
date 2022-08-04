@@ -5,6 +5,7 @@ require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
 require_relative '../runtime/metrics'
+require_relative '../telemetry/client'
 require_relative '../workers/runtime_metrics'
 
 require_relative '../../tracing/tracer'
@@ -49,6 +50,10 @@ module Datadog
             )
 
             Core::Workers::RuntimeMetrics.new(options)
+          end
+
+          def build_telemetry(settings)
+            Telemetry::Client.new(enabled: settings.telemetry.enabled)
           end
 
           def build_tracer(settings, agent_settings)
@@ -326,6 +331,7 @@ module Datadog
           :logger,
           :profiler,
           :runtime_metrics,
+          :telemetry,
           :tracer
 
         def initialize(settings)
@@ -345,6 +351,9 @@ module Datadog
 
           # Health metrics
           @health_metrics = self.class.build_health_metrics(settings)
+
+          # Telemetry
+          @telemetry = self.class.build_telemetry(settings)
         end
 
         # Starts up components
@@ -401,6 +410,9 @@ module Datadog
 
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
+
+          telemetry.stop!
+          telemetry.emit_closing! unless replacement
         end
       end
       # rubocop:enable Metrics/ClassLength
