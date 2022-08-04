@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [1.2.0] - 2022-08-04
+## [1.3.0] - 2022-08-04
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.3.0
 
@@ -17,7 +17,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v1.2.0...v1.3.0
 * ActiveSupport: Optionally disable tracing with Rails ([@marcotc][])
 * Rack: Resource overwritten by nested application ([#2180][])
 * Rake: Explicit task instrumentation to prevent memory bloat ([#2174][])
-* Sidekiq and DelayedJob: Add spans to improve tracing ([2170][])
+* Sidekiq and DelayedJob: Add spans to improve tracing ([#2170][])
 * Drop Profiling support for Ruby 2.1 ([#2140][])
 * Migrate `libddprof` dependency to `libdatadog` ([#2061][])
 
