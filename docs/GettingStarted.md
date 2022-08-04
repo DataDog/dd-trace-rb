@@ -2523,7 +2523,7 @@ The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default t
 Datadog.configure do |c|
   c.tracing.transport_options = proc { |t|
     # Hostname, port, and additional options. :timeout is in seconds.
-    t.adapter :net_http, '127.0.0.1', 8126, { timeout: 1 }
+    t.adapter :net_http, '127.0.0.1', 8126, timeout: 30
   }
 end
 ```
