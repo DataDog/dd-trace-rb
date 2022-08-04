@@ -49,6 +49,18 @@ module Datadog
           end
         end
 
+        def disable!
+          hook.disable
+        end
+
+        def enable!
+          hook.enable
+        end
+
+        def disabled?
+          hook.disabled?
+        end
+
         # Class defining the Env object that can be used to extract information passed to the method to be traced
         class Env
           attr_accessor \
