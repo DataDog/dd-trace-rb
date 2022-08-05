@@ -85,6 +85,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'triggers sampling and records the results' do
+      pending 'Currently broken on Ruby 2.2 due to missing ruby_thread_has_gvl_p API' if RUBY_VERSION.start_with?('2.2.')
+
       start
 
       all_samples = try_wait_until do
@@ -112,9 +114,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'shuts down the background thread' do
-      skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
-
       stop
+
+      skip 'Spec not compatible with Ruby 2.2' if RUBY_VERSION.start_with?('2.2.')
 
       expect(Thread.list.map(&:name)).to_not include(described_class.name)
     end
