@@ -105,6 +105,14 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
   end
 end
 
+RSpec.describe 'LOADED variable' do
+  subject(:auto_instrument) { load 'ddtrace/auto_instrument.rb' }
+  it do
+    auto_instrument
+    expect(Datadog::AutoInstrument::LOADED).to eq(true)
+  end
+end
+
 RSpec.describe 'Profiler startup' do
   subject(:auto_instrument) { load 'ddtrace/auto_instrument.rb' }
 

@@ -10,6 +10,14 @@ require 'datadog/tracing/tracer'
 
 RSpec.describe Datadog::Core::Configuration do
   let(:default_log_level) { ::Logger::INFO }
+  let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
+
+  before do
+    allow(telemetry_client).to receive(:started!)
+    allow(telemetry_client).to receive(:stop!)
+    allow(telemetry_client).to receive(:emit_closing!)
+    allow(Datadog::Core::Telemetry::Client).to receive(:new).and_return(telemetry_client)
+  end
 
   context 'when extended by a class' do
     subject(:test_class) { stub_const('TestClass', Class.new { extend Datadog::Core::Configuration }) }
@@ -73,6 +81,7 @@ RSpec.describe Datadog::Core::Configuration do
               .with(test_class.configuration)
 
             expect(new_components).to_not have_received(:shutdown!)
+            expect(telemetry_client).to have_received(:started!)
           end
         end
       end

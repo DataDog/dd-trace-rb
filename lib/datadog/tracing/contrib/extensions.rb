@@ -97,6 +97,8 @@ module Datadog
                 Datadog.logger.warn("Unable to patch #{patch_results[:name]} (#{desc})")
               end
 
+              components.telemetry.integrations_change! if configuration.integrations_pending_activation
+
               configuration.integrations_pending_activation.clear
             end
 

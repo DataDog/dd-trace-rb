@@ -5,6 +5,7 @@ require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
 require_relative '../runtime/metrics'
+require_relative '../telemetry/client'
 require_relative '../workers/runtime_metrics'
 
 require_relative '../../tracing/tracer'
@@ -49,6 +50,10 @@ module Datadog
             )
 
             Core::Workers::RuntimeMetrics.new(options)
+          end
+
+          def build_telemetry(settings)
+            Telemetry::Client.new(enabled: settings.telemetry.enabled)
           end
 
           def build_tracer(settings, agent_settings)
@@ -240,13 +245,14 @@ module Datadog
               endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
             )
 
-            old_recorder = build_profiler_old_recorder(settings)
-            exporter = build_profiler_exporter(settings, old_recorder)
-            collectors = build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
-            transport = build_profiler_transport(settings, agent_settings)
-            scheduler = build_profiler_scheduler(settings, exporter, transport)
+            recorder = build_profiler_old_recorder(settings)
+            collector = build_profiler_oldstack_collector(settings, recorder, trace_identifiers_helper)
 
-            Profiling::Profiler.new(collectors, scheduler)
+            exporter = build_profiler_exporter(settings, recorder)
+            transport = build_profiler_transport(settings, agent_settings)
+            scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
+
+            Profiling::Profiler.new([collector], scheduler)
           end
 
           private
@@ -279,34 +285,22 @@ module Datadog
           end
 
           def build_profiler_old_recorder(settings)
-            event_classes = [Profiling::Events::StackSample]
-
-            Profiling::OldRecorder.new(
-              event_classes,
-              settings.profiling.advanced.max_events,
-            )
+            Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
           end
 
-          def build_profiler_exporter(settings, old_recorder)
+          def build_profiler_exporter(settings, recorder)
             code_provenance_collector =
               (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
-            Profiling::Exporter.new(
-              # NOTE: Using the OldRecorder as a pprof_recorder is temporary and will be removed once libpprof is
-              # being used for aggregation
-              pprof_recorder: old_recorder,
-              code_provenance_collector: code_provenance_collector,
-            )
+            Profiling::Exporter.new(pprof_recorder: recorder, code_provenance_collector: code_provenance_collector)
           end
 
-          def build_profiler_collectors(settings, old_recorder, trace_identifiers_helper)
-            [
-              Profiling::Collectors::OldStack.new(
-                old_recorder,
-                trace_identifiers_helper: trace_identifiers_helper,
-                max_frames: settings.profiling.advanced.max_frames
-              )
-            ]
+          def build_profiler_oldstack_collector(settings, old_recorder, trace_identifiers_helper)
+            Profiling::Collectors::OldStack.new(
+              old_recorder,
+              trace_identifiers_helper: trace_identifiers_helper,
+              max_frames: settings.profiling.advanced.max_frames
+            )
           end
 
           def build_profiler_transport(settings, agent_settings)
@@ -330,10 +324,6 @@ module Datadog
                 upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
               )
           end
-
-          def build_profiler_scheduler(_settings, exporter, transport)
-            Profiling::Scheduler.new(exporter: exporter, transport: transport)
-          end
         end
 
         attr_reader \
@@ -341,6 +331,7 @@ module Datadog
           :logger,
           :profiler,
           :runtime_metrics,
+          :telemetry,
           :tracer
 
         def initialize(settings)
@@ -360,6 +351,9 @@ module Datadog
 
           # Health metrics
           @health_metrics = self.class.build_health_metrics(settings)
+
+          # Telemetry
+          @telemetry = self.class.build_telemetry(settings)
         end
 
         # Starts up components
@@ -416,6 +410,9 @@ module Datadog
 
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
+
+          telemetry.stop!
+          telemetry.emit_closing! unless replacement
         end
       end
       # rubocop:enable Metrics/ClassLength

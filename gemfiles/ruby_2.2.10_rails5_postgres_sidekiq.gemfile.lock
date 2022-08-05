@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.2.0)
+    ddtrace (1.3.0)
       debase-ruby_core_source (= 0.10.16)
-      libddprof (~> 0.6.0.1.0)
+      libdatadog (~> 0.7.0.1.0)
       libddwaf (~> 1.3.0.2.0)
       msgpack
 
@@ -79,15 +79,15 @@ GEM
     ffi (1.12.2)
     globalid (0.4.2)
       activesupport (>= 4.2.0)
-    google-protobuf (3.6.1-x86_64-linux)
+    google-protobuf (3.6.1)
     hashdiff (1.0.1)
     i18n (1.5.1)
       concurrent-ruby (~> 1.0)
     json (2.5.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddprof (0.6.0.1.0-x86_64-linux)
-    libddwaf (1.3.0.2.0-x86_64-linux)
+    libdatadog (0.7.0.1.0)
+    libddwaf (1.3.0.2.0)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)

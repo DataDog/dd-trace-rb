@@ -57,7 +57,7 @@ gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by defa
 gem 'yard', '~> 0.9'
 
 if RUBY_VERSION >= '2.4.0'
-  gem 'rubocop', '~> 1.10', require: false
+  gem 'rubocop', ['~> 1.10', '< 1.33.0'], require: false
   gem 'rubocop-packaging', '~> 0.5', require: false
   gem 'rubocop-performance', '~> 1.9', require: false
   gem 'rubocop-rspec', '~> 2.2', require: false

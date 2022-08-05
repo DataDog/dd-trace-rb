@@ -7,3 +7,10 @@ require_relative '../ddtrace'
 require_relative '../datadog/tracing/contrib/auto_instrument'
 
 Datadog::Profiling.start_if_enabled
+
+module Datadog
+  module AutoInstrument
+    # Flag to determine if Auto Instrumentation was used
+    LOADED = true
+  end
+end
