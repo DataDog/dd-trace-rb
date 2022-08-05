@@ -16,6 +16,7 @@ Components below live inside <../lib/datadog/profiling>:
 * `Collectors::CodeProvenance`: Collects library metadata to power grouping and categorization of stack traces (e.g. to help distinguish user code, from libraries, from the standard library, etc).
 * `Collectors::CpuAndWallTime`: Collects samples of living Ruby threads, recording elapsed CPU and Wall-clock time, and
 tagging them with thread id and thread name. Relies on the `Collectors::Stack` for the actual stack sampling.
+* `Collectors::CpuAndWallTimeWorker`: Triggers the periodic execution of `Collectors::CpuAndWallTime`.
 * `Collectors::Stack`: Used to gather a stack trace from a given Ruby thread. Stores its output on a `StackRecorder`.
 
 * (Deprecated) `Encoding::Profile::Protobuf`: Encodes gathered data into the pprof format.
@@ -82,29 +83,29 @@ flow:
 The profiler is undergoing a lot of refactoring. After this work is done, this is how we expect it will be wired up:
 
 ```asciiflow
-        +------------------------+
-        |        Profiler        |
-        +-+--------------------+-+
-          |                    |
-          v                    v
-+---------+--------------+   +-+---------+
-| Collectors::CpuAndWall |   | Scheduler |
-+---------+--------------+   +-+-------+-+
-          |                    |       |
-          v                    |       v
-+---------+---------+          |  +----+----------+
-| Collectors::Stack |          |  | HttpTransport |
-+---------+---------+          |  +---------------+
-          |                    |
-          v                    v
-  +-------+-------+         +--+-------+
-  | StackRecorder |<--------| Exporter |
-  +---------------+         +--+-------+
-                               |
-                               v
-                +--------------+--+
-                | Code Provenance |
-                +-----------------+
+        +----------------------------------+
+        |             Profiler             |
+        +-+------------------------------+-+
+          |                              |
+          v                              v
++---------+------------------------+   +-+---------+
+| Collectors::CpuAndWallTimeWorker |   | Scheduler |
++---------+------------------------+   +-+-------+-+
+          |                              |       |
+          |                              |       v
+          |                              |  +----+----------+
+          |                              |  | HttpTransport |
+          |                              |  +---------------+
+          |                              |
+          v                              v
+  +-------+-------+                   +--+-------+
+  | StackRecorder |<------------------| Exporter |
+  +---------------+                   +--+-------+
+                                         |
+                                         v
+                          +--------------+-------------+
+                          | Collectors::CodeProvenance |
+                          +----------------------------+
 ```
 
 ## Run-time execution
