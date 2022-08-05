@@ -66,13 +66,8 @@ module Datadog
             def find_deadline(call)
               return unless call
 
-              if call.respond_to?(:deadline)
-                # The deadline attribute of a call can be either
-                # a GRPC::Core::TimeSpec or a Time, which are mutually exclusive.
-                # https://github.com/grpc/grpc/blob/3d2e5038c310df3b4d215cb7872a26045e979547/src/ruby/spec/generic/client_stub_spec.rb#L79-L83
-                deadline = call.deadline
-                deadline = deadline.to_time if deadline.respond_to?(:to_time)
-                (deadline.to_f * 1000).to_i
+              if call.respond_to?(:deadline) && call.deadline.is_a?(Time)
+                (call.deadline.to_f * 1000).to_i
               end
             end
 
