@@ -97,7 +97,7 @@ module Datadog
           end
 
           def enabled?
-            Tracing.enabled? && Datadog.configuration.tracing[:active_support][:enabled]
+            Datadog.configuration[:active_support][:tracer].enabled && Datadog.configuration[:active_support][:enabled]
           end
 
           # Defines instrumentation for ActiveSupport cache reading

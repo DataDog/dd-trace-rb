@@ -23,8 +23,8 @@ RSpec.describe 'Rails cache' do
 
   shared_examples 'a no-op when instrumentation is disabled' do
     context 'disabled at integration level' do
-      before { Datadog.configuration.tracing[:active_support].enabled = false }
-      after { Datadog.configuration.tracing[:active_support].reset! }
+      before { Datadog.configuration[:active_support].enabled = false }
+      after { Datadog.configuration[:active_support].reset! }
 
       it 'does not instrument' do
         expect { subject }.to_not(change { fetch_spans })
@@ -34,11 +34,11 @@ RSpec.describe 'Rails cache' do
     context 'disabled at tracer level' do
       before do
         Datadog.configure do |c|
-          c.tracing.enabled = false
+          c.tracer.enabled = false
         end
       end
 
-      after { Datadog.configuration.tracing.reset! }
+      after { Datadog.configuration.reset! }
 
       it 'does not instrument' do
         expect { subject }.to_not(change { fetch_spans })
