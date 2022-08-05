@@ -66,7 +66,7 @@ module Datadog
             def find_deadline(call)
               return unless call.respond_to?(:deadline) && call.deadline.is_a?(Time)
 
-              (call.deadline.to_f * 1000).to_i
+              call.deadline.utc.iso8601(3)
             end
 
             def find_host_port(call)
