@@ -1,0 +1,2 @@
+module Hanami
+end
