@@ -265,7 +265,7 @@ static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
 }
 
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  if (!ruby_native_thread_p() || !ruby_thread_has_gvl_p()) {
+  if (!ruby_thread_has_gvl_p()) {
     return; // Not safe to enqueue a sample from this thread
   }
 
