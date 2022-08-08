@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.2.0)
+    ddtrace (1.3.0)
       debase-ruby_core_source (= 0.10.16)
       libdatadog (~> 0.7.0.1.0)
       libddwaf (~> 1.3.0.2.0)
@@ -119,7 +119,10 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (0.7.0.1.0-aarch64-linux)
+    libdatadog (0.7.0.1.0-x86_64-linux)
     libddwaf (1.3.0.2.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.3.0.2.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)
@@ -136,7 +139,7 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.2)
     minitest (5.15.0)
-    msgpack (1.5.3)
+    msgpack (1.5.4)
     mysql2 (0.5.3)
     net-protocol (0.1.2)
       io-wait
@@ -246,6 +249,14 @@ GEM
     ruby-progressbar (1.11.0)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
+    sorbet (0.5.9672)
+      sorbet-static (= 0.5.9672)
+    sorbet-runtime (0.5.10263)
+    sorbet-static (0.5.9672-x86_64-linux)
+    spoom (1.1.11)
+      sorbet (>= 0.5.9204)
+      sorbet-runtime (>= 0.5.9204)
+      thor (>= 0.19.2)
     sprockets (3.7.2)
       concurrent-ruby (~> 1.0)
       rack (> 1, < 3)
@@ -311,6 +322,8 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
   simplecov!
+  sorbet (= 0.5.9672)
+  spoom (~> 1.1)
   sprockets (< 4)
   warning (~> 1)
   webmock (>= 3.10.0)

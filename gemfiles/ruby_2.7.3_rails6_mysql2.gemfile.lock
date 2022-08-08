@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.2.0)
+    ddtrace (1.3.0)
       debase-ruby_core_source (= 0.10.16)
-      libddprof (~> 0.6.0.1.0)
+      libdatadog (~> 0.7.0.1.0)
       libddwaf (~> 1.3.0.2.0)
       msgpack
 
@@ -111,7 +111,7 @@ GEM
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libddprof (0.6.0.1.0)
+    libdatadog (0.7.0.1.0)
     libddwaf (1.3.0.2.0)
       ffi (~> 1.0)
     lograge (0.11.2)
@@ -130,7 +130,7 @@ GEM
     mini_mime (1.1.2)
     mini_portile2 (2.8.0)
     minitest (5.15.0)
-    msgpack (1.5.3)
+    msgpack (1.5.4)
     mysql2 (0.5.3)
     nio4r (2.5.8)
     nokogiri (1.13.3)
@@ -221,6 +221,8 @@ GEM
       unicode-display_width (>= 1.4.0, < 3.0)
     rubocop-ast (1.16.0)
       parser (>= 3.1.1.0)
+    rubocop-packaging (0.5.1)
+      rubocop (>= 0.89, < 2.0)
     rubocop-performance (1.13.3)
       rubocop (>= 1.7.0, < 2.0)
       rubocop-ast (>= 0.4.0)
@@ -296,6 +298,7 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
   rubocop (~> 1.10)
+  rubocop-packaging (~> 0.5)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)

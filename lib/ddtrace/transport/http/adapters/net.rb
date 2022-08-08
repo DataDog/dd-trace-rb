@@ -15,6 +15,7 @@ module Datadog
             :timeout,
             :ssl
 
+          # in seconds
           DEFAULT_TIMEOUT = 30
 
           # @deprecated Positional parameters are deprecated. Use named parameters instead.

@@ -345,7 +345,7 @@ If you aren't using a supported framework instrumentation, you may want to manua
 To trace any Ruby code, you can use the `Datadog::Tracing.trace` method:
 
 ```ruby
-Datadog::Tracing.trace(name, options) do |span, trace|
+Datadog::Tracing.trace(name, **options) do |span, trace|
   # Wrap this block around the code you want to instrument
   # Additionally, you can modify the span here.
   # e.g. Change the resource name, set tags, etc...
@@ -354,7 +354,7 @@ end
 
 Where `name` should be a `String` that describes the generic kind of operation being done (e.g. `'web.request'`, or `'request.parse'`)
 
-And `options` is an optional `Hash` that accepts the following parameters:
+And `options` are the following optional keyword arguments:
 
 | Key | Type | Description | Default |
 | --------------- | ----------------------- | --- | --- |
@@ -455,11 +455,11 @@ Many popular libraries and frameworks are supported out-of-the-box, which can be
 ```ruby
 Datadog.configure do |c|
   # Activates and configures an integration
-  c.tracing.instrument :integration_name, options
+  c.tracing.instrument :integration_name, **options
 end
 ```
 
-`options` is a `Hash` of integration-specific configuration settings.
+`options` are keyword arguments for integration-specific configuration.
 
 For a list of available integrations, and their configuration options, please refer to the following:
 
@@ -523,11 +523,11 @@ For Datadog CI Visibility, library instrumentation can be activated and configur
 ```ruby
 Datadog.configure do |c|
   # Activates and configures an integration
-  c.ci.instrument :integration_name, options
+  c.ci.instrument :integration_name, **options
 end
 ```
 
-`options` is a `Hash` of integration-specific configuration settings.
+`options` are keyword arguments for integration-specific configuration.
 
 These are the available CI Visibility integrations:
 
@@ -559,11 +559,11 @@ You can enable it through `Datadog.configure`:
 ```ruby
 require 'ddtrace'
 Datadog.configure do |c|
-  c.tracing.instrument :action_mailer, options
+  c.tracing.instrument :action_mailer, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -592,11 +592,11 @@ require 'actionview'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :action_view, options
+  c.tracing.instrument :action_view, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | ---| --- | --- |
@@ -644,7 +644,7 @@ require 'active_record'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :active_record, options
+  c.tracing.instrument :active_record, **options
 end
 
 Dir::Tmpname.create(['test', '.sqlite']) do |db|
@@ -654,7 +654,7 @@ Dir::Tmpname.create(['test', '.sqlite']) do |db|
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | ---| --- | --- |
@@ -735,14 +735,14 @@ require 'activesupport'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :active_support, options
+  c.tracing.instrument :active_support, **options
 end
 
 cache = ActiveSupport::Cache::MemoryStore.new
 cache.read('city')
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | ---| --- | --- |
@@ -757,14 +757,14 @@ require 'aws-sdk'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :aws, options
+  c.tracing.instrument :aws, **options
 end
 
 # Perform traced call
 Aws::S3::Client.new.list_buckets
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -802,7 +802,7 @@ require 'ddtrace'
 
 # Configure default Cucumber integration
 Datadog.configure do |c|
-  c.ci.instrument :cucumber, options
+  c.ci.instrument :cucumber, **options
 end
 
 # Example of how to attach tags from scenario to active span
@@ -817,7 +817,7 @@ Around do |scenario, block|
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -835,15 +835,15 @@ require 'ddtrace'
 
 # Configure default Dalli tracing behavior
 Datadog.configure do |c|
-  c.tracing.instrument :dalli, options
+  c.tracing.instrument :dalli, **options
 end
 
 # Configure Dalli tracing behavior for single client
-client = Dalli::Client.new('localhost:11211', options)
+client = Dalli::Client.new('localhost:11211', **options)
 client.set('abc', 123)
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -859,11 +859,11 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :delayed_job, options
+  c.tracing.instrument :delayed_job, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -878,7 +878,7 @@ require 'elasticsearch/transport'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :elasticsearch, options
+  c.tracing.instrument :elasticsearch, **options
 end
 
 # Perform a query to Elasticsearch
@@ -889,7 +889,7 @@ response = client.perform_request 'GET', '_cluster/health'
 Datadog.configure_onto(client.transport, **options)
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -904,7 +904,7 @@ The `ethon` integration will trace any HTTP request through `Easy` or `Multi` ob
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :ethon, options
+  c.tracing.instrument :ethon, **options
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :ethon, describes: /user-[^.]+\.example\.com/ do |ethon|
@@ -914,7 +914,7 @@ Datadog.configure do |c|
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -932,7 +932,7 @@ require 'ddtrace'
 
 # Configure default Excon tracing behavior
 Datadog.configure do |c|
-  c.tracing.instrument :excon, options
+  c.tracing.instrument :excon, **options
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :excon, describes: /user-[^.]+\.example\.com/ do |excon|
@@ -945,7 +945,7 @@ connection = Excon.new('https://example.com')
 connection.get
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -989,7 +989,7 @@ require 'ddtrace'
 
 # Configure default Faraday tracing behavior
 Datadog.configure do |c|
-  c.tracing.instrument :faraday, options
+  c.tracing.instrument :faraday, **options
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :faraday, describes: /user-[^.]+\.example\.com/ do |faraday|
@@ -1000,14 +1000,14 @@ end
 
 # In case you want to override the global configuration for a certain client instance
 connection = Faraday.new('https://example.com') do |builder|
-  builder.use(:ddtrace, options)
+  builder.use(:ddtrace, **options)
   builder.adapter Faraday.default_adapter
 end
 
 connection.get('/foo')
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1028,7 +1028,7 @@ require 'grape'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :grape, options
+  c.tracing.instrument :grape, **options
 end
 
 # Then define your application
@@ -1040,7 +1040,7 @@ class RackTestingAPI < Grape::API
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1056,7 +1056,7 @@ To activate your integration, use the `Datadog.configure` method:
 ```ruby
 # Inside Rails initializer or equivalent
 Datadog.configure do |c|
-  c.tracing.instrument :graphql, schemas: [YourSchema], options
+  c.tracing.instrument :graphql, schemas: [YourSchema], **options
 end
 
 # Then run a GraphQL query
@@ -1068,6 +1068,9 @@ The `use :graphql` method accepts the following parameters. Additional options c
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
+| `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
+| `analytics_enabled` | Enable analytics for spans. `true` for on, `nil` to defer to Datadog global setting, `false` for off. | `false` |
+| `analytics_sample_rate` | Rate which tracing data should be sampled for Datadog analytics. Must be a float between `0` and `1.0`. | `1.0` |
 
 **Manually configuring GraphQL schemas**
 
@@ -1126,7 +1129,7 @@ require 'grpc'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :grpc, options
+  c.tracing.instrument :grpc, **options
 end
 
 # Server side
@@ -1140,7 +1143,7 @@ client = Demo.rpc_stub_class.new('localhost:50051', :this_channel_is_insecure)
 client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1174,7 +1177,7 @@ The http.rb integration will trace any HTTP call using the Http.rb gem.
 require 'http'
 require 'ddtrace'
 Datadog.configure do |c|
-  c.tracing.instrument :httprb, options
+  c.tracing.instrument :httprb, **options
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httprb, describes: /user-[^.]+\.example\.com/ do |httprb|
     httprb.service_name = 'user.example.com'
@@ -1183,7 +1186,7 @@ Datadog.configure do |c|
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1199,7 +1202,7 @@ The httpclient integration will trace any HTTP call using the httpclient gem.
 require 'httpclient'
 require 'ddtrace'
 Datadog.configure do |c|
-  c.tracing.instrument :httpclient, options
+  c.tracing.instrument :httpclient, **options
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :httpclient, describes: /user-[^.]+\.example\.com/ do |httpclient|
     httpclient.service_name = 'user.example.com'
@@ -1208,7 +1211,7 @@ Datadog.configure do |c|
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1260,7 +1263,7 @@ require 'mongo'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :mongo, options
+  c.tracing.instrument :mongo, **options
 end
 
 # Create a MongoDB client and use it as usual
@@ -1272,7 +1275,7 @@ collection.insert_one({ name: 'Steve' })
 Datadog.configure_onto(client, **options)
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1319,14 +1322,14 @@ require 'mysql2'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :mysql2, options
+  c.tracing.instrument :mysql2, **options
 end
 
 client = Mysql2::Client.new(:host => "localhost", :username => "root")
 client.query("SELECT * FROM users WHERE group='x'")
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1341,7 +1344,7 @@ require 'net/http'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :http, options
+  c.tracing.instrument :http, **options
 
   # optionally, specify a different service name for hostnames matching a regex
   c.tracing.instrument :http, describes: /user-[^.]+\.example\.com/ do |http|
@@ -1358,7 +1361,7 @@ end
 content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1384,11 +1387,11 @@ require 'pg'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :pg, options
+  c.tracing.instrument :pg, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1403,7 +1406,7 @@ require 'presto-client'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :presto, options
+  c.tracing.instrument :presto, **options
 end
 
 client = Presto::Client.new(
@@ -1419,7 +1422,7 @@ client = Presto::Client.new(
 client.run("select * from system.nodes")
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1435,11 +1438,11 @@ To add tracing to a Qless job:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :qless, options
+  c.tracing.instrument :qless, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1456,11 +1459,11 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :que, options
+  c.tracing.instrument :que, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1479,11 +1482,11 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :racecar, options
+  c.tracing.instrument :racecar, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1500,7 +1503,7 @@ This integration is automatically activated with web frameworks like Rails. If y
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :rack, options
+  c.tracing.instrument :rack, **options
 end
 
 use Datadog::Tracing::Contrib::Rack::TraceMiddleware
@@ -1512,7 +1515,7 @@ end
 run app
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1569,11 +1572,11 @@ To enable the Rails instrumentation, create an initializer file in your `config/
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :rails, options
+  c.tracing.instrument :rails, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1624,7 +1627,7 @@ end
 Rake::Task['my_task'].invoke
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1676,7 +1679,7 @@ require 'redis'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :redis, options
+  c.tracing.instrument :redis, **options
 end
 
 # Perform Redis commands
@@ -1684,7 +1687,7 @@ redis = Redis.new
 redis.set 'foo', 'bar'
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1762,7 +1765,7 @@ Datadog.configure do |c|
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1777,11 +1780,11 @@ require 'rest_client'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :rest_client, options
+  c.tracing.instrument :rest_client, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1801,11 +1804,11 @@ require 'ddtrace'
 
 # Configure default RSpec integration
 Datadog.configure do |c|
-  c.ci.instrument :rspec, options
+  c.ci.instrument :rspec, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1831,7 +1834,7 @@ database.create_table :articles do
 end
 
 Datadog.configure do |c|
-  c.tracing.instrument :sequel, options
+  c.tracing.instrument :sequel, **options
 end
 
 # Perform a query
@@ -1839,7 +1842,7 @@ articles = database[:articles]
 articles.all
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1868,11 +1871,11 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :shoryuken, options
+  c.tracing.instrument :shoryuken, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1889,11 +1892,11 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :sidekiq, options
+  c.tracing.instrument :sidekiq, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1914,7 +1917,7 @@ require 'sinatra'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :sinatra, options
+  c.tracing.instrument :sinatra, **options
 end
 
 get '/' do
@@ -1929,7 +1932,7 @@ require 'sinatra/base'
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :sinatra, options
+  c.tracing.instrument :sinatra, **options
 end
 
 class NestedApp < Sinatra::Base
@@ -1955,7 +1958,7 @@ Ensure you register `Datadog::Tracing::Contrib::Sinatra::Tracer` as a middleware
 
 #### Instrumentation options
 
-`options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1973,11 +1976,11 @@ You can enable it through `Datadog.configure`:
 require 'ddtrace'
 
 Datadog.configure do |c|
-  c.tracing.instrument :sneakers, options
+  c.tracing.instrument :sneakers, **options
 end
 ```
 
-Where `options` is an optional `Hash` that accepts the following parameters:
+`options` are the following keyword arguments:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -2029,6 +2032,7 @@ end
 | `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
 | `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#Setting the time provider) for more details.                                                                                                                              |
 | `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
+| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `true`                                                             | Allows you to opt-out of sending telemetry data to Datadog.                                                                                                                                                                                           |
 | **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
 | `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`   | `nil`                                                             | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                          |
 | `tracing.distributed_tracing.propagation_extract_style` | `DD_PROPAGATION_STYLE_EXTRACT` | `['Datadog','B3','B3 single header']`                             | Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                          |
@@ -2520,7 +2524,7 @@ The `Net` adapter submits traces using `Net::HTTP` over TCP. It is the default t
 Datadog.configure do |c|
   c.tracing.transport_options = proc { |t|
     # Hostname, port, and additional options. :timeout is in seconds.
-    t.adapter :net_http, '127.0.0.1', 8126, { timeout: 1 }
+    t.adapter :net_http, '127.0.0.1', 8126, timeout: 30
   }
 end
 ```

@@ -13,7 +13,8 @@ end
 if RUBY_VERSION < '2.2'
   gem 'sidekiq', '< 5' # 5.0.3 checks for older Rubies and breaks, but does not declare it on the gemspec :(
 else
-  gem 'sidekiq'
+  # `6.5.3` and `6.5.2` contain broken dependency, https://github.com/mperham/sidekiq/issues/5456
+  gem 'sidekiq', ['!= 6.5.2', '!= 6.5.3']
 end
 gem 'resque'
 gem 'rake'

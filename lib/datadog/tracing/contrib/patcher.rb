@@ -19,6 +19,10 @@ module Datadog
         # Prepended instance methods for all patchers
         # @public_api
         module CommonMethods
+          attr_accessor \
+            :patch_error_result,
+            :patch_successful
+
           def patch_name
             self.class != Class && self.class != Module ? self.class.name : name
           end
@@ -35,6 +39,7 @@ module Datadog
                 super.tap do
                   # Emit a metric
                   Datadog.health_metrics.instrumentation_patched(1, tags: default_tags)
+                  @patch_successful = true
                 end
               rescue StandardError => e
                 on_patch_error(e)
@@ -47,6 +52,12 @@ module Datadog
           def on_patch_error(e)
             # Log the error
             Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{Array(e.backtrace).first}")
+
+            @patch_error_result = {
+              type: e.class.name,
+              message: e.message,
+              line: Array(e.backtrace).first
+            }
 
             # Emit a metric
             tags = default_tags

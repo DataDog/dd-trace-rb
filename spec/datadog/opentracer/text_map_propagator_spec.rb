@@ -8,63 +8,98 @@ require 'datadog/opentracer'
 
 RSpec.describe Datadog::OpenTracer::TextMapPropagator do
   describe '#inject' do
-    subject { described_class.inject(span_context, carrier) }
-
-    let(:span_context) do
-      instance_double(
-        Datadog::OpenTracer::SpanContext,
-        datadog_context: datadog_context,
-        baggage: baggage
-      )
-    end
-
-    let(:datadog_context) do
-      instance_double(
-        Datadog::Tracing::Context,
-        active_trace: datadog_trace
-      )
-    end
-
-    let(:datadog_trace) do
-      Datadog::Tracing::TraceOperation.new(
-        id: trace_id,
-        parent_span_id: span_id,
-        sampling_priority: sampling_priority,
-        origin: origin
-      )
-    end
-
-    let(:trace_id) { double('trace ID') }
-    let(:span_id) { double('span ID') }
-    let(:sampling_priority) { double('sampling priority') }
-    let(:origin) { double('synthetics') }
+    let(:trace_id) { 4363611732769921584 }
+    let(:span_id) { 2352279000849524039 }
+    let(:sampling_priority) { 1 }
+    let(:origin) { 'synthetics' }
 
     let(:baggage) { { 'account_name' => 'acme' } }
 
-    let(:carrier) { Datadog::OpenTracer::Carrier.new }
-
-    # Allow carrier to be set with properties
-    before do
-      allow(carrier).to receive(:[]=)
-    end
-
-    it do
-      is_expected.to be nil
-
-      baggage.each do |key, value|
-        expect(carrier).to have_received(:[]=)
-          .with(described_class::BAGGAGE_PREFIX + key, value)
+    context 'when given span context with datadog context' do
+      let(:span_context) do
+        instance_double(
+          Datadog::OpenTracer::SpanContext,
+          datadog_context: datadog_context,
+          baggage: baggage
+        )
       end
 
-      expect(carrier).to have_received(:[]=)
-        .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_TRACE_ID, trace_id)
-      expect(carrier).to have_received(:[]=)
-        .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_PARENT_ID, span_id)
-      expect(carrier).to have_received(:[]=)
-        .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority)
-      # TODO: For some reason this breaks, and only this one.
-      # expect(carrier).to have_received(:[]=)
-      #   .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_ORIGIN, origin)
+      let(:datadog_context) do
+        instance_double(
+          Datadog::Tracing::Context,
+          active_trace: datadog_trace
+        )
+      end
+
+      let(:datadog_trace) do
+        Datadog::Tracing::TraceOperation.new(
+          id: trace_id,
+          parent_span_id: span_id,
+          sampling_priority: sampling_priority,
+          origin: origin
+        )
+      end
+
+      it 'sets the carrier correctly' do
+        carrier = double.tap { |d| allow(d).to receive(:[]=) }
+
+        described_class.inject(span_context, carrier)
+
+        baggage.each do |key, value|
+          expect(carrier).to have_received(:[]=)
+            .with(described_class::BAGGAGE_PREFIX + key, value)
+        end
+
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_TRACE_ID, trace_id)
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_PARENT_ID, span_id)
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority)
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_ORIGIN, origin)
+      end
+    end
+
+    context 'when given span context with datadog trace digest' do
+      let(:span_context) do
+        instance_double(
+          Datadog::OpenTracer::SpanContext,
+          datadog_context: nil,
+          datadog_trace_digest: datadog_trace_digest,
+          baggage: baggage
+        )
+      end
+
+      let(:datadog_trace_digest) do
+        instance_double(
+          Datadog::Tracing::TraceDigest,
+          span_id: span_id,
+          trace_id: trace_id,
+          trace_origin: origin,
+          trace_sampling_priority: sampling_priority
+        )
+      end
+
+      it 'sets the carrier correctly' do
+        carrier = double.tap { |d| allow(d).to receive(:[]=) }
+
+        described_class.inject(span_context, carrier)
+
+        baggage.each do |key, value|
+          expect(carrier).to have_received(:[]=)
+            .with(described_class::BAGGAGE_PREFIX + key, value)
+        end
+
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_TRACE_ID, trace_id)
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_PARENT_ID, span_id)
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority)
+        expect(carrier).to have_received(:[]=)
+          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_ORIGIN, origin)
+      end
     end
   end
 
