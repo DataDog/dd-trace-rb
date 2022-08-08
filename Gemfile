@@ -6,7 +6,7 @@ gemspec
 gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
 gem 'appraisal', '~> 2.2'
 gem 'benchmark-ips', '~> 2.8'
-gem 'benchmark-memory', '~> 0.1'
+gem 'benchmark-memory', '0.1.2'
 gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
@@ -54,10 +54,10 @@ end
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
 gem 'yard', '~> 0.9'
 
-if RUBY_VERSION >= '2.4.0'
-  gem 'rubocop', '~> 1.10', require: false
-  gem 'rubocop-performance', '~> 1.9', require: false
-  gem 'rubocop-rspec', '~> 2.2', require: false
+if RUBY_VERSION >= '2.5.0'
+  gem 'rubocop', '1.20.0', require: false
+  gem 'rubocop-performance', '1.11.5', require: false
+  gem 'rubocop-rspec', '2.4.0', require: false
 end
 
 # Optional extensions
