@@ -44,6 +44,9 @@ module Datadog
               host, _port = find_host_port(call)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
+              deadline = find_deadline(call)
+              span.set_tag(Ext::TAG_CLIENT_DEADLINE, deadline) if deadline
+
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
@@ -58,6 +61,12 @@ module Datadog
                 .split('/')
                 .reject(&:empty?)
                 .join('.')
+            end
+
+            def find_deadline(call)
+              return unless call.respond_to?(:deadline) && call.deadline.is_a?(Time)
+
+              call.deadline.utc.iso8601(3)
             end
 
             def find_host_port(call)
