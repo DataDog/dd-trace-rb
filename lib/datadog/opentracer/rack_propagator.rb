@@ -23,10 +23,14 @@ module Datadog
         # @param span_context [SpanContext]
         # @param carrier [Carrier] A carrier object of Rack type
         def inject(span_context, carrier)
-          active_trace = span_context.datadog_context.active_trace
+          digest = if span_context.datadog_context && span_context.datadog_context.active_trace
+                     span_context.datadog_context.active_trace.to_digest
+                   else
+                     span_context.datadog_trace_digest
+                   end
 
           # Inject Datadog trace properties
-          Tracing::Propagation::HTTP.inject!(active_trace, carrier)
+          Tracing::Propagation::HTTP.inject!(digest, carrier)
 
           # Inject baggage
           span_context.baggage.each do |key, value|

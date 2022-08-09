@@ -112,17 +112,9 @@ module Datadog
               request_span.finish
             end
 
-            frontend_span.finish unless frontend_span.nil?
+            frontend_span.finish if frontend_span
           end
           # rubocop:enable Lint/RescueException
-
-          def resource_name_for(env, status)
-            if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
-              "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
-            else
-              "#{env['REQUEST_METHOD']} #{status}".strip
-            end
-          end
 
           # rubocop:disable Metrics/AbcSize
           # rubocop:disable Metrics/CyclomaticComplexity
@@ -144,10 +136,23 @@ module Datadog
             request_headers = parse_request_headers(env)
             response_headers = parse_response_headers(headers || {})
 
-            request_span.resource ||= resource_name_for(env, status)
+            # The priority
+            # 1. User overrides span.resource
+            # 2. Configuration
+            # 3. Nested App override trace.resource
+            # 4. Fallback with verb + status, eq `GET 200`
+            request_span.resource ||=
+              if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
+                "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
+              elsif trace.resource_override?
+                trace.resource
+              else
+                "#{env['REQUEST_METHOD']} #{status}".strip
+              end
 
-            # Set trace name if it hasn't been set yet (name == resource)
-            trace.resource = request_span.resource if trace.resource == trace.name
+            # Overrides the trace resource if it never been set
+            # Otherwise, the getter method would delegate to its root span
+            trace.resource = request_span.resource unless trace.resource_override?
 
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)

@@ -26,10 +26,37 @@ RSpec.describe 'Rails cache' do
   let(:key) { 'custom-key' }
   let(:multi_keys) { %w[custom-key-1 custom-key-2 custom-key-3] }
 
+  shared_examples 'a no-op when instrumentation is disabled' do
+    context 'disabled at integration level' do
+      before { Datadog.configuration.tracing[:active_support].enabled = false }
+      after { Datadog.configuration.tracing[:active_support].reset! }
+
+      it 'does not instrument' do
+        expect { subject }.to_not(change { fetch_spans })
+      end
+    end
+
+    context 'disabled at tracer level' do
+      before do
+        Datadog.configure do |c|
+          c.tracing.enabled = false
+        end
+      end
+
+      after { Datadog.configuration.tracing.reset! }
+
+      it 'does not instrument' do
+        expect { subject }.to_not(change { fetch_spans })
+      end
+    end
+  end
+
   describe '#read' do
     subject(:read) { cache.read(key) }
 
     before { cache.write(key, 50) }
+
+    it_behaves_like 'a no-op when instrumentation is disabled'
 
     it_behaves_like 'measured span for integration', false do
       before { read }
@@ -71,6 +98,8 @@ RSpec.describe 'Rails cache' do
 
     before { multi_keys.each { |key| cache.write(key, 50 + key[-1].to_i) } }
 
+    it_behaves_like 'a no-op when instrumentation is disabled'
+
     it_behaves_like 'measured span for integration', false do
       before { read_multi }
 
@@ -108,6 +137,8 @@ RSpec.describe 'Rails cache' do
 
   describe '#write' do
     subject(:write) { cache.write(key, 50) }
+
+    it_behaves_like 'a no-op when instrumentation is disabled'
 
     it_behaves_like 'measured span for integration', false do
       before { write }
@@ -161,6 +192,8 @@ RSpec.describe 'Rails cache' do
           skip 'Test is not applicable to this Rails version'
         end
       end
+
+      it_behaves_like 'a no-op when instrumentation is disabled'
 
       it_behaves_like 'measured span for integration', false do
         before { write_multi }
@@ -223,11 +256,15 @@ RSpec.describe 'Rails cache' do
   end
 
   describe '#delete' do
-    subject!(:delete) { cache.delete(key) }
+    subject(:delete) { cache.delete(key) }
 
-    it_behaves_like 'measured span for integration', false
+    it_behaves_like 'a no-op when instrumentation is disabled'
+    it_behaves_like 'measured span for integration', false do
+      before { delete }
+    end
 
     it do
+      delete
       expect(span.name).to eq('rails.cache')
       expect(span.span_type).to eq('cache')
       expect(span.resource).to eq('DELETE')
@@ -246,6 +283,8 @@ RSpec.describe 'Rails cache' do
 
   describe '#fetch' do
     subject(:fetch) { cache.fetch(key) { 'default' } }
+
+    it_behaves_like 'a no-op when instrumentation is disabled'
 
     it_behaves_like 'measured span for integration', false do
       before { fetch }
@@ -288,6 +327,8 @@ RSpec.describe 'Rails cache' do
           skip 'Test is not applicable to this Rails version'
         end
       end
+
+      it_behaves_like 'a no-op when instrumentation is disabled'
 
       it_behaves_like 'measured span for integration', false do
         before { fetch_multi }

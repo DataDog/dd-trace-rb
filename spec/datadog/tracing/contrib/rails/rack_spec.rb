@@ -144,7 +144,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
       expect(request_span.service).to eq(tracer.default_service)
-      expect(request_span.resource).to eq('GET 200')
+      expect(request_span.resource).to eq('TestController#full')
       expect(request_span.get_tag('http.url')).to eq('/full')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')
@@ -263,7 +263,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#nonexistent_template')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.resource).to eq('GET 500')
+      expect(request_span.resource).to eq('TestController#nonexistent_template')
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::MissingTemplate')
       expect(request_span).to have_error_message(include('Missing template test/does_not_exist'))
@@ -316,7 +316,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#nonexistent_partial')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.resource).to eq('GET 500')
+      expect(request_span.resource).to eq('TestController#nonexistent_partial')
       expect(request_span).to have_error
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_message(include('Missing partial test/no_partial_here'))
@@ -379,7 +379,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('GET 500')
+      expect(request_span.resource).to eq('TestController#error')
       expect(request_span.get_tag('http.url')).to eq('/error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('500')
@@ -414,7 +414,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('GET 520')
+      expect(request_span.resource).to eq('TestController#soft_error')
       expect(request_span.get_tag('http.url')).to eq('/soft_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('520')
@@ -449,7 +449,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('GET 500')
+      expect(request_span.resource).to eq('TestController#sub_error')
       expect(request_span.get_tag('http.url')).to eq('/sub_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('500')
@@ -520,7 +520,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('ErrorsController#internal_server_error')
 
       expect(request_span).to have_error
-      expect(request_span.resource).to_not eq(controller_span.resource)
+      expect(request_span.resource).to eq('ErrorsController#internal_server_error')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
@@ -573,7 +573,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.span_type).to eq('web')
-      expect(request_span.resource).to eq('GET 404')
+      expect(request_span.resource).to eq('TestController#explicitly_not_found')
       expect(request_span.get_tag('http.url')).to eq('/explicitly_not_found')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('404')
@@ -607,7 +607,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_stack
       expect(request_span).to have_error_message
-      expect(request_span.resource).to_not eq(render_span.resource)
+      expect(request_span.resource).to eq('TestController#error_template')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
@@ -651,7 +651,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span).to have_error_type('ActionView::Template::Error')
       expect(request_span).to have_error_stack
       expect(request_span).to have_error_message
-      expect(request_span.resource).to_not eq(render_span.resource)
+      expect(request_span.resource).to eq('TestController#error_partial')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))

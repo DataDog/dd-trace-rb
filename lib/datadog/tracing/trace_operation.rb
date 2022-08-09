@@ -149,6 +149,13 @@ module Datadog
         @resource || (root_span && root_span.resource)
       end
 
+      # Returns true if the resource has been explicitly set
+      #
+      # @return [Boolean]
+      def resource_override?
+        !@resource.nil?
+      end
+
       def service
         @service || (root_span && root_span.service)
       end

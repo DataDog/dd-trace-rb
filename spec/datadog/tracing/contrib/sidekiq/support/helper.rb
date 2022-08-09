@@ -99,7 +99,6 @@ module SidekiqServerExpectations
     require 'sidekiq/cli'
 
     configure_sidekiq
-    # binding.pry
 
     cli = Sidekiq::CLI.instance
     cli.parse(['--require', app_tempfile.path]) # boot the "app"

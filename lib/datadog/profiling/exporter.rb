@@ -22,22 +22,30 @@ module Datadog
       attr_reader \
         :pprof_recorder,
         :code_provenance_collector, # The code provenance collector acts both as collector and as a recorder
-        :minimum_duration
+        :minimum_duration_seconds,
+        :time_provider,
+        :last_flush_finish_at,
+        :created_at
 
       public
 
       def initialize(
         pprof_recorder:,
         code_provenance_collector:,
-        minimum_duration: PROFILE_DURATION_THRESHOLD_SECONDS
+        minimum_duration_seconds: PROFILE_DURATION_THRESHOLD_SECONDS,
+        time_provider: Time
       )
         @pprof_recorder = pprof_recorder
         @code_provenance_collector = code_provenance_collector
-        @minimum_duration = minimum_duration
+        @minimum_duration_seconds = minimum_duration_seconds
+        @time_provider = time_provider
+        @last_flush_finish_at = nil
+        @created_at = time_provider.now.utc
       end
 
       def flush
         start, finish, uncompressed_pprof = pprof_recorder.serialize
+        @last_flush_finish_at = finish
 
         return if uncompressed_pprof.nil? # We don't want to report empty profiles
 
@@ -60,14 +68,14 @@ module Datadog
         )
       end
 
-      def empty?
-        pprof_recorder.empty?
+      def can_flush?
+        !duration_below_threshold?(last_flush_finish_at || created_at, time_provider.now.utc)
       end
 
       private
 
       def duration_below_threshold?(start, finish)
-        (finish - start) < @minimum_duration
+        (finish - start) < minimum_duration_seconds
       end
     end
   end

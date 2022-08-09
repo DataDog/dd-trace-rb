@@ -199,16 +199,16 @@ RSpec.describe Datadog::Profiling::Scheduler do
   describe '#work_pending?' do
     subject(:work_pending?) { scheduler.work_pending? }
 
-    context 'when the exporter has no events' do
-      before { expect(exporter).to receive(:empty?).and_return(true) }
-
-      it { is_expected.to be false }
-    end
-
-    context 'when the exporter has events' do
-      before { expect(exporter).to receive(:empty?).and_return(false) }
+    context 'when the exporter can flush' do
+      before { expect(exporter).to receive(:can_flush?).and_return(true) }
 
       it { is_expected.to be true }
+    end
+
+    context 'when the exporter can not flush' do
+      before { expect(exporter).to receive(:can_flush?).and_return(false) }
+
+      it { is_expected.to be false }
     end
   end
 end

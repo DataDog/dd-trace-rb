@@ -83,7 +83,7 @@ module Datadog
       end
 
       def work_pending?
-        !exporter.empty?
+        exporter.can_flush?
       end
 
       private

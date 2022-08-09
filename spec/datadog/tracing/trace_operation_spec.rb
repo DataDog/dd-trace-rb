@@ -881,6 +881,40 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     it_behaves_like 'root span derived attribute', :resource
   end
 
+  describe '#resource_override?' do
+    subject { trace_op.resource_override? }
+
+    context 'when initialized without `resource`' do
+      it { is_expected.to eq(false) }
+    end
+
+    context 'when initialized with `resource` as `nil`' do
+      let(:options) { { resource: nil } }
+      it { is_expected.to eq(false) }
+    end
+
+    context 'when initialized with `resource` as `GET 200`' do
+      let(:options) { { resource: 'GET 200' } }
+      it { is_expected.to eq(true) }
+    end
+
+    context 'when set `resource` as `nil`' do
+      it do
+        trace_op.resource = nil
+
+        is_expected.to eq(false)
+      end
+    end
+
+    context 'when set `resource` as `UsersController#show`' do
+      it do
+        trace_op.resource = 'UsersController#show'
+
+        is_expected.to eq(true)
+      end
+    end
+  end
+
   describe '#service' do
     it_behaves_like 'root span derived attribute', :service
   end

@@ -9,7 +9,6 @@ module Datadog
         ADAPTER = :net_http # DEV: Rename to simply `:http`, as Net::HTTP is an implementation detail.
         DEFAULT_HOST = '127.0.0.1'.freeze
         DEFAULT_PORT = 8126
-        DEFAULT_TIMEOUT_SECONDS = 1
 
         HEADER_CONTAINER_ID = 'Datadog-Container-ID'.freeze
         HEADER_DD_API_KEY = 'DD-API-KEY'.freeze

@@ -2,6 +2,7 @@
 
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
+require_relative 'telemetry/emitter'
 require_relative 'logger'
 require_relative 'pin'
 
@@ -89,7 +90,9 @@ module Datadog
             if components?
               replace_components!(configuration, @components)
             else
-              build_components(configuration)
+              components = build_components(configuration)
+              components.telemetry.started!
+              components
             end
           )
         end
