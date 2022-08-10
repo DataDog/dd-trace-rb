@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require 'datadog/tracing/contrib/hook'
 
