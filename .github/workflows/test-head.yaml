@@ -17,7 +17,7 @@ jobs:
       # want the former only. relax the constraint to allow any version for
       # head rubies
       - run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
-      - uses: ruby/setup-ruby@77ca66ce2792fb05b8b204a203328e12593a64f3 # v1.72.1
+      - uses: ruby/setup-ruby@6148f408d35df04b0189be5e64c1458377b8ae13 # v1.114.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
