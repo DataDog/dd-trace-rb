@@ -72,13 +72,13 @@ RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
 
     context 'with an invalid input' do
       [
-        { "key with" => 'space' },
-        { "key,with" => 'comma' },
+        { 'key with' => 'space' },
+        { 'key,with' => 'comma' },
         { 'value' => 'with,comma' },
-        { "key=with" => 'equals' },
-        { "" => 'empty_key' },
+        { 'key=with' => 'equals' },
+        { '' => 'empty_key' },
         { 'empty_value' => '' },
-        { "🙅️" => 'out of range characters' },
+        { '🙅️' => 'out of range characters' },
         { 'out_of_range_characters' => '🙅️' },
       ].each do |input, _expected|
         context "of value `#{input}`" do
