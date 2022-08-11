@@ -357,6 +357,7 @@ Where `name` should be a `String` that describes the generic kind of operation b
 
 And `options` are the following optional keyword arguments:
 
+### Options
 | Key | Type | Description | Default |
 | --------------- | ----------------------- | --- | --- |
 | `autostart`     | `Bool`                  | Whether the time measurement should be started automatically. If `false`, user must call `span.start`. | `true` |
@@ -447,6 +448,63 @@ You can also get the current active trace using the `active_trace` method. This 
 # e.g. accessing active trace
 
 current_trace = Datadog::Tracing.active_trace
+```
+
+## Method Tracing API
+Another option for manual instrumentation is to use the method tracing API to trace your own code or code from a library/framework we do not yet support.
+
+To generate traces, use the `Datadog::Tracing.trace_method` method:
+```ruby
+Datadog::Tracing.trace_method(name, target, span_options).around do |env, span, trace, &block|
+  # You can modify the span here.
+  # e.g. Change the resource name, set tags, etc.
+  block.call
+end
+```
+This method does not need to be called at the same location where the target is declared, providing you with more flexibility to separate business and tracing logic.
+
+The `trace_method` method accepts the following parameters:
+| Parameter | Type | Description | Example |
+| ---- | ------- | --------- | --- |
+| `name` | `String` | The generic kind of operation being done. | `pg.exec` |
+| `target` | `String` | The class and method you wish to instrument. The convention for this API is to use `#` for denoting an instance method, and `.` for a class method.| `PG::Connection#exec` |
+| `span_options` | `Hash`| An optional `Hash` that accepts the same keyword arguments as the [manual instrumentation options](#options). | `{ type: 'sql' }`|
+
+Calling `Datadog::Tracing.trace_method` returns an instance of `Dataodg::Tracing::Contrib::Hook`.
+
+To modify the trace that is produced, you can call `around` on the hook object. This provides you with the following parameters:
+| Parameter | Type | Description | Example |
+| --- | --- | ------ | --- |
+| `env` | `Dataodg::Tracing::Contrib::Hook::Env` | The `env` object provides access to the environment used to call the target method. You can call `.self`, `.args` or `.kwargs`.| `env.self` |
+| `span` | `Datadog::Tracing::SpanOperation` | The span object that you can modify. | `span.resource = env.args.first` |
+| `trace` | `Datadog::Tracing::TraceOperation` | The trace object that you can modify. | `trace.resource = env.args.first` |
+| `block` | `Proc` | This allows you to call the target method and manipulate the result. The result should be returned at the end of the block passed to `.around`. | `result = block.call` |
+
+You can also call `disable!` and `enable!` on the hook object to selectively trace the target. By default, tracing is enabled.
+
+Example of the method tracing API in action:
+```ruby
+hook = Datadog::Tracing.trace_method(
+  'pg.exec',
+  'PG::Connection#exec',
+  { type: 'sql' }
+).around do |env, span, _trace, &block|
+  span.service = 'pg'
+  span.resource = env.args.first
+  span.set_tag('db.instance', env.self.db)
+  span.set_tag('db.user', env.self.user)
+  span.set_tag('db.system', 'postgresql')
+  span.set_tag('out.host', env.self.host)
+  span.set_tag('out.port', env.self.port)
+  result = block.call
+  span.set_tag('db.row_count', result.ntuples)
+  result
+end
+
+hook.disabled? # false
+hook.disable!
+hook.disabled? # true
+hook.enable!
 ```
 
 ## Integration instrumentation
