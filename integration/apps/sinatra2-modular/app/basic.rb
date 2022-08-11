@@ -1,9 +1,9 @@
 require 'sinatra/base'
 require 'ddtrace'
+require_relative 'parent'
 
-class Basic < Sinatra::Base
-  # register Datadog::Tracing::Contrib::Sinatra::Tracer
-
+# Inherit from another app the verified middleware/extension inheritance
+class Basic < Parent
   get '/basic/default' do
     200
   end

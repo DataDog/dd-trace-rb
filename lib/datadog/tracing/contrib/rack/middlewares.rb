@@ -61,6 +61,8 @@ module Datadog
               Tracing.continue_trace!(trace_digest)
             end
 
+            return @app.call(env) if previous_request_span
+
             # Create a root Span to keep track of frontend web servers
             # (i.e. Apache, nginx) if the header is properly set
             frontend_span = compute_queue_time(env) if previous_request_span.nil?

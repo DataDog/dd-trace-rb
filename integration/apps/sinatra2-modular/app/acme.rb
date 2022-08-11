@@ -1,6 +1,7 @@
 require 'sinatra/base'
 require 'sinatra/router'
 require 'ddtrace'
+require 'pry'
 # require 'ddtrace/auto_instrument'
 
 Datadog.configure do |c|
@@ -28,8 +29,6 @@ require_relative './basic'
 require_relative './health'
 
 class Acme < Sinatra::Base
-  # register Datadog::Tracing::Contrib::Sinatra::Tracer
-
   # # Use Sinatra App as middleware
   # use Health
   # use Basic

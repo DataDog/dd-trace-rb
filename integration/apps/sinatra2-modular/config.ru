@@ -1,6 +1,5 @@
 require 'ddtrace'
 require_relative 'app/acme'
-
-use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+require_relative 'app/basic'
 
 run Acme

@@ -50,15 +50,6 @@ module Datadog
           def set_middleware_traced(env, bool)
             env[Ext::RACK_ENV_MIDDLEWARE_TRACED] = bool
           end
-
-          # The start time of the top-most Sinatra middleware.
-          def middleware_start_time(env)
-            env[Ext::RACK_ENV_MIDDLEWARE_START_TIME]
-          end
-
-          def set_middleware_start_time(env, time = Time.now.utc)
-            env[Ext::RACK_ENV_MIDDLEWARE_START_TIME] = time
-          end
         end
       end
     end

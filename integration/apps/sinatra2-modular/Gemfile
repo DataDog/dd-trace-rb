@@ -7,6 +7,8 @@ gem 'unicorn'
 gem 'sinatra'
 gem 'sinatra-router'
 
+gem 'request_store'
+
 gem 'dogstatsd-ruby'
 # Choose correct specs for 'ddtrace' demo environment
 gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')

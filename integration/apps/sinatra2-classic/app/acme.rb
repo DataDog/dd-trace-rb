@@ -1,6 +1,6 @@
 require 'sinatra'
 require 'ddtrace'
-
+require 'pry'
 Datadog.configure do |c|
   c.service = 'acme-sinatra2-classic'
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')

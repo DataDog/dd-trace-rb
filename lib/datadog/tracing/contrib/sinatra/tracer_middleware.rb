@@ -28,6 +28,9 @@ module Datadog
               original_trace = Propagation::HTTP.extract(env)
               Tracing.continue_trace!(original_trace)
             end
+            prev_span = Sinatra::Env.datadog_span(env, @app_instance)
+
+            return @app.call(env) if prev_span
 
             Tracing.trace(
               Ext::SPAN_REQUEST,
@@ -51,13 +54,19 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
                 request = ::Sinatra::Request.new(env)
+
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, request.path)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request.request_method)
+
+                if Datadog.configuration.tracing[:sinatra][:resource_script_names]
+                  span.set_tag(Ext::TAG_ROUTE_PATH, request.path)
+                else
+                  span.set_tag(Ext::TAG_ROUTE_PATH, request.path_info)
+                end
+
                 if request.script_name && !request.script_name.empty?
                   span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
                 end
-
-                span.set_tag(Ext::TAG_APP_NAME, @app_instance.settings.name)
 
                 # If this app handled the request, then Contrib::Sinatra::Tracer OR Contrib::Sinatra::Base set the
                 # resource; if no resource was set, let's use a fallback
@@ -79,7 +88,10 @@ module Datadog
                   end
 
                   if (headers = response[1])
-                    Sinatra::Headers.response_header_tags(headers, configuration[:headers][:response]).each do |name, value|
+                    Sinatra::Headers.response_header_tags(
+                      headers,
+                      configuration[:headers][:response]
+                    ).each do |name, value|
                       span.set_tag(name, value) if span.get_tag(name).nil?
                     end
                   end
@@ -110,10 +122,6 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sinatra]
-          end
-
-          def header_to_rack_header(name)
-            "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
           end
         end
       end
