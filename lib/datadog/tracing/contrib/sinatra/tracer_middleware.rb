@@ -57,11 +57,9 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_URL, request.path)
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request.request_method)
 
-                if Datadog.configuration.tracing[:sinatra][:resource_script_names]
-                  span.set_tag(Ext::TAG_ROUTE_PATH, request.path)
-                else
-                  span.set_tag(Ext::TAG_ROUTE_PATH, request.path_info)
-                end
+                datadog_route = Sinatra::Env.route_path(env)
+
+                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route) if datadog_route
 
                 if request.script_name && !request.script_name.empty?
                   span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)

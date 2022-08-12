@@ -93,7 +93,7 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(trace.resource).to eq(resource)
             expect(rack_span.resource).to eq(resource)
 
-            expect(span).to be_request_span parent: rack_span, http_tags: true
+            expect(span).to be_request_span parent: rack_span
 
             expect(route_span).to be_route_span parent: span, app_name: opts[:app_name]
           end
@@ -301,7 +301,7 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/not_a_route')
 
-            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq('/not_a_route')
+            expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to be_nil
 
             expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
             expect(span).to_not have_error
@@ -510,13 +510,12 @@ RSpec.describe 'Sinatra instrumentation' do
 
   RSpec::Matchers.define :be_request_span do |opts = {}|
     match(notify_expectation_failures: true) do |span|
-      # app_name = opts[:app_name] || self.app_name
       expect(span.service).to eq(tracer.default_service)
-      expect(span.resource).to eq(opts[:resource] || resource)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(http_method) if opts[:http_tags]
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(url) if opts[:http_tags]
-      expect(span.get_tag('http.response.headers.content-type')).to eq('text/html;charset=utf-8') if opts[:http_tags]
-      # expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url) if app_name == self.app_name
+      expect(span.resource).to eq(resource)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(http_method)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(url)
+      expect(span.get_tag('http.response.headers.content-type')).to eq('text/html;charset=utf-8')
+      expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
       expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
 

@@ -49,28 +49,16 @@ module Datadog
               configuration = Datadog.configuration.tracing[:sinatra]
               return super unless Tracing.enabled?
 
-              verb, path = env['sinatra.route'].split(' ', 2)
-
-              datadog_route = if Datadog.configuration.tracing[:sinatra][:resource_script_names]
-                                # TODO: This should be the default
-                                "#{verb} #{request.script_name}#{path}"
-                              else
-                                env['sinatra.route']
-                              end
+              datadog_route = Sinatra::Env.route_path(env)
 
               Tracing.trace(
                 Ext::SPAN_ROUTE,
                 service: configuration[:service_name],
                 span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
-                resource: datadog_route,
+                resource: "#{request.request_method} #{datadog_route}",
               ) do |span, trace|
                 span.set_tag(Ext::TAG_APP_NAME, settings.name || settings.superclass.name)
-
-                if Datadog.configuration.tracing[:sinatra][:resource_script_names]
-                  span.set_tag(Ext::TAG_ROUTE_PATH, request.path)
-                else
-                  span.set_tag(Ext::TAG_ROUTE_PATH, request.path_info)
-                end
+                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
 
                 if request.script_name && !request.script_name.empty?
                   span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
