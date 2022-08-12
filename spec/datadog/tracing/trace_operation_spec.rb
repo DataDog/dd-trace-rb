@@ -1009,7 +1009,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           it_behaves_like 'a span with default events'
         end
 
-        context 'as Datadog::SpanOperation::Events' do
+        context 'as Datadog::Tracing::SpanOperation::Events' do
           let(:events) { Datadog::Tracing::SpanOperation::Events.new }
 
           it_behaves_like 'a span with default events' do
@@ -1027,7 +1027,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           it_behaves_like 'a span with default events'
         end
 
-        context 'as Datadog::SpanOperation::Events' do
+        context 'as Datadog::Tracing::SpanOperation::Events' do
           it_behaves_like 'a span with default events' do
             let(:on_error) { proc { |*args| callback_spy.call(*args) } }
             let(:callback_spy) { spy('callback spy') }

@@ -363,7 +363,7 @@ Direct usage of `Datadog::Context` has been removed. Previously, it was used to 
 
 Manual tracing is now done through the [public API](https://www.rubydoc.info/gems/ddtrace/).
 
-Whereas in 0.x, the block would provide a `Datadog::Span` as `span`, in 1.0, the block provides a `Datadog::SpanOperation` as `span` and `Datadog::TraceOperation` as `trace`.
+Whereas in 0.x, the block would provide a `Datadog::Span` as `span`, in 1.0, the block provides a `Datadog::Tracing::SpanOperation` as `span` and `Datadog::Tracing::TraceOperation` as `trace`.
 
 ```ruby
 ### Old 0.x ###
@@ -723,7 +723,7 @@ end
 | Tracing API                           | Removed  | `Pipeline.before_flush`                                                                                             | Use `Datadog::Tracing.before_flush` instead.                                                                                                                              |
 | Tracing API                           | Removed  | `SpanOperation#context`                                                                                             | Use `Datadog::Tracing.active_trace` instead.                                                                                                                              |
 | Tracing API                           | Removed  | `SpanOperation#parent`/`SpanOperation#parent=`                                                                      | Not supported.                                                                                                                                                            |
-| Tracing API                           | Removed  | `SpanOperation#sampled`                                                                                             | Use `Datadog::TraceOperation#sampled?` instead.                                                                                                                           |
+| Tracing API                           | Removed  | `SpanOperation#sampled`                                                                                             | Use `Datadog::Tracing::TraceOperation#sampled?` instead.                                                                                                                           |
 | Tracing API                           | Removed  | `Tracer#active_correlation.to_log_format`                                                                           | Use `Datadog::Tracing.log_correlation` instead.                                                                                                                           |
 | Tracing API                           | Removed  | `Tracer#active_correlation`                                                                                         | Use `Datadog::Tracing.correlation` instead.                                                                                                                               |
 | Tracing API                           | Removed  | `Tracer#active_root_span`                                                                                           | Use `Datadog::Tracing.active_trace` instead.                                                                                                                              |
