@@ -4,7 +4,6 @@ require_relative '../../../core/utils/only_once'
 require_relative '../patcher'
 require_relative '../rack/middlewares'
 require_relative 'framework'
-require_relative 'tracer'
 
 module Datadog
   module Tracing
@@ -51,6 +50,7 @@ module Datadog
           end
 
           def patch
+            require_relative 'tracer'
             register_tracer
 
             patch_default_middlewares
