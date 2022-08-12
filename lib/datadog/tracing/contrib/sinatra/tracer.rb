@@ -23,9 +23,6 @@ module Datadog
 
           # Method overrides for Sinatra::Base
           module Base
-            # MISSING_REQUEST_SPAN_ONLY_ONCE = Core::Utils::OnlyOnce.new
-            # private_constant :MISSING_REQUEST_SPAN_ONLY_ONCE
-
             def render(engine, data, *)
               return super unless Tracing.enabled?
 
