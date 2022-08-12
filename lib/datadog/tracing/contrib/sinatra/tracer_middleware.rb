@@ -28,9 +28,8 @@ module Datadog
               original_trace = Propagation::HTTP.extract(env)
               Tracing.continue_trace!(original_trace)
             end
-            prev_span = Sinatra::Env.datadog_span(env, @app_instance)
 
-            return @app.call(env) if prev_span
+            return @app.call(env) if Sinatra::Env.datadog_span(env)
 
             Tracing.trace(
               Ext::SPAN_REQUEST,
@@ -42,7 +41,7 @@ module Datadog
                 # the nil signals that there's no good one yet and is also seen by profiler, when sampling the resource
                 span.resource = nil
 
-                Sinatra::Env.set_datadog_span(env, @app_instance, span)
+                Sinatra::Env.set_datadog_span(env, span)
 
                 response = @app.call(env)
               ensure

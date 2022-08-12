@@ -13,14 +13,12 @@ module Datadog
         module Env
           module_function
 
-          def datadog_span(env, app)
-            request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
-            request_span && request_span[app]
+          def datadog_span(env)
+            env[Ext::RACK_ENV_SINATRA_REQUEST_SPAN]
           end
 
-          def set_datadog_span(env, app, span)
-            hash = (env[Ext::RACK_ENV_REQUEST_SPAN] ||= {})
-            hash[app] = span
+          def set_datadog_span(env, span)
+            env[Ext::RACK_ENV_SINATRA_REQUEST_SPAN] = span
           end
 
           def request_header_tags(env, headers)
@@ -38,17 +36,6 @@ module Datadog
 
           def header_to_rack_header(name)
             "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
-          end
-
-          # Was a Sinatra already traced in this request?
-          # We don't want to create spans for intermediate Sinatra
-          # middlewares that don't match the request at hand.
-          def middleware_traced?(env)
-            env[Ext::RACK_ENV_MIDDLEWARE_TRACED]
-          end
-
-          def set_middleware_traced(env, bool)
-            env[Ext::RACK_ENV_MIDDLEWARE_TRACED] = bool
           end
         end
       end

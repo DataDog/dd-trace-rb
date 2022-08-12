@@ -84,7 +84,7 @@ module Datadog
 
                 trace.resource = span.resource
 
-                sinatra_request_span = Sinatra::Env.datadog_span(env, ::Sinatra::Base)
+                sinatra_request_span = Sinatra::Env.datadog_span(env)
 
                 sinatra_request_span.resource = span.resource
 
