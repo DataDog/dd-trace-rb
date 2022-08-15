@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+require 'thor'
+
+class CLI < Thor
+  include Thor::Actions
+
+  desc "configure", "Generate Datadog configuration file"
+  option :host, :type => :string, :aliases => "-h"
+  option :port, :type => :numeric
+  option :debug, :type => :boolean
+  option :startup_logs
+  option :env
+  option :service
+  option :tags
+  option :version
+  option :tracing_analytics
+  option :tracing_propagation_extract_style
+  option :tracing_propagation_inject_style
+  option :tracing_enabled
+  option :tracing_log_injection
+  option :tracing_partial_flush_enabled
+  option :tracing_partial_flush_min_spans_threshold
+  option :tracing_sampling_default_rate
+  option :tracing_sampling_rate_limit
+  option :tracing_report_hostname
+  option :tracing_test_mode
+  option :tracing_test_mode_trash_flush
+  def configure(path='config/initializers/datadog.rb')
+    block = []
+
+    block.append("c.agent.host = '#{options.host}'") if options.host
+    block.append("c.agent.port = #{options.port}") if options.port
+    block.append("c.diagnostics.debug = #{options.debug}") if options.debug
+    block.append("c.diagnostics.startup_logs.enabled = '#{options.startup_logs}'") if options.startup_logs
+    block.append("c.env = '#{options.env}'") if options.env
+    block.append("c.service = '#{options.service}'") if options.service
+    block.append("c.tags = '#{options.tags}'") if options.tags
+    block.append("c.version = '#{options.version}'") if options.version
+    block.append("c.tracing.analytics.enabled = '#{options.tracing_analytics}'") if options.tracing_analytics
+    block.append("c.tracing.distributed_tracing.propagation_extract_style = '#{options.tracing_propagation_extract_style}'") if options.tracing_propagation_extract_style
+    block.append("c.tracing.distributed_tracing.tracing_propagation_inject_style = '#{options.tracing_propagation_inject_style}'") if options.tracing_propagation_inject_style
+    block.append("c.tracing.enabled = '#{options.tracing_enabled}'") if options.tracing_enabled
+    block.append("c.tracing.log_injection = '#{options.tracing_log_injection}'") if options.tracing_log_injection
+    block.append("c.tracing.partial_flush.enabled = '#{options.tracing_partial_flush_enabled}'") if options.tracing_partial_flush_enabled
+    block.append("c.tracing.partial_flush.min_spans_threshold = '#{options.tracing_partial_flush_min_spans_threshold}'") if options.tracing_partial_flush_min_spans_threshold
+    block.append("c.tracing.sampling.default_rate = '#{options.tracing_sampling_default_rate}'") if options.tracing_sampling_default_rate
+    block.append("c.tracing.sampling.rate_limit = '#{options.tracing_sampling_rate_limit}'") if options.tracing_sampling_rate_limit
+    block.append("c.tracing.report_hostname = '#{options.tracing_report_hostname}'") if options.tracing_report_hostname
+    block.append("c.tracing.tracing.test_mode.enabled = '#{options.tracing_test_mode}'") if options.tracing_test_mode
+    block.append("c.tracing.tracing.test_mode.trace_flush = '#{options.tracing_test_mode_trash_flush}'") if options.tracing_test_mode_trash_flush
+
+    configuration_block = "require 'ddtrace'
+
+Datadog.configure do
+  #{block.join("\n  ")}
+end"
+    create_file(path, configuration_block)
+    inject_into_file('Gemfile', "gem 'ddtrace'")
+  end
+
+
+  desc "configure_interactive", "Generate Datadog configuration file interactively"
+  def configure_interactive
+    require 'tty-prompt'
+    prompt = TTY::Prompt.new
+    path = prompt.ask("File location: ", default: 'config/initializers/datadog.rb')
+    configurations = {}
+
+    # Configuration = Struct.new('Configuration', :value, :display)
+    choices = [
+      # {name: "host", value: Configuration.new('c.agent.host', 'host')},
+      {name: "host", value: 'c.agent.host'},
+      {name: "port", value: 'c.agent.port'},
+      {name: "service", value: 'c.service'},
+      {name: "quit", value: :quit},
+      # "port" => 'c.agent.port',
+      # "service" => 'c.service',
+      # "quit" => :quit
+    ]
+    review = false
+
+    while review != true
+      configuration_key = nil
+
+      while configuration_key != :quit
+        configuration_key = prompt.select("Choose a value to modify", choices, filter: true)
+        unless configuration_key == :quit
+          value = prompt.ask("Value:")
+          configurations[configuration_key] = value
+        end
+      end
+
+      review = prompt.yes?("Are the following configurations correct? \n#{configurations}\n")
+    end
+
+    block = configurations.map do |configuration_key, value|
+      "#{configuration_key} = '#{value}'"
+    end
+
+    configuration_block = "require 'ddtrace'
+
+Datadog.configure do
+  #{block.join("\n  ")}
+end"
+    create_file(path, configuration_block)
+  end
+end
+
+CLI.start(ARGV)
