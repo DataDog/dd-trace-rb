@@ -36,8 +36,12 @@ Datadog.configure do |c|
   #{block.join("\n  ")}
 end
 "
-    create_file(options.path, configuration_block)
-    # inject_into_file('Gemfile', "gem 'ddtrace'")
+    unless ddtrace_installed?
+      say('Adding `ddtrace` to bundler...')
+      add_to_bundler
+    end
+
+    create_config(options.path, configuration_block)
   end
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
@@ -151,14 +155,7 @@ end
 Datadog.configure do |c|#{block}
 end
 "
-
-    unless ddtrace_installed?
-      say('Adding `ddtrace` to bundler...')
-      add_to_bundler
-    end
-    say('Creating configuration file...')
-    create_file(path, configuration_block)
-    say('Configuration file created, happy tracing!')
+    create_config(path, configuration_block)
   end
 
   def self.exit_on_failure?
@@ -214,12 +211,23 @@ end
 
   def format_tags(tags)
     return nil if tags.nil?
+
     tags_map = {}
     tags.split(',').each do |tag|
       k, v = tag.split(':')
       tags_map[k] = v
     end
     tags_map
+  end
+
+  def create_config(path, configuration_block)
+    unless ddtrace_installed?
+      say('Adding `ddtrace` to bundler...')
+      add_to_bundler
+    end
+    say('Creating configuration file...')
+    create_file(path, configuration_block)
+    say('Configuration file created, happy tracing!')
   end
 
   # def get_options(integration)
