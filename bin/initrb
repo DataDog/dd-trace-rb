@@ -1,14 +1,17 @@
 #!/usr/bin/env ruby
 require 'thor'
 
+# rubocop:disable Metrics/ClassLength
+# rubocop:disable Metrics/AbcSize
+# rubocop:disable Metrics/PerceivedComplexity
+# rubocop:disable Metrics/CyclomaticComplexity
+# rubocop:disable Metrics/MethodLength
+
 # Setup CLI for configuring Datadog tracer
 class CLI < Thor
   include Thor::Actions
 
-  # rubocop:disable Metrics/AbcSize
-  # rubocop:disable Metrics/PerceivedComplexity
-  # rubocop:disable Metrics/CyclomaticComplexity
-  # rubocop:disable Metrics/MethodLength
+  Configuration = Struct.new('Configuration', :name, :key, :default, :type, :value)
 
   desc 'configure', 'Generate Datadog configuration file'
   option :path, :default => 'config/initializers/datadog.rb'
@@ -72,7 +75,7 @@ class CLI < Thor
 
     configuration_block = "require 'ddtrace'
 
-Datadog.configure do
+Datadog.configure do |c|
   #{block.join("\n  ")}
 end"
     create_file(options.path, configuration_block)
@@ -81,71 +84,109 @@ end"
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
   def configure_interactive
-    require 'tty-prompt'
-    prompt = TTY::Prompt.new
-    path = prompt.ask('File location: ', default: 'config/initializers/datadog.rb')
-    configurations = {}
+    path = ask('File location:', default: 'config/initializers/datadog.rb')
 
-    # choices = [
-    #   {name: 'host', value: 'c.agent.host', type: :string},
-    #   {name: 'port', value: 'c.agent.port', type: :numeric},
-    #   {name: 'quit', value: :quit},
-    # ]
-    choices = {
-      'host' => 'c.agent.host',
-      'port' => 'c.agent.port',
-      'debug' => 'c.diagnostics.debug',
-      'startup logs enabled' => 'c.diagnostics.startup_logs.enabled',
-      'env' => 'c.env',
-      'service' => 'c.service',
-      'tags' => 'c.tags',
-      'version' => 'c.version',
-      'tracing analytics enabled' => 'c.tracing.analytics.enabled',
-      'tracing (distributed) propogation extraction style' => 'c.tracing.distributed_tracing.propagation_extract_style',
-      'tracing (distributed) propogation inject style' => 'c.tracing.distributed_tracing.tracing_propagation_inject_style',
-      'tracing enabled' => 'c.tracing.enabled',
-      'tracing log injection' => 'c.tracing.log_injection',
-      'tracing partial flush enabled' => 'c.tracing.partial_flush.enabled',
-      'tracing partial min spans threshold' => 'c.tracing.tracing.partial_flush.min_spans_threshold',
-      'tracing sampling default rate' => 'c.tracing.sampling.default_rate',
-      'tracing sampling rate limit' => 'c.tracing.sampling.rate_limit',
-      'tracing report hostname' => 'c.tracing.report_hostname',
-      'tracing test mode enabled' => 'c.tracing.test_mode.enabled',
-      'quit' => :quit,
-    }
-    review = false
+    basic_configuration = [
+      Configuration.new('Host', 'c.agent.host', ENV.fetch('DD_AGENT_HOST', '127.0.0.1'), :string, nil),
+      Configuration.new('Port', 'c.agent.port', ENV.fetch('DD_TRACE_AGENT_PORT', '8126'), :integer, nil),
+      Configuration.new('Env', 'c.env', ENV['DD_ENV'], :string, nil),
+      Configuration.new('Tags', 'c.tags', ENV['DD_TAGS'], :string, nil),
+      Configuration.new('Version', 'c.version', ENV['DD_VERSION'], :string, nil),
+    ]
 
-    while review != true
-      configuration_key = nil
+    diagnostics_configuration = [
+      Configuration.new('Diagnostics debug', 'c.diagnostics.debug', ENV.fetch('DD_TRACE_DEBUG', 'false'), :boolean, nil),
+      Configuration.new(
+        'Enable startup logs',
+        'c.diagnostics.startup_logs.enabled',
+        ENV['DD_TRACE_STARTUP_LOGS'],
+        :boolean,
+        nil
+      )
+    ]
 
-      while configuration_key != :quit
-        configuration_key = prompt.select('Choose a value to modify', choices, filter: true, cycle: true)
-        unless configuration_key == :quit
-          value = prompt.ask('Value:')
-          configurations[configuration_key] = value
-        end
-      end
+    tracing_configuration = [
+      Configuration.new('Tracing enabled', 'c.tracing.enabled', ENV.fetch('DD_TRACE_ENABLED', 'true'), :boolean, nil),
+      Configuration.new(
+        'Log injection enabled',
+        'c.tracing.log_injection',
+        ENV.fetch('DD_LOGS_INJECTION', 'true'),
+        :boolean,
+        nil
+      ),
+      Configuration.new(
+        'Analytics enabled',
+        'c.tracing.analytics.enabled',
+        ENV['DD_TRACE_ANALYTICS_ENABLED'],
+        :boolean,
+        nil
+      ),
+      Configuration.new(
+        'Report hostname',
+        'c.tracing.report_hostname',
+        ENV.fetch('DD_TRACE_REPORT_HOSTNAME', 'false'),
+        :boolean,
+        nil
+      ),
+    ]
+    partial_flushing_configuration = [
+      Configuration.new('Partial flushing enabled', 'c.tracing.partial_flush.enabled', 'false', :boolean, nil),
+      Configuration.new(
+        'Partial flushing minimum spans threshold',
+        'c.tracing.partial_flush.min_spans_threshold',
+        '500',
+        :integer,
+        nil
+      ),
+    ]
+    sampling_configuration = [
+      Configuration.new(
+        'Sampling default rate',
+        'c.tracing.sampling.default_rate',
+        ENV['DD_TRACE_SAMPLE_RATE'],
+        :float,
+        nil
+      ),
+      Configuration.new(
+        'Sampling rate limit',
+        'c.tracing.sampling.rate_limit',
+        ENV.fetch('DD_TRACE_RATE_LIMIT', '100'),
+        :integer,
+        nil
+      ),
+    ]
+    test_mode_configuration = [
+      Configuration.new(
+        'Test mode enabled',
+        'c.tracing.test_mode.enabled',
+        ENV.fetch('DD_TRACE_TEST_MODE_ENABLED', 'false'),
+        :boolean,
+        nil
+      ),
+    ]
 
-      review = prompt.yes?("Are the following configurations correct? \n#{configurations}\n")
+    configurations = [basic_configuration, diagnostics_configuration, tracing_configuration,
+                      partial_flushing_configuration, sampling_configuration, test_mode_configuration]
+
+    ask_config(basic_configuration)
+    ask_config(diagnostics_configuration) if yes?('Configure diagnostics? [y/n]')
+    ask_config(tracing_configuration) if yes?('Configure tracing? [y/n]')
+    ask_config(partial_flushing_configuration) if yes?('Configure partial flushing? [y/n]')
+    ask_config(sampling_configuration) if yes?('Configure sampling? [y/n]')
+    ask_config(test_mode_configuration) if yes?('Configure test mode? [y/n]')
+
+    block = ''
+    configurations.each do |configs|
+      config_block = configs.map do |config|
+        "\n #{config.key} = #{cast(config)}" unless config.value.nil?
+      end.join
+      block += config_block
     end
 
-    if configurations.empty?
-      configuration_block = "require 'ddtrace'
+    configuration_block = "require 'ddtrace'
 
-Datadog.configure {}
-      "
-    else
-      block = configurations.map do |k, v|
-        puts v.class
-        "#{k} = '#{v}'"
-      end.join("\n  ")
-
-      configuration_block = "require 'ddtrace'
-
-Datadog.configure do
-  #{block}
+Datadog.configure do |c|#{block}
 end"
-    end
 
     create_file(path, configuration_block)
   end
@@ -153,10 +194,33 @@ end"
   def self.exit_on_failure?
     true
   end
-  # rubocop:enable Metrics/PerceivedComplexity
-  # rubocop:enable Metrics/CyclomaticComplexity
-  # rubocop:enable Metrics/AbcSize
-  # rubocop:enable Metrics/MethodLength
+
+  private
+
+  def ask_config(configuration_options)
+    configuration_options.each do |configuration|
+      value = ask("#{configuration.name}:", default: configuration.default)
+      configuration.value = value unless value.empty?
+    end
+  end
+
+  def cast(configuration)
+    case configuration.type
+    when :integer
+      configuration.value.to_i
+    when :boolean
+      configuration.value == 'true'
+    when :float
+      configuration.value.to_f
+    else
+      "'#{configuration.value}'"
+    end
+  end
 end
+# rubocop:enable Metrics/ClassLength
+# rubocop:enable Metrics/PerceivedComplexity
+# rubocop:enable Metrics/CyclomaticComplexity
+# rubocop:enable Metrics/AbcSize
+# rubocop:enable Metrics/MethodLength
 
 CLI.start(ARGV)

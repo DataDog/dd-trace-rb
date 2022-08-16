@@ -70,7 +70,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'libdatadog', '~> 0.7.0.1.0'
 
   spec.add_dependency 'thor', '>=0.19.1'
-  spec.add_dependency 'tty-prompt', '~> 0.21.0'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end
