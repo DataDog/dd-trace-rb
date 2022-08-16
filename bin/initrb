@@ -143,7 +143,7 @@ end
     end
 
     available_integrations.each do |integration|
-      block += "\n  c.tracing.instrument :#{integration}" unless no?("Press `n` to skip tracing #{integration}")
+      block += "\n  c.tracing.instrument :#{integration}" unless no?("Press `n` to skip tracing #{integration}.")
     end
 
     configuration_block = "require 'ddtrace'
