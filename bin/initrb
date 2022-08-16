@@ -3,10 +3,7 @@ require 'thor'
 
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/AbcSize
-# rubocop:disable Metrics/PerceivedComplexity
-# rubocop:disable Metrics/CyclomaticComplexity
 # rubocop:disable Metrics/MethodLength
-
 # Setup CLI for configuring Datadog tracer
 class CLI < Thor
   include Thor::Actions
@@ -17,61 +14,19 @@ class CLI < Thor
   option :path, :default => 'config/initializers/datadog.rb'
   option :host, :aliases => '-h'
   option :port, :type => :numeric, :aliases => '-p'
-  option :debug, :type => :boolean, :aliases => '-d'
-  option :startup_logs, :type => :boolean
   option :env, :aliases => '-e'
   option :service, :aliases => '-s'
   option :tags, :aliases => '-t'
   option :version, :aliases => '-v'
-  option :tracing_analytics, :type => :boolean
-  option :tracing_propagation_extract_style, :repeatable => true
-  option :tracing_propagation_inject_style, :repeatable => true
-  option :tracing_enabled, :type => :boolean
-  option :tracing_log_injection, :type => :boolean
-  option :tracing_partial_flush_enabled, :type => :boolean
-  option :tracing_partial_flush_min_spans_threshold, :type => :numeric
-  option :tracing_sampling_default_rate, :type => :numeric
-  option :tracing_sampling_rate_limit, :type => :numeric
-  option :tracing_report_hostname, :type => :boolean
-  option :tracing_test_mode, :type => :boolean
   def configure
     block = []
 
     block.append("c.agent.host = '#{options.host}'") if options.key?(:host)
     block.append("c.agent.port = #{options.port}") if options.key?(:port)
-    block.append("c.diagnostics.debug = #{options.debug}") if options.key?(:debug)
-    block.append("c.diagnostics.startup_logs.enabled = #{options.startup_logs}") if options.key?(:startup_logs)
     block.append("c.env = '#{options.env}'") if options.key?(:env)
     block.append("c.service = '#{options.service}'") if options.key?(:service)
     block.append("c.tags = '#{options.tags}'") if options.key?(:tags)
     block.append("c.version = '#{options.version}'") if options.key?(:version)
-    block.append("c.tracing.analytics.enabled = #{options.tracing_analytics}") if options.key?(:tracing_analytics)
-    if options.key?(:tracing_propagation_extract_style)
-      block.append(
-        "c.tracing.distributed_tracing.propagation_extract_style = #{options.tracing_propagation_extract_style}"
-      )
-    end
-    if options.key?(:tracing_propagation_inject_style)
-      block.append(
-        "c.tracing.distributed_tracing.tracing_propagation_inject_style = #{options.tracing_propagation_inject_style}"
-      )
-    end
-    block.append("c.tracing.enabled = #{options.tracing_enabled}") if options.key?(:tracing_enabled)
-    block.append("c.tracing.log_injection = #{options.tracing_log_injection}") if options.key?(:tracing_log_injection)
-    if options.key?(:tracing_partial_flush_enabled)
-      block.append("c.tracing.partial_flush.enabled = #{options.tracing_partial_flush_enabled}")
-    end
-    if options.key?(:tracing_partial_flush_min_spans_threshold)
-      block.append("c.tracing.partial_flush.min_spans_threshold = #{options.tracing_partial_flush_min_spans_threshold}")
-    end
-    if options.key?(:tracing_sampling_default_rate)
-      block.append("c.tracing.sampling.default_rate = #{options.tracing_sampling_default_rate}")
-    end
-    if options.key?(:tracing_sampling_rate_limit)
-      block.append("c.tracing.sampling.rate_limit = #{options.tracing_sampling_rate_limit}")
-    end
-    block.append("c.tracing.report_hostname = #{options.tracing_report_hostname}") if options.key?(:tracing_report_hostname)
-    block.append("c.tracing.test_mode.enabled = #{options.tracing_test_mode}") if options.key?(:tracing_test_mode)
 
     configuration_block = "require 'ddtrace'
 
@@ -220,8 +175,6 @@ end"
   end
 end
 # rubocop:enable Metrics/ClassLength
-# rubocop:enable Metrics/PerceivedComplexity
-# rubocop:enable Metrics/CyclomaticComplexity
 # rubocop:enable Metrics/AbcSize
 # rubocop:enable Metrics/MethodLength
 
