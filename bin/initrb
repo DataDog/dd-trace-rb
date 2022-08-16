@@ -18,7 +18,7 @@ class CLI < Thor
   option :port, :type => :numeric, :aliases => '-p'
   option :env, :aliases => '-e'
   option :service, :aliases => '-s'
-  option :tags, :aliases => '-t'
+  option :tags, :aliases => '-t', :repeatable => true
   option :version, :aliases => '-v'
   def configure
     block = []
@@ -27,7 +27,7 @@ class CLI < Thor
     block.append("c.agent.port = #{options.port}") if options.key?(:port)
     block.append("c.env = '#{options.env}'") if options.key?(:env)
     block.append("c.service = '#{options.service}'") if options.key?(:service)
-    block.append("c.tags = '#{options.tags}'") if options.key?(:tags)
+    block.append("c.tags = '#{options.tags.join(',')}'") if options.key?(:tags)
     block.append("c.version = '#{options.version}'") if options.key?(:version)
 
     configuration_block = "require 'ddtrace'
