@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require 'thor'
+require 'bundler'
 require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
@@ -150,6 +151,7 @@ Datadog.configure do |c|#{block}
 end"
 
     create_file(path, configuration_block)
+    add_to_bundler
     say('Configuration file created, happy tracing!')
   end
 
@@ -188,6 +190,18 @@ end"
       end
     end
     available
+  end
+
+  def add_to_bundler
+    `bundle add ddtrace` unless ddtrace_installed?
+  end
+
+  def ddtrace_installed?
+    bundled_deps.include?('ddtrace')
+  end
+
+  def bundled_deps
+    Bundler.definition.dependencies.map(&:name)
   end
 
   # def get_options(integration)
