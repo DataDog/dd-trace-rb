@@ -2,15 +2,6 @@
 require 'thor'
 require 'ddtrace'
 
-# basic
-# -> host, port, service, env, tags, integrations auto-detect
-# option to configure more advanced settings here? (default n)
-# advanced
-# -> would you like to configure any [section]
-
-# prefix for service name (for each integration)?
-# activate integration + show options ? [Y/n/configure option]
-
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/AbcSize
 # rubocop:disable Metrics/MethodLength
@@ -135,11 +126,11 @@ end"
                       partial_flushing_configuration, sampling_configuration, test_mode_configuration]
 
     ask_config(basic_configuration)
-    ask_config(diagnostics_configuration) if yes?('Configure diagnostics? Press "y" to configure.')
-    ask_config(tracing_configuration) if yes?('Configure tracing? Press "y" to configure.')
-    ask_config(partial_flushing_configuration) if yes?('Configure partial flushing? Press "y" to configure.')
-    ask_config(sampling_configuration) if yes?('Configure sampling? Press "y" to configure.')
-    ask_config(test_mode_configuration) if yes?('Configure test mode? Press "y" to configure.')
+    ask_config(diagnostics_configuration) if yes?('Configure diagnostics? Press `y` to configure.')
+    ask_config(tracing_configuration) if yes?('Configure tracing? Press `y` to configure.')
+    ask_config(partial_flushing_configuration) if yes?('Configure partial flushing? Press `y` to configure.')
+    ask_config(sampling_configuration) if yes?('Configure sampling? Press `y` to configure.')
+    ask_config(test_mode_configuration) if yes?('Configure test mode? Press `y` to configure.')
 
     block = ''
     configurations.each do |configs|
