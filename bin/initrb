@@ -34,7 +34,8 @@ class CLI < Thor
 
 Datadog.configure do |c|
   #{block.join("\n  ")}
-end"
+end
+"
     create_file(options.path, configuration_block)
     # inject_into_file('Gemfile', "gem 'ddtrace'")
   end
@@ -148,7 +149,8 @@ end"
     configuration_block = "require 'ddtrace'
 
 Datadog.configure do |c|#{block}
-end"
+end
+"
 
     unless ddtrace_installed?
       say('Adding `ddtrace` to bundler...')
