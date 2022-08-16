@@ -125,16 +125,16 @@ end"
                       partial_flushing_configuration, sampling_configuration, test_mode_configuration]
 
     ask_config(basic_configuration)
-    ask_config(diagnostics_configuration) if yes?('Configure diagnostics? [y/n]')
-    ask_config(tracing_configuration) if yes?('Configure tracing? [y/n]')
-    ask_config(partial_flushing_configuration) if yes?('Configure partial flushing? [y/n]')
-    ask_config(sampling_configuration) if yes?('Configure sampling? [y/n]')
-    ask_config(test_mode_configuration) if yes?('Configure test mode? [y/n]')
+    ask_config(diagnostics_configuration) if yes?('Configure diagnostics? Press "y" to configure.')
+    ask_config(tracing_configuration) if yes?('Configure tracing? Press "y" to configure.')
+    ask_config(partial_flushing_configuration) if yes?('Configure partial flushing? Press "y" to configure.')
+    ask_config(sampling_configuration) if yes?('Configure sampling? Press "y" to configure.')
+    ask_config(test_mode_configuration) if yes?('Configure test mode? Press "y" to configure.')
 
     block = ''
     configurations.each do |configs|
       config_block = configs.map do |config|
-        "\n  #{config.key} = #{cast(config)}" unless config.value.nil?
+        "\n  #{config.key} = #{cast_type(config)}" unless config.value.nil?
       end.join
       block += config_block
     end
@@ -161,7 +161,7 @@ end"
     end
   end
 
-  def cast(configuration)
+  def cast_type(configuration)
     case configuration.type
     when :integer
       configuration.value.to_i
