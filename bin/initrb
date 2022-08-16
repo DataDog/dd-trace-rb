@@ -41,7 +41,7 @@ class CLI < Thor
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
   def configure_interactive
-    path = ask('File location:', default: 'config/initializers/datadog.rb')
+    path = ask(set_color('File location:', :bold), default: 'config/initializers/datadog.rb')
 
     basic_configuration = [
       Configuration.new('Host', 'c.agent.host', ENV.fetch('DD_AGENT_HOST', '127.0.0.1'), :string, nil),
@@ -127,11 +127,16 @@ class CLI < Thor
                       partial_flushing_configuration, sampling_configuration, test_mode_configuration]
 
     ask_config(basic_configuration)
-    ask_config(diagnostics_configuration) if yes?('Configure diagnostics? Press `y` to configure.')
-    ask_config(tracing_configuration) if yes?('Configure tracing? Press `y` to configure.')
-    ask_config(partial_flushing_configuration) if yes?('Configure partial flushing? Press `y` to configure.')
-    ask_config(sampling_configuration) if yes?('Configure sampling? Press `y` to configure.')
-    ask_config(test_mode_configuration) if yes?('Configure test mode? Press `y` to configure.')
+    ask_config(diagnostics_configuration) if yes?(set_color('Configure diagnostics? Press `y` to configure.', :yellow))
+    ask_config(tracing_configuration) if yes?(set_color('Configure tracing? Press `y` to configure.', :yellow))
+    ask_config(partial_flushing_configuration) if yes?(
+      set_color(
+        'Configure partial flushing? Press `y` to configure.',
+        :yellow
+      )
+    )
+    ask_config(sampling_configuration) if yes?(set_color('Configure sampling? Press `y` to configure.', :yellow))
+    ask_config(test_mode_configuration) if yes?(set_color('Configure test mode? Press `y` to configure.', :yellow))
 
     block = ''
     configurations.each do |configs|
@@ -142,7 +147,12 @@ class CLI < Thor
     end
 
     available_integrations.each do |integration|
-      block += "\n  c.tracing.instrument :#{integration}" unless no?("Press `n` to skip tracing #{integration}.")
+      block += "\n  c.tracing.instrument :#{integration}" unless no?(
+        set_color(
+          "Press `n` to skip tracing #{integration}.",
+          :magenta
+        )
+      )
     end
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
@@ -157,7 +167,7 @@ class CLI < Thor
 
   def ask_config(configuration_options)
     configuration_options.each do |configuration|
-      value = ask("#{configuration.name}:", default: configuration.default)
+      value = ask(set_color("#{configuration.name}:", :bold), default: configuration.default)
       configuration.value = value unless value.empty?
     end
   end
@@ -213,12 +223,12 @@ class CLI < Thor
 
   def create_config(path, configuration_block)
     unless ddtrace_installed?
-      say('Adding `ddtrace` to bundler...')
+      say(set_color('Adding `ddtrace` to bundler...', :greeb))
       add_to_bundler
     end
-    say('Creating configuration file...')
+    say(set_color('Creating configuration file...', :green))
     create_file(path, configuration_block)
-    say('Configuration file created, happy tracing!')
+    say(set_color('Configuration file created, happy tracing!', :green))
   end
 
   # def get_options(integration)
