@@ -30,12 +30,7 @@ class CLI < Thor
     block.append("c.tags = #{options.tags}") if options.key?(:tags)
     block.append("c.version = '#{options.version}'") if options.key?(:version)
 
-    configuration_block = "require 'ddtrace'
-
-Datadog.configure do |c|
-  #{block.join("\n  ")}
-end
-"
+    configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|\n  #{block.join("\n  ")}\nend\n"
     unless ddtrace_installed?
       say('Adding `ddtrace` to bundler...')
       add_to_bundler
@@ -150,11 +145,7 @@ end
       block += "\n  c.tracing.instrument :#{integration}" unless no?("Press `n` to skip tracing #{integration}.")
     end
 
-    configuration_block = "require 'ddtrace'
-
-Datadog.configure do |c|#{block}
-end
-"
+    configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
     create_config(path, configuration_block)
   end
 
