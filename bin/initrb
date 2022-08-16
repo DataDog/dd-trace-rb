@@ -1,5 +1,15 @@
 #!/usr/bin/env ruby
 require 'thor'
+require 'ddtrace'
+
+# basic
+# -> host, port, service, env, tags, integrations auto-detect
+# option to configure more advanced settings here? (default n)
+# advanced
+# -> would you like to configure any [section]
+
+# prefix for service name (for each integration)?
+# activate integration + show options ? [Y/n/configure option]
 
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/AbcSize
@@ -139,6 +149,10 @@ end"
       block += config_block
     end
 
+    available_integrations.each do |integration|
+      block += "\n  c.tracing.instrument :#{integration}" unless no?("Press `n` to skip tracing #{integration}")
+    end
+
     configuration_block = "require 'ddtrace'
 
 Datadog.configure do |c|#{block}
@@ -173,6 +187,29 @@ end"
       "'#{configuration.value}'"
     end
   end
+
+  def available_integrations
+    available = []
+    Datadog.registry.map do |integration|
+      if integration.klass.class.compatible?
+        available << integration.name
+        # available[integration.name] = get_options(integration.klass)
+      end
+    end
+    available
+  end
+
+  # def get_options(integration)
+  #   integration.configuration.class.options.map do |key, option_def|
+  #     Struct::Configuration.new(
+  #       key,
+  #       key,
+  #       option_def.default.is_a?(Proc) ? option_def.default.call : option_def.default,
+  #       :unknown,
+  #       nil
+  #     )
+  #   end
+  # end
 end
 # rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/AbcSize
