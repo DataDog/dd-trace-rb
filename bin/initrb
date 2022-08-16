@@ -18,7 +18,7 @@ class CLI < Thor
   option :port, :type => :numeric, :aliases => '-p'
   option :env, :aliases => '-e'
   option :service, :aliases => '-s'
-  option :tags, :aliases => '-t', :repeatable => true
+  option :tags, :aliases => '-t'
   option :version, :aliases => '-v'
   def configure
     block = []
@@ -27,7 +27,7 @@ class CLI < Thor
     block.append("c.agent.port = #{options.port}") if options.key?(:port)
     block.append("c.env = '#{options.env}'") if options.key?(:env)
     block.append("c.service = '#{options.service}'") if options.key?(:service)
-    block.append("c.tags = '#{options.tags.join(',')}'") if options.key?(:tags)
+    block.append("c.tags = #{options.tags}") if options.key?(:tags)
     block.append("c.version = '#{options.version}'") if options.key?(:version)
 
     configuration_block = "require 'ddtrace'
@@ -49,7 +49,7 @@ end
       Configuration.new('Port', 'c.agent.port', ENV.fetch('DD_TRACE_AGENT_PORT', '8126'), :integer, nil),
       Configuration.new('Env', 'c.env', ENV['DD_ENV'], :string, nil),
       Configuration.new('Service', 'c.service', ENV['DD_SERVICE'], :string, nil),
-      Configuration.new('Tags', 'c.tags', ENV['DD_TAGS'], :string, nil),
+      Configuration.new('Tags', 'c.tags', format_tags(ENV['DD_TAGS']), :hash, nil),
       Configuration.new('Version', 'c.version', ENV['DD_VERSION'], :string, nil),
     ]
 
@@ -182,6 +182,8 @@ end
       configuration.value == 'true'
     when :float
       configuration.value.to_f
+    when :hash
+      configuration.value
     else
       "'#{configuration.value}'"
     end
@@ -208,6 +210,16 @@ end
 
   def bundled_deps
     Bundler.definition.dependencies.map(&:name)
+  end
+
+  def format_tags(tags)
+    nil if tags.nil?
+    tags_map = {}
+    tags.split(',').each do |tag|
+      k, v = tag.split(':')
+      tags_map[k] = v
+    end
+    tags_map
   end
 
   # def get_options(integration)
