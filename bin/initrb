@@ -150,8 +150,12 @@ end"
 Datadog.configure do |c|#{block}
 end"
 
+    unless ddtrace_installed?
+      say('Adding `ddtrace` to bundler...')
+      add_to_bundler
+    end
+    say('Creating configuration file...')
     create_file(path, configuration_block)
-    add_to_bundler
     say('Configuration file created, happy tracing!')
   end
 
@@ -193,7 +197,7 @@ end"
   end
 
   def add_to_bundler
-    `bundle add ddtrace` unless ddtrace_installed?
+    `bundle add ddtrace`
   end
 
   def ddtrace_installed?
