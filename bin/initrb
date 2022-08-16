@@ -213,7 +213,7 @@ end
   end
 
   def format_tags(tags)
-    nil if tags.nil?
+    return nil if tags.nil?
     tags_map = {}
     tags.split(',').each do |tag|
       k, v = tag.split(':')
