@@ -90,6 +90,7 @@ end"
       Configuration.new('Host', 'c.agent.host', ENV.fetch('DD_AGENT_HOST', '127.0.0.1'), :string, nil),
       Configuration.new('Port', 'c.agent.port', ENV.fetch('DD_TRACE_AGENT_PORT', '8126'), :integer, nil),
       Configuration.new('Env', 'c.env', ENV['DD_ENV'], :string, nil),
+      Configuration.new('Service', 'c.service', ENV['DD_SERVICE'], :string, nil),
       Configuration.new('Tags', 'c.tags', ENV['DD_TAGS'], :string, nil),
       Configuration.new('Version', 'c.version', ENV['DD_VERSION'], :string, nil),
     ]
@@ -178,7 +179,7 @@ end"
     block = ''
     configurations.each do |configs|
       config_block = configs.map do |config|
-        "\n #{config.key} = #{cast(config)}" unless config.value.nil?
+        "\n  #{config.key} = #{cast(config)}" unless config.value.nil?
       end.join
       block += config_block
     end
@@ -189,6 +190,7 @@ Datadog.configure do |c|#{block}
 end"
 
     create_file(path, configuration_block)
+    say('Configuration file created, happy tracing!')
   end
 
   def self.exit_on_failure?
