@@ -35,7 +35,7 @@ module Datadog
             false
           end
 
-          def default_configuration
+          def new_configuration
             Configuration::Settings.new
           end
 
