@@ -153,7 +153,7 @@ class CLI < Thor
     end
 
     say(set_color('We currently instrument these installed gems:', :cyan))
-    say(available_integrations.keys)
+    say(pp_integrations(available_integrations.keys))
     trace_all_integrations = no?(
       set_color(
         'Press `n` if you would like to configure each integration separately.',
@@ -272,6 +272,14 @@ class CLI < Thor
 
   def numeric?(value)
     true if Float(value) rescue false
+  end
+
+  def pp_integrations(integrations)
+    integration_list = ''
+    integrations.each do |integration|
+      integration_list += "#{integration}\n"
+    end
+    integration_list
   end
 end
 # rubocop:enable Metrics/ClassLength
