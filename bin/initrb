@@ -15,11 +15,11 @@ class CLI < Thor
 
   desc 'configure', 'Generate Datadog configuration file'
   option :path, :default => 'config/initializers/datadog.rb'
-  option :host, :aliases => '-h'
-  option :port, :type => :numeric, :aliases => '-p'
+  option :host, :aliases => '-h', :default => '127.0.0.1'
+  option :port, :type => :numeric, :aliases => '-p', :default => '8126'
   option :env, :aliases => '-e'
   option :service, :aliases => '-s'
-  option :tags, :aliases => '-t'
+  option :tag, :type => :hash, :aliases => '-t', :repeatable => true
   option :version, :aliases => '-v'
   def configure
     block = []
@@ -28,7 +28,7 @@ class CLI < Thor
     block.append("c.agent.port = #{options.port}") if options.key?(:port)
     block.append("c.env = '#{options.env}'") if options.key?(:env)
     block.append("c.service = '#{options.service}'") if options.key?(:service)
-    block.append("c.tags = #{options.tags}") if options.key?(:tags)
+    block.append("c.tags = #{options.tag}") if options.key?(:tag)
     block.append("c.version = '#{options.version}'") if options.key?(:version)
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|\n  #{block.join("\n  ")}\nend\n"
