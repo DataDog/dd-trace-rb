@@ -156,7 +156,8 @@ class CLI < Thor
     say(pp_integrations(available_integrations.keys))
     trace_all_integrations = no?(
       set_color(
-        'Press `n` if you would like to configure each integration separately.',
+        'We will automatically instrument all of these for you. Press `n` if you would like to configure each integration '\
+        'separately.',
         :magenta
       )
     )
