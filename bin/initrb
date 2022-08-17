@@ -12,6 +12,9 @@ require 'ddtrace'
 class CLI < Thor
   include Thor::Actions
 
+  # Map `initrb -I` to configure interactively
+  map "-I" => :configure_interactive
+
   Configuration = Struct.new('Configuration', :name, :key, :default, :type, :value)
   IntegrationOption = Struct.new('IntegrationOption', :name, :default, :type, :value)
 
