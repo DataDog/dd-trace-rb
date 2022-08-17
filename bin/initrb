@@ -62,6 +62,7 @@ class CLI < Thor
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
   def configure_interactive
+    say(set_color("\n(1/4) Basic Configuration", :on_cyan))
     path = ask(set_color('Tracer configuration file location:', :bold), default: 'config/initializers/datadog.rb')
 
     basic_configuration = [
@@ -151,9 +152,14 @@ class CLI < Thor
                       partial_flushing_configuration, sampling_configuration, test_mode_configuration]
 
     ask_config(basic_configuration)
+
+    say(set_color("\n(2/4) Advanced Configuration", :on_cyan))
     if yes?(
-      set_color('Press `y` if you would like to configure any advanced settings or any other key to continue.'),
-      :yellow
+      set_color(
+        'Press `y` if you would like to configure any advanced settings or any other key to continue.',
+        :yellow,
+        :bold
+      )
     )
       ask_config(diagnostics_configuration) if yes?(
         set_color(
@@ -192,13 +198,15 @@ class CLI < Thor
       block += config_block
     end
 
-    say(set_color('We currently instrument these installed gems:', :cyan, :bold))
+    say(set_color("\n(3/4) Integrations", :on_cyan))
+    say(set_color('We currently instrument these installed gems:', :cyan))
     print_in_columns(available_integrations.keys)
     trace_all_integrations = yes?(
       set_color(
         'Press `y` if you would like to configure each integration separately or any other key to automatically trace '\
         'these gems.',
-        :yellow
+        :yellow,
+        :bold
       )
     )
 
@@ -220,6 +228,7 @@ class CLI < Thor
     end
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
+    say(set_color("\n(4/4) Installation and Configuration", :on_cyan))
     create_config(path, configuration_block)
   end
 
