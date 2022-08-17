@@ -13,7 +13,7 @@ module Datadog
         # @!visibility private
         def initialize
           @data = {}
-          @mutex = Mutex.new
+          @mutex = Monitor.new
         end
 
         # @param name [Symbol] instrumentation name, to be used when activating this integration
