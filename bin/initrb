@@ -16,7 +16,7 @@ class CLI < Thor
   desc 'configure', 'Generate Datadog configuration file'
   option :path, :default => 'config/initializers/datadog.rb'
   option :host, :aliases => '-h', :default => '127.0.0.1'
-  option :port, :type => :numeric, :aliases => '-p', :default => '8126'
+  option :port, :type => :numeric, :aliases => '-p', :default => 8126
   option :env, :aliases => '-e'
   option :service, :aliases => '-s'
   option :tag, :type => :hash, :aliases => '-t', :repeatable => true
