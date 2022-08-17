@@ -62,7 +62,7 @@ class CLI < Thor
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
   def configure_interactive
-    path = ask(set_color('File location:', :bold), default: 'config/initializers/datadog.rb')
+    path = ask(set_color('Tracer configuration file location:', :bold), default: 'config/initializers/datadog.rb')
 
     basic_configuration = [
       Configuration.new('Host', 'c.agent.host', ENV.fetch('DD_AGENT_HOST', '127.0.0.1'), :string, nil),
@@ -151,17 +151,37 @@ class CLI < Thor
                       partial_flushing_configuration, sampling_configuration, test_mode_configuration]
 
     ask_config(basic_configuration)
-    if yes?(set_color('Press `y` if you would like to configure any advanced settings.'), :yellow)
-      ask_config(diagnostics_configuration) if yes?(set_color('Configure diagnostics? Press `y` to configure.', :yellow))
-      ask_config(tracing_configuration) if yes?(set_color('Configure tracing? Press `y` to configure.', :yellow))
+    if yes?(
+      set_color('Press `y` if you would like to configure any advanced settings or any other key to continue.'),
+      :yellow
+    )
+      ask_config(diagnostics_configuration) if yes?(
+        set_color(
+          'Press `y` to configure diagnostic settings or any other key to continue.', :yellow
+        )
+      )
+      ask_config(tracing_configuration) if yes?(
+        set_color(
+          'Press `y` to configure advanced tracing settings or any other key to continue.', :yellow
+        )
+      )
       ask_config(partial_flushing_configuration) if yes?(
         set_color(
-          'Configure partial flushing? Press `y` to configure.',
+          'Press `y` to configure partial flushing settings or any other key to continue.',
           :yellow
         )
       )
-      ask_config(sampling_configuration) if yes?(set_color('Configure sampling? Press `y` to configure.', :yellow))
-      ask_config(test_mode_configuration) if yes?(set_color('Configure test mode? Press `y` to configure.', :yellow))
+      ask_config(sampling_configuration) if yes?(
+        set_color(
+          'Press `y` to configure sampling or any other key to continue.',
+          :yellow
+        )
+      )
+      ask_config(test_mode_configuration) if yes?(
+        set_color(
+          'Press `y` to configure test mode or any other key to continue.', :yellow
+        )
+      )
     end
 
     block = ''
@@ -172,14 +192,13 @@ class CLI < Thor
       block += config_block
     end
 
-    say(set_color('We currently instrument these installed gems:', :cyan))
+    say(set_color('We currently instrument these installed gems:', :cyan, :bold))
     print_in_columns(available_integrations.keys)
     trace_all_integrations = yes?(
       set_color(
-        'We can automatically instrument these for you. Press `y` if you would like to configure each integration '\
-        'separately.',
-        :magenta,
-        :bold
+        'Press `y` if you would like to configure each integration separately or any other key to automatically trace '\
+        'these gems.',
+        :yellow
       )
     )
 
@@ -189,10 +208,12 @@ class CLI < Thor
         next
       end
 
-      next if no?(set_color("Press `n` to skip; press any other key to trace #{integration}.", :magenta))
+      next if no?(set_color("Press `n` to skip or any other key to trace #{integration}.", :magenta))
 
       block += "\n  c.tracing.instrument :#{integration}"
-      ask_config(options) if yes?(set_color("Press `y` to configure tracing settings for #{integration}."), :yellow)
+      ask_config(options) if yes?(
+        set_color("Press `y` to configure tracing settings for #{integration} or any other key to continue."), :yellow
+      )
       block += options.map do |option|
         ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
       end.join
