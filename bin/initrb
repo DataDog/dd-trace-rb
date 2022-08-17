@@ -151,16 +151,18 @@ class CLI < Thor
                       partial_flushing_configuration, sampling_configuration, test_mode_configuration]
 
     ask_config(basic_configuration)
-    ask_config(diagnostics_configuration) if yes?(set_color('Configure diagnostics? Press `y` to configure.', :yellow))
-    ask_config(tracing_configuration) if yes?(set_color('Configure tracing? Press `y` to configure.', :yellow))
-    ask_config(partial_flushing_configuration) if yes?(
-      set_color(
-        'Configure partial flushing? Press `y` to configure.',
-        :yellow
+    if yes?(set_color('Press `y` if you would like to configure any advanced settings.'), :yellow)
+      ask_config(diagnostics_configuration) if yes?(set_color('Configure diagnostics? Press `y` to configure.', :yellow))
+      ask_config(tracing_configuration) if yes?(set_color('Configure tracing? Press `y` to configure.', :yellow))
+      ask_config(partial_flushing_configuration) if yes?(
+        set_color(
+          'Configure partial flushing? Press `y` to configure.',
+          :yellow
+        )
       )
-    )
-    ask_config(sampling_configuration) if yes?(set_color('Configure sampling? Press `y` to configure.', :yellow))
-    ask_config(test_mode_configuration) if yes?(set_color('Configure test mode? Press `y` to configure.', :yellow))
+      ask_config(sampling_configuration) if yes?(set_color('Configure sampling? Press `y` to configure.', :yellow))
+      ask_config(test_mode_configuration) if yes?(set_color('Configure test mode? Press `y` to configure.', :yellow))
+    end
 
     block = ''
     configurations.each do |configs|
@@ -172,11 +174,12 @@ class CLI < Thor
 
     say(set_color('We currently instrument these installed gems:', :cyan))
     say(pp_integrations(available_integrations.keys))
-    trace_all_integrations = no?(
+    trace_all_integrations = yes?(
       set_color(
-        'We will automatically instrument all of these for you. Press `n` if you would like to configure each integration '\
+        'We can automatically instrument these for you. Press `y` if you would like to configure each integration '\
         'separately.',
-        :magenta
+        :magenta,
+        :bold
       )
     )
 
@@ -186,10 +189,10 @@ class CLI < Thor
         next
       end
 
-      next if no?(set_color("Press `n` to skip tracing #{integration}.", :magenta))
+      next if no?(set_color("Press `n` to skip; press any other key to trace #{integration}.", :magenta))
 
       block += "\n  c.tracing.instrument :#{integration}"
-      ask_config(options) if yes?(set_color('Press `y` to configure options for this integration'), :yellow)
+      ask_config(options) if yes?(set_color("Press `y` to configure traces for #{integration}."), :yellow)
       block += options.map do |option|
         ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
       end.join
@@ -197,10 +200,6 @@ class CLI < Thor
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
     create_config(path, configuration_block)
-  end
-
-  def self.exit_on_failure?
-    true
   end
 
   private
@@ -246,17 +245,6 @@ class CLI < Thor
 
   def bundled_deps
     Bundler.definition.dependencies.map(&:name)
-  end
-
-  def format_tags(tags)
-    return nil if tags.nil?
-
-    tags_map = {}
-    tags.split(',').each do |tag|
-      k, v = tag.split(':')
-      tags_map[k] = v
-    end
-    tags_map
   end
 
   def create_config(path, configuration_block)
