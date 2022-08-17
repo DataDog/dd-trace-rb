@@ -185,6 +185,10 @@ class CLI < Thor
       "'#{configuration.value}'"
     when :boolean
       configuration.value == 'true'
+    when :integer
+      numeric?(configuration.value) ? configuration.value.to_i : configuration.default.to_i
+    when :float
+      numeric?(configuration.value) ? configuration.value.to_f : configuration.default.tracing_configuration
     else
       configuration.value
     end
@@ -233,8 +237,13 @@ class CLI < Thor
   end
 
   def get_options(integration)
-    integration.configuration.class.options.map do |key, option_def|
-      default = option_def.default.is_a?(Proc) ? option_def.default.call : option_def.default
+    integration_options = integration.configuration.class.options
+    integration_options.map do |key, option_def|
+      if option_def.default.is_a?(Proc)
+        default = option_def.default.call unless option_def.default.lambda?
+      else
+        default = option_def.default
+      end
       IntegrationOption.new(key, default.to_s, get_option_type(default), nil)
     end
   end
@@ -243,6 +252,12 @@ class CLI < Thor
     return nil if option_default.nil?
     return :string if option_default.is_a?(String)
     return :boolean if [true, false].include?(option_default)
+    return :integer if option_default.is_a?(Integer)
+    return :float if option_default.is_a?(Float)
+  end
+
+  def numeric?(value)
+    true if Float(value) rescue false
   end
 end
 # rubocop:enable Metrics/ClassLength
