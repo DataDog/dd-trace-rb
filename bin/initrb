@@ -13,19 +13,34 @@ class CLI < Thor
   include Thor::Actions
 
   # Map `initrb -I` to configure interactively
-  map "-I" => :configure_interactive
+  map '-I' => :configure_interactive
 
   Configuration = Struct.new('Configuration', :name, :key, :default, :type, :value)
   IntegrationOption = Struct.new('IntegrationOption', :name, :default, :type, :value)
 
-  desc 'configure', 'Generate Datadog configuration file'
-  option :path, :default => 'config/initializers/datadog.rb'
-  option :host, :aliases => '-h', :default => '127.0.0.1'
-  option :port, :type => :numeric, :aliases => '-p', :default => 8126
-  option :env, :aliases => '-e'
-  option :service, :aliases => '-s'
-  option :tag, :type => :hash, :aliases => '-t', :repeatable => true
-  option :version, :aliases => '-v'
+  def self.exit_on_failure?
+    true
+  end
+
+  def self.format_tags(tags)
+    return nil if tags.nil?
+
+    tags_map = {}
+    tags.split(',').each do |tag|
+      k, v = tag.split(':')
+      tags_map[k] = v
+    end
+    tags_map
+  end
+
+  desc 'configure', 'Generate Datadog configuration file with provided flags'
+  option :filepath, :aliases => '-f', :default => 'config/initializers/datadog.rb'
+  option :host, :aliases => '-h', :default => ENV.fetch('DD_AGENT_HOST', '127.0.0.1')
+  option :port, :type => :numeric, :aliases => '-p', :default => ENV.fetch('DD_TRACE_AGENT_PORT', '8126').to_i
+  option :env, :aliases => '-e', :default => ENV['DD_ENV']
+  option :service, :aliases => '-s', :default => ENV['DD_SERVICE']
+  option :tag, :type => :hash, :aliases => '-t', :repeatable => true, :default => format_tags(ENV['DD_TAGS'])
+  option :version, :aliases => '-v', :default => ENV['DD_VERSION']
   def configure
     block = []
 
@@ -42,7 +57,7 @@ class CLI < Thor
       add_to_bundler
     end
 
-    create_config(options.path, configuration_block)
+    create_config(options.filepath, configuration_block)
   end
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
@@ -54,7 +69,7 @@ class CLI < Thor
       Configuration.new('Port', 'c.agent.port', ENV.fetch('DD_TRACE_AGENT_PORT', '8126'), :integer, nil),
       Configuration.new('Env', 'c.env', ENV['DD_ENV'], :string, nil),
       Configuration.new('Service', 'c.service', ENV['DD_SERVICE'], :string, nil),
-      Configuration.new('Tags', 'c.tags', format_tags(ENV['DD_TAGS']), :hash, nil),
+      Configuration.new('Tags', 'c.tags', self.class.format_tags(ENV['DD_TAGS']), :hash, nil),
       Configuration.new('Version', 'c.version', ENV['DD_VERSION'], :string, nil),
     ]
 
