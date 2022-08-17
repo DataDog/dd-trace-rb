@@ -192,7 +192,8 @@ class CLI < Thor
 
   def available_integrations
     available = {}
-    Datadog.registry.map do |integration|
+    registry = Datadog.registry
+    registry.map do |integration|
       available[integration.name] = get_options(integration.klass) if integration.klass.class.compatible?
     end
     available
