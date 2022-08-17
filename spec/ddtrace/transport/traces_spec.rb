@@ -138,8 +138,8 @@ RSpec.describe Datadog::Transport::Traces::Transport do
       ].with_fallbacks(v2: :v1)
     end
 
-    let(:api_v1) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
-    let(:api_v2) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
+    let(:api_v1) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1, adapter: nil) }
+    let(:api_v2) { instance_double(Datadog::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2, adapter: nil) }
     let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/plain') }
     let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/csv') }
   end
@@ -168,8 +168,8 @@ RSpec.describe Datadog::Transport::Traces::Transport do
     let(:lazy_chunks) { chunks.lazy }
 
     let(:request) { instance_double(Datadog::Transport::Traces::Request) }
-    let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client) }
-    let(:client_v1) { instance_double(Datadog::Transport::HTTP::Client) }
+    let(:client_v2) { instance_double(Datadog::Transport::HTTP::Client, close: nil) }
+    let(:client_v1) { instance_double(Datadog::Transport::HTTP::Client, close: nil) }
 
     let(:chunker) { instance_double(Datadog::Transport::Traces::Chunker, max_size: 1) }
 

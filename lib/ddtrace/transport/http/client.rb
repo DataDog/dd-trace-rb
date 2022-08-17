@@ -48,6 +48,10 @@ module Datadog
         def build_env(request)
           Env.new(request)
         end
+
+        def close
+          @api.adapter.close if @api.adapter.respond_to?(:close)
+        end
       end
     end
   end

@@ -119,6 +119,7 @@ module Datadog
         def initialize(apis, default_api)
           @apis = apis
           @default_api = default_api
+          @client = nil
 
           change_api!(default_api)
         end
@@ -165,6 +166,10 @@ module Datadog
           apis[@current_api_id]
         end
 
+        def stop
+          @client.close if @client
+        end
+
         private
 
         def downgrade?(response)
@@ -182,6 +187,8 @@ module Datadog
 
         def change_api!(api_id)
           raise UnknownApiVersionError, api_id unless apis.key?(api_id)
+
+          @client.close if @client
 
           @current_api_id = api_id
           @client = HTTP::Client.new(current_api)

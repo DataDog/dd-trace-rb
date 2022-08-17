@@ -22,7 +22,7 @@ RSpec.describe Datadog::Tracing::Writer do
     subject(:writer) { described_class.new(options) }
 
     let(:options) { { transport: transport } }
-    let(:transport) { instance_double(Datadog::Transport::Traces::Transport) }
+    let(:transport) { instance_double(Datadog::Transport::Traces::Transport, stop: nil) }
 
     describe 'behavior' do
       describe '#initialize' do

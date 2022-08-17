@@ -95,6 +95,8 @@ module Datadog
       def stop_worker
         @stopped = true
 
+        @transport.stop
+
         return if @worker.nil?
 
         @worker.stop

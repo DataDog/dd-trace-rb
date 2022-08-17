@@ -43,6 +43,10 @@ module Datadog
               Traces::Response.new(result)
             end]
           end
+
+          def stop
+            # There are no special resources to clean up
+          end
         end
 
         # Encoder for IO-specific trace encoding

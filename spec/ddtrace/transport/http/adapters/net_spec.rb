@@ -26,9 +26,10 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
 
       allow(http_connection).to receive(:open_timeout=).with(adapter.timeout)
       allow(http_connection).to receive(:read_timeout=).with(adapter.timeout)
+      allow(http_connection).to receive(:keep_alive_timeout=).with(60)
       allow(http_connection).to receive(:use_ssl=).with(adapter.ssl)
 
-      allow(http_connection).to receive(:start).and_yield(http_connection)
+      allow(http_connection).to receive(:start).and_return(http_connection)
     end
   end
 
@@ -185,6 +186,29 @@ RSpec.describe Datadog::Transport::HTTP::Adapters::Net do
     let(:timeout) { 7 }
 
     it { is_expected.to eq('http://local.test:345?timeout=7') }
+  end
+
+  describe '#close' do
+    include_context 'HTTP connection stub'
+
+    before do
+      allow(http_connection).to receive(:started?).and_return(true)
+
+      adapter.open {}
+    end
+
+    it 'closes connection' do
+      expect(http_connection).to receive(:finish).once
+
+      adapter.close
+    end
+
+    it 'close can be called multiple times' do
+      expect(http_connection).to receive(:finish).once
+
+      adapter.close
+      adapter.close
+    end
   end
 end
 
