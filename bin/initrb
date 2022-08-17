@@ -11,6 +11,7 @@ class CLI < Thor
   include Thor::Actions
 
   Configuration = Struct.new('Configuration', :name, :key, :default, :type, :value)
+  IntegrationOption = Struct.new('IntegrationOption', :name, :default, :type, :value)
 
   desc 'configure', 'Generate Datadog configuration file'
   option :path, :default => 'config/initializers/datadog.rb'
@@ -87,6 +88,7 @@ class CLI < Thor
         nil
       ),
     ]
+
     partial_flushing_configuration = [
       Configuration.new('Partial flushing enabled', 'c.tracing.partial_flush.enabled', 'false', :boolean, nil),
       Configuration.new(
@@ -97,6 +99,7 @@ class CLI < Thor
         nil
       ),
     ]
+
     sampling_configuration = [
       Configuration.new(
         'Sampling default rate',
@@ -113,6 +116,7 @@ class CLI < Thor
         nil
       ),
     ]
+
     test_mode_configuration = [
       Configuration.new(
         'Test mode enabled',
@@ -146,13 +150,16 @@ class CLI < Thor
       block += config_block
     end
 
-    available_integrations.each do |integration|
-      block += "\n  c.tracing.instrument :#{integration}" unless no?(
-        set_color(
-          "Press `n` to skip tracing #{integration}.",
-          :magenta
-        )
-      )
+    available_integrations.each do |integration, options|
+      integration_block = ''
+      next if no?(set_color("Press `n` to skip tracing #{integration}.", :magenta))
+
+      integration_block += "\n  c.tracing.instrument :#{integration}"
+      ask_config(options) if yes?(set_color('Press `y` to configure options for this integration'), :yellow)
+      integration_block += options.map do |option|
+        ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
+      end.join
+      block += integration_block
     end
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
@@ -174,26 +181,19 @@ class CLI < Thor
 
   def cast_type(configuration)
     case configuration.type
-    when :integer
-      configuration.value.to_i
+    when :string
+      "'#{configuration.value}'"
     when :boolean
       configuration.value == 'true'
-    when :float
-      configuration.value.to_f
-    when :hash
-      configuration.value
     else
-      "'#{configuration.value}'"
+      configuration.value
     end
   end
 
   def available_integrations
-    available = []
+    available = {}
     Datadog.registry.map do |integration|
-      if integration.klass.class.compatible?
-        available << integration.name
-        # available[integration.name] = get_options(integration.klass)
-      end
+      available[integration.name] = get_options(integration.klass) if integration.klass.class.compatible?
     end
     available
   end
@@ -231,17 +231,18 @@ class CLI < Thor
     say(set_color('Configuration file created, happy tracing!', :green))
   end
 
-  # def get_options(integration)
-  #   integration.configuration.class.options.map do |key, option_def|
-  #     Struct::Configuration.new(
-  #       key,
-  #       key,
-  #       option_def.default.is_a?(Proc) ? option_def.default.call : option_def.default,
-  #       :unknown,
-  #       nil
-  #     )
-  #   end
-  # end
+  def get_options(integration)
+    integration.configuration.class.options.map do |key, option_def|
+      default = option_def.default.is_a?(Proc) ? option_def.default.call : option_def.default
+      IntegrationOption.new(key, default.to_s, get_option_type(default), nil)
+    end
+  end
+
+  def get_option_type(option_default)
+    return nil if option_default.nil?
+    return :string if option_default.is_a?(String)
+    return :boolean if [true, false].include?(option_default)
+  end
 end
 # rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/AbcSize
