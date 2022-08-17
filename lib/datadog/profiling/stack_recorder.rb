@@ -13,7 +13,7 @@ module Datadog
         # This isn't something we expect to happen normally, but because it would break the assumptions of the
         # C-level mutexes (that there is a single serializer thread), we add it here as an extra safeguard against it
         # accidentally happening.
-        @no_concurrent_synchronize_mutex = Thread::Mutex.new
+        @no_concurrent_synchronize_mutex = Mutex.new
       end
 
       def serialize

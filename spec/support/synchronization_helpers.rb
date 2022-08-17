@@ -54,12 +54,13 @@ module SynchronizationHelpers
   # Defaults to 5 second timeout
   def try_wait_until(attempts: 50, backoff: 0.1)
     loop do
-      break if yield(attempts)
+      result = yield(attempts)
+      return result if result
 
       sleep(backoff)
       attempts -= 1
 
-      raise StandardError, 'Wait time exhausted!' if attempts <= 0
+      raise('Wait time exhausted!') if attempts <= 0
     end
   end
 
