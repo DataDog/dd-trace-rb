@@ -6,6 +6,8 @@ require 'ddtrace'
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/AbcSize
 # rubocop:disable Metrics/MethodLength
+# rubocop:disable Metrics/PerceivedComplexity
+# rubocop:disable Metrics/CyclomaticComplexity
 # Setup CLI for configuring Datadog tracer
 class CLI < Thor
   include Thor::Actions
@@ -150,16 +152,28 @@ class CLI < Thor
       block += config_block
     end
 
+    say(set_color('We currently instrument these installed gems:', :cyan))
+    say(available_integrations.keys)
+    trace_all_integrations = no?(
+      set_color(
+        'Press `n` if you would like to configure each integration separately.',
+        :magenta
+      )
+    )
+
     available_integrations.each do |integration, options|
-      integration_block = ''
+      unless trace_all_integrations
+        block += "\n  c.tracing.instrument :#{integration}"
+        next
+      end
+
       next if no?(set_color("Press `n` to skip tracing #{integration}.", :magenta))
 
-      integration_block += "\n  c.tracing.instrument :#{integration}"
+      block += "\n  c.tracing.instrument :#{integration}"
       ask_config(options) if yes?(set_color('Press `y` to configure options for this integration'), :yellow)
-      integration_block += options.map do |option|
+      block += options.map do |option|
         ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
       end.join
-      block += integration_block
     end
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
@@ -263,5 +277,7 @@ end
 # rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/AbcSize
 # rubocop:enable Metrics/MethodLength
+# rubocop:enable Metrics/PerceivedComplexity
+# rubocop:enable Metrics/CyclomaticComplexity
 
 CLI.start(ARGV)
