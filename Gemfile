@@ -92,3 +92,9 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
+
+
+gem 'activerecord'
+gem 'bullet'
+gem 'sqlite3'
+gem 'mysql2'

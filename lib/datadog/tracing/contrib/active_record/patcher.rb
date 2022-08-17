@@ -1,7 +1,6 @@
 # typed: true
 
 require_relative '../patcher'
-require_relative 'events'
 
 module Datadog
   module Tracing
@@ -18,7 +17,11 @@ module Datadog
           end
 
           def patch
+            require_relative 'events'
+            require_relative 'bullet'
+
             Events.subscribe!
+            Bullet.patch!
           end
         end
       end

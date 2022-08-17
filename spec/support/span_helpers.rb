@@ -22,10 +22,10 @@ module SpanHelpers
         @tag_name = tag_name
         @actual = span.get_tag(tag)
 
-        if args.empty? && @actual
+        if args.empty?
           # This condition enables the default matcher:
           # expect(foo).to have_error_tag
-          return true
+          return !@actual.nil?
         end
 
         values_match? expected, @actual
@@ -37,10 +37,10 @@ module SpanHelpers
         @tag_name = tag_name
         @actual = span.get_tag(tag)
 
-        if args.empty? && @actual.nil?
+        if args.empty?
           # This condition enables the default matcher:
           # expect(foo).to_not have_error_tag
-          return true
+          return @actual.nil?
         end
 
         values_match? expected, @actual

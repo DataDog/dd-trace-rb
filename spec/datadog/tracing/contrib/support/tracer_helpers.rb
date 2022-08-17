@@ -25,6 +25,17 @@ module Contrib
       @spans ||= fetch_spans
     end
 
+    def root_span
+      @root_span ||= begin
+        roots = spans.select { |s| s.parent_id == 0 }
+        if roots.size == 1
+          roots[0]
+        else
+          raise "More than one root span present! #{roots.inspect}"
+        end
+      end
+    end
+
     # Retrieves all traces in the current tracer instance.
     # This method does not cache its results.
     def fetch_traces(tracer = self.tracer)

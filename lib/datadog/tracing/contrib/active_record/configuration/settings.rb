@@ -27,6 +27,8 @@ module Datadog
               o.lazy
             end
 
+            option :report_bullet, default: false
+
             option :service_name do |o|
               o.default { Utils.adapter_name }
               o.lazy
