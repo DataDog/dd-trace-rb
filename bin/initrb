@@ -162,44 +162,32 @@ class CLI < Thor
       )
     )
       ask_config(diagnostics_configuration) if yes?(
-        set_color(
-          'Press `y` to configure diagnostic settings or any other key to continue.', :yellow
-        )
+        set_color('Press `y` to configure diagnostic settings or any other key to continue.', :yellow)
       )
       ask_config(tracing_configuration) if yes?(
-        set_color(
-          'Press `y` to configure advanced tracing settings or any other key to continue.', :yellow
-        )
+        set_color('Press `y` to configure advanced tracing settings or any other key to continue.', :yellow)
       )
       ask_config(partial_flushing_configuration) if yes?(
-        set_color(
-          'Press `y` to configure partial flushing settings or any other key to continue.',
-          :yellow
-        )
+        set_color('Press `y` to configure partial flushing settings or any other key to continue.', :yellow)
       )
       ask_config(sampling_configuration) if yes?(
-        set_color(
-          'Press `y` to configure sampling or any other key to continue.',
-          :yellow
-        )
+        set_color('Press `y` to configure sampling or any other key to continue.', :yellow)
       )
       ask_config(test_mode_configuration) if yes?(
-        set_color(
-          'Press `y` to configure test mode or any other key to continue.', :yellow
-        )
+        set_color('Press `y` to configure test mode or any other key to continue.', :yellow)
       )
     end
 
     block = ''
     configurations.each do |configs|
       config_block = configs.map do |config|
-        "\n  #{config.key} = #{cast_type(config)}" unless config.value.nil?
+        "\n  #{config.key} = #{cast_type(config)}" unless config.value.nil? || config.default == config.value
       end.join
       block += config_block
     end
 
     say(set_color("\n(3/4) Integrations", :on_cyan))
-    say(set_color('We currently instrument these installed gems:', :cyan))
+    say(set_color('We currently instrument these installed gems:', :bold))
     print_in_columns(available_integrations.keys)
     trace_all_integrations = yes?(
       set_color(
