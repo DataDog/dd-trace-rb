@@ -249,11 +249,11 @@ class CLI < Thor
   end
 
   def get_option_type(option_default)
-    return nil if option_default.nil?
-    return :string if option_default.is_a?(String)
     return :boolean if [true, false].include?(option_default)
     return :integer if option_default.is_a?(Integer)
     return :float if option_default.is_a?(Float)
+
+    :string
   end
 
   def numeric?(value)
