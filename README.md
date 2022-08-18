@@ -1,4 +1,4 @@
-***Version 1.0.0 has recently been released. Check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10) for more details.***
+**We've recently released the 1.x version series. If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
 
 # Datadog Trace Client
 
