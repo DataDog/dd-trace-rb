@@ -255,7 +255,7 @@ if ENV.key?('CI')
 
       Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
         backtrace = t.backtrace
-        backtrace = '(Not available)' if backtrace.nil? || backtrace.empty?
+        backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
 
         msg = "#{idx}: #{t} (#{t.class.name})",
               'Thread Backtrace:',
