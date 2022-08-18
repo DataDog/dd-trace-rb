@@ -257,10 +257,12 @@ if ENV.key?('CI')
         backtrace = t.backtrace
         backtrace = '(Not available)' if backtrace.nil? || backtrace.empty?
 
-        warn "#{idx}: #{t} (#{t.class.name})",
-          'Thread Backtrace:',
-          backtrace.map { |l| "\t#{l}" }.join("\n"),
-          "\n"
+        msg = "#{idx}: #{t} (#{t.class.name})",
+              'Thread Backtrace:',
+              backtrace.map { |l| "\t#{l}" }.join("\n"),
+              "\n"
+
+        warn(msg) rescue puts(msg)
       end
 
       Kernel.exit(1)
