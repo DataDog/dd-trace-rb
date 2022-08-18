@@ -153,8 +153,6 @@ static VALUE _native_new(VALUE klass) {
 }
 
 static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
-  enforce_recorder_instance(recorder_instance);
-
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -164,7 +162,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
   // Update this when modifying state struct
   state->sampling_buffer = sampling_buffer_new(max_frames_requested);
   // hash_map_per_thread_context is already initialized, nothing to do here
-  state->recorder_instance = recorder_instance;
+  state->recorder_instance = enforce_recorder_instance(recorder_instance);
 
   return Qtrue;
 }
@@ -180,6 +178,8 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
+// Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
+// Assumption 4: This function IS NOT called in a reentrant way.
 VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
@@ -384,6 +384,7 @@ static long thread_id_for(VALUE thread) {
   return FIXNUM_P(object_id) ? FIX2LONG(object_id) : -1;
 }
 
-void enforce_cpu_and_wall_time_collector_instance(VALUE object) {
+VALUE enforce_cpu_and_wall_time_collector_instance(VALUE object) {
   Check_TypedStruct(object, &cpu_and_wall_time_collector_typed_data);
+  return object;
 }

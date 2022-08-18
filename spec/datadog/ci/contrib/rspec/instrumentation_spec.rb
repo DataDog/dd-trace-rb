@@ -11,11 +11,9 @@ require 'datadog/ci/contrib/rspec/integration'
 RSpec.describe 'RSpec hooks' do
   include_context 'CI mode activated'
 
-  let(:configuration_options) { {} }
-
   before do
     Datadog.configure do |c|
-      c.ci.instrument :rspec, configuration_options
+      c.ci.instrument :rspec, service_name: 'lspec'
     end
   end
 
@@ -43,6 +41,7 @@ RSpec.describe 'RSpec hooks' do
     expect(span.span_type).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)
     expect(span.name).to eq(Datadog::CI::Contrib::RSpec::Ext::OPERATION_NAME)
     expect(span.resource).to eq('some test foo')
+    expect(span.service).to eq('lspec')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_NAME)).to eq('some test foo')
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SUITE)).to eq(spec.file_path)
     expect(span.get_tag(Datadog::CI::Ext::Test::TAG_SPAN_KIND)).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)

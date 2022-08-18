@@ -23,7 +23,7 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
     let(:events) { double('events') }
     let(:event_count) { nil }
 
-    let(:template) { instance_double(Datadog::Profiling::Pprof::Template) }
+    let(:template) { instance_double(Datadog::Profiling::Pprof::Template, debug_statistics: 'template_debug_statistics') }
     let(:profile) { instance_double(Perftools::Profiles::Profile) }
     let(:payload) { instance_double(Datadog::Profiling::Pprof::Payload) }
     let(:start_time) { Time.utc(2020) }
@@ -45,6 +45,8 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
         .with(start: start_time, finish: finish_time)
         .and_return(payload)
         .ordered
+
+      allow(Datadog.logger).to receive(:debug)
     end
 
     it 'returns a pprof-encoded profile' do
@@ -53,8 +55,6 @@ RSpec.describe Datadog::Profiling::Encoding::Profile::Protobuf do
 
     describe 'debug logging' do
       let(:event_count) { 42 }
-
-      let(:template) { instance_double(Datadog::Profiling::Pprof::Template, debug_statistics: 'template_debug_statistics') }
 
       it 'debug logs profile information' do
         expect(Datadog.logger).to receive(:debug) do |&message_block|

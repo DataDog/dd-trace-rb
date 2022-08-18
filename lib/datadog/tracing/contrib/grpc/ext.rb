@@ -13,6 +13,7 @@ module Datadog
           DEFAULT_PEER_SERVICE_NAME = 'grpc'.freeze
           SPAN_CLIENT = 'grpc.client'.freeze
           SPAN_SERVICE = 'grpc.service'.freeze
+          TAG_CLIENT_DEADLINE = 'grpc.client.deadline'.freeze
           TAG_COMPONENT = 'grpc'.freeze
           TAG_OPERATION_CLIENT = 'client'.freeze
           TAG_OPERATION_SERVICE = 'service'.freeze
