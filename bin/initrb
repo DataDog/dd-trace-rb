@@ -156,25 +156,25 @@ class CLI < Thor
     say(set_color("\n(2/4) Advanced Configuration", :on_cyan))
     if yes?(
       set_color(
-        'Press `y` if you would like to configure any advanced settings or any other key to continue.',
+        'Press y if you would like to configure any advanced settings or any other key to continue.',
         :yellow,
         :bold
       )
     )
       ask_config(diagnostics_configuration) if yes?(
-        set_color('Press `y` to configure diagnostic settings or any other key to continue.', :yellow)
+        set_color('Press y to configure diagnostic settings or any other key to continue.', :yellow)
       )
       ask_config(tracing_configuration) if yes?(
-        set_color('Press `y` to configure advanced tracing settings or any other key to continue.', :yellow)
+        set_color('Press y to configure advanced tracing settings or any other key to continue.', :yellow)
       )
       ask_config(partial_flushing_configuration) if yes?(
-        set_color('Press `y` to configure partial flushing settings or any other key to continue.', :yellow)
+        set_color('Press y to configure partial flushing settings or any other key to continue.', :yellow)
       )
       ask_config(sampling_configuration) if yes?(
-        set_color('Press `y` to configure sampling or any other key to continue.', :yellow)
+        set_color('Press y to configure sampling or any other key to continue.', :yellow)
       )
       ask_config(test_mode_configuration) if yes?(
-        set_color('Press `y` to configure test mode or any other key to continue.', :yellow)
+        set_color('Press y to configure test mode or any other key to continue.', :yellow)
       )
     end
 
@@ -191,7 +191,7 @@ class CLI < Thor
     print_in_columns(available_integrations.keys)
     trace_all_integrations = yes?(
       set_color(
-        'Press `y` if you would like to configure each integration separately or any other key to automatically trace '\
+        'Press y if you would like to configure each integration separately or any other key to automatically trace '\
         'these gems.',
         :yellow,
         :bold
@@ -204,11 +204,11 @@ class CLI < Thor
         next
       end
 
-      next if no?(set_color("Press `n` to skip or any other key to trace #{integration}.", :magenta))
+      next if no?(set_color("Press n to skip or any other key to trace #{integration}.", :magenta))
 
       block += "\n  c.tracing.instrument :#{integration}"
       ask_config(options) if yes?(
-        set_color("Press `y` to configure tracing settings for #{integration} or any other key to continue."), :yellow
+        set_color("Press y to configure tracing settings for #{integration} or any other key to continue."), :yellow
       )
       block += options.map do |option|
         ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
