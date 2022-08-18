@@ -304,11 +304,14 @@ class CLI < Thor
   end
 
   def ddtrace_installed?
-    bundled_deps.include?('ddtrace')
-  end
-
-  def bundled_deps
-    Bundler.definition.dependencies.map(&:name)
+    installed = false
+    Bundler.definition.dependencies.each do |dependency|
+      if dependency.name == 'ddtrace'
+        installed = true
+        break
+      end
+    end
+    installed
   end
 
   def create_config(path, configuration_block)
