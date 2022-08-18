@@ -214,7 +214,35 @@ class CLI < Thor
       )
     end
 
-    block += configure_integrations
+    say("\n(3/4) Integrations", :on_cyan)
+    say('We currently instrument these installed gems:', :blue)
+    print_table([available_integrations.keys], { indent: 3 })
+    trace_all_integrations = yes?(
+      set_color(
+        'Press y if you would like to configure each integration separately or any other key to automatically trace '\
+        'these gems.',
+        :yellow,
+        :bold
+      )
+    )
+
+    available_integrations.each do |integration, options|
+      unless trace_all_integrations
+        block += "\n  c.tracing.instrument :#{integration}"
+        next
+      end
+
+      next if no?(set_color("Press n to skip or any other key to trace #{integration}.", :magenta))
+
+      block += "\n  c.tracing.instrument :#{integration}"
+      generate_config(options) if yes?(
+        set_color("Press y to configure tracing settings for #{integration} or any other key to continue."), :yellow
+      )
+      block += options.map do |option|
+        ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
+      end.join
+    end
+    block += "\n"
 
     say("\n(4/4) Installation and Configuration", :on_cyan)
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}end\n"
@@ -245,39 +273,6 @@ class CLI < Thor
       end
     end
     modified_configurations
-  end
-
-  def configure_integrations
-    block = ''
-    say("\n(3/4) Integrations", :on_cyan)
-    say('We currently instrument these installed gems:', :blue)
-    print_table([available_integrations.keys], { indent: 3 })
-    trace_all_integrations = yes?(
-      set_color(
-        'Press y if you would like to configure each integration separately or any other key to automatically trace '\
-        'these gems.',
-        :yellow,
-        :bold
-      )
-    )
-
-    available_integrations.each do |integration, options|
-      unless trace_all_integrations
-        block += "\n  c.tracing.instrument :#{integration}"
-        next
-      end
-
-      next if no?(set_color("Press n to skip or any other key to trace #{integration}.", :magenta))
-
-      block += "\n  c.tracing.instrument :#{integration}"
-      generate_config(options) if yes?(
-        set_color("Press y to configure tracing settings for #{integration} or any other key to continue."), :yellow
-      )
-      block += options.map do |option|
-        ", #{option.name}: #{cast_type(option)}" unless option.value.nil? || option.default == option.value
-      end.join
-    end
-    block += "\n"
   end
 
   def cast_type(configuration)
