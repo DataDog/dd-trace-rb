@@ -216,7 +216,7 @@ class CLI < Thor
 
     say("\n(3/4) Integrations", :on_cyan)
     say('We currently instrument these installed gems:', :blue)
-    print_table([available_integrations.keys], { indent: 3 })
+    print_in_columns(available_integrations.keys)
     trace_all_integrations = yes?(
       set_color(
         'Press y if you would like to configure each integration separately or any other key to automatically trace '\
