@@ -220,6 +220,8 @@ class CLI < Thor
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}end\n"
     create_config(path, configuration_block)
   end
+  # rubocop:enable Metrics/AbcSize
+  # rubocop:enable Metrics/MethodLength
 
   private
 
@@ -358,6 +360,4 @@ class CLI < Thor
   end
 end
 # rubocop:enable Metrics/ClassLength
-# rubocop:enable Metrics/AbcSize
-# rubocop:enable Metrics/MethodLength
 CLI.start(ARGV)
