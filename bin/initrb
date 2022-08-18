@@ -62,8 +62,12 @@ class CLI < Thor
 
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
   def configure_interactive
-    say(set_color("\n(1/4) Basic Configuration", :on_cyan))
-    path = ask(set_color('Tracer configuration file location:', :bold), default: 'config/initializers/datadog.rb')
+    say("\n(1/4) Basic Configuration", :on_cyan)
+    path = ask(
+      set_color('Tracer configuration file location:', :bold),
+      default: 'config/initializers/datadog.rb',
+      path: true
+    )
 
     basic_configuration = [
       Configuration.new('Host', 'c.agent.host', ENV.fetch('DD_AGENT_HOST', '127.0.0.1'), :string, nil),
@@ -153,7 +157,7 @@ class CLI < Thor
 
     ask_config(basic_configuration)
 
-    say(set_color("\n(2/4) Advanced Configuration", :on_cyan))
+    say("\n(2/4) Advanced Configuration", :on_cyan)
     if yes?(
       set_color(
         'Press y if you would like to configure any advanced settings or any other key to continue.',
@@ -186,9 +190,9 @@ class CLI < Thor
       block += config_block
     end
 
-    say(set_color("\n(3/4) Integrations", :on_cyan))
-    say(set_color('We currently instrument these installed gems:', :bold))
-    print_in_columns(available_integrations.keys)
+    say("\n(3/4) Integrations", :on_cyan)
+    say('We currently instrument these installed gems:', :bold)
+    print_table(available_integrations.keys)
     trace_all_integrations = yes?(
       set_color(
         'Press y if you would like to configure each integration separately or any other key to automatically trace '\
@@ -216,7 +220,7 @@ class CLI < Thor
     end
 
     configuration_block = "require 'ddtrace'\n\nDatadog.configure do |c|#{block}\nend\n"
-    say(set_color("\n(4/4) Installation and Configuration", :on_cyan))
+    say("\n(4/4) Installation and Configuration", :on_cyan)
     create_config(path, configuration_block)
   end
 
@@ -267,12 +271,12 @@ class CLI < Thor
 
   def create_config(path, configuration_block)
     unless ddtrace_installed?
-      say(set_color('Adding `ddtrace` to bundler...', :green))
+      say('Adding `ddtrace` to bundler...', :green)
       add_to_bundler
     end
-    say(set_color('Creating configuration file...', :green))
+    say('Creating configuration file...', :green)
     create_file(path, configuration_block)
-    say(set_color('Configuration file created, happy tracing!', :green))
+    say('Configuration file created, happy tracing!', :green)
   end
 
   def get_options(integration)
