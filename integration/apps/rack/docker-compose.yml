@@ -78,6 +78,27 @@ services:
       - HEALTH_CHECK_MAX_ATTEMPTS=30
     volumes:
       - ../../images/wrk/scripts:/scripts
+  stress-tester:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: datadog/dd-apm-demo:ruby-2.7
+    command: bin/test
+    depends_on:
+      - app
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - TEST_HOSTNAME=app
+      - TEST_PORT=80
+      - TEST_INTEGRATION=true
+      - TEST_STRESS=true
+      - HEALTH_CHECK_URL=http://app/health
+      - HEALTH_CHECK_INTERVAL=1
+      - HEALTH_CHECK_MAX_ATTEMPTS=30
+    volumes:
+      - .:/app
+      - ../../images/include:/vendor/dd-demo
+      - ../../..:/vendor/dd-trace-rb
   redis:
     image: redis:6.2-buster
     expose:
