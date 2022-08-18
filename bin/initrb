@@ -4,10 +4,6 @@ require 'bundler'
 require 'ddtrace'
 
 # rubocop:disable Metrics/ClassLength
-# rubocop:disable Metrics/AbcSize
-# rubocop:disable Metrics/MethodLength
-# rubocop:disable Metrics/PerceivedComplexity
-# rubocop:disable Metrics/CyclomaticComplexity
 # Setup CLI for configuring Datadog tracer
 class CLI < Thor
   include Thor::Actions
@@ -36,7 +32,11 @@ class CLI < Thor
   desc 'configure', 'Generate Datadog configuration file with provided flags'
   option :filepath, :aliases => '-f', :default => 'config/initializers/datadog.rb'
   option :host, :aliases => '-h', :default => ENV.fetch('DD_AGENT_HOST', '127.0.0.1')
-  option :port, :type => :numeric, :aliases => '-p', :default => ENV.fetch('DD_TRACE_AGENT_PORT', '8126').to_i
+  option :port,
+    :type => :numeric,
+    :aliases => '-p',
+    :default => ENV.fetch('DD_TRACE_AGENT_PORT', '8126').to_i,
+    :banner => 'PORT'
   option :env, :aliases => '-e', :default => ENV['DD_ENV']
   option :service, :aliases => '-s', :default => ENV['DD_SERVICE']
   option :tag, :type => :hash, :aliases => '-t', :repeatable => true, :default => format_tags(ENV['DD_TAGS'])
@@ -60,6 +60,10 @@ class CLI < Thor
     create_config(options.filepath, configuration_block)
   end
 
+  # rubocop:disable Metrics/AbcSize
+  # rubocop:disable Metrics/CyclomaticComplexity
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Metrics/PerceivedComplexity
   desc 'configure_interactive', 'Generate Datadog configuration file interactively'
   def configure_interactive
     say("\n(1/4) Basic Configuration", :on_cyan)
@@ -187,12 +191,12 @@ class CLI < Thor
       config_block = configs.map do |config|
         "\n  #{config.key} = #{cast_type(config)}" unless config.value.nil? || config.default == config.value
       end.join
-      block += config_block
+      block += "#{config_block}\n" unless config_block.empty?
     end
 
     say("\n(3/4) Integrations", :on_cyan)
-    say('We currently instrument these installed gems:', :bold)
-    print_table(available_integrations.keys)
+    say('We currently instrument these installed gems:', :blue)
+    print_table([available_integrations.keys], { indent: 3 })
     trace_all_integrations = yes?(
       set_color(
         'Press y if you would like to configure each integration separately or any other key to automatically trace '\
@@ -305,8 +309,7 @@ class CLI < Thor
 end
 # rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/AbcSize
+# rubocop:enable Metrics/CyclomaticComplexity
 # rubocop:enable Metrics/MethodLength
 # rubocop:enable Metrics/PerceivedComplexity
-# rubocop:enable Metrics/CyclomaticComplexity
-
 CLI.start(ARGV)
