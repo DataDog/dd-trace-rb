@@ -255,12 +255,14 @@ if ENV.key?('CI')
 
       Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
         backtrace = t.backtrace
-        backtrace = '(Not available)' if backtrace.nil? || backtrace.empty?
+        backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
 
-        warn "#{idx}: #{t} (#{t.class.name})",
-          'Thread Backtrace:',
-          backtrace.map { |l| "\t#{l}" }.join("\n"),
-          "\n"
+        msg = "#{idx}: #{t} (#{t.class.name})",
+              'Thread Backtrace:',
+              backtrace.map { |l| "\t#{l}" }.join("\n"),
+              "\n"
+
+        warn(msg) rescue puts(msg)
       end
 
       Kernel.exit(1)
