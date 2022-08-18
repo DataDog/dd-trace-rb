@@ -69,7 +69,7 @@ Gem::Specification.new do |spec|
   # Used by profiling (and possibly others in the future)
   spec.add_dependency 'libdatadog', '~> 0.7.0.1.0'
 
-  spec.add_dependency 'thor', '>=0.19.1'
+  spec.add_dependency 'thor', '~>0.19.1'
 
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end
