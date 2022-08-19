@@ -361,22 +361,38 @@ class CLI < Thor
 
   def logo
     <<-'LOGO'
-    ⣿⢿⢻⡕⠢⡢⢵⣷⣿⡿⡷⡛⡕⡕⢻⢻⡛⠒⠀⠀⠐⠡⢵⣷⣿⣿⣿⣿⣿⣿⣿
-    ⡃⠁⠀⠀⠀⠀⠀⠡⠢⠒⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣂⣳⣿⣿⣿⣿⣿⣿
-    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢔⡂⢈⢈⢏⣿⣿⣿⣿⣿⣿
-    ⢄⠀⠀⠀⠀⠀⠀⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡄⠄⡡⣨⣾⣿⣿⣿⣿⣿⣿⣿
-    ⣯⢭⡄⠈⢈⡈⡄⠂⠀⠀⠀⢤⢙⡥⠀⠀⠀⠀⠀⠐⠑⠀⠅⣷⣿⣿⣿⣿⣿⣿⣿
-    ⣿⣿⡸⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡂⡳⣿⣿⣿⣿⣿⣿
-    ⣿⣿⢏⢇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡦⢪⠹⠀⠀⠏⣿⣿⣿⣿⣿⣿
-    ⣿⣿⣿⣞⠎⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⢋⡕⡕⡕⠢⠲⣿
-    ⣿⣿⣿⣿⣿⣟⢁⠀⠀⠀⠀⠀⠈⠁⡆⡄⢄⡈⡄⠒⠑⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿
-    ⣿⣿⣿⣿⣿⢷⠤⠀⠀⠀⠀⠀⠎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠏⠀⣿
-    ⣿⣿⡿⢻⠥⠁⠀⠀⠀⠀⠀⠀⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠨⢩⡊⢈⡈⣉⢇⠀⣰
-    ⣿⡓⠒⠀⠀⠀⠀⠀⠀⢄⠀⠀⣠⠀⠀⠀⠀⡄⢈⢈⢀⢜⣼⣿⣿⣮⣾⣿⣰⠀⣰
-    ⠏⠏⠀⠀⠀⠀⠀⠀⠀⠀⡁⠀⠐⠀⠀⢀⢒⡾⡦⡦⢥⢻⢻⡛⡕⡕⡥⠢⠢⠀⣰
-    ⣯⢬⠄⠈⠀⠀⠀⠀⠀⠀⠀⠝⠝⠎⠀⠣⠢⠒⠑⠑⢁⢈⢈⢈⡄⡄⡄⢪⢪⢪⣿
-    ⣿⣿⣯⠬⠀⠀⠀⠀⠀⠀⡈⣋⣯⣏⢤⢪⢪⣚⣝⣝⣝⣮⣮⣮⣿⣿⣿⣿⣿⣿⣿
-    ⣿⣿⣿⣿⣾⣯⣮⣮⣮⣾⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+    :::::::::::::::::::::::::::::::::::::/+o/:::::::::::::::::::::::
+    ::::::::::::::::::::::::::::::::::::hMMdMms:::::::::::::::::::::
+    :::::::::/oydNmh/::::::::oo++/:::/sNMMMhdMMNo:::::::::::::::::::
+    :::::::/dMMMMMMmMho/:+shNMMMMMNNNMMMMMMm/NMMMy::::::::::::::::::
+    :::::/smMMMMMMMmdMMMMMMMMMMMMMMMMMMMMmmMo/dMMMs:::::::::::::::::
+    :::::oNMMMMMMMMMsmMMMMMMMMMMMMMMMMMMMMNyo::odMm:::::::::::::::::
+    :::::dMMMMMMMMMMm+MMMMMMMMMMMMMMMMMMMMMMmo::::::::::::::::::::::
+    :::::/mMMMMMMMMMM/dMMMMMMMMMMMMMMMMMMMNsyms:::::::::::::::::::::
+    ::::::/yMMMMMMMMm:sMMMMMMmysoyMMMMMMMMm:::m/::::::::::::::::::::
+    ::::::::/ymMMMmy/:hMMMMMh:::::mMMMMMMMMmyym+::::::::::::::::::::
+    :::::::::::os+++sdMMMMMMd::/osNMMMMMMMMMMMMm+:::::::::::::::::::
+    :::::::::::dMMMMMMMMMMMMMNNMMMMMMMMMMMMMMMMMMs::::::::::::::::::
+    :::::::::::yMMMMMMMMMMMMMMMMMMMMMMMMMMMMmdddNMy:::::::::::::::::
+    :::::::::::/NMMMMMMMMMMMMMMMMMMMMMMMMN+:::::hMM/::::::::::::::::
+    ::::::::::::dMMMMMMMMMMMMMMMMMMMMMMMMMmy+//hMMM/::::::::::::::::
+    ::::::::::::/syMMMMMMMMMNmMMMMMMMMMMMMMMMNMMMMd:::::::::::::::::
+    :::::::::::::::shMMMMMMMMmyydMMMMMMMMMMNsommdh/:/+osyhhdmo::::::
+    :::::::::::::::::dMMMMMMMMMNh++shdmmdy+/syhhdmNMMMMMMMMMMy::::::
+    :::::::::::::::::oMMMMMMMh/sssyyo+//+ohMMMMMMMMMMMMMMMNsMd::::::
+    :::::::::::::::::sMMMMMMMd:mMMMMMMMMMMMMMMMMMMMMMMMMMN+/MN::::::
+    ::::::::::::::::sMMMMMMMMM:yMMMMMMMMMMMMMMMMMddMMMMMN+::NM::::::
+    ::::::::::::::omMMMMMMMMMM+oMMMMMMMMMMMMMMMMy::/odMM+:::dM+:::::
+    :::::::::::/smMNNNMMMMMMMMy/MMMMMMMMMMMMMMMs:::::://::::yMo:::::
+    :::::::::/yNMMMMMmdysdMMMMd:mMMMMMMddmMMMN+:::::::::::::oMy:::::
+    ::::::::+NMMMMMMMMMMNs+dMMM:hMMMMMy::::/o/::::::::::::::/Md:::::
+    ::::::::NMMMMMMMMMMMMMh:hMMosMMMN+:::::::::::::::::::::::Nm:::::
+    ::::::::NMMMMMMMMMMMMMMs:hho/MMd/:::::::::::::/+oosyhdmNMNm:::::
+    ::::::::/yNMMMMMMMMMMMMN:::::NM:::://+osyhdmNMNmdhysoo+/::::::::
+    ::::::::::/hMMMMMMMMMMMM+::::hMdmNNNmdhyso++/:::::::::::::::::::
+    ::::::::::::sMMMMMMMMMMm:::::+o++/::::::::::::::::::::::::::::::
+    :::::::::::::odMMMMMMNh/::::::::::::::::::::::::::::::::::::::::
+    :::::::::::::::/+oso+:::::::::::::::::::::::::::::::::::::::::::
     LOGO
   end
 end
