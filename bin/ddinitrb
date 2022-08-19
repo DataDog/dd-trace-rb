@@ -69,7 +69,6 @@ class CLI < Thor
              'different integrations.'
   option :force,
     :aliases => '-F',
-    :default => false,
     :desc => 'Force overwrite of any existing configuration file.'
   def configure
     block = []
@@ -93,7 +92,7 @@ class CLI < Thor
       add_to_bundler
     end
 
-    create_config(options.filepath, configuration_block, options.force)
+    create_config(options.filepath, configuration_block, options.key?(:force))
   end
 
   # rubocop:disable Metrics/AbcSize
