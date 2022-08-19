@@ -635,7 +635,8 @@ module Datadog
         settings :telemetry do
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
-          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`. In a future release,
+          #   this value will be changed to `true` by default as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
             o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
