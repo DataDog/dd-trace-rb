@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+include FileUtils
+
+# path to your application root.
+APP_ROOT = File.expand_path('..', __dir__)
+
+def system!(*args)
+  puts "Run: #{args.join(' ')}"
+  system(*args) || abort("\n== Command #{args} failed ==")
+end
+
+chdir APP_ROOT do
+  if ENV['TEST_INTEGRATION']
+    puts "\n== Wait for healthy HTTP server... =="
+    system!('bash /vendor/dd-demo/http-health-check')
+  end
+
+  puts "\n== Run test suite =="
+  system!('rspec')
+end
