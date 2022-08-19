@@ -1,10 +1,12 @@
 require 'bundler/setup'
 require 'hanami/setup'
 require 'hanami/model'
+# require 'datadog/tracing/contrib/hanami/plugin'
 require_relative '../lib/hanami'
 require_relative '../apps/acme/application'
 
 Hanami.configure do
+
   mount Acme::Application, at: '/'
 
   model do

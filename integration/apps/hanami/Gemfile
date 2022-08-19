@@ -1,3 +1,5 @@
+require 'datadog/demo_env'
+
 source 'https://rubygems.org'
 
 gem 'rake'
@@ -9,8 +11,9 @@ gem 'sqlite3'
 gem 'puma'
 gem 'unicorn'
 gem 'webrick'
+gem 'pry-byebug'
 
-gem 'ddtrace'
+gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
 gem 'google-protobuf', '~> 3.0'
 
 group :development do

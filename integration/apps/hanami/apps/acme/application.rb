@@ -1,5 +1,7 @@
 require 'hanami/helpers'
 require 'hanami/assets'
+require 'ddtrace'
+require_relative './controllers/fibonacci'
 
 module Acme
   class Application < Hanami::Application
@@ -248,6 +250,7 @@ module Acme
       controller.prepare do
         # include MyAuthentication # included in all the actions
         # before :authenticate!    # run an authentication before callback
+        include Controllers::Fibonacci
       end
 
       # Configure the code that will yield each time Acme::View is included

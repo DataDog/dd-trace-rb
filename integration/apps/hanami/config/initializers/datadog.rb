@@ -8,16 +8,8 @@ Datadog.configure do |c|
 
   if Datadog::DemoEnv.feature?('tracing')
     c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
-
-    # c.tracing.instrument :rails, request_queuing: true
-    # c.tracing.instrument :redis, service_name: 'acme-redis'
-    # c.tracing.instrument :resque
-  end
-
-  if Datadog::DemoEnv.feature?('appsec')
-    c.appsec.enabled = true
-
-    c.appsec.instrument :rails
+    # c.tracing.instrument :hanami
+    # c.tracing.instrument :rack
   end
 
   if Datadog::DemoEnv.feature?('profiling') && Datadog::DemoEnv.feature?('pprof_to_file')
