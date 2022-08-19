@@ -331,8 +331,8 @@ class CLI < Thor
     end
     say('Creating configuration file...', :green)
     create_file(path, configuration_block, { force: force })
-    say('Configuration file created, happy tracing!', :green)
     say(logo)
+    say('Configuration file created, happy tracing!', :green)
   end
 
   def get_options(integration)
