@@ -27,7 +27,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
       # Use these to choose what is run
-      - DD_DEMO_ENV_PROCESS=configure
+      - DD_DEMO_ENV_PROCESS=puma
     expose:
       - "80"
     stdin_open: true

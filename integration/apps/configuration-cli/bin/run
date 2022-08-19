@@ -5,7 +5,7 @@ puts "\n== Starting application process =="
 
 process = (ARGV[0] || Datadog::DemoEnv.process)
 command = case process
-          when 'configure'
+          when 'puma'
             "bundle exec ddinitrb configure -e integration -s acme-configuration-cli -i rails -i redis -i resque -F "\
             "&& bundle exec ddtracerb exec puma -C /app/config/puma.rb"
           when nil, ''

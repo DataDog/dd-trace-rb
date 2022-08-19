@@ -1,8 +1,8 @@
-# Rails 7: Demo application for Datadog APM
+# Tracer CLI: Demo application for Datadog CLI
 
 A generic Rails 7 web application with some common use scenarios.
 
-For generating Datadog APM traces and profiles.
+For generating Datadog APM traces with configuration file generated from CLI.
 
 ## Installation
 
@@ -54,7 +54,7 @@ services:
 If you haven't yet built the base image for this version, then you must:
 
 1. Build an appropriate Ruby base image via `./integration/script/build-images`
-2. Build a Ruby + Rails 7 base image via `./integration/apps/rails-seven/script/build-images`
+2. Build a Ruby + Rails 7 base image via `./integration/apps/configuration-cli/script/build-images`
 
 Then rebuild the application environment with:
 
@@ -106,25 +106,9 @@ Then delete the old containers with `docker-compose down` and start the applicat
 
 Within the container, run `bin/dd-demo <process>` where `<process>` is one of the following values:
 
- - `puma`: Puma web server
- - `unicorn`: Unicorn web server
- - `console`: Rails console
- - `irb`: IRB session
+ - `puma`: Generate configuration file and run puma web server
 
  Alternatively, set `DD_DEMO_ENV_PROCESS` to run a particular process by default when `bin/dd-demo` is run.
-
-##### Features
-
-Set `DD_DEMO_ENV_FEATURES` to a comma-delimited list of any of the following values to activate the feature:
-
- - `tracing`: Tracing instrumentation
- - `profiling`: Profiling (NOTE: Must also set `DD_PROFILING_ENABLED` to match.)
- - `debug`: Enable diagnostic debug mode
- - `analytics`: Enable trace analytics
- - `runtime_metrics`: Enable runtime metrics
- - `pprof_to_file`: Dump profiling pprof to file instead of agent.
-
-e.g. `DD_DEMO_ENV_FEATURES=tracing,profiling`
 
 ##### Routes
 
