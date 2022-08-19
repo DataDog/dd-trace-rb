@@ -1469,7 +1469,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be true }
+          it { is_expected.to be false }
         end
 
         { 'true' => true, 'false' => false }.each do |string, value|
