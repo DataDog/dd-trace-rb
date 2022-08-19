@@ -8,8 +8,7 @@ Datadog.configure do |c|
 
   if Datadog::DemoEnv.feature?('tracing')
     c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
-    # c.tracing.instrument :hanami
-    # c.tracing.instrument :rack
+    c.tracing.instrument :hanami
   end
 
   if Datadog::DemoEnv.feature?('profiling') && Datadog::DemoEnv.feature?('pprof_to_file')
