@@ -67,6 +67,10 @@ class CLI < Thor
     :repeatable => true,
     :desc => 'The name of the integration(s) you would like to trace. This flag can be used multiple times to trace '\
              'different integrations.'
+  option :force,
+    :aliases => '-F',
+    :default => false,
+    :desc => 'Force overwrite of any existing configuration file.'
   def configure
     block = []
 
@@ -89,7 +93,7 @@ class CLI < Thor
       add_to_bundler
     end
 
-    create_config(options.filepath, configuration_block)
+    create_config(options.filepath, configuration_block, options.force)
   end
 
   # rubocop:disable Metrics/AbcSize
@@ -320,14 +324,15 @@ class CLI < Thor
     installed
   end
 
-  def create_config(path, configuration_block)
+  def create_config(path, configuration_block, force=false)
     unless ddtrace_installed?
       say('Adding `ddtrace` to bundler...', :green)
       add_to_bundler
     end
     say('Creating configuration file...', :green)
-    create_file(path, configuration_block)
+    create_file(path, configuration_block, { force: force })
     say('Configuration file created, happy tracing!', :green)
+    say(logo)
   end
 
   def get_options(integration)
@@ -352,6 +357,27 @@ class CLI < Thor
 
   def numeric?(value)
     true if Float(value) rescue false
+  end
+
+  def logo
+    <<-'EOF'
+    ⣿⢿⢻⡕⠢⡢⢵⣷⣿⡿⡷⡛⡕⡕⢻⢻⡛⠒⠀⠀⠐⠡⢵⣷⣿⣿⣿⣿⣿⣿⣿
+    ⡃⠁⠀⠀⠀⠀⠀⠡⠢⠒⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣂⣳⣿⣿⣿⣿⣿⣿
+    ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢔⡂⢈⢈⢏⣿⣿⣿⣿⣿⣿
+    ⢄⠀⠀⠀⠀⠀⠀⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡄⠄⡡⣨⣾⣿⣿⣿⣿⣿⣿⣿
+    ⣯⢭⡄⠈⢈⡈⡄⠂⠀⠀⠀⢤⢙⡥⠀⠀⠀⠀⠀⠐⠑⠀⠅⣷⣿⣿⣿⣿⣿⣿⣿
+    ⣿⣿⡸⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡂⡳⣿⣿⣿⣿⣿⣿
+    ⣿⣿⢏⢇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡦⢪⠹⠀⠀⠏⣿⣿⣿⣿⣿⣿
+    ⣿⣿⣿⣞⠎⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⢋⡕⡕⡕⠢⠲⣿
+    ⣿⣿⣿⣿⣿⣟⢁⠀⠀⠀⠀⠀⠈⠁⡆⡄⢄⡈⡄⠒⠑⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿
+    ⣿⣿⣿⣿⣿⢷⠤⠀⠀⠀⠀⠀⠎⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠏⠀⣿
+    ⣿⣿⡿⢻⠥⠁⠀⠀⠀⠀⠀⠀⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠨⢩⡊⢈⡈⣉⢇⠀⣰
+    ⣿⡓⠒⠀⠀⠀⠀⠀⠀⢄⠀⠀⣠⠀⠀⠀⠀⡄⢈⢈⢀⢜⣼⣿⣿⣮⣾⣿⣰⠀⣰
+    ⠏⠏⠀⠀⠀⠀⠀⠀⠀⠀⡁⠀⠐⠀⠀⢀⢒⡾⡦⡦⢥⢻⢻⡛⡕⡕⡥⠢⠢⠀⣰
+    ⣯⢬⠄⠈⠀⠀⠀⠀⠀⠀⠀⠝⠝⠎⠀⠣⠢⠒⠑⠑⢁⢈⢈⢈⡄⡄⡄⢪⢪⢪⣿
+    ⣿⣿⣯⠬⠀⠀⠀⠀⠀⠀⡈⣋⣯⣏⢤⢪⢪⣚⣝⣝⣝⣮⣮⣮⣿⣿⣿⣿⣿⣿⣿
+    ⣿⣿⣿⣿⣾⣯⣮⣮⣮⣾⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+    EOF
   end
 end
 # rubocop:enable Metrics/ClassLength
