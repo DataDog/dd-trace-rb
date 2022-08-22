@@ -1063,7 +1063,7 @@ end
 YourSchema.execute(query, variables: {}, context: {}, operation_name: nil)
 ```
 
-The `use :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
+The `instrument :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
@@ -1116,7 +1116,7 @@ YourSchema.define do
 end
 ```
 
-Do *NOT* `use :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
+Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
 ### gRPC
 
