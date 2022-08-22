@@ -32,7 +32,6 @@ RSpec.describe 'Rack integration tests' do
     end
   end
 
-
   context 'for an application' do
     let(:app) do
       app_routes = routes
@@ -762,6 +761,6 @@ RSpec.describe 'Rack integration tests' do
       expect(spans).to have(1).items
     end
 
-    it_behaves_like "a rack GET 200 span"
+    it_behaves_like 'a rack GET 200 span'
   end
 end
