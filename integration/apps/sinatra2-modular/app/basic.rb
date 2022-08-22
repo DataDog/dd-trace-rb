@@ -2,7 +2,7 @@ require 'sinatra/base'
 require 'ddtrace'
 require_relative 'parent'
 
-# Inherit from another app the verified middleware/extension inheritance
+# Inherit from another app to verify middleware/extension inheritance
 class Basic < Parent
   get '/basic/default' do
     200
