@@ -34,6 +34,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
         - [Configuring OpenTelemetry](#configuring-opentelemetry)
      - [Connect your application to the Datadog Agent](#connect-your-application-to-the-datadog-agent)
  - [Manual instrumentation](#manual-instrumentation)
+ - [Method tracing API](#method-tracing-api)
  - [Integration instrumentation](#integration-instrumentation)
      - [Action Cable](#action-cable)
      - [Action Mailer](#action-mailer)
