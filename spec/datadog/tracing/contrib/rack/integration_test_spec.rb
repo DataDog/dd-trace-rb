@@ -18,6 +18,21 @@ RSpec.describe 'Rack integration tests' do
     end
   end
 
+  shared_examples 'a rack GET 200 span' do
+    it do
+      expect(span.name).to eq('rack.request')
+      expect(span.span_type).to eq('web')
+      expect(span.service).to eq(tracer.default_service)
+      expect(span.resource).to eq('GET 200')
+      expect(span.get_tag('http.method')).to eq('GET')
+      expect(span.get_tag('http.status_code')).to eq('200')
+      expect(span.status).to eq(0)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+    end
+  end
+
+
   context 'for an application' do
     let(:app) do
       app_routes = routes
@@ -26,20 +41,6 @@ RSpec.describe 'Rack integration tests' do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         instance_eval(&app_routes)
       end.to_app
-    end
-
-    shared_examples 'a rack GET 200 span' do
-      it do
-        expect(span.name).to eq('rack.request')
-        expect(span.span_type).to eq('web')
-        expect(span.service).to eq(tracer.default_service)
-        expect(span.resource).to eq('GET 200')
-        expect(span.get_tag('http.method')).to eq('GET')
-        expect(span.get_tag('http.status_code')).to eq('200')
-        expect(span.status).to eq(0)
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
-      end
     end
 
     context 'with no routes' do
@@ -727,5 +728,40 @@ RSpec.describe 'Rack integration tests' do
         end
       end
     end
+  end
+
+  context 'for a nested instrumentation' do
+    let(:another) do
+      Rack::Builder.new do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+        map '/success' do
+          run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+        end
+      end.to_app
+    end
+
+    let(:app) do
+      nested_app = another
+
+      Rack::Builder.new do
+        use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+        map '/nested' do
+          use Datadog::Tracing::Contrib::Rack::TraceMiddleware
+
+          run nested_app
+        end
+      end.to_app
+    end
+
+    subject(:response) { get 'nested/success' }
+
+    before do
+      is_expected.to be_ok
+      expect(spans).to have(1).items
+    end
+
+    it_behaves_like "a rack GET 200 span"
   end
 end
