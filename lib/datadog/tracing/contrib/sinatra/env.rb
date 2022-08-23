@@ -43,7 +43,7 @@ module Datadog
 
             _, path = env['sinatra.route'].split(' ', 2)
             if use_script_names
-              env[::Rack::SCRIPT_NAME].to_s + path
+              env['SCRIPT_NAME'].to_s + path
             else
               path
             end
