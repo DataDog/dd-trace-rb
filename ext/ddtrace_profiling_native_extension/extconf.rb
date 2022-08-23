@@ -144,6 +144,8 @@ if RUBY_VERSION < '2.3'
   $defs << '-DUSE_LEGACY_RB_PROFILE_FRAMES'
   # ... you couldn't name threads
   $defs << '-DNO_THREAD_NAMES'
+  # ...the ruby_thread_has_gvl_p function was not exposed to users outside of the VM
+  $defs << '-DNO_THREAD_HAS_GVL'
 end
 
 # If we got here, libdatadog is available and loaded

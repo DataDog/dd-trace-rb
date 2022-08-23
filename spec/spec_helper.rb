@@ -241,5 +241,34 @@ end
 
 Thread.prepend(DatadogThreadDebugger)
 
+# Enforce test time limit, to allow us to debug why some test runs get stuck in CI
+if ENV.key?('CI')
+  require 'spec/support/thread_helpers'
+
+  ThreadHelpers.with_leaky_thread_creation('Deadline thread') do
+    Thread.new do
+      sleep_time = 30 * 60 # 30 minutes
+      sleep(sleep_time)
+
+      warn "Test too longer than #{sleep_time}s to finish, aborting test run."
+      warn 'Stack trace of all running threads:'
+
+      Thread.list.select { |t| t.alive? && t != Thread.current }.each_with_index.map do |t, idx|
+        backtrace = t.backtrace
+        backtrace = ['(Not available)'] if backtrace.nil? || backtrace.empty?
+
+        msg = "#{idx}: #{t} (#{t.class.name})",
+              'Thread Backtrace:',
+              backtrace.map { |l| "\t#{l}" }.join("\n"),
+              "\n"
+
+        warn(msg) rescue puts(msg)
+      end
+
+      Kernel.exit(1)
+    end
+  end
+end
+
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be

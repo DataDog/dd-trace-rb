@@ -324,8 +324,9 @@ static void *call_serialize_without_gvl(void *call_args) {
   return NULL; // Unused
 }
 
-void enforce_recorder_instance(VALUE object) {
+VALUE enforce_recorder_instance(VALUE object) {
   Check_TypedStruct(object, &stack_recorder_typed_data);
+  return object;
 }
 
 static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder_state *state) {

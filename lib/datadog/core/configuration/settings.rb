@@ -241,6 +241,16 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_LEGACY_TRANSPORT_ENABLED', false) }
               o.lazy
             end
+
+            # Forces enabling the new profiler. We do not yet recommend turning on this option.
+            #
+            # Note that setting this to "false" (or not setting it) will not prevent the new profiler from
+            # being automatically used in the future.
+            # This option will be deprecated for removal once the new profiler gets enabled by default for all customers.
+            option :force_enable_new_profiler do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
+              o.lazy
+            end
           end
 
           # @public_api
@@ -625,10 +635,11 @@ module Datadog
         settings :telemetry do
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
-          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`. In a future release,
+          #   this value will be changed to `true` by default as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
+            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
             o.lazy
           end
         end

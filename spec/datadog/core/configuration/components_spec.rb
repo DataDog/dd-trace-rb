@@ -929,7 +929,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     context 'with :enabled false' do
       before do
-        allow(settings.profiling).to receive(:enabled).and_return(false)
+        settings.profiling.enabled = false
       end
 
       it 'does not build a profiler' do
@@ -939,7 +939,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
     context 'with :enabled true' do
       before do
-        allow(settings.profiling).to receive(:enabled).and_return(true)
+        settings.profiling.enabled = true
         allow(profiler_setup_task).to receive(:run)
       end
 
@@ -968,6 +968,56 @@ RSpec.describe Datadog::Core::Configuration::Components do
           .and_call_original
 
         build_profiler
+      end
+
+      it 'sets up the Exporter with the OldRecorder' do
+        expect(Datadog::Profiling::Exporter)
+          .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::OldRecorder)))
+
+        build_profiler
+      end
+
+      context 'when force_enable_new_profiler is enabled' do
+        before do
+          settings.profiling.advanced.force_enable_new_profiler = true
+        end
+
+        it 'does not initialize the OldStack collector' do
+          expect(Datadog::Profiling::Collectors::OldStack).to_not receive(:new)
+
+          build_profiler
+        end
+
+        it 'does not initialize the OldRecorder' do
+          expect(Datadog::Profiling::OldRecorder).to_not receive(:new)
+
+          build_profiler
+        end
+
+        it 'initializes a CpuAndWallTimeWorker collector' do
+          expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
+            recorder: instance_of(Datadog::Profiling::StackRecorder),
+            max_frames: settings.profiling.advanced.max_frames,
+          )
+
+          build_profiler
+        end
+
+        it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
+          expect(Datadog::Profiling::Profiler).to receive(:new).with(
+            [instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)],
+            anything,
+          )
+
+          build_profiler
+        end
+
+        it 'sets up the Exporter with the StackRecorder' do
+          expect(Datadog::Profiling::Exporter)
+            .to receive(:new).with(hash_including(pprof_recorder: instance_of(Datadog::Profiling::StackRecorder)))
+
+          build_profiler
+        end
       end
 
       it 'runs the setup task to set up any needed extensions for profiling' do

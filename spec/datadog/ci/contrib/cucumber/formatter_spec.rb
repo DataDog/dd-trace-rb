@@ -13,7 +13,6 @@ RSpec.describe 'Cucumber formatter' do
 
   include_context 'CI mode activated'
 
-  let(:configuration_options) { {} }
   # Cucumber runtime setup
   let(:existing_runtime) { Cucumber::Runtime.new(runtime_options) }
   let(:runtime_options)  { {} }
@@ -27,7 +26,7 @@ RSpec.describe 'Cucumber formatter' do
 
   before do
     Datadog.configure do |c|
-      c.ci.instrument :cucumber, configuration_options
+      c.ci.instrument :cucumber, service_name: 'jalapenos'
     end
   end
 
@@ -47,7 +46,7 @@ RSpec.describe 'Cucumber formatter' do
       step_span = spans.find { |s| s.resource == 'datadog' }
 
       expect(scenario_span.resource).to eq('cucumber scenario')
-      expect(scenario_span.service).to eq(Datadog::CI::Contrib::Cucumber::Ext::SERVICE_NAME)
+      expect(scenario_span.service).to eq('jalapenos')
       expect(scenario_span.span_type).to eq(Datadog::CI::Ext::AppTypes::TYPE_TEST)
       expect(scenario_span.name).to eq(Datadog::CI::Contrib::Cucumber::Ext::OPERATION_NAME)
       expect(step_span.resource).to eq('datadog')

@@ -1,4 +1,4 @@
-***Version 1.0.0 has been released. Check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10) for more details.***
+**We've recently released the 1.x version series. If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
 
 # Datadog Ruby Trace Client
 
@@ -406,7 +406,7 @@ def db_query(start, finish, query)
 end
 ```
 
-Calling `Datadog::Tracing.trace` without a block will cause the function to return a `Datadog::SpanOperation` that is started, but not finished. You can then modify this span however you wish, then close it `finish`.
+Calling `Datadog::Tracing.trace` without a block will cause the function to return a `Datadog::Tracing::SpanOperation` that is started, but not finished. You can then modify this span however you wish, then close it `finish`.
 
 *You must not leave any unfinished spans.* If any spans are left open when the trace completes, the trace will be discarded. You can [activate debug mode](#tracer-settings) to check for warnings if you suspect this might be happening.
 
@@ -567,7 +567,6 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `email_data` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
 
 ### Action Pack
@@ -1063,14 +1062,12 @@ end
 YourSchema.execute(query, variables: {}, context: {}, operation_name: nil)
 ```
 
-The `use :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
+The `instrument :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
 | `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
-| `analytics_enabled` | Enable analytics for spans. `true` for on, `nil` to defer to Datadog global setting, `false` for off. | `false` |
-| `analytics_sample_rate` | Rate which tracing data should be sampled for Datadog analytics. Must be a float between `0` and `1.0`. | `1.0` |
 
 **Manually configuring GraphQL schemas**
 
@@ -1116,7 +1113,7 @@ YourSchema.define do
 end
 ```
 
-Do *NOT* `use :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
+Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
 ### gRPC
 
@@ -2026,7 +2023,7 @@ end
 | `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
 | `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#Setting the time provider) for more details.                                                                                                                              |
 | `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
-| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `true`                                                             | Allows you to opt-out of sending telemetry data to Datadog.                                                                                                                                                                                           |
+| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `false`                                                             | Allows you to enable sending telemetry data to Datadog. In a future release, we will be setting this to  `true` by default, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                          |
 | **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
 | `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`   | `nil`                                                             | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                          |
 | `tracing.distributed_tracing.propagation_extract_style` | `DD_PROPAGATION_STYLE_EXTRACT` | `['Datadog','B3','B3 single header']`                             | Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                          |

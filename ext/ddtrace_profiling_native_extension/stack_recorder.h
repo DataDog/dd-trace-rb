@@ -15,12 +15,13 @@
 // ```
 #define VALUE_STRING(string) {.ptr = "" string, .len = sizeof(string) - 1}
 
-#define      CPU_TIME_VALUE {.type_ = VALUE_STRING("cpu-time"),      .unit = VALUE_STRING("nanoseconds")}
-#define   CPU_SAMPLES_VALUE {.type_ = VALUE_STRING("cpu-samples"),   .unit = VALUE_STRING("count")}
-#define     WALL_TIME_VALUE {.type_ = VALUE_STRING("wall-time"),     .unit = VALUE_STRING("nanoseconds")}
-#define ALLOC_SAMPLES_VALUE {.type_ = VALUE_STRING("alloc-samples"), .unit = VALUE_STRING("count")}
-#define   ALLOC_SPACE_VALUE {.type_ = VALUE_STRING("alloc-space"),   .unit = VALUE_STRING("bytes")}
-#define    HEAP_SPACE_VALUE {.type_ = VALUE_STRING("heap-space"),    .unit = VALUE_STRING("bytes")}
+#define CPU_TIME_VALUE          {.type_ = VALUE_STRING("cpu-time"),          .unit = VALUE_STRING("nanoseconds")}
+#define CPU_SAMPLES_VALUE       {.type_ = VALUE_STRING("cpu-samples"),       .unit = VALUE_STRING("count")}
+#define WALL_TIME_VALUE         {.type_ = VALUE_STRING("wall-time"),         .unit = VALUE_STRING("nanoseconds")}
+#define ALLOC_SIZE_VALUE        {.type_ = VALUE_STRING("alloc-size"),        .unit = VALUE_STRING("bytes")}
+#define ALLOC_SAMPLES_VALUE     {.type_ = VALUE_STRING("alloc-samples"),     .unit = VALUE_STRING("count")}
+#define HEAP_LIVE_SIZE_VALUE    {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
+#define HEAP_LIVE_SAMPLES_VALUE {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
 
 static const ddprof_ffi_ValueType enabled_value_types[] = {
   #define CPU_TIME_VALUE_POS 0
@@ -34,4 +35,4 @@ static const ddprof_ffi_ValueType enabled_value_types[] = {
 #define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddprof_ffi_ValueType))
 
 void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample);
-void enforce_recorder_instance(VALUE object);
+VALUE enforce_recorder_instance(VALUE object);
