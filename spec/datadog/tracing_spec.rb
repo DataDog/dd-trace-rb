@@ -162,7 +162,7 @@ RSpec.describe Datadog::Tracing do
 
     it 'delegates to the tracer' do
       expect(Datadog.send(:components).tracer).to receive(:trace_method)
-        .with(name, target, span_options).and_return(returned)
+        .with(target, name, span_options).and_return(returned)
       expect(trace_method).to eq(returned)
     end
   end
