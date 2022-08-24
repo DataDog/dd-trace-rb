@@ -14,9 +14,9 @@ module Datadog
           :span_options,
           :target
 
-        def initialize(name, target, span_options = {})
-          @name = name
+        def initialize(target, name, span_options = {})
           @target = target
+          @name = name
           @span_options = span_options
         end
 

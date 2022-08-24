@@ -129,8 +129,8 @@ module Datadog
 
       # (see Datadog::Tracing::Tracer#trace_method)
       # @public_api
-      def trace_method(name, target, span_options = {})
-        tracer.trace_method(name, target, span_options)
+      def trace_method(target, name, span_options = {})
+        tracer.trace_method(target, name, span_options)
       end
 
       private

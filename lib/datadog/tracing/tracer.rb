@@ -308,8 +308,8 @@ module Datadog
       # @param [String] target Defines the method to be traced
       # @param [Hash] span_options Optional value to be added to the produced span
       # @return [Datadog::Tracing::Contrib::Hook] The newly defined Datadog::Tracing::Contrib::Hook object
-      def trace_method(name, target, span_options = {})
-        trace_hook = Datadog::Tracing::Contrib::Hook.new(name, target, span_options)
+      def trace_method(target, name, span_options = {})
+        trace_hook = Datadog::Tracing::Contrib::Hook.new(target, name, span_options)
         trace_hook.inject!
         trace_hook
       end
