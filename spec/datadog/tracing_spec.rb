@@ -155,7 +155,7 @@ RSpec.describe Datadog::Tracing do
   end
 
   describe '.trace_method' do
-    subject(:trace_method) { described_class.trace_method(name, target, span_options) }
+    subject(:trace_method) { described_class.trace_method(target, name, span_options) }
     let(:name) { double('name') }
     let(:target) { double('target') }
     let(:span_options) { { resource: double('option') } }

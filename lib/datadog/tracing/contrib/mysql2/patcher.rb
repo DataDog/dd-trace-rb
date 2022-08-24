@@ -24,7 +24,7 @@ module Datadog
           def patch_mysql2_client
             # ::Mysql2::Client.include(Instrumentation)
 
-            Datadog::Tracing.trace_method(Ext::SPAN_QUERY, 'Mysql2::Client#query').around do |env, span, _trace, &block|
+            Datadog::Tracing.trace_method('Mysql2::Client#query', Ext::SPAN_QUERY).around do |env, span, _trace, &block|
               sql = env.args[0]
               query_options = env.self.query_options
 

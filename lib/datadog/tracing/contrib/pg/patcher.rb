@@ -37,8 +37,8 @@ module Datadog
 
             instrumentation_points.each do |name, target|
               Datadog::Tracing.trace_method(
-                name,
                 target,
+                name,
                 { type: Tracing::Metadata::Ext::SQL::TYPE }
               ).around do |env, span, _trace, &block|
                 service = Datadog.configuration_for(env.self, :service_name) || datadog_configuration[:service_name]
