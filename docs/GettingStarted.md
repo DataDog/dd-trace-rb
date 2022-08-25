@@ -218,6 +218,14 @@ OR
 
 ### Instrument your application
 
+#### Configuration CLI Tool
+We provide a CLI tool that can be used to help you generate your configuration file.
+
+_Interactive_
+Once you have the `ddtrace` gem installed, run `ddinitrb -I` to start the configuration tool. The tool will run you through various settings that you can configure for the tracer. This include basic configuration settings (agent host, port, etc.) and advanced settings specified in ___. The tool will detect
+
+_Shell_
+
 #### Rails applications
 
 1. Add the `ddtrace` gem to your Gemfile:
@@ -456,7 +464,7 @@ Another option for manual instrumentation is to use the method tracing API to tr
 
 To generate traces, use the `Datadog::Tracing.trace_method` method:
 ```ruby
-Datadog::Tracing.trace_method(name, target, span_options).around do |env, span, trace, &block|
+Datadog::Tracing.trace_method(target, name, span_options).around do |env, span, trace, &block|
   # You can modify the span here.
   # e.g. Change the resource name, set tags, etc.
   block.call
@@ -467,8 +475,8 @@ This method does not need to be called at the same location where the target is 
 The `trace_method` method accepts the following parameters:
 | Parameter | Type | Description | Example |
 | ---- | ------- | --------- | --- |
-| `name` | `String` | The generic kind of operation being done. | `pg.exec` |
 | `target` | `String` | The class and method you wish to instrument. The convention for this API is to use `#` for denoting an instance method, and `.` for a class method.| `PG::Connection#exec` |
+| `name` | `String` | The generic kind of operation being done. | `pg.exec` |
 | `span_options` | `Hash`| An optional `Hash` that accepts the same keyword arguments as the [manual instrumentation options](#options). | `{ type: 'sql' }`|
 
 Calling `Datadog::Tracing.trace_method` returns an instance of `Dataodg::Tracing::Contrib::Hook`.
@@ -486,8 +494,8 @@ You can also call `disable!` and `enable!` on the hook object to selectively tra
 Example of the method tracing API in action:
 ```ruby
 hook = Datadog::Tracing.trace_method(
-  'pg.exec',
   'PG::Connection#exec',
+  'pg.exec',
   { type: 'sql' }
 ).around do |env, span, _trace, &block|
   span.service = 'pg'
