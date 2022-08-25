@@ -69,8 +69,5 @@ Gem::Specification.new do |spec|
   # Used by profiling (and possibly others in the future)
   spec.add_dependency 'libdatadog', '~> 0.7.0.1.1'
 
-  # Used by method tracing API
-  spec.add_dependency 'datadog-instrumentation'
-
   spec.extensions = ['ext/ddtrace_profiling_native_extension/extconf.rb', 'ext/ddtrace_profiling_loader/extconf.rb']
 end
