@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ddtrace (1.3.0)
+    ddtrace (1.4.0)
       debase-ruby_core_source (= 0.10.16)
       libdatadog (~> 0.7.0.1.1)
       libddwaf (~> 1.3.0.2.0)
@@ -106,7 +106,7 @@ GEM
     mini_mime (1.1.2)
     mini_portile2 (2.4.0)
     minitest (5.15.0)
-    msgpack (1.5.4)
+    msgpack (1.5.6)
     nio4r (2.5.8)
     nokogiri (1.10.10)
       mini_portile2 (~> 2.4.0)
@@ -269,7 +269,7 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
-  rubocop (~> 1.10)
+  rubocop (~> 1.10, < 1.33.0)
   rubocop-packaging (~> 0.5)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)
@@ -282,4 +282,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.2.19
+   2.3.20
