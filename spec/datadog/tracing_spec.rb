@@ -160,8 +160,8 @@ RSpec.describe Datadog::Tracing do
     let(:target) { double('target') }
     let(:span_options) { { resource: double('option') } }
 
-    it 'delegates to the tracer' do
-      expect(Datadog.send(:components).tracer).to receive(:trace_method)
+    it 'delegates to tracing contrib extensions' do
+      expect(Datadog::Tracing::Contrib::Extensions).to receive(:trace_method)
         .with(target, name, span_options).and_return(returned)
       expect(trace_method).to eq(returned)
     end

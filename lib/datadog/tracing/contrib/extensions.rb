@@ -3,6 +3,7 @@
 require 'set'
 
 require_relative '../../core/configuration/settings'
+require_relative 'hook'
 
 # Datadog
 module Datadog
@@ -189,6 +190,20 @@ module Datadog
               @ignore_integration_load_errors = value
             end
           end
+        end
+
+        module_function
+
+        # Setup a Datadog::Tracing::Contrib::Hook object to trace a method.
+        #
+        # @param [String] name Defines the name of the span
+        # @param [String] target Defines the method to be traced
+        # @param [Hash] span_options Optional value to be added to the produced span
+        # @return [Datadog::Tracing::Contrib::Hook] The newly defined Datadog::Tracing::Contrib::Hook object
+        def trace_method(target, name, span_options = {})
+          trace_hook = Datadog::Tracing::Contrib::Hook.new(target, name, span_options)
+          trace_hook.inject!
+          trace_hook
         end
       end
     end

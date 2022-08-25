@@ -127,10 +127,10 @@ module Datadog
         current_tracer.enabled
       end
 
-      # (see Datadog::Tracing::Tracer#trace_method)
+      # (see Datadog::Tracing::Contrib::Extensions#trace_method)
       # @public_api
       def trace_method(target, name, span_options = {})
-        tracer.trace_method(target, name, span_options)
+        Contrib::Extensions.trace_method(target, name, span_options)
       end
 
       private
