@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [1.4.0] - 2022-08-25
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.4.0
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v1.3.0...v1.4.0
+
+### Added
+
+* gRPC: tag `grpc.client.deadline` ([#2200][])
+* Implement telemetry, disable by default ([#2153][])
+
+### Changed
+
+* Bump `libdatadog` dependency version ([#2229][])
+
+### Fixed
+
+* Fix CI instrumentation configuration ([#2219][])
+
 ## [1.3.0] - 2022-08-04
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.3.0
@@ -2939,13 +2958,18 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2138]: https://github.com/DataDog/dd-trace-rb/issues/2138
 [#2140]: https://github.com/DataDog/dd-trace-rb/issues/2140
 [#2150]: https://github.com/DataDog/dd-trace-rb/issues/2150
+[#2153]: https://github.com/DataDog/dd-trace-rb/issues/2153
 [#2158]: https://github.com/DataDog/dd-trace-rb/issues/2158
 [#2162]: https://github.com/DataDog/dd-trace-rb/issues/2162
 [#2163]: https://github.com/DataDog/dd-trace-rb/issues/2163
+[#2170]: https://github.com/DataDog/dd-trace-rb/issues/2170
 [#2173]: https://github.com/DataDog/dd-trace-rb/issues/2173
 [#2174]: https://github.com/DataDog/dd-trace-rb/issues/2174
 [#2180]: https://github.com/DataDog/dd-trace-rb/issues/2180
+[#2200]: https://github.com/DataDog/dd-trace-rb/issues/2200
 [#2201]: https://github.com/DataDog/dd-trace-rb/issues/2201
+[#2219]: https://github.com/DataDog/dd-trace-rb/issues/2219
+[#2229]: https://github.com/DataDog/dd-trace-rb/issues/2229
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
