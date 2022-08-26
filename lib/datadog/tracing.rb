@@ -1,4 +1,4 @@
-# typed: ignore
+# typed: false
 
 require_relative 'core'
 require_relative 'tracing/pipeline'

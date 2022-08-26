@@ -1,4 +1,4 @@
-# typed: ignore
+# typed: false
 
 require 'spec_helper'
 
