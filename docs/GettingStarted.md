@@ -317,7 +317,7 @@ OR
 
 #### Configuring OpenTelemetry
 
-You can send OpenTelemetry traces directly to the Datadog agent (without `ddtrace`) by using OTLP. Check out our documentation on [OTLP ingest in the Datadog Agent](https://docs.datadoghq.com/tracing/setup_overview/open_standards/#otlp-ingest-in-datadog-agent) for details.
+You can send OpenTelemetry traces directly to the Datadog Agent without `ddtrace` by using OTLP. For more information, see [OTLP Trace Ingestion by the Datadog Agent](https://docs.datadoghq.com/tracing/trace_collection/open_standards/otlp_ingest_in_the_agent/).
 
 ### Connect your application to the Datadog Agent
 
