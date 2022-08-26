@@ -570,6 +570,7 @@ elsif ruby_version?('2.4')
     gem 'concurrent-ruby'
     gem 'cucumber'
     gem 'dalli', '< 3.0.0' # Dalli 3.0 dropped support for Ruby < 2.5
+    gem 'datadog-instrumentation', git: 'https://github.com/DataDog/datadog-instrumentation-ruby', branch: 'master'
     gem 'delayed_job'
     gem 'delayed_job_active_record'
     gem 'ethon'
