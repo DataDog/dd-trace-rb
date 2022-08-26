@@ -3,7 +3,7 @@
 module Datadog
   module Tracing
     module Contrib
-      # Class defining hook used to implement method tracing
+      # Class defining hook used to implement method tracing API
       class Hook
         attr_reader \
           :around_block,
@@ -20,6 +20,9 @@ module Datadog
           datadog_instrumentation_gem_unavailable? || datadog_instrumentation_failed_to_load?
         end
 
+        # @param target [String] The class and method to be instrumented.
+        # @param name [String] The kind of operation being done, used to name the trace in the Datadog UI.
+        # @param span_options [Hash] Optional `Hash` that contains attributes to attach to the span.
         def initialize(target, name, span_options = {})
           @target = target
           @name = name
@@ -37,6 +40,11 @@ module Datadog
           hook.install
         end
 
+        # Helper that allows setting span or trace attributes before or after the method call is made. See the
+        # [GettingStarted docs](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#method-tracing-api)
+        # for details on usage.
+        #
+        # @param [Proc] Optional block that modifies the span or trace
         def around(&block)
           @around_block = block
           self
