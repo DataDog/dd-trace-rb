@@ -196,14 +196,19 @@ module Datadog
 
         # Setup a Datadog::Tracing::Contrib::Hook object to trace a method.
         #
-        # @param [String] name Defines the name of the span
         # @param [String] target Defines the method to be traced
+        # @param [String] name Defines the name of the span
         # @param [Hash] span_options Optional value to be added to the produced span
         # @return [Datadog::Tracing::Contrib::Hook] The newly defined Datadog::Tracing::Contrib::Hook object
         def trace_method(target, name, span_options = {})
-          trace_hook = Datadog::Tracing::Contrib::Hook.new(target, name, span_options)
-          trace_hook.inject!
-          trace_hook
+          if Datadog::Tracing::Contrib::Hook.supported?
+            trace_hook = Datadog::Tracing::Contrib::Hook.new(target, name, span_options)
+            trace_hook.inject!
+            trace_hook
+          else
+            Datadog.logger.warn(Datadog::Tracing::Contrib::Hook.unsupported_reason)
+            nil
+          end
         end
       end
     end

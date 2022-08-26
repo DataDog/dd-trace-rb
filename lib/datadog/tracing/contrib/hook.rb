@@ -1,7 +1,5 @@
 # typed: ignore
 
-require 'datadog/instrumentation'
-
 module Datadog
   module Tracing
     module Contrib
@@ -13,6 +11,14 @@ module Datadog
           :name,
           :span_options,
           :target
+
+        def self.supported?
+          unsupported_reason.nil?
+        end
+
+        def self.unsupported_reason
+          datadog_instrumentation_gem_unavailable? || datadog_instrumentation_failed_to_load?
+        end
 
         def initialize(target, name, span_options = {})
           @target = target
@@ -72,6 +78,38 @@ module Datadog
             @self = env[:self]
             @args = env[:args]
             @kwargs = env[:kwargs]
+          end
+        end
+
+        private_class_method def self.datadog_instrumentation_gem_unavailable?
+          if !defined?(::Datadog::Instrumentation) && Gem.loaded_specs['datadog-instrumentation'].nil?
+            "Missing datadog-instrumentation dependency; please add `gem 'datadog-instrumentation'` to your Gemfile or " \
+            'gems.rb file to use the beta method tracing API.'
+          end
+        end
+
+        private_class_method def self.datadog_instrumentation_failed_to_load?
+          unless datadog_instrumentation_loaded_successfully?
+            'There was an error loading the datadog-instrumentation library; see previous warning message for details'
+          end
+        end
+
+        private_class_method def self.datadog_instrumentation_loaded_successfully?
+          return @datadog_instrumentation_loaded if defined?(@datadog_instrumentation_loaded)
+
+          begin
+            require 'datadog/instrumentation'
+            @datadog_instrumentation_loaded = true
+          rescue LoadError => e
+            # NOTE: We use Kernel#warn here because this code gets run BEFORE Datadog.logger is actually set up.
+            # In the future it'd be nice to shuffle the logger startup to happen first to avoid this special case.
+            Datadog.logger.warn(
+              '[DDTRACE] Error while loading datadog-instrumentation gem. ' \
+              "Cause: '#{e.class.name} #{e.message}' Location: '#{Array(e.backtrace).first}'. " \
+              'This can happen when google-protobuf is missing its native components. ' \
+              'If the error persists, please contact Datadog support at <https://docs.datadoghq.com/help/>.'
+            )
+            @datadog_instrumentation_loaded = false
           end
         end
       end
