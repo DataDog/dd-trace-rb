@@ -127,13 +127,6 @@ module Datadog
         current_tracer.enabled
       end
 
-      # The method tracing API is currently a BETA feature.
-      # (see Datadog::Tracing::Contrib::Extensions#trace_method)
-      # @public_api
-      def trace_method(target, name, span_options = {})
-        Datadog::Tracing::Contrib::Extensions.trace_method(target, name, span_options)
-      end
-
       private
 
       # DEV: components hosts both tracing and profiling inner objects today

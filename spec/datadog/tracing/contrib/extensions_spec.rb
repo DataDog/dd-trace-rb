@@ -196,7 +196,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     end
 
     describe '#trace_method' do
-      subject(:trace_method) { described_class.trace_method(target, name, span_options) }
+      subject(:trace_method) { Datadog::Tracing.trace_method(target, name, span_options) }
       let(:name) { 'test_span' }
       let(:target) { 'Target#method' }
       let(:span_options) { {} }
