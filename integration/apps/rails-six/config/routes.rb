@@ -7,6 +7,9 @@ Rails.application.routes.draw do
   get 'basic/default', to: 'basic#default'
   get 'basic/fibonacci', to: 'basic#fibonacci'
 
+  # Distributed tracing test scenarios
+  get 'distributed/reflexive', to: 'distributed#reflexive'
+
   # Job test scenarios
   post 'jobs', to: 'jobs#create'
 end

@@ -5,12 +5,13 @@ require 'datadog/appsec'
 Datadog.configure do |c|
   c.env = 'integration'
   c.service = 'acme-rails-six'
-  c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')
+  c.diagnostics.debug = true #if Datadog::DemoEnv.feature?('debug')
   c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
   if Datadog::DemoEnv.feature?('tracing')
     c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
 
+    c.tracing.instrument :faraday
     c.tracing.instrument :rails
     c.tracing.instrument :redis, service_name: 'acme-redis'
     c.tracing.instrument :resque

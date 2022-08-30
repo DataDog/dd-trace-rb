@@ -56,6 +56,7 @@ gem 'bcrypt-ruby', platform: :ruby
 gem 'connection_pool'
 gem 'devise'
 gem 'faker', require: false # Make up fake data to put in models for load testing
+gem 'faraday'
 gem 'geoip'
 gem 'hawk-auth'
 gem 'httparty'
