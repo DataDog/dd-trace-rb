@@ -48,6 +48,10 @@ module Datadog
 
             option :exception_controller do |o|
               o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #exception_controller for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on action_pack instrumentation instead.'
+                )
                 # Update ActionPack exception controller too
                 Datadog.configuration.tracing[:action_pack][:exception_controller] = value
               end
@@ -58,6 +62,10 @@ module Datadog
             option :template_base_path do |o|
               o.default 'views/'
               o.on_set do |value|
+                Datadog.logger.warn(
+                  '[Deprecated] Using #template_base_path for configuration is deprecated and will ' \
+                  'be removed on a future ddtrace release. Please configure the option on action_view instrumentation instead.'
+                )
                 # Update ActionView template base path too
                 Datadog.configuration.tracing[:action_view][:template_base_path] = value
               end
