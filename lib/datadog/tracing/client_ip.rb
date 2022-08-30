@@ -22,26 +22,16 @@ module Datadog
         true-client-ip
       ].freeze
 
-      # A collection of headers.
-      class HeaderCollection
-        # Gets a single value of the header with the given name, case insensitive.
-        #
-        # @param [String] header_name Name of the header to get the value of.
-        # @returns [String, nil] A single value of the header, or nil if the header with
-        #   the given name is missing from the collection.
-        def get(header_name)
-          nil
-        end
-
-        def self.from_hash(hash)
-          HashHeaderCollection.new(hash)
-        end
-      end
+      TAG_MULTIPLE_IP_HEADERS = '_dd.multiple-ip-headers'.freeze
 
       # Sets the `http.client_ip` tag on the given span.
       #
       # This function respects the user's settings: if they disable the client IP tagging,
-      # or provide a different IP header name.
+      #   or provide a different IP header name.
+      #
+      # If multiple IP headers are present in the request, this function will instead set
+      #   the `_dd.multiple-ip-headers` tag with the names of the present headers,
+      #   and **NOT** set the `http.client_ip` tag.
       #
       # @param [Span] span The span that's associated with the request.
       # @param [HeaderCollection, #get, nil] headers A collection with the request headers.
@@ -49,143 +39,131 @@ module Datadog
       def self.set_client_ip_tag(span, headers, remote_ip)
         return if configuration.disabled
 
-        ip = client_address_from_request(headers, remote_ip)
-        if !configuration.header_name && ip.nil?
-          header_names = ip_headers(headers).keys
-          span.set_tag(TAG_MULTIPLE_IP_HEADERS, header_names.join(',')) unless header_names.empty?
-          return
-        end
+        begin
+          address = raw_ip_from_request(headers, remote_ip)
+          if address.nil?
+            # `address` can be `nil` if a custom header is configured but not present in the request.
+            # In that case, assume misconfiguration and avoid setting the tag.
+            return
+          end
 
-        unless valid_ip?(ip)
-          ip = extract_ip_from_full_address(ip)
-          return unless valid_ip?(ip)
-        end
-        ip = strip_zone_specifier(ip) if valid_ipv6?(ip)
+          ip = strip_decorations(address)
 
-        span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, ip)
+          validate_ip(ip)
+
+          span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, ip)
+        rescue InvalidIpError
+          # Do nothing, assuming logs will spam here.
+        rescue MultipleIpHeadersError => e
+          span.set_tag(TAG_MULTIPLE_IP_HEADERS, e.header_names.join(','))
+        end
       end
 
-      TAG_MULTIPLE_IP_HEADERS = '_dd.multiple-ip-headers'.freeze
+      # Returns the value of an IP-related header or the request's remote IP.
+      #
+      # The client IP is looked up by the following logic:
+      # * If the user has configured a header name, return that header's value.
+      # * If exactly one of the known IP headers is present, return that header's value.
+      # * If none of the known IP headers are present, return the remote IP from the request.
+      #
+      # Raises a [MultipleIpHeadersError] if multiple IP-related headers are present.
+      #
+      # @param [Datadog::Core::HeaderCollection, #get, nil] headers The request headers
+      # @param [String] remote_ip The remote IP of the request.
+      # @return [String] An unprocessed value retrieved from an
+      #   IP header or the remote IP of the request.
+      def self.raw_ip_from_request(headers, remote_ip)
+        return headers && headers.get(configuration.header_name) if configuration.header_name
 
-      # A header collection implementation that looks up headers in a Hash.
-      class HashHeaderCollection < HeaderCollection
-        def initialize(hash)
-          super()
-          @hash = hash.transform_keys(&:downcase)
+        headers_present = ip_headers(headers)
+
+        case headers_present.size
+        when 0
+          remote_ip
+        when 1
+          headers_present.values.first
+        else
+          raise MultipleIpHeadersError, headers_present.keys
         end
+      end
 
-        def get(header_name)
-          @hash[header_name.downcase]
+      # Removes any port notations or zone specifiers from the IP address without
+      #   verifying its validity.
+      def self.strip_decorations(address)
+        return strip_ipv4_port(address) if likely_ipv4?(address)
+
+        address = strip_ipv6_port(address)
+
+        strip_zone_specifier(address)
+      end
+
+      def self.strip_zone_specifier(ipv6)
+        ipv6.gsub(/%.*/, '')
+      end
+
+      def self.strip_ipv4_port(ip)
+        ip.gsub(/:\d+\z/, '')
+      end
+
+      def self.strip_ipv6_port(ip)
+        if /\[(.*)\](?::\d+)?/ =~ ip
+          Regexp.last_match(1)
+        else
+          ip
+        end
+      end
+
+      # Returns whether the given value is more likely to be an IPv4 than an IPv6 address.
+      #
+      # This is done by checking if a dot (`'.'`) character appears before a colon (`':'`) in the value.
+      # The rationale is that in valid IPv6 addresses, colons will always preced dots,
+      #   and in valid IPv4 addresses dots will always preced colons.
+      def self.likely_ipv4?(value)
+        dot_index = value.index('.') || value.size
+        colon_index = value.index(':') || value.size
+
+        dot_index < colon_index
+      end
+
+      def self.validate_ip(ip)
+        # IPs with netmasks are invalid.
+        raise InvalidIpError if ip.include?('/')
+
+        begin
+          IPAddr.new(ip)
+        rescue IPAddr::Error
+          raise InvalidIpError
         end
       end
 
       def self.ip_headers(headers)
         return {} unless headers
 
-        {}.tap do |result|
-          DEFAULT_IP_HEADERS_NAMES.each do |name|
-            value = headers.get(name)
-            next if value.nil?
+        DEFAULT_IP_HEADERS_NAMES.reduce({}) do |result, name|
+          value = headers.get(name)
+          result[name] = value unless value.nil?
 
-            result[name] = value
-          end
+          result
         end
-      end
-
-      def self.client_address_from_request(headers, remote_ip)
-        return headers.get(configuration.header_name) if configuration.header_name && headers
-
-        ip_values_from_headers = ip_headers(headers).values
-        case ip_values_from_headers.size
-        when 0
-          remote_ip
-        when 1
-          ip_values_from_headers.first
-        end
-      end
-
-      def self.strip_zone_specifier(ipv6)
-        if /\A(.*?)%.*/ =~ ipv6
-          return Regexp.last_match(1)
-        end
-
-        ipv6
-      end
-
-      # Extracts the IP part from a full address (`ipv4:port` or `[ipv6]:port`).
-      #
-      # @param [String] address Full address to split
-      # @returns [String] The IP part of the full address.
-      def self.extract_ip_from_full_address(address)
-        if /\A\[(.*)\]:\d+\Z/ =~ address
-          return Regexp.last_match(1)
-        end
-
-        if /\A(.*):\d+\Z/ =~ address
-          return Regexp.last_match(1)
-        end
-
-        address
       end
 
       def self.configuration
         Datadog.configuration.tracing.client_ip
       end
 
-      # Determines whether the given IP is valid.
-      #
-      # @param [String] ip The IP to validate.
-      # @returns [Boolean]
-      def self.valid_ip?(ip)
-        valid_ipv4?(ip) || valid_ipv6?(ip)
+      class InvalidIpError < RuntimeError
       end
 
-      # --- Section vendored from the ipaddress gem --- #
+      # An error that represents that multiple IP headers were present in a request,
+      # thus a singular IP value could not be determined.
+      class MultipleIpHeadersError < RuntimeError
+        attr_reader :header_names
 
-      # rubocop:disable Layout/LineLength, Style/SpecialGlobalVars
-
-      #
-      # Checks if the given string is a valid IPv4 address
-      #
-      # Example:
-      #
-      #   IPAddress::valid_ipv4? "2002::1"
-      #     #=> false
-      #
-      #   IPAddress::valid_ipv4? "172.16.10.1"
-      #     #=> true
-      #
-      # Vendored from `ipaddress` gem from file 'lib/ipaddress.rb', line 198.
-      def self.valid_ipv4?(addr)
-        if /^(0|[1-9]{1}\d{0,2})\.(0|[1-9]{1}\d{0,2})\.(0|[1-9]{1}\d{0,2})\.(0|[1-9]{1}\d{0,2})$/ =~ addr
-          return $~.captures.all? { |i| i.to_i < 256 }
+        def initialize(header_names)
+          super
+          @header_names = header_names
         end
-
-        false
       end
-
-      #
-      # Checks if the given string is a valid IPv6 address
-      #
-      # Example:
-      #
-      #   IPAddress::valid_ipv6? "2002::1"
-      #     #=> true
-      #
-      #   IPAddress::valid_ipv6? "2002::DEAD::BEEF"
-      #     #=> false
-      #
-      # Vendored from `ipaddress` gem from file 'lib/ipaddress.rb', line 230.
-      def self.valid_ipv6?(addr)
-        # https://gist.github.com/cpetschnig/294476
-        # http://forums.intermapper.com/viewtopic.php?t=452
-        if /^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$/ =~ addr
-          return true
-        end
-
-        false
-      end
-      # rubocop:enable Layout/LineLength, Style/SpecialGlobalVars
     end
   end
 end

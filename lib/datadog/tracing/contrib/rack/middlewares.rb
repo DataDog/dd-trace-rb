@@ -9,7 +9,7 @@ require_relative '../../propagation/http'
 require_relative '../analytics'
 require_relative '../utils/quantization/http'
 require_relative 'ext'
-require_relative 'header'
+require_relative 'header_collection'
 require_relative 'request_queue'
 
 module Datadog
@@ -227,14 +227,15 @@ module Datadog
           end
 
           def parse_request_headers(headers)
-            {}.tap do |result|
-              whitelist = configuration[:headers][:request] || []
-              whitelist.each do |header|
-                rack_header = header_to_rack_header(header)
-                if headers.key?(rack_header)
-                  result[Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)] = headers[rack_header]
-                end
+            whitelist = configuration[:headers][:request] || []
+            whitelist.reduce({}) do |result, header|
+              header_value = headers.get(header)
+              unless header_value.nil?
+                header_tag = Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
+                result[header_tag] = header_value
               end
+
+              result
             end
           end
 

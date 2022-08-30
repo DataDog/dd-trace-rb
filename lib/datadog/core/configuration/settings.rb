@@ -630,6 +630,7 @@ module Datadog
               o.default { env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
               o.lazy
             end
+
             # An optional name of a custom header to resolve the client IP from.
             #
             # @default `DD_TRACE_CLIENT_IP_HEADER` environment variable, otherwise `nil`.

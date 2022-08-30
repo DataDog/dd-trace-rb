@@ -1,14 +1,14 @@
-require 'datadog/tracing/contrib/rack/headers'
+require 'datadog/core/header_collection'
 
-RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderCollection do
-  subject(:collection) { described_class.new env }
-  let(:env) { {} }
+RSpec.describe Datadog::Core::HeaderCollection do
+  subject(:collection) { described_class.from_hash hash }
+  let(:hash) { {} }
 
   describe '#get' do
     context 'when header exists in env' do
-      let(:env) do
+      let(:hash) do
         {
-          'HTTP_X_FORWARDED_FOR' => 'me'
+          'X-Forwarded-For' => 'me'
         }
       end
 
@@ -17,14 +17,14 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::HeaderCollection do
       end
 
       it 'returns header value regardless of letter casing in the name' do
-        expect(collection.get('x-forwarded-for')).to eq('me'.freeze)
+        expect(collection.get('x-forwarded-for')).to eq('me')
       end
     end
 
     context 'when header does not exists in env' do
       let(:env) do
         {
-          'HTTP_USER_AGENT' => 'test'
+          'User-Agent' => 'test'
         }
       end
 
