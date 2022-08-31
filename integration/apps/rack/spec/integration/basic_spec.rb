@@ -11,9 +11,11 @@ RSpec.describe 'Basic scenarios' do
     it { is_expected.to be_a_kind_of(Net::HTTPOK) }
   end
 
+  let(:expected_profiler_available) { RUBY_VERSION >= '2.2' }
+
   let(:expected_profiler_threads) do
-    # NOTE: Threads can't be named on Ruby 2.1 and 2.2
-    contain_exactly('Datadog::Profiling::Collectors::Stack', 'Datadog::Profiling::Scheduler') unless RUBY_VERSION < '2.3'
+    # NOTE: Threads can't be named on Ruby 2.2
+    contain_exactly('Datadog::Profiling::Collectors::OldStack', 'Datadog::Profiling::Scheduler') unless RUBY_VERSION < '2.3'
   end
 
   context 'component checks' do
@@ -25,7 +27,7 @@ RSpec.describe 'Basic scenarios' do
 
     it 'should be profiling' do
       expect(json_result).to include(
-        profiler_available: true,
+        profiler_available: expected_profiler_available,
         profiler_threads: expected_profiler_threads,
       )
     end
@@ -49,7 +51,7 @@ RSpec.describe 'Basic scenarios' do
       expect(JSON.parse(body, symbolize_names: true)).to include(
         key: key,
         resque_process: match(/resque/),
-        profiler_available: true,
+        profiler_available: expected_profiler_available,
         profiler_threads: expected_profiler_threads,
       )
     end
@@ -69,7 +71,7 @@ RSpec.describe 'Basic scenarios' do
       expect(JSON.parse(body, symbolize_names: true)).to include(
         key: key,
         sidekiq_process: match(/sidekiq/),
-        profiler_available: true,
+        profiler_available: expected_profiler_available,
         profiler_threads: expected_profiler_threads,
       )
     end

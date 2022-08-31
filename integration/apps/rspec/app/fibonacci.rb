@@ -8,7 +8,7 @@ def trace(*options, &block)
   raise ArgumentError('Must provide trace block') unless block_given?
 
   if Datadog::DemoEnv.feature?('tracing')
-    Datadog.tracer.trace(*options, &block)
+    Datadog::Tracing.trace(*options, &block)
   else
     yield
   end

@@ -1,4 +1,5 @@
 require_relative 'boot'
+require 'datadog/tracing/runtime/metrics'
 
 # require "rails"
 # Pick the frameworks you want:
@@ -22,8 +23,8 @@ class TraceMiddleware
   end
 
   def call(env)
-    Datadog.tracer.trace('web.request', service: 'acme', resource: env['REQUEST_PATH']) do |span|
-      Datadog.runtime_metrics.associate_with_span(span)
+    Datadog::Tracing.trace('web.request', service: 'acme', resource: env['REQUEST_PATH']) do |span, trace|
+      Datadog::Runtime::Metrics.associate_trace(trace)
       @app.call(env)
     end
   end

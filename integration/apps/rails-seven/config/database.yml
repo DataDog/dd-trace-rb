@@ -1,0 +1,28 @@
+<% mysql = URI(ENV['DATABASE_URL'] || 'mysql2://user:user@mysql:3306') %>
+
+default: &default
+  adapter: mysql2
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  timeout: 5000
+
+# Comment to activate sharding
+development:
+  <<: *default
+  adapter: <%= mysql.scheme %>
+  database: acme_development
+  host: <%= mysql.host %>
+  username,: <%= mysql.user %>
+
+test:
+  <<: *default
+  adapter: <%= mysql.scheme %>
+  database: acme_test
+  host: <%= mysql.host %>
+  username,: <%= mysql.user %>
+
+production:
+  <<: *default
+  adapter: <%= mysql.scheme %>
+  database: acme_production
+  host: <%= mysql.host %>
+  username,: <%= mysql.user %>

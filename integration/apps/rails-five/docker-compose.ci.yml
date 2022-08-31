@@ -30,6 +30,7 @@ services:
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
       - DD_DEMO_ENV_FEATURES=tracing,profiling
+      - DD_INSTRUMENTATION_TELEMETRY_ENABLED=true
     expose:
       - "80"
     stdin_open: true
@@ -48,7 +49,8 @@ services:
       - "8125/udp"
       - "8126"
   mysql:
-    image: mysql:5.6
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_DATABASE=acme_production
       - MYSQL_ROOT_PASSWORD=root

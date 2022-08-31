@@ -26,7 +26,7 @@ services:
       - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
-      - DD_DEMO_ENV_FEATURES=tracing,profiling
+      - DD_DEMO_ENV_FEATURES=tracing,profiling,runtime_metrics
       # Use this for a local version of ddtrace
       - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
       # Use these for a specific revision of ddtrace
@@ -44,6 +44,7 @@ services:
       - bundle:/usr/local/bundle
       - ../../images/include:/vendor/dd-demo
       - ../../..:/vendor/dd-trace-rb
+      - logs:/app/log
   ddagent:
     image: datadog/dd-apm-demo:agent
     environment:
@@ -59,6 +60,8 @@ services:
       - "8126"
     volumes:
       - ../../images/agent/agent.yaml:/etc/datadog-agent/datadog.yaml
+      - ./config/agent_app_conf.yaml:/etc/datadog-agent/conf.d/rails-five.d/conf.yaml
+      - logs:/var/log/rails-five
       # For monitoring performance of containers (e.g. CPU, Memory, etc...)
       # - type: bind
       #   source: ../../config/agent.yaml
@@ -73,7 +76,8 @@ services:
       #   source: /sys/fs/cgroup/
       #   target: /host/sys/fs/cgroup:ro
   mysql:
-    image: mysql:5.6
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_DATABASE=acme_production
       - MYSQL_ROOT_PASSWORD=root
@@ -83,22 +87,21 @@ services:
     expose:
       - "3306"
   redis:
-    image: redis:3.0
+    image: redis:3.2
     expose:
       - "6379"
   load-tester:
-    build:
-      context: ../../images
-      dockerfile: wrk/Dockerfile
+    image: datadog/dd-apm-demo:wrk
     command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/default
     depends_on:
       - app
     environment:
       - HEALTH_CHECK_URL=http://app/health
       - HEALTH_CHECK_INTERVAL=1
-      - HEALTH_CHECK_MAX_ATTEMPTS=30
+      - HEALTH_CHECK_MAX_ATTEMPTS=60
     volumes:
       - ./data/wrk:/data
       - ../../images/wrk/scripts:/scripts
 volumes:
   bundle:
+  logs:

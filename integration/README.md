@@ -22,6 +22,12 @@ See `README.md` in each directory for more information:
 
 - `apps/rack`: Rack application
 - `apps/rails-five`: Rails 5 application
+- `apps/rails-six`: Rails 6 application
+- `apps/rails-seven`: Rails 7 application
+- `apps/rspec`: RSpec test suite (CI)
+- `apps/ruby`: Generic Ruby application
+- `apps/sinatra2-classic`: Sinatra classic application
+- `apps/sinatra2-modular`: Sinatra modular application
 
 ### Base images
 

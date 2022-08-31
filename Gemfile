@@ -85,7 +85,7 @@ end
 # previously-passing codebase start failing. Thus, we need to lock to a specific
 # version and bump it from time to time.
 # Also, there's no support for windows
-if RUBY_VERSION >= '2.4.0' && !Gem.win_platform? && RUBY_PLATFORM =~ /^x86_64-/
-  gem 'sorbet', '= 0.5.9120'
-  gem 'spoom', '~> 1.1'
-end
+# if RUBY_VERSION >= '2.4.0' && !Gem.win_platform? && RUBY_PLATFORM =~ /^x86_64-/
+#   gem 'sorbet', '= 0.5.9120'
+#   gem 'spoom', '~> 1.1'
+# end

@@ -58,7 +58,7 @@ module Acme
     end
 
     def application_error(request, error)
-      [500, { 'Content-Type' => 'text/plain' }, ["500 Application Error: #{error.message} Location: #{error.backtrace.first(3)}"]]
+      [500, { 'Content-Type' => 'text/plain' }, ["500 Application Error: #{error.class.name} #{error.message} Location: #{error.backtrace.first(3)}"]]
     end
   end
 
@@ -89,7 +89,7 @@ module Acme
       def detailed_check(request)
         ['200', { 'Content-Type' => 'application/json'}, [JSON.pretty_generate(
           webserver_process: $PROGRAM_NAME,
-          profiler_available: !!Datadog.profiler,
+          profiler_available: Datadog::Profiling.start_if_enabled,
           # NOTE: Threads can't be named on Ruby 2.1 and 2.2
           profiler_threads: ((Thread.list.map(&:name).select { |it| it && it.include?('Profiling') }) unless RUBY_VERSION < '2.3')
         )], "\n"]

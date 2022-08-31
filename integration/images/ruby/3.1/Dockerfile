@@ -1,5 +1,4 @@
-# https://hub.docker.com/layers/ruby/library/ruby/3.1.0-preview1-bullseye/images/sha256-19f9abe757cd2a99262aded1177cedba0613cefc3c6181ce670b2259270a59d7
-FROM ruby@sha256:19f9abe757cd2a99262aded1177cedba0613cefc3c6181ce670b2259270a59d7
+FROM ruby:3.1
 
 ENV DEBIAN_FRONTEND=noninteractive
 

@@ -1,13 +1,21 @@
 require 'datadog/demo_env'
 require 'ddtrace'
+require 'datadog/appsec'
 
 Datadog.configure do |c|
+  c.service = 'acme-rack'
   c.diagnostics.debug = true if Datadog::DemoEnv.feature?('debug')
-  c.analytics_enabled = true if Datadog::DemoEnv.feature?('analytics')
   c.runtime_metrics.enabled = true if Datadog::DemoEnv.feature?('runtime_metrics')
 
   if Datadog::DemoEnv.feature?('tracing')
-    c.use :rack, service_name: 'acme-rack'
+    c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
+    c.tracing.instrument :rack
+  end
+
+  if Datadog::DemoEnv.feature?('appsec')
+    c.appsec.enabled = true
+
+    c.appsec.instrument :rack
   end
 
   if Datadog::DemoEnv.feature?('pprof_to_file')

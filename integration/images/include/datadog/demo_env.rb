@@ -52,17 +52,20 @@ module Datadog
 
     def print_env(header = 'Datadog test environment')
       puts "\n==== #{header} ===="
-      puts "Process: #{process}"
-      puts "Features: #{features}"
-      puts "Rails env: #{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
-      puts "PID: #{Process.pid}"
+      puts "Ruby version:    #{RUBY_VERSION}"
+      puts "Ruby platform:   #{RUBY_PLATFORM}"
+      puts "Ruby engine:     #{RUBY_ENGINE}"
+      puts "Process:         #{process}"
+      puts "Features:        #{features}"
+      puts "Rails env:       #{ENV['RAILS_ENV']}" if ENV['RAILS_ENV']
+      puts "PID:             #{Process.pid}"
       if (ddtrace = Gem.loaded_specs['ddtrace'])
-        puts "Runtime ID: #{Datadog::Core::Environment::Identity.id}" if defined?(Datadog::Core::Environment::Identity)
+        puts "Runtime ID:      #{Datadog::Core::Environment::Identity.id}" if defined?(Datadog::Core::Environment::Identity)
         puts "ddtrace version: #{ddtrace.version}"
-        puts "ddtrace path: #{ddtrace.full_gem_path}"
+        puts "ddtrace path:    #{ddtrace.full_gem_path}"
         if (git_spec = git_gem('ddtrace'))
-          puts "ddtrace git: #{git_spec[:git]}"
-          puts "ddtrace ref: #{git_spec[:ref]}"
+          puts "ddtrace git:     #{git_spec[:git]}"
+          puts "ddtrace ref:     #{git_spec[:ref]}"
         end
       end
       puts "\n"

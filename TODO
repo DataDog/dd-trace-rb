@@ -1,0 +1,306 @@
+TASKS:
+ - Escalations
+ - Tag unification
+ - Service naming changes (for Omri)
+ - Add integration apps
+  - Sinatra Classic
+  - Sinatra Modular
+  - Sidekiq
+  - Resque
+
+ - Improve autoinstrument
+  - Dont instrument Rake with autoinstrument by default
+  - Fix Rails auto-instrumentation from initializer file
+
+ - Add modular configuration? (`instrument :rails { |rails| rails.active_record }`)
+
+ - Github
+  - Elastic transport https://github.com/DataDog/dd-trace-rb/issues/1950
+  - Sidekiq args quantization https://github.com/DataDog/dd-trace-rb/pull/1972
+
+ - Event tracing prototype?
+  - Injected instrumentation collects "context", triggers events ('rails.controller.start', 'rails.controller.finish')
+    - Similar to ActiveSupport::Notifications
+  - Tracer maps events to instrumentation rules
+  - Instrumentation rules generate spans
+
+Datadog::Instrumentation::Hook['Foo#bar'].add do
+  append do |stack, env|
+    begin
+      tracer = get_tracer(env)
+      return stack.call(env) unless tracer
+
+      events.trigger(:before_span, tracer, env)
+
+      begin
+        tracer.trace(span_name, span_options) do |span|
+          stack.call(env)
+        end
+
+        events.trigger(:span_complete, env)
+      rescue => Exception ex
+        events.trigger(:span_error, env)
+      ensure
+      end
+    ensure
+    end
+  end
+end.install
+
+Datadog::Instrumentation::Hook['Foo#bar'].add do
+  append do |stack, env|
+    begin
+      tracer = get_tracer(env)
+      return stack.call(env) unless tracer
+
+      events.trigger(:before_span, tracer, env)
+
+      span = nil
+      begin
+        span = tracer.trace(span_name, span_options)
+      ensure
+        begin
+          stack.call(env)
+        rescue Exception => e
+          unless span.nil? # TODO: Catch and swallow errors?
+            span.set_error(e)
+            events.trigger(:span_error, tracer, env, span)
+          end
+
+          raise
+        ensure
+          unless span.nil? # TODO: Catch and swallow errors?
+            span.finish
+            events.trigger(:span_complete, tracer, env, span)
+          end
+        end
+      end
+
+
+    ensure
+    end
+  end
+end.install
+
+
+module Datadog
+  module Tracing
+    def self.add!(location, span_name, options = {})
+      middleware = Middleware.new(location, span_name, options)
+      middleware.add!
+      middleware
+    end
+
+    class Middleware
+      attr_reader \
+        :location,
+        :events,
+        :hook,
+        :span_name,
+        :span_options
+
+      def initialize(location, span_name, options = {})
+        @location = location
+        @events = Datadog::Tracing::Events.new # TODO: Implement this message bus
+        @hook = nil
+        @datadog_tracer = options[:tracer] || Datadog.tracer
+        @span_name = span_name
+
+        span_options = options[:span_options] || {}
+        @span_options = span_options.merge(events: @events)
+      end
+
+      def add!
+        @hook = Datadog::Instrumentation::Hook[location].add do
+          append(&method(:call))
+        end.install
+      end
+
+      def call(stack, env)
+        begin
+          # Get tracer; if unavailable, skip trace middleware.
+          tracer = datadog_tracer
+          return stack.call(env) unless tracer
+
+          tracer.trace(span_name(env), span_options) do |span|
+            stack.call(env)
+          end
+        ensure
+        end
+      end
+
+      def span_name(env = nil)
+        # If span name is resolved by proc, then invoke.
+        return @span_name.call(env) if @span_name.instance_of?(Proc) && !env.nil?
+
+        @span_name
+      end
+
+      def datadog_tracer(env = nil)
+        # If tracer is resolved by proc, then invoke.
+        return @tracer.call(env) if @tracer.instance_of?(Proc) && !env.nil?
+
+        @tracer
+      end
+
+      class Events
+        attr_reader \
+          :trace_events
+
+        def initialize(trace_events, options)
+          @trace_events = trace_events
+          @
+        end
+      end
+    end
+  end
+end
+
+
+Datadog::Instrumentation::Hook['Mysql2::Client#query'].add do
+  append do |stack, env|
+    op = Operation.new('mysql2#query')
+
+    op.start
+    op.emit_start('query', env[:args].first)
+    result = stack.call(env)
+    op.emit_finish('query')
+    op.finish
+
+    result
+  end
+end
+
+Datadog::Instrumentation::Hook['Sinatra::Base#process_request'].add do
+  append do |stack, env|
+    op = Operation.new('Sinatra#process_request')
+
+    op.start
+    op.emit_start('sinatra.process_request')
+    op.emit_data(env[:args].first)
+    result = stack.call(env)
+    op.emit_finish('sinatra.process_request')
+    op.finish
+
+    result
+  end
+end
+
+root.on_start('sinatra.process_request') do |op|
+  span = nil
+
+  op.on_data do |op, request|
+    span = Datadog::Tracing.trace('request.sinatra')
+    span.set_tag('route', request.route)
+  end
+
+  op.on_finish do |op|
+    span.finish
+  end
+end
+
+root.on_start('sinatra.start_request') do |op|
+  span = nil
+
+  op.on_data do |op, request|
+    span = Datadog::Tracing.trace('request.sinatra')
+    span.set_tag('route', request.route)
+  end
+
+  op.on_finish do |op|
+    span.finish
+  end
+end
+
+Datadog::Tracing.add_async!('Foo#bar', 'Foo#baz', 'bar.foo')
+
+Datadog::Tracing.add!('Foo#bar', 'bar.foo') do |trace|
+  # Override for span name
+  trace.span_name do |env|
+    "#{env[:self].query_options.adapter}.query"
+  end
+
+  trace.span_options tags: { 'adapter' => 'mysql2' }
+  trace.span_options do |env|
+    tags = {}
+    tags['adapter'] = env[:self].query_options.adapter if env[:self]
+
+    { tags: tags }
+  end
+
+  trace.tracer Datadog.tracer
+  trace.tracer do |env|
+    client = env[:self]
+    return unless client.instance_of?(::Mysql2::Client)
+
+    # Get existing pin or create a new one.
+    if client.instance_variable_defined?(:@datadog_pin)
+      client.instance_variable_get(:@datadog_pin)
+    else
+      client.instance_variable_set(
+        :@datadog_pin,
+        Datadog::Pin.new(
+          Datadog.configuration[:mysql2][:service_name],
+          app: Ext::APP,
+          app_type: Datadog::Ext::AppTypes::DB,
+          tracer: -> { Datadog.configuration[:mysql2][:tracer] }
+        )
+      )
+    end
+  end
+
+  trace.before_span do |env|
+    # ...
+  end
+
+  trace.span_complete do |env|
+    # ...
+  end
+
+  trace.span_error do |env|
+    # ...
+  end
+end
+
+my_tracer = Datadog::Tracer.new
+
+# Simple tracing
+Datadog::Tracing.instrument!('Net::HTTP#request', 'http.request')
+
+# Multiple methods in same class
+Datadog::Tracing.instrument!('Net::HTTP') do |c|
+  c.trace(:open, 'http.open')
+  c.trace(:request, 'http.request')
+end
+
+# Advanced config for event-based span
+Datadog::Tracing.instrument!('Net::HTTP') do |c|
+  c.trace(:request, 'http.request') do |trace|
+    trace.start_method('start_request')
+    trace.finish_method('finish_request')
+
+    trace.span_options tags: { 'span.type' => 'http' }
+
+    trace.on_start { |*args| ... }
+    trace.on_finish { |*args| ... }
+  end
+end
+
+# arr = [1,2,3,4,5]
+# original_length = arr.length
+# arr.reverse_each.with_index do |item, i|
+#   index_to_delete = (original_length - 1 - i)
+#   puts "Deleting: #{item}, #{index_to_delete}"
+#   arr.delete_at(index_to_delete)
+#   puts "Current array: #{arr}"
+# end
+
+# puts "Original trace spans: #{trace.spans.collect(&:name)}"
+# span_filter.call(trace)
+# puts "Final trace spans:    #{trace.spans.collect(&:name)}"
+# puts "Expected:             #{[span_d].collect(&:name)}"
+
+# puts "Original trace spans: #{trace.spans.collect(&:name)}"
+# span_filter.call(trace)
+# puts "Final trace spans:    #{trace.spans.collect(&:name)}"
+# puts "Expected:             #{[span_a, span_d].collect(&:name)}"

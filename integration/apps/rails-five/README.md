@@ -10,8 +10,7 @@ Install [direnv](https://github.com/direnv/direnv) for applying local settings.
 
 1. `cp .envrc.sample .envrc` and add your Datadog API key.
 2. `direnv allow` to load the env var.
-3. `cp docker-compose.yml.sample docker-compose.yml` and configure if necessary.
-4. `docker-compose run --rm app bin/setup`
+3. `docker-compose run --rm app bin/setup`
 
 ## Running the application
 
@@ -23,21 +22,92 @@ docker run --rm --name dd-agent  -v /var/run/docker.sock:/var/run/docker.sock:ro
 
 ### Starting the web server
 
-Run `docker-compose up` to auto-start the webserver. It should bind to `localhost:80`.
+```
+# Run full application + load tester
+# Binds to localhost:80
+docker-compose up
 
-Alternatively, you can run it manually with:
+# OR
 
-```sh
+# Run only the application (no load tester)
+# Binds to localhost:80
 docker-compose run --rm -p 80:80 app "bin/run <process>"
 ```
 
 The `<process>` argument is optional, and will default to `DD_DEMO_ENV_PROCESS` if not provided. See [Processes](#processes) for more details.
 
+#### Running a specific version of Ruby
+
+By default it runs Ruby 2.7. You must reconfigure the application to use a different Ruby base image.
+
+First, update the `docker-compose.yml` to have the target Ruby version:
+
+```
+services:
+  app:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: datadog/dd-apm-demo:rb-<YOUR RUBY VERSION> # e.g. dd-apm-demo:rb-2.7
+```
+
+If you haven't yet built the base image for this version, then you must:
+
+1. Build an appropriate Ruby base image via `./integration/script/build-images`
+2. Build a Ruby + Rails 5 base image via `./integration/apps/rails-five/script/build-images`
+
+Then rebuild the application environment with:
+
+    ```
+    # Delete old containers & volumes first
+    docker-compose down -v
+
+    # Rebuild `app` image
+    docker-compose build --no-cache app
+    ```
+
+Finally start the application.
+
+#### Running the local version of `ddtrace`
+
+Useful for debugging `ddtrace` internals or testing changes.
+
+Update the `app` --> `environment` section in `docker-compose.yml`:
+
+```
+version: '3.4'
+services:
+  app:
+    environment:
+      # Add the following env var (path to `ddtrace` gem dir in the Docker container)
+      - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
+```
+
+#### Running a specific version of `ddtrace`
+
+Update the `app` --> `environment` section in `docker-compose.yml`:
+
+```
+version: '3.4'
+services:
+  app:
+    environment:
+      # Comment out any GEM_LOCAL env var.
+      # Otherwise local source code will override your reference.
+      # - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
+      # Set these to the appropriate Git source and commit SHA:
+      - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
+      - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
+```
+
+Then delete the old containers with `docker-compose down` and start the application again.
+
 ##### Processes
 
 Within the container, run `bin/dd-demo <process>` where `<process>` is one of the following values:
 
- - `webrick`: WEBrick web server
+ - `puma`: Puma web server
+ - `unicorn`: Unicorn web server
  - `console`: Rails console
  - `irb`: IRB session
 
