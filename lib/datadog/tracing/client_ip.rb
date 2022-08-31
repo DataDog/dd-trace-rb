@@ -66,9 +66,7 @@ module Datadog
       # @return [String] An unprocessed value retrieved from an
       #   IP header or the remote IP of the request.
       def self.raw_ip_from_request(headers, remote_ip)
-        if configuration.header_name
-          return IpExtractionResult.new(headers && headers.get(configuration.header_name), nil)
-        end
+        return IpExtractionResult.new(headers && headers.get(configuration.header_name), nil) if configuration.header_name
 
         headers_present = ip_headers(headers)
 
