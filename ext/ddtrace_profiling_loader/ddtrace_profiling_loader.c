@@ -85,7 +85,16 @@ static bool failed_to_load(void *handle, VALUE *failure_details) {
 static bool incompatible_library(void *handle, VALUE *failure_details) {
   // The library being loaded may be linked to a different libruby than the current executing Ruby.
   // We check if this is the case by checking if a well-known symbol resolves to a common address.
-  if (dlsym(handle, "ruby_xmalloc") != &ruby_xmalloc) {
+
+  void *xmalloc_from_library = dlsym(handle, "ruby_xmalloc");
+
+  if (xmalloc_from_library == NULL) {
+    // This happens when ruby is built without a `libruby.so` by using `--disable-shared` at compilation time.
+    // In this situation, no conflict between libruby version is possible.
+    return false;
+  }
+
+  if (xmalloc_from_library != &ruby_xmalloc) {
     *failure_details = rb_str_new_cstr("library was compiled and linked to a different Ruby version");
     unload_failed_library(handle);
     return true;
