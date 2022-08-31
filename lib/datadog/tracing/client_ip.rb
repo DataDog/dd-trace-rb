@@ -1,7 +1,6 @@
 # typed: true
 
-require 'ipaddr'
-
+require_relative '../core/vendor/ipaddress/ipaddress'
 require_relative '../core/configuration'
 require_relative 'metadata/ext'
 require_relative 'span'
@@ -36,28 +35,22 @@ module Datadog
       # @param [Span] span The span that's associated with the request.
       # @param [HeaderCollection, #get, nil] headers A collection with the request headers.
       # @param [String, nil] remote_ip The remote IP the request associated with the span is sent to.
-      def self.set_client_ip_tag(span, headers, remote_ip)
+      def self.set_client_ip_tag(span, headers: nil, remote_ip: nil)
         return if configuration.disabled
 
-        begin
-          address = raw_ip_from_request(headers, remote_ip)
-          if address.nil?
-            # `address` can be `nil` if a custom header is configured but not present in the request.
-            # In that case, assume misconfiguration and avoid setting the tag.
-            return
-          end
+        result = raw_ip_from_request(headers, remote_ip)
 
-          ip = strip_decorations(address)
-
-          validate_ip(ip)
+        if result.raw_ip
+          ip = strip_decorations(result.raw_ip)
+          return unless valid_ip?(ip)
 
           span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP, ip)
-        rescue InvalidIpError
-          # Do nothing, assuming logs will spam here.
-        rescue MultipleIpHeadersError => e
-          span.set_tag(TAG_MULTIPLE_IP_HEADERS, e.header_names.join(','))
+        elsif result.multiple_ip_headers
+          span.set_tag(TAG_MULTIPLE_IP_HEADERS, result.multiple_ip_headers.keys.join(','))
         end
       end
+
+      IpExtractionResult = Struct.new(:raw_ip, :multiple_ip_headers, keyword_init: true)
 
       # Returns the value of an IP-related header or the request's remote IP.
       #
@@ -73,17 +66,19 @@ module Datadog
       # @return [String] An unprocessed value retrieved from an
       #   IP header or the remote IP of the request.
       def self.raw_ip_from_request(headers, remote_ip)
-        return headers && headers.get(configuration.header_name) if configuration.header_name
+        if configuration.header_name
+          return IpExtractionResult.new(raw_ip: headers && headers.get(configuration.header_name))
+        end
 
         headers_present = ip_headers(headers)
 
         case headers_present.size
         when 0
-          remote_ip
+          IpExtractionResult.new(raw_ip: remote_ip)
         when 1
-          headers_present.values.first
+          IpExtractionResult.new(raw_ip: headers_present.values.first)
         else
-          raise MultipleIpHeadersError, headers_present.keys
+          IpExtractionResult.new(multiple_ip_headers: headers_present)
         end
       end
 
@@ -125,15 +120,9 @@ module Datadog
         dot_index < colon_index
       end
 
-      def self.validate_ip(ip)
-        # IPs with netmasks are invalid.
-        raise InvalidIpError if ip.include?('/')
-
-        begin
-          IPAddr.new(ip)
-        rescue IPAddr::Error
-          raise InvalidIpError
-        end
+      # Determines whether the given string is a valid IPv4 or IPv6 address.
+      def self.valid_ip?(ip)
+        IPAddress.valid_ip?(ip)
       end
 
       def self.ip_headers(headers)
@@ -147,20 +136,6 @@ module Datadog
 
       def self.configuration
         Datadog.configuration.tracing.client_ip
-      end
-
-      class InvalidIpError < RuntimeError
-      end
-
-      # An error that represents that multiple IP headers were present in a request,
-      # thus a singular IP value could not be determined.
-      class MultipleIpHeadersError < RuntimeError
-        attr_reader :header_names
-
-        def initialize(header_names)
-          super
-          @header_names = header_names
-        end
       end
     end
   end
