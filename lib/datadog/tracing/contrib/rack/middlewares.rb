@@ -181,7 +181,11 @@ module Datadog
             end
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
-              Tracing::ClientIp.set_client_ip_tag(request_span, request_header_collection, env['REMOTE_ADDR'])
+              Tracing::ClientIp.set_client_ip_tag(
+                request_span,
+                headers: request_header_collection,
+                remote_ip: env['REMOTE_ADDR']
+              )
             end
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL).nil?
