@@ -50,7 +50,7 @@ module Datadog
         end
       end
 
-      IpExtractionResult = Struct.new(:raw_ip, :multiple_ip_headers, keyword_init: true)
+      IpExtractionResult = Struct.new(:raw_ip, :multiple_ip_headers)
 
       # Returns the value of an IP-related header or the request's remote IP.
       #
@@ -67,18 +67,18 @@ module Datadog
       #   IP header or the remote IP of the request.
       def self.raw_ip_from_request(headers, remote_ip)
         if configuration.header_name
-          return IpExtractionResult.new(raw_ip: headers && headers.get(configuration.header_name))
+          return IpExtractionResult.new(headers && headers.get(configuration.header_name), nil)
         end
 
         headers_present = ip_headers(headers)
 
         case headers_present.size
         when 0
-          IpExtractionResult.new(raw_ip: remote_ip)
+          IpExtractionResult.new(remote_ip, nil)
         when 1
-          IpExtractionResult.new(raw_ip: headers_present.values.first)
+          IpExtractionResult.new(headers_present.values.first, nil)
         else
-          IpExtractionResult.new(multiple_ip_headers: headers_present)
+          IpExtractionResult.new(nil, headers_present)
         end
       end
 
