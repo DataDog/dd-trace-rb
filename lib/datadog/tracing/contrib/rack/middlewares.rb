@@ -228,14 +228,12 @@ module Datadog
 
           def parse_request_headers(headers)
             whitelist = configuration[:headers][:request] || []
-            whitelist.reduce({}) do |result, header|
+            whitelist.each_with_object({}) do |header, result|
               header_value = headers.get(header)
               unless header_value.nil?
                 header_tag = Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
                 result[header_tag] = header_value
               end
-
-              result
             end
           end
 

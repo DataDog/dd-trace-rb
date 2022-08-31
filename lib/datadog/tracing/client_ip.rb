@@ -139,11 +139,9 @@ module Datadog
       def self.ip_headers(headers)
         return {} unless headers
 
-        DEFAULT_IP_HEADERS_NAMES.reduce({}) do |result, name|
+        DEFAULT_IP_HEADERS_NAMES.each_with_object({}) do |name, result|
           value = headers.get(name)
           result[name] = value unless value.nil?
-
-          result
         end
       end
 

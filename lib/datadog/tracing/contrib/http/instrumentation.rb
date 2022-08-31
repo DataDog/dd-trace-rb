@@ -5,6 +5,7 @@ require 'uri'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
+require_relative '../../client_ip'
 
 module Datadog
   module Tracing
@@ -86,6 +87,7 @@ module Datadog
 
               # Set analytics sample rate
               set_analytics_sample_rate(span, request_options)
+              Tracing::ClientIp.set_client_ip_tag(span, request.headers, request.remote_addr)
             end
 
             def annotate_span_with_response!(span, response)
