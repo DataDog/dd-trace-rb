@@ -17,14 +17,6 @@ RSpec.describe 'OpenTracer context propagation' do
     datadog_tracer.shutdown!
   end
 
-  def sampling_priority_metric(span)
-    span.get_metric(Datadog::OpenTracer::TextMapPropagator::TAG_SAMPLING_PRIORITY)
-  end
-
-  def origin_tag(span)
-    span.get_tag(Datadog::OpenTracer::TextMapPropagator::TAG_ORIGIN)
-  end
-
   describe 'via OpenTracing::FORMAT_TEXT_MAP' do
     def baggage_to_carrier_format(baggage)
       baggage.map { |k, v| [Datadog::OpenTracer::TextMapPropagator::BAGGAGE_PREFIX + k, v] }.to_h
@@ -120,71 +112,89 @@ RSpec.describe 'OpenTracer context propagation' do
     end
 
     context 'in a round-trip' do
-      let(:sender_span_name) { 'operation.sender' }
-      let(:sender_datadog_span) { datadog_spans.last }
-      let(:receiver_datadog_span) { datadog_spans.first }
-      let(:receiver_span_name) { 'operation.receiver' }
+      let(:origin_span_name) { 'operation.origin' }
+      let(:origin_datadog_trace) { datadog_traces.find { |x| x.name == origin_span_name } }
+      let(:origin_datadog_span) { datadog_spans.find { |x| x.name == origin_span_name } }
+
+      let(:intermediate_span_name) { 'operation.intermediate' }
+      let(:intermediate_datadog_trace) { datadog_traces.find { |x| x.name == intermediate_span_name } }
+      let(:intermediate_datadog_span) { datadog_spans.find { |x| x.name == intermediate_span_name } }
+
+      let(:destination_span_name) { 'operation.destination' }
+      let(:destination_datadog_trace) { datadog_traces.find { |x| x.name == destination_span_name } }
+      let(:destination_datadog_span) { datadog_spans.find { |x| x.name == destination_span_name } }
+
       let(:baggage) { { 'account_name' => 'acme' } }
-      let(:carrier) { {} }
-      let(:another_carrier) { {} }
-      let(:datadog_sender_trace) { datadog_traces.last }
-      let(:datadog_receiver_trace) { datadog_traces.first }
 
       before do
-        tracer.start_active_span(sender_span_name) do |sender_scope|
-          sender_scope.span.context.datadog_context.active_trace.sampling_priority = 1
-          sender_scope.span.context.datadog_context.active_trace.origin = 'synthetics'
-          baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
-          tracer.inject(
-            sender_scope.span.context,
-            OpenTracing::FORMAT_TEXT_MAP,
-            carrier
-          )
+        tracer.start_active_span(origin_span_name) do |origin_scope|
+          origin_datadog_context = origin_scope.span.context.datadog_context
+          origin_datadog_context.active_trace.sampling_priority = 1
+          origin_datadog_context.active_trace.origin = 'synthetics'
+          baggage.each { |k, v| origin_scope.span.set_baggage_item(k, v) }
 
-          span_context = tracer.extract(OpenTracing::FORMAT_TEXT_MAP, carrier)
-          tracer.start_active_span(receiver_span_name, child_of: span_context) do |receiver_scope|
-            @receiver_scope = receiver_scope
-            # Do some work.
+          @origin_carrier = {}.tap do |c|
+            tracer.inject(origin_scope.span.context, OpenTracing::FORMAT_TEXT_MAP, c)
+          end
+          origin_datadog_context.activate!(nil) do
+            tracer.start_active_span(
+              intermediate_span_name,
+              child_of: tracer.extract(OpenTracing::FORMAT_TEXT_MAP, @origin_carrier)
+            ) do |intermediate_scope|
+              @intermediate_scope = intermediate_scope
 
-            tracer.inject(receiver_scope.span.context, OpenTracing::FORMAT_TEXT_MAP, another_carrier)
+              @intermediate_carrier = {}.tap do |c|
+                tracer.inject(intermediate_scope.span.context, OpenTracing::FORMAT_TEXT_MAP, c)
+              end
+
+              tracer.start_active_span(
+                destination_span_name,
+                child_of: tracer.extract(OpenTracing::FORMAT_TEXT_MAP, @intermediate_carrier)
+              ) do |destination_scope|
+                @destination_scope = destination_scope
+                # Do something
+              end
+            end
           end
         end
       end
 
-      it { expect(datadog_spans).to have(2).items }
+      it { expect(datadog_traces).to have(3).items }
+      it { expect(datadog_spans).to have(3).items }
 
-      it { expect(datadog_sender_trace.sampling_priority).to eq(1) }
-      it { expect(datadog_sender_trace.origin).to eq('synthetics') }
-      it { expect(sender_datadog_span.name).to eq(sender_span_name) }
-      it { expect(sender_datadog_span.finished?).to be(true) }
-      it { expect(sender_datadog_span.parent_id).to eq(0) }
+      it { expect(origin_datadog_trace.sampling_priority).to eq(1) }
+      it { expect(origin_datadog_trace.origin).to eq('synthetics') }
+      it { expect(origin_datadog_span.finished?).to be(true) }
+      it { expect(origin_datadog_span.parent_id).to eq(0) }
 
-      it { expect(datadog_receiver_trace.sampling_priority).to eq(1) }
-      it { expect(datadog_receiver_trace.origin).to eq('synthetics') }
-      it { expect(receiver_datadog_span.name).to eq(receiver_span_name) }
-      it { expect(receiver_datadog_span.finished?).to be(true) }
-      it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
-      it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
-      it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
+      it { expect(intermediate_datadog_trace.sampling_priority).to eq(1) }
+      it { expect(intermediate_datadog_trace.origin).to eq('synthetics') }
+      it { expect(intermediate_datadog_span.finished?).to be(true) }
+      it { expect(intermediate_datadog_span.trace_id).to eq(origin_datadog_span.trace_id) }
+      it { expect(intermediate_datadog_span.parent_id).to eq(origin_datadog_span.span_id) }
+      it { expect(@intermediate_scope.span.context.baggage).to include(baggage) }
+
+      it { expect(destination_datadog_trace.sampling_priority).to eq(1) }
+      it { expect(destination_datadog_trace.origin).to eq('synthetics') }
+      it { expect(destination_datadog_span.finished?).to be(true) }
+      it { expect(destination_datadog_span.trace_id).to eq(intermediate_datadog_span.trace_id) }
+      it { expect(destination_datadog_span.parent_id).to eq(intermediate_datadog_span.span_id) }
+      it { expect(@destination_scope.span.context.baggage).to include(baggage) }
 
       it do
-        expect(carrier).to include(
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
-          'ot-baggage-account_name' => 'acme'
-        )
+        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID]).to eq origin_datadog_span.trace_id
+        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID]).to eq origin_datadog_span.span_id
+        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq 1
+        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
+        expect(@origin_carrier['ot-baggage-account_name']).to eq 'acme'
       end
 
       it do
-        expect(another_carrier).to include(
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
-          'ot-baggage-account_name' => 'acme'
-        )
+        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID]).to eq intermediate_datadog_span.trace_id
+        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID]).to eq intermediate_datadog_span.span_id
+        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq 1
+        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
+        expect(@intermediate_carrier['ot-baggage-account_name']).to eq 'acme'
       end
     end
   end
@@ -290,12 +300,18 @@ RSpec.describe 'OpenTracer context propagation' do
     end
 
     context 'in a round-trip' do
-      let(:sender_span_name) { 'operation.sender' }
-      let(:sender_datadog_span) { datadog_spans.last }
-      let(:receiver_datadog_span) { datadog_spans.first }
-      let(:receiver_span_name) { 'operation.receiver' }
-      let(:datadog_sender_trace) { datadog_traces.last }
-      let(:datadog_receiver_trace) { datadog_traces.first }
+      let(:origin_span_name) { 'operation.origin' }
+      let(:origin_datadog_trace) { datadog_traces.find { |x| x.name == origin_span_name } }
+      let(:origin_datadog_span) { datadog_spans.find { |x| x.name == origin_span_name } }
+
+      let(:intermediate_span_name) { 'operation.intermediate' }
+      let(:intermediate_datadog_trace) { datadog_traces.find { |x| x.name == intermediate_span_name } }
+      let(:intermediate_datadog_span) { datadog_spans.find { |x| x.name == intermediate_span_name } }
+
+      let(:destination_span_name) { 'operation.destination' }
+      let(:destination_datadog_trace) { datadog_traces.find { |x| x.name == destination_span_name } }
+      let(:destination_datadog_span) { datadog_spans.find { |x| x.name == destination_span_name } }
+
 
       # NOTE: If these baggage names include either dashes or uppercase characters
       #       they will not make a round-trip with the same key format. They will
@@ -305,59 +321,73 @@ RSpec.describe 'OpenTracer context propagation' do
       let(:baggage) { { 'account_name' => 'acme' } }
 
       before do
-        tracer.start_active_span(sender_span_name) do |sender_scope|
-          sender_scope.span.context.datadog_context.active_trace.sampling_priority = 1
-          sender_scope.span.context.datadog_context.active_trace.origin = 'synthetics'
-          baggage.each { |k, v| sender_scope.span.set_baggage_item(k, v) }
+        tracer.start_active_span(origin_span_name) do |origin_scope|
+          origin_datadog_context = origin_scope.span.context.datadog_context
+          origin_datadog_context.active_trace.sampling_priority = 1
+          origin_datadog_context.active_trace.origin = 'synthetics'
 
-          @carrier = {}.tap do |c|
-            tracer.inject(sender_scope.span.context, OpenTracing::FORMAT_RACK, c)
+          baggage.each { |k, v| origin_scope.span.set_baggage_item(k, v) }
+
+          @origin_carrier = {}.tap do |c|
+            tracer.inject(origin_scope.span.context, OpenTracing::FORMAT_RACK, c)
           end
 
-          span_context = tracer.extract(OpenTracing::FORMAT_RACK, carrier_to_rack_format(@carrier))
-          tracer.start_active_span(receiver_span_name, child_of: span_context) do |receiver_scope|
-            @receiver_scope = receiver_scope
-            # Do some work.
+          origin_datadog_context.activate!(nil) do
+            tracer.start_active_span(
+              intermediate_span_name,
+              child_of: tracer.extract(OpenTracing::FORMAT_RACK, carrier_to_rack_format(@origin_carrier))
+            ) do |intermediate_scope|
+              @intermediate_scope = intermediate_scope
 
-            @another_carrier = {}.tap do |c|
-              tracer.inject(receiver_scope.span.context, OpenTracing::FORMAT_RACK, c)
+              @intermediate_carrier = {}.tap do |c|
+                tracer.inject(intermediate_scope.span.context, OpenTracing::FORMAT_RACK, c)
+              end
+
+              tracer.start_active_span(
+                destination_span_name,
+                child_of: tracer.extract(OpenTracing::FORMAT_RACK, carrier_to_rack_format(@intermediate_carrier))
+              ) do |destination_scope|
+                @destination_scope = destination_scope
+                # Do something
+              end
             end
           end
         end
       end
 
-      it { expect(datadog_spans).to have(2).items }
+      it { expect(datadog_traces).to have(3).items }
+      it { expect(datadog_spans).to have(3).items }
 
-      it { expect(datadog_sender_trace.sampling_priority).to eq(1) }
-      it { expect(sender_datadog_span.name).to eq(sender_span_name) }
-      it { expect(sender_datadog_span.finished?).to be(true) }
-      it { expect(sender_datadog_span.parent_id).to eq(0) }
+      it { expect(origin_datadog_trace.sampling_priority).to eq(1) }
+      it { expect(origin_datadog_span.finished?).to be(true) }
+      it { expect(origin_datadog_span.parent_id).to eq(0) }
 
-      it { expect(datadog_receiver_trace.sampling_priority).to eq(1) }
-      it { expect(receiver_datadog_span.name).to eq(receiver_span_name) }
-      it { expect(receiver_datadog_span.finished?).to be(true) }
-      it { expect(receiver_datadog_span.trace_id).to eq(sender_datadog_span.trace_id) }
-      it { expect(receiver_datadog_span.parent_id).to eq(sender_datadog_span.span_id) }
-      it { expect(@receiver_scope.span.context.baggage).to include(baggage) }
+      it { expect(intermediate_datadog_trace.sampling_priority).to eq(1) }
+      it { expect(intermediate_datadog_span.finished?).to be(true) }
+      it { expect(intermediate_datadog_span.trace_id).to eq(origin_datadog_span.trace_id) }
+      it { expect(intermediate_datadog_span.parent_id).to eq(origin_datadog_span.span_id) }
+      it { expect(@intermediate_scope.span.context.baggage).to include(baggage) }
+
+      it { expect(destination_datadog_trace.sampling_priority).to eq(1) }
+      it { expect(destination_datadog_span.finished?).to be(true) }
+      it { expect(destination_datadog_span.trace_id).to eq(intermediate_datadog_span.trace_id) }
+      it { expect(destination_datadog_span.parent_id).to eq(intermediate_datadog_span.span_id) }
+      it { expect(@destination_scope.span.context.baggage).to include(baggage) }
 
       it do
-        expect(@carrier).to include(
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
-          'ot-baggage-account_name' => 'acme'
-        )
+        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID]).to eq origin_datadog_span.trace_id.to_s
+        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID]).to eq origin_datadog_span.span_id.to_s
+        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq '1'
+        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
+        expect(@origin_carrier['ot-baggage-account_name']).to eq 'acme'
       end
 
       it do
-        expect(@another_carrier).to include(
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => a_kind_of(String),
-          'ot-baggage-account_name' => 'acme'
-        )
+        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID]).to eq intermediate_datadog_span.trace_id.to_s
+        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID]).to eq intermediate_datadog_span.span_id.to_s
+        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq '1'
+        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
+        expect(@intermediate_carrier['ot-baggage-account_name']).to eq 'acme'
       end
     end
   end
