@@ -622,12 +622,16 @@ module Datadog
           # Client IP configuration
           # @public_api
           settings :client_ip do
-            # Whether client IP collection is disabled. This disables client IPs from HTTP requests to be reported in traces.
+            # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
+            #   be reported in traces.
             #
-            # @default `DD_TRACE_CLIENT_IP_HEADER_DISABLED` environment variable, otherwise `false`.
+            # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
+            #
+            # @default The negated value of the `DD_TRACE_CLIENT_IP_HEADER_DISABLED` environment
+            #   variable or `true` if it doesn't exist.
             # @return [Boolean]
-            option :disabled do |o|
-              o.default { env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
+            option :enabled do |o|
+              o.default { !env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
               o.lazy
             end
 

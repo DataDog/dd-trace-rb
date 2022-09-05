@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::ClientIp do
 
   before do
     Datadog.configure do |c|
-      c.tracing.client_ip.disabled = !tagging_enabled
+      c.tracing.client_ip.enabled = tagging_enabled
       c.tracing.client_ip.header_name = ip_header_name
     end
   end

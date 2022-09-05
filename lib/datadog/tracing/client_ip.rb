@@ -1,6 +1,5 @@
 # typed: true
 
-require_relative '../core/vendor/ipaddress/ipaddress'
 require_relative '../core/configuration'
 require_relative 'metadata/ext'
 require_relative 'span'
@@ -36,7 +35,7 @@ module Datadog
       # @param [HeaderCollection, #get, nil] headers A collection with the request headers.
       # @param [String, nil] remote_ip The remote IP the request associated with the span is sent to.
       def self.set_client_ip_tag(span, headers: nil, remote_ip: nil)
-        return if configuration.disabled
+        return unless configuration.enabled
 
         result = raw_ip_from_request(headers, remote_ip)
 
@@ -120,7 +119,16 @@ module Datadog
 
       # Determines whether the given string is a valid IPv4 or IPv6 address.
       def self.valid_ip?(ip)
-        IPAddress.valid_ip?(ip)
+        # Client IPs should not have subnet masks even though IPAddr can parse them.
+        return false if ip.include?('/')
+
+        begin
+          IPAddr.new(ip)
+
+          true
+        rescue IPAddr::Error
+          false
+        end
       end
 
       def self.ip_headers(headers)
