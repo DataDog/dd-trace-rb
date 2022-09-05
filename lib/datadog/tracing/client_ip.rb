@@ -51,19 +51,22 @@ module Datadog
 
       IpExtractionResult = Struct.new(:raw_ip, :multiple_ip_headers)
 
-      # Returns the value of an IP-related header or the request's remote IP.
+      # Returns a result struct that holds the raw client IP associated with the request if it was
+      #   retrieved successfully.
       #
       # The client IP is looked up by the following logic:
       # * If the user has configured a header name, return that header's value.
       # * If exactly one of the known IP headers is present, return that header's value.
       # * If none of the known IP headers are present, return the remote IP from the request.
       #
-      # Raises a [MultipleIpHeadersError] if multiple IP-related headers are present.
+      # If more than one of the known IP headers is present, the result will have a `multiple_ip_headers`
+      #   field with the name of the present IP headers.
       #
       # @param [Datadog::Core::HeaderCollection, #get, nil] headers The request headers
       # @param [String] remote_ip The remote IP of the request.
-      # @return [String] An unprocessed value retrieved from an
-      #   IP header or the remote IP of the request.
+      # @return [IpExtractionResult] A struct that holds the unprocessed IP value,
+      #   or `nil` if it wasn't found. Additionally, the `multiple_ip_headers` fields will hold the
+      #   name of known IP headers present in the request if more than one of these were found.
       def self.raw_ip_from_request(headers, remote_ip)
         return IpExtractionResult.new(headers && headers.get(configuration.header_name), nil) if configuration.header_name
 
