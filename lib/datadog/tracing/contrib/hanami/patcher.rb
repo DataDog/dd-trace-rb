@@ -20,6 +20,8 @@ module Datadog
           end
 
           def patch
+            # For auto instrumentation
+            require_relative 'plugin'
             ::Hanami::Router.prepend(RouterTracing)
             ::Hanami::RenderingPolicy.prepend(RendererPolicyTracing)
           end

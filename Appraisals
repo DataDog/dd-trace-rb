@@ -1095,6 +1095,13 @@ elsif ruby_version?('2.6')
     end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.7')
+    appraise 'hanami' do
+      gem 'rack'
+      gem 'rack-test'
+      gem 'hanami', '~> 1.3'
+      gem 'dry-container', '~> 0.8.0'
+    end
+
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby

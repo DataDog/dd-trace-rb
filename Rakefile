@@ -72,6 +72,18 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  RSpec::Core::RakeTask.new(:hanami) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:hanami_autoinstrument) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+
+    ENV['TEST_AUTO_INSTRUMENT'] = 'true'
+  end
+
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
     t.pattern = 'spec/ddtrace/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')

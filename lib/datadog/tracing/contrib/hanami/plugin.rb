@@ -1,6 +1,3 @@
-# Inject rack instrumentation and for hanami action
-# during boot
-
 ::Hanami.plugin do
   Datadog.configure do |c|
     c.tracing.instrument :rack
