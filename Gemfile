@@ -92,3 +92,11 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'sorbet', '= 0.5.9672'
   gem 'spoom', '~> 1.1'
 end
+
+gem 'rails', '~> 6.1.0'
+gem 'pg', '>= 1.1', platform: :ruby
+gem 'activerecord-jdbcpostgresql-adapter', '>= 61', platform: :jruby
+gem 'sidekiq', '>= 6.1.2'
+gem 'sprockets', '< 4'
+gem 'lograge', '~> 0.11'
+gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169

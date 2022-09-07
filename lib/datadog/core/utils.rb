@@ -110,6 +110,36 @@ module Datadog
 
         [match[1], match[2].to_i]
       end
+
+      # Remove the prefixed module names from `Class#name` or `Module#name`.
+      # @example
+      #  `App::Api::User` returns `User`.
+      # @param [String] class_name the result from a `Class#name` or `Module#name` call
+      # @return [String] the class or module name without its enclosing modules
+      def self.extract_class_name(class_name)
+        if idx = class_name.rindex("::")
+          class_name[(idx + 2)..-1]
+        else
+          class_name
+        end
+      end
+
+      # Converts CamelCase strings to snake_case.
+      # @example
+      #  `MyClass` returns `my_class`.
+      # @param [String] string a CamelCase string
+      # @return [String] the snake_case version of the provided string
+      def self.camel_to_snake_case(string)
+        first_letter = true
+        string.gsub(/[A-Z]/) { |upcase_char|
+          if first_letter # Don't add `_` at the beginning of the string.
+            first_letter = false
+            upcase_char.downcase
+          else
+            "_#{upcase_char.downcase}"
+          end
+        }
+      end
     end
   end
 end

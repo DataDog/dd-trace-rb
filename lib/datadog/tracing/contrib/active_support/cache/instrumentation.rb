@@ -50,7 +50,7 @@ module Datadog
               Datadog.logger.debug(e.message)
             end
 
-            def finish_trace_cache(payload)
+            def finish_trace_cache(payload, instance)
               return unless enabled?
 
               # retrieve the tracing context and continue the trace
@@ -59,11 +59,28 @@ module Datadog
               return unless span && !span.finished?
 
               begin
-                # discard parameters from the cache_store configuration
-                if defined?(::Rails)
-                  store, = *Array.wrap(::Rails.configuration.cache_store).flatten
-                  span.set_tag(Ext::TAG_CACHE_BACKEND, store)
-                end
+                # Rails-compatible storage adapter identification.
+                #
+                # This will return the same result as the symbol provided to `config.cache_store` in the
+                # Rails configuration block: https://github.com/rails/rails/blob/f2ab66da735f9382a923471e27aca12f07ec05cd/guides/source/caching_with_rails.md#configuration
+                #
+                # For example:
+                # `config.cache_store = :memory_store, { size: 64.megabytes }` will return `memory_store`.
+                #
+                # This makes the cache backend immediately identifiable by the user.
+                #
+                # A few downsides: it is a string-heavy process to convert the current adapter back into
+                # its Rails configuration name. Also, this process assumes all cache instances live under a flat
+                # namespace: if the user creates a custom cache adapter called `App::MemoryStore` it will clash
+                # with the built-in `memory_store` adapter when reported through the `rails.cache.backend` tag.
+                #
+                # DEV: This is implemented in its current form to ensure backwards compatibility:
+                # DEV: the previous iteration would to always return `Rails.configuration.cache_store`
+                # DEV: regardless of the storage backend being used, which is incorrect.
+                # DEV: This version supports any backend class that is currently being instrumented.
+                class_name = Utils.extract_class_name(instance.class.name)
+                store = Utils.camel_to_snake_case(class_name)
+                span.set_tag(Ext::TAG_CACHE_BACKEND, store)
 
                 normalized_key = ::ActiveSupport::Cache.expand_cache_key(payload.fetch(:key))
                 cache_key = Core::Utils.truncate(normalized_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
@@ -128,7 +145,7 @@ module Datadog
                   raise e
                 end
               ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.finish_trace_cache(payload, self)
               end
             end
 
@@ -174,7 +191,7 @@ module Datadog
                   raise e
                 end
               ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.finish_trace_cache(payload, self)
               end
             end
 
@@ -222,7 +239,7 @@ module Datadog
                   raise e
                 end
               ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.finish_trace_cache(payload, self)
               end
             end
 
@@ -268,7 +285,7 @@ module Datadog
                   raise e
                 end
               ensure
-                Instrumentation.finish_trace_cache(payload)
+                Instrumentation.finish_trace_cache(payload, self)
               end
             end
           end
