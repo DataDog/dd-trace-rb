@@ -100,9 +100,7 @@ module Datadog
           commit_message = env['APPVEYOR_REPO_COMMIT_MESSAGE']
           if commit_message
             extended = env['APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED']
-            if extended
-              commit_message += "\n" + extended
-            end
+            commit_message = "#{commit_message}\n#{extended}" if extended
           end
 
           {
