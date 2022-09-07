@@ -330,6 +330,10 @@ module Datadog
           branch = (
             env['BITRISEIO_GIT_BRANCH_DEST'] || env['BITRISE_GIT_BRANCH']
           )
+          commiter_email = (
+            env['GIT_CLONE_COMMIT_COMMITER_EMAIL'] || env['GIT_CLONE_COMMIT_COMMITER_NAME']
+          )
+
           {
             TAG_PROVIDER_NAME => 'bitrise',
             TAG_PIPELINE_ID => env['BITRISE_BUILD_SLUG'],
@@ -341,7 +345,11 @@ module Datadog
             Core::Git::Ext::TAG_COMMIT_SHA => commit,
             Core::Git::Ext::TAG_BRANCH => branch,
             Core::Git::Ext::TAG_TAG => env['BITRISE_GIT_TAG'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE'],
+            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['GIT_CLONE_COMMIT_AUTHOR_NAME'],
+            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['GIT_CLONE_COMMIT_AUTHOR_EMAIL'],
+            Core::Git::Ext::TAG_COMMIT_COMMITTER_NAME => env['GIT_CLONE_COMMIT_COMMITER_NAME'],
+            Core::Git::Ext::TAG_COMMIT_COMMITTER_EMAIL => commiter_email
           }
         end
 
