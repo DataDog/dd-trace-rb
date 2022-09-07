@@ -4,6 +4,8 @@ require_relative '../core/configuration'
 require_relative 'metadata/ext'
 require_relative 'span'
 
+require 'ipaddr'
+
 module Datadog
   module Tracing
     # Common functions for supporting the `http.client_ip` span attribute.
