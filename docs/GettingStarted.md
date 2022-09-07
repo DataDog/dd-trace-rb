@@ -2122,26 +2122,8 @@ By default, this will be activated whenever `ddtrace` detects the application is
 
 ### Sampling
 
-#### Application-side sampling
-
-While the trace agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead.
-
-The default sampling rate can be set between `0.0` (0%) and `1.0` (100%). Configure the rate in order to control the volume of traces sent to Datadog. When this configuration is not set, the Datadog agent will distribute a default sampling rate of 10 traces per second.
-
-Set this value via `DD_TRACE_SAMPLE_RATE` or `Datadog.configure { |c| c.tracing.sampling.default_rate = <value> }`.
-
-Alternatively, you may provide your own sampler. The `Datadog::Tracing::Sampling::RateSampler` samples a ratio of the traces. For example:
-
-```ruby
-# Sample rate is between 0 (nothing sampled) to 1 (everything sampled).
-sampler = Datadog::Tracing::Sampling::RateSampler.new(0.5) # sample 50% of the traces
-
-Datadog.configure do |c|
-  c.tracing.sampler = sampler
-end
-```
-
-See [Additional Configuration](#additional-configuration) for more details about these settings.
+See [Ingestion Mechanisms](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/?tab=ruby) for a list of
+all the sampling options available.
 
 #### Priority sampling
 
@@ -2193,6 +2175,25 @@ trace.keep!
 You can configure sampling rule that allow you keep spans despite their respective traces being dropped by a trace-level sampling rule.
 
 [//]: # (TODO: See <Single Span Sampling documentation URL here> for the full documentation on Single Span Sampling.)
+
+#### Application-side sampling
+
+While the Datadog agent can sample traces to reduce bandwidth usage, application-side sampling reduces the performance overhead in the host application.
+
+**Application-side sampling drops traces as early as possible. This causes the [Ingestion Controls](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) page to not receive enough information to report accurate sampling rates. Use only when reducing the tracing overhead is paramount.**
+
+You can configure *Application-side sampling* with the following settings:
+
+```ruby
+# Application-side sampling enabled: Ingestion Controls page will be inaccurate.
+sampler = Datadog::Tracing::Sampling::RateSampler.new(0.5) # sample 50% of the traces
+
+Datadog.configure do |c|
+  c.tracing.sampler = sampler
+end
+```
+
+See [Additional Configuration](#additional-configuration) for more details about these settings.
 
 ### Distributed Tracing
 
