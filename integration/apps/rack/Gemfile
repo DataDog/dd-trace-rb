@@ -5,6 +5,8 @@ source "https://rubygems.org"
 gem 'puma'
 gem 'unicorn'
 gem 'rack'
+gem 'rackup' if RUBY_VERSION >= '2.4'  # The `rackup` is its own gem since Rack 3.0
+
 if RUBY_VERSION < '2.3'
   gem 'redis', '< 4.1.1' # 4.1.1 "claims" to support 2.2 but is actually broken
 else
