@@ -51,6 +51,12 @@ module Datadog
           ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'.freeze
           ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'.freeze
         end
+
+        # @public_api
+        module ClientIp
+          ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED'.freeze
+          ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'.freeze
+        end
       end
     end
   end

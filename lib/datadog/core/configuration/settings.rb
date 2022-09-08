@@ -661,6 +661,32 @@ module Datadog
           # @default `{}`
           # @return [Hash,nil]
           option :writer_options, default: ->(_i) { {} }, lazy: true
+
+          # Client IP configuration
+          # @public_api
+          settings :client_ip do
+            # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
+            #   be reported in traces.
+            #
+            # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
+            #
+            # @default The negated value of the `DD_TRACE_CLIENT_IP_HEADER_DISABLED` environment
+            #   variable or `true` if it doesn't exist.
+            # @return [Boolean]
+            option :enabled do |o|
+              o.default { !env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
+              o.lazy
+            end
+
+            # An optional name of a custom header to resolve the client IP from.
+            #
+            # @default `DD_TRACE_CLIENT_IP_HEADER` environment variable, otherwise `nil`.
+            # @return [String,nil]
+            option :header_name do |o|
+              o.default { ENV.fetch(Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME, nil) }
+              o.lazy
+            end
+          end
         end
 
         # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).

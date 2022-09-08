@@ -3,12 +3,14 @@
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
+require_relative '../../client_ip'
 require_relative '../../metadata/ext'
 require_relative '../../propagation/http'
 require_relative '../analytics'
-require_relative 'ext'
-require_relative 'request_queue'
 require_relative '../utils/quantization/http'
+require_relative 'ext'
+require_relative 'header_collection'
+require_relative 'request_queue'
 
 module Datadog
   module Tracing
@@ -133,8 +135,9 @@ module Datadog
             # So when its not available, we want the original, unmutated PATH_INFO, which
             # is just the relative path without query strings.
             url = env['REQUEST_URI'] || original_env['PATH_INFO']
-            request_headers = parse_request_headers(env)
-            response_headers = parse_response_headers(headers || {})
+            request_header_collection = Header::RequestHeaderCollection.new(env)
+            request_headers_tags = parse_request_headers(request_header_collection)
+            response_headers_tags = parse_response_headers(headers || {})
 
             # The priority
             # 1. User overrides span.resource
@@ -177,6 +180,14 @@ module Datadog
               )
             end
 
+            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
+              Tracing::ClientIp.set_client_ip_tag(
+                request_span,
+                headers: request_header_collection,
+                remote_ip: env['REMOTE_ADDR']
+              )
+            end
+
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_BASE_URL).nil?
               request_obj = ::Rack::Request.new(env)
 
@@ -195,12 +206,12 @@ module Datadog
             end
 
             # Request headers
-            request_headers.each do |name, value|
+            request_headers_tags.each do |name, value|
               request_span.set_tag(name, value) if request_span.get_tag(name).nil?
             end
 
             # Response headers
-            response_headers.each do |name, value|
+            response_headers_tags.each do |name, value|
               request_span.set_tag(name, value) if request_span.get_tag(name).nil?
             end
 
@@ -219,14 +230,13 @@ module Datadog
             Datadog.configuration.tracing[:rack]
           end
 
-          def parse_request_headers(env)
-            {}.tap do |result|
-              whitelist = configuration[:headers][:request] || []
-              whitelist.each do |header|
-                rack_header = header_to_rack_header(header)
-                if env.key?(rack_header)
-                  result[Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)] = env[rack_header]
-                end
+          def parse_request_headers(headers)
+            whitelist = configuration[:headers][:request] || []
+            whitelist.each_with_object({}) do |header, result|
+              header_value = headers.get(header)
+              unless header_value.nil?
+                header_tag = Tracing::Metadata::Ext::HTTP::RequestHeaders.to_tag(header)
+                result[header_tag] = header_value
               end
             end
           end
@@ -247,10 +257,6 @@ module Datadog
                 end
               end
             end
-          end
-
-          def header_to_rack_header(name)
-            "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
           end
         end
       end
