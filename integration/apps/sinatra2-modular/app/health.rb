@@ -11,7 +11,7 @@ class Health < Sinatra::Base
   get '/health/detailed' do
     [
       200,
-      { 'Content-Type' => 'application/json' },
+      { 'content-type' => 'application/json' },
       JSON.generate(
         webserver_process: $PROGRAM_NAME,
         profiler_available: Datadog::Profiling.start_if_enabled,
