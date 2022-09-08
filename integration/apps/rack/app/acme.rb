@@ -54,11 +54,11 @@ module Acme
     end
 
     def not_found(request)
-      [404, { 'Content-Type' => 'text/plain' }, ["404 Not Found: #{request.path}"]]
+      [404, { 'content-type' => 'text/plain' }, ["404 Not Found: #{request.path}"]]
     end
 
     def application_error(request, error)
-      [500, { 'Content-Type' => 'text/plain' }, ["500 Application Error: #{error.class.name} #{error.message} Location: #{error.backtrace.first(3)}"]]
+      [500, { 'content-type' => 'text/plain' }, ["500 Application Error: #{error.class.name} #{error.message} Location: #{error.backtrace.first(3)}"]]
     end
   end
 
@@ -67,11 +67,11 @@ module Acme
       def fibonacci(request)
         n = rand(25..35)
         result = fib(n)
-        ['200', { 'Content-Type' => 'text/plain' }, ["Basic: Fibonacci(#{n}): #{result}"]]
+        [200, { 'content-type' => 'text/plain' }, ["Basic: Fibonacci(#{n}): #{result}"]]
       end
 
       def default(request)
-        ['200', { 'Content-Type' => 'text/plain' }, ["Basic: Default", "\nWebserver process: #{$PROGRAM_NAME}"]]
+        [200, { 'content-type' => 'text/plain' }, ["Basic: Default", "\nWebserver process: #{$PROGRAM_NAME}"]]
       end
 
       private
@@ -83,11 +83,11 @@ module Acme
 
     class Health
       def check(request)
-        ['204', {}, []]
+        [204, {}, []]
       end
 
       def detailed_check(request)
-        ['200', { 'Content-Type' => 'application/json'}, [JSON.pretty_generate(
+        [200, { 'content-type' => 'application/json'}, [JSON.pretty_generate(
           webserver_process: $PROGRAM_NAME,
           profiler_available: Datadog::Profiling.start_if_enabled,
           # NOTE: Threads can't be named on Ruby 2.1 and 2.2
@@ -98,23 +98,23 @@ module Acme
 
     class BackgroundJobs
       def read_sidekiq(request)
-        ['200', { 'Content-Type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+        [200, { 'content-type' => 'application/json' }, [SidekiqBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
       end
 
       def write_sidekiq(request)
         SidekiqBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
 
-        ['202', {}, []]
+        [202, {}, []]
       end
 
       def read_resque(request)
-        ['200', { 'Content-Type' => 'application/json' }, [ResqueBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
+        [200, { 'content-type' => 'application/json' }, [ResqueBackgroundJob.read(request.params.fetch('key')).to_s, "\n"]]
       end
 
       def write_resque(request)
         ResqueBackgroundJob.async_write(request.params.fetch('key'), request.params.fetch('value'))
 
-        ['202', {}, []]
+        [202, {}, []]
       end
     end
   end

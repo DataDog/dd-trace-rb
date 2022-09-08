@@ -87,6 +87,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Sampling](#sampling)
          - [Application-side sampling](#application-side-sampling)
          - [Priority sampling](#priority-sampling)
+         - [Single Span Sampling](#single-span-sampling)
      - [Distributed tracing](#distributed-tracing)
      - [HTTP request queuing](#http-request-queuing)
      - [Processing pipeline](#processing-pipeline)
@@ -2042,6 +2043,7 @@ end
 | `tracing.sampler`                                       |                                | `nil`                                                             | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details. |
 | `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                  |
 | `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100` (per second)                                                | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                    |
+| `tracing.sampling.span_rules`                           | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `nil`                                    | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                              |
 | `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`     | `false`                                                           | Adds hostname tag to traces.                                                                                                                                                                                                              |
 | `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`   | `false`                                                           | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                         |
 | `tracing.test_mode.trace_flush`                         |                                | `nil`                                                             | Object that determines trace flushing behavior.                                                                                                                                                                                           |
@@ -2185,6 +2187,12 @@ trace.reject!
 # Keeps the trace
 trace.keep!
 ```
+
+#### Single Span Sampling
+
+You can configure sampling rule that allow you keep spans despite their respective traces being dropped by a trace-level sampling rule.
+
+[//]: # (TODO: See <Single Span Sampling documentation URL here> for the full documentation on Single Span Sampling.)
 
 ### Distributed Tracing
 
