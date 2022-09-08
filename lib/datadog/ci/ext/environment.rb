@@ -97,6 +97,12 @@ module Datadog
             tag = env['APPVEYOR_REPO_TAG_NAME']
           end
 
+          commit_message = env['APPVEYOR_REPO_COMMIT_MESSAGE']
+          if commit_message
+            extended = env['APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED']
+            commit_message = "#{commit_message}\n#{extended}" if extended
+          end
+
           {
             TAG_PROVIDER_NAME => 'appveyor',
             Core::Git::Ext::TAG_REPOSITORY_URL => repository,
@@ -111,7 +117,7 @@ module Datadog
             Core::Git::Ext::TAG_TAG => tag,
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['APPVEYOR_REPO_COMMIT_AUTHOR'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => commit_message
           }
         end
 
