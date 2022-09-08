@@ -28,7 +28,9 @@ module Datadog
     class HashHeaderCollection < HeaderCollection
       def initialize(hash)
         super()
-        @hash = hash.transform_keys(&:downcase)
+        @hash = {}.tap do |res|
+          hash.each_pair { |key, value| res[key.downcase] = value }
+        end
       end
 
       def get(header_name)
