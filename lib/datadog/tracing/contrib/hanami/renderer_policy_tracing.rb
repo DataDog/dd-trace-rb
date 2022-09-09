@@ -9,13 +9,12 @@ module Datadog
         module RendererPolicyTracing
           def render(env, response)
             action = env['hanami.action']
-
             # env['hanami.action'] could be empty for endpoints without an action
             #
             # For example in config/routes.rb:
             # get '/hello', to: ->(env) { [200, {}, ['Hello from Hanami!']] }
             action_klass = (action && action.class) ||
-              Hanami::Routing::Default::NullAction
+              ::Hanami::Routing::Default::NullAction
 
             Tracing.trace(
               Ext::SPAN_RENDER,

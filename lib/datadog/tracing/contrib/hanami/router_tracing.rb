@@ -24,10 +24,10 @@ module Datadog
                 super
               ensure
                 span_op.resource ||= if trace_op.resource_override?
-                                      trace_op.resource
-                                    else
-                                      env['REQUEST_METHOD']
-                                    end
+                                       trace_op.resource
+                                     else
+                                       env['REQUEST_METHOD']
+                                     end
               end
             end
           end
