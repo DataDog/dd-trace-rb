@@ -342,7 +342,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
     subject(:tracer_time) { dummy_class.tracer_time }
 
     before do
-      allow(Time).to receive(:now).and_return(Time.new(2020))
+      allow(Time).to receive(:now).and_return(Time.utc(1577836800))
     end
 
     it { is_expected.to be_a_kind_of(Integer) }
