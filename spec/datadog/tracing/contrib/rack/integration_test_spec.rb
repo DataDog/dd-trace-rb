@@ -118,7 +118,7 @@ RSpec.describe 'Rack integration tests' do
           it do
             # Since REQUEST_URI isn't available in Rack::Test by default (comes from WEBrick/Puma)
             # it reverts to PATH_INFO, which doesn't have query string parameters.
-            expect(span.get_tag('http.url')).to eq('/success')
+            expect(span.get_tag('http.url')).to eq('/success?foo')
             expect(span.get_tag('http.base_url')).to eq('http://example.org')
             expect(span).to be_root_span
           end
