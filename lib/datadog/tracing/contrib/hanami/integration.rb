@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require_relative '../integration'
 require_relative 'configuration/settings'

@@ -1,3 +1,5 @@
+# typed: ignore
+
 ::Hanami.plugin do
   Datadog.configure do |c|
     c.tracing.instrument :rack

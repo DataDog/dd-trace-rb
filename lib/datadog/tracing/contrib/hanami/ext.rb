@@ -1,4 +1,4 @@
-# typed: true
+# typed: ignore
 
 module Datadog
   module Tracing

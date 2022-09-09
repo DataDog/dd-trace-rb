@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require_relative './support/hanami_helpers'
 require_relative './support/custom_matchers'
