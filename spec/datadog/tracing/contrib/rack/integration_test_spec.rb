@@ -685,6 +685,48 @@ RSpec.describe 'Rack integration tests' do
         end
 
         describe 'GET request' do
+          context 'that does not sent user agent' do
+            subject(:response) { get '/headers/', {}, headers }
+
+            let(:headers) do
+              {}
+            end
+
+            before do
+              is_expected.to be_ok
+              expect(spans).to have(1).items
+            end
+
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.useragent')).to be nil
+              expect(span.get_tag('http.request.headers.user-agent')).to be nil
+            end
+          end
+
+          context 'that sends user agent' do
+            subject(:response) { get '/headers/', {}, headers }
+
+            let(:headers) do
+              {
+                'HTTP_USER_AGENT' => 'SuperUserAgent',
+              }
+            end
+
+            before do
+              is_expected.to be_ok
+              expect(spans).to have(1).items
+            end
+
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.useragent')).to eq('SuperUserAgent')
+              expect(span.get_tag('http.request.headers.user-agent')).to be nil
+            end
+          end
+
           context 'that sends headers' do
             subject(:response) { get '/headers/', {}, headers }
 

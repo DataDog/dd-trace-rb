@@ -139,6 +139,10 @@ module Datadog
             request_headers_tags = parse_request_headers(request_header_collection)
             response_headers_tags = parse_response_headers(headers || {})
 
+            # request_headers is subject to filtering and configuration so we
+            # get the user agent separately
+            user_agent = parse_user_agent_header(request_header_collection)
+
             # The priority
             # 1. User overrides span.resource
             # 2. Configuration
@@ -205,6 +209,10 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, status)
             end
 
+            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT).nil? && user_agent
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
+            end
+
             # Request headers
             request_headers_tags.each do |name, value|
               request_span.set_tag(name, value) if request_span.get_tag(name).nil?
@@ -228,6 +236,10 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:rack]
+          end
+
+          def parse_user_agent_header(headers)
+            headers.get(Tracing::Metadata::Ext::HTTP::HEADER_USER_AGENT)
           end
 
           def parse_request_headers(headers)

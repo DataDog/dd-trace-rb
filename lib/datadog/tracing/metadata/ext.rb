@@ -63,12 +63,14 @@ module Datadog
           TAG_BASE_URL = 'http.base_url'
           TAG_METHOD = 'http.method'
           TAG_STATUS_CODE = 'http.status_code'
+          TAG_USER_AGENT = 'http.useragent'
           TAG_URL = 'http.url'
           TYPE_INBOUND = AppTypes::TYPE_WEB.freeze
           TYPE_OUTBOUND = 'http'
           TYPE_PROXY = 'proxy'
           TYPE_TEMPLATE = 'template'
           TAG_CLIENT_IP = 'http.client_ip'
+          HEADER_USER_AGENT = 'User-Agent'
 
           # General header functionality
           module Headers
