@@ -13,14 +13,12 @@ RSpec.shared_context 'CI trace operation' do
     instance_double(
       Datadog::Tracing::TraceOperation,
       origin: origin,
-      sampled?: sampled,
       finished?: finished,
       flush!: trace
     )
   end
 
   let(:origin) { 'ci-origin' }
-  let(:sampled) { true }
   let(:finished) { true }
 
   let(:trace) { Datadog::Tracing::TraceSegment.new(spans, origin: origin) }
@@ -31,23 +29,15 @@ RSpec.shared_examples_for 'a CI trace flusher' do
   context 'given a finished trace operation' do
     let(:finished) { true }
 
-    context 'that is not sampled' do
-      let(:sampled) { false }
-      it { is_expected.to be nil }
-    end
+    it { is_expected.to eq(trace) }
 
-    context 'that is sampled' do
-      let(:sampled) { true }
-      it { is_expected.to eq(trace) }
+    it 'tags every span with the origin' do
+      is_expected.to eq(trace)
 
-      it 'tags every span with the origin' do
-        is_expected.to eq(trace)
-
-        # Expect each span to have an attached origin
-        trace.spans.each do |span|
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN))
-            .to eq(trace.origin)
-        end
+      # Expect each span to have an attached origin
+      trace.spans.each do |span|
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN))
+          .to eq(trace.origin)
       end
     end
   end

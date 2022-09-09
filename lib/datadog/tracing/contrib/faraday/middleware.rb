@@ -39,8 +39,7 @@ module Datadog
 
           def annotate!(span, env, options)
             span.resource = resource_name(env)
-            service_name(env[:url].host, options)
-            span.service = options[:split_by_domain] ? env[:url].host : options[:service_name]
+            span.service = service_name(env[:url].host, options)
             span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

@@ -68,6 +68,7 @@ module Datadog
           TYPE_OUTBOUND = 'http'
           TYPE_PROXY = 'proxy'
           TYPE_TEMPLATE = 'template'
+          TAG_CLIENT_IP = 'http.client_ip'
 
           # General header functionality
           module Headers

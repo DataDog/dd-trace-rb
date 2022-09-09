@@ -540,6 +540,7 @@ module Datadog
           option :sampler
 
           # Client-side sampling configuration.
+          # @see https://docs.datadoghq.com/tracing/trace_ingestion/mechanisms/
           # @public_api
           settings :sampling do
             # Default sampling rate for the tracer.
@@ -564,6 +565,48 @@ module Datadog
             # @return [Numeric,nil]
             option :rate_limit do |o|
               o.default { env_to_float(Tracing::Configuration::Ext::Sampling::ENV_RATE_LIMIT, 100) }
+              o.lazy
+            end
+
+            # Single span sampling rules.
+            # These rules allow a span to be kept when its encompassing trace is dropped.
+            #
+            # The syntax for single span sampling rules can be found here:
+            # TODO: <Single Span Sampling documentation URL here>
+            #
+            # @default `DD_SPAN_SAMPLING_RULES` environment variable.
+            #   Otherwise, `ENV_SPAN_SAMPLING_RULES_FILE` environment variable.
+            #   Otherwise `nil`.
+            # @return [String,nil]
+            # @public_api
+            option :span_rules do |o|
+              o.default do
+                rules = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES]
+                rules_file = ENV[Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE]
+
+                if rules
+                  if rules_file
+                    Datadog.logger.warn(
+                      'Both DD_SPAN_SAMPLING_RULES and DD_SPAN_SAMPLING_RULES_FILE were provided: only ' \
+                        'DD_SPAN_SAMPLING_RULES will be used. Please do not provide DD_SPAN_SAMPLING_RULES_FILE when ' \
+                        'also providing DD_SPAN_SAMPLING_RULES as their configuration conflicts. ' \
+                        "DD_SPAN_SAMPLING_RULES_FILE=#{rules_file} DD_SPAN_SAMPLING_RULES=#{rules}"
+                    )
+                  end
+                  rules
+                elsif rules_file
+                  begin
+                    File.read(rules_file)
+                  rescue => e
+                    # `File#read` errors have clear and actionable messages, no need to add extra exception info.
+                    Datadog.logger.warn(
+                      "Cannot read span sampling rules file `#{rules_file}`: #{e.message}." \
+                      'No span sampling rules will be applied.'
+                    )
+                    nil
+                  end
+                end
+              end
               o.lazy
             end
           end
@@ -618,6 +661,32 @@ module Datadog
           # @default `{}`
           # @return [Hash,nil]
           option :writer_options, default: ->(_i) { {} }, lazy: true
+
+          # Client IP configuration
+          # @public_api
+          settings :client_ip do
+            # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
+            #   be reported in traces.
+            #
+            # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
+            #
+            # @default The negated value of the `DD_TRACE_CLIENT_IP_HEADER_DISABLED` environment
+            #   variable or `true` if it doesn't exist.
+            # @return [Boolean]
+            option :enabled do |o|
+              o.default { !env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
+              o.lazy
+            end
+
+            # An optional name of a custom header to resolve the client IP from.
+            #
+            # @default `DD_TRACE_CLIENT_IP_HEADER` environment variable, otherwise `nil`.
+            # @return [String,nil]
+            option :header_name do |o|
+              o.default { ENV.fetch(Tracing::Configuration::Ext::ClientIp::ENV_HEADER_NAME, nil) }
+              o.lazy
+            end
+          end
         end
 
         # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
@@ -635,14 +704,16 @@ module Datadog
         settings :telemetry do
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
-          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`
+          # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `false`. In a future release,
+          #   this value will be changed to `true` by default as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).
           # @return [Boolean]
           option :enabled do |o|
-            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, true) }
+            o.default { env_to_bool(Core::Telemetry::Ext::ENV_ENABLED, false) }
             o.lazy
           end
         end
       end
+
       # rubocop:enable Metrics/BlockLength
       # rubocop:enable Metrics/ClassLength
       # rubocop:enable Layout/LineLength

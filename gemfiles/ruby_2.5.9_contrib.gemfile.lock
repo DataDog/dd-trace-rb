@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.3.0)
+    ddtrace (1.4.0)
       debase-ruby_core_source (= 0.10.16)
-      libdatadog (~> 0.7.0.1.0)
+      libdatadog (~> 0.7.0.1.1)
       libddwaf (~> 1.3.0.2.0)
       msgpack
 
@@ -1436,7 +1436,7 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.0)
-    libdatadog (0.7.0.1.0-x86_64-linux)
+    libdatadog (0.7.0.1.1-x86_64-linux)
     libddwaf (1.3.0.2.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.11.2)
@@ -1459,7 +1459,7 @@ GEM
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
-    msgpack (1.5.4)
+    msgpack (1.5.6)
     multi_json (1.15.0)
     multi_test (0.1.2)
     multipart-post (2.1.1)
@@ -1711,7 +1711,7 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec_junit_formatter (>= 0.5.1)
   rspec_n (~> 1.3)
-  rubocop (~> 1.10)
+  rubocop (~> 1.10, < 1.33.0)
   rubocop-packaging (~> 0.5)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.2)

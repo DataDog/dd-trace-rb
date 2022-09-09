@@ -101,4 +101,78 @@ RSpec.describe 'Microbenchmark' do
       end
     end
   end
+
+  describe 'single span sampling' do
+    before do
+      Datadog.configure do |c|
+        c.tracing.writer = FauxWriter.new(call_original: false)
+      end
+    end
+
+    let(:name) { 'span'.freeze }
+    let(:tracer) { Datadog::Tracing.send(:tracer) }
+    let(:steps) { [1, 10, 100] }
+
+    def subject(i)
+      trace(1, i)
+    end
+
+    describe 'kept traces' do
+      include_examples 'benchmark'
+
+      def trace(i, total)
+        tracer.trace(name) do |_, trace|
+          trace.keep! if i == 1
+          trace(i + 1, total) unless i == total
+        end
+      end
+    end
+
+    describe 'rejected traces' do
+      include_examples 'benchmark'
+
+      def trace(i, total)
+        tracer.trace(name) do |_, trace|
+          trace.reject! if i == 1
+          trace(i + 1, total) unless i == total
+        end
+      end
+
+      describe 'with spans kept by single span sampling' do
+        before do
+          Datadog.configure do |c|
+            c.tracing.sampling.span_rules = json_rules
+          end
+        end
+
+        let(:json_rules) { [rule].to_json }
+        let(:rule) do
+          {
+            name: name,
+            sample_rate: 1.0,
+          }
+        end
+
+        include_examples 'benchmark'
+      end
+
+      describe 'with spans also rejected by single span sampling' do
+        before do
+          Datadog.configure do |c|
+            c.tracing.sampling.span_rules = json_rules
+          end
+        end
+
+        let(:json_rules) { [rule].to_json }
+        let(:rule) do
+          {
+            name: name,
+            sample_rate: 0.0,
+          }
+        end
+
+        include_examples 'benchmark'
+      end
+    end
+  end
 end

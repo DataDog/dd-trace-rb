@@ -724,6 +724,36 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  describe '#priority_sampled?' do
+    subject(:priority_sampled?) { trace_op.priority_sampled? }
+
+    it { is_expected.to be false }
+
+    context 'when :sampling_priority is set to' do
+      let(:options) { { sampling_priority: sampling_priority } }
+
+      context 'AUTO_KEEP' do
+        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
+        it { is_expected.to be true }
+      end
+
+      context 'AUTO_REJECT' do
+        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
+        it { is_expected.to be false }
+      end
+
+      context 'USER_KEEP' do
+        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+        it { is_expected.to be true }
+      end
+
+      context 'USER_REJECT' do
+        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
+        it { is_expected.to be false }
+      end
+    end
+  end
+
   describe '#keep!' do
     subject(:keep!) { trace_op.keep! }
 
@@ -1603,6 +1633,24 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it 'does not yield duplicate spans' do
           expect(trace_op.flush!.spans).to have(2).items
           expect(trace_op.flush!.spans).to have(0).items
+        end
+
+        context 'with a block' do
+          subject(:flush!) { trace_op.flush! { |spans| spans } }
+
+          it 'yields spans' do
+            expect { |b| trace_op.flush!(&b) }.to yield_with_args(
+              [
+                have_attributes(name: 'parent'),
+                have_attributes(name: 'grandparent')
+              ]
+            )
+          end
+
+          it 'uses block return as new span list' do
+            new_list = [double('span')]
+            expect(trace_op.flush! { new_list }).to have_attributes(spans: new_list)
+          end
         end
       end
 
