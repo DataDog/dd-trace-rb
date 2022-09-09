@@ -91,6 +91,7 @@ module Datadog
 
                 # Ensure these tags reach the backend
                 active_trace.keep!
+                active_trace.sampling_mechanism = Datadog::Tracing::Sampling::Ext::Mechanism::ASM
               end
             end
           end

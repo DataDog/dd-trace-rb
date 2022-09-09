@@ -32,6 +32,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         rule_sample_rate: rule_sample_rate,
         runtime_id: runtime_id,
         sample_rate: sample_rate,
+        sampling_mechanism: sampling_mechanism,
         sampling_priority: sampling_priority,
         tags: trace_tags
       }
@@ -47,6 +48,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:rule_sample_rate) { rand }
     let(:runtime_id) { 'trace.runtime_id' }
     let(:sample_rate) { rand }
+    let(:sampling_mechanism) { 1 }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
   end
 
@@ -142,6 +144,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER => '-1',
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority
           )
         end

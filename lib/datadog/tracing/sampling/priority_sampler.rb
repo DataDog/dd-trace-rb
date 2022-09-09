@@ -21,17 +21,29 @@ module Datadog
 
         def initialize(opts = {})
           @pre_sampler = opts[:base_sampler] || AllSampler.new
-          @priority_sampler = opts[:post_sampler] || RateByServiceSampler.new
+          @priority_sampler = opts[:post_sampler] ||
+            RateByServiceSampler.new(
+              mechanism: Sampling::Ext::Mechanism::AGENT_RATE,
+            )
         end
 
         def sample?(trace)
           @pre_sampler.sample?(trace)
         end
 
+        # DEV-2.0:We should get rid of this complicated interaction between @pre_sampler and @priority_sampler.
+        # DEV-2.0:If the user wants to configure a custom sampler, we should only allow them to provide a complete
+        # DEV-2.0:sampling suite, not having this convoluted support for mixing arbitrary provided samplers in
+        # DEV-2.0:the PrioritySampler. Ideally, the PrioritySampler is only used by Datadog.
+        # DEV-2.0:There are too many edge cases and combinations to work around currently in this class.
         def sample!(trace)
+          # The priority that was set before the sampler ran.
+          # This comes from distributed tracing priority propagation.
+          distributed_sampling_priority = priority_assigned?(trace)
+
           # If pre-sampling is configured, do it first. (By default, this will sample at 100%.)
           # NOTE: Pre-sampling at rates < 100% may result in partial traces; not recommended.
-          trace.sampled = pre_sample?(trace) ? @pre_sampler.sample!(trace) : true
+          trace.sampled = pre_sample?(trace) ? preserving_priority_sampling(trace) { @pre_sampler.sample!(trace) } : true
 
           if trace.sampled?
             # If priority sampling has already been applied upstream, use that value.
@@ -53,11 +65,24 @@ module Datadog
           end
 
           trace.sampled?
+        ensure
+          if trace.sampling_priority > 0
+            # Don't modify mechanism if priority was set upstream.
+            unless distributed_sampling_priority
+              # If no sampling priority being assigned at this point, a custom
+              # sampler implementation is configured: this means the user has
+              # full control over the sampling decision.
+              trace.sampling_mechanism ||= Sampling::Ext::Mechanism::MANUAL
+            end
+          else
+            # The sampler decided to not keep this span, removing sampling mechanism.
+            trace.sampling_mechanism = nil
+          end
         end
 
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)
-        def update(rate_by_service)
-          @priority_sampler.update(rate_by_service)
+        def update(rate_by_service, mechanism: nil)
+          @priority_sampler.update(rate_by_service, mechanism: mechanism)
         end
 
         private
@@ -80,6 +105,18 @@ module Datadog
         def priority_sample!(trace)
           preserving_sampling(trace) do
             @priority_sampler.sample!(trace)
+          end
+        end
+
+        # Ensures the trace's priority sampling decision is not changed by the @pre_sampler.
+        # The @pre_sampler should only change `trace.sampled`.
+        def preserving_priority_sampling(trace)
+          sampling_priority = trace.sampling_priority
+          sampling_mechanism = trace.sampling_mechanism
+
+          yield.tap do
+            trace.sampling_priority = sampling_priority
+            trace.sampling_mechanism = sampling_mechanism
           end
         end
 

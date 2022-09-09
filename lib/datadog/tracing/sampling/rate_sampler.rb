@@ -30,7 +30,7 @@ module Datadog
         # DEV-2.0: sampler = RateSampler.new
         # DEV-2.0: sampler.sample_rate = sample_rate
         # DEV-2.0: ```
-        def initialize(sample_rate = 1.0)
+        def initialize(sample_rate = 1.0, mechanism: nil)
           super()
 
           unless sample_rate > 0.0 && sample_rate <= 1.0
@@ -39,6 +39,8 @@ module Datadog
           end
 
           self.sample_rate = sample_rate
+
+          @mechanism = mechanism
         end
 
         def sample_rate(*_)
@@ -56,8 +58,13 @@ module Datadog
 
         def sample!(trace)
           sampled = trace.sampled = sample?(trace)
-          trace.sample_rate = @sample_rate if sampled
-          sampled
+
+          return false unless sampled
+
+          trace.sample_rate = @sample_rate
+          trace.sampling_mechanism = @mechanism
+
+          true
         end
       end
     end

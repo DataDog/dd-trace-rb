@@ -47,7 +47,10 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
   end
 
   describe '#sample!' do
+    subject(:sample!) { sampler.sample!(trace) }
+
     let(:traces) { Array.new(3) { |i| Datadog::Tracing::TraceOperation.new(id: i) } }
+    let(:trace) { traces[0] }
 
     shared_examples_for 'rate sampling' do
       let(:trace_count) { 1000 }
@@ -81,6 +84,25 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
           expect(trace.sampled?).to be true
           expect(trace.sample_rate).to eq(sample_rate)
         end
+      end
+
+      context 'and mechanism is set' do
+        subject(:sampler) { described_class.new(sample_rate, mechanism: mechanism) }
+        let(:mechanism) { double('mechanism') }
+
+        it 'sets trace mechanism' do
+          sample!
+          expect(trace.sampling_mechanism).to eq(mechanism)
+        end
+      end
+    end
+
+    context 'when a sample rate of 0.0 is set' do
+      let(:sample_rate) { Float::MIN } # Can't set to exactly zero because of safeguard
+
+      it 'does not trace mechanism' do
+        sample!
+        expect(trace.sampling_mechanism).to be_nil
       end
     end
   end

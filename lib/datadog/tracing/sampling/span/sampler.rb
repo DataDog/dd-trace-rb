@@ -50,10 +50,17 @@ module Datadog
           def sample!(trace_op, span_op)
             return if trace_op.sampled? && trace_op.priority_sampled?
 
-            # Return as soon as one rule matches
-            @rules.any? do |rule|
-              rule.sample!(span_op) != :not_matched
+            # Applies the first matching rule
+            final_decision = nil
+            @rules.each do |rule|
+              decision = rule.sample!(span_op)
+              if decision != :not_matched
+                final_decision = decision
+                break
+              end
             end
+
+            trace_op.sampling_mechanism = Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE if final_decision == :kept
 
             nil
           end

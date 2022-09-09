@@ -61,6 +61,7 @@ module Datadog
           end
 
           trace.keep!
+          trace.sampling_mechanism = Datadog::Tracing::Sampling::Ext::Mechanism::ASM
 
           # prepare and gather tags to apply
           trace_tags = event_group.each_with_object({}) do |event, tags|

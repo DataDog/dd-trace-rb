@@ -20,6 +20,7 @@ module Datadog
         :trace_process_id,
         :trace_resource,
         :trace_runtime_id,
+        :trace_sampling_mechanism,
         :trace_sampling_priority,
         :trace_service
 
@@ -37,6 +38,7 @@ module Datadog
         trace_process_id: nil,
         trace_resource: nil,
         trace_runtime_id: nil,
+        trace_sampling_mechanism: nil,
         trace_sampling_priority: nil,
         trace_service: nil
       )
@@ -53,6 +55,7 @@ module Datadog
         @trace_process_id = trace_process_id
         @trace_resource = trace_resource && trace_resource.dup.freeze
         @trace_runtime_id = trace_runtime_id && trace_runtime_id.dup.freeze
+        @trace_sampling_mechanism = trace_sampling_mechanism
         @trace_sampling_priority = trace_sampling_priority
         @trace_service = trace_service && trace_service.dup.freeze
 

@@ -42,6 +42,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
           rule_sample_rate: nil,
           runtime_id: nil,
           sample_rate: nil,
+          sampling_mechanism: nil,
           sampling_priority: nil,
           service: nil,
           spans: spans,
@@ -133,6 +134,13 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:sample_rate) { rand }
 
         it { is_expected.to have_attributes(sample_rate: sample_rate) }
+      end
+
+      context ':sampling_mechanism' do
+        let(:options) { { sampling_mechanism: sampling_mechanism } }
+        let(:sampling_mechanism) { 0 }
+
+        it { is_expected.to have_attributes(sampling_mechanism: sampling_mechanism) }
       end
 
       context ':sampling_priority' do
@@ -244,6 +252,15 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         let(:sample_rate) { rand }
 
         it { is_expected.to have_attributes(sample_rate: sample_rate) }
+      end
+
+      context ':sampling_mechanism' do
+        let(:options) do
+          { tags: { Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER => sampling_mechanism } }
+        end
+        let(:sampling_mechanism) { 1 }
+
+        it { is_expected.to have_attributes(sampling_mechanism: sampling_mechanism) }
       end
 
       context ':sampling_priority' do

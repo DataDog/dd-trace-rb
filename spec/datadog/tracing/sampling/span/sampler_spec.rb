@@ -13,21 +13,28 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
   describe '#sample!' do
     subject(:sample!) { sampler.sample!(trace_op, span_op) }
 
-    shared_examples 'does not modify span' do
-      it { expect { sample! }.to_not(change { span_op.send(:build_span).to_hash }) }
+    shared_examples 'does not modify trace' do
+      it 'does not change span' do
+        expect { sample! }.to_not(change { span_op.send(:build_span).to_hash })
+      end
+
+      it 'does not change sampling mechanism' do
+        expect { sample! }.to_not(change { trace_op.sampling_mechanism })
+      end
     end
 
-    shared_examples 'tags span with sampling decision' do
+    shared_examples 'set sampling decision' do
       it do
         sample!
         expect(span_op.get_metric('_dd.span_sampling.mechanism')).to_not be_nil
+        expect(trace_op.sampling_mechanism).to eq(8)
       end
     end
 
     let(:match_all) { Datadog::Tracing::Sampling::Span::Matcher.new }
 
     context 'no matching rules' do
-      it_behaves_like 'does not modify span'
+      it_behaves_like 'does not modify trace'
     end
 
     context 'with matching rules' do
@@ -36,13 +43,13 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
       context 'a kept trace' do
         before { trace_op.keep! }
 
-        it_behaves_like 'does not modify span'
+        it_behaves_like 'does not modify trace'
       end
 
       context 'a rejected trace' do
         before { trace_op.reject! }
 
-        it_behaves_like 'tags span with sampling decision'
+        it_behaves_like 'set sampling decision'
 
         context 'multiple rules' do
           let(:rules) do
@@ -57,6 +64,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
 
             expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
             expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
+            expect(trace_op.sampling_mechanism).to eq(8)
           end
         end
       end
@@ -67,7 +75,13 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
           trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT
         end
 
-        it_behaves_like 'tags span with sampling decision'
+        it_behaves_like 'set sampling decision'
+      end
+
+      context 'that rejects spans' do
+        let(:rules) { [Datadog::Tracing::Sampling::Span::Rule.new(match_all, sample_rate: 0.0, rate_limit: 0)] }
+
+        it_behaves_like 'does not modify trace'
       end
     end
   end

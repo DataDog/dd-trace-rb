@@ -182,7 +182,7 @@ module Datadog
 
               next unless response && !response.internal_error? && response.service_rates
 
-              sampler.update(response.service_rates)
+              sampler.update(response.service_rates, mechanism: Tracing::Sampling::Ext::Mechanism::AGENT_RATE)
             end
           end
 
