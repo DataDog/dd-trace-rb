@@ -1,3 +1,5 @@
+# typed: false
+
 module Dummy
   module Controllers
     module Books

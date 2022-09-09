@@ -1,3 +1,5 @@
+# typed: false
+
 require 'ddtrace'
 require 'rack'
 require 'hanami'

@@ -1,3 +1,5 @@
+# typed: false
+
 RSpec::Matchers.define :be_hanami_rack_span do
   match(notify_expectation_failures: true) do |span|
     expect(span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
