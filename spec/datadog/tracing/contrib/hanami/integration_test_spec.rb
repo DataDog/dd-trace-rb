@@ -20,8 +20,6 @@ RSpec.describe 'Hanami instrumentation' do
     subject(:response) { get 'simple_success' }
 
     it 'creates 3 spans' do
-      subject
-
       expect(response.status).to eq(200)
 
       expect(spans).to have(3).items
@@ -39,15 +37,13 @@ RSpec.describe 'Hanami instrumentation' do
     subject(:response) { get 'books' }
 
     it 'creates 4 spans' do
-      subject
-
       expect(response.status).to eq(200)
 
       expect(spans).to have(4).items
 
       expect(rack_span).to be_hanami_rack_span.with(resource: 'Dummy::Controllers::Books::Index')
-      expect(routing_span).to be_hanami_routing_span.with(parent: rack_span, resource: "Dummy::Controllers::Books::Index")
-      expect(action_span).to be_hanami_action_span.with(parent: routing_span, resource: "Dummy::Controllers::Books::Index")
+      expect(routing_span).to be_hanami_routing_span.with(parent: rack_span, resource: 'Dummy::Controllers::Books::Index')
+      expect(action_span).to be_hanami_action_span.with(parent: routing_span, resource: 'Dummy::Controllers::Books::Index')
       expect(render_span).to be_hanami_render_span.with(parent: routing_span, resource: 'Dummy::Controllers::Books::Index')
     end
   end
@@ -56,14 +52,12 @@ RSpec.describe 'Hanami instrumentation' do
     subject(:response) { get 'not_found' }
 
     it 'creates 3 spans' do
-      subject
-
       expect(response.status).to eq(404)
 
       expect(spans).to have(3).items
 
       expect(rack_span).to be_hanami_rack_span.with(resource: 'GET 404', http_method: 'GET', http_status_code: 404)
-      expect(routing_span).to be_hanami_routing_span.with(parent: rack_span, resource: "GET")
+      expect(routing_span).to be_hanami_routing_span.with(parent: rack_span, resource: 'GET')
       expect(render_span).to be_hanami_render_span.with(
         parent: routing_span,
         resource: 'Hanami::Routing::Default::NullAction'
@@ -75,8 +69,6 @@ RSpec.describe 'Hanami instrumentation' do
     subject(:response) { get 'server_error' }
 
     it 'creates 4 spans' do
-      subject
-
       expect(response.status).to eq(500)
 
       expect(spans).to have(4).items
@@ -88,7 +80,7 @@ RSpec.describe 'Hanami instrumentation' do
       )
       expect(routing_span).to be_hanami_routing_span.with(
         parent: rack_span,
-        resource: "Dummy::Controllers::Books::ServerError"
+        resource: 'Dummy::Controllers::Books::ServerError'
       )
       expect(action_span).to be_hanami_action_span.with(
         parent: routing_span,

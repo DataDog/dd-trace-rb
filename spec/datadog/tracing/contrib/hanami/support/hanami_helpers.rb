@@ -3,16 +3,18 @@ require 'rack'
 require 'hanami'
 
 RSpec.shared_context 'Hanami test application' do
+  # rubocop:disable Lint/ConstantDefinitionInBlock
+  # rubocop:disable RSpec/LeakyConstantDeclaration
   let(:build_test_app) do
     module Dummy
       class App < ::Hanami::Application
         configure do
-          root __dir__ + '/dummy'
+          root "#{__dir__}/dummy"
 
           routes do
-            get "/simple_success", to: ->(env) { [200, {}, ["Welcome to Hanami!"]] }
-            get '/books', to: "books#index"
-            get '/server_error', to: "books#server_error"
+            get '/simple_success', to: ->(_) { [200, {}, ['Welcome to Hanami!']] }
+            get '/books', to: 'books#index'
+            get '/server_error', to: 'books#server_error'
           end
 
           load_paths << ['controllers']
@@ -22,6 +24,8 @@ RSpec.shared_context 'Hanami test application' do
 
     Dummy::App
   end
+  # rubocop:enable Lint/ConstantDefinitionInBlock
+  # rubocop:enable RSpec/LeakyConstantDeclaration
 
   let(:app) do
     if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
@@ -35,7 +39,7 @@ RSpec.shared_context 'Hanami test application' do
 
     # Hanami assumes file structure, stubbing for test
     allow_any_instance_of(::Hanami::Environment).to receive(:root).and_return(
-      Pathname.new(__dir__ + '/dummy')
+      Pathname.new("#{__dir__}/dummy")
     )
     test_app = build_test_app
 
@@ -48,7 +52,7 @@ RSpec.shared_context 'Hanami test application' do
     end.to_app
   end
 
-  after(:each) do
+  after do
     # Release the assembled components, fresh start for every app boot
     ::Hanami::Components.release
   end

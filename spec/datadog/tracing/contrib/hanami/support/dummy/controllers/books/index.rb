@@ -5,6 +5,7 @@ module Dummy
         include Dummy::Action
 
         def call(params)
+          # Do something
         end
       end
     end
