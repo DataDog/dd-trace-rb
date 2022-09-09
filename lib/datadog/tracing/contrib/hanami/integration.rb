@@ -26,6 +26,7 @@ module Datadog
           end
 
           def self.compatible?
+            # Tested with version larger than 1.x, but not 2.x version
             super && version >= MINIMUM_VERSION && version < MAXIMUM_VERSION
           end
 

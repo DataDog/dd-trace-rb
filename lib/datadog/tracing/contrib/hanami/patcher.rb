@@ -20,8 +20,9 @@ module Datadog
           end
 
           def patch
-            # For auto instrumentation
+            # For auto instrumentation, `plugin` must be required before `Hanami.boot`
             require_relative 'plugin'
+
             ::Hanami::Router.prepend(RouterTracing)
             ::Hanami::RenderingPolicy.prepend(RendererPolicyTracing)
           end

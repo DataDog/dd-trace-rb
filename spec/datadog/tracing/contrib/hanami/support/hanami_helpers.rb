@@ -15,7 +15,7 @@ RSpec.shared_context 'Hanami test application' do
             get '/server_error', to: "books#server_error"
           end
 
-          load_paths << ['controllers', 'views']
+          load_paths << ['controllers']
         end
       end
     end
@@ -33,6 +33,7 @@ RSpec.shared_context 'Hanami test application' do
       c.tracing.instrument :hanami
     end
 
+    # Hanami assumes file structure, stubbing for test
     allow_any_instance_of(::Hanami::Environment).to receive(:root).and_return(
       Pathname.new(__dir__ + '/dummy')
     )
@@ -48,6 +49,7 @@ RSpec.shared_context 'Hanami test application' do
   end
 
   after(:each) do
+    # Release the assembled components, fresh start for every app boot
     ::Hanami::Components.release
   end
 end
