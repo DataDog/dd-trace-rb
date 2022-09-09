@@ -407,6 +407,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             end
           end
         end
+        let(:span_sampler) { be_a(Datadog::Tracing::Sampling::Span::Sampler) }
         let(:default_options) do
           {
             default_service: settings.service,
@@ -414,6 +415,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             trace_flush: trace_flush,
             tags: settings.tags,
             sampler: sampler,
+            span_sampler: span_sampler,
             writer: writer,
           }
         end
@@ -618,6 +620,36 @@ RSpec.describe Datadog::Core::Configuration::Components do
               let(:options) { { sampler: sampler } }
               it_behaves_like 'event publishing writer'
             end
+          end
+        end
+      end
+
+      context 'with sampling.span_rules' do
+        before { allow(settings.tracing.sampling).to receive(:span_rules).and_return(rules) }
+
+        context 'with rules' do
+          let(:rules) { '[{"name":"foo"}]' }
+
+          it_behaves_like 'new tracer' do
+            let(:options) do
+              {
+                span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(
+                  rules: [
+                    Datadog::Tracing::Sampling::Span::Rule.new(
+                      Datadog::Tracing::Sampling::Span::Matcher.new(name_pattern: 'foo')
+                    )
+                  ]
+                )
+              }
+            end
+          end
+        end
+
+        context 'without rules' do
+          let(:rules) { nil }
+
+          it_behaves_like 'new tracer' do
+            let(:options) { { span_sampler: be_a(Datadog::Tracing::Sampling::Span::Sampler) & have_attributes(rules: []) } }
           end
         end
       end

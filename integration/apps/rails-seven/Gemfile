@@ -86,7 +86,8 @@ gem 'aws-sdk'
 gem 'devise'
 gem 'httparty'
 gem 'mysql2'
-gem 'redis'
+# Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
+gem 'redis', '< 5'
 gem 'resque'
 gem 'unicorn'
 

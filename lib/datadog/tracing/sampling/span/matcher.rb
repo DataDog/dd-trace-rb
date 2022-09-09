@@ -6,6 +6,8 @@ module Datadog
       module Span
         # Checks if a span conforms to a matching criteria.
         class Matcher
+          attr_reader :name, :service
+
           # Pattern that matches any string
           MATCH_ALL_PATTERN = '*'
 
@@ -52,6 +54,13 @@ module Datadog
             def match?(span)
               @name === span.name && @service === span.service
             end
+          end
+
+          def ==(other)
+            return super unless other.is_a?(Matcher)
+
+            name == other.name &&
+              service == other.service
           end
 
           private

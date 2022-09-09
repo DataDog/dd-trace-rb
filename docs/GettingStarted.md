@@ -87,6 +87,7 @@ To contribute, check out the [contribution guidelines][contribution docs] and [d
      - [Sampling](#sampling)
          - [Application-side sampling](#application-side-sampling)
          - [Priority sampling](#priority-sampling)
+         - [Single Span Sampling](#single-span-sampling)
      - [Distributed tracing](#distributed-tracing)
      - [HTTP request queuing](#http-request-queuing)
      - [Processing pipeline](#processing-pipeline)
@@ -567,7 +568,6 @@ end
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
-| `analytics_enabled` | Enable analytics for spans produced by this integration. `true` for on, `nil` to defer to global setting, `false` for off. | `false` |
 | `email_data` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
 
 ### Action Pack
@@ -1063,14 +1063,12 @@ end
 YourSchema.execute(query, variables: {}, context: {}, operation_name: nil)
 ```
 
-The `use :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
+The `instrument :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
 
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `schemas` | Required. Array of `GraphQL::Schema` objects which to trace. Tracing will be added to all the schemas listed, using the options provided to this configuration. If you do not provide any, then tracing will not be activated. | `[]` |
 | `service_name` | Service name used for graphql instrumentation | `'ruby-graphql'` |
-| `analytics_enabled` | Enable analytics for spans. `true` for on, `nil` to defer to Datadog global setting, `false` for off. | `false` |
-| `analytics_sample_rate` | Rate which tracing data should be sampled for Datadog analytics. Must be a float between `0` and `1.0`. | `1.0` |
 
 **Manually configuring GraphQL schemas**
 
@@ -1116,7 +1114,7 @@ YourSchema.define do
 end
 ```
 
-Do *NOT* `use :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
+Do *NOT* `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
 ### gRPC
 
@@ -2032,7 +2030,7 @@ end
 | `tags`                                                  | `DD_TAGS`                      | `nil`                                                             | Custom tags in value pairs separated by `,` (e.g. `layer:api,team:intake`) These tags are set on all traces. See [Environment and tags](#environment-and-tags) for more details.                                                          |
 | `time_now_provider`                                     |                                | `->{ Time.now }`                                                  | Changes how time is retrieved. See [Setting the time provider](#Setting the time provider) for more details.                                                                                                                              |
 | `version`                                               | `DD_VERSION`                   | `nil`                                                             | Your application version (e.g. `2.5`, `202003181415`, `1.3-alpha`, etc.) This value is set as a tag on all traces.                                                                                                                        |
-| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `true`                                                             | Allows you to opt-out of sending telemetry data to Datadog. See [Telemetry collection](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection) for more details.                                                                                                                                                                                          |
+| `telemetry.enabled`                                     | `DD_INSTRUMENTATION_TELEMETRY_ENABLED` | `false`                                                             | Allows you to enable sending telemetry data to Datadog. In a future release, we will be setting this to  `true` by default, as documented [here](https://docs.datadoghq.com/tracing/configure_data_security/#telemetry-collection).                                                                                                                                                                                          |
 | **Tracing**                                             |                                |                                                                   |                                                                                                                                                                                                                                           |
 | `tracing.analytics.enabled`                             | `DD_TRACE_ANALYTICS_ENABLED`   | `nil`                                                             | Enables or disables trace analytics. See [Sampling](#sampling) for more details.                                                                                                                                                          |
 | `tracing.distributed_tracing.propagation_extract_style` | `DD_PROPAGATION_STYLE_EXTRACT` | `['Datadog','B3','B3 single header']`                             | Distributed tracing header formats to extract. See [Distributed Tracing](#distributed-tracing) for more details.                                                                                                                          |
@@ -2045,6 +2043,7 @@ end
 | `tracing.sampler`                                       |                                | `nil`                                                             | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details. |
 | `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`         | `nil`                                                             | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                  |
 | `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`          | `100` (per second)                                                | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                    |
+| `tracing.sampling.span_rules`                           | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `nil`                                    | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                              |
 | `tracing.report_hostname`                               | `DD_TRACE_REPORT_HOSTNAME`     | `false`                                                           | Adds hostname tag to traces.                                                                                                                                                                                                              |
 | `tracing.test_mode.enabled`                             | `DD_TRACE_TEST_MODE_ENABLED`   | `false`                                                           | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                         |
 | `tracing.test_mode.trace_flush`                         |                                | `nil`                                                             | Object that determines trace flushing behavior.                                                                                                                                                                                           |
@@ -2188,6 +2187,12 @@ trace.reject!
 # Keeps the trace
 trace.keep!
 ```
+
+#### Single Span Sampling
+
+You can configure sampling rule that allow you keep spans despite their respective traces being dropped by a trace-level sampling rule.
+
+[//]: # (TODO: See <Single Span Sampling documentation URL here> for the full documentation on Single Span Sampling.)
 
 ### Distributed Tracing
 
