@@ -14,7 +14,7 @@ desc 'Run RSpec'
 namespace :spec do
   task all: [:main, :benchmark,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami_1, :hanami_1_autoinstrument]
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument]
 
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
@@ -72,12 +72,12 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:hanami_1) do |t, args|
+  RSpec::Core::RakeTask.new(:hanami) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:hanami_1_autoinstrument) do |t, args|
+  RSpec::Core::RakeTask.new(:hanami_autoinstrument) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
 
@@ -361,7 +361,7 @@ task :ci do
   declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
 
   # explicitly test Hanami compatability
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ jruby' => 'bundle exec appraisal hanami_1 rake spec:hanami'
+  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ jruby' => 'bundle exec appraisal hanami-1 rake spec:hanami'
 
   # explicitly test resque-2x compatability
   declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ jruby' => 'bundle exec appraisal resque2-redis3 rake spec:resque'

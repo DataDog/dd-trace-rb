@@ -316,7 +316,6 @@ elsif ruby_version?('2.3')
     gem 'rack'
     gem 'rack-test'
     gem 'hanami', '~> 1'
-    gem 'dry-container'
   end
 
   appraise 'rails32-mysql2' do
@@ -513,7 +512,6 @@ elsif ruby_version?('2.4')
     gem 'rack'
     gem 'rack-test'
     gem 'hanami', '~> 1'
-    gem 'dry-container'
   end
 
   appraise 'rails5-mysql2' do
@@ -639,7 +637,6 @@ elsif ruby_version?('2.5')
     gem 'rack'
     gem 'rack-test'
     gem 'hanami', '~> 1'
-    gem 'dry-container'
   end
 
   appraise 'rails5-mysql2' do
@@ -896,7 +893,6 @@ elsif ruby_version?('2.6')
       gem 'rack'
       gem 'rack-test'
       gem 'hanami', '~> 1'
-      gem 'dry-container'
     end
 
     appraise 'rails5-mysql2' do
@@ -1127,7 +1123,6 @@ elsif ruby_version?('2.7')
       gem 'rack'
       gem 'rack-test'
       gem 'hanami', '~> 1'
-      gem 'dry-container'
     end
 
     appraise 'rails5-mysql2' do
