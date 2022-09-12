@@ -70,31 +70,8 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it { expect(span.trace_id).not_to be_nil }
 
       it {
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('elasticsearch')
       }
-
-      it {
-        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-          .to eq('query')
-      }
-
-      it_behaves_like 'a peer service span' do
-        let(:peer_hostname) { host }
-      end
-    end
-
-    describe 'health request span' do
-      before do
-        request
-      end
-
-      it { expect(span.name).to eq('elasticsearch.query') }
-      it { expect(span.service).to eq('elasticsearch') }
-      it { expect(span.resource).to eq('GET _cluster/health') }
-      it { expect(span.span_type).to eq('elasticsearch') }
-      it { expect(span.parent_id).not_to be_nil }
-      it { expect(span.trace_id).not_to be_nil }
-
       it {
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
@@ -151,6 +128,9 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
+      it {
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('elasticsearch')
+      }
       it {
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
