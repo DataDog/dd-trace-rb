@@ -62,7 +62,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         it 'produces a trace with service override' do
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_override)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('mysql')
+          expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
         end
       end
@@ -75,7 +75,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('mysql')
+          expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mysql2')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('query')
         end
@@ -98,7 +98,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         it 'traces failed queries' do
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('mysql')
+          expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag('error.msg'))
             .to eq("Unknown column 'INVALID' in 'field list'")
         end
