@@ -60,8 +60,8 @@ Gem::Specification.new do |spec|
   # (https://github.com/ruby-debug/debase-ruby_core_source/pull/6) so we should keep that as a lower bound going
   # forward.
   #
-  # we're pinning it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '= 0.10.16'
+  # We're pinning it at the latest available version and will manually bump the dependency as needed.
+  spec.add_dependency 'debase-ruby_core_source', '>= 0.10.16', '<= 0.10.17'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.3.0.2.0'
