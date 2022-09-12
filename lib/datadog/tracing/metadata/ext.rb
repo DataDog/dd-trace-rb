@@ -47,6 +47,10 @@ module Datadog
         module Distributed
           TAG_ORIGIN = '_dd.origin'
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
+
+          # Trace tags with this prefix will propagate from a trace through distributed tracing.
+          # Distributed headers tags with this prefix will be injected into the active trace.
+          TAGS_PREFIX = '_dd.p.'
         end
 
         # @public_api

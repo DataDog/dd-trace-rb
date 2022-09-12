@@ -95,6 +95,7 @@ module Datadog
             end
 
             # Import `x-datadog-tags` header tags as trace distributed tags.
+            # Only tags that have the `_dd.p.` prefix are processed.
             def extract_tags(headers)
               tags_header = headers.header(HTTP_HEADER_TAGS)
               return unless tags_header
@@ -118,7 +119,8 @@ module Datadog
               end
 
               tags = DatadogTagsCodec.decode(tags_header)
-              tags.select! { |key, _| key.start_with?(VALID_TAGS_KEY_PREFIX) }
+              # Only extract keys with the expected Datadog prefix
+              tags.select! { |key, _| key.start_with?(Ext::TAGS_PREFIX) }
               tags
             rescue => e
               active_trace = Tracing.active_trace
@@ -127,9 +129,6 @@ module Datadog
                 "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
               )
             end
-
-            # Only extract keys with the expected Datadog prefix
-            VALID_TAGS_KEY_PREFIX = '_dd.p.'
           end
         end
       end
