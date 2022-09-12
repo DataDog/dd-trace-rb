@@ -28,6 +28,12 @@ module Datadog
           end: flush.finish.iso8601,
           family: 'ruby',
           version: '4',
+          extra: {
+            ruby_description: RUBY_DESCRIPTION,
+            os: `uname -a`,
+            _profiler_list: 'walltime', # FIXME: Should not be hardcoded
+            _private_test: 'this is a private arg test', # FIXME
+          },
         }
 
         request = Datadog::Core::Vendor::Net::HTTP::Post::Multipart.new(
