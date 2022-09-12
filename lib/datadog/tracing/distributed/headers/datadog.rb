@@ -120,7 +120,7 @@ module Datadog
 
               tags = DatadogTagsCodec.decode(tags_header)
               # Only extract keys with the expected Datadog prefix
-              tags.select! { |key, _| key.start_with?(Ext::TAGS_PREFIX) }
+              tags.select! { |key, _| key.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
               tags
             rescue => e
               active_trace = Tracing.active_trace
