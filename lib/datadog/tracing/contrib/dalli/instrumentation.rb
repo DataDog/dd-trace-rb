@@ -37,6 +37,9 @@ module Datadog
 
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, hostname)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
+
+                span.set_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM, 'memcached')
+
                 cmd = Quantize.format_command(op, args)
                 span.set_tag(Ext::TAG_COMMAND, cmd)
 

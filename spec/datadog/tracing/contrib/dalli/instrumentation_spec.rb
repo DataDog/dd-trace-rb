@@ -51,7 +51,7 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0')
       expect(span.get_tag('out.host')).to eq(test_host)
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
-
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('memcached')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
     end
@@ -86,6 +86,7 @@ RSpec.describe 'Dalli instrumentation' do
         expect(span.get_tag('out.host')).to eq(test_host)
         expect(span.get_tag('out.port')).to eq(test_port.to_f)
 
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM)).to eq('memcached')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
       end
