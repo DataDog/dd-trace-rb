@@ -72,6 +72,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it {
         expect(span.get_tag('db.system')).to eq('elasticsearch')
       }
+
       it {
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
@@ -131,6 +132,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it {
         expect(span.get_tag('db.system')).to eq('elasticsearch')
       }
+
       it {
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('elasticsearch')
       }
