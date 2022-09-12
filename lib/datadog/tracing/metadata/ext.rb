@@ -157,15 +157,6 @@ module Datadog
         end
 
         # @public_api
-        module DB
-          TAG_INSTANCE = 'db.instance'
-          TAG_USER = 'db.user'
-          TAG_SYSTEM = 'db.system'
-          TAG_STATEMENT = 'db.statement'
-          TAG_ROW_COUNT = 'db.row_count'
-        end
-
-        # @public_api
         module SpanKind
           TAG_SERVER = 'server'
           TAG_CLIENT = 'client'
