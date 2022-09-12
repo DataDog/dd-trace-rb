@@ -30,6 +30,8 @@ module Datadog
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = query.to_s
 
+            span.set_tag(Tracing::Metadata::Ext::DB::TAG_SYSTEM, 'mongodb')
+
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
 
