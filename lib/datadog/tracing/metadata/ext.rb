@@ -166,6 +166,11 @@ module Datadog
         end
 
         # @public_api
+        module RPC
+          TAG_SYSTEM = 'rpc.system'
+        end
+
+        # @public_api
         module SpanKind
           TAG_SERVER = 'server'
           TAG_CLIENT = 'client'

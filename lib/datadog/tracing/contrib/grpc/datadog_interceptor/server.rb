@@ -53,6 +53,8 @@ module Datadog
                 span.set_tag(header, value)
               end
 
+              span.set_tag(Tracing::Metadata::Ext::RPC::TAG_SYSTEM, 'grpc')
+
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SERVICE)
 
