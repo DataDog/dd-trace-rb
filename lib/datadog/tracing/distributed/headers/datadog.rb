@@ -57,6 +57,11 @@ module Datadog
             private
 
             # Export trace distributed tags through the `x-datadog-tags` header.
+            #
+            # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
+            # DEV: This means errors cannot be reported if there's not active span.
+            # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
+            # DEV: The same comment applies to the {.extract_tags}.
             def inject_tags(digest, env)
               return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
 
