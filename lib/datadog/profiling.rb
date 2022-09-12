@@ -162,6 +162,7 @@ module Datadog
       require_relative 'profiling/pprof/pprof_pb'
       require_relative 'profiling/tag_builder'
       require_relative 'profiling/http_transport'
+      require_relative 'profiling/http_transport_v24'
 
       true
     end

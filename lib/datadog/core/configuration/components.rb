@@ -320,6 +320,17 @@ module Datadog
           end
 
           def build_profiler_transport(settings, agent_settings)
+            if ENV['DD_PROFILING_V24_HACK'] == 'true'
+              Datadog.logger.warn('Using v2.4 intake hack!')
+
+              return Profiling::HttpTransportV24.new(
+                agent_settings: agent_settings,
+                site: settings.site,
+                api_key: settings.api_key,
+                upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+              )
+            end
+
             settings.profiling.exporter.transport ||
               if settings.profiling.advanced.legacy_transport_enabled
                 require_relative '../../profiling/transport/http'
