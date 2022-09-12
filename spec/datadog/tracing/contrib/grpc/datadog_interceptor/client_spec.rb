@@ -68,13 +68,14 @@ RSpec.describe 'tracing on the client connection' do
   end
 
   shared_examples 'span data contents' do
-    specify { expect(span.name).to eq 'grpc.client' }
-    specify { expect(span.span_type).to eq 'http' }
-    specify { expect(span.service).to eq 'rspec' }
-    specify { expect(span.resource).to eq 'myservice.endpoint' }
-    specify { expect(span.get_tag('grpc.client.deadline')).to be_nil }
-    specify { expect(span.get_tag('error.stack')).to be_nil }
-    specify { expect(span.get_tag('some')).to eq 'datum' }
+    it { expect(span.name).to eq 'grpc.client' }
+    it { expect(span.span_type).to eq 'http' }
+    it { expect(span.service).to eq 'rspec' }
+    it { expect(span.resource).to eq 'myservice.endpoint' }
+    it { expect(span.get_tag('grpc.client.deadline')).to be_nil }
+    it { expect(span.get_tag('error.stack')).to be_nil }
+    it { expect(span.get_tag('some')).to eq 'datum' }
+    it { expect(span.get_tag('rpc.system')).to eq('grpc') }
 
     it 'has component and operation tags' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grpc')
