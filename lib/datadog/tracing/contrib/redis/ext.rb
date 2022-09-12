@@ -19,6 +19,8 @@ module Datadog
           TYPE = 'redis'.freeze
           TAG_COMPONENT = 'redis'.freeze
           TAG_OPERATION_COMMAND = 'command'.freeze
+
+          DB_SYSTEM = 'redis'.freeze
         end
       end
     end
