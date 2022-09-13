@@ -29,7 +29,7 @@ module Datadog
 
         # transport and buffers
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(**transport_options)
+          Transport::HTTP.default(transport_options)
         end
 
         # handles the thread creation after an eventual fork

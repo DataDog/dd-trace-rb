@@ -30,8 +30,8 @@ RSpec.describe Datadog::Tracing::Writer do
 
         context 'and default transport options' do
           it do
-            expect(Datadog::Transport::HTTP).to receive(:default) do |**options|
-              expect(options).to be_empty
+            expect(Datadog::Transport::HTTP).to receive(:default) do |opts|
+              expect(opts).to be_empty
             end
 
             writer
@@ -43,8 +43,8 @@ RSpec.describe Datadog::Tracing::Writer do
           let(:api_version) { double('API version') }
 
           it do
-            expect(Datadog::Transport::HTTP).to receive(:default) do |**options|
-              expect(options).to include(api_version: api_version)
+            expect(Datadog::Transport::HTTP).to receive(:default) do |opts|
+              expect(opts).to include(api_version: api_version)
             end
 
             writer
