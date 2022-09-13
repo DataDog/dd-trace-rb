@@ -23,9 +23,11 @@ module Datadog
 
         def stop_loop
           mutex.synchronize do
-            return false unless run_loop?
+            run_loop = run_loop?
+            @run_loop = false # Always mark loop as stopped, in case worker thread hasn't started yet
 
-            @run_loop = false
+            return false unless run_loop
+
             shutdown.signal
           end
 
@@ -89,7 +91,8 @@ module Datadog
 
         def perform_loop
           mutex.synchronize do
-            return unless run_loop? # Return if thread was stopped before it even started
+            # Check if thread was explicitly stopped before it even started
+            return if instance_variable_defined?(:@run_loop) && !run_loop?
 
             @run_loop = true
 
