@@ -569,8 +569,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
@@ -717,12 +716,11 @@ workflows:
       - orb/build:
           <<: *config-3_2
           name: build-3.2
-      # TODO: Re-enable once 3.2 testing is green!
-      # - orb/test:
-      #     <<: *config-3_2
-      #     name: test-3.2
-      #     requires:
-      #       - build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2_8_0
@@ -773,8 +771,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
@@ -794,8 +791,7 @@ workflows:
             - test-2.7
             - test-3.0
             - test-3.1
-            # TODO: Re-enable once 3.2 testing is green!
-            #- test-3.2
+            - test-3.2
             # ADD NEW RUBIES HERE
             - test-jruby-9.2.8.0
             - test-jruby-9.2-latest
@@ -946,12 +942,11 @@ workflows:
       - orb/build:
           <<: *config-3_2
           name: build-3.2
-      # TODO: Re-enable once 3.2 testing is green!
-      # - orb/test:
-      #     <<: *config-3_2
-      #     name: test-3.2
-      #     requires:
-      #       - build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2_8_0
