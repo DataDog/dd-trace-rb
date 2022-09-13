@@ -282,11 +282,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       it 'produces metrics every interval' do
         worker.perform
 
-        Thread.pass # Let the background thread start
-
         sleep(default_flush_interval * 1.1)
-
-        Thread.pass # Let the background thread run, if it hasn't during the sleep above
 
         # Metrics are produced once right away
         # and again after an interval.
