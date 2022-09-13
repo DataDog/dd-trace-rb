@@ -129,7 +129,7 @@ RSpec.describe 'profiling integration test' do
       before do
         expect(Datadog::Profiling::Encoding::Profile::Protobuf)
           .to receive(:encode)
-          .and_wrap_original do |m, **args|
+          .and_wrap_original do |m, args|
             encoded_pprof = m.call(**args)
 
             event_groups = args.fetch(:event_groups)
