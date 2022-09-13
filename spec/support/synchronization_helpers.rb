@@ -70,10 +70,9 @@ module SynchronizationHelpers
       else
         sleep(backoff)
       end
-      attempts -= 1
-
-      raise('Wait time exhausted!') if attempts <= 0
     end
+
+    raise('Wait time exhausted!')
   end
 
   def test_repeat
