@@ -268,7 +268,7 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
 
   describe 'integration tests', :integration do
     describe 'interval' do
-      let(:default_flush_interval) { 0.5 }
+      let(:default_flush_interval) { 0.1 }
 
       before do
         stub_const(
@@ -282,7 +282,11 @@ RSpec.describe Datadog::Core::Workers::RuntimeMetrics do
       it 'produces metrics every interval' do
         worker.perform
 
-        sleep(default_flush_interval + 0.2)
+        Thread.pass # Let the background thread start
+
+        sleep(default_flush_interval * 1.1)
+
+        Thread.pass # Let the background thread run, if it hasn't during the sleep above
 
         # Metrics are produced once right away
         # and again after an interval.

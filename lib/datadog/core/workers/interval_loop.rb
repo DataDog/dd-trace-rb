@@ -89,6 +89,8 @@ module Datadog
 
         def perform_loop
           mutex.synchronize do
+            return unless run_loop? # Return if thread was stopped before it even started
+
             @run_loop = true
 
             shutdown.wait(mutex, loop_wait_time) if loop_wait_before_first_iteration?
