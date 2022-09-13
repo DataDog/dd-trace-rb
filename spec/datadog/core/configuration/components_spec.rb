@@ -1070,8 +1070,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       it 'creates a scheduler with an HttpTransport' do
-        expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
-          expect(transport).to be_a_kind_of(Datadog::Profiling::HttpTransport)
+        expect(Datadog::Profiling::Scheduler).to receive(:new) do |hash|
+          expect(hash.fetch(:transport)).to be_a_kind_of(Datadog::Profiling::HttpTransport)
         end
 
         build_profiler
@@ -1091,8 +1091,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
       end
 
       it 'initializes the exporter with a code provenance collector' do
-        expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
-          expect(code_provenance_collector).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
+        expect(Datadog::Profiling::Exporter).to receive(:new) do |hash|
+          expect(hash.fetch(:code_provenance_collector)).to be_a_kind_of(Datadog::Profiling::Collectors::CodeProvenance)
         end
 
         build_profiler
@@ -1102,8 +1102,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         before { settings.profiling.advanced.code_provenance_enabled = false }
 
         it 'initializes the exporter with a nil code provenance collector' do
-          expect(Datadog::Profiling::Exporter).to receive(:new) do |code_provenance_collector:, **_|
-            expect(code_provenance_collector).to be nil
+          expect(Datadog::Profiling::Exporter).to receive(:new) do |hash|
+            expect(hash.fetch(:code_provenance_collector)).to be nil
           end
 
           build_profiler
@@ -1124,8 +1124,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         it 'sets up the scheduler to use the custom transport' do
-          expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
-            expect(transport).to be custom_transport
+          expect(Datadog::Profiling::Scheduler).to receive(:new) do |hash|
+            expect(hash.fetch(:transport)).to be custom_transport
           end
 
           build_profiler
