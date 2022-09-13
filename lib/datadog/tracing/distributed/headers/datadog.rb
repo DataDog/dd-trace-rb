@@ -3,6 +3,7 @@
 
 require_relative 'parser'
 require_relative 'ext'
+require_relative '../../metadata/ext'
 require_relative '../../trace_digest'
 require_relative '../datadog_tags_codec'
 
@@ -120,7 +121,7 @@ module Datadog
 
               tags = DatadogTagsCodec.decode(tags_header)
               # Only extract keys with the expected Datadog prefix
-              tags.select! { |key, _| key.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
+              tags.select! { |key, _| key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) }
               tags
             rescue => e
               active_trace = Tracing.active_trace
