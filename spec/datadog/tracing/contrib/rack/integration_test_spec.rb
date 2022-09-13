@@ -113,14 +113,28 @@ RSpec.describe 'Rack integration tests' do
         context 'with query string parameters' do
           let(:route) { '/success?foo=bar' }
 
-          it_behaves_like 'a rack GET 200 span'
+          context 'and default quantization' do
+            let(:rack_options) { super().merge(quantize: {}) }
 
-          it do
-            # Since REQUEST_URI isn't available in Rack::Test by default (comes from WEBrick/Puma)
-            # it reverts to PATH_INFO, which doesn't have query string parameters.
-            expect(span.get_tag('http.url')).to eq('/success?foo')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span).to be_root_span
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.url')).to eq('/success?foo')
+              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span).to be_root_span
+            end
+          end
+
+          context 'and quantization activated for the query' do
+            let(:rack_options) { super().merge(quantize: { query: { show: ['foo'] } }) }
+
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.url')).to eq('/success?foo=bar')
+              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span).to be_root_span
+            end
           end
         end
 
