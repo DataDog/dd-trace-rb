@@ -1415,7 +1415,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
 elsif ruby_version?('3.2')
   appraise 'rails61-mysql2' do
     gem 'rails', '~> 6.1.0'
-    # gem 'mysql2', '~> 0.5', platform: :ruby # broken on Ruby 3.2.0-preview1
+    gem 'mysql2', '~> 0.5', platform: :ruby
     gem 'sprockets', '< 4'
     gem 'lograge', '~> 0.11'
     gem 'net-smtp'
@@ -1491,7 +1491,7 @@ elsif ruby_version?('3.2')
     # gem 'lograge', '~> 0.11'  # creates conflict with qless dependancy on thor ~0.19.1
     gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
-    # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
+    gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
