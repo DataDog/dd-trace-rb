@@ -68,8 +68,8 @@ module Contrib
       config.before do
         # DEV `*_any_instance_of` has concurrency issues when running with parallelism (e.g. JRuby).
         # DEV Single object `allow` and `expect` work as intended with parallelism.
-        allow(Datadog::Tracing::Tracer).to receive(:new).and_wrap_original do |method, *args, &block|
-          instance = method.call(*args, &block)
+        allow(Datadog::Tracing::Tracer).to receive(:new).and_wrap_original do |method, args, &block|
+          instance = method.call(**args, &block)
 
           # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
           write_lock = Mutex.new
