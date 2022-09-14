@@ -117,6 +117,7 @@ module Datadog
           Core::Runtime::Ext::TAG_PID,
           trace.process_id
         )
+        root_span.set_tag(Core::Runtime::Ext::TAG_PROCESS_ID, trace.process_id)
       end
 
       def tag_rate_limiter_rate!
