@@ -74,7 +74,7 @@ module Datadog
         @id = id || Core::Utils.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
-        @sampled = sampled.nil? ? false : sampled
+        @sampled = sampled.nil? ? true : sampled
 
         # Tags
         @agent_sample_rate = agent_sample_rate
