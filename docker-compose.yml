@@ -351,7 +351,7 @@ services:
       - bundle-3.1-arm64:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview1
+    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2
     platform: linux/x86_64
     command: /bin/bash
     depends_on:
@@ -381,7 +381,7 @@ services:
       - bundle-3.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview1_arm64
+    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2_arm64
     command: /bin/bash
     depends_on:
       - ddagent
