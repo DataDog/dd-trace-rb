@@ -15,8 +15,6 @@ module Datadog
           TAG_DB_NAME = 'mysql2.db.name'.freeze
           TAG_COMPONENT = 'mysql2'.freeze
           TAG_OPERATION_QUERY = 'query'.freeze
-
-          DB_SYSTEM = 'mysql'.freeze
         end
       end
     end

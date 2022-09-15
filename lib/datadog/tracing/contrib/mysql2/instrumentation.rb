@@ -3,6 +3,7 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
+require_relative '../ext'
 
 module Datadog
   module Tracing
@@ -23,7 +24,7 @@ module Datadog
                 span.resource = sql
                 span.span_type = Tracing::Metadata::Ext::SQL::TYPE
 
-                span.set_tag(Tracing::Metadata::Ext::DB::TAG_SYSTEM, Ext::DB_SYSTEM)
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Contrib::Ext::DB::MYSQL)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)

@@ -3,6 +3,7 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
+require_relative '../ext'
 require_relative 'quantize'
 
 module Datadog
@@ -38,7 +39,7 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, hostname)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
 
-                span.set_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM, 'memcached')
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Contrib::Ext::DB::MEMCACHED)
 
                 cmd = Quantize.format_command(op, args)
                 span.set_tag(Ext::TAG_COMMAND, cmd)
