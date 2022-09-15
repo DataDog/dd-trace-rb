@@ -23,6 +23,8 @@ module Datadog
         # in the Rack environment so that it can be retrieved by the underlying
         # application. If request tags are not set by the app, they will be set using
         # information available at the Rack level.
+        #
+        # rubocop:disable Metrics/ClassLength
         class TraceMiddleware
           def initialize(app)
             @app = app
@@ -304,6 +306,7 @@ module Datadog
             end
           end
         end
+        # rubocop:enable Metrics/ClassLength
       end
     end
   end
