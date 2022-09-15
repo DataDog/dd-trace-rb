@@ -13,6 +13,12 @@ module Datadog
           TAG_STATEMENT = 'db.statement'
           TAG_ROW_COUNT = 'db.row_count'
         end
+
+        module RPC
+          TAG_SYSTEM = 'rpc.system'
+
+          GRPC = 'grpc'
+        end
       end
     end
   end

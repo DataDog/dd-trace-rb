@@ -6,6 +6,7 @@ require_relative '../../../metadata/ext'
 require_relative '../../../propagation/grpc'
 require_relative '../../analytics'
 require_relative '../ext'
+require_relative '../../ext'
 
 module Datadog
   module Tracing
@@ -53,7 +54,7 @@ module Datadog
                 span.set_tag(header, value)
               end
 
-              span.set_tag(Tracing::Metadata::Ext::RPC::TAG_SYSTEM, 'grpc')
+              span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Contrib::Ext::RPC::GRPC)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SERVICE)
