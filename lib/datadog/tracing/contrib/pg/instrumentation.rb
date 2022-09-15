@@ -98,7 +98,7 @@ module Datadog
 
               span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, db)
               span.set_tag(Contrib::Ext::DB::TAG_USER, user)
-              span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::SPAN_SYSTEM)
+              span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Contrib::Ext::DB::POSTGRESQL)
 
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)

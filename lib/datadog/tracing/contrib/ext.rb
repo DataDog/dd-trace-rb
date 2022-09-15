@@ -16,6 +16,7 @@ module Datadog
           ELASTICSEARCH = 'elasticsearch'
           MEMCACHED = 'memcached'
           MONGODB = 'mongodb'
+          POSTGRESQL = 'postgresql'
           MYSQL = 'mysql'
           REDIS = 'redis'
         end
