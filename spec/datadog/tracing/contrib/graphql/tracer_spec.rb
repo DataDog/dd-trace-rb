@@ -32,13 +32,16 @@ RSpec.describe 'GraphQL patcher' do
     end
 
     describe 'query trace' do
-      subject(:result) { schema.execute(query, variables: {}, context: {}, operation_name: nil) }
-
-      let(:query) { '{ foo(id: 1) { name } }' }
+      subject(:result) { schema.execute(query, variables: {}, context: {}) }
+      let(:operation_name) { 'Bar' }
+      let(:query) { "query #{operation_name} { foo(id: 1) { name } }" }
       let(:variables) { {} }
       let(:context) { {} }
-      let(:operation_name) { nil }
       let(:supports_component_operation_tag?) { Gem::Version.new(GraphQL::VERSION) > Gem::Version.new('2.0.6') }
+      # Update this when released
+      let(:supports_unified_tagging?) do
+        Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new("2.0.14")
+      end
 
       it do
         # Expect no errors
@@ -52,7 +55,8 @@ RSpec.describe 'GraphQL patcher' do
           'execute.graphql',
           'lex.graphql',
           'parse.graphql',
-          'validate.graphql'
+          'validate.graphql',
+          operation_name
         ]
 
         valid_operations = %w[
@@ -86,9 +90,10 @@ RSpec.describe 'GraphQL patcher' do
 
         # Expect root span to be 'execute.graphql'
         expect(root_span.name).to eq('execute.graphql')
-        expect(root_span.resource).to eq('execute.graphql')
+        expect(root_span.resource).to eq(operation_name)
         if supports_component_operation_tag?
           expect(root_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('graphql')
+          expect(root_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('execute_multiplex')
         end
 
         # TODO: Assert GraphQL root span sets analytics sample rate.
@@ -102,6 +107,24 @@ RSpec.describe 'GraphQL patcher' do
           if supports_component_operation_tag?
             expect(valid_operations).to include(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           end
+        end
+
+        validate_span = spans.find {|s| s.name == 'validate.graphql' }
+        parse_span = spans.find {|s| s.name == 'parse.graphql' }
+        execute_spans = spans.select do |s|
+          s.name == 'execute.graphql' &&
+            s.resource == 'execute.graphql' &&
+            s.get_tag('operation') == 'execute_query'
+        end
+
+        if supports_unified_tagging?
+          expect(validate_span.get_tag('graphql.source')).to eq(query)
+          expect(parse_span.get_tag('graphql.source')).to eq(query)
+        end
+
+        execute_spans.each do |s|
+          expect(s.get_tag('graphql.operation.type')).to eq('query')
+          expect(s.get_tag('graphql.operation.name')).to eq(operation_name)
         end
       end
     end
