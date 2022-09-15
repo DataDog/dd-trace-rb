@@ -40,7 +40,7 @@ RSpec.describe 'GraphQL patcher' do
       let(:supports_component_operation_tag?) { Gem::Version.new(GraphQL::VERSION) > Gem::Version.new('2.0.6') }
       # Update this when released
       let(:supports_unified_tagging?) do
-        Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new("2.0.14")
+        Gem::Version.new(GraphQL::VERSION) >= Gem::Version.new('2.0.14')
       end
 
       it do
@@ -109,8 +109,8 @@ RSpec.describe 'GraphQL patcher' do
           end
         end
 
-        validate_span = spans.find {|s| s.name == 'validate.graphql' }
-        parse_span = spans.find {|s| s.name == 'parse.graphql' }
+        validate_span = spans.find { |s| s.name == 'validate.graphql' }
+        parse_span = spans.find { |s| s.name == 'parse.graphql' }
         execute_spans = spans.select do |s|
           s.name == 'execute.graphql' &&
             s.resource == 'execute.graphql' &&
