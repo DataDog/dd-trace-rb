@@ -2,14 +2,14 @@ require 'redis'
 require 'resque'
 require 'json'
 
-Resque.redis = Redis.new(url: ENV.fetch('REDIS_URL'), thread_safe: true)
+Resque.redis = Redis.new(url: ENV.fetch('REDIS_URL'))
 
 # To exercise resque, this class allows us to write some key and value to redis asynchronously (in a background job)
 # and to read it synchronously (so we can return its value easily in a web request).
 # This way we can simulate the full cycle of submitting something to resque, having it be executed, and its result be
 # observable.
 class ResqueBackgroundJob
-  REDIS = Redis.new(url: ENV.fetch('REDIS_URL'), thread_safe: true)
+  REDIS = Redis.new(url: ENV.fetch('REDIS_URL'))
 
   @queue = :resque_testing
 

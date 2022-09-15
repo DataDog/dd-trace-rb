@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.4.1] - 2022-09-15
+
+### Fixed
+
+* Missing distributed traces when trace is dropped by priority sampling ([#2101][], [#2279][])
+* Profiling support when Ruby is compiled without a shared library ([#2250][])
+
 ## [1.4.0] - 2022-08-25
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.4.0
@@ -2090,7 +2097,11 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.1.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.1...master
+[1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta2...v1.0.0
 [1.0.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta1...v1.0.0.beta2
@@ -2950,6 +2961,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2082]: https://github.com/DataDog/dd-trace-rb/issues/2082
 [#2096]: https://github.com/DataDog/dd-trace-rb/issues/2096
 [#2097]: https://github.com/DataDog/dd-trace-rb/issues/2097
+[#2101]: https://github.com/DataDog/dd-trace-rb/issues/2101
 [#2110]: https://github.com/DataDog/dd-trace-rb/issues/2110
 [#2113]: https://github.com/DataDog/dd-trace-rb/issues/2113
 [#2118]: https://github.com/DataDog/dd-trace-rb/issues/2118
@@ -2970,6 +2982,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2201]: https://github.com/DataDog/dd-trace-rb/issues/2201
 [#2219]: https://github.com/DataDog/dd-trace-rb/issues/2219
 [#2229]: https://github.com/DataDog/dd-trace-rb/issues/2229
+[#2250]: https://github.com/DataDog/dd-trace-rb/issues/2250
+[#2279]: https://github.com/DataDog/dd-trace-rb/issues/2279
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
