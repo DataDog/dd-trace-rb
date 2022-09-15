@@ -1368,7 +1368,8 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'ethon'
     gem 'excon'
     gem 'grape'
-    gem 'graphql', '>= 2.0'
+    # gem 'graphql', '>= 2.0'
+    gem 'graphql', git: 'https://github.com/TonyCTHsu/graphql-ruby.git', branch: 'datadog/unified-tagging'
     gem 'grpc', '>= 1.38.0' # Minimum version with Ruby 3.0 support
     gem 'hiredis'
     gem 'http'
