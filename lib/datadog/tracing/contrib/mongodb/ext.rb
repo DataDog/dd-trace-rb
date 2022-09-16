@@ -20,6 +20,12 @@ module Datadog
           TAG_ROWS = 'mongodb.rows'.freeze
           TAG_COMPONENT = 'mongodb'.freeze
           TAG_OPERATION_COMMAND = 'command'.freeze
+
+          # Temporary namespace to accommodate unified tags which has naming collision, before
+          # making breaking changes
+          module DB
+            TAG_COLLECTION = 'db.mongodb.collection'.freeze
+          end
         end
       end
     end
