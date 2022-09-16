@@ -18,6 +18,8 @@ RSpec.describe 'Rack integration tests' do
     end
   end
 
+  after { Datadog.registry[:rack].reset_configuration! }
+
   context 'for an application' do
     let(:app) do
       app_routes = routes
