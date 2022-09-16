@@ -37,7 +37,7 @@ module Datadog
             def annotate!(trace, span, metadata, call)
               span.set_tags(metadata)
 
-              span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Contrib::Ext::RPC::GRPC)
+              span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CLIENT)

@@ -16,8 +16,8 @@ module Datadog
 
         module RPC
           TAG_SYSTEM = 'rpc.system'
-
-          GRPC = 'grpc'
+          TAG_SERVICE = 'rpc.service'
+          TAG_METHOD = 'rpc.method'
         end
       end
     end
