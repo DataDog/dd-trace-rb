@@ -24,7 +24,7 @@ module Datadog
                 span.resource = sql
                 span.span_type = Tracing::Metadata::Ext::SQL::TYPE
 
-                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Contrib::Ext::DB::MYSQL)
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                 span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)

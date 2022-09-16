@@ -19,6 +19,8 @@ module Datadog
           TAG_URL = 'elasticsearch.url'.freeze
           TAG_COMPONENT = 'elasticsearch'.freeze
           TAG_OPERATION_QUERY = 'query'.freeze
+
+          TAG_SYSTEM = 'elasticsearch'.freeze
         end
       end
     end

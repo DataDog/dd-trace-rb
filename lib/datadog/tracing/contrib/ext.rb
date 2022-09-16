@@ -12,13 +12,6 @@ module Datadog
           TAG_SYSTEM = 'db.system'
           TAG_STATEMENT = 'db.statement'
           TAG_ROW_COUNT = 'db.row_count'
-
-          ELASTICSEARCH = 'elasticsearch'
-          MEMCACHED = 'memcached'
-          MONGODB = 'mongodb'
-          POSTGRESQL = 'postgresql'
-          MYSQL = 'mysql'
-          REDIS = 'redis'
         end
       end
     end

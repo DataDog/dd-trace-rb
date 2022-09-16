@@ -20,6 +20,7 @@ module Datadog
           TAG_ROWS = 'mongodb.rows'.freeze
           TAG_COMPONENT = 'mongodb'.freeze
           TAG_OPERATION_COMMAND = 'command'.freeze
+          TAG_SYSTEM = 'mongodb'.freeze
         end
       end
     end

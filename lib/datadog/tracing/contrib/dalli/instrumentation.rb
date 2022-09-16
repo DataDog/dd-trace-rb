@@ -39,7 +39,7 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, hostname)
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
 
-                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Contrib::Ext::DB::MEMCACHED)
+                span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                 cmd = Quantize.format_command(op, args)
                 span.set_tag(Ext::TAG_COMMAND, cmd)

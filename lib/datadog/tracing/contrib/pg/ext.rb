@@ -23,6 +23,8 @@ module Datadog
           TAG_DB_NAME = 'pg.db.name'.freeze
           TAG_COMPONENT = 'pg'.freeze
           TAG_OPERATION_QUERY = 'query'.freeze
+
+          TAG_SYSTEM = 'postgresql'.freeze
         end
       end
     end
