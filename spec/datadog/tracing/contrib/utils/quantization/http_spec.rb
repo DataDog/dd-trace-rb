@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         it { is_expected.to eq('http://example.com/path') }
       end
 
-      context 'with show: :all' do
+      context 'with fragment: :show' do
         let(:options) { { fragment: :show } }
 
         it { is_expected.to eq('http://example.com/path?category_id&sort_by#featured') }
