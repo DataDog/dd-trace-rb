@@ -53,6 +53,18 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         it { is_expected.to eq('http://example.com/path?category_id&sort_by#featured') }
       end
 
+      context 'with base: :show' do
+        let(:options) { { base: :show } }
+
+        it { is_expected.to eq('http://example.com/path?category_id&sort_by') }
+      end
+
+      context 'with base: :exclude' do
+        let(:options) { { base: :exclude } }
+
+        it { is_expected.to eq('/path?category_id&sort_by') }
+      end
+
       context 'with Unicode characters' do
         # URLs do not permit unencoded non-ASCII characters in the URL.
         let(:url) { 'http://example.com/path?繋がってて' }

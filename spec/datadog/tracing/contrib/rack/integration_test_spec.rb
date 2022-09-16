@@ -101,10 +101,24 @@ RSpec.describe 'Rack integration tests' do
 
           it_behaves_like 'a rack GET 200 span'
 
-          it do
-            expect(span.get_tag('http.url')).to eq('/success/')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span).to be_root_span
+          context 'and default quantization' do
+            let(:rack_options) { super().merge(quantize: {}) }
+
+            it do
+              expect(span.get_tag('http.url')).to eq('/success/')
+              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span).to be_root_span
+            end
+          end
+
+          context 'and quantization activated for URL base' do
+            let(:rack_options) { super().merge(quantize: { base: :show }) }
+
+            it do
+              expect(span.get_tag('http.url')).to eq('http://example.org/success/')
+              expect(span.get_tag('http.base_url')).to be_nil
+              expect(span).to be_root_span
+            end
           end
 
           it { expect(trace.resource).to eq('GET 200') }

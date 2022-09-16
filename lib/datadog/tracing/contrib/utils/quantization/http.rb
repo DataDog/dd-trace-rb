@@ -43,7 +43,7 @@ module Datadog
                 # Remove any URI fragments
                 uri.fragment = nil unless options[:fragment] == :show
 
-                unless options[:base] == :show
+                if options[:base] == :exclude
                   uri.host = nil
                   uri.port = nil
                   uri.scheme = nil

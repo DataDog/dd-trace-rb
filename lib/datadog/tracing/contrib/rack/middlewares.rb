@@ -169,7 +169,10 @@ module Datadog
             url = parse_url(env, original_env)
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_URL).nil?
-              options = configuration[:quantize]
+              options = configuration[:quantize] || {}
+
+              # Quantization::HTTP.url base defaults to :show, but we are transitioning
+              options[:base] ||= :exclude
 
               request_span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_URL,
