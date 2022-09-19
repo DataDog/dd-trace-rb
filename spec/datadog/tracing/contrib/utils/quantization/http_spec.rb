@@ -71,6 +71,27 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
         it { is_expected.to eq(described_class::PLACEHOLDER) }
       end
+
+      context 'with internal obfuscation and the default replacement' do
+        let(:url) { 'http://example.com/path?password=hunter2' }
+        let(:options) { { query: { obfuscate: :internal } } }
+
+        it { is_expected.to eq('http://example.com/path?%3Credacted%3E') }
+      end
+
+      context 'with internal obfuscation and a custom replacement' do
+        let(:url) { 'http://example.com/path?password=hunter2' }
+        let(:options) { { query: { obfuscate: { with: 'NOPE' } } } }
+
+        it { is_expected.to eq('http://example.com/path?NOPE') }
+      end
+
+      context 'with custom obfuscation and a custom replacement' do
+        let(:url) { 'http://example.com/path?password=hunter2&foo=42' }
+        let(:options) { { query: { obfuscate: { regex: /foo=\w+/, with: 'NOPE' } } } }
+
+        it { is_expected.to eq('http://example.com/path?password=hunter2&NOPE') }
+      end
     end
   end
 
@@ -269,6 +290,108 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
             it { is_expected.to eq('users[][id]') }
           end
+        end
+      end
+
+      context 'and an obfuscate: :internal option' do
+        context 'with a non-matching substring' do
+          let(:query) { 'foo=foo' }
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('foo=foo') }
+        end
+
+        context 'with a matching substring at the beginning' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('<redacted>&key2=val2&key3=val3') }
+        end
+
+        context 'with a matching substring in the middle' do
+          let(:query) { 'key1=val1&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3' }
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('key1=val1&<redacted>&key3=val3') }
+        end
+
+        context 'with a matching substring at the end' do
+          let(:query) { 'key1=val1&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934' }
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('key1=val1&key2=val2&<redacted>') }
+        end
+
+        context 'with multiple matching substrings' do
+          let(:query) { 'key1=val1&pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3&json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' }
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('key1=val1&<redacted>&key2=val2&<redacted>&<redacted>&key3=val3&json=%7B%20%22<redacted>%7D') }
+        end
+
+        context 'with a matching, URL-encoded JSON substring' do
+          let(:query) { 'json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' }
+          let(:options) { { obfuscate: :internal } }
+
+          it { is_expected.to eq('json=%7B%20%22<redacted>%7D') }
+        end
+
+        context 'with a reduced show option overlapping with a potential obfuscation match' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { show: ['pass', 'key2'], obfuscate: :internal } }
+
+          it { is_expected.to eq('<redacted>&key2=val2&key3') }
+        end
+
+        context 'with a reduced show option distinct from a potentail obfuscation match' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { show: ['key2'], obfuscate: :internal } }
+
+          it { is_expected.to eq('pass&key2=val2&key3') }
+        end
+
+        context 'with an exclude option overlapping with a potential obfuscation match' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { exclude: ['key2'], obfuscate: :internal } }
+
+          it { is_expected.to eq('<redacted>&key3=val3') }
+        end
+
+        context 'with an exclude option distinct from a potential obfuscation match' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { exclude: ['pass'], obfuscate: :internal } }
+
+          it { is_expected.to eq('key2=val2&key3=val3') }
+        end
+      end
+
+      context 'and an obfuscate with custom options' do
+        context 'with regex: :internal' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { obfuscate: { regex: :internal } } }
+
+          it { is_expected.to eq('<redacted>&key2=val2&key3=val3') }
+        end
+
+        context 'with a custom regex' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { obfuscate: { regex: /key2=[^&]+/ } } }
+
+          it { is_expected.to eq('pass=03cb9f67-dbbc-4cb8-b966-329951e10934&<redacted>&key3=val3') }
+        end
+
+        context 'with a custom replacement' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { obfuscate: { with: 'NOPE' } } }
+
+          it { is_expected.to eq('NOPE&key2=val2&key3=val3') }
+        end
+
+        context 'with an empty replacement' do
+          let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
+          let(:options) { { obfuscate: { with: '' } } }
+
+          it { is_expected.to eq('&key2=val2&key3=val3') }
         end
       end
     end

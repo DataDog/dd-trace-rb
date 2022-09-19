@@ -1526,11 +1526,16 @@ run app
 | `quantize.query` | Hash containing options for query portion of URL quantization. May include `:show` or `:exclude`. See options below. Option must be nested inside the `quantize` option. | `{}` |
 | `quantize.query.show` | Defines which values should always be shown. Shows no values by default. May be an Array of strings, or `:all` to show all values. Option must be nested inside the `query` option. | `nil` |
 | `quantize.query.exclude` | Defines which values should be removed entirely. Excludes nothing by default. May be an Array of strings, or `:all` to remove the query string entirely. Option must be nested inside the `query` option. | `nil` |
+| `quantize.query.obfuscate` | Defines query string redaction behaviour. Redacts nothing by default. May be a hash of options, or `:internal` to use the default internal obfuscation settings. Note that obfuscation is a string-wise operation, not a key-value operation. When enabled, `query.show` defaults to `:all` if otherwise unset. Option must be nested inside the `query` option. | `nil` |
+| `quantize.query.obfuscate.with` | Defines with which string matches should be redacted. May be a String. Option must be nested inside the `query.obfuscate` option. | `'<redacted>'` |
+| `quantize.query.obfuscate.regex` | Defines the regex with which the query string will be redacted. May be a Regexp, or `:internal` to use the default internal Regexp, which redacts well-known sensitive data. Each match is redacted entirely by replacing it with `query.obfuscate.with`. Option must be nested inside the `query.obfuscate` option. | `:internal` |
 | `quantize.fragment` | Defines behavior for URL fragments. Removes fragments by default. May be `:show` to show URL fragments. Option must be nested inside the `quantize` option. | `nil` |
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
-Deprecation notice: `quantize.base` will change its default from `:exclude` to `:show` in a future version. Voluntarily moving to `:show` is recommended.
+Deprecation notice:
+- `quantize.base` will change its default from `:exclude` to `:show` in a future version. Voluntarily moving to `:show` is recommended.
+- `quantize.query.show` will change its default to `:all` in a future version, together with `quantize.query.obfuscate` changing to `:internal`. Voluntarily moving to these future values is recommended.
 
 **Configuring URL quantization behavior**
 
@@ -1567,6 +1572,14 @@ Datadog.configure do |c|
   # Show URL fragments
   # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id&sort_by#featured
   c.tracing.instrument :rack, quantize: { fragment: :show }
+
+  # Obfuscate query string, defaulting to showing all values
+  # http://example.com/path?password=qwerty&sort_by=asc#featured --> /path?<redacted>&sort_by=asc
+  c.tracing.instrument :rack, quantize: { query: { obfuscate: {} } }
+
+  # Obfuscate query string using the provided regex, defaulting to showing all values
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?<redacted>&sort_by=asc
+  c.tracing.instrument :rack, quantize: { query: { obfuscate: { regex: /category_id=\d+/ } } }
 end
 ```
 
