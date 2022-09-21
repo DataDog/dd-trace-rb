@@ -338,6 +338,8 @@ RSpec.describe 'Tracer integration tests' do
         c.tracing.priority_sampling = priority_sampling if priority_sampling
       end
 
+      WebMock.enable!
+
       trace # Run test subject
       tracer.shutdown! # Ensure trace is flushed, so we can read writer statistics
     end
@@ -366,6 +368,7 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     after do
+      WebMock.disable!
       Datadog.configuration.tracing.sampling.reset!
     end
 
