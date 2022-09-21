@@ -77,7 +77,8 @@ RSpec.configure do |config|
   end
 
   config.mock_with :rspec do |mocks|
-    mocks.verify_partial_doubles = true
+    # FIXME: testing Ruby 3.2 workaround, see https://github.com/rspec/rspec-mocks/issues/1486
+    mocks.verify_partial_doubles = RUBY_VERSION < '3.2'
   end
 
   config.shared_context_metadata_behavior = :apply_to_host_groups
