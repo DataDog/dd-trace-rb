@@ -175,6 +175,13 @@ module Datadog
           end
         end
       end
+
+      private
+
+      def reset_stats!
+        @traces_flushed = 0
+        @transport.stats.reset!
+      end
     end
   end
 end

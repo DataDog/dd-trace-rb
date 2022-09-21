@@ -48,7 +48,7 @@ module Datadog
                                nil
                              else
                                # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
-                               RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags[:env] })
+                               RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
                              end
         end
 

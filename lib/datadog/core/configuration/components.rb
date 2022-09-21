@@ -182,6 +182,8 @@ module Datadog
 
               next unless response && !response.internal_error? && response.service_rates
 
+              Datadog.logger.debug { "Agent service rates updated:#{response.service_rates}" }
+
               sampler.update(response.service_rates)
             end
           end

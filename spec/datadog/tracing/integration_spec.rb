@@ -24,9 +24,31 @@ RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
     before do
       skip unless ENV['TEST_DATADOG_INTEGRATION']
+
+      # Ensure background Writer worker doesn't wait, making tests faster.
+      stub_const('Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL', 0)
+
+      # Capture trace segments as they are about to be serialized
+      segments = trace_segments
+      allow_any_instance_of(Datadog::Transport::TraceFormatter)
+        .to receive(:format!).and_wrap_original do |original|
+          segments << original.call
+        end
     end
 
-    let(:tracer) { Datadog::Tracing.send(:tracer) }
+    def tracer
+      # Do not cache tracer object in a `let`, as trace is recreated on `Datadog.configure`
+      Datadog::Tracing.send(:tracer)
+    end
+
+    let(:trace_segments) { [] }
+    let(:span) do
+      expect(trace_segments).to have(1).item
+      expect(trace_segments[0].spans).to have(1).item
+
+      trace_segments[0].spans[0]
+    end
+    let(:sampling_priority) { span.get_tag('_sampling_priority_v1') }
   end
 
   shared_examples 'flushed trace' do
@@ -43,6 +65,10 @@ RSpec.describe 'Tracer integration tests' do
 
   shared_examples 'flushed no trace' do
     it { expect(stats).to include(traces_flushed: 0) }
+  end
+
+  shared_examples 'priority sampled' do |expected|
+    it { expect(sampling_priority).to eq(expected) }
   end
 
   after { tracer.shutdown! }
@@ -312,13 +338,6 @@ RSpec.describe 'Tracer integration tests' do
         c.tracing.priority_sampling = priority_sampling if priority_sampling
       end
 
-      # Capture trace segments as they are about to be serialized
-      allow_any_instance_of(Datadog::Transport::Traces::Transport)
-        .to receive(:send_traces).and_wrap_original do |function, traces|
-          trace_segments.concat(traces)
-          function.call(traces)
-        end
-
       trace # Run test subject
       tracer.shutdown! # Ensure trace is flushed, so we can read writer statistics
     end
@@ -575,6 +594,81 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].client_error).to eq(0)
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
+      end
+    end
+
+    context 'with agent rates' do
+      before do
+        WebMock.enable!
+        stub_request(:post, %r{/v0.4/traces}).to_return(status: 200, body: service_rates.to_json)
+      end
+
+      after { WebMock.disable! }
+
+      let(:service_rates) { { rate_by_service: { 'service:kept,env:' => 1.0, 'service:dropped,env:' => Float::MIN } } }
+
+      let(:set_agent_rates!) do
+        # Send span to receive response from "agent" with mocked service rates above.
+        tracer.trace('send_trace_to_fetch_service_rates') {}
+        try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+
+        # Reset stats and collected segments before test starts
+        tracer.writer.send(:reset_stats!)
+        trace_segments.clear
+      end
+
+      context 'without DD_ENV set' do
+        before { set_agent_rates! }
+
+        context 'with a kept trace' do
+          before do
+            tracer.trace('kept.span', service: 'kept') {}
+            try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+          end
+
+          it_behaves_like 'priority sampled', 1.0
+        end
+
+        context 'with a dropped span' do
+          before do
+            tracer.trace('dropped.span', service: 'dropped') {}
+            try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+          end
+
+          it_behaves_like 'priority sampled', 0.0
+        end
+      end
+
+      context 'with DD_ENV set' do
+        before do
+          Datadog.configure do |c|
+            c.env = 'test'
+          end
+
+          set_agent_rates!
+        end
+
+        let(:service_rates) do
+          { rate_by_service: { 'service:kept,env:test' => 1.0, 'service:dropped,env:' => Float::MIN } }
+        end
+
+        context 'with a span matching the environment rates' do
+          before do
+            tracer.trace('kept.span', service: 'kept') {}
+            try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+          end
+
+          it_behaves_like 'priority sampled', 1.0
+        end
+
+        context 'with a span not matching the environment rates' do
+          before do
+            tracer.trace('kept.span', service: 'kept', tags: { 'env' => 'not-right' }) {}
+            try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+          end
+
+          it_behaves_like 'priority sampled', 1.0
+        end
       end
     end
   end
