@@ -716,24 +716,19 @@ RSpec.describe 'Tracer integration tests' do
     end
 
     it do
-      3.times do |i|
-        tracer.trace('parent_span') do
-          tracer.trace('child_span') do |_span, trace|
-            # I want to keep the trace to which `child_span` belongs
-            trace.sampling_priority = i
-          end
-        end
-
-        try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
-        stats = tracer.writer.stats
-
-        expect(stats[:traces_flushed]).to eq(1)
-        expect(stats[:transport].client_error).to eq(0)
-        expect(stats[:transport].server_error).to eq(0)
-        expect(stats[:transport].internal_error).to eq(0)
-
-        expect(out).to have_received(:puts)
+      tracer.trace('parent_span') do
+        tracer.trace('child_span') {}
       end
+
+      try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+      stats = tracer.writer.stats
+
+      expect(stats[:traces_flushed]).to eq(1)
+      expect(stats[:transport].client_error).to eq(0)
+      expect(stats[:transport].server_error).to eq(0)
+      expect(stats[:transport].internal_error).to eq(0)
+
+      expect(out).to have_received(:puts)
     end
   end
 
