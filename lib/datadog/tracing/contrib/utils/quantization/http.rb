@@ -121,7 +121,42 @@ module Datadog
             private_class_method :obfuscate_query
 
             OBFUSCATOR_WITH = '<redacted>'.freeze
-            OBFUSCATOR_REGEX = /(?i)(?:p(?:ass)?w(?:or)?d|pass(?:_?phrase)?|secret|(?:api_?|private_?|public_?|access_?|secret_?)key(?:_?id)?|token|consumer_?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?)(?:(?:\s|%20)*(?:=|%3D)[^&]+|(?:"|%22)(?:\s|%20)*(?::|%3A)(?:\s|%20)*(?:"|%22)(?:%2[^2]|%[^2]|[^"%])+(?:"|%22))|bearer(?:\s|%20)+[a-z0-9\._\-]+|token(?::|%3A)[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L](?:[\w=-]|%3D)+\.ey[I-L](?:[\w=-]|%3D)+(?:\.(?:[\w.+\/=-]|%3D|%2F|%2B)+)?|[\-]{5}BEGIN(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY[\-]{5}[^\-]+[\-]{5}END(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY|ssh-rsa(?:\s|%20)*(?:[a-z0-9\/\.+]|%2F|%5C|%2B){100,}/
+            OBFUSCATOR_REGEX = %r{
+              (?: # common keys
+                 p(?:ass)?w(?:or)?d # pw, password variants
+                |pass(?:_?phrase)?  # pass, passphrase variants
+                |secret
+                |(?: # key, key_id variants
+                     api_?
+                    |private_?
+                    |public_?
+                    |access_?
+                    |secret_?
+                 )key(?:_?id)?
+                |token
+                |consumer_?(?:id|key|secret)
+                |sign(?:ed|ature)?
+                |auth(?:entication|orization)?
+              )
+              (?:
+                 # '=' query string separator, plus value til next '&' separator
+                 (?:\s|%20)*(?:=|%3D)[^&]+
+                 # JSON-ish '": "somevalue"', key being handled with case above, without the opening '"'
+                |(?:"|%22)                                     # closing '"' at end of key
+                 (?:\s|%20)*(?::|%3A)(?:\s|%20)*               # ':' key-value spearator, with surrounding spaces
+                 (?:"|%22)                                     # opening '"' at start of value
+                 (?:%2[^2]|%[^2]|[^"%])+                       # value
+                 (?:"|%22)                                     # closing '"' at end of value
+              )
+             |(?: # other common secret values
+                 bearer(?:\s|%20)+[a-z0-9._\-]+
+                |token(?::|%3A)[a-z0-9]{13}
+                |gh[opsu]_[0-9a-zA-Z]{36}
+                |ey[I-L](?:[\w=-]|%3D)+\.ey[I-L](?:[\w=-]|%3D)+(?:\.(?:[\w.+/=-]|%3D|%2F|%2B)+)?
+                |-{5}BEGIN(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY-{5}[^\-]+-{5}END(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY
+                |ssh-rsa(?:\s|%20)*(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}
+              )
+            }ix.freeze
           end
         end
       end
