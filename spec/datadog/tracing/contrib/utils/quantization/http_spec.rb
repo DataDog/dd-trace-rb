@@ -430,7 +430,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
     ]
 
     value_matches = {
-      'OpenSSH RSA private key' => <<-DUMMY,
+      'OpenSSH RSA private key' => <<~DUMMY.chomp,
       -----BEGIN OPENSSH PRIVATE KEY-----
       b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAABlwAAAAdzc2gtcn
       NhAAAAAwEAAQAAAYEAsZH8CwhvSFt9sDfnW8rNST9akUwPUEZ/F52Xa+SK8+8hlwpD46+3
