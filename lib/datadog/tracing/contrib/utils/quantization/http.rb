@@ -122,6 +122,9 @@ module Datadog
 
             OBFUSCATOR_WITH = '<redacted>'.freeze
             OBFUSCATOR_REGEX = %r{
+              (?: # JSON-ish leading quote
+                 (?:"|%22)?
+              )
               (?: # common keys
                  p(?:ass)?w(?:or)?d # pw, password variants
                 |pass(?:_?phrase)?  # pass, passphrase variants
