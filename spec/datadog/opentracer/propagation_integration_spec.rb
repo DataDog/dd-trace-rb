@@ -182,19 +182,23 @@ RSpec.describe 'OpenTracer context propagation' do
       it { expect(@destination_scope.span.context.baggage).to include(baggage) }
 
       it do
-        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID]).to eq origin_datadog_span.trace_id
-        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID]).to eq origin_datadog_span.span_id
-        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq 1
-        expect(@origin_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
-        expect(@origin_carrier['ot-baggage-account_name']).to eq 'acme'
+        expect(@origin_carrier).to include(
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => origin_datadog_span.trace_id,
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => origin_datadog_span.span_id,
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => 1,
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'ot-baggage-account_name' => 'acme'
+        )
       end
 
       it do
-        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID]).to eq intermediate_datadog_span.trace_id
-        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID]).to eq intermediate_datadog_span.span_id
-        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq 1
-        expect(@intermediate_carrier[Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
-        expect(@intermediate_carrier['ot-baggage-account_name']).to eq 'acme'
+        expect(@intermediate_carrier).to include(
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_TRACE_ID => intermediate_datadog_span.trace_id,
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_PARENT_ID => intermediate_datadog_span.span_id,
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_SAMPLING_PRIORITY => 1,
+          Datadog::OpenTracer::TextMapPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'ot-baggage-account_name' => 'acme'
+        )
       end
     end
   end
@@ -312,7 +316,6 @@ RSpec.describe 'OpenTracer context propagation' do
       let(:destination_datadog_trace) { datadog_traces.find { |x| x.name == destination_span_name } }
       let(:destination_datadog_span) { datadog_spans.find { |x| x.name == destination_span_name } }
 
-
       # NOTE: If these baggage names include either dashes or uppercase characters
       #       they will not make a round-trip with the same key format. They will
       #       be converted to underscores and lowercase characters, because Rack
@@ -375,19 +378,23 @@ RSpec.describe 'OpenTracer context propagation' do
       it { expect(@destination_scope.span.context.baggage).to include(baggage) }
 
       it do
-        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID]).to eq origin_datadog_span.trace_id.to_s
-        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID]).to eq origin_datadog_span.span_id.to_s
-        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq '1'
-        expect(@origin_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
-        expect(@origin_carrier['ot-baggage-account_name']).to eq 'acme'
+        expect(@origin_carrier).to include(
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => origin_datadog_span.trace_id.to_s,
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => origin_datadog_span.span_id.to_s,
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => '1',
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'ot-baggage-account_name' => 'acme'
+        )
       end
 
       it do
-        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID]).to eq intermediate_datadog_span.trace_id.to_s
-        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID]).to eq intermediate_datadog_span.span_id.to_s
-        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY]).to eq '1'
-        expect(@intermediate_carrier[Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN]).to eq 'synthetics'
-        expect(@intermediate_carrier['ot-baggage-account_name']).to eq 'acme'
+        expect(@intermediate_carrier).to include(
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_TRACE_ID => intermediate_datadog_span.trace_id.to_s,
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_PARENT_ID => intermediate_datadog_span.span_id.to_s,
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_SAMPLING_PRIORITY => '1',
+          Datadog::OpenTracer::RackPropagator::HTTP_HEADER_ORIGIN => 'synthetics',
+          'ot-baggage-account_name' => 'acme'
+        )
       end
     end
   end
