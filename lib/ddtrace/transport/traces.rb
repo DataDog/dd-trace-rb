@@ -101,6 +101,8 @@ module Datadog
           # Make the trace serializable
           serializable_trace = SerializableTrace.new(trace)
 
+          Datadog.logger.debug { "Flushing trace: #{JSON.dump(serializable_trace)}" }
+
           # Encode the trace
           encoder.encode(serializable_trace)
         end
