@@ -151,12 +151,10 @@ module Datadog
           tags: tags || {}
         )
 
-        # Build or extend the OpenTracer::SpanContext
-        span_context = if parent_span_context
-                         SpanContextFactory.clone(span_context: parent_span_context)
-                       else
-                         SpanContextFactory.build(datadog_context: datadog_context)
-                       end
+        span_context =  SpanContextFactory.build(
+                          datadog_context: datadog_context || datadog_tracer.send(:call_context),
+                          baggage: parent_span_context ? parent_span_context.baggage.dup : {}
+                        )
 
         # Wrap the Datadog span and OpenTracer::Span context in a OpenTracer::Span
         Span.new(datadog_span: datadog_span, span_context: span_context)
