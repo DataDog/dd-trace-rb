@@ -22,13 +22,13 @@ struct sampling_buffer {
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
-  ddprof_ffi_Location *locations;
-  ddprof_ffi_Line *lines;
+  ddog_Location *locations;
+  ddog_Line *lines;
 }; // Note: typedef'd in the header to sampling_buffer
 
 static VALUE _native_sample(VALUE self, VALUE thread, VALUE recorder_instance, VALUE metric_values_hash, VALUE labels_array, VALUE max_frames);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels);
+static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -64,12 +64,12 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
   }
 
   long labels_count = RARRAY_LEN(labels_array);
-  ddprof_ffi_Label labels[labels_count];
+  ddog_Label labels[labels_count];
 
   for (int i = 0; i < labels_count; i++) {
     VALUE key_str_pair = rb_ary_entry(labels_array, i);
 
-    labels[i] = (ddprof_ffi_Label) {
+    labels[i] = (ddog_Label) {
       .key = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 0)),
       .str = char_slice_from_ruby_string(rb_ary_entry(key_str_pair, 1))
     };
@@ -84,8 +84,8 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
     thread,
     buffer,
     recorder_instance,
-    (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-    (ddprof_ffi_Slice_label) {.ptr = labels, .len = labels_count}
+    (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    (ddog_Slice_label) {.ptr = labels, .len = labels_count}
   );
 
   sampling_buffer_free(buffer);
@@ -93,7 +93,7 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
   return Qtrue;
 }
 
-void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
+void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
     0 /* stack starting depth */,
@@ -157,15 +157,15 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
     name = NIL_P(name) ? missing_string : name;
     filename = NIL_P(filename) ? missing_string : filename;
 
-    buffer->lines[i] = (ddprof_ffi_Line) {
-      .function = (ddprof_ffi_Function) {
+    buffer->lines[i] = (ddog_Line) {
+      .function = (ddog_Function) {
         .name = char_slice_from_ruby_string(name),
         .filename = char_slice_from_ruby_string(filename)
       },
       .line = line,
     };
 
-    buffer->locations[i] = (ddprof_ffi_Location) {.lines = (ddprof_ffi_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
+    buffer->locations[i] = (ddog_Location) {.lines = (ddog_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
   }
 
   // Used below; since we want to stack-allocate this, we must do it here rather than in maybe_add_placeholder_frames_omitted
@@ -180,8 +180,8 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
 
   record_sample(
     recorder_instance,
-    (ddprof_ffi_Sample) {
-      .locations = (ddprof_ffi_Slice_location) {.ptr = buffer->locations, .len = captured_frames},
+    (ddog_Sample) {
+      .locations = (ddog_Slice_location) {.ptr = buffer->locations, .len = captured_frames},
       .values = metric_values,
       .labels = labels,
     }
@@ -201,10 +201,10 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 
   // Important note: `frames_omitted_message` MUST have a lifetime that is at least as long as the call to
   // `record_sample`. So be careful where it gets allocated. (We do have tests for this, at least!)
-  buffer->lines[buffer->max_frames - 1] = (ddprof_ffi_Line) {
-    .function = (ddprof_ffi_Function) {
-      .name = DDPROF_FFI_CHARSLICE_C(""),
-      .filename = ((ddprof_ffi_CharSlice) {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)})
+  buffer->lines[buffer->max_frames - 1] = (ddog_Line) {
+    .function = (ddog_Function) {
+      .name = DDOG_CHARSLICE_C(""),
+      .filename = ((ddog_CharSlice) {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)})
     },
     .line = 0,
   };
@@ -230,21 +230,21 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 //
 // To give customers visibility into these threads, rather than reporting an empty stack, we replace the empty stack
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
-static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddprof_ffi_Slice_i64 metric_values, ddprof_ffi_Slice_label labels) {
-  ddprof_ffi_Line placeholder_stack_in_native_code_line = {
-    .function = (ddprof_ffi_Function) {
-      .name = DDPROF_FFI_CHARSLICE_C(""),
-      .filename = DDPROF_FFI_CHARSLICE_C("In native code")
+static void record_placeholder_stack_in_native_code(VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
+  ddog_Line placeholder_stack_in_native_code_line = {
+    .function = (ddog_Function) {
+      .name = DDOG_CHARSLICE_C(""),
+      .filename = DDOG_CHARSLICE_C("In native code")
     },
     .line = 0
   };
-  ddprof_ffi_Location placeholder_stack_in_native_code_location =
-    {.lines = (ddprof_ffi_Slice_line) {.ptr = &placeholder_stack_in_native_code_line, .len = 1}};
+  ddog_Location placeholder_stack_in_native_code_location =
+    {.lines = (ddog_Slice_line) {.ptr = &placeholder_stack_in_native_code_line, .len = 1}};
 
   record_sample(
     recorder_instance,
-    (ddprof_ffi_Sample) {
-      .locations = (ddprof_ffi_Slice_location) {.ptr = &placeholder_stack_in_native_code_location, .len = 1},
+    (ddog_Sample) {
+      .locations = (ddog_Slice_location) {.ptr = &placeholder_stack_in_native_code_location, .len = 1},
       .values = metric_values,
       .labels = labels,
     }
@@ -263,8 +263,8 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
   buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
   buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
-  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddprof_ffi_Location));
-  buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddprof_ffi_Line));
+  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_Location));
+  buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddog_Line));
 
   return buffer;
 }
