@@ -207,7 +207,16 @@ static VALUE perform_export(
   ddog_ProfileExporter *exporter = valid_exporter_result.ok;
   ddog_CancellationToken *cancel_token = ddog_CancellationToken_new();
   ddog_Request *request =
-    ddog_ProfileExporter_build(exporter, start, finish, slice_files, additional_tags, timeout_milliseconds);
+    ddog_ProfileExporter_build(
+      exporter,
+      start,
+      finish,
+      slice_files,
+      additional_tags,
+      timeout_milliseconds,
+      DDOG_CHARSLICE_C("dd-trace-rb"),
+      DDOG_CHARSLICE_C("version-for-dd-trace-rb")
+    );
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
