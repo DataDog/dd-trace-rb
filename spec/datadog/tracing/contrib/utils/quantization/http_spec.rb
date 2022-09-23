@@ -413,6 +413,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       pass
       passphrase
       secret
+      apikey
+      apikeyid
+      privatekey
+      privatekeyid
+      publickeyid
+      accesskeyid
+      secretkeyid
       api_key
       api_key_id
       private_key
