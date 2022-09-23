@@ -18,7 +18,6 @@ module Datadog
   module Core
     module Telemetry
       # Module defining methods for collecting metadata for telemetry
-      # rubocop:disable Metrics/ModuleLength
       module Collector
         include Datadog::Core::Configuration
 
@@ -228,7 +227,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/ModuleLength
     end
   end
 end

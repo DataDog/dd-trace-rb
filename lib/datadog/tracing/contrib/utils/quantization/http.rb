@@ -59,22 +59,26 @@ module Datadog
 
             def query!(query, options = {})
               options ||= {}
-              options[:show] = options[:show] || []
+              options[:obfuscate] = {} if options[:obfuscate] == :internal
+              options[:show] = options[:show] || (options[:obfuscate] ? :all : [])
               options[:exclude] = options[:exclude] || []
 
               # Short circuit if query string is meant to exclude everything
               # or if the query string is meant to include everything
               return '' if options[:exclude] == :all
-              return query if options[:show] == :all
 
-              collect_query(query, uniq: true) do |key, value|
-                if options[:exclude].include?(key)
-                  [nil, nil]
-                else
-                  value = options[:show].include?(key) ? value : nil
-                  [key, value]
+              unless options[:show] == :all && !(options[:obfuscate] && options[:exclude])
+                query = collect_query(query, uniq: true) do |key, value|
+                  if options[:exclude].include?(key)
+                    [nil, nil]
+                  else
+                    value = options[:show] == :all || options[:show].include?(key) ? value : nil
+                    [key, value]
+                  end
                 end
               end
+
+              options[:obfuscate] ? obfuscate_query(query, options[:obfuscate]) : query
             end
 
             # Iterate over each key value pair, yielding to the block given.
@@ -105,6 +109,62 @@ module Datadog
             end
 
             private_class_method :collect_query
+
+            # Scans over the query string and obfuscates sensitive data by
+            # replacing matches with an opaque value
+            def obfuscate_query(query, options = {})
+              options[:regex] = nil if options[:regex] == :internal
+              re = options[:regex] || OBFUSCATOR_REGEX
+              with = options[:with] || OBFUSCATOR_WITH
+
+              query.gsub(re, with)
+            end
+
+            private_class_method :obfuscate_query
+
+            OBFUSCATOR_WITH = '<redacted>'.freeze
+
+            # rubocop:disable Layout/LineLength
+            OBFUSCATOR_REGEX = %r{
+              (?: # JSON-ish leading quote
+                 (?:"|%22)?
+              )
+              (?: # common keys
+                 (?:old_?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
+                |pass(?:_?phrase)?  # pass, passphrase variants
+                |secret
+                |(?: # key, key_id variants
+                     api_?
+                    |private_?
+                    |public_?
+                    |access_?
+                    |secret_?
+                 )key(?:_?id)?
+                |token
+                |consumer_?(?:id|key|secret)
+                |sign(?:ed|ature)?
+                |auth(?:entication|orization)?
+              )
+              (?:
+                 # '=' query string separator, plus value til next '&' separator
+                 (?:\s|%20)*(?:=|%3D)[^&]+
+                 # JSON-ish '": "somevalue"', key being handled with case above, without the opening '"'
+                |(?:"|%22)                                     # closing '"' at end of key
+                 (?:\s|%20)*(?::|%3A)(?:\s|%20)*               # ':' key-value spearator, with surrounding spaces
+                 (?:"|%22)                                     # opening '"' at start of value
+                 (?:%2[^2]|%[^2]|[^"%])+                       # value
+                 (?:"|%22)                                     # closing '"' at end of value
+              )
+             |(?: # other common secret values
+                 bearer(?:\s|%20)+[a-z0-9._\-]+
+                |token(?::|%3A)[a-z0-9]{13}
+                |gh[opsu]_[0-9a-zA-Z]{36}
+                |ey[I-L](?:[\w=-]|%3D)+\.ey[I-L](?:[\w=-]|%3D)+(?:\.(?:[\w.+/=-]|%3D|%2F|%2B)+)?
+                |-{5}BEGIN(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY-{5}[^\-]+-{5}END(?:[a-z\s]|%20)+PRIVATE(?:\s|%20)KEY(?:-{5})?(?:\n|%0A)?
+                |(?:ssh-(?:rsa|dss)|ecdsa-[a-z0-9]+-[a-z0-9]+)(?:\s|%20)*(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}(?:=|%3D)*(?:(?:\s+)[a-z0-9._-]+)?
+              )
+            }ix.freeze
+            # rubocop:enable Layout/LineLength
           end
         end
       end
