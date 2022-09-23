@@ -1522,6 +1522,7 @@ run app
 | `headers` | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
 | `middleware_names` | Enable this if you want to use the last executed middleware class as the resource name for the `rack` span. If enabled alongside the `rails` instrumention, `rails` takes precedence by setting the `rack` resource name to the active `rails` controller when applicable. Requires `application` option to use. | `false` |
 | `quantize` | Hash containing options for quantization. May include `:query` or `:fragment`. | `{}` |
+| `quantize.base` | Defines behavior for URL base (scheme, host, port). Removes URL base from `http.url` tag by default, leaving a path, and sets `http.base_url`. May be `:show` to keep URL base in `http.url` tag and not set `http.base_url` tag. Option must be nested inside the `quantize` option. | `nil` |
 | `quantize.query` | Hash containing options for query portion of URL quantization. May include `:show` or `:exclude`. See options below. Option must be nested inside the `quantize` option. | `{}` |
 | `quantize.query.show` | Defines which values should always be shown. Shows no values by default. May be an Array of strings, or `:all` to show all values. Option must be nested inside the `query` option. | `nil` |
 | `quantize.query.exclude` | Defines which values should be removed entirely. Excludes nothing by default. May be an Array of strings, or `:all` to remove the query string entirely. Option must be nested inside the `query` option. | `nil` |
@@ -1529,32 +1530,42 @@ run app
 | `request_queuing` | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details. Set to `true` to enable. | `false` |
 | `web_service_name` | Service name for frontend server request queuing spans. (e.g. `'nginx'`) | `'web-server'` |
 
+Deprecation notice: `quantize.base` will change its default from `:exclude` to `:show` in a future version. Voluntarily moving to `:show` is recommended.
+
 **Configuring URL quantization behavior**
 
 ```ruby
 Datadog.configure do |c|
-  # Default behavior: all values are quantized, fragment is removed.
-  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id&sort_by
-  # http://example.com/path?categories[]=1&categories[]=2 --> http://example.com/path?categories[]
+  # Default behavior: all values are quantized, base is removed, fragment is removed.
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id&sort_by
+  # http://example.com:8080/path?categories[]=1&categories[]=2 --> /path?categories[]
+
+  # Remove URL base (scheme, host, port)
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id&sort_by#featured
+  c.tracing.instrument :rack, quantize: { base: :exclude }
+
+  # Show URL base
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id&sort_by#featured
+  c.tracing.instrument :rack, quantize: { base: :show }
 
   # Show values for any query string parameter matching 'category_id' exactly
-  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id=1&sort_by
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id=1&sort_by
   c.tracing.instrument :rack, quantize: { query: { show: ['category_id'] } }
 
   # Show all values for all query string parameters
-  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id=1&sort_by=asc
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id=1&sort_by=asc
   c.tracing.instrument :rack, quantize: { query: { show: :all } }
 
   # Totally exclude any query string parameter matching 'sort_by' exactly
-  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id
   c.tracing.instrument :rack, quantize: { query: { exclude: ['sort_by'] } }
 
   # Remove the query string entirely
-  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path
   c.tracing.instrument :rack, quantize: { query: { exclude: :all } }
 
   # Show URL fragments
-  # http://example.com/path?category_id=1&sort_by=asc#featured --> http://example.com/path?category_id&sort_by#featured
+  # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?category_id&sort_by#featured
   c.tracing.instrument :rack, quantize: { fragment: :show }
 end
 ```

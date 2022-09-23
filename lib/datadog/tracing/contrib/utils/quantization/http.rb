@@ -22,6 +22,14 @@ module Datadog
               options[:placeholder] || PLACEHOLDER
             end
 
+            def base_url(url, options = {})
+              URI.parse(url).tap do |uri|
+                uri.path = ''
+                uri.query = nil
+                uri.fragment = nil
+              end.to_s
+            end
+
             def url!(url, options = {})
               options ||= {}
 
@@ -32,8 +40,14 @@ module Datadog
                   uri.query = (!query.nil? && query.empty? ? nil : query)
                 end
 
-                # Remove any URI framents
+                # Remove any URI fragments
                 uri.fragment = nil unless options[:fragment] == :show
+
+                if options[:base] == :exclude
+                  uri.host = nil
+                  uri.port = nil
+                  uri.scheme = nil
+                end
               end.to_s
             end
 

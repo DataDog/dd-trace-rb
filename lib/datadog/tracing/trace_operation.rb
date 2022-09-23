@@ -22,7 +22,6 @@ module Datadog
     # For async support, a {Datadog::Tracing::TraceOperation} should be employed
     # per execution context (e.g. Thread, etc.)
     #
-    # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
       include Metadata::Tagging
@@ -454,6 +453,5 @@ module Datadog
         )
       end
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

@@ -61,7 +61,7 @@ Style/NumericLiterals:
   Enabled: false
 
 Metrics/ClassLength:
-  Max: 140
+  Enabled: false
 
 Metrics/BlockLength:
   Max: 42
