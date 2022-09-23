@@ -15,7 +15,7 @@ module Datadog
       # Runs on its own background thread.
       #
       # This class has the prefix "Old" because it will be deprecated by the new native CPU Profiler
-      class OldStack < Core::Worker # rubocop:disable Metrics/ClassLength
+      class OldStack < Core::Worker
         include Core::Workers::Polling
 
         DEFAULT_MAX_TIME_USAGE_PCT = 2.0

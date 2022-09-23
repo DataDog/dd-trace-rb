@@ -18,7 +18,6 @@ module Datadog
   module Core
     module Configuration
       # Global components for the trace library.
-      # rubocop:disable Metrics/ClassLength
       class Components
         class << self
           def build_health_metrics(settings)
@@ -431,7 +430,6 @@ module Datadog
           telemetry.emit_closing! unless replacement
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end
