@@ -404,6 +404,12 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       pwd
       passwd
       password
+      oldpassword
+      newpassword
+      old_password
+      new_password
+      password1
+      password2
       pass
       passphrase
       secret

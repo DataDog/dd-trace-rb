@@ -126,7 +126,7 @@ module Datadog
                  (?:"|%22)?
               )
               (?: # common keys
-                 p(?:ass)?w(?:or)?d # pw, password variants
+                 (?:old_?|new_?)?p(?:ass)?w(?:or)?d(?:1|2)? # pw, password variants
                 |pass(?:_?phrase)?  # pass, passphrase variants
                 |secret
                 |(?: # key, key_id variants
