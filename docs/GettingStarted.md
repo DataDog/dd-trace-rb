@@ -1580,6 +1580,10 @@ Datadog.configure do |c|
   # Obfuscate query string using the provided regex, defaulting to showing all values
   # http://example.com/path?category_id=1&sort_by=asc#featured --> /path?<redacted>&sort_by=asc
   c.tracing.instrument :rack, quantize: { query: { obfuscate: { regex: /category_id=\d+/ } } }
+
+  # Obfuscate query string using a custom redaction string
+  # http://example.com/path?password=qwerty&sort_by=asc#featured --> /path?REMOVED&sort_by=asc
+  c.tracing.instrument :rack, quantize: { query: { obfuscate: { with: 'REMOVED' } } }
 end
 ```
 
