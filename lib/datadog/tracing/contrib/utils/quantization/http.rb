@@ -67,14 +67,16 @@ module Datadog
               # or if the query string is meant to include everything
               return '' if options[:exclude] == :all
 
-              query = collect_query(query, uniq: true) do |key, value|
-                if options[:exclude].include?(key)
-                  [nil, nil]
-                else
-                  value = (options[:show] == :all || options[:show].include?(key)) ? value : nil
-                  [key, value]
+              unless options[:show] == :all && !(options[:obfuscate] && options[:exclude])
+                query = collect_query(query, uniq: true) do |key, value|
+                  if options[:exclude].include?(key)
+                    [nil, nil]
+                  else
+                    value = options[:show] == :all || options[:show].include?(key) ? value : nil
+                    [key, value]
+                  end
                 end
-              end unless options[:show] == :all && !(options[:obfuscate] && options[:exclude])
+              end
 
               options[:obfuscate] ? obfuscate_query(query, options[:obfuscate]) : query
             end
@@ -121,6 +123,8 @@ module Datadog
             private_class_method :obfuscate_query
 
             OBFUSCATOR_WITH = '<redacted>'.freeze
+
+            # rubocop:disable Layout/LineLength
             OBFUSCATOR_REGEX = %r{
               (?: # JSON-ish leading quote
                  (?:"|%22)?
@@ -160,6 +164,7 @@ module Datadog
                 |(?:ssh-(?:rsa|dss)|ecdsa-[a-z0-9]+-[a-z0-9]+)(?:\s|%20)*(?:[a-z0-9/.+]|%2F|%5C|%2B){100,}(?:=|%3D)*(?:(?:\s+)[a-z0-9._-]+)?
               )
             }ix.freeze
+            # rubocop:enable Layout/LineLength
           end
         end
       end

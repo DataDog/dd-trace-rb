@@ -323,14 +323,14 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         end
 
         context 'with multiple matching substrings' do
-          let(:query) { 'key1=val1&pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3&json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' }
+          let(:query) { 'key1=val1&pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&token=03cb9f67dbbc4cb8b966329951e10934&public_key=MDNjYjlmNjctZGJiYy00Y2I4LWI5NjYtMzI5OTUxZTEwOTM0&key3=val3&json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Metrics/LineLength
           let(:options) { { obfuscate: :internal } }
 
-          it { is_expected.to eq('key1=val1&<redacted>&key2=val2&<redacted>&<redacted>&key3=val3&json=%7B%20<redacted>%7D') }
+          it { is_expected.to eq('key1=val1&<redacted>&key2=val2&<redacted>&<redacted>&key3=val3&json=%7B%20<redacted>%7D') } # rubocop:disable Metrics/LineLength
         end
 
         context 'with a matching, URL-encoded JSON substring' do
-          let(:query) { 'json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' }
+          let(:query) { 'json=%7B%20%22sign%22%3A%20%22%7B0x03cb9f67%2C0xdbbc%2C0x4cb8%2C%7B0xb9%2C0x66%2C0x32%2C0x99%2C0x51%2C0xe1%2C0x09%2C0x34%7D%7D%22%7D' } # rubocop:disable Metrics/LineLength
           let(:options) { { obfuscate: :internal } }
 
           it { is_expected.to eq('json=%7B%20<redacted>%7D') }
@@ -338,7 +338,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
 
         context 'with a reduced show option overlapping with a potential obfuscation match' do
           let(:query) { 'pass=03cb9f67-dbbc-4cb8-b966-329951e10934&key2=val2&key3=val3' }
-          let(:options) { { show: ['pass', 'key2'], obfuscate: :internal } }
+          let(:options) { { show: %w[pass key2], obfuscate: :internal } }
 
           it { is_expected.to eq('<redacted>&key2=val2&key3') }
         end
@@ -442,6 +442,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       authorization
     ]
 
+    # rubocop:disable Layout/LineLength
     value_matches = {
       'OpenSSH RSA private key' => <<~DUMMY,
       -----BEGIN OPENSSH PRIVATE KEY-----
@@ -487,6 +488,7 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       'OpenSSH DSA public key' => 'ssh-dss AAAAB3NzaC1kc3MAAACBALLggHdugwXVQTPHPZh2WqMEkcx0q3EY3j3f31QAVb4GCZpE3up8Hl7rg+wM5OwL9RchtQ/OpI+xwa4McwBL0vj1VXjCx3a0jhMljFSKZtekRZznpJc++wEZmRbhuzesOzYjMk903xehqbNZiJVGq1xuo/BsIHX4+HVeNVyUiowXAAAAFQCe1bNGoXBrB8ig6+zCAhT7TCROOQAAAIA2K5vaYf1kMw9maY6UC7lNHNh+V3ffgOHguh0037598t9PbIqBPUQfwBnCGwMMskt1fsMnV5Drc4Bbhc91LdaGMYYaQnZzeiJgLxwO4dlPvt0UlFZTYpFEPfoguCDIOgQbFvHo926LaZnqNUiURM/iGH/UJ2kULOTDKjbI1pSi5AAAAIBY8bcba06SeH1hVh/UD/5akTLdonS/3rwB6ofUGAHFiS2LhahMHOaozKRgI2Wp/+NNRjxQs4vaE4ahU57jZ/sBDQ3OdwOULbZCQp6KaL+IM6OT5Xue2/bt0fUwn/T7hZ41GXv6HVfojB5MQG8rEpcYf1xBwbUkmWysw04gnjUR7w== dummy',
       'OpenSSH ECDSA public key' => 'ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBJX/IRZ4icqvJ8OpEDMs5X566bilqX6u6XEF/f/llF4YmiiSpo6cTVzl/2L9HXSfOlwuzVyRFaLpMWEUE3az0PI= dummy'
     }
+    # rubocop:enable Layout/LineLength
 
     key_matches.each do |key|
       context "given query string key #{key.inspect} and its value" do
