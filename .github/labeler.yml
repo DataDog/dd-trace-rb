@@ -1,0 +1,38 @@
+# Configuration for GitHub Action `.github/workflows/pull-request-labeler.yml`.
+# See https://github.com/marketplace/actions/labeler for more information.
+
+# Only documentation changes
+docs:
+  - all: [ '**/*.md' ]
+
+# Only test changes
+dev/testing:
+  - all: [ '{spec/**,integration/**}' ]
+
+# Changes to Profiling
+profiling:
+  - any: [ 'lib/datadog/profiling/**' ]
+
+# Changes to CI-App
+ci-app:
+  - any: [ 'lib/datadog/ci/**' ]
+
+# Changes to ASM
+appsec:
+  - any: [ 'lib/datadog/appsec/**' ]
+
+# Changes to Tracing integrations
+integrations:
+  - any: [ 'lib/datadog/tracing/contrib/**' ]
+
+# Only repository GitHub changes
+dev/github:
+  - all: [ '.github/**' ]
+
+# Only repository CI changes
+dev/ci:
+  - all: [ '{.circleci/**,.gitlab-ci.yml}' ]
+
+# Version bump pull request
+release:
+  - all: [ '{CHANGELOG.md,lib/ddtrace/version.rb,gemfiles/**}' ]
