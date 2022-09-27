@@ -323,8 +323,8 @@ module Datadog
 
             # Parse tags from environment
             env_to_list(Core::Environment::Ext::ENV_TAGS, comma_separated_only: false).each do |tag|
-              pair = tag.split(':')
-              tags[pair.first] = pair.last if pair.length == 2
+              key, value = tag.split(':', 2)
+              tags[key] = value if value && !value.empty?
             end
 
             # Override tags if defined
