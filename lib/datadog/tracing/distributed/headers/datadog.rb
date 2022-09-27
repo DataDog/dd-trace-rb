@@ -43,13 +43,14 @@ module Datadog
               # DEV: `Parser#id` will not return 0
               return unless (trace_id && parent_id) || (origin && trace_id)
 
-              trace_distributed_tags = extract_tags(headers)
+              trace_distributed_tags, sampling_mechanism = extract_tags(headers)
 
               # Return new trace headers
               TraceDigest.new(
                 span_id: parent_id,
                 trace_id: trace_id,
                 trace_origin: origin,
+                trace_sampling_mechanism: sampling_mechanism,
                 trace_sampling_priority: sampling_priority,
                 trace_distributed_tags: trace_distributed_tags,
               )
@@ -64,7 +65,10 @@ module Datadog
             # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
             # DEV: The same comment applies to the {.extract_tags}.
             def inject_tags(digest, env)
-              return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
+              if (digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?) &&
+                  digest.trace_sampling_mechanism.nil?
+                return
+              end
 
               if ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
                 active_trace = Tracing.active_trace
@@ -72,7 +76,14 @@ module Datadog
                 return
               end
 
-              encoded_tags = DatadogTagsCodec.encode(digest.trace_distributed_tags)
+              tags = digest.trace_distributed_tags || {}
+              if digest.trace_sampling_mechanism
+                # Digest's tags are a frozen Hash, we have to create a copy here.
+                tags = tags.merge(
+                  Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER => "-#{digest.trace_sampling_mechanism}"
+                )
+              end
+              encoded_tags = DatadogTagsCodec.encode(tags)
 
               if encoded_tags.size > ::Datadog.configuration.tracing.x_datadog_tags_max_length
                 active_trace = Tracing.active_trace
@@ -122,13 +133,29 @@ module Datadog
               tags = DatadogTagsCodec.decode(tags_header)
               # Only extract keys with the expected Datadog prefix
               tags.select! { |key, _| key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) }
-              tags
+
+              sampling_mechanism = extract_sampling_mechanism(tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER])
+
+              [tags, sampling_mechanism]
             rescue => e
               active_trace = Tracing.active_trace
               active_trace.set_tag('_dd.propagation_error', 'decoding_error') if active_trace
               ::Datadog.logger.warn(
                 "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
               )
+            end
+
+            # This tag is of the format `part1-sampling_mechanism`.
+            # `part1` is currently ignored.
+            # This method returns the second part, the `sampling_mechanism`
+            # which is always an Integer.
+            # If we can't find a valid `sampling_mechanism`, returns `nil`.
+            # @return [Integer, nil]
+            def extract_sampling_mechanism(decision_maker)
+              return unless decision_maker
+
+              _, sampling_mechanism = decision_maker.split('-')
+              Integer(sampling_mechanism) rescue nil
             end
           end
         end
