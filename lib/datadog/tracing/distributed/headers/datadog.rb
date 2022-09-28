@@ -12,6 +12,7 @@ module Datadog
     module Distributed
       module Headers
         # Datadog provides helpers to inject or extract headers for Datadog style headers
+        # rubocop:disable Metrics/ModuleLength
         module Datadog
           class << self
             include Ext
@@ -132,7 +133,9 @@ module Datadog
 
               tags = DatadogTagsCodec.decode(tags_header)
               # Only extract keys with the expected Datadog prefix
-              tags.select! { |key, _| key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) }
+              tags.select! do |key, _|
+                key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) && key != EXCLUDED_TAG
+              end
 
               sampling_mechanism = extract_sampling_mechanism(tags[Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER])
 
@@ -157,8 +160,16 @@ module Datadog
               _, sampling_mechanism = decision_maker.split('-')
               Integer(sampling_mechanism) rescue nil
             end
+
+            # This tag can leak privileged information.
+            # Although the Ruby tracer has never populated this tag, other traces have in the past.
+            #
+            # We now avoid propagating this tag any further, if we ever receive it.
+            EXCLUDED_TAG = '_dd.p.upstream_services'
+            private_constant :EXCLUDED_TAG
           end
         end
+        # rubocop:enable Metrics/ModuleLength
       end
     end
   end
