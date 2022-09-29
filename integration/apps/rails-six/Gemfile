@@ -63,7 +63,8 @@ gem 'ipaddress'
 gem 'rabl', platform: :ruby
 gem 'rack-cors'
 gem 'rake'
-gem 'redis'
+# Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
+gem 'redis', '< 5'
 gem 'resque'
 # gem 'resque-pool' # Incompatible with Redis 4.0+
 gem 'resque-scheduler'

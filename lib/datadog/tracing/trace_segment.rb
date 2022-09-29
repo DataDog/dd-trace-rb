@@ -11,7 +11,6 @@ module Datadog
   module Tracing
     # Serializable construct representing a trace
     # @public_api
-    # rubocop:disable Metrics/ClassLength
     class TraceSegment
       TAG_NAME = 'name'.freeze
       TAG_RESOURCE = 'resource'.freeze
@@ -36,6 +35,7 @@ module Datadog
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
+      # @param spans [Array<Datadog::Span>]
       def initialize(
         spans,
         agent_sample_rate: nil,
@@ -202,6 +202,5 @@ module Datadog
         meta[TAG_SERVICE]
       end
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

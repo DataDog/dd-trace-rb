@@ -89,15 +89,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -171,15 +171,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -253,15 +253,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -336,15 +336,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -420,15 +420,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -507,15 +507,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -595,15 +595,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -679,15 +679,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do
@@ -764,15 +764,15 @@ RSpec.describe 'PG::Connection patcher' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::DEFAULT_PEER_SERVICE_NAME)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_INSTANCE)).to eq(dbname)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_USER)).to eq(user)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_SYSTEM))
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_SYSTEM))
             .to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYSTEM)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
         end
 
         it_behaves_like 'analytics for integration' do

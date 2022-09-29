@@ -10,7 +10,6 @@ module Datadog
   module CI
     module Ext
       # Defines constants for CI tags
-      # rubocop:disable Metrics/ModuleLength:
       module Environment
         include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
 
@@ -97,6 +96,12 @@ module Datadog
             tag = env['APPVEYOR_REPO_TAG_NAME']
           end
 
+          commit_message = env['APPVEYOR_REPO_COMMIT_MESSAGE']
+          if commit_message
+            extended = env['APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED']
+            commit_message = "#{commit_message}\n#{extended}" if extended
+          end
+
           {
             TAG_PROVIDER_NAME => 'appveyor',
             Core::Git::Ext::TAG_REPOSITORY_URL => repository,
@@ -111,7 +116,7 @@ module Datadog
             Core::Git::Ext::TAG_TAG => tag,
             Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['APPVEYOR_REPO_COMMIT_AUTHOR'],
             Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['APPVEYOR_REPO_COMMIT_AUTHOR_EMAIL'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['APPVEYOR_REPO_COMMIT_MESSAGE_EXTENDED']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => commit_message
           }
         end
 
@@ -330,6 +335,10 @@ module Datadog
           branch = (
             env['BITRISEIO_GIT_BRANCH_DEST'] || env['BITRISE_GIT_BRANCH']
           )
+          commiter_email = (
+            env['GIT_CLONE_COMMIT_COMMITER_EMAIL'] || env['GIT_CLONE_COMMIT_COMMITER_NAME']
+          )
+
           {
             TAG_PROVIDER_NAME => 'bitrise',
             TAG_PIPELINE_ID => env['BITRISE_BUILD_SLUG'],
@@ -341,7 +350,11 @@ module Datadog
             Core::Git::Ext::TAG_COMMIT_SHA => commit,
             Core::Git::Ext::TAG_BRANCH => branch,
             Core::Git::Ext::TAG_TAG => env['BITRISE_GIT_TAG'],
-            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE']
+            Core::Git::Ext::TAG_COMMIT_MESSAGE => env['BITRISE_GIT_MESSAGE'],
+            Core::Git::Ext::TAG_COMMIT_AUTHOR_NAME => env['GIT_CLONE_COMMIT_AUTHOR_NAME'],
+            Core::Git::Ext::TAG_COMMIT_AUTHOR_EMAIL => env['GIT_CLONE_COMMIT_AUTHOR_EMAIL'],
+            Core::Git::Ext::TAG_COMMIT_COMMITTER_NAME => env['GIT_CLONE_COMMIT_COMMITER_NAME'],
+            Core::Git::Ext::TAG_COMMIT_COMMITTER_EMAIL => commiter_email
           }
         end
 
@@ -499,7 +512,6 @@ module Datadog
           [nil, name_and_email]
         end
       end
-      # rubocop:enable Metrics/ModuleLength:
     end
   end
 end

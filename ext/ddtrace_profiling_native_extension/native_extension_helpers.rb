@@ -68,7 +68,6 @@ module Datadog
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their
       # system may not be supported.
-      # rubocop:disable Metrics/ModuleLength
       module Supported
         private_class_method def self.explain_issue(*reason, suggested:)
           { reason: reason, suggested: suggested }
@@ -284,7 +283,6 @@ module Datadog
           no_binaries_for_current_platform unless Libdatadog.pkgconfig_folder
         end
       end
-      # rubocop:enable Metrics/ModuleLength
     end
   end
 end

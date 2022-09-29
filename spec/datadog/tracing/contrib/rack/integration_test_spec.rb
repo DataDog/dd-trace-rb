@@ -18,6 +18,8 @@ RSpec.describe 'Rack integration tests' do
     end
   end
 
+  after { Datadog.registry[:rack].reset_configuration! }
+
   context 'for an application' do
     let(:app) do
       app_routes = routes
@@ -101,10 +103,24 @@ RSpec.describe 'Rack integration tests' do
 
           it_behaves_like 'a rack GET 200 span'
 
-          it do
-            expect(span.get_tag('http.url')).to eq('/success/')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span).to be_root_span
+          context 'and default quantization' do
+            let(:rack_options) { { quantize: {} } }
+
+            it do
+              expect(span.get_tag('http.url')).to eq('/success/')
+              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span).to be_root_span
+            end
+          end
+
+          context 'and quantization activated for URL base' do
+            let(:rack_options) { { quantize: { base: :show } } }
+
+            it do
+              expect(span.get_tag('http.url')).to eq('http://example.org/success/')
+              expect(span.get_tag('http.base_url')).to be_nil
+              expect(span).to be_root_span
+            end
           end
 
           it { expect(trace.resource).to eq('GET 200') }
@@ -113,14 +129,28 @@ RSpec.describe 'Rack integration tests' do
         context 'with query string parameters' do
           let(:route) { '/success?foo=bar' }
 
-          it_behaves_like 'a rack GET 200 span'
+          context 'and default quantization' do
+            let(:rack_options) { { quantize: {} } }
 
-          it do
-            # Since REQUEST_URI isn't available in Rack::Test by default (comes from WEBrick/Puma)
-            # it reverts to PATH_INFO, which doesn't have query string parameters.
-            expect(span.get_tag('http.url')).to eq('/success')
-            expect(span.get_tag('http.base_url')).to eq('http://example.org')
-            expect(span).to be_root_span
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.url')).to eq('/success?foo')
+              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span).to be_root_span
+            end
+          end
+
+          context 'and quantization activated for the query' do
+            let(:rack_options) { { quantize: { query: { show: ['foo'] } } } }
+
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.url')).to eq('/success?foo=bar')
+              expect(span.get_tag('http.base_url')).to eq('http://example.org')
+              expect(span).to be_root_span
+            end
           end
         end
 
@@ -128,7 +158,7 @@ RSpec.describe 'Rack integration tests' do
           subject(:response) { get '/success?foo=bar', {}, 'REQUEST_URI' => '/success?foo=bar' }
 
           context 'and default quantization' do
-            let(:rack_options) { super().merge(quantize: {}) }
+            let(:rack_options) { { quantize: {} } }
 
             it_behaves_like 'a rack GET 200 span'
 
@@ -143,7 +173,7 @@ RSpec.describe 'Rack integration tests' do
           end
 
           context 'and quantization activated for the query' do
-            let(:rack_options) { super().merge(quantize: { query: { show: ['foo'] } }) }
+            let(:rack_options) { { quantize: { query: { show: ['foo'] } } } }
 
             it_behaves_like 'a rack GET 200 span'
 
@@ -685,6 +715,48 @@ RSpec.describe 'Rack integration tests' do
         end
 
         describe 'GET request' do
+          context 'that does not sent user agent' do
+            subject(:response) { get '/headers/', {}, headers }
+
+            let(:headers) do
+              {}
+            end
+
+            before do
+              is_expected.to be_ok
+              expect(spans).to have(1).items
+            end
+
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.useragent')).to be nil
+              expect(span.get_tag('http.request.headers.user-agent')).to be nil
+            end
+          end
+
+          context 'that sends user agent' do
+            subject(:response) { get '/headers/', {}, headers }
+
+            let(:headers) do
+              {
+                'HTTP_USER_AGENT' => 'SuperUserAgent',
+              }
+            end
+
+            before do
+              is_expected.to be_ok
+              expect(spans).to have(1).items
+            end
+
+            it_behaves_like 'a rack GET 200 span'
+
+            it do
+              expect(span.get_tag('http.useragent')).to eq('SuperUserAgent')
+              expect(span.get_tag('http.request.headers.user-agent')).to be nil
+            end
+          end
+
           context 'that sends headers' do
             subject(:response) { get '/headers/', {}, headers }
 

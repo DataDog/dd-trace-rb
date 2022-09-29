@@ -32,6 +32,12 @@ module Datadog
         module Sampling
           ENV_SAMPLE_RATE = 'DD_TRACE_SAMPLE_RATE'.freeze
           ENV_RATE_LIMIT = 'DD_TRACE_RATE_LIMIT'.freeze
+
+          # @public_api
+          module Span
+            ENV_SPAN_SAMPLING_RULES = 'DD_SPAN_SAMPLING_RULES'.freeze
+            ENV_SPAN_SAMPLING_RULES_FILE = 'DD_SPAN_SAMPLING_RULES_FILE'.freeze
+          end
         end
 
         # @public_api
@@ -44,6 +50,12 @@ module Datadog
           ENV_DEFAULT_HOST = 'DD_AGENT_HOST'.freeze
           ENV_DEFAULT_PORT = 'DD_TRACE_AGENT_PORT'.freeze
           ENV_DEFAULT_URL = 'DD_TRACE_AGENT_URL'.freeze
+        end
+
+        # @public_api
+        module ClientIp
+          ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED'.freeze
+          ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'.freeze
         end
       end
     end
