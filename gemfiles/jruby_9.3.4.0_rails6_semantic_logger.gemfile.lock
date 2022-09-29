@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.4.1)
+    ddtrace (1.4.2)
       debase-ruby_core_source (= 0.10.16)
       libdatadog (~> 0.7.0.1.1)
       libddwaf (~> 1.3.0.2.0)
@@ -294,4 +294,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.10
+   2.3.20

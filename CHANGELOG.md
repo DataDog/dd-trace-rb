@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.4.2] - 2022-09-27
+
+### Fixed
+
+OpenTracing context propagation (#2191, #2289)
+
 ## [1.4.1] - 2022-09-15
 
 ### Fixed
@@ -2097,7 +2103,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.2...master
+[1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.2.0...v1.3.0
