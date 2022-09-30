@@ -51,6 +51,11 @@ static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
 
 void http_transport_init(VALUE profiling_module) {
+  // At least on macOS, this needs to be called before a Ruby process forks.
+  // TODO: Log error message when the initialization fails
+  ddog_ProfileExporterInitializeBeforeForkResult init_result = ddog_ProfileExporter_initialize_before_fork();
+  fprintf(stderr, "Did initialize before fork! Success: %d\n", init_result.tag == DDOG_PROFILE_EXPORTER_INITIALIZE_BEFORE_FORK_RESULT_OK);
+
   http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
