@@ -94,7 +94,13 @@ static ddog_NewProfileExporterResult create_exporter(VALUE exporter_configuratio
   ddog_Vec_tag tags = convert_tags(tags_as_array);
 
   ddog_NewProfileExporterResult exporter_result =
-    ddog_ProfileExporter_new(DDOG_CHARSLICE_C("ruby"), &tags, endpoint);
+    ddog_ProfileExporter_new(
+      DDOG_CHARSLICE_C("dd-trace-rb"),
+      DDOG_CHARSLICE_C("FIXME version-for-dd-trace-rb"),
+      DDOG_CHARSLICE_C("ruby"),
+      &tags,
+      endpoint
+    );
 
   ddog_Vec_tag_drop(tags);
 
@@ -213,9 +219,7 @@ static VALUE perform_export(
       finish,
       slice_files,
       additional_tags,
-      timeout_milliseconds,
-      DDOG_CHARSLICE_C("dd-trace-rb"),
-      DDOG_CHARSLICE_C("version-for-dd-trace-rb")
+      timeout_milliseconds
     );
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
