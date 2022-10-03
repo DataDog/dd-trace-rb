@@ -24,6 +24,10 @@ ci-app:
 appsec:
   - any: [ 'lib/datadog/appsec/**' ]
 
+# Changes to Tracing
+tracing:
+  - any: [ 'lib/datadog/tracing/**' ]
+
 # Changes to Tracing integrations
 integrations:
   - any: [ '{lib/datadog/tracing/contrib/**,lib/datadog/appsec/contrib/**}' ]
