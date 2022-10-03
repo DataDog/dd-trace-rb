@@ -5,7 +5,6 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/http_transport'
 require 'datadog/profiling'
 
-require 'extlz4'
 require 'json'
 require 'socket'
 require 'webrick'
@@ -310,6 +309,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
         )
+
+        require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
 
         expect(LZ4.decode(body.fetch(pprof_file_name))).to eq pprof_data
         expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
