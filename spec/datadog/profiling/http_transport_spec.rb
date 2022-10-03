@@ -312,6 +312,21 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
 
+        if RUBY_VERSION.start_with?('3.2.') && Gem.loaded_specs['extlz4'].version <= Gem::Version.new('0.3.2')
+          # The extlz4 gem used for testing libdatadog lz4-compressed output does not work on Ruby >= 3.2.
+          #
+          # I've filed an issue with https://github.com/dearblue/ruby-extlz4/issues/4 and hopefully the version after
+          # 0.3.2 fixes the issue. If a newer version still doesn't fix the issue, and this spec starts failing on
+          # Ruby 3.2, bump the `Gem::Version.new` above to exclude the newer version as well.
+          #
+          # We do miss out on a bit of test coverage on 3.2 BUT since libdatadog nor HttpTransport changes logic
+          # between Ruby versions, we're pretty sure everything is fine if this test passes for other Ruby versions.
+          #
+          # If you're reading this, and a newer version of the gem is now available that works on Ruby >= 3.2, please
+          # do delete this exception.
+          next
+        end
+
         expect(LZ4.decode(body.fetch(pprof_file_name))).to eq pprof_data
         expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
