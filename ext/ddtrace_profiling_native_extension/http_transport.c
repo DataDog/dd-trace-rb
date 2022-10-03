@@ -17,6 +17,7 @@ static ID agent_id; // id of :agent in Ruby
 static ID log_failure_to_process_tag_id; // id of :log_failure_to_process_tag in Ruby
 
 static VALUE http_transport_class = Qnil;
+static VALUE library_version_string = Qnil;
 
 struct call_exporter_without_gvl_arguments {
   ddog_ProfileExporter *exporter;
@@ -49,6 +50,7 @@ static VALUE _native_do_export(
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
+static VALUE ddtrace_version();
 
 void http_transport_init(VALUE profiling_module) {
   http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
@@ -61,6 +63,9 @@ void http_transport_init(VALUE profiling_module) {
   agentless_id = rb_intern_const("agentless");
   agent_id = rb_intern_const("agent");
   log_failure_to_process_tag_id = rb_intern_const("log_failure_to_process_tag");
+
+  library_version_string = ddtrace_version();
+  rb_global_variable(&library_version_string);
 }
 
 inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
@@ -93,8 +98,12 @@ static ddog_NewProfileExporterResult create_exporter(VALUE exporter_configuratio
 
   ddog_Vec_tag tags = convert_tags(tags_as_array);
 
+  ddog_CharSlice library_name = DDOG_CHARSLICE_C("dd-trace-rb");
+  ddog_CharSlice library_version = char_slice_from_ruby_string(library_version_string);
+  ddog_CharSlice profiling_family = DDOG_CHARSLICE_C("ruby");
+
   ddog_NewProfileExporterResult exporter_result =
-    ddog_ProfileExporter_new(DDOG_CHARSLICE_C("ruby"), &tags, endpoint);
+    ddog_ProfileExporter_new(library_name, library_version, profiling_family, &tags, endpoint);
 
   ddog_Vec_tag_drop(tags);
 
@@ -331,4 +340,14 @@ static void *call_exporter_without_gvl(void *call_args) {
 // Called by Ruby when it wants to interrupt call_exporter_without_gvl above, e.g. when the app wants to exit cleanly
 static void interrupt_exporter_call(void *cancel_token) {
   ddog_CancellationToken_cancel((ddog_CancellationToken *) cancel_token);
+}
+
+static VALUE ddtrace_version() {
+  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("DDTrace"));
+  ENFORCE_TYPE(ddtrace_module, T_MODULE);
+  VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));
+  ENFORCE_TYPE(version_module, T_MODULE);
+  VALUE version_string = rb_const_get(version_module, rb_intern("STRING"));
+  ENFORCE_TYPE(version_string, T_STRING);
+  return version_string;
 }
