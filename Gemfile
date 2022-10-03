@@ -11,7 +11,7 @@ gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
-gem 'extlz4', '~> 0.3', '>= 0.3.3' # Used to test lz4 compression done by libdatadog
+gem 'extlz4', '~> 0.3', '>= 0.3.3' if RUBY_PLATFORM != 'java' # Used to test lz4 compression done by libdatadog
 gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
