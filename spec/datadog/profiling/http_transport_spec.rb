@@ -300,7 +300,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         # check body
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
-        event_data = JSON.parse(body.fetch("event"))
+        event_data = JSON.parse(body.fetch('event'))
 
         expect(event_data).to eq(
           'attachments' => [pprof_file_name, code_provenance_file_name],
@@ -335,7 +335,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         # check body
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
-        event_data = JSON.parse(body.fetch("event"))
+        event_data = JSON.parse(body.fetch('event'))
 
         expect(event_data).to eq(
           'attachments' => [pprof_file_name],
@@ -446,7 +446,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
-        event_data = JSON.parse(body.fetch("event"))
+        event_data = JSON.parse(body.fetch('event'))
 
         expect(event_data['tags_profiler']).to eq 'valid1:valid1,valid2:valid2'
       end
