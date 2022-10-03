@@ -35,4 +35,4 @@ dev/ci:
 
 # Version bump pull request
 release:
-  - all: [ '{CHANGELOG.md,lib/ddtrace/version.rb,gemfiles/**}' ]
+  - all: [ '{CHANGELOG.md,lib/ddtrace/version.rb}' ]
