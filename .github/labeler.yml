@@ -1,6 +1,9 @@
 # Configuration for GitHub Action `.github/workflows/pull-request-labeler.yml`.
 # See https://github.com/marketplace/actions/labeler for more information.
 
+core:
+  - any: [ 'lib/datadog/core/**' ]
+
 # Only documentation changes
 docs:
   - all: [ '**/*.md' ]
