@@ -23,7 +23,7 @@ appsec:
 
 # Changes to Tracing integrations
 integrations:
-  - any: [ 'lib/datadog/tracing/contrib/**' ]
+  - any: [ '{lib/datadog/tracing/contrib/**,lib/datadog/appsec/contrib/**}' ]
 
 # Only repository GitHub changes
 dev/github:
