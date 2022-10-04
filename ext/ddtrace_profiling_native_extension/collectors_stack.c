@@ -163,8 +163,6 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
       },
       .line = line,
     };
-
-    buffer->locations[i] = (ddog_Location) {.lines = (ddog_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
   }
 
   // Used below; since we want to stack-allocate this, we must do it here rather than in maybe_add_placeholder_frames_omitted
@@ -264,6 +262,12 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
   buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_Location));
   buffer->lines         = ruby_xcalloc(max_frames, sizeof(ddog_Line));
+
+  // Currently we have a 1-to-1 correspondence between lines and locations, so we just initialize the locations once
+  // here and then only mutate the contents of the lines.
+  for (unsigned int i = 0; i < max_frames; i++) {
+    buffer->locations[i] = (ddog_Location) {.lines = (ddog_Slice_line) {.ptr = &buffer->lines[i], .len = 1}};
+  }
 
   return buffer;
 }
