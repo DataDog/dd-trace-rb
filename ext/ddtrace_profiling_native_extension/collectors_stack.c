@@ -93,6 +93,15 @@ static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE thread, VALUE reco
   return Qtrue;
 }
 
+// Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
+// could continue making progress while the sample was ingested into the profile.
+//
+// Other things to take into consideration if we go in that direction:
+// * Is it safe to call `rb_profile_frame_...` methods on things from the `stack_buffer` without the GVL acquired?
+// * We need to make `VALUE` references in the `stack_buffer` visible to the Ruby GC
+// * Should we move this into a different thread entirely?
+// * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
+//   a new thread switch point where there previously was none?
 void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
   int captured_frames = ddtrace_rb_profile_frames(
     thread,
@@ -103,15 +112,10 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
     buffer->is_ruby_frame
   );
 
-  // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads
-  // could continue making progress while the sample was ingested into the profile.
-  //
-  // Other things to take into consideration if we go in that direction:
-  // * Is it safe to call `rb_profile_frame_...` methods on things from the `stack_buffer` without the GVL acquired?
-  // * We need to make `VALUE` references in the `stack_buffer` visible to the Ruby GC
-  // * Should we move this into a different thread entirely?
-  // * If we don't move it into a different thread, does releasing the GVL on a Ruby thread mean that we're introducing
-  //   a new thread switch point where there previously was none?
+  if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
+    record_placeholder_stack_in_native_code(recorder_instance, metric_values, labels);
+    return;
+  }
 
   // Ruby does not give us path and line number for methods implemented using native code.
   // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
@@ -120,11 +124,6 @@ void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instanc
   // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame)
   VALUE last_ruby_frame = Qnil;
   int last_ruby_line = 0;
-
-  if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack_in_native_code(recorder_instance, metric_values, labels);
-    return;
-  }
 
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
