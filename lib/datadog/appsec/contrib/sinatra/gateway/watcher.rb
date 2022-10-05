@@ -24,8 +24,8 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Rack::Reactive::RequestBody.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
+                  Rack::Reactive::RequestBody.subscribe(op, waf_context) do |result, _block|
+                    record = [:match].include?(result.status)
                     if record
                       # TODO: should this hash be an Event instance instead?
                       event = {
@@ -33,14 +33,14 @@ module Datadog
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Rack::Reactive::RequestBody.publish(op, request)
+                  _result, block = Rack::Reactive::RequestBody.publish(op, request)
                 end
 
                 next [nil, [[:block, event]]] if block
@@ -64,8 +64,8 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Sinatra::Reactive::Routed.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
+                  Sinatra::Reactive::Routed.subscribe(op, waf_context) do |result, _block|
+                    record = [:match].include?(result.status)
                     if record
                       # TODO: should this hash be an Event instance instead?
                       event = {
@@ -73,14 +73,14 @@ module Datadog
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Sinatra::Reactive::Routed.publish(op, [request, route_params])
+                  _result, block = Sinatra::Reactive::Routed.publish(op, [request, route_params])
                 end
 
                 next [nil, [[:block, event]]] if block
