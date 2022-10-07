@@ -342,7 +342,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         expect(trace.parent_span_id).to eq(parent_id)
         expect(trace.origin).to eq(origin)
         expect(trace.sampling_priority).to eq(sampling_priority)
-        expect(trace.distributed_tags).to eq('_dd.p.test' => 'value')
+        expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
       end
 
       it 'populates injected request headers' do
