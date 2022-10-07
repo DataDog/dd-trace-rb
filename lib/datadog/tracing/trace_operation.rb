@@ -165,13 +165,6 @@ module Datadog
         @service || (root_span && root_span.service)
       end
 
-      # Returns tracer tags that will be propagated if this span's context
-      # is exported through {.to_digest}.
-      # @return [Hash] key value pairs of distributed tags
-      def distributed_tags
-        meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
-      end
-
       def measure(
         op_name,
         events: nil,
@@ -467,6 +460,13 @@ module Datadog
           metrics: metrics,
           root_span_id: !partial ? root_span && root_span.id : nil
         )
+      end
+
+      # Returns tracer tags that will be propagated if this span's context
+      # is exported through {.to_digest}.
+      # @return [Hash] key value pairs of distributed tags
+      def distributed_tags
+        meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
       end
     end
     # rubocop:enable Metrics/ClassLength
