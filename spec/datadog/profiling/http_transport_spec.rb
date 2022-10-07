@@ -309,6 +309,15 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
         )
+      end
+
+      it 'reports the payload as lz4-compressed files, that get automatically compressed by libdatadog' do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
 
