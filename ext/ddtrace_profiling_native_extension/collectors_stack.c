@@ -112,7 +112,7 @@ static VALUE _native_sample(
 
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
-  if (!RB_TEST(in_gc)) {
+  if (!RTEST(in_gc)) {
     sample_thread(
       thread,
       buffer,
