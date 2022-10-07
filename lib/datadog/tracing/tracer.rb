@@ -327,7 +327,9 @@ module Datadog
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
-            sampling_priority: digest.trace_sampling_priority
+            sampling_priority: digest.trace_sampling_priority,
+            # Distributed tags are just regular trace tags with special meaning to Datadog
+            tags: digest.trace_distributed_tags,
           )
         else
           TraceOperation.new(

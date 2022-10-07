@@ -48,8 +48,10 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:sampled) { true }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
     let(:service) { 'billing-api' }
-    let(:tags) { { 'foo' => 'bar' } }
+    let(:tags) { { 'foo' => 'bar' }.merge(distributed_tags) }
     let(:metrics) { { 'baz' => 42.0 } }
+
+    let(:distributed_tags) { { '_dd.p.test' => 'value' } }
   end
 
   shared_examples 'a span with default events' do
@@ -1738,6 +1740,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               span_resource: nil,
               span_service: nil,
               span_type: nil,
+              trace_distributed_tags: {},
               trace_hostname: nil,
               trace_id: trace_op.id,
               trace_name: nil,
@@ -1761,6 +1764,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               span_resource: nil,
               span_service: nil,
               span_type: nil,
+              trace_distributed_tags: distributed_tags,
               trace_hostname: be_a_frozen_copy_of(hostname),
               trace_id: trace_op.id,
               trace_name: be_a_frozen_copy_of(name),
@@ -1795,8 +1799,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               service: 'foo',
               resource: 'bar',
               type: 'baz'
-            ) do |parent|
+            ) do |parent, trace|
               @parent = parent
+              trace.set_tag('_dd.p.test', 'value')
               to_digest
             end
           end
@@ -1809,6 +1814,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             span_resource: 'bar',
             span_service: 'foo',
             span_type: 'baz',
+            trace_distributed_tags: { '_dd.p.test' => 'value' },
             trace_hostname: nil,
             trace_id: trace_op.id,
             trace_name: 'grandparent',
@@ -1849,6 +1855,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               span_resource: nil,
               span_service: nil,
               span_type: nil,
+              trace_distributed_tags: {},
               trace_hostname: nil,
               trace_id: trace_op.id,
               trace_name: nil,
@@ -1881,6 +1888,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               span_resource: 'bar',
               span_service: 'foo',
               span_type: 'baz',
+              trace_distributed_tags: {},
               trace_hostname: nil,
               trace_id: trace_op.id,
               trace_name: 'parent',
@@ -1913,6 +1921,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               span_resource: nil,
               span_service: nil,
               span_type: nil,
+              trace_distributed_tags: {},
               trace_hostname: nil,
               trace_id: trace_op.id,
               trace_name: 'parent',
@@ -1953,6 +1962,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             span_resource: nil,
             span_service: nil,
             span_type: nil,
+            trace_distributed_tags: {},
             trace_hostname: nil,
             trace_id: trace_op.id,
             trace_name: 'grandparent',
@@ -2005,7 +2015,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
 
           it 'maintains the same tags' do
-            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+            expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
           it 'maintains the same metrics' do
@@ -2075,7 +2085,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
 
         it 'maintains the same tags' do
-          expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+          expect(new_trace_op.send(:meta)).to eq(tags)
         end
 
         it 'maintains the same metrics' do
@@ -2124,7 +2134,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
 
           it 'maintains the same tags' do
-            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+            expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
           it 'maintains the same metrics' do
@@ -2163,7 +2173,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
 
           it 'maintains the same tags' do
-            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+            expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
           it 'maintains the same metrics' do
@@ -2202,7 +2212,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
 
           it 'maintains the same tags' do
-            expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+            expect(new_trace_op.send(:meta)).to eq(tags)
           end
 
           it 'maintains the same metrics' do
@@ -2251,7 +2261,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         end
 
         it 'maintains the same tags' do
-          expect(new_trace_op.send(:meta)).to eq({ 'foo' => 'bar' })
+          expect(new_trace_op.send(:meta)).to eq(tags)
         end
 
         it 'maintains the same metrics' do

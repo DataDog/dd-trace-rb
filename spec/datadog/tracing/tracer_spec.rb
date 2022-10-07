@@ -800,9 +800,10 @@ RSpec.describe Datadog::Tracing::Tracer do
       let(:digest) do
         Datadog::Tracing::TraceDigest.new(
           span_id: Datadog::Core::Utils.next_id,
+          trace_distributed_tags: { '_dd.p.test' => 'value' },
           trace_id: Datadog::Core::Utils.next_id,
           trace_origin: 'synthetics',
-          trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          trace_sampling_priority: Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
         )
       end
 
@@ -812,8 +813,10 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace('operation') do |span, trace|
           expect(trace).to have_attributes(
             origin: digest.trace_origin,
-            sampling_priority: digest.trace_sampling_priority
+            sampling_priority: digest.trace_sampling_priority,
           )
+
+          expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
 
           expect(span).to have_attributes(
             parent_id: digest.span_id,
