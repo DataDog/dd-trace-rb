@@ -17,6 +17,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     let(:span_id) { double('span ID') }
     let(:sampling_priority) { double('sampling priority') }
     let(:origin) { double('synthetics') }
+    let(:trace_distributed_tags) { { '_dd.p.key' => 'value' } }
 
     let(:baggage) { { 'account_name' => 'acme' } }
 
@@ -32,6 +33,8 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
         .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
       expect(carrier).to receive(:[]=)
         .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN, origin.to_s)
+      allow(carrier).to receive(:[]=) # TODO: Change to `expect` when TraceOperation starts consuming trace_distributed_tags
+        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TAGS, '_dd.p.key=value')
 
       # Expect carrier to be set with OpenTracing baggage
       baggage.each do |key, value|
@@ -61,7 +64,7 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
           id: trace_id,
           parent_span_id: span_id,
           sampling_priority: sampling_priority,
-          origin: origin
+          origin: origin,
         )
       end
 
@@ -84,7 +87,8 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
           span_id: span_id,
           trace_id: trace_id,
           trace_origin: origin,
-          trace_sampling_priority: sampling_priority
+          trace_sampling_priority: sampling_priority,
+          trace_distributed_tags: trace_distributed_tags,
         )
       end
       it { is_expected.to be nil }
@@ -102,7 +106,8 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
         span_id: double('span ID'),
         trace_id: double('trace ID'),
         trace_origin: double('origin'),
-        trace_sampling_priority: double('sampling priority')
+        trace_sampling_priority: double('sampling priority'),
+        trace_distributed_tags: double('trace_distributed_tags'),
       )
     end
 

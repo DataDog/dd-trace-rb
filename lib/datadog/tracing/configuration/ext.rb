@@ -21,6 +21,7 @@ module Datadog
           PROPAGATION_STYLE_B3_SINGLE_HEADER = 'B3 single header'.freeze
           ENV_PROPAGATION_STYLE_INJECT = 'DD_PROPAGATION_STYLE_INJECT'.freeze
           ENV_PROPAGATION_STYLE_EXTRACT = 'DD_PROPAGATION_STYLE_EXTRACT'.freeze
+          ENV_X_DATADOG_TAGS_MAX_LENGTH = 'DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH'.freeze
         end
 
         # @public_api
