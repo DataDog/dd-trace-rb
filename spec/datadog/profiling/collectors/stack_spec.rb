@@ -19,15 +19,16 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
   let(:gathered_stack) { stacks.fetch(:gathered) }
 
-  def sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames: 400)
-    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames)
+  def sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames: 400, in_gc: false)
+    described_class::Testing._native_sample(thread, recorder_instance, metric_values_hash, labels_array, max_frames, in_gc)
   end
 
   # This spec explicitly tests the main thread because an unpatched rb_profile_frames returns one more frame in the
   # main thread than the reference Ruby API. This is almost-surely a bug in rb_profile_frames, since the same frame
   # gets excluded from the reference Ruby API.
   context 'when sampling the main thread' do
-    let(:stacks) { { reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current) } }
+    let(:in_gc) { false }
+    let(:stacks) { { reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current, in_gc: in_gc) } }
 
     let(:reference_stack) do
       # To make the stacks comparable we slice off the actual Ruby `Thread#backtrace_locations` frame since that part
@@ -55,6 +56,20 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
     it 'matches the Ruby backtrace API' do
       expect(gathered_stack).to eq reference_stack
+    end
+
+    context 'when marking sample as being in garbage collection' do
+      let(:in_gc) { true }
+
+      it 'includes a placeholder frame for garbage collection' do
+        expect(stacks.fetch(:gathered)[0]).to eq({ base_label: '', path: 'Garbage Collection', lineno: 0 })
+      end
+
+      it 'matches the Ruby backtrace API' do
+        # We skip 4 frames here -- the garbage collection placeholder, as well as the 3 top stacks that differ from the
+        # reference stack (see the `let(:gathered_stack)` above for details)
+        expect(stacks.fetch(:gathered)[4..-1]).to eq reference_stack
+      end
     end
   end
 
@@ -208,7 +223,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:target_stack_depth) { 100 }
     let(:thread_with_deep_stack) { DeepStackSimulator.thread_with_stack_depth(target_stack_depth) }
 
-    let(:stacks) { { reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames) } }
+    let(:in_gc) { false }
+    let(:stacks) { { reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames, in_gc: in_gc) } }
 
     after do
       thread_with_deep_stack.kill
@@ -250,21 +266,67 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
     end
+
+    context 'when marking sample as being in garbage collection' do
+      let(:in_gc) { true }
+
+      it 'gathers exactly max_frames frames' do
+        expect(gathered_stack.size).to be max_frames
+      end
+
+      it 'matches the Ruby backtrace API, up to max_frames - 2' do
+        garbage_collection = 1
+        expect(gathered_stack[(0 + garbage_collection)...(max_frames - 1)]).to eq reference_stack[0...(max_frames - 1 - garbage_collection)]
+      end
+
+      it 'includes two placeholder frames: one for garbage collection and another for including the number of skipped frames' do
+        garbage_collection = 1
+        placeholder = 1
+        omitted_frames = target_stack_depth - max_frames + placeholder + garbage_collection
+
+        expect(omitted_frames).to be 97
+        expect(gathered_stack.last)
+          .to match(hash_including({ base_label: '', path: '97 frames omitted', lineno: 0 }))
+        expect(gathered_stack.first).to match(hash_including(base_label: '', path: 'Garbage Collection', lineno: 0))
+      end
+
+      context 'when stack is exactly one item less as deep as the configured max_frames' do
+        let(:target_stack_depth) { 4 }
+
+        it 'includes a placeholder frame for garbage collection and matches the Ruby backtrace API' do
+          garbage_collection = 1
+          expect(gathered_stack[(0 + garbage_collection)..-1]).to eq reference_stack
+        end
+      end
+    end
   end
 
   context 'when sampling a dead thread' do
     let(:dead_thread) { Thread.new {}.tap(&:join) }
 
-    let(:stacks) { { reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread) } }
+    let(:in_gc) { false }
+    let(:stacks) { { reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread, in_gc: in_gc) } }
 
     it 'gathers an empty stack' do
       expect(gathered_stack).to be_empty
+    end
+
+    context 'when marking sample as being in garbage collection' do
+      let(:in_gc) { true }
+
+      it 'gathers a stack with a garbage collection placeholder' do
+        # @ivoanjo: I... don't think this can happen in practice. It's debatable if we should still have the placeholder
+        # frame or not, but for ease of implementation I chose this path, and I added this spec just to get coverage on
+        # this corner case.
+        expect(gathered_stack).to contain_exactly({ base_label: '', path: 'Garbage Collection', lineno: 0 })
+      end
     end
   end
 
   context 'when sampling a thread with empty locations' do
     let(:ready_pipe) { IO.pipe }
-    let(:stacks) { { reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations) } }
+    let(:in_gc) { false }
+    let(:stacks) { { reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations, in_gc: in_gc) } }
     let(:finish_pipe) { IO.pipe }
 
     let(:thread_with_empty_locations) do
@@ -310,6 +372,17 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     it 'gathers a one-element stack with a "In native code" placeholder' do
       expect(gathered_stack).to contain_exactly({ base_label: '', path: 'In native code', lineno: 0 })
     end
+
+    context 'when marking sample as being in garbage collection' do
+      let(:in_gc) { true }
+
+      it 'gathers a two-element stack with a placeholder for "In native code" and another for garbage collection' do
+        expect(gathered_stack).to contain_exactly(
+          { base_label: '', path: 'Garbage Collection', lineno: 0 },
+          { base_label: '', path: 'In native code', lineno: 0 }
+        )
+      end
+    end
   end
 
   context 'when trying to sample something which is not a thread' do
@@ -342,8 +415,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  def sample_and_decode(thread, max_frames: 400, recorder: Datadog::Profiling::StackRecorder.new)
-    sample(thread, recorder, metric_values, labels, max_frames: max_frames)
+  def sample_and_decode(thread, max_frames: 400, recorder: Datadog::Profiling::StackRecorder.new, in_gc: false)
+    sample(thread, recorder, metric_values, labels, max_frames: max_frames, in_gc: in_gc)
 
     serialization_result = recorder.serialize
     raise 'Unexpected: Serialization failed' unless serialization_result
