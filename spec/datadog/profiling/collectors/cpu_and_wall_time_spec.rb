@@ -33,6 +33,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
   let(:max_frames) { 123 }
 
+  let(:pprof_result) do
+    serialization_result = recorder.serialize
+    raise 'Unexpected: Serialization failed' unless serialization_result
+
+    serialization_result.last
+  end
+  let(:samples) { samples_from_pprof(pprof_result) }
+
   subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
 
   after do
@@ -46,6 +54,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     described_class::Testing._native_sample(cpu_and_wall_time_collector)
   end
 
+  def on_gc_start
+    described_class::Testing._native_on_gc_start(cpu_and_wall_time_collector)
+  end
+
+  def on_gc_finish
+    described_class::Testing._native_on_gc_finish(cpu_and_wall_time_collector)
+  end
+
   def thread_list
     described_class::Testing._native_thread_list
   end
@@ -55,14 +71,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
 
   describe '#sample' do
-    let(:pprof_result) do
-      serialization_result = recorder.serialize
-      raise 'Unexpected: Serialization failed' unless serialization_result
-
-      serialization_result.last
-    end
-    let(:samples) { samples_from_pprof(pprof_result) }
-
     it 'samples all threads' do
       all_threads = Thread.list
 
@@ -103,7 +111,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       expect(samples.flat_map { |it| it.fetch(:labels).keys }).to_not include(':thread name')
     end
 
-    it 'includes the wall time elapsed between samples' do
+    it 'includes the wall-time elapsed between samples' do
       sample
       wall_time_at_first_sample =
         per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
@@ -129,7 +137,59 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       expect(t1_sample).to include(values: include(:'cpu-samples' => 5))
     end
 
-    context 'cpu time behavior' do
+    context 'when a thread is marked as being in garbage collection' do
+      it 'records the wall-time between a previous sample and the start of garbage collection' do
+        sample
+        wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+        on_gc_start
+        wall_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_gc_start_ns)
+        sample
+
+        total_wall_for_rspec_thread =
+          samples
+            .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+            .map { |it| it.fetch(:values).fetch(:'wall-time') }
+            .reduce(:+)
+
+        expect(total_wall_for_rspec_thread).to be(wall_time_at_gc_start - wall_time_at_first_sample)
+      end
+
+      it 'ignores the passage of wall-time for a thread in gc' do
+        sample
+        wall_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+        on_gc_start
+        wall_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_gc_start_ns)
+
+        5.times { sample } # Even though we keep sampling, the result is only includes the time until we called on_gc_start
+
+        total_wall_for_rspec_thread =
+          samples
+            .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+            .map { |it| it.fetch(:values).fetch(:'wall-time') }
+            .reduce(:+)
+
+        expect(total_wall_for_rspec_thread).to be(wall_time_at_gc_start - wall_time_at_first_sample)
+      end
+
+      context 'when the first samples of a thread occur after the thread has been marked as being in garbage collection' do
+        it 'records zero wall-time for the thread' do
+          on_gc_start
+          5.times { sample }
+
+          total_wall_for_rspec_thread =
+            samples
+              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+              .map { |it| it.fetch(:values).fetch(:'wall-time') }
+              .reduce(:+)
+
+          expect(total_wall_for_rspec_thread).to be 0
+        end
+      end
+    end
+
+    context 'cpu-time behavior' do
       context 'when not on Linux' do
         before do
           skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
@@ -166,6 +226,236 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           # running on CPU, but possibly it spent slightly less.
           expect(total_cpu_for_rspec_thread).to be_between(1, rspec_thread_spent_time)
         end
+
+        it 'records the cpu-time between a previous sample and the start of garbage collection' do
+          sample
+          cpu_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
+
+          on_gc_start
+          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_gc_start_ns)
+          sample
+
+          total_cpu_for_rspec_thread =
+            samples
+              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+              .map { |it| it.fetch(:values).fetch(:'cpu-time') }
+              .reduce(:+)
+
+          expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
+        end
+
+        it 'ignores the passage of cpu-time for a thread in gc' do
+          sample
+          cpu_time_at_first_sample = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
+
+          on_gc_start
+          cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_gc_start_ns)
+          sample
+
+          # Even though we keep sampling, the result is only includes the time until we called on_gc_start
+          5.times do
+            sample
+          end
+          total_cpu_for_rspec_thread =
+            samples
+              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+              .map { |it| it.fetch(:values).fetch(:'cpu-time') }
+              .reduce(:+)
+
+          expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
+        end
+
+        # rubocop:disable Layout/LineLength
+        context 'when the first samples of a thread occur after the thread has been marked as being in garbage collection' do
+          it 'records zero cpu-time for the thread' do
+            on_gc_start
+            5.times { sample }
+
+            total_cpu_for_rspec_thread =
+              samples
+                .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+                .map { |it| it.fetch(:values).fetch(:'cpu-time') }
+                .reduce(:+)
+
+            expect(total_cpu_for_rspec_thread).to be 0
+          end
+        end
+        # rubocop:enable Layout/LineLength
+      end
+    end
+  end
+
+  describe '#on_gc_start' do
+    it "records the wall-time when garbage collection started in the caller thread's context" do
+      wall_time_before_on_gc_start_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+      on_gc_start
+      wall_time_after_on_gc_start_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
+      expect(per_thread_context.fetch(Thread.current)).to include(
+        wall_time_at_gc_start_ns: be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns)
+      )
+    end
+
+    context 'cpu-time behavior' do
+      context 'when not on Linux' do
+        before do
+          skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
+        end
+
+        it "records the cpu-time when garbage collection started in the caller thread's context as zero" do
+          on_gc_start
+
+          expect(per_thread_context.fetch(Thread.current)).to include(cpu_time_at_gc_start_ns: 0)
+        end
+      end
+
+      context 'on Linux' do
+        before do
+          skip 'Test only runs on Linux' unless PlatformHelpers.linux?
+        end
+
+        it "records the cpu-time when garbage collection started in the caller thread's context" do
+          on_gc_start
+
+          expect(per_thread_context.fetch(Thread.current)).to include(cpu_time_at_gc_start_ns: be > 0)
+        end
+      end
+    end
+  end
+
+  describe '#on_gc_finish' do
+    let(:invalid_time) { -1 }
+
+    context 'when on_gc_start was previously called' do
+      before { on_gc_start }
+
+      it 'triggers a single sample for the caller thread, marking it as being in Garbage Collection' do
+        on_gc_finish
+
+        expect(samples.first.fetch(:locations).first).to match(hash_including(path: 'Garbage Collection'))
+      end
+
+      it 'triggers a single sample for the caller thread, recording the wall-time spent since on_gc_start was called' do
+        wall_time_at_gc_start_ns = per_thread_context.fetch(Thread.current).fetch(:wall_time_at_gc_start_ns)
+        on_gc_finish
+        wall_time_after_on_gc_finish_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
+        expect(samples.first.fetch(:values)).to include(
+          :"cpu-samples" => 1,
+          :"wall-time" => be_between(1, wall_time_after_on_gc_finish_ns - wall_time_at_gc_start_ns)
+        )
+      end
+
+      it 'samples only the caller thread, and does not sample other threads' do
+        on_gc_finish
+
+        expect(samples.size).to be 1
+        expect(samples.first.fetch(:labels).fetch(:'thread id')).to eq Thread.current.object_id.to_s
+      end
+
+      it 'marks the caller thread as no longer being in GC in the thread context' do
+        on_gc_finish
+
+        expect(per_thread_context.fetch(Thread.current)).to include(
+          cpu_time_at_gc_start_ns: invalid_time,
+          wall_time_at_gc_start_ns: invalid_time,
+        )
+      end
+
+      context 'if thread was previously sampled' do
+        before { sample }
+
+        it 'advances the wall_time_at_previous_sample_ns for the caller thread by the value spent in garbage collection' do
+          wall_time_at_previous_sample_ns_before_gc_finish =
+            per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+          on_gc_finish
+
+          gc_sample = samples.find { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+          wall_time_spent_in_gc = gc_sample.fetch(:values).fetch(:'wall-time')
+
+          expect(per_thread_context.fetch(Thread.current)).to include(
+            wall_time_at_previous_sample_ns: wall_time_at_previous_sample_ns_before_gc_finish + wall_time_spent_in_gc
+          )
+        end
+      end
+
+      context 'if thread was not previously sampled' do
+        it 'keeps the wall_time_at_previous_sample_ns as invalid' do
+          on_gc_finish
+
+          expect(per_thread_context.fetch(Thread.current)).to include(wall_time_at_previous_sample_ns: invalid_time)
+        end
+      end
+
+      context 'cpu-time behavior' do
+        context 'if thread was not previously sampled' do
+          it 'keeps the cpu_time_at_previous_sample_ns as invalid' do
+            on_gc_finish
+
+            expect(per_thread_context.fetch(Thread.current)).to include(cpu_time_at_previous_sample_ns: invalid_time)
+          end
+        end
+
+        context 'when not on Linux' do
+          before do
+            skip 'The fallback behavior only applies when not on Linux' if PlatformHelpers.linux?
+          end
+
+          context 'if thread was previously sampled' do
+            before { sample }
+
+            it 'keeps the cpu_time_at_previous_sample_ns as zero' do
+              on_gc_finish
+
+              expect(per_thread_context.fetch(Thread.current)).to include(cpu_time_at_previous_sample_ns: 0)
+            end
+          end
+
+          it 'records the cpu-time as zero for the sample taken' do
+            on_gc_finish
+
+            expect(samples.first.fetch(:values)).to include(:"cpu-time" => 0)
+          end
+        end
+
+        context 'on Linux' do
+          before do
+            skip 'Test only runs on Linux' unless PlatformHelpers.linux?
+          end
+
+          context 'if thread was previously sampled' do
+            before { sample }
+
+            # rubocop:disable Layout/LineLength
+            it 'advances the cpu_time_at_previous_sample_ns for the caller thread by the value spent in garbage collection' do
+              cpu_time_at_previous_sample_ns_before_gc_finish =
+                per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
+
+              on_gc_finish
+
+              gc_sample = samples.find { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+              cpu_time_spent_in_gc = gc_sample.fetch(:values).fetch(:'cpu-time')
+
+              expect(per_thread_context.fetch(Thread.current)).to include(
+                cpu_time_at_previous_sample_ns: cpu_time_at_previous_sample_ns_before_gc_finish + cpu_time_spent_in_gc
+              )
+            end
+          end
+          # rubocop:enable Layout/LineLength
+
+          it 'records the cpu-time since on_gc_start was called' do
+            on_gc_finish
+
+            expect(samples.first.fetch(:values)).to include(:"cpu-time" => be >= 1)
+          end
+        end
+      end
+    end
+
+    context 'when on_gc_start was not called' do
+      it do
+        expect { on_gc_finish }.to raise_error(RuntimeError, /Invalid state/)
       end
     end
   end
