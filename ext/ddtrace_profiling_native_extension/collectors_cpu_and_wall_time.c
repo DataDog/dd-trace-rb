@@ -224,7 +224,8 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
       state->sampling_buffer,
       state->recorder_instance,
       (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddog_Slice_label) {.ptr = labels, .len = label_count}
+      (ddog_Slice_label) {.ptr = labels, .len = label_count},
+      SAMPLE_REGULAR
     );
   }
 
