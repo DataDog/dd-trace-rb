@@ -47,6 +47,13 @@ static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t 
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
 static VALUE _native_sample(VALUE self, VALUE collector_instance);
+static void trigger_sample_for_thread(
+  struct cpu_and_wall_time_collector_state *state,
+  VALUE thread,
+  struct per_thread_context *thread_context,
+  ddog_Slice_i64 metric_values_slice,
+  sample_type type
+);
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct cpu_and_wall_time_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context);
@@ -205,26 +212,11 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
     metric_values[CPU_SAMPLES_VALUE_POS] = 1;
     metric_values[WALL_TIME_VALUE_POS] = wall_time_elapsed_ns;
 
-    VALUE thread_name = thread_name_for(thread);
-    bool have_thread_name = thread_name != Qnil;
-
-    int label_count = 1 + (have_thread_name ? 1 : 0);
-    ddog_Label labels[label_count];
-
-    labels[0] = (ddog_Label) {.key = DDOG_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
-    if (have_thread_name) {
-      labels[1] = (ddog_Label) {
-        .key = DDOG_CHARSLICE_C("thread name"),
-        .str = char_slice_from_ruby_string(thread_name)
-      };
-    }
-
-    sample_thread(
+    trigger_sample_for_thread(
+      state,
       thread,
-      state->sampling_buffer,
-      state->recorder_instance,
+      thread_context,
       (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddog_Slice_label) {.ptr = labels, .len = label_count},
       SAMPLE_REGULAR
     );
   }
@@ -237,6 +229,37 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
 
   // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
+}
+
+static void trigger_sample_for_thread(
+  struct cpu_and_wall_time_collector_state *state,
+  VALUE thread,
+  struct per_thread_context *thread_context,
+  ddog_Slice_i64 metric_values_slice,
+  sample_type type
+) {
+  VALUE thread_name = thread_name_for(thread);
+  bool have_thread_name = thread_name != Qnil;
+
+  int label_count = 1 + (have_thread_name ? 1 : 0);
+  ddog_Label labels[label_count];
+
+  labels[0] = (ddog_Label) {.key = DDOG_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
+  if (have_thread_name) {
+    labels[1] = (ddog_Label) {
+      .key = DDOG_CHARSLICE_C("thread name"),
+      .str = char_slice_from_ruby_string(thread_name)
+    };
+  }
+
+  sample_thread(
+    thread,
+    state->sampling_buffer,
+    state->recorder_instance,
+    metric_values_slice,
+    (ddog_Slice_label) {.ptr = labels, .len = label_count},
+    type
+  );
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
