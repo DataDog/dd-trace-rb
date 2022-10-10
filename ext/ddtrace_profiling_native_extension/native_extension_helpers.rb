@@ -31,8 +31,9 @@ module Datadog
       # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
       # Linux: e.g. `readelf -d ddtrace_profiling_native_extension.2.7.3_x86_64-linux.so`.
       #
-      # In ddtrace 1.1.0, we only set as runpath an absolute path to libdatadog. (This gets set automatically by the call
-      # to `pkg_config('ddprof_ffi_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
+      # In older versions of ddtrace, we only set as runpath an absolute path to libdatadog.
+      # (This gets set automatically by the call
+      # to `pkg_config('datadog_profiling_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
       # moved from the folder it was present at ddtrace installation/linking time.
       #
       # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
