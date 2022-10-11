@@ -269,12 +269,6 @@ RSpec.describe 'Rails integration tests' do
         end
 
         context 'with an event-triggering request as JSON' do
-          let(:middlewares) do
-            [
-              Rack::JSONBodyParser,
-            ]
-          end
-
           let(:params) { JSON.generate('q' => '1 OR 1;') }
           let(:headers) { { 'CONTENT_TYPE' => 'application/json' } }
 
