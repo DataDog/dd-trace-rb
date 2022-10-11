@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+## [1.5.0] - 2022-09-29
+
+### Deprecation notice
+
+* `c.tracing.instrument :rack, { quantize: { base: ... } }` will change its default from `:exclude` to `:show` in a future version. Voluntarily moving to `:show` is recommended.
+* `c.tracing.instrument :rack, { quantize: { query: { show: ... } }` will change its default to `:all` in a future version, together with `quantize.query.obfuscate` changing to `:internal`. Voluntarily moving to these future values is recommended.
+
+### Added
+
+* Feature: Single Span Sampling ([#2128][])
+* Add query string automatic redaction ([#2283][])
+* Use full URL in `http.url` tag ([#2265][])
+* Add `http.useragent` tag ([#2252][])
+* Add `http.client_ip` tag for Rack-based frameworks ([#2248][])
+* Ci-app: CI: Fetch committer and author in Bitrise ([#2258][])
+
+### Changed
+
+* Bump allowed version of debase-ruby_core_source to include v0.10.17 ([#2267][])
+
+### Fixed
+
+* Bug: Fix `service_nam` typo to `service_name` ([#2296][])
+* Bug: Check AppSec Rails for railties instead of rails meta gem ([#2293][]) ([@seuros][])
+* Ci-app: Correctly extract commit message from AppVeyor ([#2257][])
+
+## [1.4.2] - 2022-09-27
+
+### Fixed
+
+OpenTracing context propagation ([#2191][], [#2289][])
+
+## [1.4.1] - 2022-09-15
+
+### Fixed
+
+* Missing distributed traces when trace is dropped by priority sampling ([#2101][], [#2279][])
+* Profiling support when Ruby is compiled without a shared library ([#2250][])
+
 ## [1.4.0] - 2022-08-25
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v1.4.0
@@ -2090,7 +2129,13 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.1.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.2...master
+[1.5.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.2...v1.5.0
+[1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.1...v1.4.2
+[1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta2...v1.0.0
 [1.0.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v1.0.0.beta1...v1.0.0.beta2
@@ -2950,10 +2995,12 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2082]: https://github.com/DataDog/dd-trace-rb/issues/2082
 [#2096]: https://github.com/DataDog/dd-trace-rb/issues/2096
 [#2097]: https://github.com/DataDog/dd-trace-rb/issues/2097
+[#2101]: https://github.com/DataDog/dd-trace-rb/issues/2101
 [#2110]: https://github.com/DataDog/dd-trace-rb/issues/2110
 [#2113]: https://github.com/DataDog/dd-trace-rb/issues/2113
 [#2118]: https://github.com/DataDog/dd-trace-rb/issues/2118
 [#2125]: https://github.com/DataDog/dd-trace-rb/issues/2125
+[#2128]: https://github.com/DataDog/dd-trace-rb/issues/2128
 [#2134]: https://github.com/DataDog/dd-trace-rb/issues/2134
 [#2138]: https://github.com/DataDog/dd-trace-rb/issues/2138
 [#2140]: https://github.com/DataDog/dd-trace-rb/issues/2140
@@ -2966,10 +3013,23 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2173]: https://github.com/DataDog/dd-trace-rb/issues/2173
 [#2174]: https://github.com/DataDog/dd-trace-rb/issues/2174
 [#2180]: https://github.com/DataDog/dd-trace-rb/issues/2180
+[#2191]: https://github.com/DataDog/dd-trace-rb/issues/2191
 [#2200]: https://github.com/DataDog/dd-trace-rb/issues/2200
 [#2201]: https://github.com/DataDog/dd-trace-rb/issues/2201
 [#2219]: https://github.com/DataDog/dd-trace-rb/issues/2219
 [#2229]: https://github.com/DataDog/dd-trace-rb/issues/2229
+[#2248]: https://github.com/DataDog/dd-trace-rb/issues/2248
+[#2250]: https://github.com/DataDog/dd-trace-rb/issues/2250
+[#2252]: https://github.com/DataDog/dd-trace-rb/issues/2252
+[#2257]: https://github.com/DataDog/dd-trace-rb/issues/2257
+[#2258]: https://github.com/DataDog/dd-trace-rb/issues/2258
+[#2265]: https://github.com/DataDog/dd-trace-rb/issues/2265
+[#2267]: https://github.com/DataDog/dd-trace-rb/issues/2267
+[#2279]: https://github.com/DataDog/dd-trace-rb/issues/2279
+[#2283]: https://github.com/DataDog/dd-trace-rb/issues/2283
+[#2289]: https://github.com/DataDog/dd-trace-rb/issues/2289
+[#2293]: https://github.com/DataDog/dd-trace-rb/issues/2293
+[#2296]: https://github.com/DataDog/dd-trace-rb/issues/2296
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -3091,6 +3151,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@saturnflyer]: https://github.com/saturnflyer
 [@sco11morgan]: https://github.com/sco11morgan
 [@senny]: https://github.com/senny
+[@seuros]: https://github.com/seuros
 [@shayonj]: https://github.com/shayonj
 [@sinsoku]: https://github.com/sinsoku
 [@skcc321]: https://github.com/skcc321

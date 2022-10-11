@@ -61,7 +61,7 @@ Style/NumericLiterals:
   Enabled: false
 
 Metrics/ClassLength:
-  Max: 140
+  Enabled: false
 
 Metrics/BlockLength:
   Max: 42
@@ -70,8 +70,7 @@ Metrics/BlockLength:
     - spec/**/*
 
 Metrics/ModuleLength:
-  Exclude:
-    - spec/**/*
+  Enabled: false
 
 Metrics/ParameterLists:
   Enabled: false

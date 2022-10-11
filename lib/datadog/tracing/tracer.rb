@@ -23,7 +23,6 @@ module Datadog
     # example, a trace can be used to track the entire time spent processing a complicated web request.
     # Even though the request may require multiple resources and machines to handle the request, all
     # of these function calls and sub-requests would be encapsulated within a single trace.
-    # rubocop:disable Metrics/ClassLength
     class Tracer
       attr_reader \
         :trace_flush,
@@ -528,6 +527,5 @@ module Datadog
         end
       end
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

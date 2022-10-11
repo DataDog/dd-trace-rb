@@ -13,7 +13,6 @@ module Datadog
       module Rack
         module Gateway
           # Watcher for Rack gateway events
-          # rubocop:disable Metrics/ModuleLength
           module Watcher
             # rubocop:disable Metrics/AbcSize
             # rubocop:disable Metrics/MethodLength
@@ -161,7 +160,6 @@ module Datadog
               end
             end
           end
-          # rubocop:enable Metrics/ModuleLength
         end
       end
     end

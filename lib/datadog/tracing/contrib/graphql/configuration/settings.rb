@@ -27,7 +27,7 @@ module Datadog
             end
 
             option :schemas
-            option :service_nam
+            option :service_name
           end
         end
       end
