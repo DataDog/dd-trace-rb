@@ -343,6 +343,8 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
   return Qnil;
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self) {
   struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
   if (sigaction(SIGPROF, NULL, &existing_signal_handler_config) != 0) {
@@ -370,6 +372,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   return Qnil;
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance) {
   return \
     (active_sampler_owner_thread != Qnil && is_thread_alive(active_sampler_owner_thread) && active_sampler_instance == instance) ?
@@ -380,11 +384,15 @@ static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   /* Does nothing on purpose */
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   install_sigprof_signal_handler(testing_signal_handler);
   return Qtrue;
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   remove_sigprof_signal_handler();
   return Qtrue;
