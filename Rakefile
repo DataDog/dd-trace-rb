@@ -168,7 +168,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main]
+    task all: [:main, :rack, :rails, :sinatra]
 
     # Datadog AppSec main specs
     RSpec::Core::RakeTask.new(:main) do |t, args|
@@ -176,6 +176,18 @@ namespace :spec do
       t.exclude_pattern = 'spec/datadog/appsec/**/{contrib,auto_instrument}/**/*_spec.rb,'\
                           ' spec/datadog/appsec/**/{auto_instrument,autoload}_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
+    end
+
+    # Datadog AppSec integrations
+    [
+      :rack,
+      :sinatra,
+      :rails,
+    ].each do |contrib|
+      RSpec::Core::RakeTask.new(contrib) do |t, args|
+        t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
+        t.rspec_opts = args.to_a.join(' ')
+      end
     end
   end
 
