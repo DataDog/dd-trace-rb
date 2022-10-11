@@ -36,6 +36,8 @@ module Datadog
                         actions: result.actions
                       }
 
+                      span.set_tag('appsec.event', 'true') if span
+
                       waf_context.events << event
                     end
                   end
@@ -75,6 +77,8 @@ module Datadog
                         request: request,
                         actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end

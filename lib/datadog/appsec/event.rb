@@ -64,10 +64,6 @@ module Datadog
 
           # prepare and gather tags to apply
           trace_tags = event_group.each_with_object({}) do |event, tags|
-            span = event[:span]
-
-            span.set_tag('appsec.event', 'true') if span
-
             # TODO: assume HTTP request context for now
 
             if (request = event[:request])
