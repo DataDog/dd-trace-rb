@@ -15,7 +15,7 @@ module Datadog
           module Watcher
             # rubocop:disable Metrics/MethodLength
             def self.watch
-              Instrumentation.gateway.watch('sinatra.request.dispatch') do |stack, request|
+              Instrumentation.gateway.watch('sinatra.request.dispatch', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -57,7 +57,7 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('sinatra.request.routed') do |stack, (request, route_params)|
+              Instrumentation.gateway.watch('sinatra.request.routed', :appsec) do |stack, (request, route_params)|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']

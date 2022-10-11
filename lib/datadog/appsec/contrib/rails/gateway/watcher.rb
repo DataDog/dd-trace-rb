@@ -13,7 +13,7 @@ module Datadog
           # Watcher for Rails gateway events
           module Watcher
             def self.watch
-              Instrumentation.gateway.watch('rails.request.action') do |stack, request|
+              Instrumentation.gateway.watch('rails.request.action', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']

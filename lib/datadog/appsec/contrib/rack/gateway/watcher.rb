@@ -17,7 +17,7 @@ module Datadog
             # rubocop:disable Metrics/AbcSize
             # rubocop:disable Metrics/MethodLength
             def self.watch
-              Instrumentation.gateway.watch('rack.request') do |stack, request|
+              Instrumentation.gateway.watch('rack.request', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -59,7 +59,7 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('rack.response') do |stack, response|
+              Instrumentation.gateway.watch('rack.response', :appsec) do |stack, response|
                 block = false
                 event = nil
                 waf_context = response.instance_eval { @waf_context }
@@ -101,7 +101,7 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('rack.request.body') do |stack, request|
+              Instrumentation.gateway.watch('rack.request.body', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
