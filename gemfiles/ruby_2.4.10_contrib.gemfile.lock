@@ -2,7 +2,7 @@ PATH
   remote: ..
   specs:
     ddtrace (1.5.0)
-      debase-ruby_core_source (= 0.10.16)
+      debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
       libdatadog (~> 0.7.0.1.1)
       libddwaf (~> 1.5.1.0.0)
       msgpack
@@ -1507,6 +1507,8 @@ GEM
     rack (2.2.3)
     rack-accept (0.4.5)
       rack (>= 0.4)
+    rack-contrib (2.3.0)
+      rack (~> 2.0)
     rack-protection (2.0.8.1)
       rack
     rack-test (1.1.0)
@@ -1718,6 +1720,7 @@ DEPENDENCIES
   que (>= 1.0.0)
   racecar (>= 0.3.5)
   rack
+  rack-contrib
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
