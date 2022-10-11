@@ -73,7 +73,7 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
 static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns);
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
-static long wall_time_now_ns();
+static long wall_time_now_ns(void);
 static long thread_id_for(VALUE thread);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
@@ -498,7 +498,7 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   return elapsed_time_ns;
 }
 
-static long wall_time_now_ns() {
+static long wall_time_now_ns(void) {
   struct timespec current_monotonic;
 
   if (clock_gettime(CLOCK_MONOTONIC, &current_monotonic) != 0) rb_sys_fail("Failed to read CLOCK_MONOTONIC");
