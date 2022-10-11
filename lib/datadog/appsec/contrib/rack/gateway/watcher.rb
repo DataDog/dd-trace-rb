@@ -16,6 +16,8 @@ module Datadog
           module Watcher
             # rubocop:disable Metrics/AbcSize
             # rubocop:disable Metrics/MethodLength
+            # rubocop:disable Metrics/CyclomaticComplexity
+            # rubocop:disable Metrics/PerceivedComplexity
             def self.watch
               Instrumentation.gateway.watch('rack.request', :appsec) do |stack, request|
                 block = false
@@ -143,6 +145,8 @@ module Datadog
                 [ret, res]
               end
             end
+            # rubocop:enable Metrics/CyclomaticComplexity
+            # rubocop:enable Metrics/PerceivedComplexity
             # rubocop:enable Metrics/MethodLength
             # rubocop:enable Metrics/AbcSize
 

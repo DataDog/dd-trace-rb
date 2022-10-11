@@ -51,8 +51,6 @@ module Datadog
         end
       end
 
-      # rubocop:disable Metrics/AbcSize
-      # rubocop:disable Metrics/MethodLength
       def self.record_via_span(*events)
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
@@ -110,8 +108,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/MethodLength
-      # rubocop:enable Metrics/AbcSize
     end
   end
 end

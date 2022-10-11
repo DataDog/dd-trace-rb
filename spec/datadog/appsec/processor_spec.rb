@@ -102,16 +102,6 @@ RSpec.describe Datadog::AppSec::Processor do
       }
     end
 
-    context 'when ruleset is default' do
-      let(:ruleset) { :recommended }
-
-      before do
-        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
-      end
-
-      it { expect(described_class.new.send(:load_ruleset)).to be true }
-    end
-
     context 'when ruleset is :recommended' do
       let(:ruleset) { :recommended }
 
