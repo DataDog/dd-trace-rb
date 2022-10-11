@@ -57,6 +57,7 @@ module Datadog
             request_return
           ensure
             add_waf_runtime_tags(context) if context
+            context.finalize if context
           end
 
           private
