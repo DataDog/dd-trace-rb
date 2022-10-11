@@ -21,7 +21,7 @@ module Datadog
           end
 
           def call(env)
-            return @app.call(env) unless @processor.ready?
+            return @app.call(env) unless Datadog.configuration.appsec.enabled && @processor.ready?
 
             # TODO: handle exceptions, except for @app.call
 
