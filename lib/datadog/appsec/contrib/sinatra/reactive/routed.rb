@@ -51,7 +51,7 @@ module Datadog
                 when :invalid_rule, :invalid_flow, :no_rule
                   Datadog.logger.debug { "WAF RULE ERROR: #{result.inspect}" }
                 else
-                  Datadog.logger.debug { "WAF UNKNOWN: #{action.inspect} #{result.inspect}" }
+                  Datadog.logger.debug { "WAF UNKNOWN: #{result.status.inspect} #{result.inspect}" }
                 end
               end
             end
