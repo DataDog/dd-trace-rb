@@ -5,7 +5,13 @@ require 'rack/test'
 
 require 'securerandom'
 require 'rack'
-require 'rack/contrib/json_body_parser'
+
+begin
+  require 'rack/contrib/json_body_parser'
+rescue LoadError
+  # fallback for old rack-contrib
+  require 'rack/contrib/post_body_content_type_parser'
+end
 
 require 'ddtrace'
 require 'datadog/tracing/contrib/rack/middlewares'
@@ -243,11 +249,20 @@ RSpec.describe 'Rack integration tests' do
         end
 
         context 'with an event-triggering request as JSON' do
+          let(:rack_contrib_body_parser) do
+            if defined?(Rack::JSONBodyParser)
+              Rack::JSONBodyParser
+            else
+              # fallback for old rack-contrib
+              Rack::PostBodyContentTypeParser
+            end
+          end
+
           let(:middlewares) do
             [
               Datadog::Tracing::Contrib::Rack::TraceMiddleware,
               Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-              Rack::JSONBodyParser,
+              rack_contrib_body_parser,
               Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware,
             ]
           end

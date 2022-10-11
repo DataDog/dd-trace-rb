@@ -5,7 +5,13 @@ require 'rack/test'
 
 require 'securerandom'
 require 'sinatra/base'
-require 'rack/contrib/json_body_parser'
+
+begin
+  require 'rack/contrib/json_body_parser'
+rescue LoadError
+  # fallback for old rack-contrib
+  require 'rack/contrib/post_body_content_type_parser'
+end
 
 require 'datadog/tracing'
 require 'datadog/tracing/metadata/ext'
@@ -283,9 +289,18 @@ RSpec.describe 'Sinatra integration tests' do
         end
 
         context 'with an event-triggering request as JSON' do
+          let(:rack_contrib_body_parser) do
+            if defined?(Rack::JSONBodyParser)
+              Rack::JSONBodyParser
+            else
+              # fallback for old rack-contrib
+              Rack::PostBodyContentTypeParser
+            end
+          end
+
           let(:middlewares) do
             [
-              Rack::JSONBodyParser,
+              rack_contrib_body_parser,
             ]
           end
 
