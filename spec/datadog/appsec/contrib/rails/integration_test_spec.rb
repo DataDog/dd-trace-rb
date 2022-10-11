@@ -51,7 +51,16 @@ RSpec.describe 'Rails integration tests' do
       stub_const(
         'TestController',
         Class.new(ActionController::Base) do
-          skip_before_action :verify_authenticity_token
+          # skip CSRF token check for non-GET requests
+          begin
+            if respond_to?(:skip_before_action)
+              skip_before_action :verify_authenticity_token
+            else
+              skip_before_filter :verify_authenticity_token
+            end
+          rescue ArgumentError # :verify_authenticity_token might not be defined
+            nil
+          end
 
           def success
             render plain: 'ok'
