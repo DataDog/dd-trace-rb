@@ -10,6 +10,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   subject(:cpu_and_wall_time_worker) { described_class.new(recorder: recorder, max_frames: 400) }
 
+  describe '.new' do
+    it 'creates the garbage collection tracepoint in the disabled state'
+  end
+
   describe '#start' do
     subject(:start) do
       cpu_and_wall_time_worker.start
@@ -54,6 +58,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(described_class::Testing._native_current_sigprof_signal_handler).to be :profiling
     end
+
+    it 'enables the garbage collection tracepoint'
 
     context 'when a previous signal handler existed' do
       before do
@@ -126,6 +132,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(described_class::Testing._native_current_sigprof_signal_handler).to be nil
     end
+
+    it 'disables the garbage collection tracepoint'
   end
 
   describe '#enabled=' do
