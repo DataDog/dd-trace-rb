@@ -274,8 +274,9 @@ VALUE cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
 
   struct per_thread_context *thread_context = get_or_create_context_for(rb_thread_current(), state);
 
-  thread_context->cpu_time_at_gc_start_ns = cpu_time_now_ns(thread_context);
+  // Here we record the wall-time first and in on_gc_finish we record second to avoid having wall-time be slightly < cpu-time
   thread_context->wall_time_at_gc_start_ns = wall_time_now_ns();
+  thread_context->cpu_time_at_gc_start_ns = cpu_time_now_ns(thread_context);
 
   // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
