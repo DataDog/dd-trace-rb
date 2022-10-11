@@ -229,23 +229,25 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a trace with AppSec events'
         end
 
-        context 'with an event-triggering request in multipart/form-data body' do
-          let(:params) { Rack::Test::Utils.build_multipart({ q: '1 OR 1;' }, true, true) }
-          let(:headers) { { 'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}" } }
+        unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
+          context 'with an event-triggering request in multipart/form-data body' do
+            let(:params) { Rack::Test::Utils.build_multipart({ q: '1 OR 1;' }, true, true) }
+            let(:headers) { { 'CONTENT_TYPE' => "multipart/form-data; boundary=#{Rack::Test::MULTIPART_BOUNDARY}" } }
 
-          let(:middlewares) do
-            [
-              Datadog::Tracing::Contrib::Rack::TraceMiddleware,
-              Datadog::AppSec::Contrib::Rack::RequestMiddleware,
-              Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware,
-            ]
+            let(:middlewares) do
+              [
+                Datadog::Tracing::Contrib::Rack::TraceMiddleware,
+                Datadog::AppSec::Contrib::Rack::RequestMiddleware,
+                Datadog::AppSec::Contrib::Rack::RequestBodyMiddleware,
+              ]
+            end
+
+            it { is_expected.to be_ok }
+
+            it_behaves_like 'a POST 200 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
           end
-
-          it { is_expected.to be_ok }
-
-          it_behaves_like 'a POST 200 span'
-          it_behaves_like 'a trace with AppSec tags'
-          it_behaves_like 'a trace with AppSec events'
         end
 
         context 'with an event-triggering request as JSON' do
