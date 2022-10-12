@@ -19,7 +19,9 @@ module Datadog
             def url(url, options = {})
               url!(url, options)
             rescue StandardError
-              options[:placeholder] || PLACEHOLDER
+              placeholder = options[:placeholder] || PLACEHOLDER
+
+              options[:base] == :exclude ? placeholder : "#{base_url(url)}/#{placeholder}"
             end
 
             def base_url(url, options = {})
@@ -28,6 +30,12 @@ module Datadog
                 uri.query = nil
                 uri.fragment = nil
               end.to_s
+            rescue StandardError
+              if (m = %r{([a-z]+://[^/]+)(?:/|$)}.match(url))
+                m[1]
+              else
+                ''
+              end
             end
 
             def url!(url, options = {})
