@@ -271,7 +271,7 @@ module Datadog
                          request_uri
                        end
 
-            base_url + fullpath
+            ::URI.join(base_url, fullpath).to_s
           end
 
           def parse_user_agent_header(headers)
