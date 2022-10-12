@@ -398,6 +398,21 @@ static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   return Qtrue;
 }
 
+static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+  VALUE instance = active_sampler_instance; // Read from global variable
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
+  if (instance == Qnil) return;
+
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
+  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, instance);
+}
+
+// TODO: Document safety
+// TODO: Document design and constraints
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
   if (event != RUBY_INTERNAL_EVENT_GC_ENTER && event != RUBY_INTERNAL_EVENT_GC_EXIT) return; // Unknown event
@@ -409,12 +424,14 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (instance == Qnil) return;
 
   struct cpu_and_wall_time_worker_state *state;
+  // FIXME: Switch to safe
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
-    safely_call(cpu_and_wall_time_collector_on_gc_start, state->cpu_and_wall_time_collector_instance, instance);
+    cpu_and_wall_time_collector_on_gc_start(state->cpu_and_wall_time_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
-    safely_call(cpu_and_wall_time_collector_on_gc_finish, state->cpu_and_wall_time_collector_instance, instance);
+    cpu_and_wall_time_collector_on_gc_finish(state->cpu_and_wall_time_collector_instance);
+    rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
   }
 }
 

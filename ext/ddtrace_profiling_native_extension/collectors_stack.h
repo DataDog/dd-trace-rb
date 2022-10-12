@@ -4,7 +4,7 @@
 
 typedef struct sampling_buffer sampling_buffer;
 
-typedef enum { SAMPLE_REGULAR, SAMPLE_IN_GC } sample_type;
+typedef enum { SAMPLE_REGULAR, SAMPLE_IN_GC, SAMPLE_IN_GC_POSTPONED } sample_type;
 
 void sample_thread(
   VALUE thread,

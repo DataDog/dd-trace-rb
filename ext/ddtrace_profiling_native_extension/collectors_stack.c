@@ -143,11 +143,11 @@ void sample_thread(
   }
 
   // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
-  if (type == SAMPLE_IN_GC) {
+  if (type == SAMPLE_IN_GC || type == SAMPLE_IN_GC_POSTPONED) {
     buffer->lines[0] = (ddog_Line) {
       .function = (ddog_Function) {
         .name = DDOG_CHARSLICE_C(""),
-        .filename = DDOG_CHARSLICE_C("Garbage Collection")
+        .filename = type == SAMPLE_IN_GC ? DDOG_CHARSLICE_C("Garbage Collection") : DDOG_CHARSLICE_C("Postponed Garbage Collection")
       },
       .line = 0
     };
