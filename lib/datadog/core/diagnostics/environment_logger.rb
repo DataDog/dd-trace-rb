@@ -110,6 +110,10 @@ module Datadog
         def agent_url
           # Retrieve the effect agent URL, regardless of how it was configured
           transport = Tracing.send(:tracer).writer.transport
+
+          # return '' with IO transport
+          return '' unless transport.respond_to?(:client)
+
           adapter = transport.client.api.adapter
           adapter.url
         end
