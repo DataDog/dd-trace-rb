@@ -3,6 +3,7 @@
 require 'spec_helper'
 
 require 'datadog/core/diagnostics/environment_logger'
+require 'ddtrace/transport/io'
 
 RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
@@ -234,6 +235,20 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
         it { is_expected.to include agent_error: include('ZeroDivisionError') }
         it { is_expected.to include agent_error: include('msg') }
+      end
+
+      context 'with IO transport' do
+        before do
+          Datadog.configure do |c|
+            c.tracing.writer = Datadog::Tracing::SyncWriter.new(
+              transport: Datadog::Transport::IO.default
+            )
+          end
+        end
+
+        after { Datadog.configure { |c| c.tracing.writer = nil } }
+
+        it { is_expected.to include agent_url: '' }
       end
 
       context 'with unix socket transport' do
