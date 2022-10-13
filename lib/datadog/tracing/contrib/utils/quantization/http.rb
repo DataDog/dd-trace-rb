@@ -13,6 +13,7 @@ module Datadog
             include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
 
             PLACEHOLDER = '?'.freeze
+            RFC3986_URL_BASE = /\A(?<URI>(?<scheme>[A-Za-z][+\-.0-9A-Za-z]*):(?<hier-part>\/\/(?<authority>(?:(?<userinfo>(?:%\h\h|[!$&-.0-;=A-Z_a-z~])*)@)?(?<host>(?<IP-literal>\[(?:(?<IPv6address>(?:\h{1,4}:){6}(?<ls32>\h{1,4}:\h{1,4}|(?<IPv4address>(?<dec-octet>[1-9]\d|1\d{2}|2[0-4]\d|25[0-5]|\d)\.\g<dec-octet>\.\g<dec-octet>\.\g<dec-octet>))|::(?:\h{1,4}:){5}\g<ls32>|\h{1,4}?::(?:\h{1,4}:){4}\g<ls32>|(?:(?:\h{1,4}:)?\h{1,4})?::(?:\h{1,4}:){3}\g<ls32>|(?:(?:\h{1,4}:){,2}\h{1,4})?::(?:\h{1,4}:){2}\g<ls32>|(?:(?:\h{1,4}:){,3}\h{1,4})?::\h{1,4}:\g<ls32>|(?:(?:\h{1,4}:){,4}\h{1,4})?::\g<ls32>|(?:(?:\h{1,4}:){,5}\h{1,4})?::\h{1,4}|(?:(?:\h{1,4}:){,6}\h{1,4})?::)|(?<IPvFuture>v\h+\.[!$&-.0-;=A-Z_a-z~]+))\])|\g<IPv4address>|(?<reg-name>(?:%\h\h|[!$&-.0-9;=A-Z_a-z~])*))(?::(?<port>\d*))?)))(?:\/|\z)/.freeze # rubocop:disable Style/RegexpLiteral, Layout/LineLength
 
             module_function
 
@@ -25,13 +26,7 @@ module Datadog
             end
 
             def base_url(url, options = {})
-              URI.parse(url).tap do |uri|
-                uri.path = ''
-                uri.query = nil
-                uri.fragment = nil
-              end.to_s
-            rescue StandardError
-              if (m = %r{([a-z]+://[^/]+)(?:/|$)}.match(url))
+              if (m = RFC3986_URL_BASE.match(url))
                 m[1]
               else
                 ''
