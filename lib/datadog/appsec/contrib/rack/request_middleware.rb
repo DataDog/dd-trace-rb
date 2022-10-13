@@ -40,7 +40,13 @@ module Datadog
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = [403, { 'Content-Type' => 'text/html' }, [Datadog::AppSec::Assets.blocked]]
+              request_return = if env['HTTP_ACCEPT'] && env['HTTP_ACCEPT'].split(',').any? { |e| e.start_with?('text/html') }
+                                 [403, { 'Content-Type' => 'text/html' }, [Datadog::AppSec::Assets.blocked(format: :html)]]
+                               elsif env['HTTP_ACCEPT'] && env['HTTP_ACCEPT'].split(',').any? { |e| e.start_with?('application/json') }
+                                 [403, { 'Content-Type' => 'application/json' }, [Datadog::AppSec::Assets.blocked(format: :json)]]
+                               else
+                                 [403, { 'Content-Type' => 'text/plain' }, [Datadog::AppSec::Assets.blocked(format: :text)]]
+                               end
             end
 
             response = ::Rack::Response.new(request_return[2], request_return[0], request_return[1])

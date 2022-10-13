@@ -12,8 +12,8 @@ module Datadog
         read("waf_rules/#{kind}.json")
       end
 
-      def blocked
-        @blocked ||= read('blocked.html')
+      def blocked(format: :html)
+        (@blocked ||= {})[format] ||= read("blocked.#{format}")
       end
 
       def path
