@@ -58,6 +58,8 @@ module Datadog
         unless load_libddwaf && load_ruleset && create_waf_handle
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
         end
+
+        update_ip_denylist
       end
 
       def ready?
@@ -74,6 +76,20 @@ module Datadog
 
       def toggle_rules(map)
         @handle.toggle_rules(map)
+      end
+
+      def update_ip_denylist(denylist = Datadog::AppSec.settings.ip_denylist, id: 'blocked_ips')
+        denylist ||= []
+
+        ruledata_setting = [
+          {
+            'id' => id,
+            'type' => 'data_with_expiration',
+            'data' => denylist.map { |ip| { 'value' => ip.to_s, 'expiration' => 2**63 } }
+          }
+        ]
+
+        update_rule_data(ruledata_setting)
       end
 
       def finalize

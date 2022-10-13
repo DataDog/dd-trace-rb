@@ -128,6 +128,10 @@ module Datadog
           @options[:ruleset]
         end
 
+        def ip_denylist
+          @options[:ip_denylist]
+        end
+
         def waf_timeout
           @options[:waf_timeout]
         end

@@ -21,6 +21,7 @@ RSpec.describe 'Rack integration tests' do
 
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
+  let(:appsec_ip_denylist) { nil }
 
   before do
     Datadog.configure do |c|
@@ -29,6 +30,7 @@ RSpec.describe 'Rack integration tests' do
 
       c.appsec.enabled = appsec_enabled
       c.appsec.instrument :rack
+      c.appsec.ip_denylist = appsec_ip_denylist if appsec_ip_denylist
     end
   end
 
@@ -207,17 +209,15 @@ RSpec.describe 'Rack integration tests' do
         end
 
         context 'with an event-triggering request in IP' do
-          skip 'TODO: config not implemented'
-
           let(:client_ip) { '1.2.3.4' }
-          # TODO: let(:config) { { ip_denylist: [client_ip] } }
+          let(:appsec_ip_denylist) { [client_ip] }
           let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
 
-          it { is_expected.to be_ok }
+          it { is_expected.to be_forbidden }
 
-          # TODO: it_behaves_like 'a GET 403 span'
+          it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
-          # TODO: it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec events'
         end
 
         context 'with an event-triggering response' do
