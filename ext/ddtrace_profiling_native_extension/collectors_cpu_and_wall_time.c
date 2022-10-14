@@ -86,6 +86,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct cpu_and_wall_time_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
+static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state);
 static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
@@ -93,6 +94,7 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long wall_time_now_ns(bool raise_on_failure);
 static long thread_id_for(VALUE thread);
+static VALUE _native_stats(VALUE self, VALUE collector_instance);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -117,6 +119,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
+  rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -518,13 +521,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" hash_map_per_thread_context=%"PRIsVALUE, per_thread_context_st_table_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" recorder_instance=%"PRIsVALUE, state->recorder_instance));
   rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
-  rb_str_concat(result, rb_sprintf(" stats.gc_sample_count=%u", state->stats.gc_sample_count));
-  rb_str_concat(
-    result, rb_sprintf(" stats.gc_samples_missed_due_to_missing_context=%u", state->stats.gc_samples_missed_due_to_missing_context)
-  );
-  rb_str_concat(
-    result, rb_sprintf(" stats.gc_samples_missed_due_to_missing_sample_after_gc=%u", state->stats.gc_samples_missed_due_to_missing_sample_after_gc)
-  );
+  rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
 
   return result;
 }
@@ -559,6 +556,18 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
 
   return ST_CONTINUE;
+}
+
+static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state) {
+  // Update this when modifying state struct (stats inner struct)
+  VALUE stats_as_hash = rb_hash_new();
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("gc_sample_count")),                                  /* => */ INT2NUM(state->stats.gc_sample_count),
+    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")),         /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
+    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_sample_after_gc")), /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_sample_after_gc)
+  };
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  return stats_as_hash;
 }
 
 static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state) {
@@ -658,4 +667,15 @@ static long thread_id_for(VALUE thread) {
 VALUE enforce_cpu_and_wall_time_collector_instance(VALUE object) {
   Check_TypedStruct(object, &cpu_and_wall_time_collector_typed_data);
   return object;
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTime behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+//
+// Returns the whole contents of the per_thread_context structs being tracked.
+static VALUE _native_stats(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  return stats_as_ruby_hash(state);
 }
