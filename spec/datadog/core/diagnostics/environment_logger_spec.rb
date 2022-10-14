@@ -248,7 +248,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
 
         after { Datadog.configure { |c| c.tracing.writer = nil } }
 
-        it { is_expected.to include agent_url: '' }
+        it { is_expected.to include agent_url: nil }
       end
 
       context 'with unix socket transport' do
