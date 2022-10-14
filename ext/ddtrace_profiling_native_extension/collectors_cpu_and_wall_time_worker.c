@@ -95,6 +95,7 @@ static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
 
 // Global state -- be very careful when accessing or modifying it
@@ -398,21 +399,19 @@ static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   return Qtrue;
 }
 
-static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  VALUE instance = active_sampler_instance; // Read from global variable
-
-  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-  if (instance == Qnil) return;
-
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
-  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, instance);
-}
-
-// TODO: Document safety
-// TODO: Document design and constraints
+// Implements tracking of cpu-time and wall-time spent doing GC. This function is called by Ruby from the `gc_tracepoint`
+// when the RUBY_INTERNAL_EVENT_GC_ENTER and RUBY_INTERNAL_EVENT_GC_EXIT events are triggered.
+//
+// See the comments on
+// * cpu_and_wall_time_collector_on_gc_start
+// * cpu_and_wall_time_collector_on_gc_finish
+// * cpu_and_wall_time_collector_sample_after_gc
+//
+// For the expected times in which to call them, and their assumptions.
+//
+// Safety: This function gets called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
+// *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
+// This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
   if (event != RUBY_INTERNAL_EVENT_GC_ENTER && event != RUBY_INTERNAL_EVENT_GC_EXIT) return; // Unknown event
@@ -424,15 +423,46 @@ static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   if (instance == Qnil) return;
 
   struct cpu_and_wall_time_worker_state *state;
-  // FIXME: Switch to safe
+  if (!rb_typeddata_is_kind_of(instance, &cpu_and_wall_time_worker_typed_data)) return;
+  // This should never fail the the above check passes
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
     cpu_and_wall_time_collector_on_gc_start(state->cpu_and_wall_time_collector_instance);
   } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
+    // Design: In an earlier iteration of this feature (see https://github.com/DataDog/dd-trace-rb/pull/2308) we
+    // actually had a single method to implement the behavior of both cpu_and_wall_time_collector_on_gc_finish
+    // and cpu_and_wall_time_collector_sample_after_gc (the latter is called via after_gc_from_postponed_job).
+    //
+    // Unfortunately, then we discovered the safety issue around no allocations, and thus decided to separate them -- so that
+    // the sampling could run outside the tight safety constraints of the garbage collection process.
+    //
+    // There is a downside: The sample is now taken very very shortly afterwards the GC finishes, and not immediately
+    // as the GC finishes, which means the stack captured may by affected by "skid", e.g. point slightly after where
+    // it should be pointing at.
+    // Alternatives to solve this would be to capture no stack for garbage collection (as we do for Java and .net);
+    // making the sampling process allocation-safe (very hard); or separate stack sampling from sample recording,
+    // e.g. enabling us to capture the stack in cpu_and_wall_time_collector_on_gc_finish and do the rest later
+    // (medium hard).
+
     cpu_and_wall_time_collector_on_gc_finish(state->cpu_and_wall_time_collector_instance);
+    // We use rb_postponed_job_register_one to ask Ruby to run cpu_and_wall_time_collector_sample_after_gc after if
+    // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
     rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
   }
+}
+
+static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+  VALUE instance = active_sampler_instance; // Read from global variable
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
+  if (instance == Qnil) return;
+
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
+  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, instance);
 }
 
 // Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
