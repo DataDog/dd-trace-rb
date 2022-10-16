@@ -13,7 +13,8 @@ RSpec.describe 'Redis instrumentation test' do
   # Redis instance supports 16 databases,
   # the default is 0 but can be changed to any number from 0-15,
   # to configure support more databases, check `redis.conf`
-  let(:test_database) { (0..15).to_a.sample }
+  # since 0 is the default, the SELECT db command would be skipped
+  let(:test_database) { 15 }
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
