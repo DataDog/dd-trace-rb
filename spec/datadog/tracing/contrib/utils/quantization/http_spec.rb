@@ -69,7 +69,26 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         # URLs do not permit unencoded non-ASCII characters in the URL.
         let(:url) { 'http://example.com/path?繋がってて' }
 
-        it { is_expected.to eq(described_class::PLACEHOLDER) }
+        it { is_expected.to eq(format('http://example.com/%s', described_class::PLACEHOLDER)) }
+
+        context 'and base: :exclude' do
+          let(:options) { { base: :exclude } }
+
+          it { is_expected.to eq(described_class::PLACEHOLDER) }
+        end
+      end
+
+      context 'with unencoded ASCII characters' do
+        # URLs do not permit all ASCII characters to be unencoded in the URL.
+        let(:url) { 'http://example.com/|' }
+
+        it { is_expected.to eq(format('http://example.com/%s', described_class::PLACEHOLDER)) }
+
+        context 'and base: :exclude' do
+          let(:options) { { base: :exclude } }
+
+          it { is_expected.to eq(described_class::PLACEHOLDER) }
+        end
       end
 
       context 'with internal obfuscation and the default replacement' do
@@ -91,6 +110,46 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         let(:options) { { query: { obfuscate: { regex: /foo=\w+/, with: 'NOPE' } } } }
 
         it { is_expected.to eq('http://example.com/path?password=hunter2&NOPE') }
+      end
+    end
+  end
+
+  describe '#base_url' do
+    subject(:result) { described_class.base_url(url, options) }
+
+    let(:options) { {} }
+
+    context 'given a URL' do
+      let(:url) { 'http://example.com/path?category_id=1&sort_by=asc#featured' }
+
+      context 'default behavior' do
+        it { is_expected.to eq('http://example.com') }
+      end
+
+      context 'with Unicode characters' do
+        # URLs do not permit unencoded non-ASCII characters in the URL.
+        let(:url) { 'http://example.com/path?繋がってて' }
+
+        it { is_expected.to eq('http://example.com') }
+      end
+
+      context 'with unencoded ASCII characters' do
+        # URLs do not permit all ASCII characters to be unencoded in the URL.
+        let(:url) { 'http://example.com/|' }
+
+        it { is_expected.to eq('http://example.com') }
+      end
+
+      context 'without a base' do
+        let(:url) { '/foo' }
+
+        it { is_expected.to eq('') }
+      end
+
+      context 'that is entirely invalid' do
+        let(:url) { "\x00" }
+
+        it { is_expected.to eq('') }
       end
     end
   end
