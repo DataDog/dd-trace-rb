@@ -885,7 +885,7 @@ RSpec.describe 'Rack integration tests' do
         expect(span.name).to eq('rack.request')
         expect(span.span_type).to eq('web')
         expect(span.service).to eq(tracer.default_service)
-        expect(span.resource).to eq('GET 200')
+        expect(span.resource).to eq('POST 200')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.status).to eq(0)
