@@ -13,11 +13,8 @@ rescue LoadError
   require 'rack/contrib/post_body_content_type_parser'
 end
 
-require 'ddtrace'
-require 'datadog/tracing/contrib/rack/middlewares'
-
+require 'datadog/tracing'
 require 'datadog/appsec'
-require 'datadog/appsec/contrib/rack/request_middleware'
 
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods

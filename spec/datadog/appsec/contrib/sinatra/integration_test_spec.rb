@@ -14,13 +14,7 @@ rescue LoadError
 end
 
 require 'datadog/tracing'
-require 'datadog/tracing/metadata/ext'
-require 'datadog/tracing/sampling/ext'
-require 'datadog/tracing/contrib/sinatra/ext'
-require 'datadog/tracing/contrib/sinatra/tracer'
-
 require 'datadog/appsec'
-require 'datadog/appsec/contrib/rack/request_middleware'
 
 RSpec.describe 'Sinatra integration tests' do
   include Rack::Test::Methods

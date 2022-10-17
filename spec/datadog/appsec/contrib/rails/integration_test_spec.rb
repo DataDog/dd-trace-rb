@@ -1,7 +1,9 @@
 # typed: ignore
 
 require 'datadog/tracing/contrib/rails/rails_helper'
+require 'rack/test'
 
+require 'datadog/tracing'
 require 'datadog/appsec'
 
 RSpec.describe 'Rails integration tests' do
