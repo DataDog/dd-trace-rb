@@ -13,7 +13,7 @@ module Datadog
           # Watcher for Rails gateway events
           module Watcher
             def self.watch
-              Instrumentation.gateway.watch('rails.request.action') do |stack, request|
+              Instrumentation.gateway.watch('rails.request.action', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -22,23 +22,24 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Rails::Reactive::Action.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
-                    if record
+                  Rails::Reactive::Action.subscribe(op, waf_context) do |result, _block|
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Rails::Reactive::Action.publish(op, request)
+                  _result, block = Rails::Reactive::Action.publish(op, request)
                 end
 
                 next [nil, [[:block, event]]] if block
