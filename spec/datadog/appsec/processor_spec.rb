@@ -395,6 +395,10 @@ RSpec.describe Datadog::AppSec::Processor do
               ]
             end
 
+            # when the same attack is detected twice in the same context, it's
+            # only matching once therefore there's only one match result, thus
+            # one action list returned.
+
             it { expect(matches).to have_attributes(count: 1) }
             it { expect(data).to have_attributes(count: 1) }
             it { expect(actions).to eq [[]] }
@@ -407,6 +411,9 @@ RSpec.describe Datadog::AppSec::Processor do
                 context.run(input_scanner, timeout)
               ]
             end
+
+            # when two attacks are detected in the same context there are two
+            # match results, thus two action lists, one for each.
 
             it { expect(matches).to have_attributes(count: 2) }
             it { expect(data).to have_attributes(count: 2) }
