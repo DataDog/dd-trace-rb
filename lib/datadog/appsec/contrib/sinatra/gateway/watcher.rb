@@ -25,8 +25,7 @@ module Datadog
                   span = active_span
 
                   Rack::Reactive::RequestBody.subscribe(op, waf_context) do |result, _block|
-                    record = [:match].include?(result.status)
-                    if record
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -67,8 +66,7 @@ module Datadog
                   span = active_span
 
                   Sinatra::Reactive::Routed.subscribe(op, waf_context) do |result, _block|
-                    record = [:match].include?(result.status)
-                    if record
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
