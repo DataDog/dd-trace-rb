@@ -76,11 +76,7 @@ gem 'opentracing', '>= 0.4.1'
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
 if RUBY_PLATFORM != 'java'
-  if RUBY_DESCRIPTION =~ /^ruby \d+\.\d+\.\d+preview/
-    # binary gems for these have a max ruby version requirement that excludes preview versions
-    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1'], platforms: ['ruby']
-    gem 'grpc', platforms: ['ruby']
-  elsif RUBY_VERSION >= '2.5.0' # Bundler 1.x fails to recognize that version >= 3.19.2 is not compatible with older rubies
+  if RUBY_VERSION >= '2.5.0' # Bundler 1.x fails to recognize that version >= 3.19.2 is not compatible with older rubies
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
   else
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
