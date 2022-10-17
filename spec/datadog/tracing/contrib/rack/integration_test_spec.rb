@@ -863,5 +863,35 @@ RSpec.describe 'Rack integration tests' do
         end
       end
     end
+
+    context 'with a route that mutates request method' do
+      let(:routes) do
+        proc do
+          map '/change_request_method' do
+            run(
+              proc do |env|
+                env['REQUEST_METHOD'] = 'GET'
+                [200, { 'Content-Type' => 'text/html' }, ['OK']]
+              end
+            )
+          end
+        end
+      end
+
+      it do
+        post '/change_request_method'
+
+        expect(span).to be_root_span
+        expect(span.name).to eq('rack.request')
+        expect(span.span_type).to eq('web')
+        expect(span.service).to eq(tracer.default_service)
+        expect(span.resource).to eq('POST 200')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.status).to eq(0)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('rack')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
+      end
+    end
   end
 end

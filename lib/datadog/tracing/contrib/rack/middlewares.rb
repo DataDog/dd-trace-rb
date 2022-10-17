@@ -127,6 +127,10 @@ module Datadog
             request_headers_tags = parse_request_headers(request_header_collection)
             response_headers_tags = parse_response_headers(headers || {})
 
+            # Since it could be mutated, it would be more accurate to fetch from the original env,
+            # e.g. ActionDispatch::ShowExceptions middleware with Rails exceptions_app configuration
+            original_request_method = original_env['REQUEST_METHOD']
+
             # request_headers is subject to filtering and configuration so we
             # get the user agent separately
             user_agent = parse_user_agent_header(request_header_collection)
@@ -138,11 +142,11 @@ module Datadog
             # 4. Fallback with verb + status, eq `GET 200`
             request_span.resource ||=
               if configuration[:middleware_names] && env['RESPONSE_MIDDLEWARE']
-                "#{env['RESPONSE_MIDDLEWARE']}##{env['REQUEST_METHOD']}"
+                "#{env['RESPONSE_MIDDLEWARE']}##{original_request_method}"
               elsif trace.resource_override?
                 trace.resource
               else
-                "#{env['REQUEST_METHOD']} #{status}".strip
+                "#{original_request_method} #{status}".strip
               end
 
             # Overrides the trace resource if it never been set
@@ -161,7 +165,7 @@ module Datadog
             Contrib::Analytics.set_measured(request_span)
 
             if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD).nil?
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, env['REQUEST_METHOD'])
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, original_request_method)
             end
 
             url = parse_url(env, original_env)
