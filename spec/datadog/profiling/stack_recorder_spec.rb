@@ -146,7 +146,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
         expect(samples.size).to be 1
       end
 

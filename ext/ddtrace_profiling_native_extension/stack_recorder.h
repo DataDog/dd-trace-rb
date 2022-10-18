@@ -1,16 +1,16 @@
 #pragma once
 
-#include <ddprof/ffi.h>
+#include <datadog/profiling.h>
 
-// Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDPROF_FFI_CHARSLICE_C`.
+// Note: Please DO NOT use `VALUE_STRING` anywhere else, instead use `DDOG_CHARSLICE_C`.
 // `VALUE_STRING` is only needed because older versions of gcc (4.9.2, used in our Ruby 2.2 CI test images)
 // tripped when compiling `enabled_value_types` using `-std=gnu99` due to the extra cast that is included in
-// `DDPROF_FFI_CHARSLICE_C` with the following error:
+// `DDOG_CHARSLICE_C` with the following error:
 //
 // ```
 // compiling ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c
 // ../../../../ext/ddtrace_profiling_native_extension/stack_recorder.c:23:1: error: initializer element is not constant
-// static const ddprof_ffi_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
+// static const ddog_ValueType enabled_value_types[] = {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE};
 // ^
 // ```
 #define VALUE_STRING(string) {.ptr = "" string, .len = sizeof(string) - 1}
@@ -23,7 +23,7 @@
 #define HEAP_LIVE_SIZE_VALUE    {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
 #define HEAP_LIVE_SAMPLES_VALUE {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
 
-static const ddprof_ffi_ValueType enabled_value_types[] = {
+static const ddog_ValueType enabled_value_types[] = {
   #define CPU_TIME_VALUE_POS 0
   CPU_TIME_VALUE,
   #define CPU_SAMPLES_VALUE_POS 1
@@ -32,7 +32,7 @@ static const ddprof_ffi_ValueType enabled_value_types[] = {
   WALL_TIME_VALUE
 };
 
-#define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddprof_ffi_ValueType))
+#define ENABLED_VALUE_TYPES_COUNT (sizeof(enabled_value_types) / sizeof(ddog_ValueType))
 
-void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample);
+void record_sample(VALUE recorder_instance, ddog_Sample sample);
 VALUE enforce_recorder_instance(VALUE object);
