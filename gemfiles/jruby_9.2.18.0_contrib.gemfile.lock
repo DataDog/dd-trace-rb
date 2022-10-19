@@ -12,9 +12,9 @@ PATH
   remote: ..
   specs:
     ddtrace (1.5.0)
-      debase-ruby_core_source (= 0.10.16)
+      debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
       libdatadog (~> 0.9.0.1.0)
-      libddwaf (~> 1.3.0.2.0)
+      libddwaf (~> 1.5.1.0.0)
       msgpack
 
 GEM
@@ -1439,7 +1439,7 @@ GEM
     jsonapi-renderer (0.2.2)
     king_konf (1.0.0)
     libdatadog (0.9.0.1.0)
-    libddwaf (1.3.0.2.0)
+    libddwaf (1.5.1.0.0-java)
       ffi (~> 1.0)
     lograge (0.11.2)
       actionpack (>= 4)
@@ -1495,6 +1495,8 @@ GEM
     rack (2.2.3)
     rack-accept (0.4.5)
       rack (>= 0.4)
+    rack-contrib (2.3.0)
+      rack (~> 2.0)
     rack-protection (2.2.0)
       rack
     rack-test (1.1.0)
@@ -1683,6 +1685,7 @@ DEPENDENCIES
   que (>= 1.0.0)
   racecar (>= 0.3.5)
   rack
+  rack-contrib
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
