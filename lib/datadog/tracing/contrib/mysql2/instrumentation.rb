@@ -4,6 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
+require_relative '../propagation/sql_comment'
 
 module Datadog
   module Tracing
@@ -39,6 +40,14 @@ module Datadog
                 span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
+
+                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
+                  Datadog.configuration.tracing.sql_comment_propagation
+                )
+
+                Contrib::Propagation::SqlComment.annotate!(span, mode: propagation_mode)
+                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, mode: propagation_mode)
+
                 super(sql, options)
               end
             end

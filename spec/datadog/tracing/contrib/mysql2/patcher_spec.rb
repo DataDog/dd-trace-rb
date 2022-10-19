@@ -26,18 +26,23 @@ RSpec.describe 'Mysql2::Client patcher' do
   let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
   let(:username) { ENV.fetch('TEST_MYSQL_USER') { 'root' } }
   let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
+  let(:sql_comment_propagation) { 'disabled' }
 
   before do
     Datadog.configure do |c|
+      c.service = 'my-service'
+      c.version = '2.0.0'
+      c.env = 'production'
+      c.tracing.sql_comment_propagation = sql_comment_propagation
       c.tracing.instrument :mysql2, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:mysql2].reset_configuration!
+    Datadog.configuration.reset!
     example.run
-    Datadog.registry[:mysql2].reset_configuration!
+    Datadog.configuration.reset!
   end
 
   describe 'tracing' do
@@ -101,6 +106,30 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag('error.msg'))
             .to eq("Unknown column 'INVALID' in 'field list'")
+        end
+      end
+
+      context 'when sql comment propagation' do
+        context 'disabled' do
+          it do
+            client.query('SELECT 1')
+          end
+        end
+
+        context 'service' do
+          let(:sql_comment_propagation) { 'service' }
+
+          it do
+            client.query('SELECT 1')
+          end
+        end
+
+        context 'full' do
+          let(:sql_comment_propagation) { 'full' }
+
+          it do
+            client.query('SELECT 1')
+          end
         end
       end
     end
