@@ -1523,7 +1523,7 @@ elsif ruby_version?('3.2')
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
-    gem 'nokogiri', platform: :ruby # binary gem has max ruby version constraint excluding previews
+    gem 'nokogiri', platform: :ruby # TODO: binary gem has max ruby version constraint excluding previews, switch to using minimum version constraint once a non-3.2-excluding binary gem is released
   end
 
   appraise 'contrib-old' do
