@@ -8,10 +8,4 @@ COPY . /vendor/dd-trace-rb
 # Install dependencies
 # Setup specific version of ddtrace, if specified.
 ENV DD_DEMO_ENV_GEM_LOCAL_DDTRACE /vendor/dd-trace-rb
-
-# Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
-# If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
-# issue when you connect to the testing container via ssh, then try lowering this file a notch.
-ENV GRPC_RUBY_BUILD_PROCS: 6
-
 RUN bundle install
