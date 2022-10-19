@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [1.5.1] - 2022-10-19
+
+### Changed
+
+* Update libddwaf to 1.5.1 ([#2306][])
+* Improve libddwaf extension memory management ([#2306][])
+
+### Fixed
+
+* Fix `URI::InvalidURIError` ([#2310][], [#2318][]) ([@yujideveloper][])
+* Handle URLs with invalid characters ([#2311][], [#2319][])
+* Fix missing appsec.event tag ([#2306][])
+* Fix missing Rack and Rails request body parsing for AppSec analysis ([#2306][])
+* Fix unneeded AppSec call in a Rack context when AppSec is disabled ([#2306][])
+* Fix spurious AppSec instrumentation ([#2306][])
+
 ## [1.5.0] - 2022-09-29
 
 ### Deprecation notice
@@ -2129,7 +2145,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.2...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.1...master
+[1.5.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.2...v1.5.0
 [1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.0...v1.4.1
@@ -3030,6 +3047,11 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2289]: https://github.com/DataDog/dd-trace-rb/issues/2289
 [#2293]: https://github.com/DataDog/dd-trace-rb/issues/2293
 [#2296]: https://github.com/DataDog/dd-trace-rb/issues/2296
+[#2306]: https://github.com/DataDog/dd-trace-rb/issues/2306
+[#2310]: https://github.com/DataDog/dd-trace-rb/issues/2310
+[#2311]: https://github.com/DataDog/dd-trace-rb/issues/2311
+[#2318]: https://github.com/DataDog/dd-trace-rb/issues/2318
+[#2319]: https://github.com/DataDog/dd-trace-rb/issues/2319
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
@@ -3171,5 +3193,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [@vramaiah]: https://github.com/vramaiah
 [@walterking]: https://github.com/walterking
 [@y-yagi]: https://github.com/y-yagi
+[@yujideveloper]: https://github.com/yujideveloper
 [@yukimurasawa]: https://github.com/yukimurasawa
 [@zachmccormick]: https://github.com/zachmccormick
