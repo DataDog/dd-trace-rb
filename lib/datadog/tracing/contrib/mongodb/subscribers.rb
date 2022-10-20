@@ -44,6 +44,7 @@ module Datadog
             # since it has been quantized and reduced
             span.set_tag(Ext::TAG_DB, query['database'])
             span.set_tag(Ext::TAG_COLLECTION, query['collection'])
+            span.set_tag(Ext::DB::TAG_COLLECTION, query['collection'])
             span.set_tag(Ext::TAG_OPERATION, query['operation'])
             span.set_tag(Ext::TAG_QUERY, serialized_query)
             span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, event.address.host)
