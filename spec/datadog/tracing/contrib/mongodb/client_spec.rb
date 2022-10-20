@@ -145,6 +145,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(spans).to have(1).items
         expect(span.service).to eq('mongodb')
         expect(span.span_type).to eq('mongodb')
+        expect(span.get_tag('db.system')).to eq('mongodb')
         expect(span.get_tag('mongodb.db')).to eq(database)
         collection_value = collection.is_a?(Numeric) ? collection : collection.to_s
         expect(span.get_tag('mongodb.collection')).to eq(collection_value)
@@ -535,6 +536,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
             expect(insert_span.status).to eq(1)
             expect(insert_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
             expect(insert_span.get_tag('error.msg')).to match(/.*is not authorized to access.*/)
+            expect(insert_span.get_tag('db.system')).to eq('mongodb')
           end
 
           expect(auth_span.name).to eq('mongo.cmd')
@@ -542,6 +544,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
           expect(auth_span.status).to eq(1)
           expect(auth_span.get_tag('error.type')).to eq('Mongo::Monitoring::Event::CommandFailed')
           expect(auth_span.get_tag('error.msg')).to eq('Unsupported mechanism PLAIN (2)')
+          expect(auth_span.get_tag('db.system')).to eq('mongodb')
         end
       end
     end

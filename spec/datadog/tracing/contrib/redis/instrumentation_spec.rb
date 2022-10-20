@@ -42,6 +42,7 @@ RSpec.describe 'Redis instrumentation test' do
       expect(span.get_tag('out.host')).to eq(@host)
       expect(span.get_tag('out.port')).to eq(@port.to_f)
       expect(span.get_tag('redis.raw_command')).to eq(@raw_command)
+      expect(span.get_tag('db.system')).to eq('redis')
       expect(span.get_tag('db.redis.database_index')).to eq(@db.to_s)
     end
 

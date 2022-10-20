@@ -2,6 +2,7 @@
 
 require_relative '../analytics'
 require_relative 'ext'
+require_relative '../ext'
 require_relative 'parsers'
 require_relative '../../metadata/ext'
 
@@ -29,6 +30,8 @@ module Datadog
             # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
             serialized_query = query.to_s
+
+            span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
             span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_COMMAND)
