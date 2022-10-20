@@ -6,6 +6,20 @@ module Datadog
     module Instrumentation
       # Instrumentation gateway implementation
       class Gateway
+        # Instrumentation gateway middleware
+        class Middleware
+          attr_reader :key, :block
+
+          def initialize(key, &block)
+            @key = key
+            @block = block
+          end
+
+          def call(*args, **kwargs, &block)
+            @block.call(*args, **kwargs, &block)
+          end
+        end
+
         def initialize
           @middlewares = Hash.new { |h, k| h[k] = [] }
         end
@@ -31,8 +45,8 @@ module Datadog
           stack.call(env)
         end
 
-        def watch(name, &block)
-          @middlewares[name] << block
+        def watch(name, key, &block)
+          @middlewares[name] << Middleware.new(key, &block) unless @middlewares[name].any? { |m| m.key == key }
         end
       end
 

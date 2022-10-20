@@ -21,7 +21,7 @@ module Datadog
           end
 
           def call(env)
-            return @app.call(env) unless @processor.ready?
+            return @app.call(env) unless Datadog.configuration.appsec.enabled && @processor.ready?
 
             # TODO: handle exceptions, except for @app.call
 
@@ -57,6 +57,7 @@ module Datadog
             request_return
           ensure
             add_waf_runtime_tags(context) if context
+            context.finalize if context
           end
 
           private

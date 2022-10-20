@@ -1,8 +1,7 @@
 # typed: ignore
 
 require 'datadog/tracing/contrib/support/spec_helper'
-
-require 'datadog/tracing/contrib/action_pack/integration'
+require 'datadog/tracing/contrib/mongodb/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::MongoDB::Integration do
   extend ConfigurationHelpers

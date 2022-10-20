@@ -31,7 +31,7 @@ module Datadog
         def run(*args)
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          ret, res = @context.run(*args)
+          _code, res = @context.run(*args)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -39,7 +39,11 @@ module Datadog
           @time_ext_ns += (stop_ns - start_ns)
           @timeouts += 1 if res.timeout
 
-          [ret, res]
+          res
+        end
+
+        def finalize
+          @context.finalize
         end
       end
 
@@ -62,6 +66,18 @@ module Datadog
 
       def new_context
         Context.new(self)
+      end
+
+      def update_rule_data(data)
+        @handle.update_rule_data(data)
+      end
+
+      def toggle_rules(map)
+        @handle.toggle_rules(map)
+      end
+
+      def finalize
+        @handle.finalize
       end
 
       protected
