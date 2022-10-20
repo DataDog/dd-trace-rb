@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 
 require_relative '../../../core/utils/only_once'
 require_relative '../patcher'

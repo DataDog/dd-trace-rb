@@ -14,7 +14,7 @@ class Basic < Parent
 
     [
       200,
-      { 'Content-Type' => 'text/plain' },
+      { 'content-type' => 'text/plain' },
       ["Basic: Fibonacci(#{n}): #{result}"]
     ]
   end

@@ -11,12 +11,13 @@ require_relative '../workers/runtime_metrics'
 require_relative '../../tracing/tracer'
 require_relative '../../tracing/flush'
 require_relative '../../tracing/sync_writer'
+require_relative '../../tracing/sampling/span/rule_parser'
+require_relative '../../tracing/sampling/span/sampler'
 
 module Datadog
   module Core
     module Configuration
       # Global components for the trace library.
-      # rubocop:disable Metrics/ClassLength
       class Components
         class << self
           def build_health_metrics(settings)
@@ -80,6 +81,7 @@ module Datadog
               enabled: settings.tracing.enabled,
               trace_flush: trace_flush,
               sampler: sampler,
+              span_sampler: build_span_sampler(settings),
               writer: writer,
               tags: build_tracer_tags(settings),
             )
@@ -181,6 +183,11 @@ module Datadog
 
               sampler.update(response.service_rates)
             end
+          end
+
+          def build_span_sampler(settings)
+            rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
+            Tracing::Sampling::Span::Sampler.new(rules || [])
           end
 
           def build_profiler(settings, agent_settings, tracer)
@@ -313,18 +320,6 @@ module Datadog
 
           def build_profiler_transport(settings, agent_settings)
             settings.profiling.exporter.transport ||
-              if settings.profiling.advanced.legacy_transport_enabled
-                require_relative '../../profiling/transport/http'
-
-                Datadog.logger.warn('Using legacy profiling transport. Do not use unless instructed to by support.')
-
-                Profiling::Transport::HTTP.default(
-                  agent_settings: agent_settings,
-                  site: settings.site,
-                  api_key: settings.api_key,
-                  profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
-                )
-              end ||
               Profiling::HttpTransport.new(
                 agent_settings: agent_settings,
                 site: settings.site,
@@ -423,7 +418,6 @@ module Datadog
           telemetry.emit_closing! unless replacement
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end

@@ -33,7 +33,7 @@ end
 get '/health/detailed' do
   [
     200,
-    { 'Content-Type' => 'application/json' },
+    { 'content-type' => 'application/json' },
     JSON.generate(
       webserver_process: $PROGRAM_NAME,
       profiler_available: Datadog::Profiling.start_if_enabled,
@@ -57,7 +57,7 @@ get '/basic/fibonacci' do
 
   [
     200,
-    { 'Content-Type' => 'text/plain' },
+    { 'content-type' => 'text/plain' },
     ["Basic: Fibonacci(#{n}): #{result}"]
   ]
 end

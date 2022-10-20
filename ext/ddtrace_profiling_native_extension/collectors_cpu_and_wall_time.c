@@ -34,7 +34,7 @@ struct cpu_and_wall_time_collector_state {
 // Tracks per-thread state
 struct per_thread_context {
   char thread_id[THREAD_ID_LIMIT_CHARS];
-  ddprof_ffi_CharSlice thread_id_char_slice;
+  ddog_CharSlice thread_id_char_slice;
   thread_cpu_time_id thread_cpu_time_id;
   long cpu_time_at_previous_sample_ns;  // Can be INVALID_TIME until initialized or if getting it fails for another reason
   long wall_time_at_previous_sample_ns; // Can be INVALID_TIME until initialized
@@ -209,12 +209,12 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
     bool have_thread_name = thread_name != Qnil;
 
     int label_count = 1 + (have_thread_name ? 1 : 0);
-    ddprof_ffi_Label labels[label_count];
+    ddog_Label labels[label_count];
 
-    labels[0] = (ddprof_ffi_Label) {.key = DDPROF_FFI_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
+    labels[0] = (ddog_Label) {.key = DDOG_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
     if (have_thread_name) {
-      labels[1] = (ddprof_ffi_Label) {
-        .key = DDPROF_FFI_CHARSLICE_C("thread name"),
+      labels[1] = (ddog_Label) {
+        .key = DDOG_CHARSLICE_C("thread name"),
         .str = char_slice_from_ruby_string(thread_name)
       };
     }
@@ -223,8 +223,8 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
       thread,
       state->sampling_buffer,
       state->recorder_instance,
-      (ddprof_ffi_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddprof_ffi_Slice_label) {.ptr = labels, .len = label_count}
+      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+      (ddog_Slice_label) {.ptr = labels, .len = label_count}
     );
   }
 
@@ -261,7 +261,7 @@ static struct per_thread_context *get_or_create_context_for(VALUE thread, struct
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%ld", thread_id_for(thread));
-  thread_context->thread_id_char_slice = (ddprof_ffi_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
+  thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);
 

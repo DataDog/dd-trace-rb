@@ -20,6 +20,16 @@ module Datadog
         # * +sample_rate+: the sample rate as a {Float} between 0.0 and 1.0. 0.0
         #   means that no trace will be sampled; 1.0 means that all traces will be
         #   sampled.
+        #
+        # DEV-2.0: Allow for `sample_rate` zero (drop all) to be allowed. This eases
+        # DEV-2.0: usage for all internal users of the {RateSampler} class: both
+        # DEV-2.0: RuleSampler and Single Span Sampling leverage the RateSampler, but want
+        # DEV-2.0: `sample_rate` zero to mean "drop all". They work around this by hard-
+        # DEV-2.0: setting the `sample_rate` to zero like so:
+        # DEV-2.0: ```
+        # DEV-2.0: sampler = RateSampler.new
+        # DEV-2.0: sampler.sample_rate = sample_rate
+        # DEV-2.0: ```
         def initialize(sample_rate = 1.0)
           super()
 

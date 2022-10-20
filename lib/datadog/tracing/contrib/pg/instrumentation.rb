@@ -2,6 +2,7 @@
 
 require_relative '../../metadata/ext'
 require_relative '../analytics'
+require_relative '../ext'
 require_relative 'ext'
 
 module Datadog
@@ -95,9 +96,9 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE, service)
               span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host)
 
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_INSTANCE, db)
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_USER, user)
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_SYSTEM, Ext::SPAN_SYSTEM)
+              span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, db)
+              span.set_tag(Contrib::Ext::DB::TAG_USER, user)
+              span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, host)
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, port)
@@ -106,7 +107,7 @@ module Datadog
             end
 
             def annotate_span_with_result!(span, result)
-              span.set_tag(Tracing::Metadata::Ext::DB::TAG_ROW_COUNT, result.ntuples)
+              span.set_tag(Contrib::Ext::DB::TAG_ROW_COUNT, result.ntuples)
             end
 
             def datadog_configuration

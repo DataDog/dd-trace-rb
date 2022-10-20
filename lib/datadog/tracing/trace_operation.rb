@@ -22,7 +22,6 @@ module Datadog
     # For async support, a {Datadog::Tracing::TraceOperation} should be employed
     # per execution context (e.g. Thread, etc.)
     #
-    # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
       include Metadata::Tagging
@@ -74,7 +73,7 @@ module Datadog
         @id = id || Core::Utils.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
-        @sampled = sampled.nil? ? false : sampled
+        @sampled = sampled.nil? ? true : sampled
 
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -113,8 +112,22 @@ module Datadog
         @finished == true
       end
 
+      # Will this trace be flushed by the tracer transport?
+      # This includes cases where the span is kept solely due to priority sampling.
+      #
+      # This is not the ultimate Datadog App sampling decision. Downstream systems
+      # can decide to reject this trace, especially for cases where priority
+      # sampling is set to AUTO_KEEP.
+      #
+      # @return [Boolean]
       def sampled?
-        @sampled == true || (!@sampling_priority.nil? && @sampling_priority > 0)
+        @sampled == true || priority_sampled?
+      end
+
+      # Has the priority sampling chosen to keep this span?
+      # @return [Boolean]
+      def priority_sampled?
+        !@sampling_priority.nil? && @sampling_priority > 0
       end
 
       def keep!
@@ -233,12 +246,19 @@ module Datadog
         end
       end
 
+      # Returns a {TraceSegment} with all finished spans that can be flushed
+      # at invocation time. All other **finished** spans are discarded.
+      #
+      # @yield [spans] spans that will be returned as part of the trace segment returned
+      # @return [TraceSegment]
       def flush!
         finished = finished?
 
         # Copy out completed spans
         spans = @spans.dup
         @spans = []
+
+        spans = yield(spans) if block_given?
 
         # Use them to build a trace
         build_trace(spans, !finished)
@@ -433,6 +453,5 @@ module Datadog
         )
       end
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

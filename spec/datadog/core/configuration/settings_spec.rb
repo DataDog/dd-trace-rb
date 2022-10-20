@@ -735,6 +735,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
+        context 'with multiple colons' do
+          let(:env_tags) { 'key:va:lue' }
+
+          it 'allows for colons in value' do
+            is_expected.to eq('key' => 'va:lue')
+          end
+        end
+
         context 'and when #env' do
           let(:options) { { **super(), env: env } }
 
@@ -1243,6 +1251,58 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
 
           it { is_expected.to eq(0.5) }
+        end
+      end
+
+      describe '#span_rules' do
+        subject(:rules) { settings.tracing.sampling.span_rules }
+
+        context 'default' do
+          it { is_expected.to be nil }
+        end
+
+        context 'when DD_SPAN_SAMPLING_RULES is provided' do
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES => '{}'
+            ) do
+              example.run
+            end
+          end
+
+          it { is_expected.to eq('{}') }
+
+          context 'and DD_SPAN_SAMPLING_RULES_FILE is also provided' do
+            around do |example|
+              ClimateControl.modify(
+                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => 'path'
+              ) do
+                example.run
+              end
+            end
+
+            it 'emits a conflict warning and returns DD_SPAN_SAMPLING_RULES' do
+              expect(Datadog.logger).to receive(:warn).with(include('configuration conflict'))
+              is_expected.to eq('{}')
+            end
+          end
+        end
+
+        context 'when DD_SPAN_SAMPLING_RULES_FILE is provided' do
+          around do |example|
+            Tempfile.open('DD_SPAN_SAMPLING_RULES_FILE') do |f|
+              f.write('{from:"file"}')
+              f.flush
+
+              ClimateControl.modify(
+                Datadog::Tracing::Configuration::Ext::Sampling::Span::ENV_SPAN_SAMPLING_RULES_FILE => f.path
+              ) do
+                example.run
+              end
+            end
+          end
+
+          it { is_expected.to eq('{from:"file"}') }
         end
       end
     end

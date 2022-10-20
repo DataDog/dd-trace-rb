@@ -63,6 +63,7 @@ group :development do
 
   # Speed up commands on slow machines / big apps [https://github.com/rails/spring]
   # gem "spring"
+  gem 'byebug', platform: :ruby
 end
 
 group :test do
@@ -86,7 +87,8 @@ gem 'aws-sdk'
 gem 'devise'
 gem 'httparty'
 gem 'mysql2'
-gem 'redis'
+# Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
+gem 'redis', '< 5'
 gem 'resque'
 gem 'unicorn'
 
