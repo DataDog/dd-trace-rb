@@ -18,7 +18,6 @@ module Datadog
           end
 
           # InstanceMethods - implementing instrumentation
-          # rubocop:disable Metrics/ModuleLength
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
@@ -168,7 +167,6 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
           end
-          # rubocop:enable Metrics/ModuleLength
         end
       end
     end

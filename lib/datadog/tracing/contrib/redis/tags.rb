@@ -27,6 +27,8 @@ module Datadog
 
               span.set_tag Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, client.host
               span.set_tag Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, client.port
+
+              span.set_tag Ext::TAG_DATABASE_INDEX, client.db.to_s
               span.set_tag Ext::TAG_DB, client.db
               span.set_tag Ext::TAG_RAW_COMMAND, span.resource if show_command_args?
             end

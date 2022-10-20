@@ -149,6 +149,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         expect(span.get_tag('mongodb.db')).to eq(database)
         collection_value = collection.is_a?(Numeric) ? collection : collection.to_s
         expect(span.get_tag('mongodb.collection')).to eq(collection_value)
+        expect(span.get_tag('db.mongodb.collection')).to eq(collection_value)
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mongodb')

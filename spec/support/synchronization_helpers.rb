@@ -53,15 +53,26 @@ module SynchronizationHelpers
 
   # Defaults to 5 second timeout
   def try_wait_until(attempts: 50, backoff: 0.1)
-    loop do
+    # It's common for tests to want to run simple tasks in a background thread
+    # but call this method without the thread having even time to start.
+    #
+    # We add an extra attempt, interleaved by `Thread.pass`, in order to allow for
+    # those simple cases to quickly succeed without a timed `sleep` call. This will
+    # save simple test one `backoff` seconds sleep cycle.
+    #
+    # The total configured timeout is not reduced.
+    (attempts + 1).times do |i|
       result = yield(attempts)
       return result if result
 
-      sleep(backoff)
-      attempts -= 1
-
-      raise('Wait time exhausted!') if attempts <= 0
+      if i == 0
+        Thread.pass
+      else
+        sleep(backoff)
+      end
     end
+
+    raise('Wait time exhausted!')
   end
 
   def test_repeat
