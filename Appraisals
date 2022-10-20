@@ -314,6 +314,12 @@ elsif ruby_version?('2.2')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.3')
+  appraise 'hanami-1' do
+    gem 'rack'
+    gem 'rack-test'
+    gem 'hanami', '~> 1'
+  end
+
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
@@ -505,6 +511,12 @@ elsif ruby_version?('2.3')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.4')
+  appraise 'hanami-1' do
+    gem 'rack'
+    gem 'rack-test'
+    gem 'hanami', '~> 1'
+  end
+
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1'
@@ -625,6 +637,12 @@ elsif ruby_version?('2.4')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.5')
+  appraise 'hanami-1' do
+    gem 'rack'
+    gem 'rack-test'
+    gem 'hanami', '~> 1'
+  end
+
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1', platform: :ruby
@@ -876,6 +894,12 @@ elsif ruby_version?('2.5')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.6')
+    appraise 'hanami-1' do
+      gem 'rack'
+      gem 'rack-test'
+      gem 'hanami', '~> 1'
+    end
+
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
@@ -1101,6 +1125,12 @@ elsif ruby_version?('2.6')
     end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.7')
+    appraise 'hanami-1' do
+      gem 'rack'
+      gem 'rack-test'
+      gem 'hanami', '~> 1'
+    end
+
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
