@@ -261,7 +261,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         wall_time_after_on_gc_start_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
         expect(per_thread_context.fetch(Thread.current)).to include(
-          'gc_tracking.wall_time_at_start_ns': be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns)
+          :'gc_tracking.wall_time_at_start_ns' =>
+            be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns)
         )
       end
 
@@ -274,7 +275,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           it "records the cpu-time when garbage collection started in the caller thread's context as zero" do
             on_gc_start
 
-            expect(per_thread_context.fetch(Thread.current)).to include('gc_tracking.cpu_time_at_start_ns': 0)
+            expect(per_thread_context.fetch(Thread.current)).to include(:'gc_tracking.cpu_time_at_start_ns' => 0)
           end
         end
 
@@ -286,7 +287,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           it "records the cpu-time when garbage collection started in the caller thread's context" do
             on_gc_start
 
-            expect(per_thread_context.fetch(Thread.current)).to include('gc_tracking.cpu_time_at_start_ns': be > 0)
+            expect(per_thread_context.fetch(Thread.current)).to include(:'gc_tracking.cpu_time_at_start_ns' => be > 0)
           end
         end
       end
@@ -347,7 +348,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           wall_time_after_on_gc_finish_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
           expect(per_thread_context.fetch(Thread.current)).to include(
-            'gc_tracking.wall_time_at_finish_ns':
+            :'gc_tracking.wall_time_at_finish_ns' =>
               be_between(wall_time_before_on_gc_finish_ns, wall_time_after_on_gc_finish_ns)
           )
         end
@@ -361,7 +362,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
             it "records the cpu-time when garbage collection finished in the caller thread's context as zero" do
               on_gc_finish
 
-              expect(per_thread_context.fetch(Thread.current)).to include('gc_tracking.cpu_time_at_finish_ns': 0)
+              expect(per_thread_context.fetch(Thread.current)).to include(:'gc_tracking.cpu_time_at_finish_ns' => 0)
             end
           end
 
@@ -373,7 +374,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
             it "records the cpu-time when garbage collection finished in the caller thread's context" do
               on_gc_finish
 
-              expect(per_thread_context.fetch(Thread.current)).to include('gc_tracking.cpu_time_at_finish_ns': be > 0)
+              expect(per_thread_context.fetch(Thread.current)).to include(:'gc_tracking.cpu_time_at_finish_ns' => be > 0)
             end
           end
         end
@@ -452,10 +453,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         sample_after_gc
 
         expect(per_thread_context.fetch(Thread.current)).to include(
-          'gc_tracking.cpu_time_at_start_ns': invalid_time,
-          'gc_tracking.cpu_time_at_finish_ns': invalid_time,
-          'gc_tracking.wall_time_at_start_ns': invalid_time,
-          'gc_tracking.wall_time_at_finish_ns': invalid_time,
+          :'gc_tracking.cpu_time_at_start_ns' => invalid_time,
+          :'gc_tracking.cpu_time_at_finish_ns' => invalid_time,
+          :'gc_tracking.wall_time_at_start_ns' => invalid_time,
+          :'gc_tracking.wall_time_at_finish_ns' => invalid_time,
         )
       end
 
