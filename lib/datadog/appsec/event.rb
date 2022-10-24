@@ -75,9 +75,7 @@ module Datadog
 
               tags['http.host'] = request.host
               tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.ip
-
-              # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
+              tags['network.client.ip'] = request.env['REMOTE_ADDR'] if request.env['REMOTE_ADDR']
             end
 
             if (response = event[:response])
