@@ -57,6 +57,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('host')).to eq('sts.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('POST')
         expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
@@ -103,6 +104,7 @@ RSpec.describe 'AWS instrumentation' do
         expect(span.get_tag('host')).to eq('s3.us-stubbed-1.amazonaws.com')
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
