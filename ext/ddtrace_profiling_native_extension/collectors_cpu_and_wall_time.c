@@ -375,6 +375,7 @@ void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
+// Assumption 3: Unlike `on_gc_start` and `on_gc_finish`, this method is allowed to allocate memory as needed.
 VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
