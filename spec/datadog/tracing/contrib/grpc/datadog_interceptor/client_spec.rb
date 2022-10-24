@@ -76,6 +76,7 @@ RSpec.describe 'tracing on the client connection' do
     it { expect(span.get_tag('error.stack')).to be_nil }
     it { expect(span.get_tag('some')).to eq 'datum' }
     it { expect(span.get_tag('rpc.system')).to eq('grpc') }
+    it { expect(span.get_tag('span.kind')).to eq('client') }
 
     it 'has component and operation tags' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grpc')
