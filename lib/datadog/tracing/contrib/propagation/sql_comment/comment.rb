@@ -9,6 +9,7 @@ module Datadog
     module Contrib
       module Propagation
         module SqlComment
+          # To be prepended to a sql statement.
           class Comment
             def initialize(hash)
               @hash = hash
@@ -22,7 +23,7 @@ module Datadog
                   next if value.nil?
 
                   value = ERB::Util.url_encode(value) # url encode
-                  value.gsub!("'", "\'")              # escaping single quote
+                  value.tr!("'", "\'") # escaping single quote
 
                   ret << "#{key}='#{value}'," # escape sql
                 end

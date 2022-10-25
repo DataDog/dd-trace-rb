@@ -44,7 +44,12 @@ module Datadog
                 propagation_mode = Contrib::Propagation::SqlComment::Mode.new(sql_comment_propagation)
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, propagation_mode, tags: { dddbs: service })
+                sql = Contrib::Propagation::SqlComment.prepend_comment(
+                  sql,
+                  span,
+                  propagation_mode,
+                  tags: { dddbs: service }
+                )
 
                 super(sql, options)
               end

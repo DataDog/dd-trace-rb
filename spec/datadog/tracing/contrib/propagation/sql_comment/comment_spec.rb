@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Comment do
         "/*url_encode='DROP%20TABLE%20FOO'*/"
       ],
       [
-        { route: "/polls 1000" },
+        { route: '/polls 1000' },
         "/*route='%2Fpolls%201000'*/"
       ],
       [

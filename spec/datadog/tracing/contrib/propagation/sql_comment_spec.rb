@@ -36,7 +36,6 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         expect(span_op.get_tag('_dd.dbm_trace_injected')).to eq('true')
       end
     end
-
   end
 
   describe '.prepend_comment' do

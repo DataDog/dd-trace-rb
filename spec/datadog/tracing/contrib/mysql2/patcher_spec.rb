@@ -112,12 +112,13 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         shared_examples_for 'propagated with sql comment propagation' do |mode, span_op_name|
           it "propagates with mode: #{mode}" do
-            expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode).to receive(:new).with(mode).and_return(propagation_mode)
+            expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
+              .to receive(:new).with(mode).and_return(propagation_mode)
 
             subject
           end
 
-          it "decorates the span operation" do
+          it 'decorates the span operation' do
             expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:annotate!).with(
               a_span_operation_with(name: span_op_name),
               propagation_mode
@@ -156,13 +157,13 @@ RSpec.describe 'Mysql2::Client patcher' do
           end
         end
 
-        ['disabled', 'service', 'full'].each do |mode|
+        %w[disabled service full].each do |mode|
           context "when `sql_comment_propagation`` is configured to #{mode}" do
             let(:configuration_options) do
               { sql_comment_propagation: mode, service_name: 'my-sql' }
             end
 
-            it_behaves_like 'propagated with sql comment propagation', mode , 'mysql2.query' do
+            it_behaves_like 'propagated with sql comment propagation', mode, 'mysql2.query' do
               let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
             end
           end

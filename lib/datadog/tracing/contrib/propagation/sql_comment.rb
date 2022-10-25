@@ -7,6 +7,7 @@ module Datadog
   module Tracing
     module Contrib
       module Propagation
+        # Implements sql comment propagation related contracts.
         module SqlComment
           Mode = Struct.new(:mode) do
             def enabled?
@@ -37,11 +38,9 @@ module Datadog
             "#{Comment.new(tags)} #{sql}"
           end
 
-          private
-
           def self.service_context
             {
-              dde:  datadog_configuration.env,
+              dde: datadog_configuration.env,
               ddps: datadog_configuration.service,
               ddpv: datadog_configuration.version
             }
