@@ -671,7 +671,7 @@ module Datadog
             #
             # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
             #
-            # @default `DD_TRACE_CLIENT_IP_HEADER_ENABLED` environment variable, otherwise `false`.
+            # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
             # @return [Boolean]
             option :enabled do |o|
               o.default do

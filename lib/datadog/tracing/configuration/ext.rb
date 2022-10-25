@@ -54,7 +54,7 @@ module Datadog
 
         # @public_api
         module ClientIp
-          ENV_ENABLED = 'DD_TRACE_CLIENT_IP_HEADER_ENABLED'.freeze
+          ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'.freeze
           ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED'.freeze # TODO: deprecated, remove later
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'.freeze
         end
