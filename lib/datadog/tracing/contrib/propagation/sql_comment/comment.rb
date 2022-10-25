@@ -1,4 +1,7 @@
+# frozen_string_literal: true
+
 # typed: false
+
 require 'erb'
 
 module Datadog

@@ -3,6 +3,7 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/propagation/sql_comment'
 
 require 'ddtrace'
 require 'mysql2'
@@ -26,23 +27,18 @@ RSpec.describe 'Mysql2::Client patcher' do
   let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
   let(:username) { ENV.fetch('TEST_MYSQL_USER') { 'root' } }
   let(:password) { ENV.fetch('TEST_MYSQL_PASSWORD') { 'root' } }
-  let(:sql_comment_propagation) { 'disabled' }
 
   before do
     Datadog.configure do |c|
-      c.service = 'my-service'
-      c.version = '2.0.0'
-      c.env = 'production'
-      c.tracing.sql_comment_propagation = sql_comment_propagation
       c.tracing.instrument :mysql2, configuration_options
     end
   end
 
   around do |example|
     # Reset before and after each example; don't allow global state to linger.
-    Datadog.configuration.reset!
+    Datadog.registry[:mysql2].reset_configuration!
     example.run
-    Datadog.configuration.reset!
+    Datadog.registry[:mysql2].reset_configuration!
   end
 
   describe 'tracing' do
@@ -110,25 +106,61 @@ RSpec.describe 'Mysql2::Client patcher' do
       end
 
       context 'when sql comment propagation' do
-        context 'disabled' do
-          it do
-            client.query('SELECT 1')
+        let(:sql_statement) { 'SELECT 1' }
+        subject { client.query(sql_statement) }
+
+        shared_examples_for 'propagated with sql comment propagation' do |mode, span_op_name|
+          it "propagates with mode: #{mode}" do
+            expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode).to receive(:new).with(mode).and_return(propagation_mode)
+
+            subject
+          end
+
+          it "decorates the span operation" do
+            expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:annotate!).with(
+              a_span_operation_with(name: span_op_name),
+              propagation_mode
+            )
+            subject
+          end
+
+          it 'prepends sql comment to the sql statement' do
+            expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).with(
+              sql_statement,
+              a_span_operation_with(name: span_op_name),
+              propagation_mode
+            ).and_call_original
+
+            subject
           end
         end
 
-        context 'service' do
-          let(:sql_comment_propagation) { 'service' }
-
-          it do
-            client.query('SELECT 1')
+        context 'when default `disabled`' do
+          it_behaves_like 'propagated with sql comment propagation', 'disabled', 'mysql2.query' do
+            let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
           end
         end
 
-        context 'full' do
-          let(:sql_comment_propagation) { 'full' }
+        context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
+          around do |example|
+            ClimateControl.modify(
+              'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
+              &example
+            )
+          end
 
-          it do
-            client.query('SELECT 1')
+          it_behaves_like 'propagated with sql comment propagation', 'service', 'mysql2.query' do
+            let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
+          end
+        end
+
+        ['disabled', 'service', 'full'].each do |mode|
+          context "when `sql_comment_propagation`` is configured to #{mode}" do
+            let(:configuration_options) { { sql_comment_propagation: mode } }
+
+            it_behaves_like 'propagated with sql comment propagation', mode , 'mysql2.query' do
+              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
+            end
           end
         end
       end

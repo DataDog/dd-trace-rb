@@ -463,16 +463,6 @@ module Datadog
             end
           end
 
-          option :sql_comment_propagation do |o|
-            o.default {
-              ENV.fetch(
-                Datadog::Tracing::Contrib::Propagation::SqlComment::Ext::ENV_SQL_COMMENT_PROPAGATION_MODE,
-                Datadog::Tracing::Contrib::Propagation::SqlComment::Ext::DISABLED
-              )
-            }
-            o.lazy
-          end
-
           # Enable trace collection and span generation.
           #
           # You can use this option to disable tracing without having to

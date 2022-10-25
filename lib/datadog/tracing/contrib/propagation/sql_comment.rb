@@ -22,15 +22,16 @@ module Datadog
             end
           end
 
-          def self.annotate!(span, mode:)
+          def self.annotate!(span, mode)
             return unless mode.enabled?
 
             span.set_tag('_dd.dbm_trace_injected', true) if mode.full?
           end
 
-          def self.prepend_comment(sql, span, tags: {}, mode:)
+          def self.prepend_comment(sql, span, mode)
             return sql unless mode.enabled?
 
+            tags = {}
             tags.merge!(service_context)     if mode.full? || mode.service?
             tags.merge!(trace_context(span)) if mode.full?
 
