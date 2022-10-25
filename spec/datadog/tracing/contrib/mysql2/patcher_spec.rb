@@ -107,6 +107,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
       context 'when sql comment propagation' do
         let(:sql_statement) { 'SELECT 1' }
+
         subject { client.query(sql_statement) }
 
         shared_examples_for 'propagated with sql comment propagation' do |mode, span_op_name|
@@ -128,7 +129,8 @@ RSpec.describe 'Mysql2::Client patcher' do
             expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).with(
               sql_statement,
               a_span_operation_with(name: span_op_name),
-              propagation_mode
+              propagation_mode,
+              tags: { dddbs: 'my-sql' }
             ).and_call_original
 
             subject
@@ -156,7 +158,9 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         ['disabled', 'service', 'full'].each do |mode|
           context "when `sql_comment_propagation`` is configured to #{mode}" do
-            let(:configuration_options) { { sql_comment_propagation: mode } }
+            let(:configuration_options) do
+              { sql_comment_propagation: mode, service_name: 'my-sql' }
+            end
 
             it_behaves_like 'propagated with sql comment propagation', mode , 'mysql2.query' do
               let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }

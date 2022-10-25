@@ -22,7 +22,7 @@ module Datadog
                   next if value.nil?
 
                   value = ERB::Util.url_encode(value) # url encode
-                  value.gsub!("'", "/'")              # escaping single quote
+                  value.gsub!("'", "\'")              # escaping single quote
 
                   ret << "#{key}='#{value}'," # escape sql
                 end

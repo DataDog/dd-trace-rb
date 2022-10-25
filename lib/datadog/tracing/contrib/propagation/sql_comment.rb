@@ -22,18 +22,17 @@ module Datadog
             end
           end
 
-          def self.annotate!(span, mode)
+          def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
-            span.set_tag('_dd.dbm_trace_injected', true) if mode.full?
+            span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 
-          def self.prepend_comment(sql, span, mode)
+          def self.prepend_comment(sql, span_op, mode, tags: {})
             return sql unless mode.enabled?
 
-            tags = {}
-            tags.merge!(service_context)     if mode.full? || mode.service?
-            tags.merge!(trace_context(span)) if mode.full?
+            tags.merge!(service_context)
+            tags.merge!(trace_context(span_op)) if mode.full?
 
             "#{Comment.new(tags)} #{sql}"
           end
@@ -52,9 +51,10 @@ module Datadog
             Datadog.configuration
           end
 
-          def self.trace_context(_span)
+          # TODO: Derive from span_op
+          def self.trace_context(_span_op)
             {
-              traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01' # TODO: Derive from span?
+              # traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
             }.freeze
           end
         end

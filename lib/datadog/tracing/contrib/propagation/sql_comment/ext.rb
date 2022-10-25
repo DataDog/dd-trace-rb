@@ -11,6 +11,8 @@ module Datadog
             DISABLED = 'disabled'.freeze
             SERVICE = 'service'.freeze
             FULL = 'full'.freeze
+
+            TAG_DBM_TRACE_INJECTED = '_dd.dbm_trace_injected'.freeze
           end
         end
       end
