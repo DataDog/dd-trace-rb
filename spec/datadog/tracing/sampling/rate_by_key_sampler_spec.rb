@@ -44,15 +44,15 @@ RSpec.describe Datadog::Tracing::Sampling::RateByKeySampler do
       let(:rate) { 1.0 }
       it { expect(sample).to eq(true) }
 
-      context 'with default mechanism' do
-        it { expect(trace.sampling_mechanism).to be_nil }
+      context 'with default decision' do
+        it { expect(trace.get_tag('_dd.p.dm')).to be_nil }
       end
 
-      context 'with mechanism set' do
-        subject!(:update) { sampler.update(key, rate, mechanism: mechanism) }
-        let(:mechanism) { double('mechanism') }
+      context 'with decision set' do
+        subject!(:update) { sampler.update(key, rate, decision: decision) }
+        let(:decision) { 'test decision' }
 
-        it { expect(trace.sampling_mechanism).to eq(mechanism) }
+        it { expect(trace.get_tag('_dd.p.dm')).to eq(decision) }
       end
     end
 
@@ -60,8 +60,8 @@ RSpec.describe Datadog::Tracing::Sampling::RateByKeySampler do
       let(:rate) { Float::MIN } # DEV: Using 0 would trigger a safe guard in `RateSampler` and set it to 100% instead.
       it { expect(sample).to eq(false) }
 
-      context 'does not set mechanism' do
-        it { expect(trace.sampling_mechanism).to be_nil }
+      context 'does not set decision' do
+        it { expect(trace.get_tag('_dd.p.dm')).to be_nil }
       end
     end
   end

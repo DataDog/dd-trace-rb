@@ -51,16 +51,31 @@ module Datadog
             return if trace_op.sampled? && trace_op.priority_sampled?
 
             # Applies the first matching rule
-            final_decision = nil
             @rules.each do |rule|
               decision = rule.sample!(span_op)
-              if decision != :not_matched
-                final_decision = decision
-                break
-              end
-            end
 
-            trace_op.sampling_mechanism = Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE if final_decision == :kept
+              next if decision == :not_matched # Iterate until we find a matching decision
+
+              if decision == :kept
+                if trace_op.sampled?
+                  # If trace is sampled, we set the decision at trace level,
+                  # as the complete trace will be flushed.
+                  trace_op.set_tag(
+                    Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                    Sampling::Ext::Decision::SPAN_SAMPLING_RATE
+                  )
+                else
+                  # If trace is not sampled, we set the decision at span level,
+                  # as the complete will not be flushed, only single sampled spans will.
+                  span_op.set_tag(
+                    Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                    Sampling::Ext::Decision::SPAN_SAMPLING_RATE
+                  )
+                end
+              end
+
+              break
+            end
 
             nil
           end

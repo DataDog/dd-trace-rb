@@ -91,7 +91,10 @@ module Datadog
 
                 # Ensure these tags reach the backend
                 active_trace.keep!
-                active_trace.sampling_mechanism = Datadog::Tracing::Sampling::Ext::Mechanism::ASM
+                trace.set_tag(
+                  Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                  Datadog::Tracing::Sampling::Ext::Decision::ASM
+                )
               end
             end
           end

@@ -28,7 +28,6 @@ RSpec.describe Datadog::Tracing::TraceDigest do
           trace_process_id: nil,
           trace_resource: nil,
           trace_runtime_id: nil,
-          trace_sampling_mechanism: nil,
           trace_sampling_priority: nil,
           trace_service: nil
         )
@@ -127,13 +126,6 @@ RSpec.describe Datadog::Tracing::TraceDigest do
         let(:trace_runtime_id) { Datadog::Core::Environment::Identity.id }
 
         it { is_expected.to have_attributes(trace_runtime_id: be_a_frozen_copy_of(trace_runtime_id)) }
-      end
-
-      context ':trace_sampling_mechanism' do
-        let(:options) { { trace_sampling_mechanism: trace_sampling_mechanism } }
-        let(:trace_sampling_mechanism) { Datadog::Tracing::Sampling::Ext::Mechanism::DEFAULT }
-
-        it { is_expected.to have_attributes(trace_sampling_mechanism: trace_sampling_mechanism) }
       end
 
       context ':trace_sampling_priority' do
