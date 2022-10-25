@@ -3,6 +3,7 @@
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
+require_relative '../ext'
 require_relative '../integration'
 require_relative '../patcher'
 
@@ -79,6 +80,8 @@ module Datadog
                     port = connection.host[:port] if connection
 
                     span.span_type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
+
+                    span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                     span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                     span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)

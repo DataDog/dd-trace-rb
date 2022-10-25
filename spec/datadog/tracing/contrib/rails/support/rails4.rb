@@ -106,7 +106,11 @@ RSpec.shared_context 'Rails 4 base application' do
     test_routes = routes
     mapper.instance_exec do
       test_routes.each do |k, v|
-        get k => v
+        if k.is_a?(Array)
+          send(k.first, k.last => v)
+        else
+          get k => v
+        end
       end
     end
     @drawn = true
