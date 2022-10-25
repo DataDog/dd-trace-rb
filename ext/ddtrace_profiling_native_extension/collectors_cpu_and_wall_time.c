@@ -13,6 +13,51 @@
 //
 // Triggering of this component (e.g. deciding when to take a sample) is implemented in Collectors::CpuAndWallTimeWorker.
 
+// ---
+// ## Tracking of cpu-time and wall-time spent during garbage collection
+//
+// This feature works by having an implicit state that a thread can be in: doing garbage collection. This state is
+// tracked inside the thread's `per_thread_context.gc_tracking` data, and three functions, listed below. The functions
+// will get called by the `Collectors::CpuAndWallTimeWorker` at very specific times in the VM lifetime.
+//
+// * `cpu_and_wall_time_collector_on_gc_start`: Called at the very beginning of the garbage collection process.
+//   The internal VM `during_gc` flag is set to `true`, but Ruby has not done any work yet.
+// * `cpu_and_wall_time_collector_on_gc_finish`: Called at the very end of the garbage collection process.
+//   The internal VM `during_gc` flag is still set to `true`, but all the work has been done.
+// * `cpu_and_wall_time_collector_sample_after_gc`: Called shortly after the garbage collection process.
+//   The internal VM `during_gc` flag is set to `false`.
+//
+// Inside this component, here's what happens inside those three functions:
+//
+// When `cpu_and_wall_time_collector_on_gc_start` gets called, the current cpu and wall-time get recorded to the thread
+// context: `cpu_time_at_gc_start_ns` and `wall_time_at_gc_start_ns`.
+//
+// While these fields are set, regular samples (if any) do not account for any time that passes after these two
+// timestamps.
+//
+// (Regular samples can still account for the time between the previous sample and the start of GC.)
+//
+// When `cpu_and_wall_time_collector_on_gc_finish` gets called, the current cpu and wall-time again get recorded to the
+// thread context: `cpu_time_at_gc_finish_ns` and `wall_time_at_gc_finish_ns`.
+//
+// Finally, when `cpu_and_wall_time_collector_sample_after_gc` gets called, the following happens:
+//
+// 1. A sample gets taken, using the special `SAMPLE_IN_GC` sample type, which produces a stack with a placeholder
+// `Garbage Collection` frame as the latest frame. This sample gets assigned the cpu-time and wall-time period that was
+// recorded between calls to `on_gc_start` and `on_gc_finish`.
+//
+// 2. The thread is no longer marked as being in gc (all gc tracking fields get reset back to `INVALID_TIME`).
+//
+// 3. The `cpu_time_at_previous_sample_ns` and `wall_time_at_previous_sample_ns` get updated with the elapsed time in
+// GC, so that all time is accounted for -- e.g. the next sample will not get "blamed" by time spent in GC.
+//
+// In an earlier attempt at implementing this functionality (https://github.com/DataDog/dd-trace-rb/pull/2308), we
+// discovered that we needed to factor the sampling work away from `cpu_and_wall_time_collector_on_gc_finish` and into a
+// separate `cpu_and_wall_time_collector_sample_after_gc` because (as documented in more detail below),
+// `sample_after_gc` could trigger memory allocation in rare occasions (usually exceptions), which is actually not
+// allowed to happen during Ruby's garbage collection start/finish hooks.
+// ---
+
 #define INVALID_TIME -1
 #define THREAD_ID_LIMIT_CHARS 20
 #define RAISE_ON_FAILURE true
@@ -318,8 +363,17 @@ void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
     return;
   }
 
-  // If these fields are set, there's an existing GC sample that still needs to go out. As a simplification, we just drop
-  // the new GC sample, under the assumption that this won't happen often.
+  // If these fields are set, there's an existing GC sample that still needs to be written out by `sample_after_gc`.
+  // As a simplification, we just drop the new GC sample, under the assumption that this won't happen often.
+  //
+  // When can this happen? Because we don't have precise control over when `sample_after_gc` gets called (it will be
+  // called sometime after GC finishes), there is no way to guarantee that Ruby will not trigger more than one GC cycle
+  // before we can actually run that method. BUT, as documented above, we expect that to be a really rare occasion.
+  //
+  // If, in the future, we do find out that there are situations where multiple GC cycles before a single
+  // `sample_after_gc` call can run, the solution is probably to accumulate multiple samples in a thread's
+  // `per_thread_context.gc_tracking`, by e.g. having extra fields that can collect the *total* time that was not
+  // yet flushed across those multiple GC cycles.
   if (thread_context->gc_tracking.cpu_time_at_finish_ns != INVALID_TIME &&
     thread_context->gc_tracking.wall_time_at_finish_ns != INVALID_TIME) {
     state->stats.gc_samples_missed_due_to_missing_sample_after_gc++;
