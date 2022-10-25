@@ -679,13 +679,15 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
     } else {
       elapsed_time_ns = gc_start_time_ns - *time_at_previous_sample_ns; // Capture time between previous sample and start of GC only
     }
+
+    // Remaining time (from gc_start_time to current_time_ns) will be accounted for inside `sample_after_gc`
+    *time_at_previous_sample_ns = gc_start_time_ns;
   } else {
     elapsed_time_ns = current_time_ns - *time_at_previous_sample_ns; // Capture all time since previous sample
+    *time_at_previous_sample_ns = current_time_ns;
   }
 
   if (elapsed_time_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
-
-  *time_at_previous_sample_ns = current_time_ns;
 
   return elapsed_time_ns;
 }

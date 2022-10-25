@@ -170,6 +170,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
           expect(total_wall_for_rspec_thread).to be(wall_time_at_gc_start - wall_time_at_first_sample)
         end
+
+        # The whole point of wall_time_at_previous_sample_ns is to track the past point in time that we use as start of
+        # the time range for a sample.
+        # BUT, we can't let it advance during GC as it should only get accounted for when GC finishes.
+        it 'does not advance wall_time_at_previous_sample_ns for the thread beyond gc_tracking.wall_time_at_start_ns' do
+          sample
+
+          on_gc_start
+          on_gc_finish if on_gc_finish_order == :after
+
+          wall_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.wall_time_at_start_ns')
+
+          5.times { sample }
+
+          wall_time_at_previous_sample_ns =
+            per_thread_context.fetch(Thread.current).fetch(:wall_time_at_previous_sample_ns)
+
+          expect(wall_time_at_previous_sample_ns).to be wall_time_at_gc_start
+        end
       end
     end
 
@@ -232,6 +251,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
                   .reduce(:+)
 
               expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
+            end
+
+            # The whole point of cpu_time_at_previous_sample_ns is to track the past point in time that we use as start of
+            # the time range for a sample.
+            # BUT, we can't let it advance during GC as it should only get accounted for when GC finishes.
+            it 'does not advance cpu_time_at_previous_sample_ns for the thread beyond gc_tracking.cpu_time_at_start_ns' do
+              sample
+
+              on_gc_start
+              on_gc_finish if on_gc_finish_order == :after
+
+              cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.cpu_time_at_start_ns')
+
+              5.times { sample }
+
+              cpu_time_at_previous_sample_ns =
+                per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
+
+              expect(cpu_time_at_previous_sample_ns).to be cpu_time_at_gc_start
             end
           end
         end
