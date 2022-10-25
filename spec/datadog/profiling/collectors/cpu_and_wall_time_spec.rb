@@ -346,10 +346,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
           expect { on_gc_start }.to_not change(&start_times)
         end
-
-        it 'increments the gc_samples_missed_due_to_missing_sample_after_gc stat' do
-          expect { on_gc_start }.to change { stats.fetch(:gc_samples_missed_due_to_missing_sample_after_gc) }.from(0).to(1)
-        end
       end
     end
   end
@@ -415,6 +411,35 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
               expect(per_thread_context.fetch(Thread.current)).to include(:'gc_tracking.cpu_time_at_finish_ns' => be > 0)
             end
           end
+        end
+      end
+
+      context 'when going through multiple cycles of on_gc_start/on_gc_finish without sample_after_gc getting called' do
+        it 'keeps the cpu-time and wall-time at finish from the LAST on_gc_finish' do
+          context_tracking = []
+
+          5.times do
+            on_gc_start
+            on_gc_finish
+
+            context_tracking << per_thread_context.fetch(Thread.current)
+          end
+
+          cpu_time_from_last_on_gc_finish = context_tracking.last.fetch(:'gc_tracking.cpu_time_at_finish_ns')
+          wall_time_from_last_on_gc_finish = context_tracking.last.fetch(:'gc_tracking.wall_time_at_finish_ns')
+
+          expect(context_tracking.first)
+            .to include(:'gc_tracking.wall_time_at_finish_ns' => be < wall_time_from_last_on_gc_finish)
+
+          # This always advances: all_but_last <= the last one
+          # (Needs the <= because unfortunately we may not get enough precision, otherwise it would be <)
+          all_but_last = context_tracking[0..-2]
+          expect(
+            all_but_last.map { |it| it.fetch(:'gc_tracking.cpu_time_at_finish_ns') }
+          ).to all be <= cpu_time_from_last_on_gc_finish
+          expect(
+            all_but_last.map { |it| it.fetch(:'gc_tracking.wall_time_at_finish_ns') }
+          ).to all be <= wall_time_from_last_on_gc_finish
         end
       end
     end

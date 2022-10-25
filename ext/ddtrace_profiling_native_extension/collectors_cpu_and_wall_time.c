@@ -84,8 +84,6 @@ struct cpu_and_wall_time_collector_state {
     unsigned int gc_samples;
     // See cpu_and_wall_time_collector_on_gc_start for details
     unsigned int gc_samples_missed_due_to_missing_context;
-    // See cpu_and_wall_time_collector_on_gc_start for details
-    unsigned int gc_samples_missed_due_to_missing_sample_after_gc;
   } stats;
 };
 
@@ -364,21 +362,17 @@ void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
   }
 
   // If these fields are set, there's an existing GC sample that still needs to be written out by `sample_after_gc`.
-  // As a simplification, we just drop the new GC sample, under the assumption that this won't happen often.
   //
   // When can this happen? Because we don't have precise control over when `sample_after_gc` gets called (it will be
   // called sometime after GC finishes), there is no way to guarantee that Ruby will not trigger more than one GC cycle
-  // before we can actually run that method. BUT, as documented above, we expect that to be a really rare occasion.
+  // before we can actually run that method.
   //
-  // If, in the future, we do find out that there are situations where multiple GC cycles before a single
-  // `sample_after_gc` call can run, the solution is probably to accumulate multiple samples in a thread's
-  // `per_thread_context.gc_tracking`, by e.g. having extra fields that can collect the *total* time that was not
-  // yet flushed across those multiple GC cycles.
+  // We handle this by collapsing multiple GC cycles into one. That is, if the following happens:
+  // `on_gc_start` (time=0) -> `on_gc_finish` (time=1) -> `on_gc_start` (time=2) -> `on_gc_finish` (time=3) -> `sample_after_gc`
+  // then we just use time=0 from the first on_gc_start and time=3 from the last on_gc_finish, e.g. we behave as if
+  // there was a single, longer GC period.
   if (thread_context->gc_tracking.cpu_time_at_finish_ns != INVALID_TIME &&
-    thread_context->gc_tracking.wall_time_at_finish_ns != INVALID_TIME) {
-    state->stats.gc_samples_missed_due_to_missing_sample_after_gc++;
-    return;
-  }
+    thread_context->gc_tracking.wall_time_at_finish_ns != INVALID_TIME) return;
 
   // Here we record the wall-time first and in on_gc_finish we record it second to avoid having wall-time be slightly < cpu-time
   thread_context->gc_tracking.wall_time_at_start_ns = wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
@@ -631,9 +625,8 @@ static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state)
   // Update this when modifying state struct (stats inner struct)
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
-    ID2SYM(rb_intern("gc_samples")),                                       /* => */ INT2NUM(state->stats.gc_samples),
-    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")),         /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
-    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_sample_after_gc")), /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_sample_after_gc)
+    ID2SYM(rb_intern("gc_samples")),                               /* => */ INT2NUM(state->stats.gc_samples),
+    ID2SYM(rb_intern("gc_samples_missed_due_to_missing_context")), /* => */ INT2NUM(state->stats.gc_samples_missed_due_to_missing_context),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
