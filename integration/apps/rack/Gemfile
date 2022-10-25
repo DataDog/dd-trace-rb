@@ -42,7 +42,8 @@ else
 end
 
 # Development
-gem 'pry-byebug'
+gem 'pry-byebug' if RUBY_VERSION >= '2.3.0' && RUBY_ENGINE != 'truffleruby' && RUBY_VERSION < '3.2.0'
+gem 'pry-nav' if RUBY_VERSION < '2.3.0'
 # gem 'pry-stack_explorer', platform: :ruby
 # gem 'rbtrace'
 # gem 'ruby-prof'
