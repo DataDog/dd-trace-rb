@@ -51,7 +51,7 @@ module Datadog
         end
       end
 
-      def self.record_via_span(*events)
+      def self.record_via_span(*events) # rubocop:disable Metrics/AbcSize
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
             Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
