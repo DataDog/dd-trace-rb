@@ -77,6 +77,9 @@ RSpec.describe 'Rails integration tests' do
       JSON.parse(json).fetch('triggers', []) if json
     end
 
+    let(:remote_addr) { '127.0.0.1' }
+    let(:client_ip) { remote_addr }
+
     let(:span) { rack_span }
 
     shared_examples 'a GET 200 span' do
@@ -125,12 +128,14 @@ RSpec.describe 'Rails integration tests' do
       it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to be_nil }
       it { expect(trace.send(:meta)['_dd.runtime_family']).to be_nil }
       it { expect(trace.send(:meta)['_dd.appsec.waf.version']).to be_nil }
+      it { expect(span.send(:meta)['http.client_ip']).to eq nil }
     end
 
     shared_examples 'a trace with AppSec tags' do
       it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to eq(1.0) }
       it { expect(trace.send(:meta)['_dd.runtime_family']).to eq('ruby') }
       it { expect(trace.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/) }
+      it { expect(span.send(:meta)['http.client_ip']).to eq client_ip }
 
       context 'with appsec disabled' do
         let(:appsec_enabled) { false }
@@ -169,11 +174,12 @@ RSpec.describe 'Rails integration tests' do
       end
 
       describe 'GET request' do
-        subject(:response) { get url, params, headers }
+        subject(:response) { get url, params, env }
 
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
+        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
@@ -220,6 +226,20 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a trace with AppSec events'
         end
 
+        context 'with an event-triggering request in IP' do
+          skip 'TODO: config not implemented'
+
+          let(:client_ip) { '1.2.3.4' }
+          # TODO: let(:config) { { ip_denylist: [client_ip] } }
+          let(:headers) { { 'HTTP_X_FORWARDED_FOR' => client_ip } }
+
+          it { is_expected.to be_ok }
+
+          # TODO: it_behaves_like 'a GET 403 span'
+          it_behaves_like 'a trace with AppSec tags'
+          # TODO: it_behaves_like 'a trace with AppSec events'
+        end
+
         context 'with an event-triggering response' do
           let(:url) { '/admin.php' } # well-known scanned path
 
@@ -233,11 +253,12 @@ RSpec.describe 'Rails integration tests' do
       end
 
       describe 'POST request' do
-        subject(:response) { post url, params, headers }
+        subject(:response) { post url, params, env }
 
         let(:url) { '/success' }
         let(:params) { {} }
         let(:headers) { {} }
+        let(:env) { { 'REMOTE_ADDR' => remote_addr }.merge!(headers) }
 
         context 'with a non-event-triggering request' do
           it { is_expected.to be_ok }
