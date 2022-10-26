@@ -272,10 +272,12 @@ module Datadog
 
                          query_string.empty? ? path : "#{path}?#{query_string}"
                        else
-                         request_uri
+                         # normally REQUEST_URI starts at the path, but it
+                         # might contain the full URL in some cases (e.g WEBrick)
+                         request_uri.sub(/^#{base_url}/, '')
                        end
 
-            ::URI.join(base_url, fullpath).to_s
+            base_url + fullpath
           end
 
           def parse_user_agent_header(headers)
