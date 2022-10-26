@@ -98,9 +98,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when the profile is empty' do
       it 'uses the current time as the start and finish time' do
-        before_serialize = Time.now
+        before_serialize = Time.now.utc
         serialize
-        after_serialize = Time.now
+        after_serialize = Time.now.utc
 
         expect(start).to be_between(before_serialize, after_serialize)
         expect(finish).to be_between(before_serialize, after_serialize)
