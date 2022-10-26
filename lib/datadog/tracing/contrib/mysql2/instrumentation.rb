@@ -5,6 +5,7 @@ require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
 require_relative '../propagation/sql_comment'
+require_relative '../propagation/sql_comment/mode'
 
 module Datadog
   module Tracing

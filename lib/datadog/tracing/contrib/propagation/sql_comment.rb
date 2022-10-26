@@ -9,20 +9,6 @@ module Datadog
       module Propagation
         # Implements sql comment propagation related contracts.
         module SqlComment
-          Mode = Struct.new(:mode) do
-            def enabled?
-              mode != Ext::DISABLED
-            end
-
-            def service?
-              mode == Ext::SERVICE
-            end
-
-            def full?
-              mode == Ext::FULL
-            end
-          end
-
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
