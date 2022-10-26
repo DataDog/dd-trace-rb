@@ -672,7 +672,7 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   long elapsed_time_ns = -1;
 
   if (is_thread_doing_gc) {
-    bool previous_sample_was_during_gc = is_thread_doing_gc && gc_start_time_ns <= *time_at_previous_sample_ns;
+    bool previous_sample_was_during_gc = gc_start_time_ns <= *time_at_previous_sample_ns;
 
     if (previous_sample_was_during_gc) {
       elapsed_time_ns = 0; // No time to account for -- any time since the last sample is going to get assigned to GC separately
