@@ -80,14 +80,7 @@ module Datadog
 
           if encoded.size > max_size
             # This single trace is too large, we can't flush it
-            span_output = if trace.respond_to?(:map)
-                            trace.map(&:to_hash)
-                          elsif trace.respond_to?(:spans)
-                            trace.spans.map(&:to_hash)
-                          else
-                            trace.inspect
-                          end
-            Datadog.logger.debug("Dropping trace. Payload too large: '#{span_output}'")
+            Datadog.logger.debug { "Dropping trace. Payload too large: '#{trace.inspect}'" }
             Datadog.health_metrics.transport_trace_too_large(1)
 
             return nil
