@@ -20,5 +20,6 @@ void self_test_clock_id(void);
 // TODO: Remove this after the OldStack profiler gets removed
 VALUE clock_id_for(VALUE self, VALUE thread);
 
+// Safety: This function is assumed never to raise exceptions by callers
 thread_cpu_time_id thread_cpu_time_id_for(VALUE thread);
 thread_cpu_time thread_cpu_time_for(thread_cpu_time_id time_id);
