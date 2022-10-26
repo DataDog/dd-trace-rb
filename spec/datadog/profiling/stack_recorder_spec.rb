@@ -192,5 +192,31 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         serialize
       end
     end
+
+    context 'when serializing multiple times in a row' do
+      it 'sets the start time of a profile to be >= the finish time of the previous profile' do
+        start1, finish1, = stack_recorder.serialize
+        start2, finish2, = stack_recorder.serialize
+        start3, finish3, = stack_recorder.serialize
+        start4, finish4, = stack_recorder.serialize
+
+        expect(start1).to be <= finish1
+        expect(finish1).to be <= start2
+        expect(finish2).to be <= start3
+        expect(finish3).to be <= start4
+        expect(start4).to be <= finish4
+      end
+
+      it 'sets the start time of the next profile to be >= the previous serialization call' do
+        stack_recorder
+
+        before_serialize = Time.now.utc
+
+        stack_recorder.serialize
+        start, = stack_recorder.serialize
+
+        expect(start).to be >= before_serialize
+      end
+    end
   end
 end

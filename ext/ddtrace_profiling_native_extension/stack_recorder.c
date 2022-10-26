@@ -168,11 +168,12 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
 static struct active_slot_pair sampler_lock_active_profile();
 static void sampler_unlock_active_profile(struct active_slot_pair active_slot);
-static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
+static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state, ddog_Timespec start_timestamp_for_next_profile);
 static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
+static ddog_Timespec time_now();
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -317,8 +318,10 @@ void record_sample(VALUE recorder_instance, ddog_Sample sample) {
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
-  args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddog_Profile_serialize(args->profile, NULL /* end_time is optional */, NULL /* duration_nanos is optional */);
+  ddog_Timespec finish_timestamp = time_now();
+
+  args->profile = serializer_flip_active_and_inactive_slots(args->state, finish_timestamp);
+  args->result = ddog_Profile_serialize(args->profile, &finish_timestamp, NULL /* duration_nanos is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
@@ -357,7 +360,7 @@ static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
   if (error != 0) rb_syserr_fail(error, "Unexpected failure in sampler_unlock_active_profile");
 }
 
-static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
+static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state, ddog_Timespec start_timestamp_for_next_profile) {
   int error;
   int previously_active_slot = state->active_slot;
 
@@ -367,6 +370,10 @@ static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_reco
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
   pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
+
+  // Before making this profile active, we reset it so that it uses the correct timestamp for its start
+  ddog_Profile *previously_inactive_profile = (previously_active_slot == 1) ? state -> slot_two_profile : state->slot_one_profile;
+  if (!ddog_Profile_reset(previously_inactive_profile, &start_timestamp_for_next_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 
   // Release the lock, thus making this slot active
   error = pthread_mutex_unlock(previously_inactive);
@@ -419,4 +426,13 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   } else {
     rb_syserr_fail(error, "Unexpected failure when checking mutex state");
   }
+}
+
+// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in other parts of the codebase
+static ddog_Timespec time_now() {
+  struct timespec current_time;
+
+  if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");
+
+  return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = current_time.tv_nsec};
 }
