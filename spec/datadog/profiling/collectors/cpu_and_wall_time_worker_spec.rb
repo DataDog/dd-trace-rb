@@ -109,16 +109,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         samples if samples.any?
       end
 
-      current_thread_sample = all_samples.find do |it|
-        it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s
-      end
+      current_thread_gc_samples =
+        all_samples
+          .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+          .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
 
-      expect(current_thread_sample).to_not be nil
+      expect(current_thread_gc_samples).to_not be_empty
     end
 
     it 'records garbage collection cycles' do
-      pending 'Currently broken on Ruby 2.2 due to missing ruby_thread_has_gvl_p API' if RUBY_VERSION.start_with?('2.2.')
-
       start
 
       described_class::Testing._native_trigger_sample
