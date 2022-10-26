@@ -145,7 +145,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # a sample. I don't expect this to happen for this test (that's what the `Thread.pass` above is trying to avoid)
       # but if this spec turns out to be flaky, that is probably the issue, and that would mean we'd need to relax the
       # check.
-      expect(current_thread_gc_samples.first.fetch(:values).fetch(:'cpu-samples')).to be >= invoke_gc_times
+      expect(
+        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.fetch(:values).fetch(:'cpu-samples') }
+      ).to be >= invoke_gc_times
     end
   end
 
