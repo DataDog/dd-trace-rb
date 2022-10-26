@@ -62,6 +62,8 @@
 #define THREAD_ID_LIMIT_CHARS 20
 #define RAISE_ON_FAILURE true
 #define DO_NOT_RAISE_ON_FAILURE false
+#define IS_WALL_TIME true
+#define IS_NOT_WALL_TIME false
 
 // Contains state for a single CpuAndWallTime instance
 struct cpu_and_wall_time_collector_state {
@@ -136,7 +138,7 @@ static VALUE stats_as_ruby_hash(struct cpu_and_wall_time_collector_state *state)
 static void remove_context_for_dead_threads(struct cpu_and_wall_time_collector_state *state);
 static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, st_data_t _argument);
 static VALUE _native_per_thread_context(VALUE self, VALUE collector_instance);
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns);
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time);
 static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long wall_time_now_ns(bool raise_on_failure);
 static long thread_id_for(VALUE thread);
@@ -302,12 +304,14 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
     long cpu_time_elapsed_ns = update_time_since_previous_sample(
       &thread_context->cpu_time_at_previous_sample_ns,
       current_cpu_time_ns,
-      thread_context->gc_tracking.cpu_time_at_start_ns
+      thread_context->gc_tracking.cpu_time_at_start_ns,
+      IS_NOT_WALL_TIME
     );
     long wall_time_elapsed_ns = update_time_since_previous_sample(
       &thread_context->wall_time_at_previous_sample_ns,
       current_wall_time_ns,
-      thread_context->gc_tracking.wall_time_at_start_ns
+      thread_context->gc_tracking.wall_time_at_start_ns,
+      IS_WALL_TIME
     );
 
     int64_t metric_values[ENABLED_VALUE_TYPES_COUNT] = {0};
@@ -450,8 +454,11 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
     long gc_wall_time_elapsed_ns =
       thread_context->gc_tracking.wall_time_at_finish_ns - thread_context->gc_tracking.wall_time_at_start_ns;
 
+    // We don't expect non-wall time to go backwards, so let's flag this as a bug
     if (gc_cpu_time_elapsed_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative gc_cpu_time_elapsed_ns between samples");
-    if (gc_wall_time_elapsed_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative gc_wall_time_elapsed_ns between samples");
+    // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
+    // was a bug
+    if (gc_wall_time_elapsed_ns < 0) gc_wall_time_elapsed_ns = 0;
 
     if (thread_context->gc_tracking.wall_time_at_start_ns == 0 && thread_context->gc_tracking.wall_time_at_finish_ns != 0) {
       // Avoid using wall-clock if we got 0 for a start (meaning there was an error) but not 0 for finish so we don't
@@ -657,7 +664,7 @@ static VALUE _native_per_thread_context(DDTRACE_UNUSED VALUE _self, VALUE collec
   return per_thread_context_st_table_as_ruby_hash(state);
 }
 
-static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns) {
+static long update_time_since_previous_sample(long *time_at_previous_sample_ns, long current_time_ns, long gc_start_time_ns, bool is_wall_time) {
   // If we didn't have a time for the previous sample, we use the current one
   if (*time_at_previous_sample_ns == INVALID_TIME) *time_at_previous_sample_ns = current_time_ns;
 
@@ -680,7 +687,16 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
     *time_at_previous_sample_ns = current_time_ns;
   }
 
-  if (elapsed_time_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
+  if (elapsed_time_ns < 0) {
+    if (is_wall_time) {
+      // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
+      // was a bug
+      elapsed_time_ns = 0;
+    } else {
+      // We don't expect non-wall time to go backwards, so let's flag this as a bug
+      rb_raise(rb_eRuntimeError, "BUG: Unexpected negative elapsed_time_ns between samples");
+    }
+  }
 
   return elapsed_time_ns;
 }
