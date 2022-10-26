@@ -102,6 +102,20 @@ RSpec.describe Datadog::Transport::Traces::Chunker do
           expect(health_metrics).to have_received(:transport_trace_too_large).with(1).twice
         end
       end
+
+      context 'with TraceSegment too large' do
+        include_context 'health metrics'
+
+        let(:max_size) { 0 }
+        let(:spans) { [Datadog::Tracing::Span.new('a', parent_id: 0), Datadog::Tracing::Span.new('b', parent_id: 0)] }
+        let(:traces) { [Datadog::Tracing::TraceSegment.new(spans, origin: 'ci-origin')] }
+
+        it 'drops all traces except the smallest for TraceSegment' do
+          expect(Datadog.logger).to receive(:debug).with(/Dropping trace. Payload too large/)
+          is_expected.to eq([])
+          expect(health_metrics).to have_received(:transport_trace_too_large).with(1).once
+        end
+      end
     end
 
     context 'with a lazy enumerator' do
