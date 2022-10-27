@@ -121,7 +121,7 @@ RSpec.describe 'Mysql2::Client patcher' do
             .to eq("Unknown column 'INVALID' in 'field list'")
         end
 
-        include_context 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error
       end
     end
   end
