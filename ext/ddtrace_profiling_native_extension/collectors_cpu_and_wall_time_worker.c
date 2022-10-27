@@ -345,6 +345,9 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
   state->should_run = false;
   state->failure_exception = exception;
 
+  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
+  rb_tracepoint_disable(state->gc_tracepoint);
+
   return Qnil;
 }
 
