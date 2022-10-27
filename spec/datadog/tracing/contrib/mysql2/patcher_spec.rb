@@ -44,7 +44,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
   describe 'tracing' do
     describe '#query' do
-      subject { client.query(sql_statement) }
+      subject(:query) { client.query(sql_statement) }
 
       let(:sql_statement) { 'SELECT 1' }
 
@@ -52,7 +52,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          query
 
           expect(spans).to be_empty
         end
@@ -66,7 +66,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         it 'produces a trace with service override' do
-          subject
+          query
 
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
@@ -79,7 +79,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
       context 'when a successful query is made' do
         it 'produces a trace' do
-          subject
+          query
 
           expect(spans.count).to eq(1)
           expect(span.get_tag('mysql2.db.name')).to eq(database)
@@ -91,18 +91,18 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { query }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Mysql2::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Mysql2::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { query }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { query }
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
@@ -112,7 +112,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         let(:sql_statement) { 'SELECT INVALID' }
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(Mysql2::Error)
+          expect { query }.to raise_error(Mysql2::Error)
 
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)

@@ -43,7 +43,6 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
     else
       subject
     end
-
   end
 
   it 'decorates the span operation' do
