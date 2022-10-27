@@ -508,18 +508,27 @@ static void trigger_sample_for_thread(
   ddog_Slice_i64 metric_values_slice,
   sample_type type
 ) {
+  int max_label_count =
+    1 + // thread id
+    1; // thread name
+  ddog_Label labels[max_label_count];
+  int label_pos = 0;
+
+  labels[label_pos++] = (ddog_Label) {
+    .key = DDOG_CHARSLICE_C("thread id"),
+    .str = thread_context->thread_id_char_slice
+  };
+
   VALUE thread_name = thread_name_for(thread);
-  bool have_thread_name = thread_name != Qnil;
-
-  int label_count = 1 + (have_thread_name ? 1 : 0);
-  ddog_Label labels[label_count];
-
-  labels[0] = (ddog_Label) {.key = DDOG_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
-  if (have_thread_name) {
-    labels[1] = (ddog_Label) {
+  if (thread_name != Qnil) {
+    labels[label_pos++] = (ddog_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
     };
+  }
+
+  if (label_pos > max_label_count) {
+    rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   sample_thread(
@@ -527,7 +536,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     metric_values_slice,
-    (ddog_Slice_label) {.ptr = labels, .len = label_count},
+    (ddog_Slice_label) {.ptr = labels, .len = label_pos},
     type
   );
 }
