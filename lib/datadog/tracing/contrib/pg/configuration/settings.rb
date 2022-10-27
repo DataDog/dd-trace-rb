@@ -3,6 +3,8 @@
 require_relative '../../configuration/settings'
 require_relative '../ext'
 
+require_relative '../../propagation/sql_comment/ext'
+
 module Datadog
   module Tracing
     module Contrib
@@ -27,6 +29,16 @@ module Datadog
             end
 
             option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
+
+            option :sql_comment_propagation do |o|
+              o.default do
+                ENV.fetch(
+                  Contrib::Propagation::SqlComment::Ext::ENV_SQL_COMMENT_PROPAGATION_MODE,
+                  Contrib::Propagation::SqlComment::Ext::DISABLED
+                )
+              end
+              o.lazy
+            end
           end
         end
       end
