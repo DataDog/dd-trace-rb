@@ -1,11 +1,49 @@
 # typed: ignore
 
-RSpec.shared_examples_for 'propagated with sql comment propagation' do |mode, span_op_name|
+RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, error: nil|
+  context 'when default `disabled`' do
+    it_behaves_like 'propagates with sql comment', mode: 'disabled', span_op_name: span_op_name, error: error do
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
+    end
+  end
+
+  context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
+    around do |example|
+      ClimateControl.modify(
+        'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
+        &example
+      )
+    end
+
+    it_behaves_like 'propagates with sql comment', mode: 'service', span_op_name: span_op_name, error: error do
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
+    end
+  end
+
+  %w[disabled service full].each do |mode|
+    context "when `sql_comment_propagation` is configured to #{mode}" do
+      let(:configuration_options) do
+        { sql_comment_propagation: mode, service_name: service_name }
+      end
+
+      it_behaves_like 'propagates with sql comment', mode: mode, span_op_name: span_op_name, error: error do
+        let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
+      end
+    end
+  end
+end
+
+RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, error: nil|
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
       .to receive(:new).with(mode).and_return(propagation_mode)
 
-    subject
+    if error
+      expect { subject }.to raise_error(error)
+    else
+      subject
+    end
+
   end
 
   it 'decorates the span operation' do
@@ -13,7 +51,11 @@ RSpec.shared_examples_for 'propagated with sql comment propagation' do |mode, sp
       a_span_operation_with(name: span_op_name),
       propagation_mode
     )
-    subject
+    if error
+      expect { subject }.to raise_error(error)
+    else
+      subject
+    end
   end
 
   it 'prepends sql comment to the sql statement' do
@@ -23,6 +65,10 @@ RSpec.shared_examples_for 'propagated with sql comment propagation' do |mode, sp
       propagation_mode
     ).and_call_original
 
-    subject
+    if error
+      expect { subject }.to raise_error(error)
+    else
+      subject
+    end
   end
 end
