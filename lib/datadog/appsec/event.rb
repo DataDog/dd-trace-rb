@@ -51,7 +51,7 @@ module Datadog
         end
       end
 
-      def self.record_via_span(*events)
+      def self.record_via_span(*events) # rubocop:disable Metrics/AbcSize
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
             Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
@@ -75,9 +75,7 @@ module Datadog
 
               tags['http.host'] = request.host
               tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.ip
-
-              # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
+              tags['network.client.ip'] = request.env['REMOTE_ADDR'] if request.env['REMOTE_ADDR']
             end
 
             if (response = event[:response])
