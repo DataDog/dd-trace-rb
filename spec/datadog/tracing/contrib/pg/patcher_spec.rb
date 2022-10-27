@@ -68,6 +68,8 @@ RSpec.describe 'PG::Connection patcher' do
 
         before { Datadog.configure_onto(conn, service_name: service_name) }
 
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
+
         it 'produces a trace with service override' do
           subject
 
@@ -78,6 +80,8 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       context 'when a successful query is made' do
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
+
         it 'produces a trace' do
           subject
 
@@ -120,43 +124,12 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { subject }
         end
-
-        context 'with sql comment propagation' do
-          context 'when default `disabled`' do
-            it_behaves_like 'propagated with sql comment propagation', 'disabled', 'pg.exec' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
-            end
-          end
-
-          context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
-            around do |example|
-              ClimateControl.modify(
-                'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
-                &example
-              )
-            end
-
-            it_behaves_like 'propagated with sql comment propagation', 'service', 'pg.exec' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
-            end
-          end
-
-          %w[disabled service full].each do |mode|
-            context "when `sql_comment_propagation` is configured to #{mode}" do
-              let(:configuration_options) do
-                { sql_comment_propagation: mode, service_name: service_name }
-              end
-
-              it_behaves_like 'propagated with sql comment propagation', mode, 'pg.exec' do
-                let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-              end
-            end
-          end
-        end
       end
 
       context 'when a failed query is made' do
         let(:sql_statement) { 'SELECT INVALID' }
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec', error:  PG::Error
 
         it 'traces failed queries' do
           expect { subject }.to raise_error(PG::Error)
@@ -188,6 +161,8 @@ RSpec.describe 'PG::Connection patcher' do
 
         before { Datadog.configure_onto(conn, service_name: service_name) }
 
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
+
         it 'produces a trace with service override' do
           subject
 
@@ -198,6 +173,8 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       context 'when a successful query is made' do
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
+
         it 'produces a trace' do
           subject
 
@@ -240,44 +217,18 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { subject }
         end
-
-        context 'with sql comment propagation' do
-          context 'when default `disabled`' do
-            it_behaves_like 'propagated with sql comment propagation', 'disabled', 'pg.exec.params' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
-            end
-          end
-
-          context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
-            around do |example|
-              ClimateControl.modify(
-                'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
-                &example
-              )
-            end
-
-            it_behaves_like 'propagated with sql comment propagation', 'service', 'pg.exec.params' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
-            end
-          end
-
-          %w[disabled service full].each do |mode|
-            context "when `sql_comment_propagation` is configured to #{mode}" do
-              let(:configuration_options) do
-                { sql_comment_propagation: mode, service_name: service_name }
-              end
-
-              it_behaves_like 'propagated with sql comment propagation', mode, 'pg.exec.params' do
-                let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-              end
-            end
-          end
-        end
       end
 
       context 'when a failed query is made' do
+        let(:sql_statement) { 'SELECT $1;' }
+
+        subject { conn.exec_params(sql_statement, ['INVALID']) }
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params', error: PG::Error
+
         it 'traces failed queries' do
-          expect { conn.exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
+          expect { subject }.to raise_error(PG::Error)
+
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
@@ -388,6 +339,8 @@ RSpec.describe 'PG::Connection patcher' do
 
         before { Datadog.configure_onto(conn, service_name: service_name) }
 
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
+
         it 'produces a trace with service override' do
           subject
 
@@ -398,6 +351,8 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       context 'when a successful query is made' do
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
+
         it 'produces a trace' do
           subject
 
@@ -440,44 +395,17 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { subject }
         end
-
-        context 'with sql comment propagation' do
-          context 'when default `disabled`' do
-            it_behaves_like 'propagated with sql comment propagation', 'disabled', 'pg.async.exec' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
-            end
-          end
-
-          context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
-            around do |example|
-              ClimateControl.modify(
-                'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
-                &example
-              )
-            end
-
-            it_behaves_like 'propagated with sql comment propagation', 'service', 'pg.async.exec' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
-            end
-          end
-
-          %w[disabled service full].each do |mode|
-            context "when `sql_comment_propagation` is configured to #{mode}" do
-              let(:configuration_options) do
-                { sql_comment_propagation: mode, service_name: service_name }
-              end
-
-              it_behaves_like 'propagated with sql comment propagation', mode, 'pg.async.exec' do
-                let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-              end
-            end
-          end
-        end
       end
 
       context 'when a failed query is made' do
+        let(:sql_statement) { 'SELECT INVALID' }
+
+        subject { conn.async_exec(sql_statement) }
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec', error: PG::Error
+
         it 'traces failed queries' do
-          expect { conn.async_exec('SELECT INVALID') }.to raise_error(PG::Error)
+          expect { subject }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
@@ -509,6 +437,8 @@ RSpec.describe 'PG::Connection patcher' do
 
         before { Datadog.configure_onto(conn, service_name: service_name) }
 
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
+
         it 'produces a trace with service override' do
           subject
 
@@ -519,6 +449,8 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       context 'when a successful query is made' do
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
+
         it 'produces a trace' do
           subject
 
@@ -561,44 +493,17 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { subject }
         end
-
-        context 'with sql comment propagation' do
-          context 'when default `disabled`' do
-            it_behaves_like 'propagated with sql comment propagation', 'disabled', 'pg.async.exec.params' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
-            end
-          end
-
-          context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
-            around do |example|
-              ClimateControl.modify(
-                'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
-                &example
-              )
-            end
-
-            it_behaves_like 'propagated with sql comment propagation', 'service', 'pg.async.exec.params' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
-            end
-          end
-
-          %w[disabled service full].each do |mode|
-            context "when `sql_comment_propagation` is configured to #{mode}" do
-              let(:configuration_options) do
-                { sql_comment_propagation: mode, service_name: service_name }
-              end
-
-              it_behaves_like 'propagated with sql comment propagation', mode, 'pg.async.exec.params' do
-                let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-              end
-            end
-          end
-        end
       end
 
       context 'when a failed query is made' do
+        let(:sql_statement) { 'SELECT $1;' }
+
+        subject { conn.async_exec_params(sql_statement, ['INVALID']) }
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params', error: PG::Error
+
         it 'traces failed queries' do
-          expect { conn.async_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
+          expect { subject }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
@@ -720,6 +625,8 @@ RSpec.describe 'PG::Connection patcher' do
 
         before { Datadog.configure_onto(conn, service_name: service_name) }
 
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
+
         it 'produces a trace with service override' do
           subject
 
@@ -730,6 +637,8 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       context 'when a successful query is made' do
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
+
         it 'produces a trace' do
           subject
 
@@ -772,44 +681,15 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { subject }
         end
-
-        context 'with sql comment propagation' do
-          context 'when default `disabled`' do
-            it_behaves_like 'propagated with sql comment propagation', 'disabled', 'pg.sync.exec' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
-            end
-          end
-
-          context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
-            around do |example|
-              ClimateControl.modify(
-                'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
-                &example
-              )
-            end
-
-            it_behaves_like 'propagated with sql comment propagation', 'service', 'pg.sync.exec' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
-            end
-          end
-
-          %w[disabled service full].each do |mode|
-            context "when `sql_comment_propagation` is configured to #{mode}" do
-              let(:configuration_options) do
-                { sql_comment_propagation: mode, service_name: service_name }
-              end
-
-              it_behaves_like 'propagated with sql comment propagation', mode, 'pg.sync.exec' do
-                let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-              end
-            end
-          end
-        end
       end
 
       context 'when a failed query is made' do
+        let(:sql_statement) { 'SELECT INVALID' }
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec', error: PG::Error
+
         it 'traces failed queries' do
-          expect { conn.sync_exec('SELECT INVALID') }.to raise_error(PG::Error)
+          expect { subject }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
@@ -839,6 +719,8 @@ RSpec.describe 'PG::Connection patcher' do
 
         before { Datadog.configure_onto(conn, service_name: service_name) }
 
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
+
         it 'produces a trace with service override' do
           subject
           expect(spans.count).to eq(1)
@@ -848,6 +730,8 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       context 'when a successful query is made' do
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
+
         it 'produces a trace' do
           subject
 
@@ -890,44 +774,18 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'measured span for integration', false do
           before { subject }
         end
-
-        context 'with sql comment propagation' do
-          context 'when default `disabled`' do
-            it_behaves_like 'propagated with sql comment propagation', 'disabled', 'pg.sync.exec.params' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
-            end
-          end
-
-          context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
-            around do |example|
-              ClimateControl.modify(
-                'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
-                &example
-              )
-            end
-
-            it_behaves_like 'propagated with sql comment propagation', 'service', 'pg.sync.exec.params' do
-              let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
-            end
-          end
-
-          %w[disabled service full].each do |mode|
-            context "when `sql_comment_propagation` is configured to #{mode}" do
-              let(:configuration_options) do
-                { sql_comment_propagation: mode, service_name: service_name }
-              end
-
-              it_behaves_like 'propagated with sql comment propagation', mode, 'pg.sync.exec.params' do
-                let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-              end
-            end
-          end
-        end
       end
 
       context 'when a failed query is made' do
+        let(:sql_statement) { 'SELECT $1;' }
+
+        subject { conn.sync_exec_params(sql_statement, ['INVALID']) }
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params', error: PG::Error
+
         it 'traces failed queries' do
-          expect { conn.sync_exec_params('SELECT $1;', ['INVALID']) }.to raise_error(PG::Error)
+          expect { subject }.to raise_error(PG::Error)
+
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
