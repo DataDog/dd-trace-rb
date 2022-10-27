@@ -51,13 +51,13 @@ RSpec.describe 'PG::Connection patcher' do
     describe '#exec' do
       let(:sql_statement) { 'SELECT 1;' }
 
-      subject { conn.exec(sql_statement) }
+      subject(:exec) { conn.exec(sql_statement) }
 
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          exec
 
           expect(spans).to be_empty
         end
@@ -71,7 +71,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
 
         it 'produces a trace with service override' do
-          subject
+          exec
 
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
@@ -83,7 +83,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec'
 
         it 'produces a trace' do
-          subject
+          exec
 
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC)
@@ -111,18 +111,18 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { exec }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { exec }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { exec }
         end
       end
 
@@ -132,7 +132,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec', error: PG::Error
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(PG::Error)
+          expect { exec }.to raise_error(PG::Error)
 
           expect(spans.count).to eq(1)
           expect(span).to have_error
@@ -144,13 +144,13 @@ RSpec.describe 'PG::Connection patcher' do
     describe '#exec_params' do
       let(:sql_statement) { 'SELECT $1::int;' }
 
-      subject { conn.exec_params(sql_statement, [1]) }
+      subject(:exec_params) { conn.exec_params(sql_statement, [1]) }
 
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          exec_params
 
           expect(spans).to be_empty
         end
@@ -164,7 +164,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
 
         it 'produces a trace with service override' do
-          subject
+          exec_params
 
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
@@ -176,7 +176,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params'
 
         it 'produces a trace' do
-          subject
+          exec_params
 
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_EXEC_PARAMS)
@@ -204,30 +204,30 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { exec_params }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { exec_params }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { exec_params }
         end
       end
 
       context 'when a failed query is made' do
         let(:sql_statement) { 'SELECT $1;' }
 
-        subject { conn.exec_params(sql_statement, ['INVALID']) }
+        subject(:exec_params) { conn.exec_params(sql_statement, ['INVALID']) }
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec.params', error: PG::Error
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(PG::Error)
+          expect { exec_params }.to raise_error(PG::Error)
 
           expect(spans.count).to eq(1)
           expect(span).to have_error
@@ -322,13 +322,13 @@ RSpec.describe 'PG::Connection patcher' do
     describe '#async_exec' do
       let(:sql_statement) { 'SELECT 1;' }
 
-      subject { conn.async_exec(sql_statement) }
+      subject(:async_exec) { conn.async_exec(sql_statement) }
 
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          async_exec
 
           expect(spans).to be_empty
         end
@@ -342,7 +342,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
 
         it 'produces a trace with service override' do
-          subject
+          async_exec
 
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
@@ -354,7 +354,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec'
 
         it 'produces a trace' do
-          subject
+          async_exec
 
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC)
@@ -382,30 +382,30 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { async_exec }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { async_exec }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { async_exec }
         end
       end
 
       context 'when a failed query is made' do
         let(:sql_statement) { 'SELECT INVALID' }
 
-        subject { conn.async_exec(sql_statement) }
+        subject(:async_exec) { conn.async_exec(sql_statement) }
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec', error: PG::Error
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(PG::Error)
+          expect { async_exec }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
@@ -420,13 +420,13 @@ RSpec.describe 'PG::Connection patcher' do
 
       let(:sql_statement) { 'SELECT $1::int;' }
 
-      subject { conn.async_exec_params(sql_statement, [1]) }
+      subject(:async_exec_params) { conn.async_exec_params(sql_statement, [1]) }
 
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          async_exec_params
 
           expect(spans).to be_empty
         end
@@ -440,7 +440,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
 
         it 'produces a trace with service override' do
-          subject
+          async_exec_params
 
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
@@ -452,7 +452,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params'
 
         it 'produces a trace' do
-          subject
+          async_exec_params
 
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_ASYNC_EXEC_PARAMS)
@@ -480,30 +480,30 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { async_exec_params }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { async_exec_params }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { async_exec_params }
         end
       end
 
       context 'when a failed query is made' do
         let(:sql_statement) { 'SELECT $1;' }
 
-        subject { conn.async_exec_params(sql_statement, ['INVALID']) }
+        subject(:async_exec_params) { conn.async_exec_params(sql_statement, ['INVALID']) }
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.async.exec.params', error: PG::Error
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(PG::Error)
+          expect { async_exec_params }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('could not determine data type of parameter $1'))
@@ -608,13 +608,13 @@ RSpec.describe 'PG::Connection patcher' do
 
       let(:sql_statement) { 'SELECT 1;' }
 
-      subject { conn.sync_exec(sql_statement) }
+      subject(:sync_exec) { conn.sync_exec(sql_statement) }
 
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          sync_exec
 
           expect(spans).to be_empty
         end
@@ -628,7 +628,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
 
         it 'produces a trace with service override' do
-          subject
+          sync_exec
 
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
@@ -640,7 +640,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec'
 
         it 'produces a trace' do
-          subject
+          sync_exec
 
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC)
@@ -668,18 +668,18 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { sync_exec }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { sync_exec }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { sync_exec }
         end
       end
 
@@ -689,7 +689,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec', error: PG::Error
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(PG::Error)
+          expect { sync_exec }.to raise_error(PG::Error)
           expect(spans.count).to eq(1)
           expect(span).to have_error
           expect(span).to have_error_message(include('ERROR') & include('column "invalid" does not exist'))
@@ -703,13 +703,13 @@ RSpec.describe 'PG::Connection patcher' do
       end
 
       let(:sql_statement) { 'SELECT $1::int;' }
-      subject { conn.sync_exec_params(sql_statement, [1]) }
+      subject(:sync_exec_params) { conn.sync_exec_params(sql_statement, [1]) }
 
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          subject
+          sync_exec_params
           expect(spans).to be_empty
         end
       end
@@ -722,7 +722,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
 
         it 'produces a trace with service override' do
-          subject
+          sync_exec_params
           expect(spans.count).to eq(1)
           expect(span.service).to eq(service_name)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
@@ -733,7 +733,7 @@ RSpec.describe 'PG::Connection patcher' do
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params'
 
         it 'produces a trace' do
-          subject
+          sync_exec_params
 
           expect(spans.count).to eq(1)
           expect(span.name).to eq(Datadog::Tracing::Contrib::Pg::Ext::SPAN_SYNC_EXEC_PARAMS)
@@ -761,30 +761,30 @@ RSpec.describe 'PG::Connection patcher' do
         end
 
         it_behaves_like 'analytics for integration' do
-          before { subject }
+          before { sync_exec_params }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
-          before { subject }
+          before { sync_exec_params }
           let(:peer_hostname) { host }
         end
 
         it_behaves_like 'measured span for integration', false do
-          before { subject }
+          before { sync_exec_params }
         end
       end
 
       context 'when a failed query is made' do
         let(:sql_statement) { 'SELECT $1;' }
 
-        subject { conn.sync_exec_params(sql_statement, ['INVALID']) }
+        subject(:sync_exec_params) { conn.sync_exec_params(sql_statement, ['INVALID']) }
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'pg.sync.exec.params', error: PG::Error
 
         it 'traces failed queries' do
-          expect { subject }.to raise_error(PG::Error)
+          expect { sync_exec_params }.to raise_error(PG::Error)
 
           expect(spans.count).to eq(1)
           expect(span).to have_error
