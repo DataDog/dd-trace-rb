@@ -129,7 +129,7 @@ RSpec.describe 'PG::Connection patcher' do
       context 'when a failed query is made' do
         let(:sql_statement) { 'SELECT INVALID' }
 
-        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec', error:  PG::Error
+        it_behaves_like 'with sql comment propagation', span_op_name: 'pg.exec', error: PG::Error
 
         it 'traces failed queries' do
           expect { subject }.to raise_error(PG::Error)
