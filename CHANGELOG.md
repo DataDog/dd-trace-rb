@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+## [1.5.2] - 2022-10-27
+
+### Deprecation notice
+
+- `DD_TRACE_CLIENT_IP_HEADER_DISABLED` was changed to `DD_TRACE_CLIENT_IP_ENABLED`. Although the former still works we encourage usage of the latter instead.
+
+### Changed
+
+- `http.client_ip` tag collection is made opt-in for APM. Note that `http.client_ip` is always collected when ASM is enabled as part of the security service provided ([#2321][], [#2331][])
+
+### Fixed
+
+- Handle REQUEST_URI with base url ([#2328][], [#2330][])
+
 ## [1.5.1] - 2022-10-19
 
 ### Changed
@@ -2145,7 +2159,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.2...master
+[1.5.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.2...v1.5.0
 [1.4.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.4.1...v1.4.2
@@ -3052,6 +3067,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#2311]: https://github.com/DataDog/dd-trace-rb/issues/2311
 [#2318]: https://github.com/DataDog/dd-trace-rb/issues/2318
 [#2319]: https://github.com/DataDog/dd-trace-rb/issues/2319
+[#2321]: https://github.com/DataDog/dd-trace-rb/issues/2321
+[#2328]: https://github.com/DataDog/dd-trace-rb/issues/2328
+[#2330]: https://github.com/DataDog/dd-trace-rb/issues/2330
+[#2331]: https://github.com/DataDog/dd-trace-rb/issues/2331
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
