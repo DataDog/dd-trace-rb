@@ -48,8 +48,7 @@ module Datadog
                 sql = Contrib::Propagation::SqlComment.prepend_comment(
                   sql,
                   span,
-                  propagation_mode,
-                  tags: { dddbs: service }
+                  propagation_mode
                 )
 
                 super(sql, options)

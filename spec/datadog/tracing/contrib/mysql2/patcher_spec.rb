@@ -129,9 +129,8 @@ RSpec.describe 'Mysql2::Client patcher' do
           it 'prepends sql comment to the sql statement' do
             expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).with(
               sql_statement,
-              a_span_operation_with(name: span_op_name),
-              propagation_mode,
-              tags: { dddbs: 'my-sql' }
+              a_span_operation_with(name: span_op_name, service: service_name),
+              propagation_mode
             ).and_call_original
 
             subject
@@ -160,7 +159,7 @@ RSpec.describe 'Mysql2::Client patcher' do
         %w[disabled service full].each do |mode|
           context "when `sql_comment_propagation`` is configured to #{mode}" do
             let(:configuration_options) do
-              { sql_comment_propagation: mode, service_name: 'my-sql' }
+              { sql_comment_propagation: mode, service_name: service_name }
             end
 
             it_behaves_like 'propagated with sql comment propagation', mode, 'mysql2.query' do

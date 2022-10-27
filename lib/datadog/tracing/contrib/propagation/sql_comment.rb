@@ -12,32 +12,32 @@ module Datadog
           def self.annotate!(span_op, mode)
             return unless mode.enabled?
 
-            span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
+            # PENDING: Until `traceparent`` implementation in `full` mode
+            # span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 
-          def self.prepend_comment(sql, span_op, mode, tags: {})
+          def self.prepend_comment(sql, span_op, mode)
             return sql unless mode.enabled?
 
-            tags.merge!(service_context)
-            tags.merge!(trace_context(span_op)) if mode.full?
+            tags = {
+              Ext::KEY_DATABASE_SERVICE => span_op.service,
+              Ext::KEY_ENVIRONMENT => datadog_configuration.env,
+              Ext::KEY_PARENT_SERVICE => datadog_configuration.service,
+              Ext::KEY_VERSION => datadog_configuration.version
+            }
+
+            # PENDING: Until `traceparent`` implementation in `full` mode
+            # tags.merge!(trace_context(span_op)) if mode.full?
 
             "#{Comment.new(tags)} #{sql}"
-          end
-
-          def self.service_context
-            {
-              dde: datadog_configuration.env,
-              ddps: datadog_configuration.service,
-              ddpv: datadog_configuration.version
-            }
           end
 
           def self.datadog_configuration
             Datadog.configuration
           end
 
-          # TODO: Derive from span_op
-          def self.trace_context(_span_op)
+          # TODO: Derive from trace
+          def self.trace_context(_)
             {
               # traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
             }.freeze

@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
-  let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span') }
+  let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'database_service') }
 
   describe '.annotate!' do
     context 'when `disabled` mode' do
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
     end
 
-    context 'when `full` mode' do
+    context 'when `full` mode', pending: 'until `traceparent` implement with `full` mode' do
       let(:mode) { 'full' }
 
       it do
@@ -67,10 +67,14 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     context 'when `service` mode' do
       let(:mode) { 'service' }
 
-      it { is_expected.to eq("/*dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}") }
+      it do
+        is_expected.to eq(
+          "/*dddbs='database_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+        )
+      end
     end
 
-    xcontext 'when `full` mode' do
+    context 'when `full` mode', pending: 'until `traceparent` implement with `full` mode' do
       let(:mode) { 'full' }
 
       it { is_expected.to eq(sql_statement) }

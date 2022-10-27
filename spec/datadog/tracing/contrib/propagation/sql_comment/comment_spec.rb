@@ -24,6 +24,18 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Comment do
       [
         { escape_single_quote: "Dunkin' Donuts" },
         "/*escape_single_quote='Dunkin%27%20Donuts'*/"
+      ],
+      [
+        { star: '*' },
+        "/*star='%2A'*/"
+      ],
+      [
+        { back_slash: '/' },
+        "/*back_slash='%2F'*/"
+      ],
+      [
+        { equal_sign: '=' },
+        "/*equal_sign='%3D'*/"
       ]
     ].each do |tags, comment|
       it { expect(described_class.new(tags).to_s).to eq(comment) }

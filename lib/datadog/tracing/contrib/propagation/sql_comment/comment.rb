@@ -22,12 +22,14 @@ module Datadog
                 @hash.each do |key, value|
                   next if value.nil?
 
-                  value = ERB::Util.url_encode(value) # url encode
-                  value.tr!("'", "\'") # escaping single quote
+                  # Url encode
+                  value = ERB::Util.url_encode(value)
 
-                  ret << "#{key}='#{value}'," # escape sql
+                  # Escape SQL
+                  ret << "#{key}='#{value}',"
                 end
 
+                # Remove the last `,`
                 ret.chop!
 
                 "/*#{ret}*/"
