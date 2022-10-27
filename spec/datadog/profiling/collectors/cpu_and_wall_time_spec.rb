@@ -41,8 +41,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
   end
   let(:samples) { samples_from_pprof(pprof_result) }
   let(:invalid_time) { -1 }
+  let(:tracer) { nil }
 
-  subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames) }
+  subject(:cpu_and_wall_time_collector) { described_class.new(recorder: recorder, max_frames: max_frames, tracer: tracer) }
 
   after do
     [t1, t2, t3].each do |thread|
@@ -271,6 +272,99 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
               expect(cpu_time_at_previous_sample_ns).to be cpu_time_at_gc_start
             end
+          end
+        end
+      end
+    end
+
+    describe 'code hotspots' do
+      let(:t1_sample) do
+        samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
+      end
+
+      shared_examples_for 'samples without code hotspots information' do
+        it 'samples successfully' do
+          sample
+
+          expect(t1_sample).to_not be_nil
+        end
+
+        it 'does not include "local root span id" nor "span id" labels in the samples' do
+          sample
+
+          found_labels = t1_sample.fetch(:labels).keys
+
+          expect(found_labels).to_not include(:'local root span id')
+          expect(found_labels).to_not include(:'span id')
+
+          expect(found_labels).to include(:'thread id') # Sanity check
+        end
+      end
+
+      context 'when there is no tracer instance available' do
+        let(:tracer) { nil }
+        it_behaves_like 'samples without code hotspots information'
+      end
+
+      context 'when tracer has no provider API' do
+        let(:tracer) { double('Tracer without provider API') }
+        it_behaves_like 'samples without code hotspots information'
+      end
+
+      context 'when tracer provider is nil' do
+        let(:tracer) { double('Tracer with nil provider', provider: nil) }
+        it_behaves_like 'samples without code hotspots information'
+      end
+
+      context 'when there is a tracer instance available' do
+        let(:tracer) { Datadog::Tracing.send(:tracer) }
+
+        after { Datadog::Tracing.shutdown! }
+
+        context 'when thread does not have a tracer context' do
+          # NOTE: Since t1 is newly created for this test, and never had any active trace, it won't have a context
+          it_behaves_like 'samples without code hotspots information'
+        end
+
+        context 'when thread has a tracer context, but no trace is in progress' do
+          before { tracer.active_trace(t1) } # Trigger context setting
+          it_behaves_like 'samples without code hotspots information'
+        end
+
+        context 'when thread has a tracer context, and a trace is in progress' do
+          let(:t1) do
+            Thread.new(ready_queue) do |ready_queue|
+              Datadog::Tracing.trace('profiler.test') do
+                Datadog::Tracing.trace('profiler.test.inner') do |span, trace|
+                  @t1_span_id = span.id
+                  @t1_local_root_span_id = trace.send(:root_span).id
+                  ready_queue << true
+                  sleep
+                end
+              end
+            end
+          end
+
+          before do
+            # Sanity checks
+            expect(@t1_span_id).to be > 0
+            expect(@t1_local_root_span_id).to be > 0
+            expect(@t1_span_id).to_not be @t1_local_root_span_id
+          end
+
+          it 'samples successfully' do
+            sample
+
+            expect(t1_sample).to_not be_nil
+          end
+
+          it 'includes "local root span id" and "span id" labels in the samples' do
+            sample
+
+            expect(t1_sample.fetch(:labels)).to include(
+              :'local root span id' => @t1_local_root_span_id.to_s,
+              :'span id' => @t1_span_id.to_s,
+            )
           end
         end
       end

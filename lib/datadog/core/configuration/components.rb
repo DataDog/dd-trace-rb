@@ -251,7 +251,8 @@ module Datadog
               recorder = Datadog::Profiling::StackRecorder.new
               collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
                 recorder: recorder,
-                max_frames: settings.profiling.advanced.max_frames
+                max_frames: settings.profiling.advanced.max_frames,
+                tracer: tracer,
               )
             else
               trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
