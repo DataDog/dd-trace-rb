@@ -372,7 +372,7 @@ static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_reco
   pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
 
   // Before making this profile active, we reset it so that it uses the correct timestamp for its start
-  ddog_Profile *previously_inactive_profile = (previously_active_slot == 1) ? state -> slot_two_profile : state->slot_one_profile;
+  ddog_Profile *previously_inactive_profile = (previously_active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
   if (!ddog_Profile_reset(previously_inactive_profile, &start_timestamp_for_next_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 
   // Release the lock, thus making this slot active
