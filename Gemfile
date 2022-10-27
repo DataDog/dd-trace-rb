@@ -31,7 +31,7 @@ gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.11'
 gem 'rspec-collection_matchers', '~> 1.1'
-gem 'rspec-mocks', '!= 3.11.2'
+gem 'rspec-mocks', ['!= 3.11.2', '!= 3.12.0'] # Temporary workaround for #2327
 if RUBY_VERSION >= '2.3.0'
   gem 'rspec_junit_formatter', '>= 0.5.1'
 else
