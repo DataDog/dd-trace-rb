@@ -91,7 +91,7 @@ module Datadog
 
                 # Ensure these tags reach the backend
                 active_trace.keep!
-                trace.set_tag(
+                active_trace.set_tag(
                   Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
                   Datadog::Tracing::Sampling::Ext::Decision::ASM
                 )
