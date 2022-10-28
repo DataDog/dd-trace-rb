@@ -30,7 +30,7 @@ module Datadog
 
             option :service_name, default: Ext::DEFAULT_PEER_SERVICE_NAME
 
-            option :sql_comment_propagation do |o|
+            option :comment_propagation do |o|
               o.default do
                 ENV.fetch(
                   Contrib::Propagation::SqlComment::Ext::ENV_DBM_PROPAGATION_MODE,

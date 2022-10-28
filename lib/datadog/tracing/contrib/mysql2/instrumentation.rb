@@ -42,14 +42,10 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
 
-                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(sql_comment_propagation)
+                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(
-                  sql,
-                  span,
-                  propagation_mode
-                )
+                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, propagation_mode)
 
                 super(sql, options)
               end
@@ -69,8 +65,8 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
 
-            def sql_comment_propagation
-              datadog_configuration[:sql_comment_propagation]
+            def comment_propagation
+              datadog_configuration[:comment_propagation]
             end
           end
         end

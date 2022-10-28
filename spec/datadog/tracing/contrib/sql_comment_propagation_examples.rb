@@ -21,9 +21,9 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
   end
 
   %w[disabled service full].each do |mode|
-    context "when `sql_comment_propagation` is configured to #{mode}" do
+    context "when `comment_propagation` is configured to #{mode}" do
       let(:configuration_options) do
-        { sql_comment_propagation: mode, service_name: service_name }
+        { comment_propagation: mode, service_name: service_name }
       end
 
       it_behaves_like 'propagates with sql comment', mode: mode, span_op_name: span_op_name, error: error do
