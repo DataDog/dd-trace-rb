@@ -457,7 +457,9 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
     // We don't expect non-wall time to go backwards, so let's flag this as a bug
     if (gc_cpu_time_elapsed_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative gc_cpu_time_elapsed_ns between samples");
     // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-    // was a bug
+    // was a bug.
+    // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
+    // https://github.com/DataDog/dd-trace-rb/pull/2336.
     if (gc_wall_time_elapsed_ns < 0) gc_wall_time_elapsed_ns = 0;
 
     if (thread_context->gc_tracking.wall_time_at_start_ns == 0 && thread_context->gc_tracking.wall_time_at_finish_ns != 0) {
@@ -699,7 +701,9 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   if (elapsed_time_ns < 0) {
     if (is_wall_time) {
       // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-      // was a bug
+      // was a bug.
+      // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
+      // https://github.com/DataDog/dd-trace-rb/pull/2336.
       elapsed_time_ns = 0;
     } else {
       // We don't expect non-wall time to go backwards, so let's flag this as a bug
