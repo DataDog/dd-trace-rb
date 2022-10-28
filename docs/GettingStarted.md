@@ -1332,6 +1332,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 | Key | Description | Default |
 | --- | ----------- | ------- |
 | `service_name` | Service name used for `mysql2` instrumentation | `'mysql2'` |
+| `comment_propagation` | SQL comment propagation mode  for database monitoring. <br />(example: `disabled` \| `service`). <br /><br />**Important**: *Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database.* | `'disabled'` |
 
 ### Net/HTTP
 

@@ -30,8 +30,8 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Comment do
         "/*star='%2A'*/"
       ],
       [
-        { back_slash: '/' },
-        "/*back_slash='%2F'*/"
+        { back_slash: '\\' },
+        "/*back_slash='%5C'*/"
       ],
       [
         { equal_sign: '=' },
