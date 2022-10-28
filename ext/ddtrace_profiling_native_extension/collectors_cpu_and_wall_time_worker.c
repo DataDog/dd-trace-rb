@@ -280,6 +280,9 @@ static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
   pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
 }
 
+// NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
+// We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
+// we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   if (!ruby_thread_has_gvl_p()) {
     return; // Not safe to enqueue a sample from this thread
