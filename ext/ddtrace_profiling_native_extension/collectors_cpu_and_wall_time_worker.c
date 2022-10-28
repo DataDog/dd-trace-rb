@@ -66,9 +66,13 @@ struct cpu_and_wall_time_worker_state {
   volatile bool should_run;
 
   VALUE cpu_and_wall_time_collector_instance;
+
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
   // the CpuAndWallTimeWorker thread
   VALUE failure_exception;
+
+  // Used to get gc start/finish information
+  VALUE gc_tracepoint;
 };
 
 static VALUE _native_new(VALUE klass);
@@ -90,6 +94,11 @@ static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self);
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self);
+static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self);
+static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
+static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -126,6 +135,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
+  rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
+  rb_define_singleton_method(testing_module, "_native_gc_tracepoint", _native_gc_tracepoint, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -147,6 +158,7 @@ static VALUE _native_new(VALUE klass) {
   state->should_run = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->failure_exception = Qnil;
+  state->gc_tracepoint = Qnil;
 
   return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
@@ -156,6 +168,7 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance,
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->cpu_and_wall_time_collector_instance = enforce_cpu_and_wall_time_collector_instance(cpu_and_wall_time_collector_instance);
+  state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
 
   return Qtrue;
 }
@@ -166,6 +179,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
 
   rb_gc_mark(state->cpu_and_wall_time_collector_instance);
   rb_gc_mark(state->failure_exception);
+  rb_gc_mark(state->gc_tracepoint);
 }
 
 // Called in a background thread created in CpuAndWallTimeWorker#start
@@ -189,6 +203,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
 
   install_sigprof_signal_handler(handle_sampling_signal);
+  rb_tracepoint_enable(state->gc_tracepoint);
 
   // Release GVL, get to the actual work!
   int exception_state;
@@ -196,6 +211,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // The sample trigger loop finished (either cleanly or with an error); let's clean up
 
+  rb_tracepoint_disable(state->gc_tracepoint);
   remove_sigprof_signal_handler();
   active_sampler_instance = Qnil;
   active_sampler_owner_thread = Qnil;
@@ -319,18 +335,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
-  VALUE (*function_to_call_safely)(VALUE) = cpu_and_wall_time_collector_sample;
-  VALUE function_to_call_safely_arg = state->cpu_and_wall_time_collector_instance;
-  VALUE (*exception_handler_function)(VALUE, VALUE) = handle_sampling_failure;
-  VALUE exception_handler_function_arg = instance;
-  rb_rescue2(
-    function_to_call_safely,
-    function_to_call_safely_arg,
-    exception_handler_function,
-    exception_handler_function_arg,
-    rb_eException, // rb_eException is the base class of all Ruby exceptions
-    0 // Required by API to be the last argument
-  );
+  safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, instance);
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
@@ -340,9 +345,14 @@ static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
   state->should_run = false;
   state->failure_exception = exception;
 
+  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
+  rb_tracepoint_disable(state->gc_tracepoint);
+
   return Qnil;
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_current_sigprof_signal_handler(DDTRACE_UNUSED VALUE self) {
   struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
   if (sigaction(SIGPROF, NULL, &existing_signal_handler_config) != 0) {
@@ -370,6 +380,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   return Qnil;
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_is_running(DDTRACE_UNUSED VALUE self, VALUE instance) {
   return \
     (active_sampler_owner_thread != Qnil && is_thread_alive(active_sampler_owner_thread) && active_sampler_instance == instance) ?
@@ -380,12 +392,112 @@ static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   /* Does nothing on purpose */
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   install_sigprof_signal_handler(testing_signal_handler);
   return Qtrue;
 }
 
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
 static VALUE _native_remove_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
   remove_sigprof_signal_handler();
   return Qtrue;
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_trigger_sample(DDTRACE_UNUSED VALUE self) {
+  sample_from_postponed_job(NULL);
+  return Qtrue;
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  return state->gc_tracepoint;
+}
+
+// Implements tracking of cpu-time and wall-time spent doing GC. This function is called by Ruby from the `gc_tracepoint`
+// when the RUBY_INTERNAL_EVENT_GC_ENTER and RUBY_INTERNAL_EVENT_GC_EXIT events are triggered.
+//
+// See the comments on
+// * cpu_and_wall_time_collector_on_gc_start
+// * cpu_and_wall_time_collector_on_gc_finish
+// * cpu_and_wall_time_collector_sample_after_gc
+//
+// For the expected times in which to call them, and their assumptions.
+//
+// Safety: This function gets called while Ruby is doing garbage collection. While Ruby is doing garbage collection,
+// *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
+// This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
+static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+  int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
+  if (event != RUBY_INTERNAL_EVENT_GC_ENTER && event != RUBY_INTERNAL_EVENT_GC_EXIT) return; // Unknown event
+
+  VALUE instance = active_sampler_instance; // Read from global variable
+
+  // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
+  // and disabled before it is cleared, but just in case...
+  if (instance == Qnil) return;
+
+  struct cpu_and_wall_time_worker_state *state;
+  if (!rb_typeddata_is_kind_of(instance, &cpu_and_wall_time_worker_typed_data)) return;
+  // This should never fail the the above check passes
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  if (event == RUBY_INTERNAL_EVENT_GC_ENTER) {
+    cpu_and_wall_time_collector_on_gc_start(state->cpu_and_wall_time_collector_instance);
+  } else if (event == RUBY_INTERNAL_EVENT_GC_EXIT) {
+    // Design: In an earlier iteration of this feature (see https://github.com/DataDog/dd-trace-rb/pull/2308) we
+    // actually had a single method to implement the behavior of both cpu_and_wall_time_collector_on_gc_finish
+    // and cpu_and_wall_time_collector_sample_after_gc (the latter is called via after_gc_from_postponed_job).
+    //
+    // Unfortunately, then we discovered the safety issue around no allocations, and thus decided to separate them -- so that
+    // the sampling could run outside the tight safety constraints of the garbage collection process.
+    //
+    // There is a downside: The sample is now taken very very shortly afterwards the GC finishes, and not immediately
+    // as the GC finishes, which means the stack captured may by affected by "skid", e.g. point slightly after where
+    // it should be pointing at.
+    // Alternatives to solve this would be to capture no stack for garbage collection (as we do for Java and .net);
+    // making the sampling process allocation-safe (very hard); or separate stack sampling from sample recording,
+    // e.g. enabling us to capture the stack in cpu_and_wall_time_collector_on_gc_finish and do the rest later
+    // (medium hard).
+
+    cpu_and_wall_time_collector_on_gc_finish(state->cpu_and_wall_time_collector_instance);
+    // We use rb_postponed_job_register_one to ask Ruby to run cpu_and_wall_time_collector_sample_after_gc after if
+    // fully finishes the garbage collection, so that one is allowed to do allocations and throw exceptions as usual.
+    rb_postponed_job_register_one(0, after_gc_from_postponed_job, NULL);
+  }
+}
+
+static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+  VALUE instance = active_sampler_instance; // Read from global variable
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
+  if (instance == Qnil) return;
+
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  // Trigger sampling using the Collectors::CpuAndWallTime; rescue against any exceptions that happen during sampling
+  safely_call(cpu_and_wall_time_collector_sample_after_gc, state->cpu_and_wall_time_collector_instance, instance);
+}
+
+// Equivalent to Ruby begin/rescue call, where we call a C function and jump to the exception handler if an
+// exception gets raised within
+static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance) {
+  VALUE exception_handler_function_arg = instance;
+  rb_rescue2(
+    function_to_call_safely,
+    function_to_call_safely_arg,
+    handle_sampling_failure,
+    exception_handler_function_arg,
+    rb_eException, // rb_eException is the base class of all Ruby exceptions
+    0 // Required by API to be the last argument
+  );
 }

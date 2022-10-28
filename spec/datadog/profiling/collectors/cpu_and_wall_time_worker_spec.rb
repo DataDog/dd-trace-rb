@@ -10,6 +10,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   subject(:cpu_and_wall_time_worker) { described_class.new(recorder: recorder, max_frames: 400) }
 
+  describe '.new' do
+    it 'creates the garbage collection tracepoint in the disabled state' do
+      expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+    end
+  end
+
   describe '#start' do
     subject(:start) do
       cpu_and_wall_time_worker.start
@@ -55,6 +61,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(described_class::Testing._native_current_sigprof_signal_handler).to be :profiling
     end
 
+    it 'enables the garbage collection tracepoint' do
+      start
+
+      expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to be_enabled
+    end
+
     context 'when a previous signal handler existed' do
       before do
         described_class::Testing._native_install_testing_signal_handler
@@ -97,11 +109,45 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         samples if samples.any?
       end
 
-      current_thread_sample = all_samples.find do |it|
-        it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s
+      current_thread_gc_samples =
+        all_samples
+          .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+          .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
+
+      expect(current_thread_gc_samples).to_not be_empty
+    end
+
+    it 'records garbage collection cycles' do
+      start
+
+      described_class::Testing._native_trigger_sample
+
+      invoke_gc_times = 5
+
+      invoke_gc_times.times do
+        Thread.pass
+        GC.start
       end
 
-      expect(current_thread_sample).to_not be nil
+      cpu_and_wall_time_worker.stop
+
+      serialization_result = recorder.serialize
+      raise 'Unexpected: Serialization failed' unless serialization_result
+
+      all_samples = samples_from_pprof(serialization_result.last)
+
+      current_thread_gc_samples =
+        all_samples
+          .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+          .select { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
+
+      # NOTE: In some cases, Ruby may actually call two GC's back-to-back without us having the possibility to take
+      # a sample. I don't expect this to happen for this test (that's what the `Thread.pass` above is trying to avoid)
+      # but if this spec turns out to be flaky, that is probably the issue, and that would mean we'd need to relax the
+      # check.
+      expect(
+        current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.fetch(:values).fetch(:'cpu-samples') }
+      ).to be >= invoke_gc_times
     end
   end
 
@@ -125,6 +171,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       stop
 
       expect(described_class::Testing._native_current_sigprof_signal_handler).to be nil
+    end
+
+    it 'disables the garbage collection tracepoint' do
+      stop
+
+      expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
     end
   end
 
