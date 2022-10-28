@@ -6,7 +6,7 @@ module Datadog
       module Propagation
         module SqlComment
           module Ext
-            ENV_SQL_COMMENT_PROPAGATION_MODE = 'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE'.freeze
+            ENV_DBM_PROPAGATION_MODE = 'DD_DBM_PROPAGATION_MODE'.freeze
 
             # The default mode for sql comment propagation
             DISABLED = 'disabled'.freeze

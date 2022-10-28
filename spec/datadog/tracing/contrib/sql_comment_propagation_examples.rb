@@ -7,10 +7,10 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
     end
   end
 
-  context 'when ENV variable `DD_TRACE_SQL_COMMENT_PROPAGATION_MODE` is provided' do
+  context 'when ENV variable `DD_DBM_PROPAGATION_MODE` is provided' do
     around do |example|
       ClimateControl.modify(
-        'DD_TRACE_SQL_COMMENT_PROPAGATION_MODE' => 'service',
+        'DD_DBM_PROPAGATION_MODE' => 'service',
         &example
       )
     end
