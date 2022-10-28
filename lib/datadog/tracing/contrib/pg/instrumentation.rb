@@ -85,9 +85,8 @@ module Datadog
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(sql_comment_propagation)
-
                 if sql
+                  propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
                   Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                   propagated_sql_statement = Contrib::Propagation::SqlComment.prepend_comment(sql, span, propagation_mode)
                 end
@@ -135,8 +134,8 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
 
-            def sql_comment_propagation
-              datadog_configuration[:sql_comment_propagation]
+            def comment_propagation
+              datadog_configuration[:comment_propagation]
             end
           end
         end
