@@ -48,6 +48,7 @@ module Datadog
         tag_runtime_id!
         tag_rate_limiter_rate!
         tag_sample_rate!
+        tag_sampling_decision_maker!
         tag_sampling_priority!
 
         trace
@@ -153,6 +154,12 @@ module Datadog
           Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE,
           trace.sample_rate
         )
+      end
+
+      def tag_sampling_decision_maker!
+        return unless (decision = trace.sampling_decision_maker)
+
+        root_span.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, decision)
       end
 
       def tag_sampling_priority!

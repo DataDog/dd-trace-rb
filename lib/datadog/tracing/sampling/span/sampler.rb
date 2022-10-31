@@ -57,24 +57,13 @@ module Datadog
               next if decision == :not_matched # Iterate until we find a matching decision
 
               if decision == :kept
-                if trace_op.sampled?
-                  # If trace is sampled, we set the decision at trace level,
-                  # as the complete trace will be flushed.
-                  trace_op.set_tag(
-                    Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                    Sampling::Ext::Decision::SPAN_SAMPLING_RATE
-                  )
-                else
-                  # If trace is not sampled, we set the decision at span level,
-                  # as the complete will not be flushed, only single sampled spans will.
-                  span_op.set_tag(
-                    Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                    Sampling::Ext::Decision::SPAN_SAMPLING_RATE
-                  )
-                end
+                trace_op.set_tag(
+                  Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                  Sampling::Ext::Decision::SPAN_SAMPLING_RATE
+                )
               end
 
-              break
+              break # Found either a `kept` or `rejected` decision
             end
 
             nil

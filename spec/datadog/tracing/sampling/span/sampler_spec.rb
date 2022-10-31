@@ -30,12 +30,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
     end
 
     shared_examples 'set sampling decision' do
-      let(:decision_carrier) {}
-
       it do
         sample!
         expect(span_op.get_metric('_dd.span_sampling.mechanism')).to_not be_nil
-        expect(decision_carrier.get_tag('_dd.p.dm')).to eq('-8')
+        expect(trace_op.get_tag('_dd.p.dm')).to eq('-8')
       end
     end
 
@@ -74,7 +72,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
 
             expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
             expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
-            expect(span_op.get_tag('_dd.p.dm')).to eq('-8')
+            expect(trace_op.get_tag('_dd.p.dm')).to eq('-8')
           end
         end
       end
