@@ -869,6 +869,7 @@ workflows:
       - orb/build:
           <<: *config-2_1
           name: build-2.1
+          edge: true
       - orb/test:
           <<: *config-2_1
           name: test-2.1
@@ -877,6 +878,7 @@ workflows:
       - orb/build:
           <<: *config-2_2
           name: build-2.2
+          edge: true
       - orb/test:
           <<: *config-2_2
           name: test-2.2
@@ -885,6 +887,7 @@ workflows:
       - orb/build:
           <<: *config-2_3
           name: build-2.3
+          edge: true
       - orb/test:
           <<: *config-2_3
           name: test-2.3
@@ -898,6 +901,7 @@ workflows:
       - orb/build:
           <<: *config-2_4
           name: build-2.4
+          edge: true
       - orb/test:
           <<: *config-2_4
           name: test-2.4
@@ -906,6 +910,7 @@ workflows:
       - orb/build:
           <<: *config-2_5
           name: build-2.5
+          edge: true
       - orb/test:
           <<: *config-2_5
           name: test-2.5
@@ -914,6 +919,7 @@ workflows:
       - orb/build:
           <<: *config-2_6
           name: build-2.6
+          edge: true
       - orb/test:
           <<: *config-2_6
           name: test-2.6
@@ -922,6 +928,7 @@ workflows:
       - orb/build:
           <<: *config-2_7
           name: build-2.7
+          edge: true
       - orb/test:
           <<: *config-2_7
           name: test-2.7
@@ -930,6 +937,7 @@ workflows:
       - orb/build:
           <<: *config-3_0
           name: build-3.0
+          edge: true
       - orb/test:
           <<: *config-3_0
           name: test-3.0
@@ -938,6 +946,7 @@ workflows:
       - orb/build:
           <<: *config-3_1
           name: build-3.1
+          edge: true
       - orb/test:
           <<: *config-3_1
           name: test-3.1
@@ -946,6 +955,7 @@ workflows:
       - orb/build:
           <<: *config-3_2
           name: build-3.2
+          edge: true
       # TODO: Re-enable once 3.2 testing is green!
       # - orb/test:
       #     <<: *config-3_2
@@ -956,6 +966,7 @@ workflows:
       - orb/build:
           <<: *config-jruby-9_2_8_0
           name: build-jruby-9.2.8.0
+          edge: true
       - orb/test:
           <<: *config-jruby-9_2_8_0
           name: test-jruby-9.2.8.0
@@ -964,6 +975,7 @@ workflows:
       - orb/build:
           <<: *config-jruby-9_2-latest
           name: build-jruby-9.2-latest
+          edge: true
       - orb/test:
           <<: *config-jruby-9_2-latest
           name: test-jruby-9.2-latest
@@ -972,6 +984,7 @@ workflows:
       - orb/build:
           <<: *config-jruby-9_3-latest
           name: build-jruby-9.3-latest
+          edge: true
       - orb/test:
           <<: *config-jruby-9_3-latest
           name: test-jruby-9.3-latest
@@ -982,6 +995,7 @@ workflows:
       # - orb/build:
       #     <<: *config-truffleruby-21_0_0
       #     name: build-truffleruby-21.0.0
+      #     edge: true
       # - orb/test:
       #     <<: *config-truffleruby-21_0_0
       #     name: test-truffleruby-21.0.0
