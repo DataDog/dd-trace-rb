@@ -8,7 +8,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
 
-  subject(:cpu_and_wall_time_worker) { described_class.new(recorder: recorder, max_frames: 400) }
+  subject(:cpu_and_wall_time_worker) { described_class.new(recorder: recorder, max_frames: 400, tracer: nil) }
 
   describe '.new' do
     it 'creates the garbage collection tracepoint in the disabled state' do
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       allow(Datadog.logger).to receive(:warn)
 
-      another_instance = described_class.new(recorder: Datadog::Profiling::StackRecorder.new, max_frames: 400)
+      another_instance = described_class.new(recorder: Datadog::Profiling::StackRecorder.new, max_frames: 400, tracer: nil)
       another_instance.start
 
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }

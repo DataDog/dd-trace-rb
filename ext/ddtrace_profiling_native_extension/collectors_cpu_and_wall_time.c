@@ -64,6 +64,12 @@
 #define DO_NOT_RAISE_ON_FAILURE false
 #define IS_WALL_TIME true
 #define IS_NOT_WALL_TIME false
+#define MISSING_TRACER_CONTEXT_KEY 0
+
+static ID at_active_trace_id; // id of :@active_trace in Ruby
+static ID at_root_span_id;    // id of :@root_span in Ruby
+static ID at_active_span_id;  // id of :@active_span in Ruby
+static ID at_id_id;           // id of :@id in Ruby
 
 // Contains state for a single CpuAndWallTime instance
 struct cpu_and_wall_time_collector_state {
@@ -76,6 +82,10 @@ struct cpu_and_wall_time_collector_state {
   st_table *hash_map_per_thread_context;
   // Datadog::Profiling::StackRecorder instance
   VALUE recorder_instance;
+  // If the tracer is available and enabled, this will be the fiber-local symbol for accessing its running context,
+  // to enable code hotspots and endpoint aggregation.
+  // When not available, this is set to MISSING_TRACER_CONTEXT_KEY.
+  ID tracer_context_key;
   // Track how many regular samples we've taken. Does not include garbage collection samples.
   // Currently **outside** of stats struct because we also use it to decide when to clean the contexts, and thus this
   // is not (just) a stat.
@@ -110,12 +120,23 @@ struct per_thread_context {
   } gc_tracking;
 };
 
+// Used to correlate profiles with traces
+struct trace_identifiers {
+  #define MAXIMUM_LENGTH_64_BIT_IDENTIFIER 21 // Why 21? 2^64 => 20 digits + 1 for \0
+
+  bool valid;
+  ddog_CharSlice local_root_span_id;
+  ddog_CharSlice span_id;
+  char local_root_span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
+  char span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
+};
+
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
 static void cpu_and_wall_time_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames);
+static VALUE _native_initialize(VALUE self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames, VALUE tracer_context_key);
 static VALUE _native_sample(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
@@ -143,6 +164,7 @@ static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long wall_time_now_ns(bool raise_on_failure);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
+static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -160,7 +182,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 3);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 4);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
@@ -169,6 +191,11 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
+
+  at_active_trace_id = rb_intern_const("@active_trace");
+  at_root_span_id = rb_intern_const("@root_span");
+  at_active_span_id = rb_intern_const("@active_span");
+  at_id_id = rb_intern_const("@id");
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -234,11 +261,12 @@ static VALUE _native_new(VALUE klass) {
    // "numtable" is an awful name, but TL;DR it's what should be used when keys are `VALUE`s.
     st_init_numtable();
   state->recorder_instance = Qnil;
+  state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
 
   return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_collector_typed_data, state);
 }
 
-static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames) {
+static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE recorder_instance, VALUE max_frames, VALUE tracer_context_key) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
@@ -249,6 +277,14 @@ static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE collector_inst
   state->sampling_buffer = sampling_buffer_new(max_frames_requested);
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
+
+  if (RTEST(tracer_context_key)) {
+    ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
+    // Note about rb_to_id and dynamic symbols: calling `rb_to_id` prevents symbols from ever being garbage collected.
+    // In this case, we can't really escape this because as of this writing, ruby master still calls `rb_to_id` inside
+    // the implementation of Thread#[]= so any symbol that gets used as a key there will already be prevented from GC.
+    state->tracer_context_key = rb_to_id(tracer_context_key);
+  }
 
   return Qtrue;
 }
@@ -457,7 +493,9 @@ VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
     // We don't expect non-wall time to go backwards, so let's flag this as a bug
     if (gc_cpu_time_elapsed_ns < 0) rb_raise(rb_eRuntimeError, "BUG: Unexpected negative gc_cpu_time_elapsed_ns between samples");
     // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-    // was a bug
+    // was a bug.
+    // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
+    // https://github.com/DataDog/dd-trace-rb/pull/2336.
     if (gc_wall_time_elapsed_ns < 0) gc_wall_time_elapsed_ns = 0;
 
     if (thread_context->gc_tracking.wall_time_at_start_ns == 0 && thread_context->gc_tracking.wall_time_at_finish_ns != 0) {
@@ -508,18 +546,40 @@ static void trigger_sample_for_thread(
   ddog_Slice_i64 metric_values_slice,
   sample_type type
 ) {
+  int max_label_count =
+    1 + // thread id
+    1 + // thread name
+    2;  // local root span id and span id
+  ddog_Label labels[max_label_count];
+  int label_pos = 0;
+
+  labels[label_pos++] = (ddog_Label) {
+    .key = DDOG_CHARSLICE_C("thread id"),
+    .str = thread_context->thread_id_char_slice
+  };
+
   VALUE thread_name = thread_name_for(thread);
-  bool have_thread_name = thread_name != Qnil;
-
-  int label_count = 1 + (have_thread_name ? 1 : 0);
-  ddog_Label labels[label_count];
-
-  labels[0] = (ddog_Label) {.key = DDOG_CHARSLICE_C("thread id"), .str = thread_context->thread_id_char_slice};
-  if (have_thread_name) {
-    labels[1] = (ddog_Label) {
+  if (thread_name != Qnil) {
+    labels[label_pos++] = (ddog_Label) {
       .key = DDOG_CHARSLICE_C("thread name"),
       .str = char_slice_from_ruby_string(thread_name)
     };
+  }
+
+  struct trace_identifiers trace_identifiers_result = {.valid = false};
+  trace_identifiers_for(state, thread, &trace_identifiers_result);
+
+  if (trace_identifiers_result.valid) {
+    labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .str = trace_identifiers_result.local_root_span_id};
+    labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("span id"), .str = trace_identifiers_result.span_id};
+  }
+
+  // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
+  // forgot to update max_label_count" in the future, we've also added this validation.
+  // @ivoanjo: I wonder if C compilers are smart enough to statically prove when this check never triggers happens and
+  // remove it entirely.
+  if (label_pos > max_label_count) {
+    rb_raise(rb_eRuntimeError, "BUG: Unexpected label_pos (%d) > max_label_count (%d)", label_pos, max_label_count);
   }
 
   sample_thread(
@@ -527,7 +587,7 @@ static void trigger_sample_for_thread(
     state->sampling_buffer,
     state->recorder_instance,
     metric_values_slice,
-    (ddog_Slice_label) {.ptr = labels, .len = label_count},
+    (ddog_Slice_label) {.ptr = labels, .len = label_pos},
     type
   );
 }
@@ -590,6 +650,8 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   // Update this when modifying state struct
   rb_str_concat(result, rb_sprintf(" hash_map_per_thread_context=%"PRIsVALUE, per_thread_context_st_table_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" recorder_instance=%"PRIsVALUE, state->recorder_instance));
+  VALUE tracer_context_key = state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY ? Qnil : ID2SYM(state->tracer_context_key);
+  rb_str_concat(result, rb_sprintf(" tracer_context_key=%+"PRIsVALUE, tracer_context_key));
   rb_str_concat(result, rb_sprintf(" sample_count=%u", state->sample_count));
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
 
@@ -690,7 +752,9 @@ static long update_time_since_previous_sample(long *time_at_previous_sample_ns, 
   if (elapsed_time_ns < 0) {
     if (is_wall_time) {
       // Wall-time can actually go backwards (e.g. when the system clock gets set) so we can't assume time going backwards
-      // was a bug
+      // was a bug.
+      // @ivoanjo: I've also observed time going backwards spuriously on macOS, see discussion on
+      // https://github.com/DataDog/dd-trace-rb/pull/2336.
       elapsed_time_ns = 0;
     } else {
       // We don't expect non-wall time to go backwards, so let's flag this as a bug
@@ -758,4 +822,40 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE _self, VALUE collector_instance)
   TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
 
   return stats_as_ruby_hash(state);
+}
+
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
+  if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
+
+  VALUE current_context = rb_thread_local_aref(thread, state->tracer_context_key);
+  if (current_context == Qnil) return;
+
+  VALUE active_trace = rb_ivar_get(current_context, at_active_trace_id /* @active_trace */);
+  if (active_trace == Qnil) return;
+
+  VALUE root_span = rb_ivar_get(active_trace, at_root_span_id /* @root_span */);
+  VALUE active_span = rb_ivar_get(active_trace, at_active_span_id /* @active_span */);
+  if (root_span == Qnil || active_span == Qnil) return;
+
+  VALUE numeric_local_root_span_id = rb_ivar_get(root_span, at_id_id /* @id */);
+  VALUE numeric_span_id = rb_ivar_get(active_span, at_id_id /* @id */);
+  if (numeric_local_root_span_id == Qnil || numeric_span_id == Qnil) return;
+
+  unsigned long long local_root_span_id = NUM2ULL(numeric_local_root_span_id);
+  unsigned long long span_id = NUM2ULL(numeric_span_id);
+
+  snprintf(trace_identifiers_result->local_root_span_id_buffer, MAXIMUM_LENGTH_64_BIT_IDENTIFIER, "%llu", local_root_span_id);
+  snprintf(trace_identifiers_result->span_id_buffer, MAXIMUM_LENGTH_64_BIT_IDENTIFIER, "%llu", span_id);
+
+  trace_identifiers_result->local_root_span_id = (ddog_CharSlice) {
+    .ptr = trace_identifiers_result->local_root_span_id_buffer,
+    .len = strlen(trace_identifiers_result->local_root_span_id_buffer)
+  };
+  trace_identifiers_result->span_id = (ddog_CharSlice) {
+    .ptr = trace_identifiers_result->span_id_buffer,
+    .len = strlen(trace_identifiers_result->span_id_buffer)
+  };
+
+  trace_identifiers_result->valid = true;
 }
