@@ -824,6 +824,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE _self, VALUE collector_instance)
   return stats_as_ruby_hash(state);
 }
 
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
