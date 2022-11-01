@@ -255,10 +255,10 @@ RSpec.describe Datadog::Tracing::Tracer do
 
       let(:distributed_tracing_headers) do
         {
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID) => trace_id.to_s,
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID) => parent_id.to_s,
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY) => sampling_priority.to_s,
-          rack_header(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN) => origin
+          rack_header(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID) => trace_id.to_s,
+          rack_header(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID) => parent_id.to_s,
+          rack_header(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY) => sampling_priority.to_s,
+          rack_header(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_ORIGIN) => origin
         }
       end
 
@@ -313,11 +313,11 @@ RSpec.describe Datadog::Tracing::Tracer do
 
       let(:headers) do
         {
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => trace_id.to_s,
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => parent_id.to_s,
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => origin,
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s,
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TAGS => distributed_tags,
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID => trace_id.to_s,
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID => parent_id.to_s,
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_ORIGIN => origin,
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority.to_s,
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TAGS => distributed_tags,
         }
       end
       let(:rack_headers) do
@@ -355,9 +355,9 @@ RSpec.describe Datadog::Tracing::Tracer do
         trace.set_tag('_dd.p.test', 'changed')
 
         expect(inject).to include(
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'other-origin',
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '9',
-          Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TAGS => '_dd.p.test=changed',
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_ORIGIN => 'other-origin',
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '9',
+          Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TAGS => '_dd.p.test=changed',
         )
       end
     end

@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/context'
-require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/distributed/ext'
 require 'datadog/tracing/propagation/http'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
@@ -27,15 +27,15 @@ RSpec.describe Datadog::OpenTracer::RackPropagator do
     before do
       # Expect carrier to be set with Datadog trace properties
       expect(carrier).to receive(:[]=)
-        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID, trace_id.to_s)
+        .with(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID, trace_id.to_s)
       expect(carrier).to receive(:[]=)
-        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID, span_id.to_s)
+        .with(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID, span_id.to_s)
       expect(carrier).to receive(:[]=)
-        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
+        .with(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority.to_s)
       expect(carrier).to receive(:[]=)
-        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN, origin.to_s)
+        .with(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_ORIGIN, origin.to_s)
       allow(carrier).to receive(:[]=)
-        .with(Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TAGS, '_dd.p.key=value,_dd.p.dm=-1')
+        .with(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TAGS, '_dd.p.key=value,_dd.p.dm=-1')
 
       # Expect carrier to be set with OpenTracing baggage
       baggage.each do |key, value|

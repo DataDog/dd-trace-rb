@@ -1,14 +1,14 @@
 # typed: true
 
 require_relative '../tracing/span'
-require_relative '../tracing/distributed/headers/ext'
+require_relative '../tracing/contrib/distributed/ext'
 
 module Datadog
   module OpenTracer
     # DistributedHeaders provides easy access and validation to headers
     # @public_api
     class DistributedHeaders
-      include Tracing::Distributed::Headers::Ext
+      include Tracing::Contrib::Distributed::Ext
 
       def initialize(carrier)
         @carrier = carrier

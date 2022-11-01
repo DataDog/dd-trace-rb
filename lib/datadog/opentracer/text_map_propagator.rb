@@ -1,7 +1,7 @@
 # typed: true
 
 require_relative '../tracing/context'
-require_relative '../tracing/distributed/headers/ext'
+require_relative '../tracing/contrib/distributed/ext'
 require_relative '../tracing/trace_operation'
 require_relative 'propagator'
 
@@ -10,8 +10,8 @@ module Datadog
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
     module TextMapPropagator
       extend Propagator
-      extend Tracing::Distributed::Headers::Ext
-      include Tracing::Distributed::Headers::Ext
+      extend Tracing::Contrib::Distributed::Ext
+      include Tracing::Contrib::Distributed::Ext
 
       BAGGAGE_PREFIX = 'ot-baggage-'.freeze
 

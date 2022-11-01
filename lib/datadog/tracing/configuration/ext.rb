@@ -14,6 +14,7 @@ module Datadog
           ENV_LOGS_INJECTION_ENABLED = 'DD_LOGS_INJECTION'.freeze
         end
 
+        # DEV-2.0: Move to Contrib, as propagation implementations have been move to Contrib.
         # @public_api
         module Distributed
           PROPAGATION_STYLE_DATADOG = 'Datadog'.freeze

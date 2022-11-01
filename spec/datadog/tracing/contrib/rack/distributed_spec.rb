@@ -43,10 +43,10 @@ RSpec.describe 'Rack integration distributed tracing' do
     let(:origin) { 'synthetics' }
 
     before do
-      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID, trace_id
-      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID, parent_id
-      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority
-      header Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN, origin
+      header Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID, trace_id
+      header Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID, parent_id
+      header Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority
+      header Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_ORIGIN, origin
     end
   end
 

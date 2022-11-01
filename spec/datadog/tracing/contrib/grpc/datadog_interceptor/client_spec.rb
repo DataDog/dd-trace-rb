@@ -4,7 +4,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 
-require 'datadog/tracing/distributed/headers/ext'
+require 'datadog/tracing/distributed/ext'
 
 require 'grpc'
 require 'ddtrace'
@@ -107,11 +107,11 @@ RSpec.describe 'tracing on the client connection' do
     context 'when distributed tracing is enabled' do
       let(:configuration_options) { { service_name: 'rspec', distributed_tracing: true } }
 
-      it 'does inject the trace headers in gRPC metadata' do
-        metadata_keys = [
-          Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID,
-          Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID,
-          Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY,
+      it 'injects distribution data in gRPC metadata' do
+        metadata_keys = %w[
+          x-datadog-trace-id
+          x-datadog-parent-id
+          x-datadog-tags
         ]
 
         expect(keywords[:metadata].keys).to include(*metadata_keys)

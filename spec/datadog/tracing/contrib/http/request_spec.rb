@@ -284,9 +284,9 @@ RSpec.describe 'net/http requests' do
       expect(WebMock).to(
         have_requested(:get, "#{uri}#{path}").with { |req|
           [
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID,
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID,
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY
           ].none? do |header|
             req.headers.key?(header.split('-').map(&:capitalize).join('-'))
           end
@@ -306,9 +306,9 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => span.span_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => span.trace_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID => span.span_id,
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID => span.trace_id,
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
           }
         end
 
@@ -339,9 +339,9 @@ RSpec.describe 'net/http requests' do
             trace.sampling_priority = sampling_priority
 
             req = Net::HTTP::Get.new(path)
-            req[Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID] = 100
-            req[Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID] = 100
-            req[Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY] = 0
+            req[Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID] = 100
+            req[Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID] = 100
+            req[Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY] = 0
 
             Net::HTTP.start(host, port) do |http|
               http.request(req)
@@ -352,9 +352,9 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => span.span_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => span.trace_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID => span.span_id,
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID => span.trace_id,
+            Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
           }
         end
 

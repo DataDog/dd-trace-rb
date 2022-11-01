@@ -27,7 +27,7 @@ module Datadog
           end
 
           def prepend_interceptor
-            ::GRPC::InterceptionContext
+            ::Propagation::InterceptionContext
               .prepend(InterceptWithDatadog)
           end
         end

@@ -1,7 +1,7 @@
 # typed: true
 
 require_relative '../tracing/context'
-require_relative '../tracing/distributed/headers/ext'
+require_relative '../tracing/contrib/distributed/ext'
 require_relative '../tracing/propagation/http'
 require_relative '../tracing/trace_operation'
 require_relative 'propagator'
@@ -11,8 +11,8 @@ module Datadog
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
     module RackPropagator
       extend Propagator
-      extend Tracing::Distributed::Headers::Ext
-      include Tracing::Distributed::Headers::Ext
+      extend Tracing::Contrib::Distributed::Ext
+      include Tracing::Contrib::Distributed::Ext
 
       BAGGAGE_PREFIX = 'ot-baggage-'.freeze
       BAGGAGE_PREFIX_FORMATTED = 'HTTP_OT_BAGGAGE_'.freeze
