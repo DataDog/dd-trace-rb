@@ -82,6 +82,14 @@ module ProfileHelpers
 
     { base_label: strings[function.name], path: strings[function.filename], lineno: line_entry.line }
   end
+
+  def object_id_from(thread_id)
+    Integer(thread_id.match(/\d+ \((?<object_id>\d+)\)/)[:object_id])
+  end
+
+  def samples_for_thread(samples, thread)
+    samples.select { |sample| object_id_from(sample.fetch(:labels).fetch(:'thread id')) == thread.object_id }
+  end
 end
 
 RSpec.configure do |config|
