@@ -1,4 +1,4 @@
-# typed: false
+# typed: ignore
 
 require 'datadog/profiling/spec_helper'
 
@@ -157,6 +157,32 @@ RSpec.describe Datadog::Profiling::NativeExtension do
 
       it 'always returns nil' do
         is_expected.to be nil
+      end
+    end
+  end
+
+  describe 'ddtrace_rb_ractor_main_p' do
+    subject(:ddtrace_rb_ractor_main_p) { Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p }
+
+    context 'when Ruby has no support for Ractors' do
+      before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3' }
+
+      it { is_expected.to be true }
+    end
+
+    context 'when Ruby has support for Ractors' do
+      before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3' }
+
+      context 'on the main Ractor' do
+        it { is_expected.to be true }
+      end
+
+      context 'on a background Ractor' do
+        subject(:ddtrace_rb_ractor_main_p) do
+          Ractor.new { Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p }.take
+        end
+
+        it { is_expected.to be false }
       end
     end
   end

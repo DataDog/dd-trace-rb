@@ -690,3 +690,28 @@ int ruby_thread_has_gvl_p(void) {
   return 0;
 }
 #endif // NO_THREAD_HAS_GVL
+
+#ifndef NO_RACTORS
+  // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
+  // repeat it here to be able to use in our code.
+  bool rb_ractor_main_p_(void);
+  extern struct rb_ractor_struct *ruby_single_main_ractor;
+
+  // Taken from upstream ractor_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
+  // to allow us to ensure that we're always operating on the main ractor (if Ruby has ractors)
+  // Modifications:
+  // * None
+  bool ddtrace_rb_ractor_main_p(void)
+  {
+      if (ruby_single_main_ractor) {
+          return true;
+      }
+      else {
+          return rb_ractor_main_p_();
+      }
+  }
+#else
+  // Simplify callers on older Rubies, instead of having them probe if the VM supports Ractors we just tell them that yes
+  // they're always on the main Ractor
+  bool ddtrace_rb_ractor_main_p(void) { return true; }
+#endif // NO_RACTORS
