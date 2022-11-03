@@ -1020,4 +1020,41 @@ RSpec.describe 'Tracer integration tests' do
       end
     end
   end
+
+  describe 'distributed tracing' do
+    include_context 'agent-based test'
+
+    [
+      Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT,
+      Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT,
+      Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP,
+      Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP,
+    ].each do |priority|
+      context "with sampling priority #{priority}" do
+        let(:env) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => '123',
+            'HTTP_X_DATADOG_PARENT_ID' => '456',
+            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => priority.to_s,
+            'HTTP_X_DATADOG_ORIGIN' => 'ci',
+          }
+        end
+
+        it 'ensures trace is flushed' do
+          trace_digest = Datadog::Tracing::Propagation::HTTP.extract(env)
+          Datadog::Tracing.continue_trace!(trace_digest)
+
+          tracer.trace('name') {}
+
+          try_wait_until(attempts: 20) { tracer.writer.stats[:traces_flushed] >= 1 }
+
+          stats = tracer.writer.stats
+          expect(stats[:traces_flushed]).to eq(1)
+          expect(stats[:transport].client_error).to eq(0)
+          expect(stats[:transport].server_error).to eq(0)
+          expect(stats[:transport].internal_error).to eq(0)
+        end
+      end
+    end
+  end
 end

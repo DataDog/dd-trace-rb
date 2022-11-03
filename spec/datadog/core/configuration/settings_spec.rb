@@ -735,6 +735,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
+        context 'with multiple colons' do
+          let(:env_tags) { 'key:va:lue' }
+
+          it 'allows for colons in value' do
+            is_expected.to eq('key' => 'va:lue')
+          end
+        end
+
         context 'and when #env' do
           let(:options) { { **super(), env: env } }
 

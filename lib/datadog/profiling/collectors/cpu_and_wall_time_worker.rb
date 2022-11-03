@@ -18,7 +18,8 @@ module Datadog
         def initialize(
           recorder:,
           max_frames:,
-          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames)
+          tracer:,
+          cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer)
         )
           self.class._native_initialize(self, cpu_and_wall_time_collector)
           @worker_thread = nil

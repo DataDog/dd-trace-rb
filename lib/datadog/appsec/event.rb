@@ -51,9 +51,7 @@ module Datadog
         end
       end
 
-      # rubocop:disable Metrics/AbcSize
-      # rubocop:disable Metrics/MethodLength
-      def self.record_via_span(*events)
+      def self.record_via_span(*events) # rubocop:disable Metrics/AbcSize
         events.group_by { |e| e[:trace] }.each do |trace, event_group|
           unless trace
             Datadog.logger.debug { "{ error: 'no trace: cannot record', event_group: #{event_group.inspect}}" }
@@ -65,10 +63,6 @@ module Datadog
 
           # prepare and gather tags to apply
           trace_tags = event_group.each_with_object({}) do |event, tags|
-            span = event[:span]
-
-            span.set_tag('appsec.event', 'true') if span
-
             # TODO: assume HTTP request context for now
 
             if (request = event[:request])
@@ -82,9 +76,7 @@ module Datadog
 
               tags['http.host'] = request.host
               tags['http.useragent'] = request.user_agent
-              tags['network.client.ip'] = request.ip
-
-              # tags['actor.ip'] = request.ip # TODO: uses client IP resolution algorithm
+              tags['network.client.ip'] = request.env['REMOTE_ADDR'] if request.env['REMOTE_ADDR']
             end
 
             if (response = event[:response])
@@ -115,8 +107,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/MethodLength
-      # rubocop:enable Metrics/AbcSize
     end
   end
 end

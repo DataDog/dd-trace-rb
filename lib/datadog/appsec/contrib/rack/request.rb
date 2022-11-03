@@ -47,6 +47,9 @@ module Datadog
           end
 
           def self.form_hash(request)
+            # force form data processing
+            request.POST if request.form_data?
+
             # usually Hash<String,String> but can be a more complex
             # Hash<String,String||Array||Hash> when e.g coming from JSON
             request.env['rack.request.form_hash']

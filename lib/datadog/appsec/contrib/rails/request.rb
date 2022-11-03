@@ -7,6 +7,9 @@ module Datadog
         # Normalized extration of data from ActionDispatch::Request
         module Request
           def self.parsed_body(request)
+            # force body parameter parsing, which is done lazily by Rails
+            request.parameters
+
             # usually Hash<String,String> but can be a more complex
             # Hash<String,String||Array||Hash> when e.g coming from JSON or
             # with Rails advanced param square bracket parsing

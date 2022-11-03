@@ -17,6 +17,8 @@ module Datadog
           TAG_COMPONENT = 'grpc'.freeze
           TAG_OPERATION_CLIENT = 'client'.freeze
           TAG_OPERATION_SERVICE = 'service'.freeze
+
+          TAG_SYSTEM = 'grpc'.freeze
         end
       end
     end
