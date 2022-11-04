@@ -50,7 +50,7 @@ static VALUE _native_do_export(
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
-static VALUE ddtrace_version();
+static VALUE ddtrace_version(void);
 
 void http_transport_init(VALUE profiling_module) {
   http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
@@ -342,7 +342,7 @@ static void interrupt_exporter_call(void *cancel_token) {
   ddog_CancellationToken_cancel((ddog_CancellationToken *) cancel_token);
 }
 
-static VALUE ddtrace_version() {
+static VALUE ddtrace_version(void) {
   VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("DDTrace"));
   ENFORCE_TYPE(ddtrace_module, T_MODULE);
   VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));

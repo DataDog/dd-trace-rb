@@ -109,7 +109,8 @@ namespace :spec do
       'patcher',
       'registerable',
       'registry',
-      'registry/*'
+      'registry/*',
+      'propagation/**/*'
     ].join(',')
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"

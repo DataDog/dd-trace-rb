@@ -39,6 +39,17 @@ module Datadog
       def self.set_client_ip_tag(span, headers: nil, remote_ip: nil)
         return unless configuration.enabled
 
+        set_client_ip_tag!(span, headers: headers, remote_ip: remote_ip)
+      end
+
+      # Forcefully sets the `http.client_ip` tag on the given span.
+      #
+      # This function ignores the user's `enabled` setting.
+      #
+      # @param [Span] span The span that's associated with the request.
+      # @param [HeaderCollection, #get, nil] headers A collection with the request headers.
+      # @param [String, nil] remote_ip The remote IP the request associated with the span is sent to.
+      def self.set_client_ip_tag!(span, headers: nil, remote_ip: nil)
         result = raw_ip_from_request(headers, remote_ip)
 
         if result.raw_ip

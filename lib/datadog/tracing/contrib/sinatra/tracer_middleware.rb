@@ -25,7 +25,7 @@ module Datadog
           def call(env)
             # Set the trace context (e.g. distributed tracing)
             if configuration[:distributed_tracing] && Tracing.active_trace.nil?
-              original_trace = Propagation::HTTP.extract(env)
+              original_trace = Tracing::Propagation::HTTP.extract(env)
               Tracing.continue_trace!(original_trace)
             end
 

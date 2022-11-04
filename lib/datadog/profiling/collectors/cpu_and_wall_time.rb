@@ -11,8 +11,9 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `collectors_cpu_and_wall_time.c`
       class CpuAndWallTime
-        def initialize(recorder:, max_frames:)
-          self.class._native_initialize(self, recorder, max_frames)
+        def initialize(recorder:, max_frames:, tracer:)
+          tracer_context_key = safely_extract_context_key_from(tracer)
+          self.class._native_initialize(self, recorder, max_frames, tracer_context_key)
         end
 
         def inspect
@@ -20,6 +21,15 @@ module Datadog
           result = super()
           result[-1] = "#{self.class._native_inspect(self)}>"
           result
+        end
+
+        private
+
+        def safely_extract_context_key_from(tracer)
+          tracer &&
+            tracer.respond_to?(:provider) &&
+            # NOTE: instance_variable_get always works, even on nil -- it just returns nil if the variable doesn't exist
+            tracer.provider.instance_variable_get(:@context).instance_variable_get(:@key)
         end
       end
     end

@@ -112,58 +112,62 @@ static VALUE _native_sample(
 
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
 
-  if (!RTEST(in_gc)) {
-    sample_thread(
-      thread,
-      buffer,
-      recorder_instance,
-      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddog_Slice_label) {.ptr = labels, .len = labels_count}
-    );
-  } else {
-    sample_thread_in_gc(
-      thread,
-      buffer,
-      recorder_instance,
-      (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
-      (ddog_Slice_label) {.ptr = labels, .len = labels_count}
-    );
-  }
+  sample_thread(
+    thread,
+    buffer,
+    recorder_instance,
+    (ddog_Slice_i64) {.ptr = metric_values, .len = ENABLED_VALUE_TYPES_COUNT},
+    (ddog_Slice_label) {.ptr = labels, .len = labels_count},
+    RTEST(in_gc) ? SAMPLE_IN_GC : SAMPLE_REGULAR
+  );
 
   sampling_buffer_free(buffer);
 
   return Qtrue;
 }
 
-// Samples thread into recorder
-void sample_thread(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
-  sampling_buffer *record_buffer = buffer;
-  int extra_frames_in_record_buffer = 0;
-  sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
-}
+void sample_thread(
+  VALUE thread,
+  sampling_buffer* buffer,
+  VALUE recorder_instance,
+  ddog_Slice_i64 metric_values,
+  ddog_Slice_label labels,
+  sample_type type
+) {
+  // Samples thread into recorder
+  if (type == SAMPLE_REGULAR) {
+    sampling_buffer *record_buffer = buffer;
+    int extra_frames_in_record_buffer = 0;
+    sample_thread_internal(thread, buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    return;
+  }
 
-// Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
-void sample_thread_in_gc(VALUE thread, sampling_buffer* buffer, VALUE recorder_instance, ddog_Slice_i64 metric_values, ddog_Slice_label labels) {
-  buffer->lines[0] = (ddog_Line) {
-    .function = (ddog_Function) {
-      .name = DDOG_CHARSLICE_C(""),
-      .filename = DDOG_CHARSLICE_C("Garbage Collection")
-    },
-    .line = 0
-  };
-  // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
-  // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
-  sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
-    .max_frames = buffer->max_frames - 1,
-    .stack_buffer = buffer->stack_buffer + 1,
-    .lines_buffer = buffer->lines_buffer + 1,
-    .is_ruby_frame = buffer->is_ruby_frame + 1,
-    .locations = buffer->locations + 1,
-    .lines = buffer->lines + 1
-  };
-  sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
-  int extra_frames_in_record_buffer = 1;
-  sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+  // Samples thread into recorder, including as a top frame in the stack a frame named "Garbage Collection"
+  if (type == SAMPLE_IN_GC) {
+    buffer->lines[0] = (ddog_Line) {
+      .function = (ddog_Function) {
+        .name = DDOG_CHARSLICE_C(""),
+        .filename = DDOG_CHARSLICE_C("Garbage Collection")
+      },
+      .line = 0
+    };
+    // To avoid changing sample_thread_internal, we just prepare a new buffer struct that uses the same underlying storage as the
+    // original buffer, but has capacity one less, so that we can keep the above Garbage Collection frame untouched.
+    sampling_buffer thread_in_gc_buffer = (struct sampling_buffer) {
+      .max_frames = buffer->max_frames - 1,
+      .stack_buffer = buffer->stack_buffer + 1,
+      .lines_buffer = buffer->lines_buffer + 1,
+      .is_ruby_frame = buffer->is_ruby_frame + 1,
+      .locations = buffer->locations + 1,
+      .lines = buffer->lines + 1
+    };
+    sampling_buffer *record_buffer = buffer; // We pass in the original buffer as the record_buffer, but not as the regular buffer
+    int extra_frames_in_record_buffer = 1;
+    sample_thread_internal(thread, &thread_in_gc_buffer, recorder_instance, metric_values, labels, record_buffer, extra_frames_in_record_buffer);
+    return;
+  }
+
+  rb_raise(rb_eArgError, "Unexpected value for sample_type: %d", type);
 }
 
 // Idea: Should we release the global vm lock (GVL) after we get the data from `rb_profile_frames`? That way other Ruby threads

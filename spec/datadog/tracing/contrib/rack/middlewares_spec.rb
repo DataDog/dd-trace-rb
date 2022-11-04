@@ -44,4 +44,27 @@ RSpec.describe Datadog::Tracing::Contrib::Rack::TraceMiddleware do
       end
     end
   end
+
+  # Non-ASCII URLs cannot be tested with `rack-test` as of v2.0.2.
+  # It would be ideal if that was possible, as we could create integration tests
+  # for such cases.
+  #
+  # As an alternative, we test the parsing method directly.
+  describe '#parse_url' do
+    subject(:parse_url) { middleware.send(:parse_url, env, original_env) }
+    let(:env) { { 'REQUEST_URI' => uri, 'HTTP_HOST' => 'localhost:443', 'rack.url_scheme' => 'https' } }
+    let(:original_env) { {} }
+
+    context 'with Unicode characters' do
+      let(:uri) { 'https://localhost/success/?繋がってて' }
+
+      it { is_expected.to eq(uri) }
+    end
+
+    context 'with unencoded ASCII characters' do
+      let(:uri) { 'https://localhost/success/|' }
+
+      it { is_expected.to eq(uri) }
+    end
+  end
 end

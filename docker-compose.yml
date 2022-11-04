@@ -546,6 +546,7 @@ services:
       - DD_APM_ENABLED=true
       - DD_BIND_HOST=0.0.0.0
       - "DD_API_KEY=${DD_API_KEY}"
+      - DD_HOSTNAME=dd-trace-rb-ci
       - DD_APM_RECEIVER_SOCKET=/var/run/datadog/apm.socket
     expose:
       - "8125/udp"
