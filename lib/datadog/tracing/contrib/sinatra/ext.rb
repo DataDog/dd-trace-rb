@@ -23,6 +23,12 @@ module Datadog
           TAG_SCRIPT_NAME = 'sinatra.script_name'.freeze
           TAG_TEMPLATE_ENGINE = 'sinatra.template_engine'.freeze
           TAG_TEMPLATE_NAME = 'sinatra.template_name'.freeze
+
+          # === Deprecated: To be removed ===
+          RACK_ENV_REQUEST_SPAN = 'datadog.sinatra_request_span'.freeze
+          RACK_ENV_MIDDLEWARE_START_TIME = 'datadog.sinatra_middleware_start_time'.freeze
+          RACK_ENV_MIDDLEWARE_TRACED = 'datadog.sinatra_middleware_traced'.freeze
+          # === Deprecated: To be removed ===
         end
       end
     end
