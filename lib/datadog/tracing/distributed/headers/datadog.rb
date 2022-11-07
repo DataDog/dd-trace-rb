@@ -12,7 +12,6 @@ module Datadog
     module Distributed
       module Headers
         # Datadog provides helpers to inject or extract headers for Datadog style headers
-        # rubocop:disable Metrics/ModuleLength
         module Datadog
           class << self
             include Ext
@@ -142,7 +141,6 @@ module Datadog
             private_constant :EXCLUDED_TAG
           end
         end
-        # rubocop:enable Metrics/ModuleLength
       end
     end
   end
