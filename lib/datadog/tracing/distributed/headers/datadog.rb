@@ -133,10 +133,7 @@ module Datadog
               )
             end
 
-            # This tag can leak privileged information.
-            # Although the Ruby tracer has never populated this tag, other traces have in the past.
-            #
-            # We now avoid propagating this tag any further, if we ever receive it.
+            # We want to exclude tags that we don't want to propagate downstream.
             EXCLUDED_TAG = '_dd.p.upstream_services'
             private_constant :EXCLUDED_TAG
           end
