@@ -1,7 +1,7 @@
 require 'sinatra/base'
 require 'sinatra/router'
 require 'ddtrace'
-require 'pry'
+
 # require 'ddtrace/auto_instrument'
 
 Datadog.configure do |c|
