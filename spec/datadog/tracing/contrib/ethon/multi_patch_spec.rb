@@ -93,6 +93,11 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
           expect(multi_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('multi.request')
         end
 
+        it 'have `client` as `span.kind`' do
+          expect(multi_span.get_tag('span.kind')).to eq('client')
+          expect(easy_span.get_tag('span.kind')).to eq('client')
+        end
+
         it 'makes multi span a parent for easy span' do
           expect(easy_span.parent_id).to eq(multi_span.span_id)
         end

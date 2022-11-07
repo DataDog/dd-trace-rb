@@ -18,7 +18,6 @@ module Datadog
           end
 
           # InstanceMethods - implementing instrumentation
-          # rubocop:disable Metrics/ModuleLength
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
 
@@ -132,6 +131,8 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
 
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
+
               uri = try_parse_uri
               return unless uri
 
@@ -168,7 +169,6 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
           end
-          # rubocop:enable Metrics/ModuleLength
         end
       end
     end

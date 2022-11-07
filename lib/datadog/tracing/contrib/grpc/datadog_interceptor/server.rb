@@ -6,6 +6,7 @@ require_relative '../../../metadata/ext'
 require_relative '../../../propagation/grpc'
 require_relative '../../analytics'
 require_relative '../ext'
+require_relative '../../ext'
 
 module Datadog
   module Tracing
@@ -19,10 +20,11 @@ module Datadog
           # its tracing context with a parent client-side context
           class Server < Base
             def trace(keywords)
+              method = keywords[:method]
               options = {
                 span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
                 service: service_name, # TODO: Remove server-side service name configuration
-                resource: format_resource(keywords[:method]),
+                resource: format_resource(method),
                 on_error: error_handler
               }
               metadata = keywords[:call].metadata
@@ -30,6 +32,10 @@ module Datadog
               set_distributed_context!(metadata)
 
               Tracing.trace(Ext::SPAN_SERVICE, **options) do |span|
+                span.set_tag(Contrib::Ext::RPC::TAG_SYSTEM, Ext::TAG_SYSTEM)
+                span.set_tag(Contrib::Ext::RPC::TAG_SERVICE, method.owner.to_s)
+                span.set_tag(Contrib::Ext::RPC::TAG_METHOD,  method.name)
+
                 annotate!(span, metadata)
 
                 yield

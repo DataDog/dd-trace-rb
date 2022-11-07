@@ -57,6 +57,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(0)
       end
 
@@ -91,6 +92,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.status_code')).to eq('404')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(1)
         expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
         expect(span.get_tag('error.msg')).to be nil
@@ -161,6 +163,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.status_code')).to eq('201')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(0)
       end
 
@@ -193,6 +196,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(0)
       end
 
@@ -219,6 +223,7 @@ RSpec.describe 'net/http requests' do
         expect(spans).to have(1).items
         expect(span.name).to eq('http.request')
         expect(span.service).to eq(service_name)
+        expect(span.get_tag('span.kind')).to eq('client')
       end
 
       it_behaves_like 'a peer service span' do
@@ -240,6 +245,7 @@ RSpec.describe 'net/http requests' do
       expect(span.name).to eq(Datadog::Tracing::Contrib::HTTP::Ext::SPAN_REQUEST)
       expect(span.service).to eq(host)
       expect(span.resource).to eq('GET')
+      expect(span.get_tag('span.kind')).to eq('client')
     end
 
     context 'and the host matches a specific configuration' do
@@ -261,6 +267,7 @@ RSpec.describe 'net/http requests' do
       it 'uses the configured service name over the domain name and the correct describes block' do
         response
         expect(span.service).to eq('bar')
+        expect(span.get_tag('span.kind')).to eq('client')
       end
     end
   end
@@ -425,6 +432,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('span.kind')).to eq('client')
         expect(span).to have_error
         expect(span).to have_error_type(timeout_error.class.to_s)
         expect(span).to have_error_message(timeout_error.message)
@@ -447,6 +455,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('out.host')).to eq(host)
         expect(span.get_tag('out.port')).to eq(port.to_s)
+        expect(span.get_tag('span.kind')).to eq('client')
         expect(span).to have_error
         expect(span).to have_error_type(custom_error.class.to_s)
         expect(span).to have_error_message(custom_error.message)

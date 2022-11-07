@@ -3,6 +3,8 @@
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/propagation/sql_comment'
+require 'datadog/tracing/contrib/sql_comment_propagation_examples'
 
 require 'ddtrace'
 require 'mysql2'
@@ -42,63 +44,87 @@ RSpec.describe 'Mysql2::Client patcher' do
 
   describe 'tracing' do
     describe '#query' do
+      subject(:query) { client.query(sql_statement) }
+
+      let(:sql_statement) { 'SELECT 1' }
+
       context 'when the tracer is disabled' do
         before { tracer.enabled = false }
 
         it 'does not write spans' do
-          client.query('SELECT 1')
+          query
+
           expect(spans).to be_empty
         end
       end
 
       context 'when the client is configured directly' do
-        let(:service_override) { 'mysql-override' }
+        let(:service_name) { 'mysql-override' }
 
         before do
-          Datadog.configure_onto(client, service_name: service_override)
-          client.query('SELECT 1')
+          Datadog.configure_onto(client, service_name: service_name)
         end
 
         it 'produces a trace with service override' do
+          query
+
           expect(spans.count).to eq(1)
-          expect(span.service).to eq(service_override)
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_override)
+          expect(span.service).to eq(service_name)
+          expect(span.get_tag('span.kind')).to eq('client')
+          expect(span.get_tag('db.system')).to eq('mysql')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(service_name)
         end
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
       end
 
       context 'when a successful query is made' do
-        before { client.query('SELECT 1') }
-
         it 'produces a trace' do
+          query
+
           expect(spans.count).to eq(1)
+          expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)
+          expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mysql2')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('query')
         end
 
         it_behaves_like 'analytics for integration' do
+          before { query }
           let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Mysql2::Ext::ENV_ANALYTICS_ENABLED }
           let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Mysql2::Ext::ENV_ANALYTICS_SAMPLE_RATE }
         end
 
         it_behaves_like 'a peer service span' do
+          before { query }
           let(:peer_hostname) { host }
         end
 
-        it_behaves_like 'measured span for integration', false
+        it_behaves_like 'measured span for integration', false do
+          before { query }
+        end
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
       end
 
       context 'when a failed query is made' do
-        before { expect { client.query('SELECT INVALID') }.to raise_error(Mysql2::Error) }
+        let(:sql_statement) { 'SELECT INVALID' }
 
         it 'traces failed queries' do
+          expect { query }.to raise_error(Mysql2::Error)
+
           expect(spans.count).to eq(1)
           expect(span.status).to eq(1)
+          expect(span.get_tag('span.kind')).to eq('client')
+          expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag('error.msg'))
             .to eq("Unknown column 'INVALID' in 'field list'")
         end
+
+        it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query', error: Mysql2::Error
       end
     end
   end

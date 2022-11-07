@@ -7,7 +7,7 @@
 #include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
 
-// Used to wrap a ddprof_ffi_Profile in a Ruby object and expose Ruby-level serialization APIs
+// Used to wrap a ddog_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
 
 // ---
@@ -24,7 +24,7 @@
 // 2. The thread that serializes and reports profiles, let's call it the **serializer thread**. We enforce that there
 // cannot be more than one thread attempting to serialize profiles at a time.
 //
-// If both the sampler and serializer threads are trying to access the same `ddprof_ffi_Profile` in parallel, we will
+// If both the sampler and serializer threads are trying to access the same `ddog_Profile` in parallel, we will
 // have a concurrency issue. Thus, the StackRecorder has an added mechanism to avoid this.
 //
 // As an additional constraint, the **sampler thread** has absolute priority and must never block while
@@ -32,7 +32,7 @@
 //
 // ### The solution: Keep two profiles at the same time
 //
-// To solve for the constraints above, the StackRecorder keeps two `ddprof_ffi_Profile` profile instances inside itself.
+// To solve for the constraints above, the StackRecorder keeps two `ddog_Profile` profile instances inside itself.
 // They are called the `slot_one_profile` and `slot_two_profile`.
 //
 // Each profile is paired with its own mutex. `slot_one_profile` is protected by `slot_one_mutex` and `slot_two_profile`
@@ -135,10 +135,10 @@ static VALUE stack_recorder_class = Qnil;
 // Contains native state for each instance
 struct stack_recorder_state {
   pthread_mutex_t slot_one_mutex;
-  ddprof_ffi_Profile *slot_one_profile;
+  ddog_Profile *slot_one_profile;
 
   pthread_mutex_t slot_two_mutex;
-  ddprof_ffi_Profile *slot_two_profile;
+  ddog_Profile *slot_two_profile;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 };
@@ -146,7 +146,7 @@ struct stack_recorder_state {
 // Used to return a pair of values from sampler_lock_active_profile()
 struct active_slot_pair {
   pthread_mutex_t *mutex;
-  ddprof_ffi_Profile *profile;
+  ddog_Profile *profile;
 };
 
 struct call_serialize_without_gvl_arguments {
@@ -154,8 +154,8 @@ struct call_serialize_without_gvl_arguments {
   struct stack_recorder_state *state;
 
   // Set by callee
-  ddprof_ffi_Profile *profile;
-  ddprof_ffi_SerializeResult result;
+  ddog_Profile *profile;
+  ddog_SerializeResult result;
 
   // Set by both
   bool serialize_ran;
@@ -164,15 +164,16 @@ struct call_serialize_without_gvl_arguments {
 static VALUE _native_new(VALUE klass);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
-static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time);
+static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
 static struct active_slot_pair sampler_lock_active_profile();
 static void sampler_unlock_active_profile(struct active_slot_pair active_slot);
-static ddprof_ffi_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
+static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state, ddog_Timespec start_timestamp_for_next_profile);
 static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
+static ddog_Timespec time_now();
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -199,7 +200,7 @@ void stack_recorder_init(VALUE profiling_module) {
   ruby_time_from_id = rb_intern_const("ruby_time_from");
 }
 
-// This structure is used to define a Ruby object that stores a pointer to a ddprof_ffi_Profile instance
+// This structure is used to define a Ruby object that stores a pointer to a ddog_Profile instance
 // See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
 static const rb_data_type_t stack_recorder_typed_data = {
   .wrap_struct_name = "Datadog::Profiling::StackRecorder",
@@ -214,7 +215,7 @@ static const rb_data_type_t stack_recorder_typed_data = {
 static VALUE _native_new(VALUE klass) {
   struct stack_recorder_state *state = ruby_xcalloc(1, sizeof(struct stack_recorder_state));
 
-  ddprof_ffi_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
+  ddog_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
 
   state->slot_one_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
   state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
@@ -227,8 +228,8 @@ static VALUE _native_new(VALUE klass) {
 
   // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
-  state->slot_one_profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-  state->slot_two_profile = ddprof_ffi_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  state->slot_one_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  state->slot_two_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
   return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 }
@@ -237,10 +238,10 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   struct stack_recorder_state *state = (struct stack_recorder_state *) state_ptr;
 
   pthread_mutex_destroy(&state->slot_one_mutex);
-  ddprof_ffi_Profile_free(state->slot_one_profile);
+  ddog_Profile_free(state->slot_one_profile);
 
   pthread_mutex_destroy(&state->slot_two_mutex);
-  ddprof_ffi_Profile_free(state->slot_two_profile);
+  ddog_Profile_free(state->slot_two_profile);
 
   ruby_xfree(state);
 }
@@ -267,33 +268,33 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
     rb_thread_call_without_gvl2(call_serialize_without_gvl, &args, NULL /* No interruption function needed in this case */, NULL /* Not needed */);
   }
 
-  ddprof_ffi_SerializeResult serialized_profile = args.result;
+  ddog_SerializeResult serialized_profile = args.result;
 
-  if (serialized_profile.tag == DDPROF_FFI_SERIALIZE_RESULT_ERR) {
+  if (serialized_profile.tag == DDOG_SERIALIZE_RESULT_ERR) {
     VALUE err_details = ruby_string_from_vec_u8(serialized_profile.err);
-    ddprof_ffi_SerializeResult_drop(serialized_profile);
+    ddog_SerializeResult_drop(serialized_profile);
     return rb_ary_new_from_args(2, error_symbol, err_details);
   }
 
   VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
 
-  ddprof_ffi_Timespec ddprof_start = serialized_profile.ok.start;
-  ddprof_ffi_Timespec ddprof_finish = serialized_profile.ok.end;
+  ddog_Timespec ddprof_start = serialized_profile.ok.start;
+  ddog_Timespec ddprof_finish = serialized_profile.ok.end;
 
   // Clean up libdatadog object to avoid leaking in case ruby_time_from raises an exception
-  ddprof_ffi_SerializeResult_drop(serialized_profile);
+  ddog_SerializeResult_drop(serialized_profile);
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
 
-  if (!ddprof_ffi_Profile_reset(args.profile, NULL /* start_time is optional */ )) {
+  if (!ddog_Profile_reset(args.profile, NULL /* start_time is optional */ )) {
     return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
   }
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
 }
 
-static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time) {
+static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   #ifndef NO_RB_TIME_TIMESPEC_NEW // Modern Rubies
     const int utc = INT_MAX - 1; // From Ruby sources
     struct timespec time = {.tv_sec = ddprof_time.seconds, .tv_nsec = ddprof_time.nanoseconds};
@@ -303,13 +304,13 @@ static VALUE ruby_time_from(ddprof_ffi_Timespec ddprof_time) {
   #endif
 }
 
-void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
+void record_sample(VALUE recorder_instance, ddog_Sample sample) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
-  ddprof_ffi_Profile_add(active_slot.profile, sample);
+  ddog_Profile_add(active_slot.profile, sample);
 
   sampler_unlock_active_profile(active_slot);
 }
@@ -317,8 +318,10 @@ void record_sample(VALUE recorder_instance, ddprof_ffi_Sample sample) {
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
-  args->profile = serializer_flip_active_and_inactive_slots(args->state);
-  args->result = ddprof_ffi_Profile_serialize(args->profile, NULL /* end_time is optional */, NULL /* duration_nanos is optional */);
+  ddog_Timespec finish_timestamp = time_now();
+
+  args->profile = serializer_flip_active_and_inactive_slots(args->state, finish_timestamp);
+  args->result = ddog_Profile_serialize(args->profile, &finish_timestamp, NULL /* duration_nanos is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
@@ -357,7 +360,7 @@ static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
   if (error != 0) rb_syserr_fail(error, "Unexpected failure in sampler_unlock_active_profile");
 }
 
-static ddprof_ffi_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
+static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state, ddog_Timespec start_timestamp_for_next_profile) {
   int error;
   int previously_active_slot = state->active_slot;
 
@@ -367,6 +370,10 @@ static ddprof_ffi_Profile *serializer_flip_active_and_inactive_slots(struct stac
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
   pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
+
+  // Before making this profile active, we reset it so that it uses the correct timestamp for its start
+  ddog_Profile *previously_inactive_profile = (previously_active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
+  if (!ddog_Profile_reset(previously_inactive_profile, &start_timestamp_for_next_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 
   // Release the lock, thus making this slot active
   error = pthread_mutex_unlock(previously_inactive);
@@ -419,4 +426,13 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   } else {
     rb_syserr_fail(error, "Unexpected failure when checking mutex state");
   }
+}
+
+// Note that this is using CLOCK_REALTIME (e.g. actual time since unix epoch) and not the CLOCK_MONOTONIC as we use in other parts of the codebase
+static ddog_Timespec time_now() {
+  struct timespec current_time;
+
+  if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");
+
+  return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = current_time.tv_nsec};
 }

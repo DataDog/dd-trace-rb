@@ -8,7 +8,6 @@ module Datadog
       module Async
         # Adds threading behavior to workers
         # to run tasks asynchronously.
-        # rubocop:disable Metrics/ModuleLength
         module Thread
           FORK_POLICY_STOP = :stop
           FORK_POLICY_RESTART = :restart
@@ -175,7 +174,6 @@ module Datadog
             end
           end
         end
-        # rubocop:enable Metrics/ModuleLength
       end
     end
   end
