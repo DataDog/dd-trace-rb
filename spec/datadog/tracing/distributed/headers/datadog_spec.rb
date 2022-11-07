@@ -312,6 +312,13 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
             end
           end
         end
+
+        context '{ _dd.p.upstream_services: "any" }' do
+          let(:tags) { '_dd.p.upstream_services=any' }
+          it 'does not parse excluded tag' do
+            is_expected.to be_empty
+          end
+        end
       end
     end
 

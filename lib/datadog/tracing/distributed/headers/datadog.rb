@@ -121,7 +121,9 @@ module Datadog
 
               tags = DatadogTagsCodec.decode(tags_header)
               # Only extract keys with the expected Datadog prefix
-              tags.select! { |key, _| key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) }
+              tags.select! do |key, _|
+                key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) && key != EXCLUDED_TAG
+              end
               tags
             rescue => e
               active_trace = Tracing.active_trace
@@ -130,6 +132,10 @@ module Datadog
                 "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
               )
             end
+
+            # We want to exclude tags that we don't want to propagate downstream.
+            EXCLUDED_TAG = '_dd.p.upstream_services'
+            private_constant :EXCLUDED_TAG
           end
         end
       end
