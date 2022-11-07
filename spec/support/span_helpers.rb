@@ -121,4 +121,13 @@ module SpanHelpers
         end
     end
   end
+
+  RSpec::Matchers.define :a_span_operation_with do |expected|
+    match do |actual|
+      actual.instance_of?(Datadog::Tracing::SpanOperation) &&
+        expected.all? do |key, value|
+          actual.__send__(key) == value
+        end
+    end
+  end
 end

@@ -18,7 +18,6 @@ module Datadog
     # It gives a Span a context which can be used to
     # build a Span. When completed, it yields the Span.
     #
-    # rubocop:disable Metrics/ClassLength
     # @public_api
     class SpanOperation
       include Metadata
@@ -516,6 +515,5 @@ module Datadog
       alias :span_type :type
       alias :span_type= :type=
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

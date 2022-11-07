@@ -6,7 +6,7 @@ require_relative 'core/utils/only_once'
 
 module Datadog
   # Contains profiler for generating stack profiles, etc.
-  module Profiling # rubocop:disable Metrics/ModuleLength
+  module Profiling
     GOOGLE_PROTOBUF_MINIMUM_VERSION = Gem::Version.new('3.0')
     private_constant :GOOGLE_PROTOBUF_MINIMUM_VERSION
 

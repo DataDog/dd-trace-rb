@@ -1,6 +1,7 @@
 # Profiling Native Extension Design
 
 The profiling native extension is used to:
+
 1. Implement features which are expensive (in terms of resources) or otherwise impossible to implement using Ruby code.
 2. Bridge between Ruby-specific profiling features and [`libdatadog`](https://github.com/DataDog/libdatadog), a Rust-based
 library with common profiling functionality.
@@ -20,8 +21,8 @@ and disabling the extension will disable profiling.
 
 ## Who is this page for?
 
-This documentation is intended to be used by dd-trace-rb developers. Please see the `docs/` folder for user-level
-documentation.
+**This documentation is intended to be used by dd-trace-rb developers. Please see the `docs/` folder for user-level
+documentation.**
 
 ## Must not block or break users that cannot use it
 
@@ -118,3 +119,38 @@ Note that `pthread_getcpuclockid()` is not available on macOS (nor, obviously, o
 is currently Linux-specific. Thus, in the <clock_id_from_pthread.c> file we implement the feature for supported Ruby
 setups but if something is missing we instead compile in <clock_id_noop.c> that includes a no-op implementation of the
 feature.
+
+## Fork-safety
+
+It's common for Ruby applications to create child processes via the use of `fork`. For instance, this strategy is used
+by the puma webserver and the resque job processing tool.
+
+Thus, the profiler needs to be designed to take this into account. I'll call out two important parts of this design:
+
+1. Automatically propagate profiler to child processes. To make onboarding easier, we monkey patch the Ruby `fork` APIs
+so that the profiler is automatically restarted in child processes. This way, the user only needs to start profiling at
+the beginning of their application, and automatically forks are profiled as well.
+
+2. The profiler must ensure correctness and stability even if the application forks. There must be no impact on the
+application or incorrect data generated.
+
+### Fork-safety for libdatadog
+
+Since libdatadog is built in native code (Rust), special care needs to be take to consider how we're using it and how
+it can be affected by the use of `fork`.
+
+* Profile-related APIs: `Profile_new` and `Profile_add` and `Profile_free` are only called with the Ruby Global VM Lock
+being held. Thus, if Ruby APIs are being used for fork, this prevents any concurrency between profile mutation and
+forking, because if we’re holding the lock, then no other thread can call into the fork APIs.
+(Calling libc `fork()` directly from a native extension is possible but would break the VM as well, since it does need
+to do some of its own work when forking happens, so we’ll ignore that one)
+
+* Exporter-related APIs: Explicitly to make sure we had no issues with forking, we create a new `CancellationToken_new`
+and `ProfileExporterV3_new` for every report. We do release the Global VM Lock during exporting, so it's possible for
+forking and exporting to be concurrent.
+
+  Both the CancellationToken and ProfileExporter are only referenced on the stack of the thread doing the exporting, so
+  they will not be reused in the child process after the fork. In the worst case, if a report is concurrent with a fork,
+  then it's possible a small amount of memory will not be cleaned up in the child process.
+
+  Because there is no leftover undefined state, we guarantee correctness for the exporter APIs.

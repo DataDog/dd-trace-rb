@@ -100,6 +100,10 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('request')
           end
 
+          it 'has `client` as `span.kind`' do
+            expect(span.get_tag('span.kind')).to eq('client')
+          end
+
           it_behaves_like 'a peer service span' do
             let(:peer_hostname) { host }
           end

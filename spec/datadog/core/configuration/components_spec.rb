@@ -1030,6 +1030,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             recorder: instance_of(Datadog::Profiling::StackRecorder),
             max_frames: settings.profiling.advanced.max_frames,
+            tracer: tracer,
           )
 
           build_profiler

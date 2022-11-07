@@ -13,12 +13,13 @@ module Datadog
       module Rack
         module Gateway
           # Watcher for Rack gateway events
-          # rubocop:disable Metrics/ModuleLength
           module Watcher
             # rubocop:disable Metrics/AbcSize
             # rubocop:disable Metrics/MethodLength
+            # rubocop:disable Metrics/CyclomaticComplexity
+            # rubocop:disable Metrics/PerceivedComplexity
             def self.watch
-              Instrumentation.gateway.watch('rack.request') do |stack, request|
+              Instrumentation.gateway.watch('rack.request', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -27,23 +28,24 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Rack::Reactive::Request.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
-                    if record
+                  Rack::Reactive::Request.subscribe(op, waf_context) do |result, _block|
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Rack::Reactive::Request.publish(op, request)
+                  _result, block = Rack::Reactive::Request.publish(op, request)
                 end
 
                 next [nil, [[:block, event]]] if block
@@ -58,7 +60,7 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('rack.response') do |stack, response|
+              Instrumentation.gateway.watch('rack.response', :appsec) do |stack, response|
                 block = false
                 event = nil
                 waf_context = response.instance_eval { @waf_context }
@@ -67,23 +69,24 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Rack::Reactive::Response.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
-                    if record
+                  Rack::Reactive::Response.subscribe(op, waf_context) do |result, _block|
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
                         trace: trace,
                         span: span,
                         response: response,
-                        action: action
+                        actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Rack::Reactive::Response.publish(op, response)
+                  _result, block = Rack::Reactive::Response.publish(op, response)
                 end
 
                 next [nil, [[:block, event]]] if block
@@ -98,7 +101,7 @@ module Datadog
                 [ret, res]
               end
 
-              Instrumentation.gateway.watch('rack.request.body') do |stack, request|
+              Instrumentation.gateway.watch('rack.request.body', :appsec) do |stack, request|
                 block = false
                 event = nil
                 waf_context = request.env['datadog.waf.context']
@@ -107,23 +110,24 @@ module Datadog
                   trace = active_trace
                   span = active_span
 
-                  Rack::Reactive::RequestBody.subscribe(op, waf_context) do |action, result, _block|
-                    record = [:block, :monitor].include?(action)
-                    if record
+                  Rack::Reactive::RequestBody.subscribe(op, waf_context) do |result, _block|
+                    if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
                         trace: trace,
                         span: span,
                         request: request,
-                        action: action
+                        actions: result.actions
                       }
+
+                      span.set_tag('appsec.event', 'true') if span
 
                       waf_context.events << event
                     end
                   end
 
-                  _action, _result, block = Rack::Reactive::RequestBody.publish(op, request)
+                  _result, block = Rack::Reactive::RequestBody.publish(op, request)
                 end
 
                 next [nil, [[:block, event]]] if block
@@ -138,6 +142,8 @@ module Datadog
                 [ret, res]
               end
             end
+            # rubocop:enable Metrics/CyclomaticComplexity
+            # rubocop:enable Metrics/PerceivedComplexity
             # rubocop:enable Metrics/MethodLength
             # rubocop:enable Metrics/AbcSize
 
@@ -161,7 +167,6 @@ module Datadog
               end
             end
           end
-          # rubocop:enable Metrics/ModuleLength
         end
       end
     end

@@ -17,6 +17,7 @@ module Datadog
           TAG_COMMAND = 'memcached.command'.freeze
           TAG_COMPONENT = 'dalli'.freeze
           TAG_OPERATION_COMMAND = 'command'.freeze
+          TAG_SYSTEM = 'memcached'.freeze
         end
       end
     end

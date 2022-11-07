@@ -11,7 +11,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
     subject(:subscription) { described_class.new(span_name, options, &block) }
 
     let(:span_name) { double('span_name') }
-    let(:options) { {} }
+    let(:options) { { resource: 'dummy_resource' } }
     let(:payload) { {} }
     let(:block) do
       proc do |span_op, name, id, payload|

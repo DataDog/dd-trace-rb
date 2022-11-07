@@ -22,7 +22,6 @@ module Datadog
     # For async support, a {Datadog::Tracing::TraceOperation} should be employed
     # per execution context (e.g. Thread, etc.)
     #
-    # rubocop:disable Metrics/ClassLength
     # @public_api
     class TraceOperation
       include Metadata::Tagging
@@ -74,7 +73,7 @@ module Datadog
         @id = id || Core::Utils.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
-        @sampled = sampled.nil? ? false : sampled
+        @sampled = sampled.nil? ? true : sampled
 
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -462,6 +461,5 @@ module Datadog
         meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
       end
     end
-    # rubocop:enable Metrics/ClassLength
   end
 end

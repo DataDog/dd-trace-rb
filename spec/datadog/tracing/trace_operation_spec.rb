@@ -652,34 +652,42 @@ RSpec.describe Datadog::Tracing::TraceOperation do
   describe '#sampled?' do
     subject(:sampled?) { trace_op.sampled? }
 
-    it { is_expected.to be false }
-
-    context 'when :sampled is set' do
-      let(:options) { { sampled: true } }
-      it { is_expected.to be true }
+    it 'traces are sampled by default' do
+      is_expected.to be true
     end
 
-    context 'when :sampling_priority is set to' do
-      let(:options) { { sampling_priority: sampling_priority } }
+    context 'when :sampled is set in initializer' do
+      let(:options) { { sampled: false } }
+      it { is_expected.to be false }
+    end
 
-      context 'AUTO_KEEP' do
-        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
-        it { is_expected.to be true }
-      end
+    [true, false].each do |sampled|
+      context "when :sampled is set to #{sampled}" do
+        let(:options) { { sampled: sampled } }
 
-      context 'AUTO_REJECT' do
-        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
-        it { is_expected.to be false }
-      end
+        context 'when :sampling_priority is set to' do
+          let(:options) { super().merge(sampling_priority: sampling_priority) }
 
-      context 'USER_KEEP' do
-        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
-        it { is_expected.to be true }
-      end
+          context 'AUTO_KEEP' do
+            let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP }
+            it { is_expected.to be true }
+          end
 
-      context 'USER_REJECT' do
-        let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
-        it { is_expected.to be false }
+          context 'AUTO_REJECT' do
+            let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT }
+            it { is_expected.to be sampled }
+          end
+
+          context 'USER_KEEP' do
+            let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+            it { is_expected.to be true }
+          end
+
+          context 'USER_REJECT' do
+            let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
+            it { is_expected.to be sampled }
+          end
+        end
       end
     end
 
@@ -768,9 +776,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it do
       expect { keep! }
-        .to change { trace_op.sampled? }
-        .from(false)
-        .to(true)
+        .to_not change { trace_op.sampled? }
+        .from(true)
     end
 
     context 'when #sampled was true' do
@@ -807,8 +814,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it do
       expect { reject! }
-        .to_not change { trace_op.sampled? }
-        .from(false)
+        .to change { trace_op.sampled? }
+        .from(true).to(false)
     end
 
     context 'when #sampled was true' do

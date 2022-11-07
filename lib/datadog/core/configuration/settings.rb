@@ -15,7 +15,6 @@ module Datadog
       # Global configuration settings for the trace library.
       # @public_api
       # rubocop:disable Metrics/BlockLength
-      # rubocop:disable Metrics/ClassLength
       # rubocop:disable Layout/LineLength
       class Settings
         include Base
@@ -235,11 +234,17 @@ module Datadog
             # categorization of stack traces.
             option :code_provenance_enabled, default: true
 
-            # Use legacy transport code instead of HttpTransport. Temporarily added for migration to HttpTransport,
-            # and will be removed soon. Do not use unless instructed to by support.
+            # No longer does anything, and will be removed on dd-trace-rb 2.0.
+            #
+            # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
+            # but we're now confident it's working nicely so we've removed the old code path.
             option :legacy_transport_enabled do |o|
-              o.default { env_to_bool('DD_PROFILING_LEGACY_TRANSPORT_ENABLED', false) }
-              o.lazy
+              o.on_set do
+                Datadog.logger.warn(
+                  'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
+                  'longer does anything. Please remove it from your Datadog.configure block.'
+                )
+              end
             end
 
             # Forces enabling the new profiler. We do not yet recommend turning on this option.
@@ -324,8 +329,8 @@ module Datadog
 
             # Parse tags from environment
             env_to_list(Core::Environment::Ext::ENV_TAGS, comma_separated_only: false).each do |tag|
-              pair = tag.split(':')
-              tags[pair.first] = pair.last if pair.length == 2
+              key, value = tag.split(':', 2)
+              tags[key] = value if value && !value.empty?
             end
 
             # Override tags if defined
@@ -668,13 +673,27 @@ module Datadog
             # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
             #   be reported in traces.
             #
+            # Usage of the DD_TRACE_CLIENT_IP_HEADER_DISABLED environment variable is deprecated.
+            #
             # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
             #
-            # @default The negated value of the `DD_TRACE_CLIENT_IP_HEADER_DISABLED` environment
-            #   variable or `true` if it doesn't exist.
+            # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
             # @return [Boolean]
             option :enabled do |o|
-              o.default { !env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED, false) }
+              o.default do
+                disabled = env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
+
+                enabled = if disabled.nil?
+                            false
+                          else
+                            Datadog.logger.warn { "#{Tracing::Configuration::Ext::ClientIp::ENV_DISABLED} environment variable is deprecated, found set to #{disabled}, use #{Tracing::Configuration::Ext::ClientIp::ENV_ENABLED}=#{!disabled}" }
+
+                            !disabled
+                          end
+
+                # ENABLED env var takes precedence over deprecated DISABLED
+                env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
+              end
               o.lazy
             end
 
@@ -726,9 +745,7 @@ module Datadog
           end
         end
       end
-
       # rubocop:enable Metrics/BlockLength
-      # rubocop:enable Metrics/ClassLength
       # rubocop:enable Layout/LineLength
     end
   end
