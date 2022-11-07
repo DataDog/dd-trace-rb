@@ -3,7 +3,6 @@
 module Datadog
   module Tracing
     module Contrib
-      # rubocop:disable Metrics/ModuleLength:
       module Aws
         SERVICES = %w[
           ACM
@@ -117,7 +116,6 @@ module Datadog
           XRay
         ].freeze
       end
-      # rubocop:enable Metrics/ModuleLength:
     end
   end
 end

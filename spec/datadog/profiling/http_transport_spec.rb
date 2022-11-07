@@ -5,8 +5,9 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/http_transport'
 require 'datadog/profiling'
 
-require 'webrick'
+require 'json'
 require 'socket'
+require 'webrick'
 
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
@@ -291,23 +292,37 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         expect(request.header).to include(
           'content-type' => [%r{^multipart/form-data; boundary=(.+)}],
+          'dd-evp-origin' => ['dd-trace-rb'],
+          'dd-evp-origin-version' => [DDTrace::VERSION::STRING],
         )
 
         # check body
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch('event'))
 
-        expect(body).to include(
-          'version' => '3',
-          'family' => 'ruby',
+        expect(event_data).to eq(
+          'attachments' => [pprof_file_name, code_provenance_file_name],
+          'tags_profiler' => 'tag_a:value_a,tag_b:value_b',
           'start' => start_timestamp,
           'end' => end_timestamp,
-          "data[#{pprof_file_name}]" => pprof_data,
-          "data[#{code_provenance_file_name}]" => code_provenance_data,
+          'family' => 'ruby',
+          'version' => '4',
         )
+      end
 
-        tags = body['tags[]'].list
-        expect(tags).to contain_exactly('tag_a:value_a', 'tag_b:value_b')
+      it 'reports the payload as lz4-compressed files, that get automatically compressed by libdatadog' do
+        success = http_transport.export(flush)
+
+        expect(success).to be true
+
+        boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
+        body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+
+        require 'extlz4' # Lazily required, to avoid trying to load it on JRuby
+
+        expect(LZ4.decode(body.fetch(pprof_file_name))).to eq pprof_data
+        expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
     end
 
@@ -330,16 +345,18 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         # check body
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch('event'))
 
-        expect(body).to include(
-          'version' => '3',
-          'family' => 'ruby',
+        expect(event_data).to eq(
+          'attachments' => [pprof_file_name],
+          'tags_profiler' => 'tag_a:value_a,tag_b:value_b',
           'start' => start_timestamp,
           'end' => end_timestamp,
-          "data[#{pprof_file_name}]" => pprof_data,
+          'family' => 'ruby',
+          'version' => '4',
         )
 
-        expect(body["data[#{code_provenance_file_name}]"]).to be nil
+        expect(body[code_provenance_file_name]).to be nil
       end
     end
 
@@ -439,9 +456,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
+        event_data = JSON.parse(body.fetch('event'))
 
-        tags = body['tags[]'].list
-        expect(tags).to contain_exactly('valid1:valid1', 'valid2:valid2')
+        expect(event_data['tags_profiler']).to eq 'valid1:valid1,valid2:valid2'
       end
 
       it 'logs a warning' do
@@ -468,10 +485,10 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       # As the describe above says, here we're testing the cancellation behavior. If cancellation is not correctly
-      # implemented, then `ddprof_ffi_ProfileExporterV3_send` will block until `upload_timeout_seconds` is hit and
+      # implemented, then `ddog_ProfileExporter_send` will block until `upload_timeout_seconds` is hit and
       # nothing we could do on the Ruby VM side will interrupt it.
       # If it is correctly implemented, then the `exporter_thread.kill` will cause
-      # `ddprof_ffi_ProfileExporterV3_send` to return immediately and this test will quickly finish.
+      # `ddog_ProfileExporter_send` to return immediately and this test will quickly finish.
       it 'can be interrupted' do
         exporter_thread = Thread.new { http_transport.export(flush) }
         request_received_queue.pop

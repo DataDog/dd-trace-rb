@@ -102,11 +102,31 @@ RSpec.describe Datadog::AppSec::Processor do
       }
     end
 
-    context 'when ruleset is default' do
+    context 'when ruleset is :recommended' do
       let(:ruleset) { :recommended }
 
       before do
         expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:recommended).and_call_original.twice
+      end
+
+      it { expect(described_class.new.send(:load_ruleset)).to be true }
+    end
+
+    context 'when ruleset is :strict' do
+      let(:ruleset) { :strict }
+
+      before do
+        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:strict).and_call_original.twice
+      end
+
+      it { expect(described_class.new.send(:load_ruleset)).to be true }
+    end
+
+    context 'when ruleset is :risky' do
+      let(:ruleset) { :risky }
+
+      before do
+        expect(Datadog::AppSec::Assets).to receive(:waf_rules).with(:risky).and_call_original.twice
       end
 
       it { expect(described_class.new.send(:load_ruleset)).to be true }
@@ -243,11 +263,29 @@ RSpec.describe Datadog::AppSec::Processor do
     let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
     let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
     let(:input_scanner) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
+    let(:input_client_ip) { { 'http.client_ip' => '1.2.3.4' } }
+
+    let(:rule_data_client_ip) do
+      [
+        {
+          'id' => 'blocked_ips',
+          'type' => 'data_with_expiration',
+          'data' => [{ 'value' => '1.2.3.4', 'expiration' => (Time.now + 1000).to_i }]
+        }
+      ]
+    end
+
+    let(:rule_toggle_client_ip) { { 'blk-001-001' => false } }
 
     let(:input) { input_scanner }
 
     let(:processor) { described_class.new }
     subject(:context) { processor.new_context }
+
+    after do
+      context.finalize
+      processor.finalize
+    end
 
     it { is_expected.to be_a Datadog::AppSec::Processor::Context }
 
@@ -256,7 +294,7 @@ RSpec.describe Datadog::AppSec::Processor do
       let(:timeout) { 10_000_000_000 }
 
       let(:runs) { Array.new(run_count) { context.run(input, timeout) } }
-      let(:results) { runs.map(&:last) }
+      let(:results) { runs }
       let(:overall_runtime) { results.reduce(0) { |a, e| a + e.total_runtime } }
 
       let(:run) do
@@ -271,9 +309,16 @@ RSpec.describe Datadog::AppSec::Processor do
         results.first
       end
 
-      before { runs }
+      let(:rule_data) { nil }
+      let(:rule_toggle) { nil }
 
-      it { expect(result.action).to eq :monitor }
+      before do
+        processor.update_rule_data(rule_data) if rule_data
+        processor.toggle_rules(rule_toggle) if rule_toggle
+        runs
+      end
+
+      it { expect(result.status).to eq :match }
       it { expect(context.time_ns).to be > 0 }
       it { expect(context.time_ext_ns).to be > 0 }
       it { expect(context.time_ext_ns).to be > context.time_ns }
@@ -283,7 +328,7 @@ RSpec.describe Datadog::AppSec::Processor do
       context 'with timeout' do
         let(:timeout) { 0 }
 
-        it { expect(result.action).to eq :good }
+        it { expect(result.status).to eq :ok }
         it { expect(context.time_ns).to eq 0 }
         it { expect(context.time_ext_ns).to be > 0 }
         it { expect(context.timeouts).to eq run_count }
@@ -297,7 +342,7 @@ RSpec.describe Datadog::AppSec::Processor do
         context 'with timeout' do
           let(:timeout) { 0 }
 
-          it { expect(results.first.action).to eq :good }
+          it { expect(results.first.status).to eq :ok }
           it { expect(context.time_ns).to eq 0 }
           it { expect(context.time_ext_ns).to be > 0 }
           it { expect(context.timeouts).to eq run_count }
@@ -306,17 +351,23 @@ RSpec.describe Datadog::AppSec::Processor do
 
       describe '#run' do
         let(:matches) do
-          results.reject { |r| r.action == :good }
+          results.reject { |r| r.status == :ok }
         end
 
         let(:data) do
           matches.map(&:data).flatten
         end
 
+        let(:actions) do
+          matches.map(&:actions)
+        end
+
         context 'no attack' do
           let(:input) { input_safe }
 
           it { expect(matches).to eq [] }
+          it { expect(data).to eq [] }
+          it { expect(actions).to eq [] }
         end
 
         context 'one attack' do
@@ -324,6 +375,7 @@ RSpec.describe Datadog::AppSec::Processor do
 
           it { expect(matches).to have_attributes(count: 1) }
           it { expect(data).to have_attributes(count: 1) }
+          it { expect(actions).to eq [[]] }
         end
 
         context 'multiple attacks per run' do
@@ -331,6 +383,7 @@ RSpec.describe Datadog::AppSec::Processor do
 
           it { expect(matches).to have_attributes(count: 1) }
           it { expect(data).to have_attributes(count: 2) }
+          it { expect(actions).to eq [[]] }
         end
 
         context 'multiple runs' do
@@ -342,8 +395,13 @@ RSpec.describe Datadog::AppSec::Processor do
               ]
             end
 
+            # when the same attack is detected twice in the same context, it's
+            # only matching once therefore there's only one match result, thus
+            # one action list returned.
+
             it { expect(matches).to have_attributes(count: 1) }
             it { expect(data).to have_attributes(count: 1) }
+            it { expect(actions).to eq [[]] }
           end
 
           context 'different attacks' do
@@ -354,9 +412,32 @@ RSpec.describe Datadog::AppSec::Processor do
               ]
             end
 
+            # when two attacks are detected in the same context there are two
+            # match results, thus two action lists, one for each.
+
             it { expect(matches).to have_attributes(count: 2) }
             it { expect(data).to have_attributes(count: 2) }
+            it { expect(actions).to eq [[], []] }
           end
+        end
+
+        context 'one blockable attack' do
+          let(:input) { input_client_ip }
+          let(:rule_data) { rule_data_client_ip }
+
+          it { expect(matches).to have_attributes(count: 1) }
+          it { expect(data).to have_attributes(count: 1) }
+          it { expect(actions).to eq [['block']] }
+        end
+
+        context 'one blockable attack on a disabled rule' do
+          let(:input) { input_client_ip }
+          let(:rule_data) { rule_data_client_ip }
+          let(:rule_toggle) { rule_toggle_client_ip }
+
+          it { expect(matches).to have_attributes(count: 0) }
+          it { expect(data).to have_attributes(count: 0) }
+          it { expect(actions).to have_attributes(count: 0) }
         end
       end
     end

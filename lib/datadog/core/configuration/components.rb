@@ -18,7 +18,6 @@ module Datadog
   module Core
     module Configuration
       # Global components for the trace library.
-      # rubocop:disable Metrics/ClassLength
       class Components
         class << self
           def build_health_metrics(settings)
@@ -252,7 +251,8 @@ module Datadog
               recorder = Datadog::Profiling::StackRecorder.new
               collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
                 recorder: recorder,
-                max_frames: settings.profiling.advanced.max_frames
+                max_frames: settings.profiling.advanced.max_frames,
+                tracer: tracer,
               )
             else
               trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
@@ -321,18 +321,6 @@ module Datadog
 
           def build_profiler_transport(settings, agent_settings)
             settings.profiling.exporter.transport ||
-              if settings.profiling.advanced.legacy_transport_enabled
-                require_relative '../../profiling/transport/http'
-
-                Datadog.logger.warn('Using legacy profiling transport. Do not use unless instructed to by support.')
-
-                Profiling::Transport::HTTP.default(
-                  agent_settings: agent_settings,
-                  site: settings.site,
-                  api_key: settings.api_key,
-                  profiling_upload_timeout_seconds: settings.profiling.upload.timeout_seconds
-                )
-              end ||
               Profiling::HttpTransport.new(
                 agent_settings: agent_settings,
                 site: settings.site,
@@ -431,7 +419,6 @@ module Datadog
           telemetry.emit_closing! unless replacement
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end

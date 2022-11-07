@@ -80,7 +80,7 @@ module Datadog
 
           if encoded.size > max_size
             # This single trace is too large, we can't flush it
-            Datadog.logger.debug { "Dropping trace. Payload too large: '#{trace.map(&:to_hash)}'" }
+            Datadog.logger.debug { "Dropping trace. Payload too large: '#{trace.inspect}'" }
             Datadog.health_metrics.transport_trace_too_large(1)
 
             return nil
@@ -100,6 +100,8 @@ module Datadog
 
           # Make the trace serializable
           serializable_trace = SerializableTrace.new(trace)
+
+          Datadog.logger.debug { "Flushing trace: #{JSON.dump(serializable_trace)}" }
 
           # Encode the trace
           encoder.encode(serializable_trace)

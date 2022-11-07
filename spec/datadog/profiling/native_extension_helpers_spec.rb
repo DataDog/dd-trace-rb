@@ -25,7 +25,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
           raise('Missing SOEXT for current platform')
 
         gem_lib_folder = "#{Gem.loaded_specs['ddtrace'].gem_dir}/lib"
-        full_libdatadog_path = "#{gem_lib_folder}/#{relative_path}/libddprof_ffi.#{libdatadog_extension}"
+        full_libdatadog_path = "#{gem_lib_folder}/#{relative_path}/libdatadog_profiling.#{libdatadog_extension}"
 
         expect(relative_path).to start_with('../')
         expect(File.exist?(full_libdatadog_path))

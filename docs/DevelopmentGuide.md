@@ -27,8 +27,8 @@ To start a development environment, choose a target Ruby version then run the fo
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
-# Create and start a Ruby 2.3 test environment with its dependencies
-docker-compose run --rm tracer-2.3 /bin/bash
+# Create and start a Ruby 3.0 test environment with its dependencies
+docker-compose run --rm tracer-3.0 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies

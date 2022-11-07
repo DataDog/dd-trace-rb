@@ -35,8 +35,8 @@ RSpec.describe Datadog::Profiling::Exporter do
         code_provenance_file_name: 'code-provenance.json',
         tags_as_array: array_including(%w[language ruby], ['process_id', Process.pid.to_s]),
       )
-      expect(Datadog::Core::Utils::Compression.gunzip(flush.pprof_data)).to eq pprof_data
-      expect(Datadog::Core::Utils::Compression.gunzip(flush.code_provenance_data)).to eq code_provenance_data
+      expect(flush.pprof_data).to eq pprof_data
+      expect(flush.code_provenance_data).to eq code_provenance_data
     end
 
     context 'when pprof recorder has no data' do

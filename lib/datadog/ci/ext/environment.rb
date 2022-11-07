@@ -10,7 +10,6 @@ module Datadog
   module CI
     module Ext
       # Defines constants for CI tags
-      # rubocop:disable Metrics/ModuleLength:
       module Environment
         include Kernel # Ensure that kernel methods are always available (https://sorbet.org/docs/error-reference#7003)
 
@@ -513,7 +512,6 @@ module Datadog
           [nil, name_and_email]
         end
       end
-      # rubocop:enable Metrics/ModuleLength:
     end
   end
 end

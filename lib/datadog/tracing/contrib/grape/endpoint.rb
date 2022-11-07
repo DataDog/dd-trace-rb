@@ -9,7 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Grape
-        # rubocop:disable Metrics/ModuleLength
         # Endpoint module includes a list of subscribers to create
         # traces when a Grape endpoint is hit
         module Endpoint
@@ -245,7 +244,6 @@ module Datadog
             end
           end
         end
-        # rubocop:enable Metrics/ModuleLength
       end
     end
   end

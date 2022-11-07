@@ -11,7 +11,6 @@ module Datadog
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_PG_ANALYTICS_ENABLED'.freeze
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_PG_ANALYTICS_SAMPLE_RATE'.freeze
           DEFAULT_PEER_SERVICE_NAME = 'pg'.freeze
-          SPAN_SYSTEM = 'postgresql'.freeze
           SPAN_EXEC = 'pg.exec'.freeze
           SPAN_EXEC_PARAMS = 'pg.exec.params'.freeze
           SPAN_EXEC_PREPARED = 'pg.exec.prepared'.freeze
@@ -24,6 +23,8 @@ module Datadog
           TAG_DB_NAME = 'pg.db.name'.freeze
           TAG_COMPONENT = 'pg'.freeze
           TAG_OPERATION_QUERY = 'query'.freeze
+
+          TAG_SYSTEM = 'postgresql'.freeze
         end
       end
     end

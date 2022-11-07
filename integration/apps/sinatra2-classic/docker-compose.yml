@@ -25,8 +25,11 @@ services:
       # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
       # Enable building the profiling native extension
       - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
+      # - DD_TRACE_DEBUG=true
     expose:
       - "80"
+    # ports:
+    #   - "80:80"
     stdin_open: true
     tty: true
     volumes:
