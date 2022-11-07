@@ -246,6 +246,13 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         it { is_expected.to have_attributes(sample_rate: sample_rate) }
       end
 
+      context ':sampling_decision_maker' do
+        let(:options) { { tags: { '_dd.p.dm' => sampling_decision_maker } } }
+        let(:sampling_decision_maker) { '-1' }
+
+        it { is_expected.to have_attributes(sampling_decision_maker: sampling_decision_maker) }
+      end
+
       context ':sampling_priority' do
         let(:options) do
           { tags: { Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority } }

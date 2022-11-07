@@ -914,8 +914,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'with service rates returned by response' do
           let(:service_rates) { double('service rates') }
 
-          it 'updates sampler with service rates' do
-            expect(sampler).to receive(:update).with(service_rates)
+          it 'updates sampler with service rates and set decision to AGENT_RATE' do
+            expect(sampler).to receive(:update).with(service_rates, decision: '-1')
             call
           end
         end

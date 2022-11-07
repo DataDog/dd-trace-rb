@@ -45,6 +45,10 @@ module Datadog
         # @public_api
         # Tags related to distributed tracing
         module Distributed
+          # What mechanism was used to make this trace's sampling decision.
+          # @see Datadog::Tracing::Sampling::Ext::Mechanism
+          TAG_DECISION_MAKER = '_dd.p.dm'
+
           TAG_ORIGIN = '_dd.origin'
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
 

@@ -133,11 +133,13 @@ module Datadog
       def keep!
         self.sampled = true
         self.sampling_priority = Sampling::Ext::Priority::USER_KEEP
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
       def reject!
         self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
       def name

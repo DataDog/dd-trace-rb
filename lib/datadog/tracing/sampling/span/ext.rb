@@ -18,10 +18,6 @@ module Datadog
           TAG_RULE_RATE = '_dd.span_sampling.rule_rate'
           # Rate limit configured for this span, if a rule applies
           TAG_MAX_PER_SECOND = '_dd.span_sampling.max_per_second'
-
-          # This span was sampled on account of a Span Sampling Rule
-          # @see Datadog::Tracing::Sampling::Span::Rule
-          MECHANISM_SPAN_SAMPLING_RATE = 8
         end
       end
     end

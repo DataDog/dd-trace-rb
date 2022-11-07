@@ -12,7 +12,7 @@ module Datadog
         attr_reader \
           :default_key
 
-        def initialize(default_key, default_rate = 1.0, &block)
+        def initialize(default_key, default_rate = 1.0, decision: nil, &block)
           super()
 
           raise ArgumentError, 'No resolver given!' unless block
@@ -22,7 +22,7 @@ module Datadog
           @mutex = Mutex.new
           @samplers = {}
 
-          set_rate(default_key, default_rate)
+          set_rate(default_key, default_rate, decision)
         end
 
         def resolve(trace)
@@ -57,15 +57,15 @@ module Datadog
           end
         end
 
-        def update(key, rate)
+        def update(key, rate, decision: nil)
           @mutex.synchronize do
-            set_rate(key, rate)
+            set_rate(key, rate, decision)
           end
         end
 
-        def update_all(rate_by_key)
+        def update_all(rate_by_key, decision: nil)
           @mutex.synchronize do
-            rate_by_key.each { |key, rate| set_rate(key, rate) }
+            rate_by_key.each { |key, rate| set_rate(key, rate, decision) }
           end
         end
 
@@ -87,9 +87,8 @@ module Datadog
 
         private
 
-        def set_rate(key, rate)
-          @samplers[key] ||= RateSampler.new(rate)
-          @samplers[key].sample_rate = rate
+        def set_rate(key, rate, decision)
+          @samplers[key] = RateSampler.new(rate, decision: decision)
         end
       end
     end
