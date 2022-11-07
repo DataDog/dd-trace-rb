@@ -812,10 +812,11 @@ RSpec.describe Datadog::Tracing::Tracer do
       it 'causes next #trace to continue the trace' do
         tracer.trace('operation') do |span, trace|
           expect(trace).to have_attributes(
-            distributed_tags: { '_dd.p.test' => 'value' },
             origin: digest.trace_origin,
             sampling_priority: digest.trace_sampling_priority,
           )
+
+          expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
 
           expect(span).to have_attributes(
             parent_id: digest.span_id,

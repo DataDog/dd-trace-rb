@@ -100,7 +100,7 @@ module Datadog
           rate_limiter.allow?(1).tap do |allowed|
             set_priority(trace, allowed)
             set_limiter_metrics(trace, rate_limiter.effective_rate)
-            trace.sampling_mechanism = Ext::Mechanism::TRACE_SAMPLING_RULE
+            trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Ext::Decision::TRACE_SAMPLING_RULE)
           end
         rescue StandardError => e
           Datadog.logger.error(

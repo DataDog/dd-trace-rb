@@ -11,6 +11,7 @@ gem 'builder'
 gem 'climate_control', '~> 0.2.0'
 # Leave it open as we also have it as an integration and want Appraisal to control the version under test.
 gem 'concurrent-ruby'
+gem 'extlz4', '~> 0.3', '>= 0.3.3' if RUBY_PLATFORM != 'java' # Used to test lz4 compression done by libdatadog
 gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
@@ -28,8 +29,9 @@ end
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
-gem 'rspec', '~> 3.10'
+gem 'rspec', '~> 3.11'
 gem 'rspec-collection_matchers', '~> 1.1'
+gem 'rspec-mocks', ['!= 3.11.2', '!= 3.12.0'] # Temporary workaround for #2327
 if RUBY_VERSION >= '2.3.0'
   gem 'rspec_junit_formatter', '>= 0.5.1'
 else

@@ -30,7 +30,7 @@ module Datadog
         # DEV-2.0: sampler = RateSampler.new
         # DEV-2.0: sampler.sample_rate = sample_rate
         # DEV-2.0: ```
-        def initialize(sample_rate = 1.0, mechanism: nil)
+        def initialize(sample_rate = 1.0, decision: nil)
           super()
 
           unless sample_rate > 0.0 && sample_rate <= 1.0
@@ -40,7 +40,7 @@ module Datadog
 
           self.sample_rate = sample_rate
 
-          @mechanism = mechanism
+          @decision = decision
         end
 
         def sample_rate(*_)
@@ -62,7 +62,7 @@ module Datadog
           return false unless sampled
 
           trace.sample_rate = @sample_rate
-          trace.sampling_mechanism = @mechanism
+          trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, @decision) if @decision
 
           true
         end

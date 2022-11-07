@@ -31,7 +31,7 @@ module Datadog
         :rule_sample_rate,
         :runtime_id,
         :sample_rate,
-        :sampling_mechanism,
+        :sampling_decision_maker,
         :sampling_priority,
         :service
 
@@ -53,7 +53,6 @@ module Datadog
         rule_sample_rate: nil,
         runtime_id: nil,
         sample_rate: nil,
-        sampling_mechanism: nil,
         sampling_priority: nil,
         service: nil,
         tags: nil,
@@ -80,7 +79,7 @@ module Datadog
         @rule_sample_rate = rule_sample_rate_tag || rule_sample_rate
         @runtime_id = runtime_id || runtime_id_tag
         @sample_rate = sample_rate || sample_rate_tag
-        @sampling_mechanism = sampling_mechanism || sampling_mechanism_tag
+        @sampling_decision_maker = sampling_decision_maker_tag
         @sampling_priority = sampling_priority || sampling_priority_tag
         @service = Core::Utils::SafeDup.frozen_or_dup(service || service_tag)
       end
@@ -198,7 +197,7 @@ module Datadog
         metrics[Metadata::Ext::Sampling::TAG_SAMPLE_RATE]
       end
 
-      def sampling_mechanism_tag
+      def sampling_decision_maker_tag
         meta[Metadata::Ext::Distributed::TAG_DECISION_MAKER]
       end
 

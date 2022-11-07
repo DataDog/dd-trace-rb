@@ -21,10 +21,7 @@ module Datadog
 
         def initialize(opts = {})
           @pre_sampler = opts[:base_sampler] || AllSampler.new
-          @priority_sampler = opts[:post_sampler] ||
-            RateByServiceSampler.new(
-              mechanism: Sampling::Ext::Mechanism::AGENT_RATE,
-            )
+          @priority_sampler = opts[:post_sampler] || RateByServiceSampler.new(decision: Sampling::Ext::Decision::AGENT_RATE)
         end
 
         def sample?(trace)
@@ -66,23 +63,26 @@ module Datadog
 
           trace.sampled?
         ensure
-          if trace.sampling_priority > 0
-            # Don't modify mechanism if priority was set upstream.
-            unless distributed_sampling_priority
+          if trace.sampling_priority && trace.sampling_priority > 0
+            # Don't modify decision if priority was set upstream.
+            if !distributed_sampling_priority && !trace.has_tag?(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
               # If no sampling priority being assigned at this point, a custom
               # sampler implementation is configured: this means the user has
               # full control over the sampling decision.
-              trace.sampling_mechanism ||= Sampling::Ext::Mechanism::MANUAL
+              trace.set_tag(
+                Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                Sampling::Ext::Decision::MANUAL
+              )
             end
           else
-            # The sampler decided to not keep this span, removing sampling mechanism.
-            trace.sampling_mechanism = nil
+            # The sampler decided to not keep this span, removing sampling decision.
+            trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
           end
         end
 
         # (see Datadog::Tracing::Sampling::RateByServiceSampler#update)
-        def update(rate_by_service, mechanism: nil)
-          @priority_sampler.update(rate_by_service, mechanism: mechanism)
+        def update(rate_by_service, decision: nil)
+          @priority_sampler.update(rate_by_service, decision: decision)
         end
 
         private
@@ -112,11 +112,16 @@ module Datadog
         # The @pre_sampler should only change `trace.sampled`.
         def preserving_priority_sampling(trace)
           sampling_priority = trace.sampling_priority
-          sampling_mechanism = trace.sampling_mechanism
+          sampling_decision = trace.get_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
 
           yield.tap do
             trace.sampling_priority = sampling_priority
-            trace.sampling_mechanism = sampling_mechanism
+
+            if sampling_decision
+              trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, sampling_decision)
+            else
+              trace.clear_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER)
+            end
           end
         end
 

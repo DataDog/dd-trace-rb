@@ -18,8 +18,14 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
         expect { sample! }.to_not(change { span_op.send(:build_span).to_hash })
       end
 
-      it 'does not change sampling mechanism' do
-        expect { sample! }.to_not(change { trace_op.sampling_mechanism })
+      it 'does not change sampling decision' do
+        expect { sample! }.to_not(
+          change do
+            trace_op.get_tag(
+              Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER
+            )
+          end
+        )
       end
     end
 
@@ -27,7 +33,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
       it do
         sample!
         expect(span_op.get_metric('_dd.span_sampling.mechanism')).to_not be_nil
-        expect(trace_op.sampling_mechanism).to eq(8)
+        expect(trace_op.get_tag('_dd.p.dm')).to eq('-8')
       end
     end
 
@@ -49,7 +55,9 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
       context 'a rejected trace' do
         before { trace_op.reject! }
 
-        it_behaves_like 'set sampling decision'
+        it_behaves_like 'set sampling decision' do
+          let(:decision_carrier) { span_op }
+        end
 
         context 'multiple rules' do
           let(:rules) do
@@ -64,7 +72,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
 
             expect(span_op.get_metric('_dd.span_sampling.rule_rate')).to eq(1.0)
             expect(span_op.get_metric('_dd.span_sampling.max_per_second')).to eq(3)
-            expect(trace_op.sampling_mechanism).to eq(8)
+            expect(trace_op.get_tag('_dd.p.dm')).to eq('-8')
           end
         end
       end
@@ -75,7 +83,9 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
           trace_op.sampling_priority = Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT
         end
 
-        it_behaves_like 'set sampling decision'
+        it_behaves_like 'set sampling decision' do
+          let(:decision_carrier) { trace_op }
+        end
       end
 
       context 'that rejects spans' do

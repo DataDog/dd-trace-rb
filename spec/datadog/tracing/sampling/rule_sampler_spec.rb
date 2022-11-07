@@ -97,7 +97,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     shared_examples 'a sampled! trace' do
       before { subject }
 
-      let(:sampling_mechanism) { defined?(super) ? super() : 3 }
+      let(:sampling_decision) { defined?(super) ? super() : '-3' }
 
       it { is_expected.to eq(expected_sampled) }
 
@@ -117,8 +117,8 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         expect(trace.sampling_priority).to eq(sampling_priority)
       end
 
-      it 'sets the sampling mechanism' do
-        expect(trace.sampling_mechanism).to eq(sampling_mechanism)
+      it 'sets the sampling decision' do
+        expect(trace.get_tag('_dd.p.dm')).to eq(sampling_decision)
       end
     end
 
@@ -153,7 +153,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         it_behaves_like 'a sampled! trace' do
           let(:expected_sampled) { false }
           let(:sampling_priority) { -1 }
-          let(:sampling_mechanism) { nil }
+          let(:sampling_decision) { nil }
           let(:effective_rate) { nil } # Rate limiter was not evaluated
         end
       end
@@ -202,10 +202,10 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   end
 
   describe '#update' do
-    subject(:update) { rule_sampler.update(rates, mechanism: mechanism) }
+    subject(:update) { rule_sampler.update(rates, decision: decision) }
 
     let(:rates) { { 'service:my-service,env:test' => rand } }
-    let(:mechanism) { double('mechanism') }
+    let(:decision) { 'test decision' }
 
     context 'when configured with a default sampler' do
       context 'that responds to #update' do
@@ -214,8 +214,8 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           stub_const(
             'TestSampler',
             Class.new(Datadog::Tracing::Sampling::Sampler) do
-              def update(rates, mechanism: nil)
-                [rates, mechanism]
+              def update(rates, decision: nil)
+                [rates, decision]
               end
             end
           )
@@ -228,7 +228,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
 
         it 'forwards to the default sampler' do
           expect(default_sampler).to have_received(:update)
-            .with(rates, mechanism: mechanism)
+            .with(rates, decision: decision)
         end
       end
 
