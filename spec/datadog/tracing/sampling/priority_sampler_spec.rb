@@ -32,13 +32,13 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
 
     shared_examples_for 'priority sampling' do
       let(:trace) { Datadog::Tracing::TraceOperation.new(id: 1) }
-      let(:mechanism) { defined?(super) ? super() : 1 }
+      let(:decision) { defined?(super) ? super() : '-1' }
 
       context 'by default' do
         it do
           expect(sample).to be true
           expect(trace.sampled?).to be(true)
-          expect(trace.sampling_mechanism).to be(mechanism)
+          expect(trace.get_tag('_dd.p.dm')).to eq(decision)
         end
       end
 
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
           expect(trace.sampling_priority).to be(sampling_priority)
           expect(trace.sampled?).to be(true)
           expect(trace.sample_rate).to eq(sample_rate_tag_value)
-          expect(trace.sampling_mechanism).to be(mechanism)
+          expect(trace.get_tag('_dd.p.dm')).to eq(decision)
         end
       end
 
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
           expect(trace.sampling_priority).to be(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
           expect(trace.sampled?).to be(true)
           expect(trace.sample_rate).to eq(sample_rate_tag_value)
-          expect(trace.sampling_mechanism).to be(nil)
+          expect(trace.get_tag('_dd.p.dm')).to be(nil)
         end
       end
 
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
           expect(trace.sampling_priority).to be(Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP)
           expect(trace.sampled?).to be(true)
           expect(trace.sample_rate).to eq(sample_rate_tag_value)
-          expect(trace.sampling_mechanism).to be(nil)
+          expect(trace.get_tag('_dd.p.dm')).to be(nil)
         end
       end
 
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
           expect(trace.sampling_priority).to be(Datadog::Tracing::Sampling::Ext::Priority::AUTO_REJECT)
           expect(trace.sampled?).to be(true) # Priority sampling always samples
           expect(trace.sample_rate).to eq(sample_rate_tag_value)
-          expect(trace.sampling_mechanism).to be(nil)
+          expect(trace.get_tag('_dd.p.dm')).to be(nil)
         end
       end
 
@@ -96,7 +96,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
           expect(trace.sampling_priority).to be(Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT)
           expect(trace.sampled?).to be(true) # Priority sampling always samples
           expect(trace.sample_rate).to eq(sample_rate_tag_value)
-          expect(trace.sampling_mechanism).to be(nil)
+          expect(trace.get_tag('_dd.p.dm')).to be(nil)
         end
       end
     end
@@ -129,12 +129,12 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
         it_behaves_like 'priority sampling' do
           # It must set this tag; otherwise it won't scale up metrics properly.
           let(:sample_rate_tag_value) { sample_rate }
-          let(:mechanism) { 4 }
+          let(:decision) { '-4' }
         end
 
-        context 'with mechanism set' do
-          let(:post_sampler) { Datadog::Tracing::Sampling::RateSampler.new(1.0, mechanism: mechanism) }
-          let(:mechanism) { double('mechanism') }
+        context 'with decision set' do
+          let(:post_sampler) { Datadog::Tracing::Sampling::RateSampler.new(1.0, decision: decision) }
+          let(:decision) { 'test decision' }
 
           it_behaves_like 'priority sampling' do
             # It must set this tag; otherwise it won't scale up metrics properly.
@@ -152,7 +152,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
 
       context 'with a priority-sampler that sets sampling rate metrics' do
         let(:post_sampler) { Datadog::Tracing::Sampling::RateSampler.new(1.0) }
-        let(:mechanism) { 4 }
+        let(:decision) { '-4' }
 
         it_behaves_like 'priority sampling without scaling'
       end
@@ -161,14 +161,14 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
     context 'when configured with a priority-sampler RateByServiceSampler < 1.0' do
       let(:post_sampler) { Datadog::Tracing::Sampling::RateByServiceSampler.new(sample_rate, env: env) }
       let(:sample_rate) { 0.5 }
-      let(:mechanism) { 0 }
+      let(:decision) { '-0' }
       let(:env) { 'test-env' }
 
       it_behaves_like 'priority sampling without scaling'
 
       context 'with agent rates' do
-        before { post_sampler.update({ 'service:,env:test-env' => 0.5 }, mechanism: mechanism) }
-        let(:mechanism) { double('mechanism') }
+        before { post_sampler.update({ 'service:,env:test-env' => 0.5 }, decision: decision) }
+        let(:decision) { 'test decision' }
 
         it_behaves_like 'priority sampling without scaling'
       end
@@ -177,7 +177,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
     context 'when configured with a priority-sampler RuleSampler' do
       let(:keep_priority) {  Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
       let(:drop_priority) {  Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT }
-      let(:mechanism) { 3 }
+      let(:decision) { '-3' }
 
       context 'that keeps the trace' do
         let(:post_sampler) { Datadog::Tracing::Sampling::RuleSampler.new(rate_limit: 100, default_sample_rate: 1.0) }
@@ -191,7 +191,7 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
         let(:post_sampler) { Datadog::Tracing::Sampling::RuleSampler.new(rate_limit: 100, default_sample_rate: 0.0) }
         let(:sample_rate) { 0.0 }
         let(:sampling_priority) { drop_priority }
-        let(:mechanism) { nil }
+        let(:decision) { nil }
 
         it_behaves_like 'priority sampling without scaling'
       end

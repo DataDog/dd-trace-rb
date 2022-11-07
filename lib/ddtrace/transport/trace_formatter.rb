@@ -48,7 +48,7 @@ module Datadog
         tag_runtime_id!
         tag_rate_limiter_rate!
         tag_sample_rate!
-        tag_sampling_mechanism!
+        tag_sampling_decision_maker!
         tag_sampling_priority!
 
         trace
@@ -156,16 +156,10 @@ module Datadog
         )
       end
 
-      # The `_dd.p.dm` is comprised of two parts, separated by a `-`:
-      # `part1-sampling_mechanism`. `part1` is currently not populated, thus
-      # this tag is currently formatted as `"-sampling_mechanism"`.
-      def tag_sampling_mechanism!
-        return unless trace.sampling_mechanism
+      def tag_sampling_decision_maker!
+        return unless (decision = trace.sampling_decision_maker)
 
-        root_span.set_tag(
-          Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-          "-#{trace.sampling_mechanism}"
-        )
+        root_span.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, decision)
       end
 
       def tag_sampling_priority!

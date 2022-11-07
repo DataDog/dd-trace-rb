@@ -86,13 +86,13 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
         end
       end
 
-      context 'and mechanism is set' do
-        subject(:sampler) { described_class.new(sample_rate, mechanism: mechanism) }
-        let(:mechanism) { double('mechanism') }
+      context 'and decision is set' do
+        subject(:sampler) { described_class.new(sample_rate, decision: decision) }
+        let(:decision) { 'test decision' }
 
-        it 'sets trace mechanism' do
+        it 'sets trace decision' do
           sample!
-          expect(trace.sampling_mechanism).to eq(mechanism)
+          expect(trace.get_tag('_dd.p.dm')).to eq(decision)
         end
       end
     end
@@ -100,9 +100,9 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
     context 'when a sample rate of 0.0 is set' do
       let(:sample_rate) { Float::MIN } # Can't set to exactly zero because of safeguard
 
-      it 'does not trace mechanism' do
+      it 'does not trace decision' do
         sample!
-        expect(trace.sampling_mechanism).to be_nil
+        expect(trace.get_tag('_dd.p.dm')).to be_nil
       end
     end
   end

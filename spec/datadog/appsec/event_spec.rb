@@ -84,7 +84,8 @@ RSpec.describe Datadog::AppSec::Event do
             'http.useragent' => 'Ruby/0.0',
             'http.request.headers.user-agent' => 'Ruby/0.0',
             'network.client.ip' => '127.0.0.1',
-            '_dd.origin' => 'appsec'
+            '_dd.origin' => 'appsec',
+            '_dd.p.dm' => '-5',
           )
         end
 

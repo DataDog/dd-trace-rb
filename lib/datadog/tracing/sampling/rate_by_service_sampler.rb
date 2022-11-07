@@ -11,23 +11,23 @@ module Datadog
       class RateByServiceSampler < RateByKeySampler
         DEFAULT_KEY = 'service:,env:'.freeze
 
-        def initialize(default_rate = 1.0, env: nil, mechanism: Datadog::Tracing::Sampling::Ext::Mechanism::DEFAULT)
+        def initialize(default_rate = 1.0, env: nil, decision: Datadog::Tracing::Sampling::Ext::Decision::DEFAULT)
           super(
             DEFAULT_KEY,
             default_rate,
-            mechanism: mechanism,
+            decision: decision,
             &method(:key_for)
           )
 
           @env = env
         end
 
-        def update(rate_by_service, mechanism: nil)
+        def update(rate_by_service, decision: nil)
           # Remove any old services
           delete_if { |key, _| key != DEFAULT_KEY && !rate_by_service.key?(key) }
 
           # Update each service rate
-          update_all(rate_by_service, mechanism: mechanism)
+          update_all(rate_by_service, decision: decision)
 
           # Emit metric for service cache size
           Datadog.health_metrics.sampling_service_cache_length(length)

@@ -36,7 +36,6 @@ module Datadog
         :rate_limiter_rate,
         :rule_sample_rate,
         :sample_rate,
-        :sampling_mechanism,
         :sampling_priority
 
       attr_reader \
@@ -66,7 +65,6 @@ module Datadog
         rule_sample_rate: nil,
         sample_rate: nil,
         sampled: nil,
-        sampling_mechanism: nil,
         sampling_priority: nil,
         service: nil,
         tags: nil,
@@ -87,7 +85,6 @@ module Datadog
         @resource = resource
         @rule_sample_rate = rule_sample_rate
         @sample_rate = sample_rate
-        @sampling_mechanism = sampling_mechanism
         @sampling_priority = sampling_priority
         @service = service
 
@@ -137,13 +134,13 @@ module Datadog
       def keep!
         self.sampled = true
         self.sampling_priority = Sampling::Ext::Priority::USER_KEEP
-        self.sampling_mechanism = Datadog::Tracing::Sampling::Ext::Mechanism::MANUAL
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
       def reject!
         self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
-        self.sampling_mechanism = Datadog::Tracing::Sampling::Ext::Mechanism::MANUAL
+        set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
 
       def name
@@ -163,13 +160,6 @@ module Datadog
 
       def service
         @service || (root_span && root_span.service)
-      end
-
-      # Returns tracer tags that will be propagated if this span's context
-      # is exported through {.to_digest}.
-      # @return [Hash] key value pairs of distributed tags
-      def distributed_tags
-        meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
       end
 
       def measure(
@@ -299,7 +289,6 @@ module Datadog
           trace_process_id: Core::Environment::Identity.pid,
           trace_resource: resource,
           trace_runtime_id: Core::Environment::Identity.id,
-          trace_sampling_mechanism: @sampling_mechanism,
           trace_sampling_priority: @sampling_priority,
           trace_service: service,
         ).freeze
@@ -458,7 +447,6 @@ module Datadog
           rule_sample_rate: @rule_sample_rate,
           runtime_id: Core::Environment::Identity.id,
           sample_rate: @sample_rate,
-          sampling_mechanism: @sampling_mechanism,
           sampling_priority: @sampling_priority,
           name: name,
           resource: resource,
@@ -467,6 +455,13 @@ module Datadog
           metrics: metrics,
           root_span_id: !partial ? root_span && root_span.id : nil
         )
+      end
+
+      # Returns tracer tags that will be propagated if this span's context
+      # is exported through {.to_digest}.
+      # @return [Hash] key value pairs of distributed tags
+      def distributed_tags
+        meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }
       end
     end
     # rubocop:enable Metrics/ClassLength
