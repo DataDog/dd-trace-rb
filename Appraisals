@@ -110,6 +110,7 @@ if ruby_version?('2.1')
     gem 'mysql2', '0.3.21'
     gem 'pg', '>= 0.18.4', '< 1.0'
     gem 'rack', '1.4.7'
+    gem 'rack-contrib'
     gem 'rack-cache', '1.7.1'
     gem 'rack-test', '0.7.0'
     gem 'rake', '< 12.3'
@@ -288,6 +289,7 @@ elsif ruby_version?('2.2')
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
+    gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'redis', '< 4.0'
@@ -312,6 +314,12 @@ elsif ruby_version?('2.2')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.3')
+  appraise 'hanami-1' do
+    gem 'rack'
+    gem 'rack-test'
+    gem 'hanami', '~> 1'
+  end
+
   appraise 'rails32-mysql2' do
     gem 'test-unit'
     gem 'rails', '3.2.22.5'
@@ -472,6 +480,7 @@ elsif ruby_version?('2.3')
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
+    gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'redis', '< 4.0'
@@ -502,6 +511,12 @@ elsif ruby_version?('2.3')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.4')
+  appraise 'hanami-1' do
+    gem 'rack'
+    gem 'rack-test'
+    gem 'hanami', '~> 1'
+  end
+
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1'
@@ -590,6 +605,7 @@ elsif ruby_version?('2.4')
     gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
+    gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'redis', '< 4.0'
@@ -621,6 +637,12 @@ elsif ruby_version?('2.4')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.5')
+  appraise 'hanami-1' do
+    gem 'rack'
+    gem 'rack-test'
+    gem 'hanami', '~> 1'
+  end
+
   appraise 'rails5-mysql2' do
     gem 'rails', '~> 5.2.1'
     gem 'mysql2', '< 1', platform: :ruby
@@ -838,6 +860,7 @@ elsif ruby_version?('2.5')
     gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
+    gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'redis', '< 4.0'
@@ -871,6 +894,12 @@ elsif ruby_version?('2.5')
   end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.6')
+    appraise 'hanami-1' do
+      gem 'rack'
+      gem 'rack-test'
+      gem 'hanami', '~> 1'
+    end
+
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
@@ -1062,6 +1091,7 @@ elsif ruby_version?('2.6')
       gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
+      gem 'rack-contrib'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -1095,6 +1125,12 @@ elsif ruby_version?('2.6')
     end
 # ----------------------------------------------------------------------------------------------------------------------
 elsif ruby_version?('2.7')
+    appraise 'hanami-1' do
+      gem 'rack'
+      gem 'rack-test'
+      gem 'hanami', '~> 1'
+    end
+
     appraise 'rails5-mysql2' do
       gem 'rails', '~> 5.2.1'
       gem 'mysql2', '< 1', platform: :ruby
@@ -1266,6 +1302,7 @@ elsif ruby_version?('2.7')
       gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
+      gem 'rack-contrib'
       gem 'rack-test'
       gem 'rake', '>= 12.3'
       gem 'redis', '< 4.0'
@@ -1381,6 +1418,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
+    gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'redis', '< 4.0'
@@ -1496,6 +1534,7 @@ elsif ruby_version?('3.2')
     gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
+    gem 'rack-contrib'
     gem 'rack-test'
     gem 'rake', '>= 12.3'
     gem 'redis', '< 4.0'
@@ -1514,6 +1553,7 @@ elsif ruby_version?('3.2')
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
+    gem 'nokogiri', platform: :ruby # TODO: binary gem has max ruby version constraint excluding previews, switch to using minimum version constraint once a non-3.2-excluding binary gem is released
   end
 
   appraise 'contrib-old' do

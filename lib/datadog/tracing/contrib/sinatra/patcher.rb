@@ -1,4 +1,4 @@
-# typed: true
+# typed: false
 
 require_relative '../../../core/utils/only_once'
 require_relative '../patcher'
@@ -58,7 +58,7 @@ module Datadog
           end
 
           def register_tracer
-            ::Sinatra.send(:register, Contrib::Sinatra::Tracer)
+            ::Sinatra::Base.register(Contrib::Sinatra::Tracer)
             ::Sinatra::Base.prepend(Sinatra::Tracer::Base)
           end
 

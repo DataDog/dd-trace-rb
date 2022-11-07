@@ -152,7 +152,7 @@ end
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
 Logging.message(" [ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 
-unless pkg_config('ddprof_ffi_with_rpath')
+unless pkg_config('datadog_profiling_with_rpath')
   skip_building_extension!(
     if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
       Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING

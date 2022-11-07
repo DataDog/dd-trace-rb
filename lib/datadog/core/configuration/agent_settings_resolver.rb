@@ -18,8 +18,6 @@ module Datadog
       #
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
-      #
-      # rubocop:disable Metrics/ClassLength
       class AgentSettingsResolver
         AgentSettings = \
           Struct.new(
@@ -359,7 +357,6 @@ module Datadog
           end
         end
       end
-      # rubocop:enable Metrics/ClassLength
     end
   end
 end
