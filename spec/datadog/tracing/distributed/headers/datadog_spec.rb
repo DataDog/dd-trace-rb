@@ -110,6 +110,11 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
           it { is_expected.to include('x-datadog-tags' => 'key=value') }
         end
 
+        context '{ _dd.p.dm: "-1" }' do
+          let(:tags) { { '_dd.p.dm' => '-1' } }
+          it { is_expected.to include('x-datadog-tags' => '_dd.p.dm=-1') }
+        end
+
         context 'within an active trace' do
           before do
             allow(Datadog::Tracing).to receive(:active_trace).and_return(active_trace)
@@ -246,6 +251,11 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
         context "{ _dd.p.key: 'value' }" do
           let(:tags) { '_dd.p.key=value' }
           it { is_expected.to eq('_dd.p.key' => 'value') }
+        end
+
+        context '{ _dd.p.dm: "-1" }' do
+          let(:tags) { '_dd.p.dm=-1' }
+          it { is_expected.to eq('_dd.p.dm' => '-1') }
         end
 
         context 'within an active trace' do
