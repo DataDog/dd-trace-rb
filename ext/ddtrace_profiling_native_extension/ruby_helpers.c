@@ -2,7 +2,6 @@
 
 void raise_unexpected_type(
   VALUE value,
-  DDTRACE_UNUSED enum ruby_value_type _type,
   const char *value_name,
   const char *type_name,
   const char *file,
