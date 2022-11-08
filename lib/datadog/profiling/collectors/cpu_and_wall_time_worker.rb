@@ -19,9 +19,10 @@ module Datadog
           recorder:,
           max_frames:,
           tracer:,
+          gc_profiling_enabled:,
           cpu_and_wall_time_collector: CpuAndWallTime.new(recorder: recorder, max_frames: max_frames, tracer: tracer)
         )
-          self.class._native_initialize(self, cpu_and_wall_time_collector)
+          self.class._native_initialize(self, cpu_and_wall_time_collector, gc_profiling_enabled)
           @worker_thread = nil
           @failure_exception = nil
           @start_stop_mutex = Mutex.new

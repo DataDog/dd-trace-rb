@@ -1031,9 +1031,56 @@ RSpec.describe Datadog::Core::Configuration::Components do
             recorder: instance_of(Datadog::Profiling::StackRecorder),
             max_frames: settings.profiling.advanced.max_frames,
             tracer: tracer,
+            gc_profiling_enabled: anything,
           )
 
           build_profiler
+        end
+
+        context 'on Ruby 2.x' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3' }
+
+          it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              gc_profiling_enabled: true,
+            )
+
+            build_profiler
+          end
+        end
+
+        context 'on Ruby 3.x' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3' }
+
+          it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+              gc_profiling_enabled: false,
+            )
+
+            build_profiler
+          end
+
+          context 'when force_enable_gc_profiling is enabled' do
+            before do
+              settings.profiling.advanced.force_enable_gc_profiling = true
+
+              allow(Datadog.logger).to receive(:debug)
+            end
+
+            it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
+              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
+                gc_profiling_enabled: true,
+              )
+
+              build_profiler
+            end
+
+            it 'logs a debug message' do
+              expect(Datadog.logger).to receive(:debug).with(/Garbage Collection force enabled/)
+
+              build_profiler
+            end
+          end
         end
 
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
