@@ -278,8 +278,8 @@ RSpec.describe 'Faraday middleware' do
 
     it do
       expect(headers).to include(
-        Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID => span.trace_id.to_s,
-        Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID => span.span_id.to_s
+        'x-datadog-trace-id' => span.trace_id.to_s,
+        'x-datadog-parent-id' => span.span_id.to_s
       )
     end
 
@@ -287,8 +287,8 @@ RSpec.describe 'Faraday middleware' do
       before { tracer.enabled = false }
 
       it do
-        expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID)
-        expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID)
+        expect(headers).to_not include('x-datadog-trace-id')
+        expect(headers).to_not include('x-datadog-parent-id')
         expect(spans.length).to eq(0)
       end
     end
@@ -301,8 +301,8 @@ RSpec.describe 'Faraday middleware' do
     let(:headers) { response.env.request_headers }
 
     it do
-      expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID)
-      expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID)
+      expect(headers).to_not include('x-datadog-trace-id')
+      expect(headers).to_not include('x-datadog-parent-id')
     end
   end
 

@@ -224,12 +224,12 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             span = datum[:datadog_span]
             headers = datum[:headers]
             expect(headers).to include(
-              Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID => span.trace_id.to_s,
-              Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID => span.span_id.to_s
+              'x-datadog-trace-id' => span.trace_id.to_s,
+              'x-datadog-parent-id' => span.span_id.to_s
             )
 
             expect(headers).to include(
-              Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+              'x-datadog-sampling-priority'
             )
           end
         end
@@ -256,9 +256,9 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             # Assert request headers
             headers = datum[:headers]
             expect(headers).to_not include(
-              Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID,
-              Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID,
-              Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+              'x-datadog-trace-id',
+              'x-datadog-parent-id',
+              'x-datadog-sampling-priority'
             )
           end
         end
@@ -282,9 +282,9 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
             m.call(*args).tap do |datum|
               # Assert request headers
               headers = datum[:headers]
-              expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_TRACE_ID)
-              expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_PARENT_ID)
-              expect(headers).to_not include(Datadog::Tracing::Contrib::Distributed::Ext::HTTP_HEADER_SAMPLING_PRIORITY)
+              expect(headers).to_not include('x-datadog-trace-id')
+              expect(headers).to_not include('x-datadog-parent-id')
+              expect(headers).to_not include('x-datadog-sampling-priority')
             end
           end
 
