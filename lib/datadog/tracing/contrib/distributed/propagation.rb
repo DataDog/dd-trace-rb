@@ -12,7 +12,8 @@ module Datadog
         # Propagation::HTTP helps extracting and injecting HTTP headers.
         class Propagation
           # DEV: This class should receive the value for
-          # DEV: `Datadog.configuration.tracing.distributed_tracing.propagation_inject_style` at initialization time.
+          # DEV: `Datadog.configuration.tracing.distributed_tracing.propagation_inject_style`
+          # DEV: at initialization time, instead of constantly reading global values.
           # DEV: This means this class should be reconfigured on `Datadog.configure` calls.
           #
           # @param propagation_styles [Hash<String,Object>]
