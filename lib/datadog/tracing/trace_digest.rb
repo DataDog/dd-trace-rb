@@ -12,6 +12,7 @@ module Datadog
         :span_resource,
         :span_service,
         :span_type,
+        :trace_distributed_tags,
         :trace_hostname,
         :trace_id,
         :trace_name,
@@ -28,6 +29,7 @@ module Datadog
         span_resource: nil,
         span_service: nil,
         span_type: nil,
+        trace_distributed_tags: nil,
         trace_hostname: nil,
         trace_id: nil,
         trace_name: nil,
@@ -43,6 +45,7 @@ module Datadog
         @span_resource = span_resource && span_resource.dup.freeze
         @span_service = span_service && span_service.dup.freeze
         @span_type = span_type && span_type.dup.freeze
+        @trace_distributed_tags = trace_distributed_tags && trace_distributed_tags.dup.freeze
         @trace_hostname = trace_hostname && trace_hostname.dup.freeze
         @trace_id = trace_id
         @trace_name = trace_name && trace_name.dup.freeze

@@ -23,7 +23,15 @@ module Datadog
           Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG => Distributed::Headers::Datadog
         }.freeze
 
-        # inject! popolates the env with span ID, trace ID and sampling priority
+        # inject! populates the env with span ID, trace ID and sampling priority
+        #
+        # DEV-2.0: inject! should work without arguments, injecting the active_trace's digest
+        # DEV-2.0: and returning a new Hash with the injected headers.
+        # DEV-2.0: inject! should also accept either a `trace` or a `digest`, as a `trace`
+        # DEV-2.0: argument is the common use case, but also allows us to set error tags in the `trace`
+        # DEV-2.0: if needed.
+        # DEV-2.0: Ideally, we'd have a separate stream to report tracer errors and never
+        # DEV-2.0: touch the active span.
         def self.inject!(digest, env)
           # Prevent propagation from being attempted if trace headers provided are nil.
           if digest.nil?

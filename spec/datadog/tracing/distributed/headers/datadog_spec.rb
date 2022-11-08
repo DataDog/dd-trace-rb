@@ -13,7 +13,7 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
   end
 
   describe '#inject!' do
-    subject!(:inject!) { described_class.inject!(digest, env) }
+    subject(:inject!) { described_class.inject!(digest, env) }
     let(:env) { {} }
 
     context 'with nil digest' do
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
       end
 
       it do
-        expect(env).to eq(
+        is_expected.to eq(
           Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '10000',
           Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '20000'
         )
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
         end
 
         it do
-          expect(env).to eq(
+          is_expected.to eq(
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '50000',
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '60000',
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '1'
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
           end
 
           it do
-            expect(env).to eq(
+            is_expected.to eq(
               Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '70000',
               Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '80000',
               Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => '1',
@@ -84,11 +84,90 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
         end
 
         it do
-          expect(env).to eq(
+          is_expected.to eq(
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => '90000',
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => '100000',
             Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'synthetics'
           )
+        end
+      end
+
+      context 'with trace_distributed_tags' do
+        let(:digest) { Datadog::Tracing::TraceDigest.new(trace_distributed_tags: tags) }
+
+        context 'nil' do
+          let(:tags) { nil }
+          it { is_expected.to_not include('x-datadog-tags') }
+        end
+
+        context '{}' do
+          let(:tags) { {} }
+          it { is_expected.to_not include('x-datadog-tags') }
+        end
+
+        context "{ key: 'value' }" do
+          let(:tags) { { key: 'value' } }
+          it { is_expected.to include('x-datadog-tags' => 'key=value') }
+        end
+
+        context '{ _dd.p.dm: "-1" }' do
+          let(:tags) { { '_dd.p.dm' => '-1' } }
+          it { is_expected.to include('x-datadog-tags' => '_dd.p.dm=-1') }
+        end
+
+        context 'within an active trace' do
+          before do
+            allow(Datadog::Tracing).to receive(:active_trace).and_return(active_trace)
+            allow(active_trace).to receive(:set_tag)
+          end
+
+          let(:active_trace) { double(Datadog::Tracing::TraceOperation) }
+
+          context 'with tags too large' do
+            let(:tags) { { key: 'very large value' * 32 } }
+
+            it { is_expected.to_not include('x-datadog-tags') }
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'inject_max_size')
+              expect(Datadog.logger).to receive(:warn).with(/tags are too large/)
+              inject!
+            end
+          end
+
+          context 'with configuration x_datadog_tags_max_length zero' do
+            before do
+              Datadog.configure { |c| c.tracing.x_datadog_tags_max_length = 0 }
+            end
+
+            let(:tags) { { key: 'value' } }
+
+            it { is_expected.to_not include('x-datadog-tags') }
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'disabled')
+              inject!
+            end
+
+            context 'and no tags' do
+              let(:tags) { {} }
+
+              it 'does not set error for empty tags' do
+                expect(active_trace).to_not receive(:set_tag)
+                inject!
+              end
+            end
+          end
+
+          context 'with invalid tags' do
+            let(:tags) { 'not_a_tag_hash' }
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'encoding_error')
+              expect(Datadog.logger).to receive(:warn).with(/Failed to inject/)
+              inject!
+            end
+          end
         end
       end
     end
@@ -153,6 +232,93 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::Datadog do
         it { expect(digest.trace_id).to eq(10000) }
         it { expect(digest.trace_origin).to eq('synthetics') }
         it { expect(digest.trace_sampling_priority).to be nil }
+      end
+
+      context 'with trace_distributed_tags' do
+        subject(:trace_distributed_tags) { extract.trace_distributed_tags }
+        let(:env) { super().merge(env_header('x-datadog-tags') => tags) }
+
+        context 'nil' do
+          let(:tags) { nil }
+          it { is_expected.to be_nil }
+        end
+
+        context 'an empty value' do
+          let(:tags) { '' }
+          it { is_expected.to be_nil }
+        end
+
+        context "{ _dd.p.key: 'value' }" do
+          let(:tags) { '_dd.p.key=value' }
+          it { is_expected.to eq('_dd.p.key' => 'value') }
+        end
+
+        context '{ _dd.p.dm: "-1" }' do
+          let(:tags) { '_dd.p.dm=-1' }
+          it { is_expected.to eq('_dd.p.dm' => '-1') }
+        end
+
+        context 'within an active trace' do
+          before do
+            allow(Datadog::Tracing).to receive(:active_trace).and_return(active_trace)
+            allow(active_trace).to receive(:set_tag)
+          end
+
+          let(:active_trace) { double(Datadog::Tracing::TraceOperation) }
+
+          context 'with tags too large' do
+            let(:tags) { 'key=very large value,' * 25 }
+
+            it { is_expected.to be_nil }
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'extract_max_size')
+              expect(Datadog.logger).to receive(:warn).with(/tags are too large/)
+              extract
+            end
+          end
+
+          context 'with configuration x_datadog_tags_max_length zero' do
+            before do
+              Datadog.configure { |c| c.tracing.x_datadog_tags_max_length = 0 }
+            end
+
+            let(:tags) { 'key=value' }
+
+            it { is_expected.to be_nil }
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'disabled')
+              extract
+            end
+
+            context 'and no tags' do
+              let(:tags) { '' }
+
+              it 'does not set error for empty tags' do
+                expect(active_trace).to_not receive(:set_tag)
+                extract
+              end
+            end
+          end
+
+          context 'with invalid tags' do
+            let(:tags) { 'not a valid tag header' }
+
+            it 'sets error tag' do
+              expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'decoding_error')
+              expect(Datadog.logger).to receive(:warn).with(/Failed to extract/)
+              extract
+            end
+          end
+        end
+
+        context '{ _dd.p.upstream_services: "any" }' do
+          let(:tags) { '_dd.p.upstream_services=any' }
+          it 'does not parse excluded tag' do
+            is_expected.to be_empty
+          end
+        end
       end
     end
 

@@ -47,7 +47,10 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
   end
 
   describe '#sample!' do
+    subject(:sample!) { sampler.sample!(trace) }
+
     let(:traces) { Array.new(3) { |i| Datadog::Tracing::TraceOperation.new(id: i) } }
+    let(:trace) { traces[0] }
 
     shared_examples_for 'rate sampling' do
       let(:trace_count) { 1000 }
@@ -81,6 +84,25 @@ RSpec.describe Datadog::Tracing::Sampling::RateSampler do
           expect(trace.sampled?).to be true
           expect(trace.sample_rate).to eq(sample_rate)
         end
+      end
+
+      context 'and decision is set' do
+        subject(:sampler) { described_class.new(sample_rate, decision: decision) }
+        let(:decision) { 'test decision' }
+
+        it 'sets trace decision' do
+          sample!
+          expect(trace.get_tag('_dd.p.dm')).to eq(decision)
+        end
+      end
+    end
+
+    context 'when a sample rate of 0.0 is set' do
+      let(:sample_rate) { Float::MIN } # Can't set to exactly zero because of safeguard
+
+      it 'does not trace decision' do
+        sample!
+        expect(trace.get_tag('_dd.p.dm')).to be_nil
       end
     end
   end

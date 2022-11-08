@@ -56,7 +56,8 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:trace_tags) do
       {
         'foo' => 'bar',
-        'baz' => 42
+        'baz' => 42,
+        '_dd.p.dm' => '-1',
       }
     end
   end
@@ -142,7 +143,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
           )
         end
 
@@ -172,7 +173,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         context 'meta' do
           it 'sets root span tags from trace tags' do
             format!
-            expect(root_span.meta).to include({ 'foo' => 'bar' })
+            expect(root_span.meta).to include({ 'foo' => 'bar', '_dd.p.dm' => '-1' })
           end
         end
       end
@@ -183,7 +184,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         end
 
         context 'meta' do
-          it { expect(root_span.meta).to_not include({ 'foo' => 'bar' }) }
+          it { expect(root_span.meta).to_not include({ 'foo' => 'bar', '_dd.p.dm' => '-1' }) }
         end
       end
 

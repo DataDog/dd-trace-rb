@@ -1487,6 +1487,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to(options)
       end
     end
+
+    describe '#x_datadog_tags_max_length' do
+      subject { settings.tracing.x_datadog_tags_max_length }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Tracing::Configuration::Ext::Distributed::ENV_X_DATADOG_TAGS_MAX_LENGTH => env_var
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var) { nil }
+
+          it { is_expected.to eq(512) }
+        end
+
+        context 'is defined' do
+          let(:env_var) { '123' }
+
+          it { is_expected.to eq(123) }
+        end
+      end
+    end
+
+    describe '#x_datadog_tags_max_length=' do
+      it 'updates the #x_datadog_tags_max_length setting' do
+        expect { settings.tracing.x_datadog_tags_max_length = 123 }
+          .to change { settings.tracing.x_datadog_tags_max_length }
+          .from(512)
+          .to(123)
+      end
+    end
   end
 
   describe '#version' do
