@@ -110,8 +110,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       current_thread_gc_samples =
-        all_samples
-          .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+        samples_for_thread(all_samples, Thread.current)
           .reject { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' } # Separate test for GC below
 
       expect(current_thread_gc_samples).to_not be_empty
@@ -137,8 +136,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       all_samples = samples_from_pprof(serialization_result.last)
 
       current_thread_gc_samples =
-        all_samples
-          .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+        samples_for_thread(all_samples, Thread.current)
           .select { |it| it.fetch(:locations).first.fetch(:path) == 'Garbage Collection' }
 
       # NOTE: In some cases, Ruby may actually call two GC's back-to-back without us having the possibility to take

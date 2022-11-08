@@ -49,6 +49,40 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
+// Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
+// Copyright (C) 2004-2007 Koichi Sasada
+// to support tid_for (see below)
+// Modifications: None
+#if defined(__linux__) || defined(__FreeBSD__)
+# define RB_THREAD_T_HAS_NATIVE_ID
+#endif
+
+uint64_t native_thread_id_for(VALUE thread) {
+  // The tid is only available on Ruby >= 3.1 + Linux (and FreeBSD). It's the same as `gettid()` aka the task id as seen in /proc
+  #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
+    #ifndef NO_RB_NATIVE_THREAD
+      return thread_struct_from_object(thread)->nt->tid;
+    #else
+      return thread_struct_from_object(thread)->tid;
+    #endif
+  #else
+    rb_nativethread_id_t pthread_id = pthread_id_for(thread);
+
+    #ifdef __APPLE__
+      uint64_t result;
+      // On macOS, this gives us the same identifier that shows up in activity monitor
+      int error = pthread_threadid_np(pthread_id, &result);
+      if (error) rb_syserr_fail(error, "Unexpected failure in pthread_threadid_np");
+      return result;
+    #else
+      // Fallback, when we have nothing better (e.g. on Ruby < 3.1 on Linux)
+      // @ivoanjo: In the future we may want to explore some potential hacks to get the actual tid on linux
+      // (e.g. https://stackoverflow.com/questions/558469/how-do-i-get-a-thread-id-from-an-arbitrary-pthread-t )
+      return (uint64_t) pthread_id;
+    #endif
+  #endif
+}
+
 // Returns the stack depth by using the same approach as rb_profile_frames and backtrace_each: get the positions
 // of the end and current frame pointers and subtracting them.
 ptrdiff_t stack_depth_for(VALUE thread) {

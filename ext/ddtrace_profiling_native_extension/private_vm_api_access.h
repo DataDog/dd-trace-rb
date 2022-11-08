@@ -12,6 +12,7 @@
 #include "extconf.h"
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
+uint64_t native_thread_id_for(VALUE thread);
 ptrdiff_t stack_depth_for(VALUE thread);
 VALUE ddtrace_thread_list(void);
 bool is_thread_alive(VALUE thread);

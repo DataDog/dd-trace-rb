@@ -434,5 +434,5 @@ static ddog_Timespec time_now() {
 
   if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");
 
-  return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = current_time.tv_nsec};
+  return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = (uint32_t) current_time.tv_nsec};
 }
