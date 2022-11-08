@@ -7,8 +7,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   before { skip_if_profiling_not_supported(self) }
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
+  let(:gc_profiling_enabled) { true }
 
-  subject(:cpu_and_wall_time_worker) { described_class.new(recorder: recorder, max_frames: 400, tracer: nil) }
+  subject(:cpu_and_wall_time_worker) do
+    described_class.new(recorder: recorder, max_frames: 400, tracer: nil, gc_profiling_enabled: gc_profiling_enabled)
+  end
 
   describe '.new' do
     it 'creates the garbage collection tracepoint in the disabled state' do
@@ -47,7 +50,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       allow(Datadog.logger).to receive(:warn)
 
-      another_instance = described_class.new(recorder: Datadog::Profiling::StackRecorder.new, max_frames: 400, tracer: nil)
+      another_instance = described_class.new(
+        recorder: Datadog::Profiling::StackRecorder.new,
+        max_frames: 400,
+        tracer: nil,
+        gc_profiling_enabled: gc_profiling_enabled,
+      )
       another_instance.start
 
       exception = try_wait_until(backoff: 0.01) { another_instance.send(:failure_exception) }
@@ -61,10 +69,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(described_class::Testing._native_current_sigprof_signal_handler).to be :profiling
     end
 
-    it 'enables the garbage collection tracepoint' do
-      start
+    context 'when gc_profiling_enabled is true' do
+      let(:gc_profiling_enabled) { true }
 
-      expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to be_enabled
+      it 'enables the garbage collection tracepoint' do
+        start
+
+        expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to be_enabled
+      end
+    end
+
+    context 'when gc_profiling_enabled is false' do
+      let(:gc_profiling_enabled) { false }
+
+      it 'does not enable the garbage collection tracepoint' do
+        start
+
+        expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+      end
     end
 
     context 'when a previous signal handler existed' do
@@ -117,6 +139,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     it 'records garbage collection cycles' do
+      if RUBY_VERSION.start_with?('3.')
+        skip(
+          'This test (and feature...) is broken on Ruby 3 if any Ractors get used due to a bug in the VM during ' \
+          'Ractor GC, see https://bugs.ruby-lang.org/issues/19112 for details. ' \
+          'For that reason, we disable this feature on Ruby 3 by default by passing `gc_profiling_enabled: false` during ' \
+          'profiler initialization.'
+        )
+      end
+
       start
 
       described_class::Testing._native_trigger_sample

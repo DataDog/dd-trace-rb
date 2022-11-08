@@ -64,7 +64,7 @@ struct cpu_and_wall_time_worker_state {
   // telling the sampling trigger loop to stop, but if we ever need to communicate more, we should move to actual
   // atomic operations. stdatomic.h seems a nice thing to reach out for.
   volatile bool should_run;
-
+  bool gc_profiling_enabled;
   VALUE cpu_and_wall_time_collector_instance;
 
   // When something goes wrong during sampling, we record the Ruby exception here, so that it can be "re-raised" on
@@ -76,7 +76,12 @@ struct cpu_and_wall_time_worker_state {
 };
 
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE cpu_and_wall_time_collector_instance);
+static VALUE _native_initialize(
+  DDTRACE_UNUSED VALUE _self,
+  VALUE self_instance,
+  VALUE cpu_and_wall_time_collector_instance,
+  VALUE gc_profiling_enabled
+);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance);
@@ -128,7 +133,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 2);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 3);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
@@ -156,6 +161,7 @@ static VALUE _native_new(VALUE klass) {
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
   state->should_run = false;
+  state->gc_profiling_enabled = false;
   state->cpu_and_wall_time_collector_instance = Qnil;
   state->failure_exception = Qnil;
   state->gc_tracepoint = Qnil;
@@ -163,10 +169,18 @@ static VALUE _native_new(VALUE klass) {
   return TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
 
-static VALUE _native_initialize(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE cpu_and_wall_time_collector_instance) {
+static VALUE _native_initialize(
+  DDTRACE_UNUSED VALUE _self,
+  VALUE self_instance,
+  VALUE cpu_and_wall_time_collector_instance,
+  VALUE gc_profiling_enabled
+) {
+  ENFORCE_BOOLEAN(gc_profiling_enabled);
+
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
+  state->gc_profiling_enabled = (gc_profiling_enabled == Qtrue);
   state->cpu_and_wall_time_collector_instance = enforce_cpu_and_wall_time_collector_instance(cpu_and_wall_time_collector_instance);
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
 
@@ -203,7 +217,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
 
   install_sigprof_signal_handler(handle_sampling_signal);
-  rb_tracepoint_enable(state->gc_tracepoint);
+  if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
 
   // Release GVL, get to the actual work!
   int exception_state;
