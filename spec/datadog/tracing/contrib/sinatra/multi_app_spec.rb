@@ -137,6 +137,7 @@ RSpec.describe 'Sinatra instrumentation for multi-apps' do
 
         it do
           is_expected.to be_ok
+
           expect(spans).to have(3).items
           spans.each do |span|
             if span.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST

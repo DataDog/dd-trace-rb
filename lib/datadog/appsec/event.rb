@@ -60,7 +60,10 @@ module Datadog
           end
 
           trace.keep!
-          trace.sampling_mechanism = Datadog::Tracing::Sampling::Ext::Mechanism::ASM
+          trace.set_tag(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+            Datadog::Tracing::Sampling::Ext::Decision::ASM
+          )
 
           # prepare and gather tags to apply
           trace_tags = event_group.each_with_object({}) do |event, tags|

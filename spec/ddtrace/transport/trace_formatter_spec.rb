@@ -32,7 +32,6 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         rule_sample_rate: rule_sample_rate,
         runtime_id: runtime_id,
         sample_rate: sample_rate,
-        sampling_mechanism: sampling_mechanism,
         sampling_priority: sampling_priority,
         tags: trace_tags
       }
@@ -48,7 +47,6 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:rule_sample_rate) { rand }
     let(:runtime_id) { 'trace.runtime_id' }
     let(:sample_rate) { rand }
-    let(:sampling_mechanism) { 1 }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
   end
 
@@ -58,7 +56,8 @@ RSpec.describe Datadog::Transport::TraceFormatter do
     let(:trace_tags) do
       {
         'foo' => 'bar',
-        'baz' => 42
+        'baz' => 42,
+        '_dd.p.dm' => '-1',
       }
     end
   end
@@ -144,8 +143,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER => '-1',
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
           )
         end
 
@@ -175,7 +173,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         context 'meta' do
           it 'sets root span tags from trace tags' do
             format!
-            expect(root_span.meta).to include({ 'foo' => 'bar' })
+            expect(root_span.meta).to include({ 'foo' => 'bar', '_dd.p.dm' => '-1' })
           end
         end
       end
@@ -186,7 +184,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
         end
 
         context 'meta' do
-          it { expect(root_span.meta).to_not include({ 'foo' => 'bar' }) }
+          it { expect(root_span.meta).to_not include({ 'foo' => 'bar', '_dd.p.dm' => '-1' }) }
         end
       end
 

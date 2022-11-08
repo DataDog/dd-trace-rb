@@ -20,7 +20,16 @@ module Datadog
             @propagation_styles = propagation_styles
           end
 
-          # inject! populates the data with span ID, trace ID and sampling priority
+          # inject! populates the env with span ID, trace ID and sampling priority
+          #
+          # DEV-2.0: inject! should work without arguments, injecting the active_trace's digest
+          # DEV-2.0: and returning a new Hash with the injected headers.
+          # DEV-2.0: inject! should also accept either a `trace` or a `digest`, as a `trace`
+          # DEV-2.0: argument is the common use case, but also allows us to set error tags in the `trace`
+          # DEV-2.0: if needed.
+          # DEV-2.0: Ideally, we'd have a separate stream to report tracer errors and never
+          # DEV-2.0: touch the active span.
+          #
           # @param digest [TraceDigest]
           # @param data [Hash]
           def inject!(digest, data)

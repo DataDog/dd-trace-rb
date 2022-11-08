@@ -71,8 +71,8 @@ RSpec.describe 'Tracer integration tests' do
     it { expect(sampling_priority).to eq(expected) }
   end
 
-  shared_examples 'sampling mechanism' do |sampling_mechanism|
-    it { expect(span.get_tag('_dd.p.dm')).to eq(sampling_mechanism) }
+  shared_examples 'sampling decision' do |sampling_decision|
+    it { expect(span.get_tag('_dd.p.dm')).to eq(sampling_decision) }
   end
 
   after { tracer.shutdown! }
@@ -214,8 +214,8 @@ RSpec.describe 'Tracer integration tests' do
       it { expect(@rate_limiter_rate).to eq(rate) }
     end
 
-    shared_examples 'sampling mechanism' do |sampling_mechanism|
-      it { expect(span.get_tag('_dd.p.dm')).to eq(sampling_mechanism) }
+    shared_examples 'sampling decision' do |sampling_decision|
+      it { expect(span.get_tag('_dd.p.dm')).to eq(sampling_decision) }
     end
 
     let!(:trace) do
@@ -246,7 +246,7 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
       it_behaves_like 'rule sampling rate metric', nil
       it_behaves_like 'rate limit metric', nil
-      it_behaves_like 'sampling mechanism', '-0'
+      it_behaves_like 'sampling decision', '-0'
 
       context 'with default fallback RateByServiceSampler throttled to 0% sampling rate' do
         let!(:trace) do
@@ -274,7 +274,7 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
       it_behaves_like 'rule sampling rate metric', 1.0
       it_behaves_like 'rate limit metric', 1.0
-      it_behaves_like 'sampling mechanism', '-3'
+      it_behaves_like 'sampling decision', '-3'
     end
 
     context 'with low default sample rate' do
@@ -284,7 +284,7 @@ RSpec.describe 'Tracer integration tests' do
       it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
       it_behaves_like 'rule sampling rate metric', Float::MIN
       it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
-      it_behaves_like 'sampling mechanism', nil
+      it_behaves_like 'sampling decision', nil
     end
 
     context 'with rule' do
@@ -298,7 +298,7 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
         it_behaves_like 'rule sampling rate metric', 1.0
         it_behaves_like 'rate limit metric', 1.0
-        it_behaves_like 'sampling mechanism', '-3'
+        it_behaves_like 'sampling decision', '-3'
 
         context 'with low sample rate' do
           let(:rule) { Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: Float::MIN) }
@@ -307,7 +307,7 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
           it_behaves_like 'rule sampling rate metric', Float::MIN
           it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
-          it_behaves_like 'sampling mechanism', nil
+          it_behaves_like 'sampling decision', nil
         end
 
         context 'rate limited' do
@@ -317,7 +317,7 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
           it_behaves_like 'rule sampling rate metric', 1.0
           it_behaves_like 'rate limit metric', 0.0
-          it_behaves_like 'sampling mechanism', nil
+          it_behaves_like 'sampling decision', nil
         end
       end
 
@@ -329,7 +329,7 @@ RSpec.describe 'Tracer integration tests' do
         it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
         it_behaves_like 'rule sampling rate metric', nil
         it_behaves_like 'rate limit metric', nil
-        it_behaves_like 'sampling mechanism', '-0'
+        it_behaves_like 'sampling decision', '-0'
       end
     end
   end
@@ -452,7 +452,7 @@ RSpec.describe 'Tracer integration tests' do
             end
           end
 
-          context 'with a kept trace' do
+          context 'with a kept span' do
             let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
             # it_behaves_like 'flushed complete trace'
@@ -657,7 +657,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 1.0
-          it_behaves_like 'sampling mechanism', '-1'
+          it_behaves_like 'sampling decision', '-1'
         end
 
         context 'with a dropped span' do
@@ -667,7 +667,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 0.0
-          it_behaves_like 'sampling mechanism', nil
+          it_behaves_like 'sampling decision', nil
         end
       end
 
@@ -691,7 +691,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 1.0
-          it_behaves_like 'sampling mechanism', '-1'
+          it_behaves_like 'sampling decision', '-1'
         end
 
         context 'with a span not matching the environment rates' do
@@ -703,7 +703,7 @@ RSpec.describe 'Tracer integration tests' do
           end
 
           it_behaves_like 'priority sampled', 1.0
-          it_behaves_like 'sampling mechanism', '-0'
+          it_behaves_like 'sampling decision', '-0'
         end
       end
     end
@@ -719,7 +719,7 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       it_behaves_like 'priority sampled', 2.0
-      it_behaves_like 'sampling mechanism', '-4'
+      it_behaves_like 'sampling decision', '-4'
     end
 
     context 'with a rejected trace' do
@@ -758,8 +758,8 @@ RSpec.describe 'Tracer integration tests' do
         # In practice, the `custom_sampler` can reject traces (`trace.sampled? == false`),
         # but accepting them does not actually change the default sampler's behavior.
         # Changing this is a breaking change.
-        it_behaves_like 'sampling mechanism', '-0' # This is incorrect. -4 (MANUAL) is the correct value.
-        it_behaves_like 'sampling mechanism', '-4' do
+        it_behaves_like 'sampling decision', '-0' # This is incorrect. -4 (MANUAL) is the correct value.
+        it_behaves_like 'sampling decision', '-4' do
           before do
             pending(
               'A custom sampler consults PrioritySampler#post_sampler for the final sampling decision. ' \
@@ -856,7 +856,7 @@ RSpec.describe 'Tracer integration tests' do
 
       # Verify priority sampler is configured and rates are updated
       expect(tracer.sampler).to receive(:update)
-        .with(kind_of(Hash), mechanism: 1)
+        .with(kind_of(Hash), decision: '-1')
         .and_call_original
         .at_least(1).time
     end

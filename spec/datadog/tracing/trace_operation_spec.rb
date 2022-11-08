@@ -29,7 +29,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         rule_sample_rate: rule_sample_rate,
         sample_rate: sample_rate,
         sampled: sampled,
-        sampling_mechanism: sampling_mechanism,
         sampling_priority: sampling_priority,
         service: service,
         tags: tags,
@@ -47,7 +46,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:rule_sample_rate) { rand }
     let(:sample_rate) { rand }
     let(:sampled) { true }
-    let(:sampling_mechanism) { nil }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
     let(:service) { 'billing-api' }
     let(:tags) { { 'foo' => 'bar' }.merge(distributed_tags) }
@@ -77,7 +75,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           resource: nil,
           rule_sample_rate: nil,
           sample_rate: nil,
-          sampling_mechanism: nil,
           sampling_priority: nil,
           service: nil
         )
@@ -175,13 +172,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         let(:sampled) { true }
 
         it { expect(trace_op.sampled?).to eq(sampled) }
-      end
-
-      context ':sampling_mechanism' do
-        subject(:options) { { sampling_mechanism: sampling_mechanism } }
-        let(:sampling_mechanism) { 0 }
-
-        it { expect(trace_op.sampling_mechanism).to eq(sampling_mechanism) }
       end
 
       context ':sampling_priority' do
@@ -779,9 +769,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it 'sets sampling mechanism to MANUAL' do
       expect { keep! }
-        .to change { trace_op.sampling_mechanism }
+        .to change { trace_op.get_tag('_dd.p.dm') }
         .from(nil)
-        .to(4)
+        .to('-4')
     end
 
     it 'sets priority sampling to USER_KEEP' do
@@ -824,9 +814,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     it 'sets sampling mechanism to MANUAL' do
       expect { reject! }
-        .to change { trace_op.sampling_mechanism }
+        .to change { trace_op.get_tag('_dd.p.dm') }
         .from(nil)
-        .to(4)
+        .to('-4')
     end
 
     it 'sets priority sampling to USER_REJECT' do
@@ -1612,7 +1602,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             runtime_id: Datadog::Core::Environment::Identity.id,
             sample_rate: sample_rate,
-            sampling_mechanism: sampling_mechanism,
+
             sampling_priority: sampling_priority,
             service: service
           )
@@ -1659,7 +1649,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             runtime_id: Datadog::Core::Environment::Identity.id,
             sample_rate: sample_rate,
-            sampling_mechanism: sampling_mechanism,
+
             sampling_priority: sampling_priority,
             service: service
           )
@@ -1719,7 +1709,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             runtime_id: Datadog::Core::Environment::Identity.id,
             sample_rate: sample_rate,
-            sampling_mechanism: sampling_mechanism,
+
             sampling_priority: sampling_priority,
             service: service
           )
@@ -1747,7 +1737,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             runtime_id: Datadog::Core::Environment::Identity.id,
             sample_rate: sample_rate,
-            sampling_mechanism: sampling_mechanism,
+
             sampling_priority: sampling_priority,
             service: service
           )
@@ -1783,7 +1773,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: nil,
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-              trace_sampling_mechanism: nil,
+
               trace_sampling_priority: nil,
               trace_service: nil
             )
@@ -1808,7 +1798,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: be_a_frozen_copy_of(resource),
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-              trace_sampling_mechanism: sampling_mechanism,
               trace_sampling_priority: sampling_priority,
               trace_service: be_a_frozen_copy_of(service)
             )
@@ -1859,7 +1848,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_process_id: Datadog::Core::Environment::Identity.pid,
             trace_resource: 'far',
             trace_runtime_id: Datadog::Core::Environment::Identity.id,
-            trace_sampling_mechanism: nil,
+
             trace_sampling_priority: nil,
             trace_service: 'boo'
           )
@@ -1901,7 +1890,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: nil,
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-              trace_sampling_mechanism: nil,
+
               trace_sampling_priority: nil,
               trace_service: nil
             )
@@ -1935,7 +1924,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: 'bar',
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-              trace_sampling_mechanism: nil,
+
               trace_sampling_priority: nil,
               trace_service: 'foo'
             )
@@ -1969,7 +1958,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: 'bar',
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-              trace_sampling_mechanism: nil,
+
               trace_sampling_priority: nil,
               trace_service: 'foo'
             )
@@ -2011,7 +2000,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_process_id: Datadog::Core::Environment::Identity.pid,
             trace_resource: 'far',
             trace_runtime_id: Datadog::Core::Environment::Identity.id,
-            trace_sampling_mechanism: nil,
+
             trace_sampling_priority: nil,
             trace_service: 'boo'
           )
@@ -2051,7 +2040,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               rule_sample_rate: rule_sample_rate,
               sample_rate: sample_rate,
               sampled?: sampled,
-              sampling_mechanism: sampling_mechanism,
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service)
             )
@@ -2122,7 +2110,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             sample_rate: sample_rate,
             sampled?: sampled,
-            sampling_mechanism: sampling_mechanism,
             sampling_priority: sampling_priority,
             service: be_a_copy_of(service)
           )
@@ -2172,7 +2159,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               rule_sample_rate: rule_sample_rate,
               sample_rate: sample_rate,
               sampled?: sampled,
-              sampling_mechanism: sampling_mechanism,
+
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service)
             )
@@ -2212,7 +2199,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               rule_sample_rate: rule_sample_rate,
               sample_rate: sample_rate,
               sampled?: sampled,
-              sampling_mechanism: sampling_mechanism,
+
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service)
             )
@@ -2252,7 +2239,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               rule_sample_rate: rule_sample_rate,
               sample_rate: sample_rate,
               sampled?: sampled,
-              sampling_mechanism: sampling_mechanism,
+
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service)
             )
@@ -2302,7 +2289,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             rule_sample_rate: rule_sample_rate,
             sample_rate: sample_rate,
             sampled?: sampled,
-            sampling_mechanism: sampling_mechanism,
+
             sampling_priority: sampling_priority,
             service: be_a_copy_of(service)
           )
@@ -2446,7 +2433,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
                   id: trace_digest.trace_id,
                   origin: trace_digest.trace_origin,
                   parent_span_id: trace_digest.span_id,
-                  sampling_mechanism: trace_digest.trace_sampling_mechanism,
                   sampling_priority: trace_digest.trace_sampling_priority
                 )
 

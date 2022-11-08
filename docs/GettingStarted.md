@@ -1936,7 +1936,7 @@ end
 
 The Sinatra integration traces requests and template rendering.
 
-To start using the tracing client, make sure you import `ddtrace` and `use :sinatra` after either `sinatra` or `sinatra/base`, and before you define your application/routes:
+To start using the tracing client, make sure you import `ddtrace` and `instrument :sinatra` after either `sinatra` or `sinatra/base`, and before you define your application/routes:
 
 #### Classic application
 
@@ -1964,16 +1964,12 @@ Datadog.configure do |c|
 end
 
 class NestedApp < Sinatra::Base
-  register Datadog::Tracing::Contrib::Sinatra::Tracer
-
   get '/nested' do
     'Hello from nested app!'
   end
 end
 
 class App < Sinatra::Base
-  register Datadog::Tracing::Contrib::Sinatra::Tracer
-
   use NestedApp
 
   get '/' do
@@ -1981,8 +1977,6 @@ class App < Sinatra::Base
   end
 end
 ```
-
-Ensure you register `Datadog::Tracing::Contrib::Sinatra::Tracer` as a middleware before you mount your nested applications.
 
 #### Instrumentation options
 

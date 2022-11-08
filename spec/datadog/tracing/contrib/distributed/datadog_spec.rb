@@ -108,6 +108,11 @@ RSpec.shared_examples 'Datadog distributed format' do
           it { is_expected.to include('x-datadog-tags' => 'key=value') }
         end
 
+        context '{ _dd.p.dm: "-1" }' do
+          let(:tags) { { '_dd.p.dm' => '-1' } }
+          it { is_expected.to include('x-datadog-tags' => '_dd.p.dm=-1') }
+        end
+
         context 'within an active trace' do
           before do
             allow(Datadog::Tracing).to receive(:active_trace).and_return(active_trace)
@@ -161,44 +166,6 @@ RSpec.shared_examples 'Datadog distributed format' do
               inject!
             end
           end
-        end
-
-        context 'with trace_sampling_mechanism' do
-          let(:digest) do
-            Datadog::Tracing::TraceDigest.new(trace_distributed_tags: tags, trace_sampling_mechanism: sampling_mechanism)
-          end
-
-          let(:sampling_mechanism) { 1 }
-
-          context 'conflicting with trace_distributed_tags' do
-            let(:tags) { { '_dd.p.dm' => '-0' } }
-
-            it 'overrides tag with explicit trace_sampling_mechanism set' do
-              is_expected.to include('x-datadog-tags' => '_dd.p.dm=-1')
-            end
-          end
-
-          context 'non-conflicting with trace_distributed_tags' do
-            let(:tags) { { key: 'value' } }
-
-            it 'merges both values' do
-              is_expected.to include('x-datadog-tags' => 'key=value,_dd.p.dm=-1')
-            end
-          end
-        end
-      end
-
-      context 'with trace_sampling_mechanism' do
-        let(:digest) { Datadog::Tracing::TraceDigest.new(trace_sampling_mechanism: sampling_mechanism) }
-
-        context 'nil' do
-          let(:sampling_mechanism) { nil }
-          it { is_expected.to_not include('x-datadog-tags') }
-        end
-
-        context 'a valid value' do
-          let(:sampling_mechanism) { 1 }
-          it { is_expected.to include('x-datadog-tags' => '_dd.p.dm=-1') }
         end
       end
     end
@@ -287,13 +254,6 @@ RSpec.shared_examples 'Datadog distributed format' do
         context '{ _dd.p.dm: "-1" }' do
           let(:tags) { '_dd.p.dm=-1' }
           it { is_expected.to eq('_dd.p.dm' => '-1') }
-          it { expect(extract.trace_sampling_mechanism).to eq(1) }
-        end
-
-        context '{ _dd.p.dm: "invalid value" }' do
-          let(:tags) { '_dd.p.dm=invalid value' }
-          it { is_expected.to eq('_dd.p.dm' => 'invalid value') }
-          it { expect(extract.trace_sampling_mechanism).to be_nil }
         end
 
         context 'within an active trace' do
