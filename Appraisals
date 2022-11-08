@@ -132,10 +132,6 @@ if ruby_version?('2.1')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'core-old' do
@@ -319,10 +315,6 @@ elsif ruby_version?('2.2')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'core-old' do
@@ -518,10 +510,6 @@ elsif ruby_version?('2.3')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'contrib-old' do
@@ -651,10 +639,6 @@ elsif ruby_version?('2.4')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'contrib-old' do
@@ -915,10 +899,6 @@ elsif ruby_version?('2.5')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'contrib-old' do
@@ -1154,10 +1134,6 @@ elsif ruby_version?('2.6')
     appraise 'sinatra' do
       gem 'sinatra'
       gem 'rack-test'
-
-      # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-      gem 'activerecord'
-      gem 'sqlite3'
     end
 
     appraise 'contrib-old' do
@@ -1372,10 +1348,6 @@ elsif ruby_version?('2.7')
     appraise 'sinatra' do
       gem 'sinatra'
       gem 'rack-test'
-
-      # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-      gem 'activerecord'
-      gem 'sqlite3'
     end
 
     appraise 'contrib-old' do
@@ -1497,10 +1469,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'contrib-old' do
@@ -1622,10 +1590,6 @@ elsif ruby_version?('3.2')
   appraise 'sinatra' do
     gem 'sinatra'
     gem 'rack-test'
-
-    # For spec/datadog/tracing/contrib/sinatra/activerecord_spec.rb
-    gem 'activerecord'
-    gem 'sqlite3'
   end
 
   appraise 'contrib-old' do
