@@ -11,7 +11,7 @@ module Datadog
         # :nodoc:
         module DatadogInterceptor
           # :nodoc:
-          class Base < ::Propagation::Interceptor
+          class Base < ::GRPC::Interceptor
             def initialize(options = {})
               super
               return unless block_given?

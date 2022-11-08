@@ -22,7 +22,7 @@ module Datadog
           end
 
           def self.loaded?
-            !defined?(::Propagation).nil?
+            !defined?(::GRPC).nil?
           end
 
           def self.compatible?

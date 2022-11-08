@@ -19,15 +19,13 @@ module Datadog
           end
 
           def patch
-            require_relative '../../propagation/grpc'
-            require_relative 'datadog_interceptor'
             require_relative 'intercept_with_datadog'
 
             prepend_interceptor
           end
 
           def prepend_interceptor
-            ::Propagation::InterceptionContext
+            ::GRPC::InterceptionContext
               .prepend(InterceptWithDatadog)
           end
         end

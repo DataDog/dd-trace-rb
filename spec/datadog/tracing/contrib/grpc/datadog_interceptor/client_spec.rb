@@ -4,8 +4,6 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 
-require 'datadog/tracing/distributed/ext'
-
 require 'grpc'
 require 'ddtrace'
 
@@ -95,7 +93,7 @@ RSpec.describe 'tracing on the client connection' do
     it_behaves_like 'measured span for integration', false
   end
 
-  shared_examples 'inject distributed tracing metada' do
+  shared_examples 'inject distributed tracing metadata' do
     context 'when distributed tracing is disabled' do
       let(:configuration_options) { { service_name: 'rspec', distributed_tracing: false } }
 
@@ -135,7 +133,7 @@ RSpec.describe 'tracing on the client connection' do
 
     it_behaves_like 'span data contents'
 
-    it_behaves_like 'inject distributed tracing metada'
+    it_behaves_like 'inject distributed tracing metadata'
   end
 
   describe '#client_streamer' do
@@ -152,7 +150,7 @@ RSpec.describe 'tracing on the client connection' do
 
     it_behaves_like 'span data contents'
 
-    it_behaves_like 'inject distributed tracing metada'
+    it_behaves_like 'inject distributed tracing metadata'
   end
 
   describe '#server_streamer' do
@@ -171,7 +169,7 @@ RSpec.describe 'tracing on the client connection' do
 
     it_behaves_like 'span data contents'
 
-    it_behaves_like 'inject distributed tracing metada'
+    it_behaves_like 'inject distributed tracing metadata'
   end
 
   describe '#bidi_streamer' do
@@ -190,6 +188,6 @@ RSpec.describe 'tracing on the client connection' do
 
     it_behaves_like 'span data contents'
 
-    it_behaves_like 'inject distributed tracing metada'
+    it_behaves_like 'inject distributed tracing metadata'
   end
 end

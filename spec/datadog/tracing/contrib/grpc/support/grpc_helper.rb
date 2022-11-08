@@ -29,7 +29,7 @@ module GRPCHelper
 
   def runner(address, client)
     # GRPC native threads that are never cleaned up
-    server = ThreadHelpers.with_leaky_thread_creation(:grpc) { Propagation::RpcServer.new }
+    server = ThreadHelpers.with_leaky_thread_creation(:grpc) { GRPC::RpcServer.new }
 
     server.add_http2_port(address, :this_port_is_insecure)
     server.handle(TestService)
@@ -59,7 +59,7 @@ module GRPCHelper
   end
 
   class TestService
-    include Propagation::GenericService
+    include GRPC::GenericService
 
     rpc :basic, TestMessage, TestMessage
     rpc :stream_from_client, stream(TestMessage), TestMessage

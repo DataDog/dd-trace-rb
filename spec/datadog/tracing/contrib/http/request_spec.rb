@@ -283,10 +283,10 @@ RSpec.describe 'net/http requests' do
       # rubocop:disable Style/BlockDelimiters
       expect(WebMock).to(
         have_requested(:get, "#{uri}#{path}").with { |req|
-          [
-            'x-datadog-parent-id',
-            'x-datadog-trace-id',
-            'x-datadog-sampling-priority'
+          %w[
+            x-datadog-parent-id
+            x-datadog-trace-id
+            x-datadog-sampling-priority
           ].none? do |header|
             req.headers.key?(header.split('-').map(&:capitalize).join('-'))
           end

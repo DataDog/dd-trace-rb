@@ -1,9 +1,9 @@
 # typed: ignore
 
 require_relative '../../../../tracing'
-require_relative '../../../distributed/'
+require_relative '../../distributed/ext'
 require_relative '../../../metadata/ext'
-require_relative '../../../propagation/grpc'
+require_relative '../distributed/propagation'
 require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../../ext'
@@ -45,7 +45,7 @@ module Datadog
             private
 
             def set_distributed_context!(metadata)
-              Tracing.continue_trace!(Tracing::Propagation::Propagation.extract(metadata))
+              Tracing.continue_trace!(Distributed::Propagation::INSTANCE.extract(metadata))
             rescue StandardError => e
               Datadog.logger.debug(
                 "unable to propagate GRPC metadata to context: #{e}"

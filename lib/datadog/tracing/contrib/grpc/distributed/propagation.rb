@@ -18,6 +18,8 @@ module Datadog
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG => Datadog.new,
                 })
             end
+
+            INSTANCE = Propagation.new
           end
         end
       end
