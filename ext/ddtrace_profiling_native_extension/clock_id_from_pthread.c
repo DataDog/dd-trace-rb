@@ -22,7 +22,7 @@ void self_test_clock_id(void) {
 }
 
 // TODO: Remove this after the OldStack profiler gets removed
-VALUE clock_id_for(DDTRACE_UNUSED VALUE _self, VALUE thread) {
+VALUE clock_id_for(VALUE _self, VALUE thread) {
   rb_nativethread_id_t thread_id = pthread_id_for(thread);
 
   clockid_t clock_id;
