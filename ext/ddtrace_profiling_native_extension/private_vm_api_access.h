@@ -19,6 +19,8 @@ bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
 
 int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);
+// Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
+bool ddtrace_rb_ractor_main_p(void);
 
 // Ruby 3.0 finally added support for showing CFUNC frames (frames for methods written using native code)
 // in stack traces gathered via `rb_profile_frames` (https://github.com/ruby/ruby/pull/3299).
