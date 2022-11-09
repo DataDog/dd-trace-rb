@@ -85,6 +85,7 @@ static VALUE _native_initialize(
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance);
+static VALUE stop(VALUE self_instance, VALUE optional_exception);
 static void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *));
 static void remove_sigprof_signal_handler(void);
 static void block_sigprof_signal_handler_from_running_in_current_thread(void);
@@ -257,10 +258,18 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance) {
+  return stop(self_instance, /* optional_exception: */ Qnil);
+}
+
+static VALUE stop(VALUE self_instance, VALUE optional_exception) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->should_run = false;
+  state->failure_exception = optional_exception;
+
+  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
+  rb_tracepoint_disable(state->gc_tracepoint);
 
   return Qtrue;
 }
@@ -382,18 +391,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, instance);
 }
 
-static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
-  state->should_run = false;
-  state->failure_exception = exception;
-
-  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
-  rb_tracepoint_disable(state->gc_tracepoint);
-
-  return Qnil;
-}
+static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) { return stop(self_instance, exception); }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
