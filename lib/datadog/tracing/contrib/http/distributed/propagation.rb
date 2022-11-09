@@ -8,7 +8,7 @@ module Datadog
     module Contrib
       module HTTP
         module Distributed
-          # Propagation::HTTP helps extracting and injecting HTTP headers.
+          # Extracts and injects propagation through HTTP headers.
           class Propagation < Tracing::Distributed::Propagation
             def initialize
               super(

@@ -2,6 +2,9 @@ module Datadog
   module Tracing
     module Distributed
       # Cross-language keys used for distributed tracing.
+      # DEV-2.0: These constants are part of the public API through {Datadog::Tracing::Distributed::Headers::Ext}.
+      # DEV-2.0: We should not expose these constants, as we might not move them during refactor, and they are easily
+      # DEV-2.0: and publicly documented in Datadog's and B3's documentation.
       module Ext
         HTTP_HEADER_TRACE_ID = 'x-datadog-trace-id'.freeze
         HTTP_HEADER_PARENT_ID = 'x-datadog-parent-id'.freeze

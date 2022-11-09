@@ -8,7 +8,7 @@ module Datadog
     # DistributedHeaders provides easy access and validation to headers
     # @public_api
     class DistributedHeaders
-      include Tracing::Contrib::Distributed::Ext
+      include Tracing::Distributed::Ext
 
       def initialize(carrier)
         @carrier = carrier

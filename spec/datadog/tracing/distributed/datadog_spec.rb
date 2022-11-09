@@ -301,7 +301,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
 
           context 'with invalid tags' do
-            let(:tags) { 'not a valid tag header' }
+            let(:tags) { 'not a valid tag' }
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'decoding_error')

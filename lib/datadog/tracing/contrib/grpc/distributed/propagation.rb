@@ -8,7 +8,7 @@ module Datadog
     module Contrib
       module GRPC
         module Distributed
-          # Extracts and injects propagation data into gRPC request metadata.
+          # Extracts and injects propagation through gRPC metadata.
           class Propagation < Tracing::Distributed::Propagation
             def initialize
               super(
@@ -19,6 +19,8 @@ module Datadog
                 })
             end
 
+            # DEV: Singleton kept until a larger refactor is performed.
+            # DEV: See {Datadog::Tracing::Distributed::Propagation#initialize} for more information.
             INSTANCE = Propagation.new
           end
         end

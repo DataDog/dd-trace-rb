@@ -10,8 +10,8 @@ module Datadog
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
     module TextMapPropagator
       extend Propagator
-      extend Tracing::Contrib::Distributed::Ext
-      include Tracing::Contrib::Distributed::Ext
+      extend Tracing::Distributed::Ext
+      include Tracing::Distributed::Ext
 
       BAGGAGE_PREFIX = 'ot-baggage-'.freeze
 

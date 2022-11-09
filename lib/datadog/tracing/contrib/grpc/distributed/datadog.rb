@@ -6,7 +6,7 @@ module Datadog
     module Contrib
       module GRPC
         module Distributed
-          # Datadog provides helpers to inject or extract metadata for Datadog style headers
+          # Datadog-style trace propagation through gRPC metadata.
           # @see https://github.com/grpc/grpc-go/blob/v1.50.1/Documentation/grpc-metadata.md gRPC metadata
           class Datadog < Tracing::Distributed::Datadog
             def initialize

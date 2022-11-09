@@ -5,10 +5,10 @@ module Datadog
     module Contrib
       module GRPC
         module Distributed
-          # Retrieves fields from the gRPC metadata object
+          # Retrieves values from the gRPC metadata.
           class Fetcher < Tracing::Distributed::Fetcher
             def [](key)
-              # metadata values can be arrays (multiple headers with the same key)
+              # Metadata values can be arrays (multiple values for the same key)
               value = super(key)
               value.is_a?(::Array) ? value[0] : value
             end

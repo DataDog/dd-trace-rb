@@ -7,12 +7,13 @@ require_relative '../trace_operation'
 module Datadog
   module Tracing
     module Distributed
-      # Propagation::HTTP helps extracting and injecting HTTP headers.
+      # Provides extraction and injection of distributed trace data.
       class Propagation
         # DEV: This class should receive the value for
         # DEV: `Datadog.configuration.tracing.distributed_tracing.propagation_inject_style`
         # DEV: at initialization time, instead of constantly reading global values.
-        # DEV: This means this class should be reconfigured on `Datadog.configure` calls.
+        # DEV: This means this class should be reconfigured on `Datadog.configure` calls, thus
+        # DEV: singleton instances should not used as they will become stale.
         #
         # @param propagation_styles [Hash<String,Object>]
         def initialize(propagation_styles:)
@@ -22,7 +23,7 @@ module Datadog
         # inject! populates the env with span ID, trace ID and sampling priority
         #
         # DEV-2.0: inject! should work without arguments, injecting the active_trace's digest
-        # DEV-2.0: and returning a new Hash with the injected headers.
+        # DEV-2.0: and returning a new Hash with the injected data.
         # DEV-2.0: inject! should also accept either a `trace` or a `digest`, as a `trace`
         # DEV-2.0: argument is the common use case, but also allows us to set error tags in the `trace`
         # DEV-2.0: if needed.
@@ -32,11 +33,8 @@ module Datadog
         # @param digest [TraceDigest]
         # @param data [Hash]
         def inject!(digest, data)
-          # Prevent propagation from being attempted if trace headers provided are nil.
           if digest.nil?
-            ::Datadog.logger.debug(
-              'Cannot inject trace headers into data to propagate over HTTP: trace headers are nil.'.freeze
-            )
+            ::Datadog.logger.debug('Cannot inject distributed trace data: digest is nil.')
             return
           end
 
@@ -49,14 +47,13 @@ module Datadog
               propagator.inject!(digest, data) unless propagator.nil?
             rescue => e
               ::Datadog.logger.error(
-                'Error injecting propagated trace headers into the environment. ' \
-              "Cause: #{e} Location: #{Array(e.backtrace).first}"
+                "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
               )
             end
           end
         end
 
-        # extract returns trace headers containing the span ID, trace ID and
+        # extract returns {TraceDigest} containing the distributed trace information.
         # sampling priority defined in data.
         # @param data [Hash]
         def extract(data)
@@ -67,48 +64,43 @@ module Datadog
             propagator = @propagation_styles[style]
             next if propagator.nil?
 
-            # Extract trace headers
-            # DEV: `propagator.extract` will return `nil`, where `Propagation::HTTP#extract` will not
+            # DEV: `propagator.extract` will return `nil`, where `{STYLE}#extract` will not
             begin
               extracted_trace_digest = propagator.extract(data)
             rescue => e
               ::Datadog.logger.error(
-                'Error extracting propagated trace headers from the environment. ' \
+                'Error extracting distributed trace data. ' \
               "Cause: #{e} Location: #{Array(e.backtrace).first}"
               )
             end
 
-            # Skip this style if no valid headers were found
+            # Skip if no valid data was found
             next if extracted_trace_digest.nil?
 
-            # Keep track of the Datadog extract trace headers, we want to return
-            #   this one if we have one
+            # Keep track of the Datadog extracted digest, we want to return it if we have it.
             if extracted_trace_digest && style == Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
               dd_trace_digest = extracted_trace_digest
             end
 
-            # No previously extracted trace headers, use the one we just extracted
+            # No previously extracted trace data, use the one we just extracted
             if trace_digest.nil?
               trace_digest = extracted_trace_digest
             else
               unless trace_digest.trace_id == extracted_trace_digest.trace_id \
                     && trace_digest.span_id == extracted_trace_digest.span_id
-                # Return an empty/new trace headers if we have a mismatch in values extracted
+                # Return an empty/new trace digest if we have a mismatch in values extracted
                 msg = "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
                     "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
-                ::Datadog.logger.debug(
-                  "Cannot extract trace headers from HTTP: extracted trace headers differ, #{msg}"
-                )
+                ::Datadog.logger.debug("Cannot extract distributed trace data: extracted styles differ, #{msg}")
                 # DEV: This will return from `self.extract` not this `each` block
                 return TraceDigest.new
               end
             end
           end
 
-          # Return the extracted trace headers if we found one or else a new empty trace headers
-          # Always return the Datadog trace headers if one exists since it has more
-          #   information than the B3 headers e.g. origin, expanded priority
-          #   sampling values, etc
+          # Return the extracted trace digest if we found one or else a new empty digest.
+          # Always return the Datadog trace digest if one exists since it has more
+          # information than the B3 digest, e.g. origin, priority sampling values.
           dd_trace_digest || trace_digest || nil
         end
       end

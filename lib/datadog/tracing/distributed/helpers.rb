@@ -5,9 +5,9 @@ require_relative '../sampling/ext'
 module Datadog
   module Tracing
     module Distributed
-      # Helpers module provides common helper functions for distributed tracing headers
+      # Helpers module provides common helper functions for distributed tracing data
       module Helpers
-        # Base provides common methods for distributed header helper classes
+        # Base provides common methods for distributed helper classes
         def self.clamp_sampling_priority(sampling_priority)
           # B3 doesn't have our -1 (USER_REJECT) and 2 (USER_KEEP) priorities so convert to acceptable 0/1
           if sampling_priority < 0
@@ -51,8 +51,7 @@ module Datadog
         end
 
         def self.value_to_number(value, base = 10)
-          # It's important to make a difference between no header,
-          # and a header defined to zero.
+          # It's important to make a difference between no data and zero.
           return if value.nil?
 
           # Be sure we have a string
@@ -61,7 +60,7 @@ module Datadog
           # If we are parsing base16 number then truncate to 64-bit
           value = Helpers.truncate_base16_number(value) if base == 16
 
-          # Convert header to an integer
+          # Convert value to an integer
           # DEV: Ruby `.to_i` will return `0` if a number could not be parsed
           num = value.to_i(base)
 

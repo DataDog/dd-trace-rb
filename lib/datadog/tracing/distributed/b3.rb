@@ -7,7 +7,7 @@ require_relative '../trace_digest'
 module Datadog
   module Tracing
     module Distributed
-      # B3 provides helpers to inject or extract headers for B3 style headers
+      # B3-style trace propagation.
       # @see https://github.com/openzipkin/b3-propagation#multiple-headers
       class B3
         def initialize(
@@ -40,13 +40,12 @@ module Datadog
         end
 
         def extract(data)
-          # Extract values from headers
           # DEV: B3 doesn't have "origin"
-          headers = @fetcher.new(data)
-          trace_id = headers.id(@trace_id, 16)
-          span_id = headers.id(@span_id, 16)
+          fetcher = @fetcher.new(data)
+          trace_id = fetcher.id(@trace_id, 16)
+          span_id = fetcher.id(@span_id, 16)
           # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
-          sampling_priority = headers.number(@sampled)
+          sampling_priority = fetcher.number(@sampled)
 
           # Return early if this propagation is not valid
           return unless trace_id && span_id

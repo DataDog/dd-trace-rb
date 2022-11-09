@@ -9,7 +9,7 @@ module Datadog
     module Contrib
       module HTTP
         module Distributed
-          # Datadog provides helpers to inject or extract headers for Datadog style headers
+          # Datadog-style trace propagation through HTTP headers.
           class Datadog < Tracing::Distributed::Datadog
             def initialize
               super(fetcher: Fetcher)

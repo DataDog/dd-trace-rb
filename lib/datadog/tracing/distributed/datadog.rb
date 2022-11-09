@@ -8,7 +8,7 @@ require_relative 'datadog_tags_codec'
 module Datadog
   module Tracing
     module Distributed
-      # Datadog provides helpers to inject or extract headers for Datadog style headers
+      # Datadog-style trace propagation.
       class Datadog
         def initialize(
           trace_id: Ext::HTTP_HEADER_TRACE_ID,
@@ -65,7 +65,7 @@ module Datadog
 
         private
 
-        # Export trace distributed tags through the `x-datadog-tags` header.
+        # Export trace distributed tags through the `x-datadog-tags` key.
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
@@ -103,11 +103,11 @@ module Datadog
           )
         end
 
-        # Import `x-datadog-tags` header tags as trace distributed tags.
+        # Import `x-datadog-tags` tags as trace distributed tags.
         # Only tags that have the `_dd.p.` prefix are processed.
-        def extract_tags(headers)
-          tags_header = headers[@tags]
-          return if !tags_header || tags_header.empty?
+        def extract_tags(data)
+          tags = data[@tags]
+          return if !tags || tags.empty?
 
           if ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
             active_trace = Tracing.active_trace
@@ -115,24 +115,24 @@ module Datadog
             return
           end
 
-          if tags_header.size > ::Datadog.configuration.tracing.x_datadog_tags_max_length
+          if tags.size > ::Datadog.configuration.tracing.x_datadog_tags_max_length
             active_trace = Tracing.active_trace
             active_trace.set_tag('_dd.propagation_error', 'extract_max_size') if active_trace
 
             ::Datadog.logger.warn(
-              "Failed to extract x-datadog-tags: tags are too large (size:#{tags_header.size} " \
+              "Failed to extract x-datadog-tags: tags are too large (size:#{tags.size} " \
                 "limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This limit can be configured " \
                 'through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
             )
             return
           end
 
-          tags = DatadogTagsCodec.decode(tags_header)
+          tags_hash = DatadogTagsCodec.decode(tags)
           # Only extract keys with the expected Datadog prefix
-          tags.select! do |key, _|
+          tags_hash.select! do |key, _|
             key.start_with?(Tracing::Metadata::Ext::Distributed::TAGS_PREFIX) && key != EXCLUDED_TAG
           end
-          tags
+          tags_hash
         rescue => e
           active_trace = Tracing.active_trace
           active_trace.set_tag('_dd.propagation_error', 'decoding_error') if active_trace

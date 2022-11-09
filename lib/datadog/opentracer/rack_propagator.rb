@@ -11,8 +11,8 @@ module Datadog
     # OpenTracing propagator for Datadog::OpenTracer::Tracer
     module RackPropagator
       extend Propagator
-      extend Tracing::Contrib::Distributed::Ext
-      include Tracing::Contrib::Distributed::Ext
+      extend Tracing::Distributed::Ext
+      include Tracing::Distributed::Ext
 
       BAGGAGE_PREFIX = 'ot-baggage-'.freeze
       BAGGAGE_PREFIX_FORMATTED = 'HTTP_OT_BAGGAGE_'.freeze

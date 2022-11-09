@@ -8,7 +8,8 @@ module Datadog
     module Contrib
       module GRPC
         module Distributed
-          # B3 provides helpers to inject or extract metadata in B3 style
+          # B3-style trace propagation through gRPC metadata.
+          # @see https://github.com/openzipkin/b3-propagation#multiple-headers
           # @see https://github.com/grpc/grpc-go/blob/v1.50.1/Documentation/grpc-metadata.md gRPC metadata
           class B3 < Tracing::Distributed::B3
             def initialize
