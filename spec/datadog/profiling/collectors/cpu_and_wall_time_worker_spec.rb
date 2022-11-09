@@ -178,6 +178,33 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         current_thread_gc_samples.inject(0) { |sum, sample| sum + sample.fetch(:values).fetch(:'cpu-samples') }
       ).to be >= invoke_gc_times
     end
+
+    context 'when the background thread dies without cleaning up (after Ruby forks)' do
+      it 'allows the CpuAndWallTimeWorker to be restarted' do
+        start
+
+        expect_in_fork do
+          cpu_and_wall_time_worker.start
+          wait_until_running
+        end
+      end
+
+      it 'allows a different instance of the CpuAndWallTimeWorker to be started' do
+        start
+
+        expect_in_fork do
+          another_instance = described_class.new(
+            recorder: Datadog::Profiling::StackRecorder.new,
+            max_frames: 400,
+            tracer: nil,
+            gc_profiling_enabled: gc_profiling_enabled,
+          )
+          another_instance.start
+
+          try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
+        end
+      end
+    end
   end
 
   describe 'Ractor safety' do
