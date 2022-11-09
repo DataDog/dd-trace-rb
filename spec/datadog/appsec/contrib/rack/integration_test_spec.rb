@@ -88,7 +88,7 @@ RSpec.describe 'Rack integration tests' do
         let(:appsec_enabled) { false }
 
         it { expect(span.get_tag('http.method')).to eq('GET') }
-        it { expect(span.get_tag('http.status_code')).to eq('403') }
+        it { expect(span.get_tag('http.status_code')).to eq('200') }
         it { expect(span.status).to eq(0) }
       end
     end
