@@ -2,16 +2,16 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/distributed/propagation'
+require 'datadog/tracing/distributed/propagation'
 
 RSpec.shared_examples 'Distributed tracing propagator' do
   subject(:propagation) { described_class.new(propagation_styles: propagation_styles) }
 
   let(:propagation_styles) do
     {
-      'Datadog' => Datadog::Tracing::Contrib::Distributed::Datadog.new,
-      'B3' => Datadog::Tracing::Contrib::Distributed::B3.new,
-      'B3 single header' => Datadog::Tracing::Contrib::Distributed::B3Single.new,
+      'Datadog' => Datadog::Tracing::Distributed::Datadog.new,
+      'B3' => Datadog::Tracing::Distributed::B3.new,
+      'B3 single header' => Datadog::Tracing::Distributed::B3Single.new,
     }
   end
 
@@ -281,7 +281,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
 
             before do
-              allow_any_instance_of(::Datadog::Tracing::Contrib::Distributed::Datadog).to receive(:extract).and_raise(error)
+              allow_any_instance_of(::Datadog::Tracing::Distributed::Datadog).to receive(:extract).and_raise(error)
               allow(Datadog.logger).to receive(:error)
             end
 
@@ -433,6 +433,6 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   end
 end
 
-RSpec.describe Datadog::Tracing::Contrib::Distributed::Propagation do
+RSpec.describe Datadog::Tracing::Distributed::Propagation do
   it_behaves_like 'Distributed tracing propagator'
 end

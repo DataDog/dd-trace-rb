@@ -2,10 +2,10 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/distributed/fetcher'
+require 'datadog/tracing/distributed/fetcher'
 require 'datadog/tracing/span'
 
-RSpec.describe Datadog::Tracing::Contrib::Distributed::Fetcher do
+RSpec.describe Datadog::Tracing::Distributed::Fetcher do
   subject(:fetcher) { described_class.new(data) }
 
   let(:data) { {} }

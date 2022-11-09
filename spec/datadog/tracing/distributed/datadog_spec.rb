@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/distributed/datadog'
+require 'datadog/tracing/distributed/datadog'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Datadog distributed format' do
@@ -370,6 +370,6 @@ RSpec.shared_examples 'Datadog distributed format' do
   end
 end
 
-RSpec.describe Datadog::Tracing::Contrib::Distributed::Datadog do
+RSpec.describe Datadog::Tracing::Distributed::Datadog do
   it_behaves_like 'Datadog distributed format'
 end

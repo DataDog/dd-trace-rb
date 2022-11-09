@@ -1,4 +1,4 @@
-require_relative '../../distributed/fetcher'
+require_relative '../../../distributed/fetcher'
 
 module Datadog
   module Tracing
@@ -6,7 +6,7 @@ module Datadog
       module GRPC
         module Distributed
           # Retrieves fields from the gRPC metadata object
-          class Fetcher < Contrib::Distributed::Fetcher
+          class Fetcher < Tracing::Distributed::Fetcher
             def [](key)
               # metadata values can be arrays (multiple headers with the same key)
               value = super(key)

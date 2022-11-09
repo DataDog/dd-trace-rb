@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/distributed/b3'
+require 'datadog/tracing/distributed/b3'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'B3 distributed format' do
@@ -146,6 +146,6 @@ RSpec.shared_examples 'B3 distributed format' do
   end
 end
 
-RSpec.describe Datadog::Tracing::Contrib::Distributed::B3 do
+RSpec.describe Datadog::Tracing::Distributed::B3 do
   it_behaves_like 'B3 distributed format'
 end

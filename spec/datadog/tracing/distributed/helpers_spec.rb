@@ -2,10 +2,10 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/distributed/helpers'
+require 'datadog/tracing/distributed/helpers'
 require 'datadog/tracing/span'
 
-RSpec.describe Datadog::Tracing::Contrib::Distributed::Helpers do
+RSpec.describe Datadog::Tracing::Distributed::Helpers do
   describe '#clamp_sampling_priority' do
     subject(:sampling_priority) { described_class.clamp_sampling_priority(value) }
 

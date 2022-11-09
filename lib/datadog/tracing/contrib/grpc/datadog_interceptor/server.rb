@@ -1,7 +1,7 @@
 # typed: ignore
 
 require_relative '../../../../tracing'
-require_relative '../../distributed/ext'
+require_relative '../../../distributed/ext'
 require_relative '../../../metadata/ext'
 require_relative '../distributed/propagation'
 require_relative '../../analytics'
@@ -55,7 +55,7 @@ module Datadog
             def annotate!(span, metadata)
               metadata.each do |header, value|
                 # Datadog propagation headers are considered internal implementation detail.
-                next if header.to_s.start_with?(Tracing::Contrib::Distributed::Ext::DATADOG_PREFIX)
+                next if header.to_s.start_with?(Tracing::Distributed::Ext::DATADOG_PREFIX)
 
                 span.set_tag(header, value)
               end

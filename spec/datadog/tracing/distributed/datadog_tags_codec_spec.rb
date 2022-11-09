@@ -2,9 +2,9 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/contrib/distributed/datadog_tags_codec'
+require 'datadog/tracing/distributed/datadog_tags_codec'
 
-RSpec.describe Datadog::Tracing::Contrib::Distributed::DatadogTagsCodec do
+RSpec.describe Datadog::Tracing::Distributed::DatadogTagsCodec do
   let(:codec) { described_class }
 
   describe '#decode' do
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Contrib::Distributed::DatadogTagsCodec do
       ].each do |input|
         context "of value `#{input}`" do
           let(:input) { input }
-          it { expect { decode }.to raise_error(Datadog::Tracing::Contrib::Distributed::DatadogTagsCodec::DecodingError) }
+          it { expect { decode }.to raise_error(Datadog::Tracing::Distributed::DatadogTagsCodec::DecodingError) }
         end
       end
     end
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::Contrib::Distributed::DatadogTagsCodec do
       ].each do |input, _expected|
         context "of value `#{input}`" do
           let(:input) { input }
-          it { expect { encode }.to raise_error(Datadog::Tracing::Contrib::Distributed::DatadogTagsCodec::EncodingError) }
+          it { expect { encode }.to raise_error(Datadog::Tracing::Distributed::DatadogTagsCodec::EncodingError) }
         end
       end
     end

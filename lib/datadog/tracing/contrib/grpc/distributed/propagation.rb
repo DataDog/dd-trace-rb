@@ -1,4 +1,4 @@
-require_relative '../../distributed/propagation'
+require_relative '../../../distributed/propagation'
 require_relative 'b3'
 require_relative 'b3_single'
 require_relative 'datadog'
@@ -9,7 +9,7 @@ module Datadog
       module GRPC
         module Distributed
           # Extracts and injects propagation data into gRPC request metadata.
-          class Propagation < Contrib::Distributed::Propagation
+          class Propagation < Tracing::Distributed::Propagation
             def initialize
               super(
                 propagation_styles: {

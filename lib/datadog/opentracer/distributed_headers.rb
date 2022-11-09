@@ -1,7 +1,7 @@
 # typed: true
 
 require_relative '../tracing/span'
-require_relative '../tracing/contrib/distributed/ext'
+require_relative '../tracing/distributed/ext'
 
 module Datadog
   module OpenTracer

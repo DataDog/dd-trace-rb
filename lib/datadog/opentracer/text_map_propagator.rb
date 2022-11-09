@@ -1,7 +1,7 @@
 # typed: true
 
 require_relative '../tracing/context'
-require_relative '../tracing/contrib/distributed/ext'
+require_relative '../tracing/distributed/ext'
 require_relative '../tracing/trace_operation'
 require_relative 'propagator'
 

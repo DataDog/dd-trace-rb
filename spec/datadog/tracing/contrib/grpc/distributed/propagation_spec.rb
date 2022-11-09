@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 require 'datadog/tracing/contrib/grpc/distributed/propagation'
-require_relative '../../distributed/propagation_spec'
+require_relative '../../../distributed/propagation_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   it_behaves_like 'Distributed tracing propagator' do
