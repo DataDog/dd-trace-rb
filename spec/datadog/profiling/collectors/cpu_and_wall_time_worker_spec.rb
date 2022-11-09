@@ -220,6 +220,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
 
           expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+          expect(described_class::Testing._native_gc_tracepoint(another_instance)).to be_enabled
         end
       end
     end
