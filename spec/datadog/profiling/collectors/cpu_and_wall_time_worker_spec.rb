@@ -204,6 +204,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
         end
       end
+
+      it 'disables the existing gc_tracepoint before starting another CpuAndWallTimeWorker' do
+        start
+
+        expect_in_fork do
+          another_instance = described_class.new(
+            recorder: Datadog::Profiling::StackRecorder.new,
+            max_frames: 400,
+            tracer: nil,
+            gc_profiling_enabled: gc_profiling_enabled,
+          )
+          another_instance.start
+
+          try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
+
+          expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+        end
+      end
     end
   end
 

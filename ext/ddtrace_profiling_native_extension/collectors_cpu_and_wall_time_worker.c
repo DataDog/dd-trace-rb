@@ -205,11 +205,25 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  if (active_sampler_owner_thread != Qnil && is_thread_alive(active_sampler_owner_thread)) {
-    rb_raise(
-      rb_eRuntimeError,
-      "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
-    );
+  if (active_sampler_owner_thread != Qnil) {
+    if (is_thread_alive(active_sampler_owner_thread)) {
+      rb_raise(
+        rb_eRuntimeError,
+        "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
+      );
+    } else {
+      // The previously active thread seems to have died without cleaning up after itself.
+      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing GC tracepoint
+      // first as:
+      // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the tracepoint from the old instance
+      //    being kept around
+      // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
+      //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
+
+      struct cpu_and_wall_time_worker_state *old_state;
+      TypedData_Get_Struct(active_sampler_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, old_state);
+      rb_tracepoint_disable(old_state->gc_tracepoint);
+    }
   }
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
