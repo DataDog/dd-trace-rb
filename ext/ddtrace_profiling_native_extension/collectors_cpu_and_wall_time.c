@@ -59,7 +59,7 @@
 // ---
 
 #define INVALID_TIME -1
-#define THREAD_ID_LIMIT_CHARS 20
+#define THREAD_ID_LIMIT_CHARS 44 // Why 44? "#{2**64} (#{2**64})".size + 1 for \0
 #define RAISE_ON_FAILURE true
 #define DO_NOT_RAISE_ON_FAILURE false
 #define IS_WALL_TIME true
@@ -625,7 +625,7 @@ static struct per_thread_context *get_context_for(VALUE thread, struct cpu_and_w
 }
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context) {
-  snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%ld", thread_id_for(thread));
+  snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
   thread_context->thread_cpu_time_id = thread_cpu_time_id_for(thread);

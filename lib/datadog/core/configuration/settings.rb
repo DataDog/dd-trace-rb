@@ -256,6 +256,25 @@ module Datadog
               o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_NEW', false) }
               o.lazy
             end
+
+            # Forces enabling of profiling of time/resources spent in Garbage Collection.
+            #
+            # Note that setting this to "false" (or not setting it) will not prevent the feature from being
+            # being automatically enabled in the future.
+            #
+            # This toggle was added because, although this feature is safe and enabled by default on Ruby 2.x,
+            # on Ruby 3.x it can break in applications that make use of Ractors due to a Ruby VM bug
+            # (https://bugs.ruby-lang.org/issues/19112).
+            #
+            # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
+            # feature is fully safe to enable and this toggle can be used to do so.
+            #
+            # We expect that once the above issue is patched, we'll automatically re-enable the feature on fixed Ruby
+            # versions.
+            option :force_enable_gc_profiling do |o|
+              o.default { env_to_bool('DD_PROFILING_FORCE_ENABLE_GC', false) }
+              o.lazy
+            end
           end
 
           # @public_api

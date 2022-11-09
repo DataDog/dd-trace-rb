@@ -93,8 +93,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     it 'tags the samples with the object ids of the Threads they belong to' do
       sample
 
-      expect(samples.map { |it| it.fetch(:labels).fetch(:'thread id') })
-        .to include(*[Thread.main, t1, t2, t3].map(&:object_id).map(&:to_s))
+      expect(samples.map { |it| object_id_from(it.fetch(:labels).fetch(:'thread id')) })
+        .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
     end
 
     it 'includes the thread names, if available' do
@@ -106,9 +106,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
 
       sample
 
-      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
-      t2_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t2.object_id.to_s }
-      t3_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t3.object_id.to_s }
+      t1_sample = samples_for_thread(samples, t1).first
+      t2_sample = samples_for_thread(samples, t2).first
+      t3_sample = samples_for_thread(samples, t3).first
 
       expect(t1_sample).to include(labels: include(:'thread name' => 'thread t1'))
       expect(t2_sample.fetch(:labels).keys).to_not include(:'thread name')
@@ -130,7 +130,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       wall_time_at_second_sample =
         per_thread_context.fetch(t1).fetch(:wall_time_at_previous_sample_ns)
 
-      t1_samples = samples.select { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
+      t1_samples = samples_for_thread(samples, t1)
       wall_time = t1_samples.first.fetch(:values).fetch(:'wall-time')
 
       expect(t1_samples.size)
@@ -142,7 +142,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     it 'tags samples with how many times they were seen' do
       5.times { sample }
 
-      t1_sample = samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
+      t1_sample = samples_for_thread(samples, t1).first
 
       expect(t1_sample).to include(values: include(:'cpu-samples' => 5))
     end
@@ -164,8 +164,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           5.times { sample } # Even though we keep sampling, the result only includes the time until we called on_gc_start
 
           total_wall_for_rspec_thread =
-            samples
-              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+            samples_for_thread(samples, Thread.current)
               .map { |it| it.fetch(:values).fetch(:'wall-time') }
               .reduce(:+)
 
@@ -220,8 +219,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
           # The only thread we're guaranteed has spent some time on cpu is the rspec thread, so let's check we have
           # some data for it
           total_cpu_for_rspec_thread =
-            samples
-              .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+            samples_for_thread(samples, Thread.current)
               .map { |it| it.fetch(:values).fetch(:'cpu-time') }
               .reduce(:+)
 
@@ -246,8 +244,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
               5.times { sample }
 
               total_cpu_for_rspec_thread =
-                samples
-                  .select { |it| it.fetch(:labels).fetch(:'thread id') == Thread.current.object_id.to_s }
+                samples_for_thread(samples, Thread.current)
                   .map { |it| it.fetch(:values).fetch(:'cpu-time') }
                   .reduce(:+)
 
@@ -278,9 +275,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
     end
 
     describe 'code hotspots' do
-      let(:t1_sample) do
-        samples.find { |it| it.fetch(:labels).fetch(:'thread id') == t1.object_id.to_s }
-      end
+      let(:t1_sample) { samples_for_thread(samples, t1).first }
 
       shared_examples_for 'samples without code hotspots information' do
         it 'samples successfully' do
@@ -588,7 +583,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       it 'samples the thread with recorded gc start and finish time, marking it as being in Garbage Collection' do
         sample_after_gc
 
-        expect(gc_sample.fetch(:labels).fetch(:'thread id')).to eq Thread.current.object_id.to_s
+        expect(object_id_from(gc_sample.fetch(:labels).fetch(:'thread id'))).to eq Thread.current.object_id
       end
 
       it 'samples the thread with recorded gc start and finish time, recording the times between gc start and finish' do
@@ -699,9 +694,32 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         expect(per_thread_context.keys).to include(Thread.main, t1, t2, t3)
       end
 
-      it 'contains the thread ids (object_ids) of all sampled threads' do
-        per_thread_context.each do |thread, context|
-          expect(context.fetch(:thread_id)).to eq thread.object_id.to_s
+      describe ':thread_id' do
+        it 'contains the object ids of all sampled threads' do
+          per_thread_context.each do |thread, context|
+            expect(object_id_from(context.fetch(:thread_id))).to eq thread.object_id
+          end
+        end
+
+        context 'on Ruby >= 3.1' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.1.' }
+
+          # Thread#native_thread_id was added on 3.1
+          it 'contains the native thread ids of all sampled threads' do
+            per_thread_context.each do |thread, context|
+              expect(context.fetch(:thread_id).split.first).to eq thread.native_thread_id.to_s
+            end
+          end
+        end
+
+        context 'on Ruby < 3.1' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.1.' }
+
+          it 'contains a fallback native thread id' do
+            per_thread_context.each do |_thread, context|
+              expect(Integer(context.fetch(:thread_id).split.first)).to be > 0
+            end
+          end
         end
       end
 
