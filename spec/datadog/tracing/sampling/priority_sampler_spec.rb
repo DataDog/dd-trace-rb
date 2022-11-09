@@ -197,4 +197,20 @@ RSpec.describe Datadog::Tracing::Sampling::PrioritySampler do
       end
     end
   end
+
+  describe '.sampled?' do
+    subject(:sampled?) { described_class.sampled?(priority_sampling) }
+
+    {
+      -1 => false,
+      0 => false,
+      1 => true,
+      2 => true
+    }.each do |priority_sampling, sampled|
+      context "with priority_sampling #{priority_sampling}" do
+        let(:priority_sampling) { priority_sampling }
+        it { is_expected.to eq(sampled) }
+      end
+    end
+  end
 end
