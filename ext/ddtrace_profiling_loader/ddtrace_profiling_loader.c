@@ -29,10 +29,17 @@
   #define RTLD_DEEPBIND 0
 #endif
 
+// Used to mark function arguments that are deliberately left unused
+#ifdef __GNUC__
+  #define DDTRACE_UNUSED  __attribute__((unused))
+#else
+  #define DDTRACE_UNUSED
+#endif
+
 static VALUE ok_symbol = Qnil; // :ok in Ruby
 static VALUE error_symbol = Qnil; // :error in Ruby
 
-static VALUE _native_load(VALUE self, VALUE ruby_path, VALUE ruby_init_name);
+static VALUE _native_load(DDTRACE_UNUSED VALUE self, VALUE ruby_path, VALUE ruby_init_name);
 static bool failed_to_load(void *handle, VALUE *failure_details);
 static bool incompatible_library(void *handle, VALUE *failure_details);
 static bool failed_to_initialize(void *handle, char *init_name, VALUE *failure_details);
@@ -51,7 +58,7 @@ void DDTRACE_EXPORT Init_ddtrace_profiling_loader(void) {
   error_symbol = ID2SYM(rb_intern_const("error"));
 }
 
-static VALUE _native_load(VALUE self, VALUE ruby_path, VALUE ruby_init_name) {
+static VALUE _native_load(DDTRACE_UNUSED VALUE self, VALUE ruby_path, VALUE ruby_init_name) {
   Check_Type(ruby_path, T_STRING);
   Check_Type(ruby_init_name, T_STRING);
 
