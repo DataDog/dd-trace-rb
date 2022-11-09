@@ -209,6 +209,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context 'when called from a background ractor' do
+      # Even though we're not testing it explicitly, the GC profiling hooks can sometimes be called when running these
+      # specs. Unfortunately, there's a VM crash in that case as well -- https://bugs.ruby-lang.org/issues/18464 --
+      # so this must be disabled when interacting with Ractors.
+      let(:gc_profiling_enabled) { false }
+
       describe 'handle_sampling_signal' do
         include_examples 'does not trigger a sample',
           (

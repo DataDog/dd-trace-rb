@@ -263,8 +263,8 @@ module Datadog
             # being automatically enabled in the future.
             #
             # This toggle was added because, although this feature is safe and enabled by default on Ruby 2.x,
-            # on Ruby 3.x it can break in applications that make use of Ractors due to a Ruby VM bug
-            # (https://bugs.ruby-lang.org/issues/19112).
+            # on Ruby 3.x it can break in applications that make use of Ractors due to two Ruby VM bugs:
+            # https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
             #
             # If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
             # feature is fully safe to enable and this toggle can be used to do so.
