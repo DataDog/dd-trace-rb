@@ -32,7 +32,6 @@ GEM
     binding_of_caller (1.0.0)
       debug_inspector (>= 0.0.1)
     builder (3.2.4)
-    byebug (11.1.3)
     climate_control (0.2.0)
     coderay (1.1.3)
     colorize (0.8.1)
@@ -48,15 +47,11 @@ GEM
     extlz4 (0.3.3)
     ffi (1.15.5)
     google-protobuf (3.21.9)
-    google-protobuf (3.21.9-x86_64-linux)
     hashdiff (1.0.1)
     json (2.6.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (0.9.0.1.0-aarch64-linux)
     libdatadog (0.9.0.1.0-x86_64-linux)
-    libddwaf (1.5.1.0.0-aarch64-linux)
-      ffi (~> 1.0)
     libddwaf (1.5.1.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -73,9 +68,6 @@ GEM
     pry (0.14.1)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    pry-byebug (3.10.1)
-      byebug (~> 11.0)
-      pry (>= 0.13, < 0.15)
     pry-stack_explorer (0.6.1)
       binding_of_caller (~> 1.0)
       pry (~> 0.13)
@@ -161,7 +153,6 @@ GEM
       webrick (~> 1.7.0)
 
 PLATFORMS
-  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
@@ -182,7 +173,6 @@ DEPENDENCIES
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
-  pry-byebug
   pry-stack_explorer
   rack-test
   rake (>= 10.5)
@@ -207,4 +197,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.7
+   2.4.0.dev
