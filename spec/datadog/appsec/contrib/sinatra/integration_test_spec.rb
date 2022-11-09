@@ -56,10 +56,8 @@ RSpec.describe 'Sinatra integration tests' do
     end
   end
 
-  around do |example|
-    # Reset before and after each example; don't allow global state to linger.
-    Datadog.registry[:sinatra].reset_configuration!
-    example.run
+  after do
+    Datadog.registry[:rack].reset_configuration!
     Datadog.registry[:sinatra].reset_configuration!
   end
 
