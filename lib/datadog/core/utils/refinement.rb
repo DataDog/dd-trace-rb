@@ -1,5 +1,5 @@
 # frozen_string_literal: true
-# typed: true
+# typed: false
 
 module Datadog
   module Core
@@ -8,12 +8,21 @@ module Datadog
       # Backports future features to old rubies.
       module Refinement
         # rubocop:disable Style/Documentation
+        module Regexp
+          refine ::Regexp do
+            # `Regexp::match?` is measurably the most performant
+            # way to check if a String matches a regular expression.
+            #
+            # Introduced in Ruby 2.4.
+            def match?(*args)
+              !match(*args).nil?
+            end
+          end
+        end
+
         module String
           refine ::String do
-            # Returns self if self is not frozen.
-            # Otherwise, returns self.dup, which is not frozen.
-            #
-            # Rationale: when we are not sure if a String is mutable and want to perform
+            # When not sure if a String is mutable and but it's necessary to perform
             # changes to it, `+@` is measurable faster than a possibly unnecessary `.dup`.
             #
             # Introduced in Ruby 2.3.

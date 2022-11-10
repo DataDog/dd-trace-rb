@@ -11,7 +11,7 @@ module Datadog
         module Distributed
           # Retrieves Rack formatted headers from HTTP headers.
           class Fetcher < Tracing::Distributed::Fetcher
-            using Core::Utils::Refinement::String if RUBY_VERSION < '2.3' # Backports `String#+@`
+            using Core::Utils::Refinement::String unless ::String.method_defined?(:+@)
 
             # TODO: Don't assume Rack format.
             #       Make distributed tracing headers apathetic.
