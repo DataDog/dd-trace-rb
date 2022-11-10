@@ -14,16 +14,8 @@ RSpec.describe 'Redis mini app test' do
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }
 
-    # Configure client instance with custom options
-    Datadog.configure_onto(client, service_name: 'test-service')
-  end
-
-  let(:client) do
-    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('4.0.0')
-      redis._client
-    else
-      redis.client
-    end
+    # Configure redis instance with custom options
+    Datadog.configure_onto(redis, service_name: 'test-service')
   end
 
   let(:redis) { Redis.new(host: host, port: port) }
