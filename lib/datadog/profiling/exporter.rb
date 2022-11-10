@@ -70,6 +70,13 @@ module Datadog
         !duration_below_threshold?(last_flush_finish_at || created_at, time_provider.now.utc)
       end
 
+      def clear
+        # TODO: This is a really heavy-handed way of clearing the buffer
+        flush
+
+        nil
+      end
+
       private
 
       def duration_below_threshold?(start, finish)

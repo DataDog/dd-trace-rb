@@ -74,6 +74,18 @@ RSpec.describe Datadog::Profiling::Exporter do
     end
   end
 
+  describe '#clear' do
+    subject(:clear) { exporter.clear }
+
+    it { is_expected.to be nil }
+
+    it 'triggers pprof_recorder serialization' do
+      expect(pprof_recorder).to receive(:serialize)
+
+      clear
+    end
+  end
+
   describe '#can_flush?' do
     let(:time_provider) { class_double(Time) }
     let(:created_at) { start - 60 }
@@ -102,7 +114,23 @@ RSpec.describe Datadog::Profiling::Exporter do
       end
     end
 
-    context 'when exporter has never flushed' do
+    context 'when exporter has been cleared before' do
+      before { exporter.clear }
+
+      context 'when less than 1s has elapsed since last clear' do
+        before { expect(time_provider).to receive(:now).and_return(finish + 0.99).once }
+
+        it { is_expected.to be false }
+      end
+
+      context 'when 1s or more has elapsed since last clear' do
+        before { expect(time_provider).to receive(:now).and_return(finish + 1).once }
+
+        it { is_expected.to be true }
+      end
+    end
+
+    context 'when exporter has never flushed or cleared' do
       context 'when less than 1s has elapsed since exporter was created' do
         before { expect(time_provider).to receive(:now).and_return(created_at + 0.99).once }
 
