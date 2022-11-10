@@ -235,7 +235,7 @@ RSpec.describe 'Redis test' do
       end
 
       before do
-        expect { bad_call }.to raise_error(Redis::CommandError, "ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'")
+        expect { bad_call }.to raise_error(Redis::CommandError, /ERR unknown command/)
       end
 
       it do
@@ -252,7 +252,7 @@ RSpec.describe 'Redis test' do
           expect(span.get_tag('redis.raw_command')).to eq('THIS_IS_NOT_A_REDIS_FUNC THIS_IS_NOT_A_VALID_ARG')
           expect(span.get_tag('db.system')).to eq('redis')
           expect(span.status).to eq(1)
-          expect(span.get_tag('error.msg')).to eq("ERR unknown command 'THIS_IS_NOT_A_REDIS_FUNC'")
+          expect(span.get_tag('error.msg')).to match(/ERR unknown command/)
           expect(span.get_tag('error.type')).to eq('Redis::CommandError')
           expect(span.get_tag('error.stack').length).to be >= 3
         end
