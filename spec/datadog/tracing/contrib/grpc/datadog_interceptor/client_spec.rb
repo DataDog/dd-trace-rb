@@ -106,13 +106,7 @@ RSpec.describe 'tracing on the client connection' do
       let(:configuration_options) { { service_name: 'rspec', distributed_tracing: true } }
 
       it 'injects distribution data in gRPC metadata' do
-        metadata_keys = %w[
-          x-datadog-trace-id
-          x-datadog-parent-id
-          x-datadog-tags
-        ]
-
-        expect(keywords[:metadata].keys).to include(*metadata_keys)
+        expect(keywords[:metadata].keys).to include('x-datadog-trace-id', 'x-datadog-parent-id', 'x-datadog-tags')
       end
     end
   end
