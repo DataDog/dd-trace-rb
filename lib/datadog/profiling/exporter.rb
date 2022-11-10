@@ -71,9 +71,12 @@ module Datadog
       end
 
       def clear
-        # TODO: This is a really heavy-handed way of clearing the buffer
-        _, finish, _ = pprof_recorder.serialize
-        @last_flush_finish_at = finish
+        if pprof_recorder.respond_to?(:clear)
+          @last_flush_finish_at = pprof_recorder.clear
+        else # TODO: Remove this when the OldRecorder is retired and we can assume all recorders implement #clear
+          _, finish, = pprof_recorder.serialize
+          @last_flush_finish_at = finish
+        end
 
         nil
       end

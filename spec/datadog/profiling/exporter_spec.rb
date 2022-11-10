@@ -79,10 +79,36 @@ RSpec.describe Datadog::Profiling::Exporter do
 
     it { is_expected.to be nil }
 
-    it 'triggers pprof_recorder serialization' do
-      expect(pprof_recorder).to receive(:serialize)
+    context 'when pprof_recorder does not support clear' do
+      let(:pprof_recorder) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_recorder_serialize) }
 
-      clear
+      it 'triggers pprof_recorder serialization' do
+        expect(pprof_recorder).to receive(:serialize)
+
+        clear
+      end
+
+      it 'sets the last_flush_finish_at to the result of serialize' do
+        clear
+
+        expect(exporter.send(:last_flush_finish_at)).to be finish
+      end
+    end
+
+    context 'when pprof_recorder supports clear' do
+      let(:pprof_recorder) { instance_double(Datadog::Profiling::StackRecorder, clear: finish) }
+
+      it 'triggers pprof_recorder clear' do
+        expect(pprof_recorder).to receive(:clear)
+
+        clear
+      end
+
+      it 'sets the last_flush_finish_at to the result of clear' do
+        clear
+
+        expect(exporter.send(:last_flush_finish_at)).to be finish
+      end
     end
   end
 
