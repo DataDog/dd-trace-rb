@@ -12,11 +12,13 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
+          # Patch for redis instance
           module InstancePatch
             def self.included(base)
               base.prepend(InstanceMethods)
             end
 
+            # Instance method patch for redis instance
             module InstanceMethods
               def initialize(options = {})
                 options[:redis_instance] = self
@@ -26,11 +28,13 @@ module Datadog
             end
           end
 
+          # Patch for redis client
           module ClientPatch
             def self.included(base)
               base.prepend(InstanceMethods)
             end
 
+            # Instance method patch for redis client
             module InstanceMethods
               def initialize(options = {})
                 @redis_instance = options[:redis_instance]
