@@ -180,6 +180,70 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe 'Ractor safety' do
+    before do
+      skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.'
+
+      # See native_extension_spec.rb for more details on the issues we saw on 3.0
+      skip 'Ruby 3.0 Ractors are too buggy to run this spec' if RUBY_VERSION.start_with?('3.0.')
+    end
+
+    shared_examples_for 'does not trigger a sample' do |run_ractor|
+      it 'does not trigger a sample' do
+        cpu_and_wall_time_worker.start
+        wait_until_running
+
+        run_ractor.call
+
+        cpu_and_wall_time_worker.stop
+
+        serialization_result = recorder.serialize
+        raise 'Unexpected: Serialization failed' unless serialization_result
+
+        samples_from_ractor =
+          samples_from_pprof(serialization_result.last)
+            .select { |it| it.fetch(:labels)[:'thread name'] == 'background ractor' }
+
+        expect(samples_from_ractor).to be_empty
+      end
+    end
+
+    context 'when called from a background ractor' do
+      # Even though we're not testing it explicitly, the GC profiling hooks can sometimes be called when running these
+      # specs. Unfortunately, there's a VM crash in that case as well -- https://bugs.ruby-lang.org/issues/18464 --
+      # so this must be disabled when interacting with Ractors.
+      let(:gc_profiling_enabled) { false }
+
+      describe 'handle_sampling_signal' do
+        include_examples 'does not trigger a sample',
+          (
+            proc do
+              Ractor.new do
+                Thread.current.name = 'background ractor'
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_handle_sampling_signal
+              end.take
+            end
+          )
+      end
+
+      describe 'sample_from_postponed_job' do
+        include_examples 'does not trigger a sample',
+          (
+            proc do
+              Ractor.new do
+                Thread.current.name = 'background ractor'
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_simulate_sample_from_postponed_job
+              end.take
+            end
+          )
+      end
+
+      # @ivoanjo: I initially tried to also test the GC callbacks, but it gets a bit hacky to force the thread
+      # context creation for the ractors, and then simulate a GC. (For instance -- how to prevent against the context
+      # creation running in parallel with a regular sample?)
+    end
+  end
+
   describe '#stop' do
     subject(:stop) { cpu_and_wall_time_worker.stop }
 
