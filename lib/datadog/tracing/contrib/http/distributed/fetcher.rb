@@ -2,6 +2,7 @@
 # typed: false
 
 require_relative '../../../distributed/fetcher'
+require_relative '../../../../core/utils/refinement'
 
 module Datadog
   module Tracing
@@ -10,12 +11,15 @@ module Datadog
         module Distributed
           # Retrieves Rack formatted headers from HTTP headers.
           class Fetcher < Tracing::Distributed::Fetcher
+            using Core::Utils::Refinement::String if RUBY_VERSION < '2.3' # Backports `String#+@`
+
             # TODO: Don't assume Rack format.
             #       Make distributed tracing headers apathetic.
             # DEV: Should we try to parse both verbatim an Rack-formatted headers,
             # DEV: given Rack-formatted is the most common format in Ruby?
             def [](name)
-              rack_header = "http-#{name}".upcase!.tr('-', '_')
+              # DEV: `String#+@` is not needed in Ruby >= 3.0, as interpolated strings are not frozen.
+              rack_header = (+"http-#{name}").upcase!.tr('-', '_')
 
               hdr = super(rack_header)
 
