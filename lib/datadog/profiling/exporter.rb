@@ -72,7 +72,8 @@ module Datadog
 
       def clear
         # TODO: This is a really heavy-handed way of clearing the buffer
-        flush
+        _, finish, _ = pprof_recorder.serialize
+        @last_flush_finish_at = finish
 
         nil
       end
