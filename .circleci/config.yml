@@ -76,7 +76,7 @@ test_containers:
       - ES_JAVA_OPTS=-Xms750m -Xmx750m
   - &elasticsearch_port 9200
   - &container_redis
-    image: redis:3.0
+    image: redis:6.2
   - &redis_port 6379
   - &container_mongo
     image: mongo:3.5
