@@ -67,7 +67,10 @@ module Datadog
             end
 
             def datadog_configuration
-              Datadog.configuration.tracing[:redis, options]
+              # attribute reader `options` would works for Redis 4.x
+              # But Redis 3.x raises `TypeError: singleton can't be dumped`
+              # since overwritten with `Marshal.load(Marshal.dump(@options))`
+              Datadog.configuration.tracing[:redis, @options]
             end
           end
         end
