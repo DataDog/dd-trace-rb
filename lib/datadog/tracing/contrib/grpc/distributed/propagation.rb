@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../distributed/propagation'
 require_relative 'b3'
 require_relative 'b3_single'

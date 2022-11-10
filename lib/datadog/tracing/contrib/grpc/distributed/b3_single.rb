@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../distributed/b3_single'
 require_relative 'fetcher'
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../distributed/datadog'
 require_relative 'fetcher'
 
