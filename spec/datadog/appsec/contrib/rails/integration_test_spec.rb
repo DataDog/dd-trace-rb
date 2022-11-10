@@ -32,6 +32,7 @@ RSpec.describe 'Rails integration tests' do
   let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
   let(:appsec_ip_denylist) { nil }
+  let(:appsec_ruleset) { :recommended }
 
   before do
     Datadog.configure do |c|
@@ -40,7 +41,8 @@ RSpec.describe 'Rails integration tests' do
 
       c.appsec.enabled = appsec_enabled
       c.appsec.instrument :rails
-      c.appsec.ip_denylist = appsec_ip_denylist if appsec_ip_denylist
+      c.appsec.ip_denylist = appsec_ip_denylist
+      c.appsec.ruleset = appsec_ruleset
 
       # TODO: test with c.appsec.instrument :rack
     end
@@ -140,6 +142,20 @@ RSpec.describe 'Rails integration tests' do
       end
     end
 
+    shared_examples 'a POST 403 span' do
+      it { expect(span.get_tag('http.method')).to eq('POST') }
+      it { expect(span.get_tag('http.status_code')).to eq('403') }
+      it { expect(span.status).to eq(0) }
+
+      context 'with appsec disabled' do
+        let(:appsec_enabled) { false }
+
+        it { expect(span.get_tag('http.method')).to eq('POST') }
+        it { expect(span.get_tag('http.status_code')).to eq('200') }
+        it { expect(span.status).to eq(0) }
+      end
+    end
+
     shared_examples 'a trace without AppSec tags' do
       it { expect(trace.send(:metrics)['_dd.appsec.enabled']).to be_nil }
       it { expect(trace.send(:meta)['_dd.runtime_family']).to be_nil }
@@ -224,6 +240,61 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) do
+              {
+                "version": "2.2",
+                "metadata": {
+                  "rules_version": "1.4.1"
+                },
+                "rules": [
+                  {
+                    "id": "crs-942-100",
+                    "name": "SQL Injection Attack Detected via libinjection",
+                    "tags": {
+                      "type": "sql_injection",
+                      "crs_id": "942100",
+                      "category": "attack_attempt"
+                    },
+                    "conditions": [
+                      {
+                        "parameters": {
+                          "inputs": [
+                            {
+                              "address": "server.request.query"
+                            },
+                            {
+                              "address": "server.request.body"
+                            },
+                            {
+                              "address": "server.request.path_params"
+                            },
+                            {
+                              "address": "grpc.server.request.message"
+                            }
+                          ]
+                        },
+                        "operator": "is_sqli"
+                      }
+                    ],
+                    "transformers": [
+                      "removeNulls"
+                    ],
+                    "on_match": [
+                      "block"
+                    ]
+                  },
+                ]
+              }
+            end
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
 
         context 'with an event-triggering request in route parameter' do
@@ -240,6 +311,61 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) do
+              {
+                "version": "2.2",
+                "metadata": {
+                  "rules_version": "1.4.1"
+                },
+                "rules": [
+                  {
+                    "id": "crs-942-100",
+                    "name": "SQL Injection Attack Detected via libinjection",
+                    "tags": {
+                      "type": "sql_injection",
+                      "crs_id": "942100",
+                      "category": "attack_attempt"
+                    },
+                    "conditions": [
+                      {
+                        "parameters": {
+                          "inputs": [
+                            {
+                              "address": "server.request.query"
+                            },
+                            {
+                              "address": "server.request.body"
+                            },
+                            {
+                              "address": "server.request.path_params"
+                            },
+                            {
+                              "address": "grpc.server.request.message"
+                            }
+                          ]
+                        },
+                        "operator": "is_sqli"
+                      }
+                    ],
+                    "transformers": [
+                      "removeNulls"
+                    ],
+                    "on_match": [
+                      "block"
+                    ]
+                  },
+                ]
+              }
+            end
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a GET 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
 
         context 'with an event-triggering request in IP' do
@@ -290,6 +416,61 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) do
+              {
+                "version": "2.2",
+                "metadata": {
+                  "rules_version": "1.4.1"
+                },
+                "rules": [
+                  {
+                    "id": "crs-942-100",
+                    "name": "SQL Injection Attack Detected via libinjection",
+                    "tags": {
+                      "type": "sql_injection",
+                      "crs_id": "942100",
+                      "category": "attack_attempt"
+                    },
+                    "conditions": [
+                      {
+                        "parameters": {
+                          "inputs": [
+                            {
+                              "address": "server.request.query"
+                            },
+                            {
+                              "address": "server.request.body"
+                            },
+                            {
+                              "address": "server.request.path_params"
+                            },
+                            {
+                              "address": "grpc.server.request.message"
+                            }
+                          ]
+                        },
+                        "operator": "is_sqli"
+                      }
+                    ],
+                    "transformers": [
+                      "removeNulls"
+                    ],
+                    "on_match": [
+                      "block"
+                    ]
+                  },
+                ]
+              }
+            end
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a POST 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
 
         unless Gem.loaded_specs['rack-test'].version.to_s < '0.7'
@@ -302,6 +483,61 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a POST 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
+
+            context 'and a blocking rule' do
+              let(:appsec_ruleset) do
+                {
+                  "version": "2.2",
+                  "metadata": {
+                    "rules_version": "1.4.1"
+                  },
+                  "rules": [
+                    {
+                      "id": "crs-942-100",
+                      "name": "SQL Injection Attack Detected via libinjection",
+                      "tags": {
+                        "type": "sql_injection",
+                        "crs_id": "942100",
+                        "category": "attack_attempt"
+                      },
+                      "conditions": [
+                        {
+                          "parameters": {
+                            "inputs": [
+                              {
+                                "address": "server.request.query"
+                              },
+                              {
+                                "address": "server.request.body"
+                              },
+                              {
+                                "address": "server.request.path_params"
+                              },
+                              {
+                                "address": "grpc.server.request.message"
+                              }
+                            ]
+                          },
+                          "operator": "is_sqli"
+                        }
+                      ],
+                      "transformers": [
+                        "removeNulls"
+                      ],
+                      "on_match": [
+                        "block"
+                      ]
+                    },
+                  ]
+                }
+              end
+
+              it { is_expected.to be_forbidden }
+
+              it_behaves_like 'a POST 403 span'
+              it_behaves_like 'a trace with AppSec tags'
+              it_behaves_like 'a trace with AppSec events'
+            end
           end
         end
 
@@ -314,6 +550,61 @@ RSpec.describe 'Rails integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+
+          context 'and a blocking rule' do
+            let(:appsec_ruleset) do
+              {
+                "version": "2.2",
+                "metadata": {
+                  "rules_version": "1.4.1"
+                },
+                "rules": [
+                  {
+                    "id": "crs-942-100",
+                    "name": "SQL Injection Attack Detected via libinjection",
+                    "tags": {
+                      "type": "sql_injection",
+                      "crs_id": "942100",
+                      "category": "attack_attempt"
+                    },
+                    "conditions": [
+                      {
+                        "parameters": {
+                          "inputs": [
+                            {
+                              "address": "server.request.query"
+                            },
+                            {
+                              "address": "server.request.body"
+                            },
+                            {
+                              "address": "server.request.path_params"
+                            },
+                            {
+                              "address": "grpc.server.request.message"
+                            }
+                          ]
+                        },
+                        "operator": "is_sqli"
+                      }
+                    ],
+                    "transformers": [
+                      "removeNulls"
+                    ],
+                    "on_match": [
+                      "block"
+                    ]
+                  },
+                ]
+              }
+            end
+
+            it { is_expected.to be_forbidden }
+
+            it_behaves_like 'a POST 403 span'
+            it_behaves_like 'a trace with AppSec tags'
+            it_behaves_like 'a trace with AppSec events'
+          end
         end
       end
     end

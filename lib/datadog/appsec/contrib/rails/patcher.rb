@@ -4,6 +4,7 @@ require_relative '../../../core/utils/only_once'
 
 require_relative '../patcher'
 require_relative 'framework'
+require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative '../rack/request_body_middleware'
 require_relative 'gateway/watcher'
@@ -83,11 +84,7 @@ module Datadog
               end
 
               if request_response && request_response.any? { |action, _event| action == :block }
-                @_response = ::ActionDispatch::Response.new(
-                  403,
-                  { 'Content-Type' => 'text/html' },
-                  [Datadog::AppSec::Assets.blocked]
-                )
+                @_response = AppSec::Response.negotiate(env).to_action_dispatch_response
                 request_return = @_response.body
               end
 

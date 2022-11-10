@@ -3,6 +3,7 @@
 require_relative '../../../tracing/contrib/rack/middlewares'
 
 require_relative '../patcher'
+require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative 'framework'
 require_relative 'gateway/watcher'
@@ -57,15 +58,12 @@ module Datadog
             # TODO: handle exceptions, except for super
 
             request_return, request_response = Instrumentation.gateway.push('sinatra.request.dispatch', request) do
-              super
+              # handle process_route interruption
+              catch(Ext::ROUTE_INTERRUPT) { super }
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
-              self.response = ::Sinatra::Response.new(
-                [Datadog::AppSec::Assets.blocked],
-                403,
-                { 'Content-Type' => 'text/html' }
-              )
+              self.response = AppSec::Response.negotiate(env).to_sinatra_response
               request_return = nil
             end
 
@@ -94,9 +92,14 @@ module Datadog
               # At this point params has both route params and normal params.
               route_params = params.each.with_object({}) { |(k, v), h| h[k] = v unless base_params.key?(k) }
 
-              Instrumentation.gateway.push('sinatra.request.routed', [request, route_params])
+              _request_return, request_response = Instrumentation.gateway.push('sinatra.request.routed', [request, route_params])
 
-              # TODO: handle block
+              if request_response && request_response.any? { |action, _event| action == :block }
+                self.response = AppSec::Response.negotiate(env).to_sinatra_response
+
+                # interrupt request and return response to dispatch! for consistency
+                throw(Ext::ROUTE_INTERRUPT, response)
+              end
 
               yield(*args)
             end
