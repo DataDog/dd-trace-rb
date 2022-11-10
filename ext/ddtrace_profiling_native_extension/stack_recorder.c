@@ -174,6 +174,7 @@ static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE 
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
 static ddog_Timespec time_now();
+static VALUE _native_clear(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -191,6 +192,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
+  rb_define_singleton_method(stack_recorder_class, "_native_clear", _native_clear, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
@@ -435,4 +437,18 @@ static ddog_Timespec time_now() {
   if (clock_gettime(CLOCK_REALTIME, &current_time) != 0) rb_sys_fail("Failed to read CLOCK_REALTIME");
 
   return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = (uint32_t) current_time.tv_nsec};
+}
+
+static VALUE _native_clear(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  ddog_Timespec finish_timestamp = time_now();
+
+  ddog_Profile *profile = serializer_flip_active_and_inactive_slots(state, finish_timestamp);
+  if (!ddog_Profile_reset(profile, NULL /* start_time is optional */ )) {
+    return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
+  }
+
+  return rb_ary_new_from_args(2, ok_symbol, ruby_time_from(finish_timestamp));
 }
