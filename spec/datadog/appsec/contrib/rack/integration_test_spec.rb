@@ -226,44 +226,44 @@ RSpec.describe 'Rack integration tests' do
           context 'and a blocking rule' do
             let(:appsec_ruleset) do
               {
-                "version": "2.2",
-                "metadata": {
-                  "rules_version": "1.4.1"
+                "version" => "2.2",
+                "metadata" => {
+                  "rules_version" => "1.4.1"
                 },
-                "rules": [
+                "rules" => [
                   {
-                    "id": "crs-942-100",
-                    "name": "SQL Injection Attack Detected via libinjection",
-                    "tags": {
-                      "type": "sql_injection",
-                      "crs_id": "942100",
-                      "category": "attack_attempt"
+                    "id" => "crs-942-100",
+                    "name" => "SQL Injection Attack Detected via libinjection",
+                    "tags" => {
+                      "type" => "sql_injection",
+                      "crs_id" => "942100",
+                      "category" => "attack_attempt"
                     },
-                    "conditions": [
+                    "conditions" => [
                       {
-                        "parameters": {
-                          "inputs": [
+                        "parameters" => {
+                          "inputs" => [
                             {
-                              "address": "server.request.query"
+                              "address" => "server.request.query"
                             },
                             {
-                              "address": "server.request.body"
+                              "address" => "server.request.body"
                             },
                             {
-                              "address": "server.request.path_params"
+                              "address" => "server.request.path_params"
                             },
                             {
-                              "address": "grpc.server.request.message"
+                              "address" => "grpc.server.request.message"
                             }
                           ]
                         },
-                        "operator": "is_sqli"
+                        "operator" => "is_sqli"
                       }
                     ],
-                    "transformers": [
+                    "transformers" => [
                       "removeNulls"
                     ],
-                    "on_match": [
+                    "on_match" => [
                       "block"
                     ]
                   },
@@ -339,44 +339,44 @@ RSpec.describe 'Rack integration tests' do
           context 'and a blocking rule' do
             let(:appsec_ruleset) do
               {
-                "version": "2.2",
-                "metadata": {
-                  "rules_version": "1.4.1"
+                "version" => "2.2",
+                "metadata" => {
+                  "rules_version" => "1.4.1"
                 },
-                "rules": [
+                "rules" => [
                   {
-                    "id": "crs-942-100",
-                    "name": "SQL Injection Attack Detected via libinjection",
-                    "tags": {
-                      "type": "sql_injection",
-                      "crs_id": "942100",
-                      "category": "attack_attempt"
+                    "id" => "crs-942-100",
+                    "name" => "SQL Injection Attack Detected via libinjection",
+                    "tags" => {
+                      "type" => "sql_injection",
+                      "crs_id" => "942100",
+                      "category" => "attack_attempt"
                     },
-                    "conditions": [
+                    "conditions" => [
                       {
-                        "parameters": {
-                          "inputs": [
+                        "parameters" => {
+                          "inputs" => [
                             {
-                              "address": "server.request.query"
+                              "address" => "server.request.query"
                             },
                             {
-                              "address": "server.request.body"
+                              "address" => "server.request.body"
                             },
                             {
-                              "address": "server.request.path_params"
+                              "address" => "server.request.path_params"
                             },
                             {
-                              "address": "grpc.server.request.message"
+                              "address" => "grpc.server.request.message"
                             }
                           ]
                         },
-                        "operator": "is_sqli"
+                        "operator" => "is_sqli"
                       }
                     ],
-                    "transformers": [
+                    "transformers" => [
                       "removeNulls"
                     ],
-                    "on_match": [
+                    "on_match" => [
                       "block"
                     ]
                   },
@@ -414,44 +414,44 @@ RSpec.describe 'Rack integration tests' do
             context 'and a blocking rule' do
               let(:appsec_ruleset) do
                 {
-                  "version": "2.2",
-                  "metadata": {
-                    "rules_version": "1.4.1"
+                  "version" => "2.2",
+                  "metadata" => {
+                    "rules_version" => "1.4.1"
                   },
-                  "rules": [
+                  "rules" => [
                     {
-                      "id": "crs-942-100",
-                      "name": "SQL Injection Attack Detected via libinjection",
-                      "tags": {
-                        "type": "sql_injection",
-                        "crs_id": "942100",
-                        "category": "attack_attempt"
+                      "id" => "crs-942-100",
+                      "name" => "SQL Injection Attack Detected via libinjection",
+                      "tags" => {
+                        "type" => "sql_injection",
+                        "crs_id" => "942100",
+                        "category" => "attack_attempt"
                       },
-                      "conditions": [
+                      "conditions" => [
                         {
-                          "parameters": {
-                            "inputs": [
+                          "parameters" => {
+                            "inputs" => [
                               {
-                                "address": "server.request.query"
+                                "address" => "server.request.query"
                               },
                               {
-                                "address": "server.request.body"
+                                "address" => "server.request.body"
                               },
                               {
-                                "address": "server.request.path_params"
+                                "address" => "server.request.path_params"
                               },
                               {
-                                "address": "grpc.server.request.message"
+                                "address" => "grpc.server.request.message"
                               }
                             ]
                           },
-                          "operator": "is_sqli"
+                          "operator" => "is_sqli"
                         }
                       ],
-                      "transformers": [
+                      "transformers" => [
                         "removeNulls"
                       ],
-                      "on_match": [
+                      "on_match" => [
                         "block"
                       ]
                     },
@@ -499,44 +499,44 @@ RSpec.describe 'Rack integration tests' do
           context 'and a blocking rule' do
             let(:appsec_ruleset) do
               {
-                "version": "2.2",
-                "metadata": {
-                  "rules_version": "1.4.1"
+                "version" => "2.2",
+                "metadata" => {
+                  "rules_version" => "1.4.1"
                 },
-                "rules": [
+                "rules" => [
                   {
-                    "id": "crs-942-100",
-                    "name": "SQL Injection Attack Detected via libinjection",
-                    "tags": {
-                      "type": "sql_injection",
-                      "crs_id": "942100",
-                      "category": "attack_attempt"
+                    "id" => "crs-942-100",
+                    "name" => "SQL Injection Attack Detected via libinjection",
+                    "tags" => {
+                      "type" => "sql_injection",
+                      "crs_id" => "942100",
+                      "category" => "attack_attempt"
                     },
-                    "conditions": [
+                    "conditions" => [
                       {
-                        "parameters": {
-                          "inputs": [
+                        "parameters" => {
+                          "inputs" => [
                             {
-                              "address": "server.request.query"
+                              "address" => "server.request.query"
                             },
                             {
-                              "address": "server.request.body"
+                              "address" => "server.request.body"
                             },
                             {
-                              "address": "server.request.path_params"
+                              "address" => "server.request.path_params"
                             },
                             {
-                              "address": "grpc.server.request.message"
+                              "address" => "grpc.server.request.message"
                             }
                           ]
                         },
-                        "operator": "is_sqli"
+                        "operator" => "is_sqli"
                       }
                     ],
-                    "transformers": [
+                    "transformers" => [
                       "removeNulls"
                     ],
-                    "on_match": [
+                    "on_match" => [
                       "block"
                     ]
                   },

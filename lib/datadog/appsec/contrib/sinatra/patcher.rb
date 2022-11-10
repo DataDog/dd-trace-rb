@@ -92,7 +92,7 @@ module Datadog
               # At this point params has both route params and normal params.
               route_params = params.each.with_object({}) { |(k, v), h| h[k] = v unless base_params.key?(k) }
 
-              _request_return, request_response = Instrumentation.gateway.push('sinatra.request.routed', [request, route_params])
+              _, request_response = Instrumentation.gateway.push('sinatra.request.routed', [request, route_params])
 
               if request_response && request_response.any? { |action, _event| action == :block }
                 self.response = AppSec::Response.negotiate(env).to_sinatra_response
