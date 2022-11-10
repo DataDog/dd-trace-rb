@@ -57,6 +57,8 @@ module Datadog
 
         unless load_libddwaf && load_ruleset && create_waf_handle
           Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
+
+          return
         end
 
         update_ip_denylist
