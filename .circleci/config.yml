@@ -79,7 +79,7 @@ test_containers:
   - &container_redis
     image: redis:6.2
   - &redis_port 6379
-  - &container_redis_old
+  - &container_redis_old # `qless` is still using this older version of redis
     image: redis:3.0
     name: redis_old
   - &redis_old_port 6379

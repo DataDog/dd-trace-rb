@@ -667,6 +667,7 @@ services:
       - "6379"
     ports:
       - "${TEST_REDIS_PORT}:6379"
+  # `qless` is still using this older version of redis
   redis_old:
     image: redis:3.0
     expose:
