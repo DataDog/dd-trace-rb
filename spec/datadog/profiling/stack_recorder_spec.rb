@@ -45,11 +45,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect { stack_recorder.public_send(operation) }.to change { active_slot }.from(1).to(2)
       end
 
-      it 'locks the slot one mutex and keeps it locked' do
+      it 'locks the slot one mutex' do
         expect { stack_recorder.public_send(operation) }.to change { slot_one_mutex_locked? }.from(false).to(true)
       end
 
-      it 'unlocks the slot two mutex and keeps it unlocked' do
+      it 'unlocks the slot two mutex' do
         expect { stack_recorder.public_send(operation) }.to change { slot_two_mutex_locked? }.from(true).to(false)
       end
     end
@@ -64,11 +64,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect { stack_recorder.public_send(operation) }.to change { active_slot }.from(2).to(1)
       end
 
-      it 'unlocks the slot one mutex and keeps it unlocked' do
+      it 'unlocks the slot one mutex' do
         expect { stack_recorder.public_send(operation) }.to change { slot_one_mutex_locked? }.from(true).to(false)
       end
 
-      it 'locks the slow two mutex and keeps it locked' do
+      it 'locks the slot two mutex' do
         expect { stack_recorder.public_send(operation) }.to change { slot_two_mutex_locked? }.from(false).to(true)
       end
     end
