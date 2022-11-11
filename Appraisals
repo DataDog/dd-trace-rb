@@ -1132,7 +1132,7 @@ elsif ruby_version?('2.6')
     end
 
     appraise 'sinatra' do
-      gem 'sinatra'
+      gem 'sinatra', '>= 3'
       gem 'rack-test'
     end
 
@@ -1346,7 +1346,7 @@ elsif ruby_version?('2.7')
     end
 
     appraise 'sinatra' do
-      gem 'sinatra'
+      gem 'sinatra', '>= 3'
       gem 'rack-test'
     end
 
@@ -1467,7 +1467,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
   end
 
   appraise 'sinatra' do
-    gem 'sinatra'
+    gem 'sinatra', '>= 3'
     gem 'rack-test'
   end
 
@@ -1588,7 +1588,7 @@ elsif ruby_version?('3.2')
   end
 
   appraise 'sinatra' do
-    gem 'sinatra'
+    gem 'sinatra', '>= 3'
     gem 'rack-test'
   end
 
