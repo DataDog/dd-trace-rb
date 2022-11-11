@@ -445,6 +445,10 @@ static VALUE _native_clear(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) 
 
   ddog_Timespec finish_timestamp = time_now();
 
+  // Why flip the slots as part of clearing? This makes clear behave exactly like serialize in terms of concurrency
+  // properties, even though right now there probably won't be any concurrency between calling clear and adding samples
+  // to the profile because we do not release the global VM lock while clearing.
+  // See also https://github.com/DataDog/dd-trace-rb/pull/2362/files#r1019659427 for more details.
   ddog_Profile *profile = serializer_flip_active_and_inactive_slots(state, finish_timestamp);
   if (!ddog_Profile_reset(profile, NULL /* start_time is optional */ )) {
     return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
