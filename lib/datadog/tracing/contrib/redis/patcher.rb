@@ -37,7 +37,7 @@ module Datadog
             # Instance method patch for redis client
             module InstanceMethods
               def initialize(options = {})
-                @redis_instance = options[:redis_instance]
+                @redis_instance = options.delete(:redis_instance)
 
                 super(options)
               end
