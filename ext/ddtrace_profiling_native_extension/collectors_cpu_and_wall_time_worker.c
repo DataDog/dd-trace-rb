@@ -85,6 +85,7 @@ static VALUE _native_initialize(
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance);
+static VALUE stop(VALUE self_instance, VALUE optional_exception);
 static void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *));
 static void remove_sigprof_signal_handler(void);
 static void block_sigprof_signal_handler_from_running_in_current_thread(void);
@@ -104,6 +105,8 @@ static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance);
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
+static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
+static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -142,6 +145,8 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
   rb_define_singleton_method(testing_module, "_native_gc_tracepoint", _native_gc_tracepoint, 1);
+  rb_define_singleton_method(testing_module, "_native_simulate_handle_sampling_signal", _native_simulate_handle_sampling_signal, 0);
+  rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -201,11 +206,25 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  if (active_sampler_owner_thread != Qnil && is_thread_alive(active_sampler_owner_thread)) {
-    rb_raise(
-      rb_eRuntimeError,
-      "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
-    );
+  if (active_sampler_owner_thread != Qnil) {
+    if (is_thread_alive(active_sampler_owner_thread)) {
+      rb_raise(
+        rb_eRuntimeError,
+        "Could not start CpuAndWallTimeWorker: There's already another instance of CpuAndWallTimeWorker active in a different thread"
+      );
+    } else {
+      // The previously active thread seems to have died without cleaning up after itself.
+      // In this case, we can still go ahead and start the profiler BUT we make sure to disable any existing GC tracepoint
+      // first as:
+      // a) If this is a new instance of the CpuAndWallTimeWorker, we don't want the tracepoint from the old instance
+      //    being kept around
+      // b) If this is the same instance of the CpuAndWallTimeWorker if we call enable on a tracepoint that is already
+      //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
+
+      struct cpu_and_wall_time_worker_state *old_state;
+      TypedData_Get_Struct(active_sampler_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, old_state);
+      rb_tracepoint_disable(old_state->gc_tracepoint);
+    }
   }
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
@@ -239,10 +258,18 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance) {
+  return stop(self_instance, /* optional_exception: */ Qnil);
+}
+
+static VALUE stop(VALUE self_instance, VALUE optional_exception) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
   state->should_run = false;
+  state->failure_exception = optional_exception;
+
+  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
+  rb_tracepoint_disable(state->gc_tracepoint);
 
   return Qtrue;
 }
@@ -301,6 +328,9 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   if (!ruby_thread_has_gvl_p()) {
     return; // Not safe to enqueue a sample from this thread
   }
+  if (!ddtrace_rb_ractor_main_p()) {
+    return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+  }
 
   // We implicitly assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state second SIGPROF will not interrupt an existing one
@@ -348,6 +378,12 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
   if (instance == Qnil) return;
 
+  // @ivoanjo: I'm not sure this can ever happen because `handle_sampling_signal` only enqueues this callback if
+  // it's running on the main Ractor, but just in case...
+  if (!ddtrace_rb_ractor_main_p()) {
+    return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+  }
+
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
@@ -355,18 +391,7 @@ static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   safely_call(cpu_and_wall_time_collector_sample, state->cpu_and_wall_time_collector_instance, instance);
 }
 
-static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
-  state->should_run = false;
-  state->failure_exception = exception;
-
-  // Disable the GC tracepoint as soon as possible, so the VM doesn't keep on calling it
-  rb_tracepoint_disable(state->gc_tracepoint);
-
-  return Qnil;
-}
+static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) { return stop(self_instance, exception); }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
@@ -453,6 +478,10 @@ static VALUE _native_gc_tracepoint(DDTRACE_UNUSED VALUE self, VALUE instance) {
 // *NO ALLOCATION* is allowed. This function, and any it calls must never trigger memory or object allocation.
 // This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
 static void on_gc_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+  if (!ddtrace_rb_ractor_main_p()) {
+    return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+  }
+
   int event = rb_tracearg_event_flag(rb_tracearg_from_tracepoint(tracepoint_data));
   if (event != RUBY_INTERNAL_EVENT_GC_ENTER && event != RUBY_INTERNAL_EVENT_GC_EXIT) return; // Unknown event
 
@@ -498,6 +527,12 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
   if (instance == Qnil) return;
 
+  // @ivoanjo: I'm not sure this can ever happen because `on_gc_event` only enqueues this callback if
+  // it's running on the main Ractor, but just in case...
+  if (!ddtrace_rb_ractor_main_p()) {
+    return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+  }
+
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
@@ -517,4 +552,18 @@ static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_
     rb_eException, // rb_eException is the base class of all Ruby exceptions
     0 // Required by API to be the last argument
   );
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) {
+  handle_sampling_signal(0, NULL, NULL);
+  return Qtrue;
+}
+
+// This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self) {
+  sample_from_postponed_job(NULL);
+  return Qtrue;
 }

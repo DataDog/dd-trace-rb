@@ -323,6 +323,7 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
 // Assumption 3: This function IS NOT called from a signal handler. This function is not async-signal-safe.
 // Assumption 4: This function IS NOT called in a reentrant way.
+// Assumption 5: This function is called from the main Ractor (if Ruby has support for Ractors).
 VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
@@ -384,6 +385,7 @@ VALUE cpu_and_wall_time_collector_sample(VALUE self_instance) {
 // This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function is called from the main Ractor (if Ruby has support for Ractors).
 void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &cpu_and_wall_time_collector_typed_data)) return;
@@ -428,6 +430,7 @@ void cpu_and_wall_time_collector_on_gc_start(VALUE self_instance) {
 // This includes exceptions and use of ruby_xcalloc (because xcalloc can trigger GC)!
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function is called from the main Ractor (if Ruby has support for Ractors).
 void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &cpu_and_wall_time_collector_typed_data)) return;
@@ -464,6 +467,7 @@ void cpu_and_wall_time_collector_on_gc_finish(VALUE self_instance) {
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is allowed to raise exceptions. Caller is responsible for handling them, if needed.
 // Assumption 3: Unlike `on_gc_start` and `on_gc_finish`, this method is allowed to allocate memory as needed.
+// Assumption 4: This function is called from the main Ractor (if Ruby has support for Ractors).
 VALUE cpu_and_wall_time_collector_sample_after_gc(VALUE self_instance) {
   struct cpu_and_wall_time_collector_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);

@@ -123,11 +123,15 @@ if ruby_version?('2.1')
     gem 'sequel', '~> 4.0', '< 4.37'
     gem 'shoryuken'
     gem 'sidekiq', '~> 3.5.4'
-    gem 'sinatra', '1.4.5'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'timers', '< 4.2'
     gem 'typhoeus'
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra'
+    gem 'rack-test'
   end
 
   appraise 'core-old' do
@@ -301,12 +305,16 @@ elsif ruby_version?('2.2')
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra'
+    gem 'rack-test'
   end
 
   appraise 'core-old' do
@@ -492,12 +500,16 @@ elsif ruby_version?('2.3')
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra'
+    gem 'rack-test'
   end
 
   appraise 'contrib-old' do
@@ -617,12 +629,16 @@ elsif ruby_version?('2.4')
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra'
+    gem 'rack-test'
   end
 
   appraise 'contrib-old' do
@@ -872,13 +888,17 @@ elsif ruby_version?('2.5')
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra', '>= 1.4'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra'
+    gem 'rack-test'
   end
 
   appraise 'contrib-old' do
@@ -1103,13 +1123,17 @@ elsif ruby_version?('2.6')
       gem 'sequel'
       gem 'shoryuken'
       gem 'sidekiq'
-      gem 'sinatra', '>= 1.4'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0'
+    end
+
+    appraise 'sinatra' do
+      gem 'sinatra', '>= 3'
+      gem 'rack-test'
     end
 
     appraise 'contrib-old' do
@@ -1314,12 +1338,16 @@ elsif ruby_version?('2.7')
       gem 'semantic_logger', '~> 4.0'
       gem 'shoryuken'
       gem 'sidekiq'
-      gem 'sinatra'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1'
       gem 'sucker_punch'
       gem 'typhoeus'
       gem 'que', '>= 1.0.0'
+    end
+
+    appraise 'sinatra' do
+      gem 'sinatra', '>= 3'
+      gem 'rack-test'
     end
 
     appraise 'contrib-old' do
@@ -1430,13 +1458,17 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2'
     gem 'sucker_punch'
     gem 'typhoeus'
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra', '>= 3'
+    gem 'rack-test'
   end
 
   appraise 'contrib-old' do
@@ -1546,7 +1578,6 @@ elsif ruby_version?('3.2')
     gem 'sequel'
     gem 'shoryuken'
     gem 'sidekiq'
-    gem 'sinatra'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '>= 1.4.2'
     gem 'sucker_punch'
@@ -1554,6 +1585,11 @@ elsif ruby_version?('3.2')
     gem 'que', '>= 1.0.0'
     gem 'net-smtp'
     gem 'nokogiri', platform: :ruby # TODO: binary gem has max ruby version constraint excluding previews, switch to using minimum version constraint once a non-3.2-excluding binary gem is released
+  end
+
+  appraise 'sinatra' do
+    gem 'sinatra', '>= 3'
+    gem 'rack-test'
   end
 
   appraise 'contrib-old' do
