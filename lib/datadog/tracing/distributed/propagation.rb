@@ -23,6 +23,8 @@ module Datadog
 
         # inject! populates the env with span ID, trace ID and sampling priority
         #
+        # This method will never raise errors, but instead log them to `Datadog.logger`.
+        #
         # DEV-2.0: inject! should work without arguments, injecting the active_trace's digest
         # DEV-2.0: and returning a new Hash with the injected data.
         # DEV-2.0: inject! should also accept either a `trace` or a `digest`, as a `trace`
@@ -56,6 +58,9 @@ module Datadog
 
         # extract returns {TraceDigest} containing the distributed trace information.
         # sampling priority defined in data.
+        #
+        # This method will never raise errors, but instead log them to `Datadog.logger`.
+        #
         # @param data [Hash]
         def extract(data)
           trace_digest = nil
