@@ -70,7 +70,6 @@ module Datadog
             propagator = @propagation_styles[style]
             next if propagator.nil?
 
-            # DEV: `propagator.extract` will return `nil`, where `{STYLE}#extract` will not
             begin
               extracted_trace_digest = propagator.extract(data)
             rescue => e
