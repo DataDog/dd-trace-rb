@@ -93,12 +93,17 @@ module Datadog
             else
               unless trace_digest.trace_id == extracted_trace_digest.trace_id \
                     && trace_digest.span_id == extracted_trace_digest.span_id
-                # Return an empty/new trace digest if we have a mismatch in values extracted
-                msg = "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
-                    "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
-                ::Datadog.logger.debug("Cannot extract distributed trace data: extracted styles differ, #{msg}")
-                # DEV: This will return from `self.extract` not this `each` block
-                return TraceDigest.new
+                # We have two mismatched propagation contexts.
+                # It's safer to create a new context than to attach ourselves to the wrong context.
+                trace_digest = TraceDigest.new
+
+                ::Datadog.logger.debug(
+                  'Cannot extract distributed trace data: extracted styles differ, ' \
+                  "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
+                  "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
+                )
+
+                return trace_digest # Early return from the whole method
               end
             end
           end
