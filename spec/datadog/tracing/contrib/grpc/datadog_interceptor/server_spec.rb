@@ -37,7 +37,6 @@ RSpec.describe 'tracing on the server connection' do
     it { expect(span.get_tag('rpc.method')).to eq 'endpoint' }
     it { expect(span.get_tag('span.kind')).to eq('server') }
 
-
     it 'has component and operation tags' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grpc')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('service')
