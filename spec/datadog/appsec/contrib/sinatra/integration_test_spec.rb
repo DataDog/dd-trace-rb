@@ -46,6 +46,53 @@ RSpec.describe 'Sinatra integration tests' do
   let(:appsec_ip_denylist) { nil }
   let(:appsec_ruleset) { :recommended }
 
+  let(:crs_942_100) do
+    {
+      'version' => '2.2',
+      'metadata' => {
+        'rules_version' => '1.4.1'
+      },
+      'rules' => [
+        {
+          'id' => 'crs-942-100',
+          'name' => 'SQL Injection Attack Detected via libinjection',
+          'tags' => {
+            'type' => 'sql_injection',
+            'crs_id' => '942100',
+            'category' => 'attack_attempt'
+          },
+          'conditions' => [
+            {
+              'parameters' => {
+                'inputs' => [
+                  {
+                    'address' => 'server.request.query'
+                  },
+                  {
+                    'address' => 'server.request.body'
+                  },
+                  {
+                    'address' => 'server.request.path_params'
+                  },
+                  {
+                    'address' => 'grpc.server.request.message'
+                  }
+                ]
+              },
+              'operator' => 'is_sqli'
+            }
+          ],
+          'transformers' => [
+            'removeNulls'
+          ],
+          'on_match' => [
+            'block'
+          ]
+        },
+      ]
+    }
+  end
+
   before do
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
@@ -252,52 +299,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a trace with AppSec events'
 
           context 'and a blocking rule' do
-            let(:appsec_ruleset) do
-              {
-                "version" => "2.2",
-                "metadata" => {
-                  "rules_version" => "1.4.1"
-                },
-                "rules" => [
-                  {
-                    "id" => "crs-942-100",
-                    "name" => "SQL Injection Attack Detected via libinjection",
-                    "tags" => {
-                      "type" => "sql_injection",
-                      "crs_id" => "942100",
-                      "category" => "attack_attempt"
-                    },
-                    "conditions" => [
-                      {
-                        "parameters" => {
-                          "inputs" => [
-                            {
-                              "address" => "server.request.query"
-                            },
-                            {
-                              "address" => "server.request.body"
-                            },
-                            {
-                              "address" => "server.request.path_params"
-                            },
-                            {
-                              "address" => "grpc.server.request.message"
-                            }
-                          ]
-                        },
-                        "operator" => "is_sqli"
-                      }
-                    ],
-                    "transformers" => [
-                      "removeNulls"
-                    ],
-                    "on_match" => [
-                      "block"
-                    ]
-                  },
-                ]
-              }
-            end
+            let(:appsec_ruleset) { crs_942_100 }
 
             it { is_expected.to be_forbidden }
 
@@ -325,52 +327,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a trace with AppSec events'
 
           context 'and a blocking rule' do
-            let(:appsec_ruleset) do
-              {
-                "version" => "2.2",
-                "metadata" => {
-                  "rules_version" => "1.4.1"
-                },
-                "rules" => [
-                  {
-                    "id" => "crs-942-100",
-                    "name" => "SQL Injection Attack Detected via libinjection",
-                    "tags" => {
-                      "type" => "sql_injection",
-                      "crs_id" => "942100",
-                      "category" => "attack_attempt"
-                    },
-                    "conditions" => [
-                      {
-                        "parameters" => {
-                          "inputs" => [
-                            {
-                              "address" => "server.request.query"
-                            },
-                            {
-                              "address" => "server.request.body"
-                            },
-                            {
-                              "address" => "server.request.path_params"
-                            },
-                            {
-                              "address" => "grpc.server.request.message"
-                            }
-                          ]
-                        },
-                        "operator" => "is_sqli"
-                      }
-                    ],
-                    "transformers" => [
-                      "removeNulls"
-                    ],
-                    "on_match" => [
-                      "block"
-                    ]
-                  },
-                ]
-              }
-            end
+            let(:appsec_ruleset) { crs_942_100 }
 
             it { is_expected.to be_forbidden }
 
@@ -430,52 +387,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a trace with AppSec events'
 
           context 'and a blocking rule' do
-            let(:appsec_ruleset) do
-              {
-                "version" => "2.2",
-                "metadata" => {
-                  "rules_version" => "1.4.1"
-                },
-                "rules" => [
-                  {
-                    "id" => "crs-942-100",
-                    "name" => "SQL Injection Attack Detected via libinjection",
-                    "tags" => {
-                      "type" => "sql_injection",
-                      "crs_id" => "942100",
-                      "category" => "attack_attempt"
-                    },
-                    "conditions" => [
-                      {
-                        "parameters" => {
-                          "inputs" => [
-                            {
-                              "address" => "server.request.query"
-                            },
-                            {
-                              "address" => "server.request.body"
-                            },
-                            {
-                              "address" => "server.request.path_params"
-                            },
-                            {
-                              "address" => "grpc.server.request.message"
-                            }
-                          ]
-                        },
-                        "operator" => "is_sqli"
-                      }
-                    ],
-                    "transformers" => [
-                      "removeNulls"
-                    ],
-                    "on_match" => [
-                      "block"
-                    ]
-                  },
-                ]
-              }
-            end
+            let(:appsec_ruleset) { crs_942_100 }
 
             it { is_expected.to be_forbidden }
 
