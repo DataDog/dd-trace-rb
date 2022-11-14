@@ -197,35 +197,6 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
           at_fork_hook.call
         end
       end
-
-      it 'sets up an at_fork hook that updates the native id of the current thread' do
-        without_partial_double_verification do
-          expect(Thread.current).to receive(:update_native_ids)
-        end
-
-        at_fork_hook.call
-      end
-
-      context 'when there is an issue updating the native id of the current thread' do
-        before do
-          without_partial_double_verification do
-            expect(Thread.current).to receive(:update_native_ids).and_raise('Dummy exception')
-          end
-          allow(Datadog.logger).to receive(:warn) # Silence logging during tests
-        end
-
-        it 'does not raise any error' do
-          at_fork_hook.call
-        end
-
-        it 'logs an exception' do
-          expect(Datadog.logger).to receive(:warn) do |&message|
-            expect(message.call).to include('Dummy exception')
-          end
-
-          at_fork_hook.call
-        end
-      end
     end
 
     context 'when #at_fork is not available' do
