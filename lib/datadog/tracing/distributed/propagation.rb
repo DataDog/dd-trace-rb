@@ -97,11 +97,11 @@ module Datadog
                 # It's safer to create a new context than to attach ourselves to the wrong context.
                 trace_digest = TraceDigest.new
 
-                ::Datadog.logger.debug(
+                ::Datadog.logger.debug do
                   'Cannot extract distributed trace data: extracted styles differ, ' \
                   "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
                   "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
-                )
+                end
 
                 return trace_digest # Early return from the whole method
               end
