@@ -27,23 +27,23 @@ module Datadog
       end
 
       def self.negotiate(env)
-        format = if accepted?('text/html', env)
-                   :html
-                 elsif accepted?('application/json', env)
-                   :json
-                 else
-                   :text
-                 end
-
         Response.new(status: 403,
                      headers: { 'Content-Type' => 'text/html' },
-                     body: [Datadog::AppSec::Assets.blocked(format: format)])
+                     body: [Datadog::AppSec::Assets.blocked(format: format(env))])
       end
 
       private
 
-      def self.accepted?(mime, env)
-        env['HTTP_ACCEPT'] && env['HTTP_ACCEPT'].split(',').any? { |e| e.start_with?(mime) }
+      def self.format(env)
+        format = env['HTTP_ACCEPT'] && env['HTTP_ACCEPT'].split(',').any? do |accept|
+          if accept.start_with?('text/html')
+            break :html
+          elsif accept.start_with?('application/json')
+            break :json
+          end
+        end
+
+        format || :text
       end
     end
   end
