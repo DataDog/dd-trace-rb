@@ -41,7 +41,7 @@ module Datadog
             return
           end
 
-          digest = digest.to_digest if digest.is_a?(TraceOperation)
+          digest = digest.to_digest if digest.respond_to?(:to_digest)
 
           # Inject all configured propagation styles
           ::Datadog.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
