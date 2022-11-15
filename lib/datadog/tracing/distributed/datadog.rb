@@ -87,9 +87,9 @@ module Datadog
             active_trace.set_tag('_dd.propagation_error', 'inject_max_size') if active_trace
 
             ::Datadog.logger.warn(
-              "Failed to inject x-datadog distributed tracing tags: too many tags for configured limit (size:#{encoded_tags.size} " \
-                "limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This limit can be configured " \
-                'through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
+              'Failed to inject x-datadog distributed tracing tags: too many tags for configured limit ' \
+              "(size:#{encoded_tags.size} limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This " \
+              'limit can be configured with the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
             )
             return
           end
