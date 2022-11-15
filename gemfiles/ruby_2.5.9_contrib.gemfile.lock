@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.5.2)
+    ddtrace (1.6.0)
       debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
@@ -1330,7 +1330,7 @@ GEM
       cucumber-core (~> 10.1, >= 10.1.0)
       cucumber-cucumber-expressions (~> 14.0, >= 14.0.0)
     dalli (3.2.0)
-    debase-ruby_core_source (0.10.16)
+    debase-ruby_core_source (0.10.17)
     debug_inspector (1.1.0)
     delayed_job (4.1.10)
       activesupport (>= 3.0, < 8.0)
@@ -1460,7 +1460,7 @@ GEM
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
-    msgpack (1.5.6)
+    msgpack (1.6.0)
     multi_json (1.15.0)
     multi_test (0.1.2)
     multipart-post (2.1.1)
@@ -1727,7 +1727,6 @@ DEPENDENCIES
   shoryuken
   sidekiq
   simplecov!
-  sinatra (>= 1.4)
   sneakers (>= 2.12.0)
   sorbet (= 0.5.9672)
   spoom (~> 1.1)

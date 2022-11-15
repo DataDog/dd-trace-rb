@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.5.2)
+    ddtrace (1.6.0)
       debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
@@ -188,7 +188,7 @@ DEPENDENCIES
   rubocop-rspec (~> 2.2)
   ruby-prof (~> 1.4)
   simplecov!
-  sinatra
+  sinatra (>= 3)
   sorbet (= 0.5.9672)
   spoom (~> 1.1)
   warning (~> 1)
