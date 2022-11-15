@@ -162,6 +162,7 @@ struct call_serialize_without_gvl_arguments {
 };
 
 static VALUE _native_new(VALUE klass);
+static void initialize_slot_concurrency_control(struct stack_recorder_state *state);
 static void stack_recorder_typed_data_free(void *data);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
@@ -174,7 +175,7 @@ static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE 
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
 static ddog_Timespec time_now();
-static VALUE _native_clear(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -192,7 +193,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
-  rb_define_singleton_method(stack_recorder_class, "_native_clear", _native_clear, 1);
+  rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
@@ -219,6 +220,17 @@ static VALUE _native_new(VALUE klass) {
 
   ddog_Slice_value_type sample_types = {.ptr = enabled_value_types, .len = ENABLED_VALUE_TYPES_COUNT};
 
+  initialize_slot_concurrency_control(state);
+
+  // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
+
+  state->slot_one_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+  state->slot_two_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
+
+  return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
+}
+
+static void initialize_slot_concurrency_control(struct stack_recorder_state *state) {
   state->slot_one_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
   state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
 
@@ -227,13 +239,6 @@ static VALUE _native_new(VALUE klass) {
   if (error) rb_syserr_fail(error, "Unexpected failure during pthread_mutex_lock");
 
   state->active_slot = 1;
-
-  // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
-
-  state->slot_one_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-  state->slot_two_profile = ddog_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
-
-  return TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -439,20 +444,20 @@ static ddog_Timespec time_now() {
   return (ddog_Timespec) {.seconds = current_time.tv_sec, .nanoseconds = (uint32_t) current_time.tv_nsec};
 }
 
-static VALUE _native_clear(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+// After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
+//
+// Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
+// trigger samples at the same time.
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  ddog_Timespec finish_timestamp = time_now();
+  // In case the fork happened halfway through `serializer_flip_active_and_inactive_slots` execution and the
+  // resulting state is inconsistent, we make sure to reset it back to the initial state.
+  initialize_slot_concurrency_control(state);
 
-  // Why flip the slots as part of clearing? This makes clear behave exactly like serialize in terms of concurrency
-  // properties, even though right now there probably won't be any concurrency between calling clear and adding samples
-  // to the profile because we do not release the global VM lock while clearing.
-  // See also https://github.com/DataDog/dd-trace-rb/pull/2362/files#r1019659427 for more details.
-  ddog_Profile *profile = serializer_flip_active_and_inactive_slots(state, finish_timestamp);
-  if (!ddog_Profile_reset(profile, NULL /* start_time is optional */ )) {
-    return rb_ary_new_from_args(2, error_symbol, rb_str_new_cstr("Failed to reset profile"));
-  }
+  ddog_Profile_reset(state->slot_one_profile, /* start_time: */ NULL);
+  ddog_Profile_reset(state->slot_two_profile, /* start_time: */ NULL);
 
-  return rb_ary_new_from_args(2, ok_symbol, ruby_time_from(finish_timestamp));
+  return Qtrue;
 }

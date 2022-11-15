@@ -29,7 +29,7 @@
 // internals, we may be able to figure out a way of overcoming it. But it's definitely going to be hard so for now
 // we're considering it as a given.
 //
-// ### Flow for triggering samples
+// ### Flow for triggering CPU/Wall-time samples
 //
 // The flow for triggering samples is as follows:
 //
@@ -55,6 +55,16 @@
 //
 // 4. The Ruby VM calls our `sample_from_postponed_job` from a thread holding the global VM lock. A sample is recorded by
 // calling `cpu_and_wall_time_collector_sample`.
+//
+// ### TracePoints and Forking
+//
+// When the Ruby VM forks, the CPU/Wall-time profiling stops naturally because it's triggered by a background thread
+// that doesn't get automatically restarted by the VM on the child process. (The profiler does trigger its restart at
+// some point -- see `Profiling::Tasks::Setup` for details).
+//
+// But this doesn't apply to any `TracePoint`s this class may use, which will continue to be active. Thus, we need to
+// always remember consider this case of -- the worker thread may not be alive but the `TracePoint`s can continue to
+// trigger samples.
 //
 // ---
 
@@ -107,6 +117,7 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused);
 static void safely_call(VALUE (*function_to_call_safely)(VALUE), VALUE function_to_call_safely_arg, VALUE instance);
 static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self);
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self);
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // Global state -- be very careful when accessing or modifying it
 
@@ -139,6 +150,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 3);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
@@ -565,5 +577,26 @@ static VALUE _native_simulate_handle_sampling_signal(DDTRACE_UNUSED VALUE self) 
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_simulate_sample_from_postponed_job(DDTRACE_UNUSED VALUE self) {
   sample_from_postponed_job(NULL);
+  return Qtrue;
+}
+
+// After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
+//
+// Assumption: This method gets called BEFORE restarting profiling. Note that profiling-related tracepoints may still
+// be active, so we make sure to disable them before calling into anything else, so that there are no components
+// attempting to trigger samples at the same time as the reset is done.
+//
+// In the future, if we add more other components with tracepoints, we will need to coordinate stopping all such
+// tracepoints before doing the other cleaning steps.
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  // Disable all tracepoints, so that there are no more attempts to mutate the profile
+  rb_tracepoint_disable(state->gc_tracepoint);
+
+  // Remove all state from the `Collectors::CpuAndWallTime` and connected downstream components
+  rb_funcall(state->cpu_and_wall_time_collector_instance, rb_intern("reset_after_fork"), 0);
+
   return Qtrue;
 }
