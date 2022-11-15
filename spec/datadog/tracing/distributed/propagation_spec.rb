@@ -15,7 +15,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
     }
   end
 
-  let(:prepare_key) { proc { |key| key } }
+  let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '::inject!' do
     subject!(:inject!) { propagation.inject!(trace, data) }

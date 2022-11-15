@@ -8,7 +8,7 @@ require 'datadog/tracing/trace_digest'
 RSpec.shared_examples 'Datadog distributed format' do
   subject(:datadog) { described_class.new }
 
-  let(:prepare_key) { proc { |key| key } }
+  let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
     subject(:inject!) { datadog.inject!(digest, data) }

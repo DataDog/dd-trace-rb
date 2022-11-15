@@ -8,7 +8,7 @@ require 'datadog/tracing/trace_digest'
 RSpec.shared_examples 'B3 Single distributed format' do
   subject(:b3_single) { described_class.new }
 
-  let(:prepare_key) { proc { |key| key } }
+  let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
     subject!(:inject!) { b3_single.inject!(digest, data) }

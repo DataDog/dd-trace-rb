@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 # typed: true
 
+require_relative 'fetcher'
+require_relative '../../../distributed/b3'
+require_relative '../../../distributed/b3_single'
+require_relative '../../../distributed/datadog'
 require_relative '../../../distributed/propagation'
-require_relative 'b3'
-require_relative 'b3_single'
-require_relative 'datadog'
 
 module Datadog
   module Tracing
@@ -12,13 +13,17 @@ module Datadog
       module GRPC
         module Distributed
           # Extracts and injects propagation through gRPC metadata.
+          # @see https://github.com/grpc/grpc-go/blob/v1.50.1/Documentation/grpc-metadata.md
           class Propagation < Tracing::Distributed::Propagation
             def initialize
               super(
                 propagation_styles: {
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3 => B3.new,
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER => B3Single.new,
-                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG => Datadog.new,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3 =>
+                    Tracing::Distributed::B3.new(fetcher: Fetcher),
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER =>
+                    Tracing::Distributed::B3Single.new(fetcher: Fetcher),
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG =>
+                    Tracing::Distributed::Datadog.new(fetcher: Fetcher)
                 })
             end
 
