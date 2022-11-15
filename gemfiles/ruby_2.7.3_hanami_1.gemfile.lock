@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.5.2)
+    ddtrace (1.6.0)
       debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
@@ -77,6 +77,7 @@ GEM
       dry-types (~> 0.12.0)
     extlz4 (0.3.3)
     ffi (1.15.5)
+    google-protobuf (3.21.9)
     google-protobuf (3.21.9-x86_64-linux)
     hanami (1.3.5)
       bundler (>= 1.6, < 3)
@@ -127,8 +128,8 @@ GEM
     json (2.6.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (0.9.0.1.0-x86_64-linux)
-    libddwaf (1.5.1.0.0-x86_64-linux)
+    libdatadog (0.9.0.1.0)
+    libddwaf (1.5.1.0.0)
       ffi (~> 1.0)
     mail (2.7.1)
       mini_mime (>= 0.1.1)
@@ -229,6 +230,7 @@ GEM
     zeitwerk (2.6.3)
 
 PLATFORMS
+  ruby
   x86_64-linux
 
 DEPENDENCIES

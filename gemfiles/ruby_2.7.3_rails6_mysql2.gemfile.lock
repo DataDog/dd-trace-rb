@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.5.2)
+    ddtrace (1.6.0)
       debase-ruby_core_source (>= 0.10.16, <= 0.10.17)
       libdatadog (~> 0.9.0.1.0)
       libddwaf (~> 1.5.1.0.0)
@@ -96,7 +96,7 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
-    debase-ruby_core_source (0.10.16)
+    debase-ruby_core_source (0.10.17)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -131,7 +131,7 @@ GEM
     mini_mime (1.1.2)
     mini_portile2 (2.8.0)
     minitest (5.15.0)
-    msgpack (1.5.6)
+    msgpack (1.6.0)
     mysql2 (0.5.3)
     nio4r (2.5.8)
     nokogiri (1.13.3)
@@ -236,14 +236,6 @@ GEM
     sorbet (0.5.9672)
       sorbet-static (= 0.5.9672)
     sorbet-runtime (0.5.9807)
-    sorbet-static (0.5.9672-universal-darwin-14)
-    sorbet-static (0.5.9672-universal-darwin-15)
-    sorbet-static (0.5.9672-universal-darwin-16)
-    sorbet-static (0.5.9672-universal-darwin-17)
-    sorbet-static (0.5.9672-universal-darwin-18)
-    sorbet-static (0.5.9672-universal-darwin-19)
-    sorbet-static (0.5.9672-universal-darwin-20)
-    sorbet-static (0.5.9672-universal-darwin-21)
     sorbet-static (0.5.9672-x86_64-linux)
     spoom (1.1.9)
       sorbet (>= 0.5.9204)
