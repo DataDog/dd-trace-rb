@@ -66,13 +66,6 @@ module Datadog
         end
       end
 
-      def after_fork
-        # Clear any existing profiling state.
-        # We don't want the child process to report profiling data from its parent.
-        Datadog.logger.debug('Flushing exporter in child process #after_fork and discarding data')
-        exporter.clear
-      end
-
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts
       #
       # When a scheduler gets created (or reset), we don't want it to immediately try to flush; we want it to wait for
@@ -84,6 +77,10 @@ module Datadog
 
       def work_pending?
         exporter.can_flush?
+      end
+
+      def reset_after_fork
+        exporter.reset_after_fork
       end
 
       private

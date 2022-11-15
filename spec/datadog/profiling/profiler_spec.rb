@@ -26,7 +26,24 @@ RSpec.describe Datadog::Profiling::Profiler do
     it 'signals collectors and scheduler to start' do
       expect(collectors).to all(receive(:start))
       expect(scheduler).to receive(:start)
+
       start
+    end
+
+    context 'when called after a fork' do
+      it 'resets the collectors and the scheduler before starting them' do
+        profiler # make sure instance is created in parent, so it detects the forking
+
+        expect_in_fork do
+          expect(collectors).to all(receive(:reset_after_fork).ordered)
+          expect(scheduler).to receive(:reset_after_fork).ordered
+
+          expect(collectors).to all(receive(:start).ordered)
+          expect(scheduler).to receive(:start).ordered
+
+          start
+        end
+      end
     end
   end
 
