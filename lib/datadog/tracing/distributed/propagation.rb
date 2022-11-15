@@ -35,25 +35,35 @@ module Datadog
         #
         # @param digest [TraceDigest]
         # @param data [Hash]
+        # @return [Boolean] `true` if injected successfully, `false` if no propagation style is configured
+        # @return [nil] in case of error, see `Datadog.logger` output for details.
         def inject!(digest, data)
           if digest.nil?
             ::Datadog.logger.debug('Cannot inject distributed trace data: digest is nil.')
-            return
+            return nil
           end
 
           digest = digest.to_digest if digest.respond_to?(:to_digest)
+
+          result = false
 
           # Inject all configured propagation styles
           ::Datadog.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
             propagator = @propagation_styles[style]
             begin
-              propagator.inject!(digest, data) unless propagator.nil?
+              if propagator
+                propagator.inject!(digest, data)
+                result = true
+              end
             rescue => e
+              result = nil
               ::Datadog.logger.error(
                 "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
               )
             end
           end
+
+          result
         end
 
         # extract returns {TraceDigest} containing the distributed trace information.

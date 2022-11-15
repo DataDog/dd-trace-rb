@@ -28,6 +28,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       let(:sampling_priority) { nil }
       let(:origin) { nil }
 
+      it { is_expected.to eq(true) }
+
       it 'injects the trace id' do
         expect(data).to include('x-datadog-trace-id' => '1234567890')
       end
@@ -67,7 +69,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
     context 'given nil' do
       let(:trace) { nil }
-      it { expect(data).to eq({}) }
+      it { is_expected.to be_nil }
+      it { expect(data).to be_empty }
     end
 
     context 'given a TraceDigest and env' do
@@ -80,7 +83,14 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         )
       end
 
-      it_behaves_like 'trace injection'
+      it_behaves_like 'trace injection' do
+        context 'with no styles configured' do
+          let(:propagation_styles) { {} }
+
+          it { is_expected.to eq(false) }
+          it { expect(data).to be_empty }
+        end
+      end
     end
 
     context 'given a TraceOperation and env' do
