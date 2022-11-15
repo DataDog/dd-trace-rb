@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
   end
 
   describe '#id' do
-    subject(:id) { fetcher.id(key, base) }
+    subject(:id) { fetcher.id(key, base: base) }
     let(:key) {}
     let(:base) { 10 }
 
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
   end
 
   describe '#number' do
-    subject(:number) { fetcher.number(key, base) }
+    subject(:number) { fetcher.number(key, base: base) }
     let(:key) {}
     let(:base) { 10 }
 

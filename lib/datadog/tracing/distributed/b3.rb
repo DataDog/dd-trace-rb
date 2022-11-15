@@ -43,8 +43,8 @@ module Datadog
         def extract(data)
           # DEV: B3 doesn't have "origin"
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.id(@trace_id_key, 16)
-          span_id = fetcher.id(@span_id_key, 16)
+          trace_id = fetcher.id(@trace_id_key, base: 16)
+          span_id = fetcher.id(@span_id_key, base: 16)
           # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
           sampling_priority = fetcher.number(@sampled)
 

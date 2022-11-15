@@ -17,11 +17,11 @@ module Datadog
           @data[key]
         end
 
-        def id(key, base = 10)
+        def id(key, base: 10)
           Helpers.value_to_id(self[key], base)
         end
 
-        def number(key, base = 10)
+        def number(key, base: 10)
           Helpers.value_to_number(self[key], base)
         end
       end

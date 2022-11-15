@@ -39,6 +39,7 @@ module Datadog
           value.sub(/^0*(?=(0$)|[^0])/, '')
         end
 
+        # DEV: move `base` to a keyword argument
         def self.value_to_id(value, base = 10)
           id = value_to_number(value, base)
 
@@ -51,6 +52,7 @@ module Datadog
           id < 0 ? id + (2**64) : id
         end
 
+        # DEV: move `base` to a keyword argument
         def self.value_to_number(value, base = 10)
           # It's important to make a difference between no data and zero.
           return if value.nil?
