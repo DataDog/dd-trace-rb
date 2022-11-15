@@ -3,7 +3,6 @@
 require 'spec_helper'
 
 require 'datadog/tracing/context'
-require 'datadog/tracing/distributed/ext'
 require 'datadog/tracing/propagation/http'
 require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/trace_operation'
