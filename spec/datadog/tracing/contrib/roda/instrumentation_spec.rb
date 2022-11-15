@@ -8,16 +8,8 @@ require 'datadog/tracing/contrib/support/tracer_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
   describe 'when implemented in Roda' do
-    let(:configuration_options) { { tracer: tracer } }
-    let(:tracer) { tracer }
-    let(:spans) { tracer.writer.spans }
-    let(:span) { spans.first }
-    let(:roda) { test_class.new }
-    let(:test_class) do
-      Class.new do
-        prepend Datadog::Tracing::Contrib::Roda::Instrumentation
-      end
-    end
+    let(:configuration_options) { {} }
+
     before(:each) do
       Datadog.configure do |c|
         c.tracing.instrument :roda, configuration_options
@@ -28,35 +20,26 @@ RSpec.describe Datadog::Tracing::Contrib::Roda::Instrumentation do
       Datadog.registry[:roda].reset_configuration!
     end
 
-    describe '#datadog_pin' do
+    describe 'When using automatic instrumentation' do
       let(:env) { { REQUEST_METHOD: 'GET' } }
-      subject(:datadog_pin) { roda.datadog_pin }
-
-      context 'when roda is configured' do
+      context 'configuring roda' do
         context 'with default settings' do
           it 'enables the tracer' do
-            expect(datadog_pin.tracer).to be(Datadog.configuration[:roda][:tracer])
-            expect(datadog_pin.tracer.enabled).to eq(true)
+            expect(Datadog.configuration.tracing.enabled).to eq(true)
           end
 
-          it 'has a web app type' do
-            expect(datadog_pin.app_type).to eq(Datadog::Ext::AppTypes::WEB)
-          end
-
-          it 'has a default name' do
-            expect(datadog_pin.app).to eq(Datadog::Tracing::Contrib::Roda::Ext::APP)
-            expect(datadog_pin.service).to eq(Datadog::Tracing::Contrib::Roda::Ext::SERVICE_NAME)
-            expect(datadog_pin.service_name).to eq(Datadog::Tracing::Contrib::Roda::Ext::SERVICE_NAME)
+          it 'uses a default service name' do
+            expect(Datadog.configuration.service).to eq('rspec')
+            expect(Datadog.configuration.tracing[:roda].service_name).to eq(Datadog::Tracing::Contrib::Roda::Ext::SERVICE_NAME)
           end
 
           context 'with a custom service name' do
             let(:custom_service_name) { 'custom service name' }
-            let(:configuration_options) { { tracer: tracer, service_name: custom_service_name } }
+            let(:configuration_options) { { service_name: custom_service_name } }
 
             it 'sets a custom service name' do
-              expect(datadog_pin.app).to eq(Datadog::Tracing::Contrib::Roda::Ext::APP)
-              expect(datadog_pin.service).to eq(custom_service_name)
-              expect(datadog_pin.service_name).to eq(custom_service_name)
+              expect(Datadog.configuration.service).to eq('rspec')
+              expect(Datadog.configuration.tracing[:roda].service_name).to eq(custom_service_name)
             end
           end
         end

@@ -6,21 +6,18 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/support/spec_helper'
 
 RSpec.shared_examples_for 'shared examples for roda' do |test_method|
-  let(:configuration_options) { { tracer: tracer } }
-  let(:tracer) { tracer }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
-  let(:roda) { test_class.new }
+  let(:configuration_options) { {} }
   let(:test_class) do
     Class.new do
       prepend Datadog::Tracing::Contrib::Roda::Instrumentation
     end
   end
+  let(:roda) { test_class.new }
   let(:instrumented_method) { roda.send(test_method) }
 
   before(:each) do
     Datadog.configure do |c|
-      c.use :roda, configuration_options
+      c.tracing.instrument :roda, configuration_options
     end
   end
 
@@ -76,14 +73,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.resource).to eq('GET 200')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -94,14 +91,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-        expect(span.resource).to eq('GET')
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.resource).to eq('GET 404')
         expect(span.name).to eq('roda.request')
         expect(span.status).to eq(0)
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/unsuccessful_endpoint')
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/unsuccessful_endpoint')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
      end
     end
 
@@ -111,14 +108,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
-        expect(span.resource).to eq('GET')
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
+        expect(span.resource).to eq('GET 500')
         expect(span.name).to eq('roda.request')
         expect(span.status).to eq(1)
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
   end
@@ -131,14 +128,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.resource).to eq('GET 200')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -148,14 +145,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
-        expect(span.resource).to eq('PUT')
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('PUT')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq('/')
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.resource).to eq('PUT 200')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('PUT')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
   end
@@ -170,14 +167,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.resource).to eq('GET 200')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(path)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -186,14 +183,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.resource).to eq('GET 200')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(path)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
 
@@ -202,14 +199,14 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
       it do
         instrumented_method
         expect(spans).to have(1).items
-        expect(span.parent).to be nil
-        expect(span.span_type).to eq(Datadog::Ext::HTTP::TYPE_INBOUND)
+        expect(span.parent_id).to be 0
+        expect(span.span_type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
         expect(span.status).to eq(0)
         expect(span.name).to eq('roda.request')
-        expect(span.resource).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::METHOD)).to eq('GET')
-        expect(span.get_tag(Datadog::Ext::HTTP::URL)).to eq(path)
-        expect(span.get_tag(Datadog::Ext::HTTP::STATUS_CODE)).to eq(response_code.to_s)
+        expect(span.resource).to eq('GET 200')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(path)
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE)).to eq(response_code.to_s)
       end
     end
   end
@@ -217,7 +214,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
   context 'when distributed tracing' do
     include_context 'stubbed request'
 
-    let(:sampling_priority) { Datadog::Ext::Priority::USER_KEEP.to_s }
+    let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP.to_s }
 
     context 'is enabled' do
       context 'without origin' do
@@ -233,12 +230,10 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
 
         it do
           instrumented_method
-          expect(Datadog.configuration[:roda][:distributed_tracing]).to be(true)
+          expect(Datadog.configuration.tracing[:roda][:distributed_tracing]).to be(true)
           expect(spans).to have(1).items
           expect(span.trace_id).to eq(40000)
           expect(span.parent_id).to eq(50000)
-          expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority.to_f)
-          expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to be nil
         end
       end
 
@@ -256,12 +251,10 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
 
         it do
           instrumented_method
-          expect(Datadog.configuration[:roda][:distributed_tracing]).to be(true)
+          expect(Datadog.configuration.tracing[:roda][:distributed_tracing]).to be(true)
           expect(spans).to have(1).items
           expect(span.trace_id).to eq(10000)
           expect(span.parent_id).to eq(20000)
-          expect(span.get_metric(Datadog::Ext::DistributedTracing::SAMPLING_PRIORITY_KEY)).to eq(sampling_priority.to_f)
-          expect(span.get_tag(Datadog::Ext::DistributedTracing::ORIGIN_KEY)).to eq('synthetics')
         end
       end
     end
@@ -280,7 +273,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
 
       it 'does not take on the passed in trace context' do
         instrumented_method
-        expect(Datadog.configuration[:roda][:distributed_tracing]).to be(false)
+        expect(Datadog.configuration.tracing[:roda][:distributed_tracing]).to be(false)
         expect(spans).to have(1).items
         expect(span.trace_id).to_not eq(40000)
         expect(span.parent_id).to_not eq(50000)
@@ -291,7 +284,7 @@ RSpec.shared_examples_for 'shared examples for roda' do |test_method|
   context 'when analytics' do
     include_context 'stubbed request'
     include_context 'stubbed response'
-    it_behaves_like 'analytics for integration', ignore_global_flag: false do
+    it_behaves_like 'analytics for integration', ignore_global_flag: true do
       before { instrumented_method }
       let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Roda::Ext::ENV_ANALYTICS_ENABLED }
       let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Roda::Ext::ENV_ANALYTICS_SAMPLE_RATE }

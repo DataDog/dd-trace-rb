@@ -6,11 +6,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 RSpec.describe 'Roda instrumentation' do
   include Rack::Test::Methods
-
-  let(:tracer) { tracer }
-  let(:configuration_options) { { tracer: tracer } }
-  let(:spans) { tracer.writer.spans }
-  let(:span) { spans.first }
+  let(:configuration_options) { {} }
 
   before(:each) do
     Datadog.configure do |c|
@@ -58,7 +54,7 @@ RSpec.describe 'Roda instrumentation' do
         route do |r|
           r.root do
             r.get do
-              r.halt([500, { 'Content-Type' => 'text/html' }, ['test']])
+              r.halt([500, { 'content-type' => 'text/html' }, ['test']])
             end
           end
         end
@@ -75,7 +71,7 @@ RSpec.describe 'Roda instrumentation' do
         context 'for a basic GET endpoint' do
           it do
             expect(response.status).to eq(200)
-            expect(response.header).to eq('Content-Type' => 'text/html', 'Content-Length' => '12')
+            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -86,7 +82,7 @@ RSpec.describe 'Roda instrumentation' do
 
           it do
             expect(response.status).to eq(200)
-            expect(response.header).to eq('Content-Type' => 'text/html', 'Content-Length' => '12')
+            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -97,7 +93,7 @@ RSpec.describe 'Roda instrumentation' do
 
           it do
             expect(response.status).to eq(200)
-            expect(response.header).to eq('Content-Type' => 'text/html', 'Content-Length' => '8')
+            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -110,7 +106,7 @@ RSpec.describe 'Roda instrumentation' do
           subject(:response) { get '/unsuccessful_endpoint' }
           it do
             expect(response.status).to eq(404)
-            expect(response.header).to eq('Content-Type' => 'text/html', 'Content-Length' => '0')
+            expect(response.header.keys).to eq(["content-type", "content-length"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -121,7 +117,7 @@ RSpec.describe 'Roda instrumentation' do
           subject(:response) { get '/' }
           it do
             expect(response.status).to eq(500)
-            expect(response.header).to eq('Content-Type' => 'text/html', 'Content-Length' => '4')
+            expect(response.header.keys).to eq(["content-type"])
             expect(spans).to have(1).items
             expect(span.name).to eq('roda.request')
           end
@@ -132,11 +128,11 @@ RSpec.describe 'Roda instrumentation' do
         include_context 'basic roda app'
         subject(:response) { get '/' }
 
-        let(:tracer) { tracer(enabled: false) }
+        let(:tracer) { { enabled: false } }
 
         it do
           is_expected.to be_ok
-          expect(spans).to be_empty
+          expect(spans).to eq([])
         end
       end
     end
