@@ -116,7 +116,7 @@ RSpec.describe 'Rails integration tests' do
           end
 
           def success
-            render plain: 'ok'
+            head :ok
           end
         end
       )
