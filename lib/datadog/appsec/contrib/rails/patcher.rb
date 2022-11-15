@@ -93,7 +93,7 @@ module Datadog
           end
 
           def patch_process_action
-            ActionController::Instrumentation.prepend(ProcessActionPatch)
+            ::ActionController::Metal.prepend(ProcessActionPatch)
           end
 
           def include_middleware?(middleware, app)
