@@ -12,27 +12,27 @@ module Datadog
       class Datadog
         def initialize(
           fetcher:,
-          trace_id: Ext::HTTP_HEADER_TRACE_ID,
-          parent_id: Ext::HTTP_HEADER_PARENT_ID,
-          sampling_priority: Ext::HTTP_HEADER_SAMPLING_PRIORITY,
-          origin: Ext::HTTP_HEADER_ORIGIN,
-          tags: Ext::HTTP_HEADER_TAGS
+          trace_id_key: Ext::HTTP_HEADER_TRACE_ID,
+          parent_id_key: Ext::HTTP_HEADER_PARENT_ID,
+          sampling_priority_key: Ext::HTTP_HEADER_SAMPLING_PRIORITY,
+          origin_key: Ext::HTTP_HEADER_ORIGIN,
+          tags_key: Ext::HTTP_HEADER_TAGS
         )
-          @trace_id = trace_id
-          @parent_id = parent_id
-          @sampling_priority = sampling_priority
-          @origin = origin
-          @tags = tags
+          @trace_id_key = trace_id_key
+          @parent_id_key = parent_id_key
+          @sampling_priority_key = sampling_priority_key
+          @origin_key = origin_key
+          @tags_key = tags_key
           @fetcher = fetcher
         end
 
         def inject!(digest, data)
           return if digest.nil?
 
-          data[@trace_id] = digest.trace_id.to_s
-          data[@parent_id] = digest.span_id.to_s
-          data[@sampling_priority] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
-          data[@origin] = digest.trace_origin.to_s unless digest.trace_origin.nil?
+          data[@trace_id_key] = digest.trace_id.to_s
+          data[@parent_id_key] = digest.span_id.to_s
+          data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
+          data[@origin_key] = digest.trace_origin.to_s unless digest.trace_origin.nil?
 
           inject_tags(digest, data)
 
@@ -41,10 +41,10 @@ module Datadog
 
         def extract(data)
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.id(@trace_id)
-          parent_id = fetcher.id(@parent_id)
-          sampling_priority = fetcher.number(@sampling_priority)
-          origin = fetcher[@origin]
+          trace_id = fetcher.id(@trace_id_key)
+          parent_id = fetcher.id(@parent_id_key)
+          sampling_priority = fetcher.number(@sampling_priority_key)
+          origin = fetcher[@origin_key]
 
           # Return early if this propagation is not valid
           # DEV: To be valid we need to have a trace id and a parent id
@@ -94,7 +94,7 @@ module Datadog
             return
           end
 
-          data[@tags] = encoded_tags
+          data[@tags_key] = encoded_tags
         rescue => e
           active_trace = Tracing.active_trace
           active_trace.set_tag('_dd.propagation_error', 'encoding_error') if active_trace
@@ -106,7 +106,7 @@ module Datadog
         # Import `x-datadog-tags` tags as trace distributed tags.
         # Only tags that have the `_dd.p.` prefix are processed.
         def extract_tags(data)
-          tags = data[@tags]
+          tags = data[@tags_key]
           return if !tags || tags.empty?
 
           if ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0

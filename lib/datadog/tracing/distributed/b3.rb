@@ -13,12 +13,12 @@ module Datadog
       class B3
         def initialize(
           fetcher:,
-          trace_id: Ext::B3_HEADER_TRACE_ID,
-          span_id: Ext::B3_HEADER_SPAN_ID,
+          trace_id_key: Ext::B3_HEADER_TRACE_ID,
+          span_id_key: Ext::B3_HEADER_SPAN_ID,
           sampled: Ext::B3_HEADER_SAMPLED
         )
-          @trace_id = trace_id
-          @span_id = span_id
+          @trace_id_key = trace_id_key
+          @span_id_key = span_id_key
           @sampled = sampled
           @fetcher = fetcher
         end
@@ -27,8 +27,8 @@ module Datadog
           return if digest.nil?
 
           # DEV: We need these to be hex encoded
-          data[@trace_id] = digest.trace_id.to_s(16)
-          data[@span_id] = digest.span_id.to_s(16)
+          data[@trace_id_key] = digest.trace_id.to_s(16)
+          data[@span_id_key] = digest.span_id.to_s(16)
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
@@ -43,8 +43,8 @@ module Datadog
         def extract(data)
           # DEV: B3 doesn't have "origin"
           fetcher = @fetcher.new(data)
-          trace_id = fetcher.id(@trace_id, 16)
-          span_id = fetcher.id(@span_id, 16)
+          trace_id = fetcher.id(@trace_id_key, 16)
+          span_id = fetcher.id(@span_id_key, 16)
           # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
           sampling_priority = fetcher.number(@sampled)
 
