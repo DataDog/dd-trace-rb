@@ -7,7 +7,6 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'faraday'
 
 require 'datadog/tracing'
-require 'datadog/tracing/distributed/ext'
 require 'datadog/tracing/metadata/ext'
 
 RSpec.describe 'Faraday middleware' do
