@@ -70,7 +70,6 @@ module Datadog
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
-        # DEV: The same comment applies to the {.extract_tags}.
         def inject_tags(digest, data)
           return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
 
@@ -105,6 +104,10 @@ module Datadog
 
         # Import `x-datadog-tags` tags as trace distributed tags.
         # Only tags that have the `_dd.p.` prefix are processed.
+        #
+        # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
+        # DEV: This means errors cannot be reported if there's not active span.
+        # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
         def extract_tags(fetcher)
           tags = fetcher[@tags_key]
           return if !tags || tags.empty?
