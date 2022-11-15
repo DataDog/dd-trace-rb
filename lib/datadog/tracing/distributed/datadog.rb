@@ -105,8 +105,8 @@ module Datadog
 
         # Import `x-datadog-tags` tags as trace distributed tags.
         # Only tags that have the `_dd.p.` prefix are processed.
-        def extract_tags(data)
-          tags = data[@tags_key]
+        def extract_tags(fetcher)
+          tags = fetcher[@tags_key]
           return if !tags || tags.empty?
 
           if ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
