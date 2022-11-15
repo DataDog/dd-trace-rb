@@ -129,7 +129,7 @@ RSpec.shared_examples 'Datadog distributed format' do
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'inject_max_size')
-              expect(Datadog.logger).to receive(:warn).with(/tags are too large/)
+              expect(Datadog.logger).to receive(:warn).with(/too many tags/)
               inject!
             end
           end
