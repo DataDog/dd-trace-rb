@@ -4,6 +4,8 @@ require 'spec_helper'
 
 require 'datadog/profiling'
 require 'datadog/profiling/profiler'
+require 'datadog/profiling/collectors/old_stack'
+require 'datadog/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Profiler do
   subject(:profiler) { described_class.new(collectors, scheduler) }
@@ -31,6 +33,8 @@ RSpec.describe Datadog::Profiling::Profiler do
     end
 
     context 'when called after a fork' do
+      before { skip('Spec requires Ruby VM supporting fork') unless PlatformHelpers.supports_fork? }
+
       it 'resets the collectors and the scheduler before starting them' do
         profiler # make sure instance is created in parent, so it detects the forking
 
