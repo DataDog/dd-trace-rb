@@ -4,7 +4,7 @@ require 'json'
 
 require_relative '../../instrumentation/gateway'
 require_relative '../../processor'
-require_relative '../../assets'
+require_relative '../../response'
 
 require_relative '../../../tracing/client_ip'
 require_relative '../../../tracing/contrib/rack/header_collection'
@@ -40,7 +40,7 @@ module Datadog
             end
 
             if request_response && request_response.any? { |action, _event| action == :block }
-              request_return = [403, { 'Content-Type' => 'text/html' }, [Datadog::AppSec::Assets.blocked]]
+              request_return = AppSec::Response.negotiate(env).to_rack
             end
 
             response = ::Rack::Response.new(request_return[2], request_return[0], request_return[1])

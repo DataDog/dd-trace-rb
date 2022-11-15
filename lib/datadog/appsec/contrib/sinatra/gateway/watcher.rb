@@ -11,7 +11,7 @@ module Datadog
     module Contrib
       module Sinatra
         module Gateway
-          # Watcher for Rails gateway events
+          # Watcher for Sinatra gateway events
           module Watcher
             # rubocop:disable Metrics/MethodLength
             def self.watch
