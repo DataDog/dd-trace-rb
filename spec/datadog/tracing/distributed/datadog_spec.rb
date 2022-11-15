@@ -6,7 +6,8 @@ require 'datadog/tracing/distributed/datadog'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Datadog distributed format' do
-  subject(:datadog) { described_class.new }
+  subject(:datadog) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 

@@ -11,12 +11,12 @@ module Datadog
       # Datadog-style trace propagation.
       class Datadog
         def initialize(
+          fetcher:,
           trace_id: Ext::HTTP_HEADER_TRACE_ID,
           parent_id: Ext::HTTP_HEADER_PARENT_ID,
           sampling_priority: Ext::HTTP_HEADER_SAMPLING_PRIORITY,
           origin: Ext::HTTP_HEADER_ORIGIN,
-          tags: Ext::HTTP_HEADER_TAGS,
-          fetcher: Fetcher
+          tags: Ext::HTTP_HEADER_TAGS
         )
           @trace_id = trace_id
           @parent_id = parent_id

@@ -12,10 +12,10 @@ module Datadog
       # @see https://github.com/openzipkin/b3-propagation#multiple-headers
       class B3
         def initialize(
+          fetcher:,
           trace_id: Ext::B3_HEADER_TRACE_ID,
           span_id: Ext::B3_HEADER_SPAN_ID,
-          sampled: Ext::B3_HEADER_SAMPLED,
-          fetcher: Fetcher
+          sampled: Ext::B3_HEADER_SAMPLED
         )
           @trace_id = trace_id
           @span_id = span_id

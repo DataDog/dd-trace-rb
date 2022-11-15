@@ -9,11 +9,12 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
   let(:propagation_styles) do
     {
-      'Datadog' => Datadog::Tracing::Distributed::Datadog.new,
-      'B3' => Datadog::Tracing::Distributed::B3.new,
-      'B3 single header' => Datadog::Tracing::Distributed::B3Single.new,
+      'Datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
+      'B3' => Datadog::Tracing::Distributed::B3.new(fetcher: fetcher_class),
+      'B3 single header' => Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class),
     }
   end
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
