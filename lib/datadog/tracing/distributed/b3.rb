@@ -15,11 +15,11 @@ module Datadog
           fetcher:,
           trace_id_key: Ext::B3_HEADER_TRACE_ID,
           span_id_key: Ext::B3_HEADER_SPAN_ID,
-          sampled: Ext::B3_HEADER_SAMPLED
+          sampled_key: Ext::B3_HEADER_SAMPLED
         )
           @trace_id_key = trace_id_key
           @span_id_key = span_id_key
-          @sampled = sampled
+          @sampled_key = sampled_key
           @fetcher = fetcher
         end
 
@@ -34,7 +34,7 @@ module Datadog
             sampling_priority = Helpers.clamp_sampling_priority(
               digest.trace_sampling_priority
             )
-            data[@sampled] = sampling_priority.to_s
+            data[@sampled_key] = sampling_priority.to_s
           end
 
           data
@@ -46,7 +46,7 @@ module Datadog
           trace_id = fetcher.id(@trace_id_key, base: 16)
           span_id = fetcher.id(@span_id_key, base: 16)
           # We don't need to try and convert sampled since B3 supports 0/1 (AUTO_REJECT/AUTO_KEEP)
-          sampling_priority = fetcher.number(@sampled)
+          sampling_priority = fetcher.number(@sampled_key)
 
           # Return early if this propagation is not valid
           return unless trace_id && span_id
