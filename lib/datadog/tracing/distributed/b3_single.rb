@@ -12,7 +12,7 @@ module Datadog
       # DEV: Format:
       # DEV:   b3: {TraceId}-{SpanId}-{SamplingState}-{ParentSpanId}
       # DEV: https://github.com/apache/incubator-zipkin-b3-propagation/tree/7c6e9f14d6627832bd80baa87ac7dabee7be23cf#single-header
-      # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
+      # DEV: `{SamplingState}` and `{ParentSpanId}` are optional
       #
       # @see https://github.com/openzipkin/b3-propagation#single-header
       class B3Single
