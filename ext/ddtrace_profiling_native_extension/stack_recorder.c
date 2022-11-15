@@ -152,6 +152,7 @@ struct active_slot_pair {
 struct call_serialize_without_gvl_arguments {
   // Set by caller
   struct stack_recorder_state *state;
+  ddog_Timespec finish_timestamp;
 
   // Set by callee
   ddog_Profile *profile;
@@ -169,13 +170,14 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
 static struct active_slot_pair sampler_lock_active_profile();
 static void sampler_unlock_active_profile(struct active_slot_pair active_slot);
-static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state, ddog_Timespec start_timestamp_for_next_profile);
+static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
 static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
 static ddog_Timespec time_now();
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
+static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -257,9 +259,13 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
+  ddog_Timespec finish_timestamp = time_now();
+  // Need to do this while still holding on to the Global VM Lock; see comments on method for why
+  serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
+
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_serialize_without_gvl_arguments args = {.state = state, .serialize_ran = false};
+  struct call_serialize_without_gvl_arguments args = {.state = state, .finish_timestamp = finish_timestamp, .serialize_ran = false};
 
   while (!args.serialize_ran) {
     // Give the Ruby VM an opportunity to process any pending interruptions (including raising exceptions).
@@ -325,10 +331,8 @@ void record_sample(VALUE recorder_instance, ddog_Sample sample) {
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
-  ddog_Timespec finish_timestamp = time_now();
-
-  args->profile = serializer_flip_active_and_inactive_slots(args->state, finish_timestamp);
-  args->result = ddog_Profile_serialize(args->profile, &finish_timestamp, NULL /* duration_nanos is optional */);
+  args->profile = serializer_flip_active_and_inactive_slots(args->state);
+  args->result = ddog_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */);
   args->serialize_ran = true;
 
   return NULL; // Unused
@@ -367,7 +371,7 @@ static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
   if (error != 0) rb_syserr_fail(error, "Unexpected failure in sampler_unlock_active_profile");
 }
 
-static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state, ddog_Timespec start_timestamp_for_next_profile) {
+static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
   int error;
   int previously_active_slot = state->active_slot;
 
@@ -377,10 +381,6 @@ static ddog_Profile *serializer_flip_active_and_inactive_slots(struct stack_reco
 
   pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
   pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
-
-  // Before making this profile active, we reset it so that it uses the correct timestamp for its start
-  ddog_Profile *previously_inactive_profile = (previously_active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
-  if (!ddog_Profile_reset(previously_inactive_profile, &start_timestamp_for_next_profile)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 
   // Release the lock, thus making this slot active
   error = pthread_mutex_unlock(previously_inactive);
@@ -460,4 +460,13 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
   ddog_Profile_reset(state->slot_two_profile, /* start_time: */ NULL);
 
   return Qtrue;
+}
+
+// Assumption 1: This method is called with the GVL being held, because `ddog_Profile_reset` mutates the profile and should
+// not be interrupted part-way through by a VM fork.
+static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp) {
+  // Before making this profile active, we reset it so that it uses the correct timestamp for its start
+  ddog_Profile *next_profile = (state->active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
+
+  if (!ddog_Profile_reset(next_profile, &timestamp)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
 }
