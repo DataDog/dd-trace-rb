@@ -11,6 +11,8 @@ RSpec.shared_examples 'B3 Single distributed format' do
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
+  let(:b3_single_header) { 'b3' }
+
   describe '#inject!' do
     subject!(:inject!) { b3_single.inject!(digest, data) }
     let(:data) { {} }
@@ -28,7 +30,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
         )
       end
 
-      it { is_expected.to eq('b3' => '2710-4e20') }
+      it { is_expected.to eq(b3_single_header => '2710-4e20') }
 
       [
         [-1, 0],
@@ -46,7 +48,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
           end
 
           it {
-            is_expected.to eq('b3' => "c350-ea60-#{expected}")
+            is_expected.to eq(b3_single_header => "c350-ea60-#{expected}")
           }
         end
       end
@@ -60,7 +62,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
           )
         end
 
-        it { is_expected.to eq('b3' => '15f90-186a0') }
+        it { is_expected.to eq(b3_single_header => '15f90-186a0') }
       end
     end
   end
@@ -76,7 +78,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
     end
 
     context 'with trace_id and span_id' do
-      let(:data) { { prepare_key['b3'] => '15f90-186a0' } }
+      let(:data) { { prepare_key[b3_single_header] => '15f90-186a0' } }
 
       it { expect(digest.span_id).to eq(100000) }
       it { expect(digest.trace_id).to eq(90000) }
@@ -84,7 +86,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
       it { expect(digest.trace_sampling_priority).to be nil }
 
       context 'with sampling priority' do
-        let(:data) { { prepare_key['b3'] => '15f90-186a0-1' } }
+        let(:data) { { prepare_key[b3_single_header] => '15f90-186a0-1' } }
 
         it { expect(digest.span_id).to eq(100000) }
         it { expect(digest.trace_id).to eq(90000) }
@@ -94,7 +96,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
         context 'with parent_id' do
           let(:data) do
             {
-              prepare_key['b3'] => '15f90-186a0-1-4e20'
+              prepare_key[b3_single_header] => '15f90-186a0-1-4e20'
             }
           end
 
@@ -107,7 +109,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
     end
 
     context 'with trace_id' do
-      let(:env) { { prepare_key['b3'] => '15f90' } }
+      let(:env) { { prepare_key[b3_single_header] => '15f90' } }
 
       it { is_expected.to be nil }
     end
