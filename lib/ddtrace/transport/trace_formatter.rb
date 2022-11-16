@@ -94,7 +94,7 @@ module Datadog
       end
 
       def tag_lang!
-        return if trace.lang.nil? || root_span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+        return if trace.lang.nil?
 
         root_span.set_tag(
           Core::Runtime::Ext::TAG_LANG,

@@ -154,11 +154,6 @@ RSpec.describe Datadog::Transport::TraceFormatter do
               .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)
               .and_return('a-peer-service')
           end
-
-          it 'does not set language tag' do
-            format!
-            expect(root_span).to have_metadata(Datadog::Core::Runtime::Ext::TAG_LANG => nil)
-          end
         end
       end
 
