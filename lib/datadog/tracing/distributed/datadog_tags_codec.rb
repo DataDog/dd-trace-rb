@@ -1,15 +1,24 @@
 # frozen_string_literal: true
 # typed: true
 
-require_relative '../../core/utils/refinement'
-
 module Datadog
   module Tracing
     module Distributed
       # Encodes and decodes distributed 'x-datadog-tags' tags for transport
       # to and from external processes.
       module DatadogTagsCodec
-        using Core::Utils::Refinement::Regexp unless ::Regexp.method_defined?(:match?)
+        # Backport `Regexp::match?` because it is measurably the most performant
+        # way to check if a string matches a regular expression.
+        module RefineRegexp
+          unless Regexp.method_defined?(:match?)
+            refine ::Regexp do
+              def match?(*args)
+                !match(*args).nil?
+              end
+            end
+          end
+        end
+        using RefineRegexp
 
         # ASCII characters 32-126, except `,`, `=`, and ` `. At least one character.
         VALID_KEY_CHARS = /\A(?:(?![,= ])[\u0020-\u007E])+\Z/.freeze

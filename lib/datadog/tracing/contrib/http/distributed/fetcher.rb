@@ -2,7 +2,6 @@
 # typed: false
 
 require_relative '../../../distributed/fetcher'
-require_relative '../../../../core/utils/refinement'
 
 module Datadog
   module Tracing
@@ -11,8 +10,6 @@ module Datadog
         module Distributed
           # Retrieves Rack formatted headers from HTTP headers.
           class Fetcher < Tracing::Distributed::Fetcher
-            using Core::Utils::Refinement::String unless ::String.method_defined?(:+@)
-
             # TODO: Don't assume Rack format.
             #       Make distributed tracing headers apathetic.
             # DEV: Should we try to parse both verbatim an Rack-formatted headers,
