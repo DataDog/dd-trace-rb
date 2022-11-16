@@ -1,4 +1,4 @@
-# frozen_string_literal: true
+# frozen_string_literal: false
 # typed: false
 
 require_relative '../../../distributed/fetcher'
@@ -18,8 +18,9 @@ module Datadog
             # DEV: Should we try to parse both verbatim an Rack-formatted headers,
             # DEV: given Rack-formatted is the most common format in Ruby?
             def [](name)
-              # DEV: `String#+@` is not needed in Ruby >= 3.0, as interpolated strings are not frozen.
-              rack_header = (+"http-#{name}").upcase!.tr('-', '_')
+              rack_header = "HTTP-#{name}"
+              rack_header.upcase!
+              rack_header.tr!('-'.freeze, '_'.freeze)
 
               hdr = super(rack_header)
 
