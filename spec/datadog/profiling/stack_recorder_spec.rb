@@ -178,6 +178,44 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
+    describe 'trace endpoint behavior' do
+      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 1, 'wall-time' => 789 } }
+      let(:samples) { samples_from_pprof(encoded_pprof) }
+
+      it 'includes the endpoint for all matching samples taken before and after recording the endpoint' do
+        local_root_span_id_with_endpoint = { 'local root span id' => '123' }
+        local_root_span_id_without_endpoint = { 'local root span id' => '456' }
+
+        sample = proc do |labels = {}|
+          Datadog::Profiling::Collectors::Stack::Testing
+            ._native_sample(Thread.current, stack_recorder, metric_values, labels.to_a, 400, false)
+        end
+
+        sample.call
+        sample.call(local_root_span_id_without_endpoint)
+        sample.call(local_root_span_id_with_endpoint)
+
+        described_class::Testing._native_record_endpoint(stack_recorder, '123', 'recorded-endpoint')
+
+        sample.call
+        sample.call(local_root_span_id_without_endpoint)
+        sample.call(local_root_span_id_with_endpoint)
+
+        expect(samples).to have(6).items
+
+        # Other samples have not been changed
+        expect(samples.select { |it| it[:labels].empty? }).to have(2).items
+        expect(samples.select { |it| it[:labels] == { :'local root span id' => '456' } }).to have(2).items
+
+        # Matching samples taken before and after recording the endpoint have been changed
+        expect(
+          samples.select do |it|
+            it[:labels] == { :'local root span id' => '123', :'trace endpoint' => 'recorded-endpoint' }
+          end
+        ).to have(2).items
+      end
+    end
+
     context 'when there is a failure during serialization' do
       before do
         allow(Datadog.logger).to receive(:error)
