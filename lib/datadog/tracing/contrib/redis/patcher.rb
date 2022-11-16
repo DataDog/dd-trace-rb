@@ -20,6 +20,7 @@ module Datadog
 
             # Instance method patch for redis instance
             module InstanceMethods
+              # `options` could be frozen
               def initialize(options = {})
                 super(options.merge(redis_instance: self))
               end
