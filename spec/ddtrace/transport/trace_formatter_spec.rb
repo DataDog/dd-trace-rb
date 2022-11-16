@@ -139,6 +139,7 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Core::Runtime::Ext::TAG_LANG => lang,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => origin,
             Datadog::Core::Runtime::Ext::TAG_PID => process_id,
+            'process_id' => process_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
