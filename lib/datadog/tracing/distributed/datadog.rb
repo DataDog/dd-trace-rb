@@ -42,7 +42,7 @@ module Datadog
           data[@trace_id_key] = digest.trace_id.to_s
           data[@parent_id_key] = digest.span_id.to_s
           data[@sampling_priority_key] = digest.trace_sampling_priority.to_s if digest.trace_sampling_priority
-          data[@origin_key] = digest.trace_origin.to_s unless digest.trace_origin.nil?
+          data[@origin_key] = digest.trace_origin.to_s if digest.trace_origin
 
           inject_tags(digest, data)
 
