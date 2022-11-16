@@ -146,15 +146,6 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
           )
         end
-
-        context 'but peer.service is set' do
-          before do
-            allow(root_span).to receive(:get_tag).and_call_original
-            allow(root_span).to receive(:get_tag)
-              .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-              .and_return('a-peer-service')
-          end
-        end
       end
 
       shared_examples 'root span with generic tags' do
