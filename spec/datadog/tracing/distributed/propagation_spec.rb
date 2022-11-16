@@ -19,7 +19,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '::inject!' do
-    subject!(:inject!) { propagation.inject!(trace, data) }
+    subject(:inject!) { propagation.inject!(trace, data) }
     let(:data) { {} }
 
     shared_examples_for 'trace injection' do
@@ -31,10 +31,12 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       it { is_expected.to eq(true) }
 
       it 'injects the trace id' do
+        inject!
         expect(data).to include('x-datadog-trace-id' => '1234567890')
       end
 
       it 'injects the parent span id' do
+        inject!
         expect(data).to include('x-datadog-parent-id' => '9876543210')
       end
 
@@ -42,12 +44,14 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         let(:sampling_priority) { 0 }
 
         it 'injects the sampling priority' do
+          inject!
           expect(data).to include('x-datadog-sampling-priority' => '0')
         end
       end
 
       context 'when sampling priority is not set' do
         it 'leaves the sampling priority blank in the data' do
+          inject!
           expect(data).not_to include('x-datadog-sampling-priority')
         end
       end
@@ -56,19 +60,23 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         let(:origin) { 'synthetics' }
 
         it 'injects the origin' do
+          inject!
           expect(data).to include('x-datadog-origin' => 'synthetics')
         end
       end
 
       context 'when origin is not set' do
         it 'leaves the origin blank in the data' do
+          inject!
           expect(data).not_to include('x-datadog-origin')
         end
       end
     end
 
     context 'given nil' do
+      before { inject! }
       let(:trace) { nil }
+
       it { is_expected.to be_nil }
       it { expect(data).to be_empty }
     end
@@ -85,10 +93,18 @@ RSpec.shared_examples 'Distributed tracing propagator' do
 
       it_behaves_like 'trace injection' do
         context 'with no styles configured' do
-          let(:propagation_styles) { {} }
+          before do
+            Datadog.configure do |c|
+              c.tracing.distributed_tracing.propagation_inject_style = []
+            end
+          end
 
           it { is_expected.to eq(false) }
-          it { expect(data).to be_empty }
+
+          it 'does not inject data' do
+            inject!
+            expect(data).to be_empty
+          end
         end
       end
     end
