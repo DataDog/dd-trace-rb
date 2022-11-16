@@ -39,21 +39,21 @@ RSpec.describe Datadog::Tracing::Contrib::GRPC::Distributed::Propagation do
   context 'for B3' do
     it_behaves_like 'B3 distributed format' do
       let(:b3) { Datadog::Tracing::Distributed::B3.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::HTTP::Distributed::Fetcher }
+      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
     end
   end
 
   context 'for B3 Single' do
     it_behaves_like 'B3 Single distributed format' do
       let(:b3_single) { Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::HTTP::Distributed::Fetcher }
+      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
     end
   end
 
   context 'for Datadog' do
     it_behaves_like 'Datadog distributed format' do
       let(:datadog) { Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class) }
-      let(:fetcher_class) { Datadog::Tracing::Contrib::HTTP::Distributed::Fetcher }
+      let(:fetcher_class) { Datadog::Tracing::Contrib::GRPC::Distributed::Fetcher }
     end
   end
 end
