@@ -72,31 +72,15 @@ module Datadog
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
         def inject_tags(digest, data)
           return if digest.trace_distributed_tags.nil? || digest.trace_distributed_tags.empty?
+          return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
-          if ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
-            active_trace = Tracing.active_trace
-            active_trace.set_tag('_dd.propagation_error', 'disabled') if active_trace
-            return
-          end
+          tags = DatadogTagsCodec.encode(digest.trace_distributed_tags)
 
-          encoded_tags = DatadogTagsCodec.encode(digest.trace_distributed_tags)
+          return set_tags_propagation_error(reason: 'inject_max_size') if tags_too_large?(tags.size, scenario: 'inject')
 
-          if encoded_tags.size > ::Datadog.configuration.tracing.x_datadog_tags_max_length
-            active_trace = Tracing.active_trace
-            active_trace.set_tag('_dd.propagation_error', 'inject_max_size') if active_trace
-
-            ::Datadog.logger.warn(
-              'Failed to inject x-datadog distributed tracing tags: too many tags for configured limit ' \
-              "(size:#{encoded_tags.size} >= limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This " \
-              'limit can be configured with the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
-            )
-            return
-          end
-
-          data[@tags_key] = encoded_tags
+          data[@tags_key] = tags
         rescue => e
-          active_trace = Tracing.active_trace
-          active_trace.set_tag('_dd.propagation_error', 'encoding_error') if active_trace
+          set_tags_propagation_error(reason: 'encoding_error')
           ::Datadog.logger.warn(
             "Failed to inject x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
           )
@@ -110,25 +94,10 @@ module Datadog
         # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
         def extract_tags(fetcher)
           tags = fetcher[@tags_key]
+
           return if !tags || tags.empty?
-
-          if ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
-            active_trace = Tracing.active_trace
-            active_trace.set_tag('_dd.propagation_error', 'disabled') if active_trace
-            return
-          end
-
-          if tags.size > ::Datadog.configuration.tracing.x_datadog_tags_max_length
-            active_trace = Tracing.active_trace
-            active_trace.set_tag('_dd.propagation_error', 'extract_max_size') if active_trace
-
-            ::Datadog.logger.warn(
-              "Failed to extract x-datadog-tags: tags are too large (size:#{tags.size} >= " \
-                "limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This limit can be configured " \
-                'through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
-            )
-            return
-          end
+          return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
+          return set_tags_propagation_error(reason: 'extract_max_size') if tags_too_large?(tags.size, scenario: 'extract')
 
           tags_hash = DatadogTagsCodec.decode(tags)
           # Only extract keys with the expected Datadog prefix
@@ -137,11 +106,32 @@ module Datadog
           end
           tags_hash
         rescue => e
-          active_trace = Tracing.active_trace
-          active_trace.set_tag('_dd.propagation_error', 'decoding_error') if active_trace
+          set_tags_propagation_error(reason: 'decoding_error')
           ::Datadog.logger.warn(
             "Failed to extract x-datadog-tags: #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
           )
+        end
+
+        def set_tags_propagation_error(reason:)
+          active_trace = Tracing.active_trace
+          active_trace.set_tag('_dd.propagation_error', reason) if active_trace
+          nil
+        end
+
+        def tags_disabled?
+          ::Datadog.configuration.tracing.x_datadog_tags_max_length <= 0
+        end
+
+        def tags_too_large?(size, scenario:)
+          return false if size <= ::Datadog.configuration.tracing.x_datadog_tags_max_length
+
+          ::Datadog.logger.warn(
+            "Failed to #{scenario} x-datadog-tags: tags are too large for configured limit (size:#{size} >= " \
+              "limit:#{::Datadog.configuration.tracing.x_datadog_tags_max_length}). This limit can be configured " \
+              'through the DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH environment variable.'
+          )
+
+          true
         end
 
         # We want to exclude tags that we don't want to propagate downstream.
