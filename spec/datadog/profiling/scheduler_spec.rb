@@ -90,7 +90,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
     subject(:after_fork) { scheduler.after_fork }
 
     it 'clears the buffer' do
-      expect(exporter).to receive(:flush)
+      expect(exporter).to receive(:clear)
       after_fork
     end
   end

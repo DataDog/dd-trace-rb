@@ -39,6 +39,41 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
+  shared_examples_for 'locking behavior' do |operation|
+    context 'when slot one was the active slot' do
+      it 'sets slot two as the active slot' do
+        expect { stack_recorder.public_send(operation) }.to change { active_slot }.from(1).to(2)
+      end
+
+      it 'locks the slot one mutex' do
+        expect { stack_recorder.public_send(operation) }.to change { slot_one_mutex_locked? }.from(false).to(true)
+      end
+
+      it 'unlocks the slot two mutex' do
+        expect { stack_recorder.public_send(operation) }.to change { slot_two_mutex_locked? }.from(true).to(false)
+      end
+    end
+
+    context 'when slot two was the active slot' do
+      before do
+        # Trigger operation once, so that active slots get flipped
+        stack_recorder.public_send(operation)
+      end
+
+      it 'sets slot one as the active slot' do
+        expect { stack_recorder.public_send(operation) }.to change { active_slot }.from(2).to(1)
+      end
+
+      it 'unlocks the slot one mutex' do
+        expect { stack_recorder.public_send(operation) }.to change { slot_one_mutex_locked? }.from(true).to(false)
+      end
+
+      it 'locks the slot two mutex' do
+        expect { stack_recorder.public_send(operation) }.to change { slot_two_mutex_locked? }.from(false).to(true)
+      end
+    end
+  end
+
   describe '#serialize' do
     subject(:serialize) { stack_recorder.serialize }
 
@@ -61,40 +96,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       expect(message).to include finish.iso8601
     end
 
-    describe 'locking behavior' do
-      context 'when slot one was the active slot' do
-        it 'sets slot two as the active slot' do
-          expect { serialize }.to change { active_slot }.from(1).to(2)
-        end
-
-        it 'locks the slot one mutex and keeps it locked' do
-          expect { serialize }.to change { slot_one_mutex_locked? }.from(false).to(true)
-        end
-
-        it 'unlocks the slot two mutex and keeps it unlocked' do
-          expect { serialize }.to change { slot_two_mutex_locked? }.from(true).to(false)
-        end
-      end
-
-      context 'when slot two was the active slot' do
-        before do
-          # Trigger serialization once, so that active slots get flipped
-          stack_recorder.serialize
-        end
-
-        it 'sets slot one as the active slot' do
-          expect { serialize }.to change { active_slot }.from(2).to(1)
-        end
-
-        it 'unlocks the slot one mutex and keeps it unlocked' do
-          expect { serialize }.to change { slot_one_mutex_locked? }.from(true).to(false)
-        end
-
-        it 'locks the slow two mutex and keeps it locked' do
-          expect { serialize }.to change { slot_two_mutex_locked? }.from(false).to(true)
-        end
-      end
-    end
+    include_examples 'locking behavior', :serialize
 
     context 'when the profile is empty' do
       it 'uses the current time as the start and finish time' do
@@ -216,6 +218,76 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         start, = stack_recorder.serialize
 
         expect(start).to be >= before_serialize
+      end
+    end
+  end
+
+  describe '#clear' do
+    subject(:clear) { stack_recorder.clear }
+
+    it 'debug logs that clear was invoked' do
+      message = nil
+
+      expect(Datadog.logger).to receive(:debug) do |&message_block|
+        message = message_block.call
+      end
+
+      clear
+
+      expect(message).to match(/Cleared profile/)
+    end
+
+    include_examples 'locking behavior', :clear
+
+    it 'uses the current time as the finish time' do
+      before_clear = Time.now.utc
+      finish = clear
+      after_clear = Time.now.utc
+
+      expect(finish).to be_between(before_clear, after_clear)
+    end
+
+    context 'when profile has a sample' do
+      let(:collectors_stack) { Datadog::Profiling::Collectors::Stack.new }
+
+      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b' }.to_a }
+
+      it 'makes the next calls to serialize return no data' do
+        # Add some data
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+
+        # Sanity check: validate that data is there, to avoid the test passing because of other issues
+        sanity_check_samples = samples_from_pprof(stack_recorder.serialize.last)
+        expect(sanity_check_samples.size).to be 1
+
+        # Add some data, again
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, 400, false)
+
+        clear
+
+        # Test twice in a row to validate that both profile slots are empty
+        expect(samples_from_pprof(stack_recorder.serialize.last)).to be_empty
+        expect(samples_from_pprof(stack_recorder.serialize.last)).to be_empty
+      end
+    end
+
+    context 'when there is a failure during serialization' do
+      before do
+        allow(Datadog.logger).to receive(:error)
+
+        # Real failures in serialization are hard to trigger, so we're using a mock failure instead
+        expect(described_class).to receive(:_native_clear).and_return([:error, 'test error message'])
+      end
+
+      it { is_expected.to be nil }
+
+      it 'logs an error message' do
+        expect(Datadog.logger).to receive(:error).with(/test error message/)
+
+        clear
       end
     end
   end

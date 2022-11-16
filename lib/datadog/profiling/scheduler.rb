@@ -70,7 +70,7 @@ module Datadog
         # Clear any existing profiling state.
         # We don't want the child process to report profiling data from its parent.
         Datadog.logger.debug('Flushing exporter in child process #after_fork and discarding data')
-        exporter.flush
+        exporter.clear
       end
 
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts
