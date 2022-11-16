@@ -66,10 +66,12 @@
 #define IS_NOT_WALL_TIME false
 #define MISSING_TRACER_CONTEXT_KEY 0
 
-static ID at_active_trace_id; // id of :@active_trace in Ruby
-static ID at_root_span_id;    // id of :@root_span in Ruby
 static ID at_active_span_id;  // id of :@active_span in Ruby
+static ID at_active_trace_id; // id of :@active_trace in Ruby
 static ID at_id_id;           // id of :@id in Ruby
+static ID at_resource_id;     // id of :@resource in Ruby
+static ID at_root_span_id;    // id of :@root_span in Ruby
+static ID at_type_id;         // id of :@type in Ruby
 
 // Contains state for a single CpuAndWallTime instance
 struct cpu_and_wall_time_collector_state {
@@ -129,6 +131,7 @@ struct trace_identifiers {
   ddog_CharSlice span_id;
   char local_root_span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
   char span_id_buffer[MAXIMUM_LENGTH_64_BIT_IDENTIFIER];
+  VALUE trace_endpoint;
 };
 
 static void cpu_and_wall_time_collector_typed_data_mark(void *state_ptr);
@@ -165,6 +168,7 @@ static long wall_time_now_ns(bool raise_on_failure);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
+static bool is_type_web(VALUE root_span_type);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
@@ -194,10 +198,12 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
 
-  at_active_trace_id = rb_intern_const("@active_trace");
-  at_root_span_id = rb_intern_const("@root_span");
   at_active_span_id = rb_intern_const("@active_span");
+  at_active_trace_id = rb_intern_const("@active_trace");
   at_id_id = rb_intern_const("@id");
+  at_resource_id = rb_intern_const("@resource");
+  at_root_span_id = rb_intern_const("@root_span");
+  at_type_id = rb_intern_const("@type");
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_collector_state
@@ -572,12 +578,29 @@ static void trigger_sample_for_thread(
     };
   }
 
-  struct trace_identifiers trace_identifiers_result = {.valid = false};
+  struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
   if (trace_identifiers_result.valid) {
     labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .str = trace_identifiers_result.local_root_span_id};
     labels[label_pos++] = (ddog_Label) {.key = DDOG_CHARSLICE_C("span id"), .str = trace_identifiers_result.span_id};
+
+    if (trace_identifiers_result.trace_endpoint != Qnil) {
+      // The endpoint gets recorded in a different way because it is mutable in the tracer and can change during a
+      // trace.
+      //
+      // Instead of each sample for the same local_root_span_id getting a potentially-different endpoint,
+      // `record_endpoint` (via libdatadog) keeps a list of local_root_span_id values and their most-recently-seen
+      // endpoint values, and at serialization time the most-recently-seen endpoint is applied to all relevant samples.
+      //
+      // This is why the endpoint is not directly added in this function to the labels array, although it will later
+      // show up in the array in the output pprof.
+      record_endpoint(
+        state->recorder_instance,
+        trace_identifiers_result.local_root_span_id,
+        char_slice_from_ruby_string(trace_identifiers_result.trace_endpoint)
+      );
+    }
   }
 
   // The number of times `label_pos++` shows up in this function needs to match `max_label_count`. To avoid "oops I
@@ -864,6 +887,24 @@ static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *stat
   };
 
   trace_identifiers_result->valid = true;
+
+  VALUE root_span_type = rb_ivar_get(root_span, at_type_id /* @type */);
+  if (root_span_type == Qnil || !is_type_web(root_span_type)) return;
+
+  VALUE trace_resource = rb_ivar_get(active_trace, at_resource_id /* @resource */);
+  if (RB_TYPE_P(trace_resource, T_STRING)) {
+    trace_identifiers_result->trace_endpoint = trace_resource;
+  } else if (trace_resource == Qnil) {
+    // Fall back to resource from span, if any
+    trace_identifiers_result->trace_endpoint = rb_ivar_get(root_span, at_resource_id /* @resource */);
+  }
+}
+
+static bool is_type_web(VALUE root_span_type) {
+  ENFORCE_TYPE(root_span_type, T_STRING);
+
+  return RSTRING_LEN(root_span_type) == strlen("web") &&
+    (memcmp("web", StringValuePtr(root_span_type), strlen("web")) == 0);
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
