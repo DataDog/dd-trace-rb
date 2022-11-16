@@ -27,12 +27,12 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
 
   describe '#id' do
     subject(:id) { fetcher.id(key, base: base) }
-    let(:data) { { key => value} }
+    let(:data) { { key => value } }
     let(:key) { double('key') }
     let(:value) { double('value') }
     let(:base) { double('base') }
 
-    it "delegates to Datadog::Tracing::Distributed::Helpers.value_to_id" do
+    it 'delegates to Datadog::Tracing::Distributed::Helpers.value_to_id' do
       ret = double('return')
       expect(Datadog::Tracing::Distributed::Helpers).to receive(:value_to_id).with(value, base).and_return(ret)
       is_expected.to eq(ret)
@@ -41,12 +41,12 @@ RSpec.describe Datadog::Tracing::Distributed::Fetcher do
 
   describe '#number' do
     subject(:number) { fetcher.number(key, base: base) }
-    let(:data) { { key => value} }
+    let(:data) { { key => value } }
     let(:key) { double('key') }
     let(:value) { double('value') }
     let(:base) { double('base') }
 
-    it "delegates to Datadog::Tracing::Distributed::Helpers.value_to_number" do
+    it 'delegates to Datadog::Tracing::Distributed::Helpers.value_to_number' do
       ret = double('return')
       expect(Datadog::Tracing::Distributed::Helpers).to receive(:value_to_number).with(value, base).and_return(ret)
       is_expected.to eq(ret)
