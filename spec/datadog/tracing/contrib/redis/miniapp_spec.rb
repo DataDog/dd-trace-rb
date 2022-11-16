@@ -18,7 +18,8 @@ RSpec.describe 'Redis mini app test' do
     Datadog.configure_onto(redis, service_name: 'test-service')
   end
 
-  let(:redis) { Redis.new(host: host, port: port) }
+  let(:redis_options) { { host: host, port: port } }
+  let(:redis) { Redis.new(redis_options.freeze) }
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
