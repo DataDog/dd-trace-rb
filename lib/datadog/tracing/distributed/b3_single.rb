@@ -16,7 +16,9 @@ module Datadog
       #
       # @see https://github.com/openzipkin/b3-propagation#single-header
       class B3Single
-        def initialize(fetcher:, key: Ext::B3_HEADER_SINGLE)
+        B3_SINGLE_HEADER_KEY = 'b3'
+
+        def initialize(fetcher:, key: B3_SINGLE_HEADER_KEY)
           @key = key
           @fetcher = fetcher
         end

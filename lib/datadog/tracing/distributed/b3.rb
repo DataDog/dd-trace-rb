@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 # typed: true
 
-require_relative 'ext'
 require_relative 'helpers'
 require_relative '../trace_digest'
 
@@ -11,11 +10,15 @@ module Datadog
       # B3-style trace propagation.
       # @see https://github.com/openzipkin/b3-propagation#multiple-headers
       class B3
+        B3_TRACE_ID_KEY = 'x-b3-traceid'
+        B3_SPAN_ID_KEY = 'x-b3-spanid'
+        B3_SAMPLED_KEY = 'x-b3-sampled'
+
         def initialize(
           fetcher:,
-          trace_id_key: Ext::B3_HEADER_TRACE_ID,
-          span_id_key: Ext::B3_HEADER_SPAN_ID,
-          sampled_key: Ext::B3_HEADER_SAMPLED
+          trace_id_key: B3_TRACE_ID_KEY,
+          span_id_key: B3_SPAN_ID_KEY,
+          sampled_key: B3_SAMPLED_KEY
         )
           @trace_id_key = trace_id_key
           @span_id_key = span_id_key

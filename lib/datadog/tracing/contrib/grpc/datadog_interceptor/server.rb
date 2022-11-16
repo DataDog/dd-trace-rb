@@ -55,7 +55,7 @@ module Datadog
             def annotate!(span, metadata)
               metadata.each do |header, value|
                 # Datadog propagation headers are considered internal implementation detail.
-                next if header.to_s.start_with?(Tracing::Distributed::Ext::DATADOG_PREFIX)
+                next if header.to_s.start_with?(Tracing::Distributed::Ext::TAGS_PREFIX)
 
                 span.set_tag(header, value)
               end

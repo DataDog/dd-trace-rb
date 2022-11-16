@@ -10,13 +10,23 @@ module Datadog
     module Distributed
       # Datadog-style trace propagation.
       class Datadog
+        TRACE_ID_KEY = 'x-datadog-trace-id'
+        PARENT_ID_KEY = 'x-datadog-parent-id'
+        SAMPLING_PRIORITY_KEY = 'x-datadog-sampling-priority'
+        ORIGIN_KEY = 'x-datadog-origin'
+        # Distributed trace-level tags
+        TAGS_KEY = 'x-datadog-tags'
+
+        # Prefix used by all Datadog-specific distributed tags
+        TAGS_PREFIX = 'x-datadog-'
+
         def initialize(
           fetcher:,
-          trace_id_key: Ext::HTTP_HEADER_TRACE_ID,
-          parent_id_key: Ext::HTTP_HEADER_PARENT_ID,
-          sampling_priority_key: Ext::HTTP_HEADER_SAMPLING_PRIORITY,
-          origin_key: Ext::HTTP_HEADER_ORIGIN,
-          tags_key: Ext::HTTP_HEADER_TAGS
+          trace_id_key: TRACE_ID_KEY,
+          parent_id_key: PARENT_ID_KEY,
+          sampling_priority_key: SAMPLING_PRIORITY_KEY,
+          origin_key: ORIGIN_KEY,
+          tags_key: TAGS_KEY
         )
           @trace_id_key = trace_id_key
           @parent_id_key = parent_id_key

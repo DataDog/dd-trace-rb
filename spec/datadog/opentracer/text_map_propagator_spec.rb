@@ -51,13 +51,13 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
         end
 
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_TRACE_ID, trace_id)
+          .with('x-datadog-trace-id', trace_id)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_PARENT_ID, span_id)
+          .with('x-datadog-parent-id', span_id)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority)
+          .with('x-datadog-sampling-priority', sampling_priority)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_ORIGIN, origin)
+          .with(Datadog::OpenTracer::DistributedHeaders::ORIGIN_KEY, origin)
       end
     end
 
@@ -92,13 +92,13 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
         end
 
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_TRACE_ID, trace_id)
+          .with('x-datadog-trace-id', trace_id)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_PARENT_ID, span_id)
+          .with('x-datadog-parent-id', span_id)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_SAMPLING_PRIORITY, sampling_priority)
+          .with('x-datadog-sampling-priority', sampling_priority)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::HTTP_HEADER_ORIGIN, origin)
+          .with(Datadog::OpenTracer::DistributedHeaders::ORIGIN_KEY, origin)
       end
     end
   end
