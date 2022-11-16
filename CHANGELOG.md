@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [1.6.1] - 2022-11-16
+
+### Changed
+
+* Limit `redis` version support to less than 5
+
+### Fixed
+
+* [redis]: Fix frozen input for `Redis.new(...)`
+
 ## [1.6.0] - 2022-11-15
 
 ### Added
@@ -2188,7 +2198,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.1...master
+[1.6.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.5.0...v1.5.1
