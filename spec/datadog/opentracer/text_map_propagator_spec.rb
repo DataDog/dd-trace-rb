@@ -57,7 +57,7 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
         expect(carrier).to have_received(:[]=)
           .with('x-datadog-sampling-priority', sampling_priority)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::ORIGIN_KEY, origin)
+          .with('x-datadog-origin', origin)
       end
     end
 
@@ -98,7 +98,7 @@ RSpec.describe Datadog::OpenTracer::TextMapPropagator do
         expect(carrier).to have_received(:[]=)
           .with('x-datadog-sampling-priority', sampling_priority)
         expect(carrier).to have_received(:[]=)
-          .with(Datadog::OpenTracer::DistributedHeaders::ORIGIN_KEY, origin)
+          .with('x-datadog-origin', origin)
       end
     end
   end

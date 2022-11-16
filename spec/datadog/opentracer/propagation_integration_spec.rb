@@ -45,7 +45,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'x-datadog-trace-id' => a_kind_of(Integer),
           'x-datadog-parent-id' => a_kind_of(Integer),
           'x-datadog-sampling-priority' => a_kind_of(Integer),
-          Datadog::OpenTracer::TextMapPropagator::ORIGIN_KEY => a_kind_of(String)
+          'x-datadog-origin' => a_kind_of(String)
         )
 
         expect(carrier['x-datadog-parent-id']).to be > 0
@@ -76,7 +76,7 @@ RSpec.describe 'OpenTracer context propagation' do
             'x-datadog-trace-id' => trace_id.to_s,
             'x-datadog-parent-id' => parent_id.to_s,
             'x-datadog-sampling-priority' => sampling_priority.to_s,
-            Datadog::OpenTracer::TextMapPropagator::ORIGIN_KEY => origin.to_s
+            'x-datadog-origin' => origin.to_s
           )
         end
 
@@ -186,7 +186,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'x-datadog-trace-id' => origin_datadog_span.trace_id,
           'x-datadog-parent-id' => origin_datadog_span.span_id,
           'x-datadog-sampling-priority' => 1,
-          Datadog::OpenTracer::TextMapPropagator::ORIGIN_KEY => 'synthetics',
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
@@ -196,7 +196,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'x-datadog-trace-id' => intermediate_datadog_span.trace_id,
           'x-datadog-parent-id' => intermediate_datadog_span.span_id,
           'x-datadog-sampling-priority' => 1,
-          Datadog::OpenTracer::TextMapPropagator::ORIGIN_KEY => 'synthetics',
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
@@ -235,7 +235,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'x-datadog-trace-id' => a_kind_of(String),
           'x-datadog-parent-id' => a_kind_of(String),
           'x-datadog-sampling-priority' => a_kind_of(String),
-          Datadog::OpenTracer::RackPropagator::ORIGIN_KEY => a_kind_of(String)
+          'x-datadog-origin' => a_kind_of(String)
         )
 
         expect(carrier['x-datadog-parent-id'].to_i).to be > 0
@@ -267,7 +267,7 @@ RSpec.describe 'OpenTracer context propagation' do
               'x-datadog-trace-id' => trace_id.to_s,
               'x-datadog-parent-id' => parent_id.to_s,
               'x-datadog-sampling-priority' => sampling_priority.to_s,
-              Datadog::OpenTracer::RackPropagator::ORIGIN_KEY => origin.to_s
+              'x-datadog-origin' => origin.to_s
             )
           )
         end
@@ -382,7 +382,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'x-datadog-trace-id' => origin_datadog_span.trace_id.to_s,
           'x-datadog-parent-id' => origin_datadog_span.span_id.to_s,
           'x-datadog-sampling-priority' => '1',
-          Datadog::OpenTracer::RackPropagator::ORIGIN_KEY => 'synthetics',
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
@@ -392,7 +392,7 @@ RSpec.describe 'OpenTracer context propagation' do
           'x-datadog-trace-id' => intermediate_datadog_span.trace_id.to_s,
           'x-datadog-parent-id' => intermediate_datadog_span.span_id.to_s,
           'x-datadog-sampling-priority' => '1',
-          Datadog::OpenTracer::RackPropagator::ORIGIN_KEY => 'synthetics',
+          'x-datadog-origin' => 'synthetics',
           'ot-baggage-account_name' => 'acme'
         )
       end
