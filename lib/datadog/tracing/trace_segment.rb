@@ -173,7 +173,7 @@ module Datadog
       end
 
       def process_id_tag
-        meta[Core::Runtime::Ext::TAG_PID]
+        meta[Core::Runtime::Ext::TAG_PROCESS_ID]
       end
 
       def rate_limiter_rate_tag
