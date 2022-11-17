@@ -903,7 +903,13 @@ elsif ruby_version?('2.5')
     gem 'faraday', '0.17'
     gem 'graphql', '>= 1.12.0', '< 2.0'
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-    gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '0.12.0') # Newer releases require `rusage`, which is not available for JRuby
+
+    if RUBY_PLATFORM == 'java'
+      gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
+      gem 'redis', '< 4' # Missing redis version cap for `qless`
+    else
+      gem 'qless', '0.12.0'
+    end
   end
 
   appraise 'core-old' do
@@ -1138,7 +1144,13 @@ elsif ruby_version?('2.6')
       gem 'faraday', '0.17'
       gem 'graphql', '>= 1.12.0', '< 2.0'
       gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-      gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '0.12.0') # Newer releases require `rusage`, which is not available for JRuby
+
+      if RUBY_PLATFORM == 'java'
+        gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
+        gem 'redis', '< 4' # Missing redis version cap for `qless`
+      else
+        gem 'qless', '0.12.0'
+      end
     end
 
     appraise 'core-old' do
