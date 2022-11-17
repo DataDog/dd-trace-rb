@@ -385,8 +385,8 @@ services:
       - bundle-jruby-9.3-latest:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
-  tracer-truffleruby-21.3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_3_0
+  tracer-truffleruby-22.3.0:
+    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_22_3_0
     platform: linux/x86_64
     command: /bin/bash
     depends_on:
@@ -405,7 +405,7 @@ services:
     tty: true
     volumes:
       - .:/app
-      - bundle-truffleruby-21.3.0:/usr/local/bundle
+      - bundle-truffleruby-22.3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
@@ -508,7 +508,7 @@ volumes:
   bundle-jruby-9.2.8.0:
   bundle-jruby-9.2-latest:
   bundle-jruby-9.3-latest:
-  bundle-truffleruby-21.3.0:
+  bundle-truffleruby-22.3.0:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
   # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.
