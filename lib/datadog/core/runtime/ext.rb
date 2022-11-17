@@ -7,7 +7,6 @@ module Datadog
       module Ext
         TAG_ID = 'runtime-id'.freeze
         TAG_LANG = 'language'.freeze
-        TAG_PID = 'system.pid'.freeze
         TAG_PROCESS_ID = 'process_id'.freeze
 
         # Metrics

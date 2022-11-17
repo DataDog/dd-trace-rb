@@ -118,7 +118,7 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
     end
 
     context 'given a numeric tag' do
-      let(:key) { 'system.pid' }
+      let(:key) { 'process_pid' }
       let(:value) { 123 }
 
       context 'which is an integer' do

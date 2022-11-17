@@ -201,7 +201,7 @@ RSpec.describe Datadog::Tracing::TraceSegment do
       end
 
       context ':process_id' do
-        let(:options) { { tags: { Datadog::Core::Runtime::Ext::TAG_PID => process_id } } }
+        let(:options) { { tags: { Datadog::Core::Runtime::Ext::TAG_PROCESS_ID => process_id } } }
         let(:process_id) { Datadog::Core::Environment::Identity.pid }
 
         it { is_expected.to have_attributes(process_id: process_id) }
