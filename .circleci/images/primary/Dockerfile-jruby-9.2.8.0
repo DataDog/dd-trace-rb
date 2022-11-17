@@ -99,4 +99,4 @@ RUN echo "export PATH=/opt/jruby/bin:$BUNDLE_BIN:\$PATH" >> ~/.profile
 RUN mkdir /app
 WORKDIR /app
 
-CMD ["bin", "bash", "--login"]
+CMD ["/bin/sh"]
