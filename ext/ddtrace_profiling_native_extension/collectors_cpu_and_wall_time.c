@@ -91,7 +91,7 @@ struct cpu_and_wall_time_collector_state {
   // is not (just) a stat.
   unsigned int sample_count;
 
-  struct {
+  struct stats {
     // Track how many garbage collection samples we've taken.
     unsigned int gc_samples;
     // See cpu_and_wall_time_collector_on_gc_start for details
@@ -165,6 +165,7 @@ static long wall_time_now_ns(bool raise_on_failure);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 
 void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -184,6 +185,7 @@ void collectors_cpu_and_wall_time_init(VALUE profiling_module) {
 
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_initialize", _native_initialize, 4);
   rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_inspect", _native_inspect, 1);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
@@ -862,4 +864,21 @@ static void trace_identifiers_for(struct cpu_and_wall_time_collector_state *stat
   };
 
   trace_identifiers_result->valid = true;
+}
+
+// After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
+//
+// Assumption: This method gets called BEFORE restarting profiling -- e.g. there are no components attempting to
+// trigger samples at the same time.
+static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  struct cpu_and_wall_time_collector_state *state;
+  TypedData_Get_Struct(collector_instance, struct cpu_and_wall_time_collector_state, &cpu_and_wall_time_collector_typed_data, state);
+
+  st_clear(state->hash_map_per_thread_context);
+
+  state->stats = (struct stats) {}; // Resets all stats back to zero
+
+  rb_funcall(state->recorder_instance, rb_intern("reset_after_fork"), 0);
+
+  return Qtrue;
 }

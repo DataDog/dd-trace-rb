@@ -218,6 +218,13 @@ module Datadog
           )
         end
 
+        def reset_after_fork
+          recorder.reset_after_fork
+
+          # NOTE: We could perhaps also call #reset_cpu_time_tracking here, although it's not needed because we always
+          # call in in #start.
+        end
+
         private
 
         # If the profiler is started for a while, stopped and then restarted OR whenever the process forks, we need to
