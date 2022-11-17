@@ -13,7 +13,7 @@ module Datadog
             return unless mode.enabled?
 
             # PENDING: Until `traceparent`` implementation in `full` mode
-            span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
+            # span_op.set_tag(Ext::TAG_DBM_TRACE_INJECTED, true) if mode.full?
           end
 
           def self.prepend_comment(sql, span_op, mode)
@@ -27,7 +27,7 @@ module Datadog
             }
 
             # PENDING: Until `traceparent`` implementation in `full` mode
-            tags.merge!(trace_context(span_op)) if mode.full?
+            # tags.merge!(trace_context(span_op)) if mode.full?
 
             "#{Comment.new(tags)} #{sql}"
           end
@@ -39,8 +39,7 @@ module Datadog
           # TODO: Derive from trace
           def self.trace_context(_)
             {
-              # Mock Randomness
-              traceparent: SecureRandom.uuid
+              # traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
             }.freeze
           end
         end
