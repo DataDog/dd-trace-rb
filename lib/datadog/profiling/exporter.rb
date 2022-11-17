@@ -70,14 +70,8 @@ module Datadog
         !duration_below_threshold?(last_flush_finish_at || created_at, time_provider.now.utc)
       end
 
-      def clear
-        if pprof_recorder.respond_to?(:clear)
-          @last_flush_finish_at = pprof_recorder.clear
-        else # TODO: Remove this when the OldRecorder is retired and we can assume all recorders implement #clear
-          _, finish, = pprof_recorder.serialize
-          @last_flush_finish_at = finish
-        end
-
+      def reset_after_fork
+        @last_flush_finish_at = time_provider.now.utc
         nil
       end
 

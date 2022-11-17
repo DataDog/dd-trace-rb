@@ -35,6 +35,7 @@ RSpec.describe 'tracing on the server connection' do
     it { expect(span.get_tag('rpc.system')).to eq 'grpc' }
     it { expect(span.get_tag('rpc.service')).to eq 'My::Server' }
     it { expect(span.get_tag('rpc.method')).to eq 'endpoint' }
+    it { expect(span.get_tag('span.kind')).to eq('server') }
 
     it 'has component and operation tags' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grpc')
@@ -80,6 +81,7 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to have_error_type('TestError')
           expect(span).to have_error_stack(include('server_spec.rb'))
           expect(span.get_tag('rpc.system')).to eq 'grpc'
+          expect(span.get_tag('span.kind')).to eq('server')
         end
       end
 
@@ -97,6 +99,7 @@ RSpec.describe 'tracing on the server connection' do
           expect(span).to_not have_error
           expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
           expect(span.get_tag('rpc.system')).to eq('grpc')
+          expect(span.get_tag('span.kind')).to eq('server')
         end
       end
     end

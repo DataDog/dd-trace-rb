@@ -74,41 +74,17 @@ RSpec.describe Datadog::Profiling::Exporter do
     end
   end
 
-  describe '#clear' do
-    subject(:clear) { exporter.clear }
+  describe '#reset_after_fork' do
+    let(:dummy_current_time) { Time.new(2022) }
+    let(:time_provider) { class_double(Time, now: dummy_current_time) }
+    let(:options) { { **super(), time_provider: class_double(Time, now: dummy_current_time) } }
+
+    subject(:reset_after_fork) { exporter.reset_after_fork }
 
     it { is_expected.to be nil }
 
-    context 'when pprof_recorder does not support clear' do
-      let(:pprof_recorder) { instance_double(Datadog::Profiling::OldRecorder, serialize: pprof_recorder_serialize) }
-
-      it 'triggers pprof_recorder serialization' do
-        expect(pprof_recorder).to receive(:serialize)
-
-        clear
-      end
-
-      it 'sets the last_flush_finish_at to the result of serialize' do
-        clear
-
-        expect(exporter.send(:last_flush_finish_at)).to be finish
-      end
-    end
-
-    context 'when pprof_recorder supports clear' do
-      let(:pprof_recorder) { instance_double(Datadog::Profiling::StackRecorder, clear: finish) }
-
-      it 'triggers pprof_recorder clear' do
-        expect(pprof_recorder).to receive(:clear)
-
-        clear
-      end
-
-      it 'sets the last_flush_finish_at to the result of clear' do
-        clear
-
-        expect(exporter.send(:last_flush_finish_at)).to be finish
-      end
+    it 'sets the last_flush_finish_at to be the current time' do
+      expect { reset_after_fork }.to change { exporter.send(:last_flush_finish_at) }.from(nil).to(dummy_current_time)
     end
   end
 
@@ -140,23 +116,7 @@ RSpec.describe Datadog::Profiling::Exporter do
       end
     end
 
-    context 'when exporter has been cleared before' do
-      before { exporter.clear }
-
-      context 'when less than 1s has elapsed since last clear' do
-        before { expect(time_provider).to receive(:now).and_return(finish + 0.99).once }
-
-        it { is_expected.to be false }
-      end
-
-      context 'when 1s or more has elapsed since last clear' do
-        before { expect(time_provider).to receive(:now).and_return(finish + 1).once }
-
-        it { is_expected.to be true }
-      end
-    end
-
-    context 'when exporter has never flushed or cleared' do
+    context 'when exporter has never flushed' do
       context 'when less than 1s has elapsed since exporter was created' do
         before { expect(time_provider).to receive(:now).and_return(created_at + 0.99).once }
 

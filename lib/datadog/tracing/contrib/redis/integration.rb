@@ -13,6 +13,7 @@ module Datadog
           include Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('3.2')
+          MAX_VERSION = Gem::Version.new('5')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :redis, auto_patch: true
@@ -26,7 +27,7 @@ module Datadog
           end
 
           def self.compatible?
-            super && version >= MINIMUM_VERSION
+            super && version >= MINIMUM_VERSION && version < MAX_VERSION
           end
 
           def new_configuration

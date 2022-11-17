@@ -94,7 +94,7 @@ module Datadog
       end
 
       def tag_lang!
-        return if trace.lang.nil? || root_span.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+        return if trace.lang.nil?
 
         root_span.set_tag(
           Core::Runtime::Ext::TAG_LANG,
@@ -118,6 +118,7 @@ module Datadog
           Core::Runtime::Ext::TAG_PID,
           trace.process_id
         )
+        root_span.set_tag(Core::Runtime::Ext::TAG_PROCESS_ID, trace.process_id)
       end
 
       def tag_rate_limiter_rate!

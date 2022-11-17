@@ -23,6 +23,10 @@ module Datadog
           result
         end
 
+        def reset_after_fork
+          self.class._native_reset_after_fork(self)
+        end
+
         private
 
         def safely_extract_context_key_from(tracer)

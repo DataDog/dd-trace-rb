@@ -804,4 +804,31 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
       end
     end
   end
+
+  describe '#reset_after_fork' do
+    subject(:reset_after_fork) { cpu_and_wall_time_collector.reset_after_fork }
+
+    before do
+      sample
+    end
+
+    it 'clears the per_thread_context' do
+      expect { reset_after_fork }.to change { per_thread_context.empty? }.from(false).to(true)
+    end
+
+    it 'clears the stats' do
+      # Simulate a GC sample, so the gc_samples stat will go to 1
+      on_gc_start
+      on_gc_finish
+      sample_after_gc
+
+      expect { reset_after_fork }.to change { stats.fetch(:gc_samples) }.from(1).to(0)
+    end
+
+    it 'resets the stack recorder' do
+      expect(recorder).to receive(:reset_after_fork)
+
+      reset_after_fork
+    end
+  end
 end

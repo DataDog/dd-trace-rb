@@ -139,26 +139,13 @@ RSpec.describe Datadog::Transport::TraceFormatter do
             Datadog::Core::Runtime::Ext::TAG_LANG => lang,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_ORIGIN => origin,
             Datadog::Core::Runtime::Ext::TAG_PID => process_id,
+            'process_id' => process_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RATE_LIMITER_RATE => rate_limiter_rate,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_RULE_SAMPLE_RATE => rule_sample_rate,
             Datadog::Core::Runtime::Ext::TAG_ID => runtime_id,
             Datadog::Tracing::Metadata::Ext::Sampling::TAG_SAMPLE_RATE => sample_rate,
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_SAMPLING_PRIORITY => sampling_priority,
           )
-        end
-
-        context 'but peer.service is set' do
-          before do
-            allow(root_span).to receive(:get_tag).and_call_original
-            allow(root_span).to receive(:get_tag)
-              .with(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)
-              .and_return('a-peer-service')
-          end
-
-          it 'does not set language tag' do
-            format!
-            expect(root_span).to have_metadata(Datadog::Core::Runtime::Ext::TAG_LANG => nil)
-          end
         end
       end
 

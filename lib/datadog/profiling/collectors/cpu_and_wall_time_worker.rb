@@ -70,6 +70,10 @@ module Datadog
             @failure_exception = nil
           end
         end
+
+        def reset_after_fork
+          self.class._native_reset_after_fork(self)
+        end
       end
     end
   end

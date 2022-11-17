@@ -55,13 +55,6 @@ module Datadog
           if Process.respond_to?(:at_fork)
             Process.at_fork(:child) do
               begin
-                # When Ruby forks, clock IDs for each of the threads
-                # will change. We can only update these IDs from the
-                # execution context of the thread that owns it.
-                # This hook will update the IDs for the main thread
-                # after a fork occurs.
-                Thread.current.send(:update_native_ids) if Thread.current.respond_to?(:update_native_ids, true)
-
                 # Restart profiler, if enabled
                 Profiling.start_if_enabled
               rescue StandardError => e

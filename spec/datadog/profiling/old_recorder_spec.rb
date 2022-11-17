@@ -175,4 +175,27 @@ RSpec.describe Datadog::Profiling::OldRecorder do
       it { is_expected.to be nil }
     end
   end
+
+  describe '#reset_after_fork' do
+    subject(:reset_after_fork) { recorder.reset_after_fork }
+
+    before do
+      allow(Datadog.logger).to receive(:debug)
+    end
+
+    it { is_expected.to be nil }
+
+    it 'debug logs the reset event' do
+      expect(Datadog.logger).to receive(:debug).with(/Resetting/)
+
+      reset_after_fork
+    end
+
+    # NOTE: This again is a bit of a heavy-handed way of testing this method, but we plan to remove it soon anyway
+    it 'triggers a serialize call' do
+      expect(recorder).to receive(:serialize)
+
+      reset_after_fork
+    end
+  end
 end

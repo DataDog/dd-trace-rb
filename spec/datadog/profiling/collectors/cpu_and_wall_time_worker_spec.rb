@@ -8,9 +8,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
   let(:recorder) { Datadog::Profiling::StackRecorder.new }
   let(:gc_profiling_enabled) { true }
+  let(:options) { {} }
 
   subject(:cpu_and_wall_time_worker) do
-    described_class.new(recorder: recorder, max_frames: 400, tracer: nil, gc_profiling_enabled: gc_profiling_enabled)
+    described_class.new(
+      recorder: recorder,
+      max_frames: 400,
+      tracer: nil,
+      gc_profiling_enabled: gc_profiling_enabled,
+      **options
+    )
   end
 
   describe '.new' do
@@ -322,6 +329,42 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe '#enabled=' do
     it 'does nothing (provided only for API compatibility)' do
       cpu_and_wall_time_worker.enabled = true
+    end
+  end
+
+  describe '#reset_after_fork' do
+    subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
+
+    let(:cpu_and_wall_time_collector) do
+      Datadog::Profiling::Collectors::CpuAndWallTime.new(recorder: recorder, max_frames: 400, tracer: nil)
+    end
+    let(:options) { { cpu_and_wall_time_collector: cpu_and_wall_time_collector } }
+
+    before do
+      # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,
+      # which we do in this spec to make it easier to test the reset_after_fork behavior
+      allow(cpu_and_wall_time_collector).to receive(:reset_after_fork)
+
+      cpu_and_wall_time_worker.start
+      wait_until_running
+    end
+
+    after do
+      cpu_and_wall_time_worker.stop
+    end
+
+    it 'disables the gc_tracepoint' do
+      expect { reset_after_fork }
+        .to change { described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker).enabled? }
+        .from(true).to(false)
+    end
+
+    it 'resets the CpuAndWallTime collector only after disabling the tracepoint' do
+      expect(cpu_and_wall_time_collector).to receive(:reset_after_fork) do
+        expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+      end
+
+      reset_after_fork
     end
   end
 

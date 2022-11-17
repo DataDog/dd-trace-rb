@@ -56,6 +56,10 @@ module Datadog
       def self.ruby_time_from(timespec_seconds, timespec_nanoseconds)
         Time.at(0).utc + timespec_seconds + (timespec_nanoseconds.to_r / 1_000_000_000)
       end
+
+      def reset_after_fork
+        self.class._native_reset_after_fork(self)
+      end
     end
   end
 end
