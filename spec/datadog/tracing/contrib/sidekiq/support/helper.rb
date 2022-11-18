@@ -102,7 +102,7 @@ module SidekiqServerExpectations
 
     cli = Sidekiq::CLI.instance
     cli.parse(['--require', app_tempfile.path]) # boot the "app"
-    launcher = Sidekiq::Launcher.new(cli.send(:options))
+    launcher = Sidekiq::Launcher.new(cli.config)
     launcher.stop
     exit
   ensure
