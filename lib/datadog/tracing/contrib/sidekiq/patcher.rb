@@ -70,7 +70,7 @@ module Datadog
             require_relative 'server_internal_tracer/redis_info'
 
             if Integration.supports_capsules?
-               ::Sidekiq::Config.prepend(ServerInternalTracer::RedisInfo)
+              ::Sidekiq::Config.prepend(ServerInternalTracer::RedisInfo)
             else
               ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
             end

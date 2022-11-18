@@ -6,8 +6,6 @@ require 'datadog/tracing/contrib/sidekiq/client_tracer'
 require 'datadog/tracing/contrib/sidekiq/server_tracer'
 require 'sidekiq/testing'
 
-$TESTING = false  # sidekiq uses this global internally to alter its behavior for its test suite
-
 RSpec.shared_context 'Sidekiq testing' do
   include SidekiqTestingConfiguration
 
