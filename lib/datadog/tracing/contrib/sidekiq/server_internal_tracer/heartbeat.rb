@@ -44,6 +44,11 @@ module Datadog
                 super
               end
             end
+
+            # Sidekiq v7.0.1 changes the functionality of the Sidekiq::Launcher#heartbeat method
+            # and introduces the Sidekiq::Launcher#beat method, which does the same thing as the
+            # Sidekiq::Launcher#heartbeat method in versions of Sidekiq prior to v7.0.1
+            alias beat heartbeat
           end
         end
       end

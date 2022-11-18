@@ -69,7 +69,11 @@ module Datadog
           def patch_redis_info
             require_relative 'server_internal_tracer/redis_info'
 
-            ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
+            if Integration.supports_capsules?
+               ::Sidekiq::Config.prepend(ServerInternalTracer::RedisInfo)
+            else
+              ::Sidekiq.singleton_class.prepend(ServerInternalTracer::RedisInfo)
+            end
           end
         end
       end
