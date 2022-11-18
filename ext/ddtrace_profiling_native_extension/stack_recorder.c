@@ -178,6 +178,7 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot);
 static ddog_Timespec time_now();
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec timestamp);
+static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
 
 void stack_recorder_init(VALUE profiling_module) {
   stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -199,6 +200,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
+  rb_define_singleton_method(testing_module, "_native_record_endpoint", _native_record_endpoint, 3);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -324,6 +326,17 @@ void record_sample(VALUE recorder_instance, ddog_Sample sample) {
   struct active_slot_pair active_slot = sampler_lock_active_profile(state);
 
   ddog_Profile_add(active_slot.profile, sample);
+
+  sampler_unlock_active_profile(active_slot);
+}
+
+void record_endpoint(VALUE recorder_instance, ddog_CharSlice local_root_span_id, ddog_CharSlice endpoint) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  struct active_slot_pair active_slot = sampler_lock_active_profile(state);
+
+  ddog_Profile_set_endpoint(active_slot.profile, local_root_span_id, endpoint);
 
   sampler_unlock_active_profile(active_slot);
 }
@@ -469,4 +482,9 @@ static void serializer_set_start_timestamp_for_next_profile(struct stack_recorde
   ddog_Profile *next_profile = (state->active_slot == 1) ? state->slot_two_profile : state->slot_one_profile;
 
   if (!ddog_Profile_reset(next_profile, &timestamp)) rb_raise(rb_eRuntimeError, "Failed to reset profile");
+}
+
+static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
+  record_endpoint(recorder_instance, char_slice_from_ruby_string(local_root_span_id), char_slice_from_ruby_string(endpoint));
+  return Qtrue;
 }
