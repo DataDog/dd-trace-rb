@@ -9,8 +9,8 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Patcher do
     # actually a server, so we just have to skip them.
     skip if Gem.loaded_specs['sidekiq'].version < Gem::Version.new('4.0')
 
-    Sidekiq.default_configuration.client_middleware.clear
-    Sidekiq.default_configuration.server_middleware.clear
+    config.client_middleware.clear
+    config.server_middleware.clear
 
     allow(Sidekiq).to receive(:server?).and_return(server)
 
@@ -31,12 +31,20 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Patcher do
   # executes after the allows are setup.
   include_context 'Sidekiq testing'
 
+  let(:config) do
+    if Sidekiq.respond_to? :default_configuration
+      Sidekiq.default_configuration
+    else
+      Sidekiq
+    end
+  end
+
   context 'for a client' do
     let(:server) { false }
 
     it 'correctly patches' do
-      expect(Sidekiq.default_configuration.client_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ClientTracer])
-      expect(Sidekiq.default_configuration.server_middleware.entries.map(&:klass)).to eq([])
+      expect(config.client_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ClientTracer])
+      expect(config.server_middleware.entries.map(&:klass)).to eq([])
     end
   end
 
@@ -44,8 +52,8 @@ RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Patcher do
     let(:server) { true }
 
     it 'correctly patches' do
-      expect(Sidekiq.default_configuration.client_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ClientTracer])
-      expect(Sidekiq.default_configuration.server_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ServerTracer])
+      expect(config.client_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ClientTracer])
+      expect(config.server_middleware.entries.map(&:klass)).to eq([Datadog::Tracing::Contrib::Sidekiq::ServerTracer])
     end
   end
 end

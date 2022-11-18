@@ -304,7 +304,7 @@ elsif ruby_version?('2.2')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.2.9'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
@@ -499,7 +499,7 @@ elsif ruby_version?('2.3')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.2.9'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
@@ -628,7 +628,7 @@ elsif ruby_version?('2.4')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.2.9'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
@@ -887,7 +887,7 @@ elsif ruby_version?('2.5')
     gem 'semantic_logger', '~> 4.0'
     gem 'sequel'
     gem 'shoryuken'
-    gem 'sidekiq'
+    gem 'sidekiq', '~> 5.2.9'
     gem 'sneakers', '>= 2.12.0'
     gem 'sqlite3', '~> 1.4.1', platform: :ruby
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
@@ -1122,7 +1122,7 @@ elsif ruby_version?('2.6')
       gem 'semantic_logger', '~> 4.0'
       gem 'sequel'
       gem 'shoryuken'
-      gem 'sidekiq'
+      gem 'sidekiq', '~> 5.2.9'
       gem 'sneakers', '>= 2.12.0'
       gem 'sqlite3', '~> 1.4.1', platform: :ruby
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby

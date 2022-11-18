@@ -1542,7 +1542,7 @@ GEM
     rbtree (0.4.5)
     redcarpet (3.5.1)
     redis (3.3.5)
-    redis-client (0.11.1)
+    redis-client (0.11.2)
       connection_pool
     redis-namespace (1.8.2)
       redis (>= 3.0.4)
