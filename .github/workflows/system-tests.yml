@@ -1,7 +1,7 @@
 name: System Tests
 
 on:
-  push:
+  assigned:
     branches:
       - "**"
   workflow_dispatch: {}

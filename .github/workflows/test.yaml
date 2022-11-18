@@ -1,0 +1,191 @@
+name: Test
+on: [push]
+jobs:
+  test:
+    strategy:
+      fail-fast: true # TODO: revert me
+      matrix:
+        # TODO: introduce `preview` shorthand for latest `ruby-A.B.C.previewX`?
+        ruby:
+          - { engine: ruby, version: '2.7.3' }
+#          - '2.1.10'
+#          - '2.2.10'
+#          - '2.3.8'
+#          - '2.4.10'
+#          - '2.5.9'
+#          - '2.6.7'
+#          - '2.7.3'
+#          - '3.0.3'
+#          - '3.1.1'
+#          - '3.2.0-preview2' #
+#          - 'jruby-9.2.18' # Oldest JRuby version supported
+#          - 'jruby-9.2.8.0'
+#          - 'jruby-9.3.4'
+#          - 'truffleruby-21.3.0' #
+#          # Edge versions
+#          - head
+#          - jruby-head
+#          - truffleruby-head
+    #
+    # TODO: Dynamic matrix creation, so we only need to define all the job combinations in one place (e.g Rakefile? YAML?)
+    #
+    #  create_matrix:
+    #    outputs:
+    #      matrix: ${{ steps.create_matrix.outputs.matrix }}
+    #    steps:
+    #      - id: create_matrix
+    #        run: echo "::set-output name=matrix::{\"ruby\":[2.6, 2.7]}"
+    #  test:
+    #    needs: create_matrix
+    #    strategy:
+    #      matrix: ${{fromJSON(needs.create_matrix.outputs.matrix)}}
+
+        test:
+          - { gemfile: core_old, cmd: 'rake spec:main' } # TODO doesn't need appraisal
+          - { gemfile: core_old, cmd: 'rake spec:main' }
+          - { gemfile: core_old, cmd: 'rake spec:appsec:main' } # TODO doesn't need appraisal
+          - { gemfile: core_old, cmd: 'rake spec:contrib' } # TODO doesn't need appraisal
+          - { gemfile: core_old, cmd: 'rake spec:opentracer' } # TODO doesn't need appraisal
+          - { gemfile: contrib, cmd: 'rake spec:action_pack' }
+          - { gemfile: contrib, cmd: 'rake spec:action_view' }
+          - { gemfile: contrib, cmd: 'rake spec:active_model_serializers' }
+          - { gemfile: contrib, cmd: 'rake spec:active_record' }
+          - { gemfile: contrib, cmd: 'rake spec:active_support' }
+          - { gemfile: contrib, cmd: 'rake spec:autoinstrument' }
+          - { gemfile: contrib, cmd: 'rake spec:aws' }
+          - { gemfile: contrib, cmd: 'rake spec:concurrent_ruby' }
+          - { gemfile: contrib, cmd: 'rake spec:cucumber' }
+          - { gemfile: contrib, cmd: 'rake spec:dalli' }
+          - { gemfile: contrib, cmd: 'rake spec:delayed_job' }
+          - { gemfile: contrib, cmd: 'rake spec:elasticsearch' } # 2.3 and 2.4 are tested via contrib_old
+          - { gemfile: contrib, cmd: 'rake spec:ethon' }
+          - { gemfile: contrib, cmd: 'rake spec:excon' }
+          - { gemfile: contrib, cmd: 'rake spec:faraday' }
+          - { gemfile: contrib, cmd: 'rake spec:grape' }
+          - { gemfile: contrib, cmd: 'rake spec:graphql' }
+          - { gemfile: contrib, cmd: 'rake spec:grpc' } # disabled on JRuby, protobuf not supported
+          - { gemfile: contrib, cmd: 'rake spec:http' }
+          - { gemfile: contrib, cmd: 'rake spec:httpclient' }
+          - { gemfile: contrib, cmd: 'rake spec:httprb' }
+          - { gemfile: contrib, cmd: 'rake spec:kafka' }
+          - { gemfile: contrib, cmd: 'rake spec:lograge' } # disabled on 3.0 as lograge nested dependancy thor ~> 1.0 conflicts w/qless dependancy thor ~> 0.19.1
+          - { gemfile: contrib, cmd: 'rake spec:mongodb' }
+          - { gemfile: contrib, cmd: 'rake spec:mysql2' } # disabled on JRuby, built_in jdbc is used instead
+          - { gemfile: contrib, cmd: 'rake spec:pg' }
+#          - { gemfile: contrib, cmd: 'rake spec:presto' }
+          - { gemfile: contrib, cmd: 'rake spec:qless' }
+          - { gemfile: contrib, cmd: 'rake spec:que' }
+          - { gemfile: contrib, cmd: 'rake spec:racecar' } # disabled on 3.0 pending release of our fix: https://github.com/appsignal/rdkafka_ruby/pull/144
+          - { gemfile: contrib, cmd: 'rake spec:rack' }
+          - { gemfile: contrib, cmd: 'rake spec:rake' }
+          - { gemfile: contrib, cmd: 'rake spec:redis' }
+          - { gemfile: contrib, cmd: 'rake spec:resque' }
+          - { gemfile: contrib, cmd: 'rake spec:rest_client' }
+          - { gemfile: contrib, cmd: 'rake spec:rspec' }
+          - { gemfile: contrib, cmd: 'rake spec:semantic_logger' }
+          - { gemfile: contrib, cmd: 'rake spec:sequel' }
+          - { gemfile: contrib, cmd: 'rake spec:shoryuken' }
+          - { gemfile: contrib, cmd: 'rake spec:sidekiq' }
+          - { gemfile: contrib, cmd: 'rake spec:sneakers' }
+          - { gemfile: contrib, cmd: 'rake spec:sucker_punch' }
+          - { gemfile: contrib, cmd: 'rake spec:suite' }
+          - { gemfile: contrib_old, cmd: 'rake spec:dalli' }
+          - { gemfile: contrib_old, cmd: 'rake spec:elasticsearch' }
+          - { gemfile: contrib_old, cmd: 'rake spec:faraday' }
+          - { gemfile: contrib_old, cmd: 'rake spec:graphql' }
+          - { gemfile: contrib_old, cmd: 'rake spec:presto' }
+#          - { gemfile: rails32_mysql2, cmd: 'rake spec:active_record' }
+#          - { gemfile: rails32_mysql2, cmd: 'rake spec:rails' }
+#          - { gemfile: rails32_postgres, cmd: 'rake spec:action_pack' }
+#          - { gemfile: rails32_postgres, cmd: 'rake spec:action_view' }
+#          - { gemfile: rails32_postgres, cmd: 'rake spec:active_support' }
+#          - { gemfile: rails32_postgres, cmd: 'rake spec:rails' }
+#          - { gemfile: rails32_postgres, cmd: 'rake spec:railsautoinstrument' }
+#          - { gemfile: rails32_postgres, cmd: 'rake spec:railsdisableenv' }
+#          - { gemfile: rails32_postgres_redis, cmd: 'rake spec:railsredis_activesupport' }
+#          - { gemfile: rails4_mysql2, cmd: 'rake spec:rails' }
+#          - { gemfile: rails4_postgres, cmd: 'rake spec:rails' }
+#          - { gemfile: rails4_postgres, cmd: 'rake spec:railsautoinstrument' }
+#          - { gemfile: rails4_postgres, cmd: 'rake spec:railsdisableenv' }
+#          - { gemfile: rails4_postgres_redis, cmd: 'rake spec:railsredis_activesupport' }
+#          - { gemfile: rails4_postgres_sidekiq, cmd: 'rake spec:railsactivejob' }
+#          - { gemfile: rails4_semantic_logger, cmd: 'rake spec:railssemanticlogger' }
+#          - { gemfile: rails5_mysql2, cmd: 'rake spec:action_cable' }
+#          - { gemfile: rails5_mysql2, cmd: 'rake spec:action_mailer' }
+          - { gemfile: rails5_mysql2, cmd: 'rake spec:rails' }
+          - { gemfile: rails5_postgres, cmd: 'rake spec:rails' }
+          - { gemfile: rails5_postgres, cmd: 'rake spec:railsautoinstrument' }
+          - { gemfile: rails5_postgres, cmd: 'rake spec:railsdisableenv' }
+          - { gemfile: rails5_postgres_redis, cmd: 'rake spec:railsredis' }
+          - { gemfile: rails5_postgres_redis_activesupport, cmd: 'rake spec:railsredis_activesupport' }
+          - { gemfile: rails5_postgres_sidekiq, cmd: 'rake spec:railsactivejob' }
+          - { gemfile: rails5_semantic_logger, cmd: 'rake spec:railssemanticlogger' }
+          - { gemfile: rails6_mysql2, cmd: 'rake spec:action_cable' }
+          - { gemfile: rails6_mysql2, cmd: 'rake spec:action_mailer' }
+          - { gemfile: rails6_mysql2, cmd: 'rake spec:rails' }
+          - { gemfile: rails6_postgres, cmd: 'rake spec:rails' }
+          - { gemfile: rails6_postgres, cmd: 'rake spec:railsautoinstrument' }
+          - { gemfile: rails6_postgres, cmd: 'rake spec:railsdisableenv' }
+          - { gemfile: rails6_postgres_redis, cmd: 'rake spec:railsredis' }
+          - { gemfile: rails6_postgres_redis_activesupport, cmd: 'rake spec:railsredis_activesupport' }
+          - { gemfile: rails6_postgres_sidekiq, cmd: 'rake spec:railsactivejob' }
+          - { gemfile: rails6_semantic_logger, cmd: 'rake spec:railssemanticlogger' }
+          - { gemfile: rails61_mysql2, cmd: 'rake spec:action_cable' }
+          - { gemfile: rails61_mysql2, cmd: 'rake spec:action_mailer' }
+          - { gemfile: rails61_mysql2, cmd: 'rake spec:rails' }
+          - { gemfile: rails61_postgres, cmd: 'rake spec:rails' }
+          - { gemfile: rails61_postgres, cmd: 'rake spec:railsdisableenv' }
+          - { gemfile: rails61_postgres_redis, cmd: 'rake spec:railsredis' }
+          - { gemfile: rails61_postgres_sidekiq, cmd: 'rake spec:railsactivejob' }
+          - { gemfile: rails61_semantic_logger, cmd: 'rake spec:railssemanticlogger' }
+          - { gemfile: hanami_1, cmd: 'rake spec:hanami' }
+          - { gemfile: sinatra, cmd: 'rake spec:sinatra' }
+          - { gemfile: resque2_redis3, cmd: 'rake spec:resque' }
+          - { gemfile: resque2_redis4, cmd: 'rake spec:resque' }
+          - { gemfile: cucumber3, cmd: 'rake spec:cucumber' }
+          - { gemfile: cucumber4, cmd: 'rake spec:cucumber' }
+          - { gemfile: cucumber5, cmd: 'rake spec:cucumber' }
+          - { gemfile: contrib, cmd: 'rake spec:appsec:rack' }
+          - { gemfile: contrib, cmd: 'rake spec:appsec:sinatra' }
+#          - { gemfile: rails32_mysql2, cmd: 'rake spec:appsec:rails' }
+#          - { gemfile: rails4_mysql2, cmd: 'rake spec:appsec:rails' }
+          - { gemfile: rails5_mysql2, cmd: 'rake spec:appsec:rails' }
+          - { gemfile: rails6_mysql2, cmd: 'rake spec:appsec:rails' }
+          - { gemfile: rails61_mysql2, cmd: 'rake spec:appsec:rails' }
+    runs-on: ubuntu-latest
+    env:
+      BUNDLE_GEMFILE: ${{ github.workspace }}/gemfiles/${{ matrix.ruby.engine }}_${{ matrix.ruby.version }}_${{ matrix.test.gemfile }}.gemfile
+      SKIP_SIMPLECOV: 1
+      JRUBY_OPTS: --dev
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+    steps:
+      - uses: actions/checkout@v2
+      # bundler appears to match both prerelease and release rubies when we
+      # want the former only. relax the constraint to allow any version for
+      # head rubies
+      - run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
+      - uses: ruby/setup-ruby@c4fe7bd15ddbfcd5e07e47bf2f2cae90581d6091 # v1.123.0
+        with:
+          ruby-version: ${{ matrix.ruby.engine }}-${{ matrix.ruby.version }}
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+        continue-on-error: true
+#      - run: bundle exec rake spec:main
+#        continue-on-error: true
+#      - run: bundle exec rake spec:contrib
+#        continue-on-error: true
+#      - run: bundle exec rake spec:opentracer
+      - run: bundle exec ${{ matrix.test.cmd }}
+
+#        continue-on-error: true
+      # A few contrib jobs that `ddtrace` already includes their gem in the global Gemfile.
+      # We technically don't need appraisal to run them, thus are easy candidates for early testing.
+#      - run: bundle exec rake spec:rake
+#        continue-on-error: true
+#      - run: bundle exec rake spec:rspec
+#        continue-on-error: true
+#      - run: bundle exec rake spec:concurrent_ruby
+#        continue-on-error: true
+#      - run: bundle exec rake spec:http
+#        continue-on-error: true
+#      - run: bundle exec rake ci
+#        continue-on-error: true

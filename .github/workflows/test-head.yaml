@@ -1,5 +1,5 @@
 name: Test unstable
-on: [push]
+on: [assigned]
 jobs:
   test-head:
     strategy:
