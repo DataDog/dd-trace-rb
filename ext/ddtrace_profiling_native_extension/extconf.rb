@@ -79,7 +79,7 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-add_compiler_flag '-Werror' if ENV['CI'] == 'true'
+add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase

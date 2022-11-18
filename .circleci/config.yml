@@ -37,6 +37,7 @@ test_containers:
     GRPC_RUBY_BUILD_PROCS: 6
     DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
     TEST_REDIS_OLD_HOST: redis_old
+    DDTRACE_CI: true
   - &container_parameters_environment
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1

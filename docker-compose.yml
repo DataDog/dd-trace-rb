@@ -16,7 +16,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
+    environment: &common-environment
       - BUNDLE_GEMFILE=/app/Gemfile
       - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
@@ -30,6 +30,7 @@ services:
       - TEST_REDIS_HOST=redis
       - TEST_REDIS_OLD_HOST=redis_old
       - TEST_REDIS_OLD_PORT=6379
+      - DDTRACE_CI=true
     stdin_open: true
     tty: true
     volumes:
@@ -52,20 +53,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -88,20 +76,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -124,20 +99,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -160,20 +122,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -196,20 +145,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -232,20 +168,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -267,7 +190,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
+    environment: &common-environment-3x
       - BUNDLE_GEMFILE=/app/Gemfile
       - DD_AGENT_HOST=ddagent
       - TEST_DATADOG_INTEGRATION=1
@@ -299,18 +222,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -332,18 +244,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -364,18 +265,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -397,18 +287,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -429,18 +308,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment-3x
     stdin_open: true
     tty: true
     volumes:
@@ -465,20 +333,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -500,20 +355,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -535,20 +377,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
@@ -571,20 +400,7 @@ services:
       - redis
       - redis_old
     env_file: ./.env
-    environment:
-      - BUNDLE_GEMFILE=/app/Gemfile
-      - DD_AGENT_HOST=ddagent
-      - TEST_DATADOG_INTEGRATION=1
-      - TEST_ELASTICSEARCH_HOST=elasticsearch
-      - TEST_MEMCACHED_HOST=memcached
-      - TEST_MONGODB_HOST=mongodb
-      - TEST_MYSQL_HOST=mysql
-      - TEST_POSTGRES_HOST=postgres
-      - TEST_PRESTO_HOST=presto
-      - TEST_PRESTO_PORT=8080
-      - TEST_REDIS_HOST=redis
-      - TEST_REDIS_OLD_HOST=redis_old
-      - TEST_REDIS_OLD_PORT=6379
+    environment: *common-environment
     stdin_open: true
     tty: true
     volumes:
