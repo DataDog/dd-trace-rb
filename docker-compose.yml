@@ -2,7 +2,7 @@ version: '3.2'
 services:
   # MRI
   tracer-2.1:
-    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.1.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -38,7 +38,7 @@ services:
       - bundle-2.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.2:
-    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.2.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -60,7 +60,7 @@ services:
       - bundle-2.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.3:
-    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.3.8-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -82,7 +82,7 @@ services:
       - bundle-2.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.4:
-    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -104,7 +104,7 @@ services:
       - bundle-2.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.5:
-    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -126,7 +126,7 @@ services:
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
-    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.7-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -148,7 +148,7 @@ services:
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
-    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.3-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -170,7 +170,7 @@ services:
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_3
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.3-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -202,7 +202,7 @@ services:
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_1
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.1-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -223,7 +223,7 @@ services:
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview2-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -246,7 +246,7 @@ services:
   # ADD NEW RUBIES HERE
   # JRuby
   tracer-jruby-9.2.8.0:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_8_0
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -267,7 +267,7 @@ services:
       - bundle-jruby-9.2.8.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.2-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.18.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -288,7 +288,7 @@ services:
       - bundle-jruby-9.2-latest:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.3-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_3_4_0
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.4.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -310,7 +310,7 @@ services:
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
   tracer-truffleruby-22.3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_22_3_0
+    image: ghcr.io/datadog/dd-trace-rb/truffleruby:22.3.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
