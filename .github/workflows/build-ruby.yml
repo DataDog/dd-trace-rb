@@ -62,10 +62,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      # GHA cache runtime variables are unexposed without this
-      - name: Expose GitHub Actions runtime variables
-        uses: crazy-max/ghaction-github-runtime@v1
-
       # Using docker-container engine enables advanced buildx features
       - name: Set up Docker container engine
         run: |
@@ -77,11 +73,11 @@ jobs:
       # Tagging is done separately to avoid interfrence with caching
       - name: Build single-arch image (x86_64)
         run: |
-          docker buildx build . --builder=container --cache-from=type=gha --cache-to=type=gha,mode=max --output=type=image,push=false --platform linux/x86_64 -f ${{ matrix.dockerfile }}
+          docker buildx build . --builder=container --cache-from=type=registry,ref=${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd --output=type=image,push=false --platform linux/x86_64 -f ${{ matrix.dockerfile }}
         working-directory: .circleci/images/primary
       - name: Tag single-arch image (x86_64)
         run: |
-          docker buildx build . --builder=container --cache-from=type=gha --load --platform linux/x86_64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
+          docker buildx build . --builder=container --load --platform linux/x86_64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
         working-directory: .circleci/images/primary
       - name: Test single-arch image (x86_64)
         run: |
@@ -99,11 +95,11 @@ jobs:
           docker run --privileged --rm tonistiigi/binfmt --install arm64
       - name: Build single-arch image (aarch64)
         run: |
-          docker buildx build . --builder=container --cache-from=type=gha --cache-to=type=gha,mode=max --output=type=image,push=false --platform linux/aarch64 -f ${{ matrix.dockerfile }}
+          docker buildx build . --builder=container --cache-from=type=registry,ref=${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd --output=type=image,push=false --platform linux/aarch64 -f ${{ matrix.dockerfile }}
         working-directory: .circleci/images/primary
       - name: Tag single-arch image (aarch64)
         run: |
-          docker buildx build . --builder=container --cache-from=type=gha --load --platform linux/aarch64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
+          docker buildx build . --builder=container --load --platform linux/aarch64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
         working-directory: .circleci/images/primary
       - name: Test single-arch image (aarch64)
         run: |
@@ -119,5 +115,5 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build multi-arch image (x86_64, aarch64)
         run: |
-          docker buildx build . --builder=container --cache-from=type=gha --cache-to=type=gha,mode=max --output=type=image,push=false --platform linux/x86_64,linux/aarch64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
+          docker buildx build . --builder=container --output=type=image,push=false --platform linux/x86_64,linux/aarch64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
         working-directory: .circleci/images/primary
