@@ -2,7 +2,7 @@
 #
 # openjdk:8-jre image is from https://github.com/docker-library/openjdk/blob/a0c4da867ddd1a11408b7ec5032f12130bdc5476/8/jre/bullseye/Dockerfile
 # note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
-FROM openjdk:8-jre AS jruby-9.2.8.0-jre8
+FROM openjdk:8-jre-buster AS jruby-9.2.8.0-jre8
 
 RUN apt-get update && apt-get install -y libc6-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
