@@ -94,4 +94,4 @@ if RUBY_VERSION >= '2.4.0' && (RUBY_PLATFORM =~ /^x86_64-(darwin|linux)/)
   gem 'spoom', '~> 1.1'
 end
 
-gem 'afl'
+gem 'fuzzbert'
