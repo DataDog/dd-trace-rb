@@ -4,12 +4,15 @@ This folder contains Dockerfiles for all versions of Ruby used in the testing an
 
 ## Multi-arch images
 
-Images marked with a "# This image supports multiple platforms" are able to be built for both amd64 (x86_64) and
-arm64 (aarch64) Linux.
+All images are able to be built for both `x86_64` (a.k.a `amd64`) and `aarch64` (a.k.a `arm64/v8`) Linux.
 
-Here's an example of building the Ruby 3.1 image:
+Here's an example of manually building Ruby 3.1 images:
 
 ```bash
-# To build and push the image (update tag as needed):
-$ docker buildx build . --platform linux/amd64,linux/arm64/v8 -f Dockerfile-3.1.1 -t ghcr.io/datadog/dd-trace-rb:3.1.1-dd --push
+# To build single-arch images locally (NEVER PUSH THESE!):
+$ docker buildx build . --platform linux/x86_64 -f Dockerfile-3.1.1 -t ghcr.io/datadog/dd-trace-rb/ruby:3.1.1-dd
+$ docker buildx build . --platform linux/aarch64 -f Dockerfile-3.1.1 -t ghcr.io/datadog/dd-trace-rb/ruby:3.1.1-dd
+
+# To build AND push multi-arch images (but DON'T DO THAT IN GENERAL, unless e.g CI is down):
+$ docker buildx build . --platform linux/x86_64,linux/aarch64 -f Dockerfile-3.1.1 -t ghcr.io/datadog/dd-trace-rb/ruby:3.1.1-dd --push
 ```

@@ -1,5 +1,3 @@
-# This image supports multiple platforms, see README for build instructions
-
 # NOTE: There are images with the newer debian version 10 (2.4.10-buster) but they broke the sequel gem due to a missing shared library,
 # so I decided to stay with debian 9 "stretch"
 FROM ruby:2.4.10-stretch
