@@ -15,7 +15,9 @@ RUN mkdir -p /usr/local/etc \
 ENV RUBY_MAJOR 2.2
 ENV RUBY_VERSION 2.2.10
 ENV RUBY_DOWNLOAD_SHA256 bf77bcb7e6666ccae8d0882ea12b05f382f963f0a9a5285a328760c06a9ab650
+# TODO: update only once
 ENV RUBYGEMS_VERSION 2.7.7
+# TODO: update only once
 ENV BUNDLER_VERSION 1.16.2
 
 # some of ruby's build scripts are written in ruby
@@ -123,6 +125,8 @@ RUN set -ex \
   && (docker version || true)
 
 # Install Docker Compose
+# Releases over there don't work as they need a more recent glibc than Stretch has: https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51
+# So we fall back to using stretch-backports which has 1.21
 RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http://ftp.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list \
   && apt-get update \
   && apt-get install -y docker-compose \
