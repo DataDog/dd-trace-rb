@@ -23,7 +23,7 @@ task :install_appraisal_gemfiles do |_task, args|
 
   versions.each do |version|
     sh "docker-compose run -e APPRAISAL_GROUP --no-deps --rm tracer-#{version} /bin/bash -c " \
-      "'rm -f Gemfile.lock && bundle install && bundle exec appraisal install'"
+      "'rm -f Gemfile.lock && gem update bundler && bundle install && bundle exec appraisal install'"
   end
 end
 
@@ -35,6 +35,6 @@ task :update_appraisal_gemfiles do |_task, args|
 
   versions.each do |version|
     sh "docker-compose run -e APPRAISAL_GROUP --no-deps --rm tracer-#{version} /bin/bash -c " \
-      "'rm -f Gemfile.lock && bundle install && bundle exec appraisal update'"
+      "'rm -f Gemfile.lock && gem update bundler && bundle install && bundle exec appraisal update'"
   end
 end

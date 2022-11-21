@@ -290,7 +290,6 @@ elsif ruby_version?('2.2')
     gem 'mysql2', '< 0.5'
     gem 'pg', '>= 0.18.4'
     gem 'presto-client', '>=  0.5.14'
-    gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
     gem 'rack-contrib'
@@ -485,7 +484,6 @@ elsif ruby_version?('2.3')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
     gem 'pg', '>= 0.18.4'
-    gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack', '< 2.1.0' # Locked due to grape incompatibility: https://github.com/ruby-grape/grape/issues/1980
     gem 'rack-contrib'
@@ -614,7 +612,6 @@ elsif ruby_version?('2.4')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '< 0.5'
     gem 'pg', '>= 0.18.4'
-    gem 'qless'
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
@@ -873,7 +870,6 @@ elsif ruby_version?('2.5')
     gem 'activerecord-jdbcmysql-adapter', '>= 60.2', platform: :jruby
     gem 'pg', '>= 0.18.4', platform: :ruby
     gem 'activerecord-jdbcpostgresql-adapter', '>= 60.2', platform: :jruby
-    gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
     gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
@@ -907,6 +903,13 @@ elsif ruby_version?('2.5')
     gem 'faraday', '0.17'
     gem 'graphql', '>= 1.12.0', '< 2.0'
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
+
+    if RUBY_PLATFORM == 'java'
+      gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
+      gem 'redis', '< 4' # Missing redis version cap for `qless`
+    else
+      gem 'qless', '0.12.0'
+    end
   end
 
   appraise 'core-old' do
@@ -1108,7 +1111,6 @@ elsif ruby_version?('2.6')
       gem 'activerecord-jdbcmysql-adapter', platform: :jruby
       gem 'pg', '>= 0.18.4', platform: :ruby
       gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-      gem 'qless', (RUBY_PLATFORM == 'java' ? '0.10.0' : '>= 0') # Newer releases require `rusage`, which is not available for JRuby
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-contrib'
@@ -1142,6 +1144,13 @@ elsif ruby_version?('2.6')
       gem 'faraday', '0.17'
       gem 'graphql', '>= 1.12.0', '< 2.0'
       gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
+
+      if RUBY_PLATFORM == 'java'
+        gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
+        gem 'redis', '< 4' # Missing redis version cap for `qless`
+      else
+        gem 'qless', '0.12.0'
+      end
     end
 
     appraise 'core-old' do
@@ -1323,7 +1332,6 @@ elsif ruby_version?('2.7')
       gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
       gem 'mysql2', '< 1', platform: :ruby
       gem 'pg', '>= 0.18.4', platform: :ruby
-      gem 'qless'
       gem 'racecar', '>= 0.3.5'
       gem 'rack'
       gem 'rack-contrib'
@@ -1356,6 +1364,7 @@ elsif ruby_version?('2.7')
       gem 'faraday', '0.17'
       gem 'graphql', '>= 1.12.0', '< 2.0'
       gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
+      gem 'qless', '0.12.0'
     end
 
     appraise 'core-old' do
@@ -1443,7 +1452,6 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
-    gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
     gem 'rack-contrib'
@@ -1476,6 +1484,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'graphql', '>= 1.12.0', '< 2.0'
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
+    gem 'qless', '0.12.0'
   end
 
   appraise 'core-old' do
@@ -1563,7 +1572,6 @@ elsif ruby_version?('3.2')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
     gem 'pg', '>= 1.1', platform: :ruby
-    gem 'qless'
     # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
     gem 'rack'
     gem 'rack-contrib'
@@ -1597,6 +1605,7 @@ elsif ruby_version?('3.2')
     gem 'elasticsearch', '< 8.0.0' # Dependency elasticsearch-transport renamed to elastic-transport in >= 8.0
     gem 'graphql', '>= 1.12.0', '< 2.0'
     gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
+    gem 'qless', '0.12.0'
   end
 
   appraise 'core-old' do
