@@ -23,7 +23,5 @@ module DDTrace
     # an eye on the Ruby 3.2 test releases to see if anything changes. (Otherwise, once Ruby 3.2.0 stable is out, we
     # should probably bump this to 3.4, and so on...)
     MAXIMUM_RUBY_VERSION = '3.3'.freeze
-
-    CACHE_BUST = '1'
   end
 end
