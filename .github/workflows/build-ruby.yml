@@ -1,6 +1,13 @@
 name: Build Ruby
 
 on:
+  workflow_dispatch:
+    inputs:
+      push:
+        description: Push images
+        required: true
+        type: boolean
+        default: true
   push:
     branches:
       - "**"
@@ -111,9 +118,11 @@ jobs:
       #
       # This reruns docker build but layers are in the cache, so it's fast
       - name: Log in to the Container Registry
+        if: ${{ inputs.push }}
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build multi-arch image (x86_64, aarch64)
+        if: ${{ inputs.push }}
         run: |
           docker buildx build . --builder=container --cache-from=type=registry,ref=${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd --output=type=image,push=true --build-arg BUILDKIT_INLINE_CACHE=1 --platform linux/x86_64,linux/aarch64 -f ${{ matrix.dockerfile }} --tag ${{ env.REGISTRY }}/datadog/dd-trace-rb/${{ matrix.engine }}:${{ matrix.version }}-dd
         working-directory: .circleci/images/primary
