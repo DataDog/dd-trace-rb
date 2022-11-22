@@ -81,6 +81,12 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq('StandardError')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).not_to be_nil
       end
+
+      it 'has span.kind tag with value consumer' do
+        enqueue
+
+        expect(span.get_tag('span.kind')).to eq('consumer')
+      end
     end
 
     context 'with tag_args enabled' do
