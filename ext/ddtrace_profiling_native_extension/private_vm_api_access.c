@@ -35,7 +35,7 @@
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
-  if (thread_data_type == NULL) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
 
   return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }
