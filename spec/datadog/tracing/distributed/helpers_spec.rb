@@ -74,7 +74,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       [
         [nil, nil],
         ['not a number', nil],
-        ['1.to_i returns 1', nil],
+        ['1 2', nil], # "1 2".to_i => 1, but it's an invalid format
         ['0', nil],
         ['', nil],
 
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
       [
         [nil, nil],
         ['not a number', nil],
-        ['1.to_i returns 1', nil],
+        ['1 2', nil], # "1 2".to_i => 1, but it's an invalid format
         ['', nil],
 
         # Sampling priorities
