@@ -2,14 +2,18 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/distributed/metadata/b3'
+require 'datadog/tracing/distributed/b3'
 require 'datadog/tracing/trace_digest'
 
-RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
+RSpec.shared_examples 'B3 distributed format' do
+  subject(:b3) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
+  let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
+
   describe '#inject!' do
-    subject!(:inject!) { described_class.inject!(digest, metadata) }
-    let(:metadata) { {} }
+    subject!(:inject!) { b3.inject!(digest, data) }
+    let(:data) { {} }
 
     context 'with nil digest' do
       let(:digest) { nil }
@@ -25,9 +29,9 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
       end
 
       it do
-        expect(metadata).to eq(
-          Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16),
-          Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 20000.to_s(16)
+        expect(data).to eq(
+          'x-b3-traceid' => 10000.to_s(16),
+          'x-b3-spanid' => 20000.to_s(16)
         )
       end
 
@@ -47,10 +51,10 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
           end
 
           it do
-            expect(metadata).to eq(
-              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 50000.to_s(16),
-              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 60000.to_s(16),
-              Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED => expected.to_s
+            expect(data).to eq(
+              'x-b3-traceid' => 50000.to_s(16),
+              'x-b3-spanid' => 60000.to_s(16),
+              'x-b3-sampled' => expected.to_s
             )
           end
         end
@@ -66,9 +70,9 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
         end
 
         it do
-          expect(metadata).to eq(
-            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 90000.to_s(16),
-            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 100000.to_s(16)
+          expect(data).to eq(
+            'x-b3-traceid' => 90000.to_s(16),
+            'x-b3-spanid' => 100000.to_s(16)
           )
         end
       end
@@ -76,19 +80,19 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
   end
 
   describe '#extract' do
-    subject(:extract) { described_class.extract(metadata) }
+    subject(:extract) { b3.extract(data) }
     let(:digest) { extract }
 
-    let(:metadata) { {} }
+    let(:data) { {} }
 
-    context 'with empty metadata' do
+    context 'with empty data' do
       it { is_expected.to be_nil }
     end
 
     context 'with trace_id and span_id' do
-      let(:metadata) do
-        { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16),
-          Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 20000.to_s(16) }
+      let(:data) do
+        { prepare_key['x-b3-traceid'] => 10000.to_s(16),
+          prepare_key['x-b3-spanid'] => 20000.to_s(16) }
       end
 
       it { expect(digest.span_id).to eq(20000) }
@@ -97,10 +101,10 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
       it { expect(digest.trace_sampling_priority).to be nil }
 
       context 'with sampling priority' do
-        let(:metadata) do
-          { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16),
-            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 20000.to_s(16),
-            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED => '1' }
+        let(:data) do
+          { prepare_key['x-b3-traceid'] => 10000.to_s(16),
+            prepare_key['x-b3-spanid'] => 20000.to_s(16),
+            prepare_key['x-b3-sampled'] => '1' }
         end
 
         it { expect(digest.span_id).to eq(20000) }
@@ -110,10 +114,10 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
       end
 
       context 'with origin' do
-        let(:metadata) do
-          { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16),
-            Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 20000.to_s(16),
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN => 'synthetics' }
+        let(:data) do
+          { prepare_key['x-b3-traceid'] => 10000.to_s(16),
+            prepare_key['x-b3-spanid'] => 20000.to_s(16),
+            prepare_key['x-datadog-origin'] => 'synthetics' }
         end
 
         it { expect(digest.span_id).to eq(20000) }
@@ -124,21 +128,25 @@ RSpec.describe Datadog::Tracing::Distributed::Metadata::B3 do
     end
 
     context 'with span_id' do
-      let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID => 10000.to_s(16) } }
+      let(:data) { { prepare_key['x-b3-spanid'] => 10000.to_s(16) } }
 
       it { is_expected.to be nil }
     end
 
     context 'with sampling priority' do
-      let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED => '1' } }
+      let(:data) { { prepare_key['x-b3-sampled'] => '1' } }
 
       it { is_expected.to be nil }
     end
 
     context 'with trace_id' do
-      let(:metadata) { { Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID => 10000.to_s(16) } }
+      let(:data) { { prepare_key['x-b3-traceid'] => 10000.to_s(16) } }
 
       it { is_expected.to be nil }
     end
   end
+end
+
+RSpec.describe Datadog::Tracing::Distributed::B3 do
+  it_behaves_like 'B3 distributed format'
 end

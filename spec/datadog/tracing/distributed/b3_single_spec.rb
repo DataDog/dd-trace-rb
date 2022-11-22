@@ -2,24 +2,20 @@
 
 require 'spec_helper'
 
-require 'datadog/tracing/distributed/headers/ext'
-require 'datadog/tracing/distributed/headers/b3_single'
+require 'datadog/tracing/distributed/b3_single'
 require 'datadog/tracing/trace_digest'
 
-RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
-  # Header format:
-  #   b3: {TraceId}-{SpanId}-{SamplingState}-{ParentSpanId}
-  # https://github.com/apache/incubator-zipkin-b3-propagation/tree/7c6e9f14d6627832bd80baa87ac7dabee7be23cf#single-header
-  # DEV: `{SamplingState}` and `{ParentSpanId`}` are optional
+RSpec.shared_examples 'B3 Single distributed format' do
+  subject(:b3_single) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
-  # Helper to format env header keys
-  def env_header(name)
-    "http-#{name}".upcase!.tr('-', '_')
-  end
+  let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
+
+  let(:b3_single_header) { 'b3' }
 
   describe '#inject!' do
-    subject!(:inject!) { described_class.inject!(digest, env) }
-    let(:env) { {} }
+    subject!(:inject!) { b3_single.inject!(digest, data) }
+    let(:data) { {} }
 
     context 'with nil digest' do
       let(:digest) { nil }
@@ -34,7 +30,7 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
         )
       end
 
-      it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '2710-4e20') }
+      it { is_expected.to eq(b3_single_header => '2710-4e20') }
 
       [
         [-1, 0],
@@ -51,7 +47,9 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
             )
           end
 
-          it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => "c350-ea60-#{expected}") }
+          it {
+            is_expected.to eq(b3_single_header => "c350-ea60-#{expected}")
+          }
         end
       end
 
@@ -64,23 +62,23 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
           )
         end
 
-        it { is_expected.to eq(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE => '15f90-186a0') }
+        it { is_expected.to eq(b3_single_header => '15f90-186a0') }
       end
     end
   end
 
   describe '#extract' do
-    subject(:extract) { described_class.extract(env) }
+    subject(:extract) { b3_single.extract(data) }
     let(:digest) { extract }
 
-    let(:env) { {} }
+    let(:data) { {} }
 
-    context 'with empty env' do
+    context 'with empty data' do
       it { is_expected.to be nil }
     end
 
     context 'with trace_id and span_id' do
-      let(:env) { { env_header(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE) => '15f90-186a0' } }
+      let(:data) { { prepare_key[b3_single_header] => '15f90-186a0' } }
 
       it { expect(digest.span_id).to eq(100000) }
       it { expect(digest.trace_id).to eq(90000) }
@@ -88,7 +86,7 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
       it { expect(digest.trace_sampling_priority).to be nil }
 
       context 'with sampling priority' do
-        let(:env) { { env_header(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE) => '15f90-186a0-1' } }
+        let(:data) { { prepare_key[b3_single_header] => '15f90-186a0-1' } }
 
         it { expect(digest.span_id).to eq(100000) }
         it { expect(digest.trace_id).to eq(90000) }
@@ -96,9 +94,9 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
         it { expect(digest.trace_sampling_priority).to eq(1) }
 
         context 'with parent_id' do
-          let(:env) do
+          let(:data) do
             {
-              env_header(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE) => '15f90-186a0-1-4e20'
+              prepare_key[b3_single_header] => '15f90-186a0-1-4e20'
             }
           end
 
@@ -111,9 +109,13 @@ RSpec.describe Datadog::Tracing::Distributed::Headers::B3Single do
     end
 
     context 'with trace_id' do
-      let(:env) { { env_header(Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE) => '15f90' } }
+      let(:env) { { prepare_key[b3_single_header] => '15f90' } }
 
       it { is_expected.to be nil }
     end
   end
+end
+
+RSpec.describe Datadog::Tracing::Distributed::B3Single do
+  it_behaves_like 'B3 Single distributed format'
 end

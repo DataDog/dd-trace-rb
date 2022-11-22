@@ -73,12 +73,10 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
     context 'when value is' do
       [
         [nil, nil],
+        ['not a number', nil],
+        ['1 2', nil], # "1 2".to_i => 1, but it's an invalid format
         ['0', nil],
-        ['value', nil],
-        ['867-5309', nil],
-        ['ten', nil],
         ['', nil],
-        [' ', nil],
 
         # Larger than we allow
         [(Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s, nil],
@@ -90,8 +88,7 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         [Datadog::Tracing::Span::RUBY_MAX_ID.to_s, Datadog::Tracing::Span::RUBY_MAX_ID],
         [Datadog::Tracing::Span::EXTERNAL_MAX_ID.to_s, Datadog::Tracing::Span::EXTERNAL_MAX_ID],
         ['1', 1],
-        ['100', 100],
-        ['1000', 1000]
+        ['123456789', 123456789]
       ].each do |value, expected|
         context value.inspect do
           it { expect(described_class.value_to_id(value)).to eq(expected) }
@@ -109,7 +106,9 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         [(Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1).to_s(16), Datadog::Tracing::Span::EXTERNAL_MAX_ID - 1],
 
         ['3e8', 1000],
-        ['3E8', 1000]
+        ['3E8', 1000],
+        ['10000', 65536],
+        ['deadbeef', 3735928559],
       ].each do |value, expected|
         context value.inspect do
           it { expect(described_class.value_to_id(value, 16)).to eq(expected) }
@@ -128,11 +127,9 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
     context 'when value is ' do
       [
         [nil, nil],
-        ['value', nil],
-        ['867-5309', nil],
-        ['ten', nil],
+        ['not a number', nil],
+        ['1 2', nil], # "1 2".to_i => 1, but it's an invalid format
         ['', nil],
-        [' ', nil],
 
         # Sampling priorities
         ['-1', -1],
@@ -147,7 +144,6 @@ RSpec.describe Datadog::Tracing::Distributed::Helpers do
         [(Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1).to_s, Datadog::Tracing::Span::EXTERNAL_MAX_ID + 1],
         ['-100', -100],
         ['100', 100],
-        ['1000', 1000]
       ].each do |value, expected|
         context value.inspect do
           subject(:subject) { described_class.value_to_number(value) }

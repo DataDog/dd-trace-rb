@@ -1,15 +1,13 @@
 # typed: true
 
 require_relative '../tracing/span'
-require_relative '../tracing/distributed/headers/ext'
+require_relative '../tracing/distributed/datadog'
 
 module Datadog
   module OpenTracer
     # DistributedHeaders provides easy access and validation to headers
     # @public_api
     class DistributedHeaders
-      include Tracing::Distributed::Headers::Ext
-
       def initialize(carrier)
         @carrier = carrier
       end
@@ -20,15 +18,15 @@ module Datadog
       end
 
       def trace_id
-        id HTTP_HEADER_TRACE_ID
+        id Tracing::Distributed::Datadog::TRACE_ID_KEY
       end
 
       def parent_id
-        id HTTP_HEADER_PARENT_ID
+        id Tracing::Distributed::Datadog::PARENT_ID_KEY
       end
 
       def sampling_priority
-        hdr = @carrier[HTTP_HEADER_SAMPLING_PRIORITY]
+        hdr = @carrier[Tracing::Distributed::Datadog::SAMPLING_PRIORITY_KEY]
         # It's important to make a difference between no header,
         # and a header defined to zero.
         return unless hdr
@@ -40,7 +38,7 @@ module Datadog
       end
 
       def origin
-        hdr = @carrier[HTTP_HEADER_ORIGIN]
+        hdr = @carrier[Tracing::Distributed::Datadog::ORIGIN_KEY]
         # Only return the value if it is not an empty string
         hdr if hdr != ''
       end

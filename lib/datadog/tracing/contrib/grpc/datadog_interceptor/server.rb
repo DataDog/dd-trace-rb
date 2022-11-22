@@ -1,9 +1,8 @@
 # typed: ignore
 
 require_relative '../../../../tracing'
-require_relative '../../../distributed/headers/ext'
 require_relative '../../../metadata/ext'
-require_relative '../../../propagation/grpc'
+require_relative '../distributed/propagation'
 require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../../ext'
@@ -45,7 +44,7 @@ module Datadog
             private
 
             def set_distributed_context!(metadata)
-              Tracing.continue_trace!(Tracing::Propagation::GRPC.extract(metadata))
+              Tracing.continue_trace!(Distributed::Propagation::INSTANCE.extract(metadata))
             rescue StandardError => e
               Datadog.logger.debug(
                 "unable to propagate GRPC metadata to context: #{e}"
@@ -54,7 +53,8 @@ module Datadog
 
             def annotate!(span, metadata)
               metadata.each do |header, value|
-                next if reserved_headers.include?(header)
+                # Datadog propagation headers are considered internal implementation detail.
+                next if header.to_s.start_with?(Tracing::Distributed::Datadog::TAGS_PREFIX)
 
                 span.set_tag(header, value)
               end
@@ -71,14 +71,6 @@ module Datadog
               Contrib::Analytics.set_measured(span)
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")
-            end
-
-            def reserved_headers
-              [
-                Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID,
-                Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID,
-                Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY
-              ]
             end
 
             def format_resource(proto_method)

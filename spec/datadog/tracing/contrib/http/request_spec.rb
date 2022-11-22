@@ -283,10 +283,10 @@ RSpec.describe 'net/http requests' do
       # rubocop:disable Style/BlockDelimiters
       expect(WebMock).to(
         have_requested(:get, "#{uri}#{path}").with { |req|
-          [
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY
+          %w[
+            x-datadog-parent-id
+            x-datadog-trace-id
+            x-datadog-sampling-priority
           ].none? do |header|
             req.headers.key?(header.split('-').map(&:capitalize).join('-'))
           end
@@ -306,9 +306,9 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => span.span_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => span.trace_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
+            'x-datadog-parent-id' => span.span_id,
+            'x-datadog-trace-id' => span.trace_id,
+            'x-datadog-sampling-priority' => sampling_priority
           }
         end
 
@@ -339,9 +339,9 @@ RSpec.describe 'net/http requests' do
             trace.sampling_priority = sampling_priority
 
             req = Net::HTTP::Get.new(path)
-            req[Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID] = 100
-            req[Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID] = 100
-            req[Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY] = 0
+            req['x-datadog-parent-id'] = 100
+            req['x-datadog-trace-id'] = 100
+            req['x-datadog-sampling-priority'] = 0
 
             Net::HTTP.start(host, port) do |http|
               http.request(req)
@@ -352,9 +352,9 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_PARENT_ID => span.span_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TRACE_ID => span.trace_id,
-            Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY => sampling_priority
+            'x-datadog-parent-id' => span.span_id,
+            'x-datadog-trace-id' => span.trace_id,
+            'x-datadog-sampling-priority' => sampling_priority
           }
         end
 
