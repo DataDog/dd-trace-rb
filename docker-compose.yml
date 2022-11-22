@@ -2,8 +2,7 @@ version: '3.2'
 services:
   # MRI
   tracer-2.1:
-    image: ivoanjo/docker-library:ddtrace_rb_2_1_10
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.1.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -39,8 +38,7 @@ services:
       - bundle-2.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.2:
-    image: ivoanjo/docker-library:ddtrace_rb_2_2_10
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.2.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -62,8 +60,7 @@ services:
       - bundle-2.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.3:
-    image: ivoanjo/docker-library:ddtrace_rb_2_3_8
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.3.8-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -85,8 +82,7 @@ services:
       - bundle-2.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.4:
-    image: ivoanjo/docker-library:ddtrace_rb_2_4_10
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -108,8 +104,7 @@ services:
       - bundle-2.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.5:
-    image: ivoanjo/docker-library:ddtrace_rb_2_5_9
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -131,8 +126,7 @@ services:
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
-    image: ivoanjo/docker-library:ddtrace_rb_2_6_7
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.7-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -154,8 +148,7 @@ services:
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
-    image: ivoanjo/docker-library:ddtrace_rb_2_7_3
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.3-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -177,8 +170,7 @@ services:
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_3
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.3-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -209,30 +201,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.0-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_0_3_arm64
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-      - redis_old
-    env_file: ./.env
-    environment: *common-environment-3x
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-3.0-arm64:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_1
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.1-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -252,30 +222,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.1-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_1_1_arm64
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-      - redis_old
-    env_file: ./.env
-    environment: *common-environment-3x
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-3.1-arm64:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview2-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -295,32 +243,10 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-3.2-arm64:
-    image: ivoanjo/docker-library:ddtrace_rb_3_2_0_preview2_arm64
-    command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - postgres
-      - redis
-      - redis_old
-    env_file: ./.env
-    environment: *common-environment-3x
-    stdin_open: true
-    tty: true
-    volumes:
-      - .:/app
-      - extension-build-tmp:/app/tmp
-      - bundle-3.2-arm64:/usr/local/bundle
-      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   # JRuby
   tracer-jruby-9.2.8.0:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_8_0
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.8.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -341,8 +267,7 @@ services:
       - bundle-jruby-9.2.8.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.2-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_2_18_0
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.18.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -363,8 +288,7 @@ services:
       - bundle-jruby-9.2-latest:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.3-latest:
-    image: ivoanjo/docker-library:ddtrace_rb_jruby_9_3_4_0
-    platform: linux/x86_64
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.4.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -385,9 +309,8 @@ services:
       - bundle-jruby-9.3-latest:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
-  tracer-truffleruby-21.3.0:
-    image: ivoanjo/docker-library:ddtrace_rb_truffleruby_21_3_0
-    platform: linux/x86_64
+  tracer-truffleruby-22.3.0:
+    image: ghcr.io/datadog/dd-trace-rb/truffleruby:22.3.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -405,7 +328,7 @@ services:
     tty: true
     volumes:
       - .:/app
-      - bundle-truffleruby-21.3.0:/usr/local/bundle
+      - bundle-truffleruby-22.3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   ddagent:
     image: datadog/agent
@@ -455,6 +378,8 @@ services:
       - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
       - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
       - MYSQL_USER=$TEST_MYSQL_USER
+    command:
+      - '--default-authentication-plugin=mysql_native_password'
     expose:
       - "3306"
     ports:
@@ -472,7 +397,6 @@ services:
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9
-    platform: linux/x86_64
     expose:
       - "8080"
     ports:
@@ -499,16 +423,13 @@ volumes:
   bundle-2.6:
   bundle-2.7:
   bundle-3.0:
-  bundle-3.0-arm64:
   bundle-3.1:
-  bundle-3.1-arm64:
   bundle-3.2:
-  bundle-3.2-arm64:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2.8.0:
   bundle-jruby-9.2-latest:
   bundle-jruby-9.3-latest:
-  bundle-truffleruby-21.3.0:
+  bundle-truffleruby-22.3.0:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
   # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.
