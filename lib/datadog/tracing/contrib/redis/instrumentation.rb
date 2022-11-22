@@ -26,6 +26,7 @@ module Datadog
                 span.span_type = Contrib::Redis::Ext::TYPE
                 span.resource = get_command(args)
                 Contrib::Redis::Tags.set_common_tags(self, span)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
                 response = super
               end
@@ -43,6 +44,7 @@ module Datadog
                 span.resource = commands.any? ? commands.join("\n") : '(none)'
                 span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
                 Contrib::Redis::Tags.set_common_tags(self, span)
+                span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
 
                 response = super
               end

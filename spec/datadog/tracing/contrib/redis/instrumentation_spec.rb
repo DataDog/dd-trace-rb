@@ -99,6 +99,8 @@ RSpec.describe 'Redis instrumentation test' do
           port: test_port,
           db: test_database
         )
+
+        expect(span.get_tag('span.kind')).to eq('client')
       end
     end
   end
@@ -147,6 +149,8 @@ RSpec.describe 'Redis instrumentation test' do
           port: test_port,
           db: test_database
         )
+
+        expect(span.get_tag('span.kind')).to eq('client')
       end
     end
   end
