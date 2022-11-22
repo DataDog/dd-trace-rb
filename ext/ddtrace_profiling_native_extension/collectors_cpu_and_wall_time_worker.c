@@ -8,6 +8,7 @@
 #include "ruby_helpers.h"
 #include "collectors_cpu_and_wall_time.h"
 #include "private_vm_api_access.h"
+#include "setup_signal_handler.h"
 
 // Used to trigger the periodic execution of Collectors::CpuAndWallTime, which implements all of the sampling logic
 // itself; this class only implements the "doing it periodically" part.
@@ -96,9 +97,6 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance);
 static VALUE stop(VALUE self_instance, VALUE optional_exception);
-static void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *));
-static void remove_sigprof_signal_handler(void);
-static void block_sigprof_signal_handler_from_running_in_current_thread(void);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
@@ -286,52 +284,10 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
   return Qtrue;
 }
 
-static void install_sigprof_signal_handler(void (*signal_handler_function)(int, siginfo_t *, void *)) {
-  struct sigaction existing_signal_handler_config = {.sa_sigaction = NULL};
-  struct sigaction signal_handler_config = {
-    .sa_flags = SA_RESTART | SA_SIGINFO,
-    .sa_sigaction = signal_handler_function
-  };
-  sigemptyset(&signal_handler_config.sa_mask);
 
-  if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
-    rb_sys_fail("Could not start CpuAndWallTimeWorker: Could not install signal handler");
-  }
 
-  // In some corner cases (e.g. after a fork), our signal handler may still be around, and that's ok
-  if (existing_signal_handler_config.sa_sigaction == handle_sampling_signal) return;
 
-  if (existing_signal_handler_config.sa_handler != NULL || existing_signal_handler_config.sa_sigaction != NULL) {
-    // A previous signal handler already existed. Currently we don't support this situation, so let's just back out
-    // of the installation.
 
-    if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
-      rb_sys_fail(
-        "Could not start CpuAndWallTimeWorker: Could not re-install pre-existing SIGPROF signal handler. " \
-        "This may break the component had installed it."
-      );
-    }
-
-    rb_raise(rb_eRuntimeError, "Could not start CpuAndWallTimeWorker: There's a pre-existing SIGPROF signal handler");
-  }
-}
-
-static void remove_sigprof_signal_handler(void) {
-  struct sigaction signal_handler_config = {
-    .sa_handler = SIG_DFL, // Reset back to default
-    .sa_flags = SA_RESTART // TODO: Unclear if this is actually needed/does anything at all
-  };
-  sigemptyset(&signal_handler_config.sa_mask);
-
-  if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
-}
-
-static void block_sigprof_signal_handler_from_running_in_current_thread(void) {
-  sigset_t signals_to_block;
-  sigemptyset(&signals_to_block);
-  sigaddset(&signals_to_block, SIGPROF);
-  pthread_sigmask(SIG_BLOCK, &signals_to_block, NULL);
-}
 
 // NOTE: Remember that this will run in the thread and within the scope of user code, including user C code.
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
