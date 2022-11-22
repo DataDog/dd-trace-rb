@@ -308,7 +308,7 @@ elsif ruby_version?('2.2')
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0'
+    gem 'que', '>= 1.0.0', '< 2.0.0'
   end
 
   appraise 'sinatra' do
@@ -502,7 +502,7 @@ elsif ruby_version?('2.3')
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0'
+    gem 'que', '>= 1.0.0', '< 2.0.0'
   end
 
   appraise 'sinatra' do
@@ -630,7 +630,7 @@ elsif ruby_version?('2.4')
     gem 'sqlite3', '~> 1.3.6'
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0'
+    gem 'que', '>= 1.0.0', '< 2.0.0'
   end
 
   appraise 'sinatra' do
@@ -889,7 +889,7 @@ elsif ruby_version?('2.5')
     gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
     gem 'sucker_punch'
     gem 'typhoeus'
-    gem 'que', '>= 1.0.0'
+    gem 'que', '>= 1.0.0', '< 2.0.0'
   end
 
   appraise 'sinatra' do
@@ -1130,7 +1130,7 @@ elsif ruby_version?('2.6')
       gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
       gem 'sucker_punch'
       gem 'typhoeus'
-      gem 'que', '>= 1.0.0'
+      gem 'que', '>= 1.0.0', '< 2.0.0'
     end
 
     appraise 'sinatra' do

@@ -327,11 +327,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
         end
 
         context 'when thread has a tracer context, and a trace is in progress' do
+          let(:root_span_type) { 'not-web' }
+
           let(:t1) do
             Thread.new(ready_queue) do |ready_queue|
-              Datadog::Tracing.trace('profiler.test') do
-                Datadog::Tracing.trace('profiler.test.inner') do |span, trace|
-                  @t1_span_id = span.id
+              Datadog::Tracing.trace('profiler.test', type: root_span_type) do |_span, trace|
+                @t1_trace = trace
+
+                Datadog::Tracing.trace('profiler.test.inner') do |inner_span|
+                  @t1_span_id = inner_span.id
                   @t1_local_root_span_id = trace.send(:root_span).id
                   ready_queue << true
                   sleep
@@ -360,6 +364,106 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTime do
               :'local root span id' => @t1_local_root_span_id.to_s,
               :'span id' => @t1_span_id.to_s,
             )
+          end
+
+          it 'does not include the "trace endpoint" label' do
+            sample
+
+            expect(t1_sample.fetch(:labels).keys).to_not include(:'trace endpoint')
+          end
+
+          context 'when local root span type is web' do
+            let(:root_span_type) { 'web' }
+
+            it 'includes the "trace endpoint" label in the samples' do
+              sample
+
+              expect(t1_sample.fetch(:labels)).to include(:'trace endpoint' => 'profiler.test')
+            end
+
+            describe 'trace vs root span resource mutation' do
+              let(:t1) do
+                Thread.new(ready_queue) do |ready_queue|
+                  Datadog::Tracing.trace('profiler.test', type: root_span_type) do |span, trace|
+                    trace.resource = trace_resource
+                    span.resource = root_span_resource
+
+                    Datadog::Tracing.trace('profiler.test.inner') do |inner_span|
+                      @t1_span_id = inner_span.id
+                      @t1_local_root_span_id = trace.send(:root_span).id
+                      ready_queue << true
+                      sleep
+                    end
+                  end
+                end
+              end
+
+              context 'when the trace resource is nil but the root span resource is not nil' do
+                let(:trace_resource) { nil }
+                let(:root_span_resource) { 'root_span_resource' }
+
+                it 'includes the "trace endpoint" label in the samples with the root span resource' do
+                  sample
+
+                  expect(t1_sample.fetch(:labels)).to include(:'trace endpoint' => 'root_span_resource')
+                end
+              end
+
+              context 'when both the trace resource and the root span resource are specified' do
+                let(:trace_resource) { 'trace_resource' }
+                let(:root_span_resource) { 'root_span_resource' }
+
+                it 'includes the "trace endpoint" label in the samples with the trace resource' do
+                  sample
+
+                  expect(t1_sample.fetch(:labels)).to include(:'trace endpoint' => 'trace_resource')
+                end
+              end
+
+              context 'when both the trace resource and the root span resource are nil' do
+                let(:trace_resource) { nil }
+                let(:root_span_resource) { nil }
+
+                it 'does not include the "trace endpoint" label' do
+                  sample
+
+                  expect(t1_sample.fetch(:labels).keys).to_not include(:'trace endpoint')
+                end
+              end
+            end
+
+            context 'when resource is changed after a sample was taken' do
+              before do
+                sample
+                @t1_trace.resource = 'changed_after_first_sample'
+              end
+
+              it 'changes the "trace endpoint" label in all samples' do
+                sample
+
+                t1_samples = samples_for_thread(samples, t1)
+
+                expect(t1_samples).to have(1).item
+                expect(t1_samples.first.fetch(:labels)).to include(:'trace endpoint' => 'changed_after_first_sample')
+                expect(t1_samples.first.fetch(:values)).to include(:'cpu-samples' => 2)
+              end
+
+              context 'when the resource is changed multiple times' do
+                it 'changes the "trace endpoint" label in all samples' do
+                  sample
+
+                  @t1_trace.resource = 'changed_after_second_sample'
+
+                  sample
+
+                  t1_samples = samples_for_thread(samples, t1)
+
+                  expect(t1_samples).to have(1).item
+                  expect(t1_samples.first.fetch(:labels)).to include(:'trace endpoint' => 'changed_after_second_sample')
+                  expect(t1_samples.first.fetch(:values)).to include(:'cpu-samples' => 3)
+                end
+              end
+            end
           end
         end
       end

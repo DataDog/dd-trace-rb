@@ -87,6 +87,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('SET FOO bar')
           expect(span.get_tag('redis.raw_command')).to eq('SET FOO bar')
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -104,6 +105,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('GET FOO')
           expect(span.get_tag('redis.raw_command')).to eq('GET FOO')
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -127,6 +129,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('SET FOO bar')
           expect(span.get_tag('redis.raw_command')).to eq('SET FOO bar')
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
       end
     end
@@ -147,6 +150,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('SET')
           expect(span.get_tag('redis.raw_command')).to be_nil
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
       end
     end
@@ -179,6 +183,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq("SET v1 0\nSET v2 0\nINCR v1\nINCR v2\nINCR v2")
           expect(span.get_tag('redis.raw_command')).to eq("SET v1 0\nSET v2 0\nINCR v1\nINCR v2\nINCR v2")
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -199,6 +204,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq("SET\nSET\nINCR\nINCR\nINCR")
           expect(span.get_tag('redis.raw_command')).to be_nil
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
       end
     end
@@ -225,6 +231,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('(none)')
           expect(span.get_tag('redis.raw_command')).to eq('(none)')
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -257,6 +264,7 @@ RSpec.describe 'Redis test' do
           expect(span.get_tag('error.msg')).to match(/ERR unknown command/)
           expect(span.get_tag('error.type')).to eq('Redis::CommandError')
           expect(span.get_tag('error.stack').length).to be >= 3
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -276,6 +284,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq("SET K #{'x' * 47}...")
           expect(span.get_tag('db.system')).to eq('redis')
           expect(span.get_tag('redis.raw_command')).to eq("SET K #{'x' * 47}...")
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -299,6 +308,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('GET K')
           expect(span.get_tag('redis.raw_command')).to eq('GET K')
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a span with common tags'
@@ -318,6 +328,7 @@ RSpec.describe 'Redis test' do
           expect(span.resource).to eq('AUTH ?')
           expect(span.get_tag('redis.raw_command')).to eq('AUTH ?')
           expect(span.get_tag('db.system')).to eq('redis')
+          expect(span.get_tag('span.kind')).to eq('client')
         end
 
         it_behaves_like 'a peer service span' do

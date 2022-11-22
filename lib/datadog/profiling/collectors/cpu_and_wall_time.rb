@@ -30,10 +30,12 @@ module Datadog
         private
 
         def safely_extract_context_key_from(tracer)
-          tracer &&
-            tracer.respond_to?(:provider) &&
-            # NOTE: instance_variable_get always works, even on nil -- it just returns nil if the variable doesn't exist
-            tracer.provider.instance_variable_get(:@context).instance_variable_get(:@key)
+          provider = tracer && tracer.respond_to?(:provider) && tracer.provider
+
+          return unless provider
+
+          context = provider.instance_variable_get(:@context)
+          context && context.instance_variable_get(:@key)
         end
       end
     end

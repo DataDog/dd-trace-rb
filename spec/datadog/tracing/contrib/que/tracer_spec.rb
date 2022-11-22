@@ -6,14 +6,14 @@ require 'ddtrace'
 require 'que'
 
 RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
-  let(:job_args) do
+  let(:job_options) do
     {
-      field_one: 1,
       queue: 'low',
       priority: 10,
       tags: { a: 1, b: 2 }
     }
   end
+  let(:job_args) { { field_one: 1 } }
   let(:job_class) do
     stub_const(
       'TestJobClass',
@@ -48,7 +48,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
   end
 
   describe '#call' do
-    subject(:enqueue) { job_class.enqueue(**job_args) }
+    subject(:enqueue) { job_class.enqueue(job_args, job_options: job_options) }
 
     context 'with default options' do
       let(:configuration_options) { {} }
@@ -59,8 +59,8 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         expect(span.service).to eq(tracer.default_service)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('que')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('job')
-        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_args[:queue])
-        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_args[:priority])
+        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_QUEUE)).to eq(job_options[:queue])
+        expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_PRIORITY)).to eq(job_options[:priority])
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_ERROR_COUNT)).to eq(0)
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_EXPIRED_AT)).to eq('')
         expect(span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_FINISHED_AT)).to eq('')
@@ -103,7 +103,7 @@ RSpec.describe Datadog::Tracing::Contrib::Que::Tracer do
         enqueue
 
         actual_span_value   = span.get_tag(Datadog::Tracing::Contrib::Que::Ext::TAG_JOB_DATA)
-        expected_span_value = { tags: job_args[:tags] }.to_s
+        expected_span_value = { tags: job_options[:tags] }.to_s
 
         expect(actual_span_value).to eq(expected_span_value)
       end

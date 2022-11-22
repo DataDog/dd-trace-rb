@@ -1,5 +1,4 @@
-# https://hub.docker.com/layers/ruby/library/ruby/2.5.9-buster/images/sha256-79ee27d55283b0febd609abde9f5e93df8466586e6163bbc07cb502247522f33
-FROM ruby@sha256:79ee27d55283b0febd609abde9f5e93df8466586e6163bbc07cb502247522f33
+FROM ruby:2.5.9
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -15,7 +14,7 @@ RUN set -ex; \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim less; \
+            tzdata rsync vim less jq; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -26,16 +25,10 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-# Install jq
-RUN JQ_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/jq-latest" \
-  && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/jq $JQ_URL \
-  && chmod +x /usr/bin/jq \
-  && jq --version
-
 # Install Docker
 RUN set -ex \
-  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/x86_64/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
-  && DOCKER_URL="https://download.docker.com/linux/static/stable/x86_64/${DOCKER_VERSION}" \
+  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
+  && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
   && echo Docker URL: $DOCKER_URL \
   && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
   && ls -lha /tmp/docker.tgz \
@@ -46,27 +39,13 @@ RUN set -ex \
   && (docker version || true)
 
 # Install Docker Compose
-RUN COMPOSE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/docker-compose-latest" \
+RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51/docker-compose-$(dpkg --print-architecture)" \
   && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL \
   && chmod +x /usr/bin/docker-compose \
   && docker-compose version
 
 # Install Dockerize
-RUN DOCKERIZE_URL="https://circle-downloads.s3.amazonaws.com/circleci-images/cache/linux-amd64/dockerize-latest.tar.gz" \
-  && curl --silent --show-error --location --fail --retry 3 --output /tmp/dockerize-linux-amd64.tar.gz $DOCKERIZE_URL \
-  && tar -C /usr/local/bin -xzvf /tmp/dockerize-linux-amd64.tar.gz \
-  && rm -rf /tmp/dockerize-linux-amd64.tar.gz \
-  && dockerize --version
-
-# Install Protobuf compiler
-RUN export PROTOC_URL=$(curl -s https://api.github.com/repos/protocolbuffers/protobuf/releases/latest | grep browser_download_url | cut -d '"' -f 4 | grep -e 'protoc-[.0-9]*-linux-x86_64\.zip' | sort -r | head -n 1) \
-  && echo Protoc URL: $PROTOC_URL \
-  && curl --silent --show-error --location --fail --retry 3 --output /tmp/protoc.zip "${PROTOC_URL}" \
-  && ls -lha /tmp/protoc.zip \
-  && unzip /tmp/protoc.zip -d /tmp/protoc \
-  && mv /tmp/protoc/bin/* /usr/bin \
-  && rm -rf /tmp/protoc /tmp/protoc.zip \
-  && protoc --version
+RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
 RUN gem update --system
