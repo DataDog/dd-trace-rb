@@ -245,7 +245,7 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   block_sigprof_signal_handler_from_running_in_current_thread(); // We want to interrupt the thread with the global VM lock, never this one
 
-  install_sigprof_signal_handler(handle_sampling_signal);
+  install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
 
   // Release GVL, get to the actual work!
@@ -405,7 +405,7 @@ static void testing_signal_handler(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 // This method exists only to enable testing Datadog::Profiling::Collectors::CpuAndWallTimeWorker behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_install_testing_signal_handler(DDTRACE_UNUSED VALUE self) {
-  install_sigprof_signal_handler(testing_signal_handler);
+  install_sigprof_signal_handler(testing_signal_handler, "testing_signal_handler");
   return Qtrue;
 }
 
