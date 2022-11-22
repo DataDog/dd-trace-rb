@@ -14,7 +14,7 @@
 #else
   // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to surpress them.
+  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
