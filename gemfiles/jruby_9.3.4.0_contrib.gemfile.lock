@@ -1485,8 +1485,6 @@ GEM
     pry-debugger-jruby (2.1.0-java)
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
-    qless (0.10.0)
-      redis (>= 2.2)
     que (1.4.0)
     racc (1.6.0-java)
     racecar (2.7.0)
@@ -1680,7 +1678,6 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
-  qless (= 0.10.0)
   que (>= 1.0.0)
   racecar (>= 0.3.5)
   rack
