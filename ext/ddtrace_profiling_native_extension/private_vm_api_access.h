@@ -7,11 +7,20 @@
 // without also dragging the incompatible includes
 #ifndef PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
   #include <ruby/thread_native.h>
+  #include <ruby/vm.h>
 #endif
 
 #include "extconf.h"
 
+// Contains the current gvl owner, and a flag to indicate if it is valid
+typedef struct {
+  bool valid;
+  rb_nativethread_id_t owner;
+} current_gvl_owner;
+
 rb_nativethread_id_t pthread_id_for(VALUE thread);
+bool is_current_thread_holding_the_gvl(void);
+current_gvl_owner gvl_owner(void);
 uint64_t native_thread_id_for(VALUE thread);
 ptrdiff_t stack_depth_for(VALUE thread);
 VALUE ddtrace_thread_list(void);

@@ -50,6 +50,29 @@ rb_nativethread_id_t pthread_id_for(VALUE thread) {
   #endif
 }
 
+// Queries if the current thread is the owner of the global VM lock.
+//
+// @ivoanjo: Ruby has a similarly-named `ruby_thread_has_gvl_p` but that API is insufficient for our needs because it can
+// still return `true` even when a thread DOES NOT HAVE the global VM lock.
+// In particular, looking at the implementation, that API assumes that if a thread is not in a "blocking region" then it
+// will have the GVL which is probably true for the situations that API was designed to be called from BUT this assumption
+// does not hold true when calling `ruby_thread_has_gvl_p` from a signal handler. (Because the thread may have lost the
+// GVL due to a scheduler decision, not because it decided to block.)
+//
+// Thus we need our own gvl-checking method which actually looks at the gvl structure to determine if it is the owner.
+bool is_current_thread_holding_the_gvl(void) {
+  current_gvl_owner owner = gvl_owner();
+  return owner.valid && pthread_equal(pthread_self(), owner.owner);
+}
+
+current_gvl_owner gvl_owner(void) {
+  // TODO: This is a racy read. Should we perhaps add a read barrier here?
+  const rb_thread_t *current_owner = GET_VM()->gvl.owner;
+
+  return current_owner != NULL ?
+    (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id} : (current_gvl_owner) {.valid = false};
+}
+
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada
 // to support tid_for (see below)
@@ -128,7 +151,7 @@ VALUE ddtrace_thread_list(void) {
     rb_ractor_t *current_ractor = GET_RACTOR();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
-    rb_vm_t *vm = thread_struct_from_object(rb_thread_current())->vm;
+    rb_vm_t *vm = GET_VM();
     list_for_each(&vm->living_threads, thread, vmlt_node) {
   #endif
       switch (thread->status) {
