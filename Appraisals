@@ -1452,7 +1452,7 @@ elsif ruby_version?('3.0') || ruby_version?('3.1')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     gem 'mysql2', '>= 0.5.3', platform: :ruby
     gem 'pg', '>= 1.1', platform: :ruby
-    # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
+    gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
     gem 'rack-test'
@@ -1572,7 +1572,7 @@ elsif ruby_version?('3.2')
     gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
     # gem 'mysql2', '>= 0.5.3', platform: :ruby # broken on Ruby 3.2.0-preview1
     gem 'pg', '>= 1.1', platform: :ruby
-    # gem 'racecar', '>= 0.3.5' # Pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
+    gem 'racecar', '>= 0.3.5'
     gem 'rack'
     gem 'rack-contrib'
     gem 'rack-test'
