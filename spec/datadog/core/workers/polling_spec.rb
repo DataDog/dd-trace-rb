@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Workers::Polling do
       before { allow(worker_spy).to receive(:perform) { sleep 5 } }
 
       context 'by default' do
-        before { skip('TODO: This test is flaky. Requires further investigation.') }
+        before { skip('TODO: This hangs forever sometimes. Requires further investigation.') }
 
         it do
           perform
