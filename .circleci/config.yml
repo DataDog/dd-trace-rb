@@ -7,8 +7,6 @@ job_defaults: &job_defaults
   # TODO: Changing this requires rebuilding all docker images.
   working_directory: /app
   shell: /bin/bash --login
-  environment:
-    - SPEC_OPTS: --format documentation # Ensures it's possible to debug hung tests in CI
 
 test_containers:
   - &job_parameters
@@ -168,11 +166,15 @@ step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
     command: |
+        # Ensures it's possible to debug hung tests in CI
+        echo "--format=documentation" >> .rspec-local
+
+        # Configure RSpec metadata exporter
         echo "
-        --format=progress
         --format=RspecJunitFormatter
         --out='/tmp/rspec/-<%= ARGV.join.gsub('/', '-') %>.xml'
-        " > .rspec-local # Configure RSpec metadata exporter
+        " >> .rspec-local
+
         bundle exec rake ci
 step_release_docs: &step_release_docs
   run:
