@@ -216,7 +216,9 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
 
     describe 'correctness' do
-      before { skip 'Ruby 2.2 does not expose ruby_thread_has_gvl_p so nothing to compare to' if RUBY_VERSION.start_with?('2.2.') }
+      before do
+        skip 'Ruby 2.2 does not expose ruby_thread_has_gvl_p so nothing to compare to' if RUBY_VERSION.start_with?('2.2.')
+      end
 
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
