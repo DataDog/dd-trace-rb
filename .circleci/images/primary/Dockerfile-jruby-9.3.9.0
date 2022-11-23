@@ -1,24 +1,20 @@
-# NOTE BEFORE YOU UPGRADE TO A LATER JRUBY 9.2 VERSION:
-# There's an incompatibility in JRuby 9.2.19.0+ when run on Java 8 (jre8) with the ethon gem, see
-# https://github.com/jruby/jruby/issues/7033 .
-# The issue goes away if we run on Java 11, but we probably want to test on 8.
-# So, as of this writing (January 2022) we cannot have it all: latest ethon, ethon testing enable, latest JRuby 9.2,
-# and Java 8. One always has to give.
+# Note:
 #
-# since next one is 9.2.19.0 at https://github.com/jruby/docker-jruby/blob/d083a9c13640eba8c135caeefbff3b89350bbede/9.2/jre8/Dockerfile
-# we took the following from this one which is 9.2.11 as default but AFAICT was used to build 9.2.18
-# https://github.com/jruby/docker-jruby/blob/f94681bb26c3da5159e8c0ba9842005a011a76de/9000/jre8/Dockerfile
+# There is an incompatibility between ethon and httprb on debian 11 bullseye.
+# This is why this image is based on debian 10 buster.
 #
-# a more recent one would be https://github.com/jruby/docker-jruby/blob/9881bee2d7510aa17dba6b1d7ae5ff711fddd624/9.2/jre8/Dockerfile
+# See:
+# - https://github.com/jruby/jruby/issues/7033
+# - https://github.com/DataDog/dd-trace-rb/pull/2380#issuecomment-1320994823
 #
-# openjdk:8-jre image is from https://github.com/docker-library/openjdk/blob/a0c4da867ddd1a11408b7ec5032f12130bdc5476/8/jre/bullseye/Dockerfile
+# openjdk:11-jre image is from https://github.com/docker-library/openjdk/blob/8dfb0c5645098b8c330c4811c8228cae52f18388/11/jre/buster/Dockerfile
 # note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
-FROM openjdk:8-jre-buster AS jruby-9.2.18.0-jre8
+FROM openjdk:11-jre-buster AS jruby-9.3.9.0-jre11
 
 RUN apt-get update && apt-get install -y libc6-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-ENV JRUBY_VERSION 9.2.18.0
-ENV JRUBY_SHA256 425a5c970a6d918ae531275850634d12169e3557754b2b817fbfb7987a32c1a7
+ENV JRUBY_VERSION 9.3.9.0
+ENV JRUBY_SHA256 251e6dd8d1d2f82922c8c778d7857e1bef82fe5ca2cf77bc09356421d0b05ab8
 RUN mkdir /opt/jruby \
   && curl -fSL https://repo1.maven.org/maven2/org/jruby/jruby-dist/${JRUBY_VERSION}/jruby-dist-${JRUBY_VERSION}-bin.tar.gz -o /tmp/jruby.tar.gz \
   && echo "$JRUBY_SHA256 /tmp/jruby.tar.gz" | sha256sum -c - \
@@ -49,8 +45,7 @@ RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 
 CMD [ "irb" ]
 
-# See note at the top before updating to a later version!
-FROM jruby-9.2.18.0-jre8
+FROM jruby-9.3.9.0-jre11
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -102,12 +97,11 @@ RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/d
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
-RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler
-RUN gem uninstall -i /opt/jruby/lib/ruby/gems/shared bundler -v 2.1.4 # Remove when https://github.com/thoughtbot/appraisal/issues/162 is fixed
-RUN gem install bundler -v 2.1.2 # Remove when https://github.com/thoughtbot/appraisal/issues/162 is fixed
+RUN gem update --system
+RUN gem install bundler
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Ensure JRuby is available when running "bash --login"
