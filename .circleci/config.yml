@@ -496,7 +496,7 @@ job_configuration:
     resource_class_to_use: medium+
   - &config-2_4
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.4'
+    ruby_version: '2.4.10'
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     resource_class_to_use: medium+
   - &config-2_5
@@ -530,7 +530,7 @@ job_configuration:
   - &config-3_2
     <<: *filters_all_branches_and_tags
     ruby_version: '3.2'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview2-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview3-dd
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2_8_0 # Test with older 9.2 release because 9.2.9.0 changed behavior, see https://github.com/DataDog/dd-trace-rb/pull/1409

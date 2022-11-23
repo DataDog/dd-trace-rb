@@ -2,129 +2,120 @@
 
 require 'spec_helper'
 
-require 'datadog/core'
-require 'datadog/tracing/distributed/headers/datadog'
-require 'datadog/tracing/propagation/http'
-require 'datadog/tracing/trace_digest'
-require 'datadog/tracing/trace_operation'
+require 'datadog/tracing/distributed/propagation'
 
-RSpec.describe Datadog::Tracing::Propagation::HTTP do
+RSpec.shared_examples 'Distributed tracing propagator' do
+  subject(:propagation) { described_class.new(propagation_styles: propagation_styles) }
+
+  let(:propagation_styles) do
+    {
+      'Datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
+      'B3' => Datadog::Tracing::Distributed::B3.new(fetcher: fetcher_class),
+      'B3 single header' => Datadog::Tracing::Distributed::B3Single.new(fetcher: fetcher_class),
+    }
+  end
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
+  let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
+
   describe '::inject!' do
-    let(:env) { { 'something' => 'alien' } }
-
-    subject(:inject!) { described_class.inject!(trace, env) }
+    subject(:inject!) { propagation.inject!(trace, data) }
+    let(:data) { {} }
 
     shared_examples_for 'trace injection' do
-      let(:trace_attrs) { { trace_id: 1000, span_id: 2000 } }
+      let(:trace_id) { 1234567890 }
+      let(:span_id) { 9876543210 }
+      let(:sampling_priority) { nil }
+      let(:origin) { nil }
 
-      context 'without any explicit sampling priority or origin' do
-        it do
+      it { is_expected.to eq(true) }
+
+      it 'injects the trace id' do
+        inject!
+        expect(data).to include('x-datadog-trace-id' => '1234567890')
+      end
+
+      it 'injects the parent span id' do
+        inject!
+        expect(data).to include('x-datadog-parent-id' => '9876543210')
+      end
+
+      context 'when sampling priority is set' do
+        let(:sampling_priority) { 0 }
+
+        it 'injects the sampling priority' do
           inject!
-          expect(env).to eq(
-            'something' => 'alien',
-            'x-datadog-trace-id' => '1000',
-            'x-datadog-parent-id' => '2000'
-          )
+          expect(data).to include('x-datadog-sampling-priority' => '0')
         end
       end
 
-      context 'with a sampling priority' do
-        before { inject! }
-
-        context 'of 0' do
-          let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_sampling_priority: 0 } }
-
-          it do
-            expect(env).to eq(
-              'something' => 'alien',
-              'x-datadog-sampling-priority' => '0',
-              'x-datadog-trace-id' => '1000',
-              'x-datadog-parent-id' => '2000'
-            )
-          end
-        end
-
-        context 'as nil' do
-          let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_sampling_priority: nil } }
-
-          it do
-            expect(env).to eq(
-              'something' => 'alien',
-              'x-datadog-trace-id' => '1000',
-              'x-datadog-parent-id' => '2000'
-            )
-          end
-        end
-      end
-
-      context 'with an origin' do
-        before { inject! }
-
-        context 'of "synthetics"' do
-          let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_origin: 'synthetics' } }
-
-          it do
-            expect(env).to eq(
-              'something' => 'alien',
-              'x-datadog-origin' => 'synthetics',
-              'x-datadog-trace-id' => '1000',
-              'x-datadog-parent-id' => '2000'
-            )
-          end
-        end
-
-        context 'as nil' do
-          let(:trace_attrs) { { trace_id: 1000, span_id: 2000, trace_origin: nil } }
-
-          it do
-            expect(env).to eq(
-              'something' => 'alien',
-              'x-datadog-trace-id' => '1000',
-              'x-datadog-parent-id' => '2000'
-            )
-          end
-        end
-      end
-
-      context 'with a failing propagator' do
-        let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
-
-        before do
-          allow(Datadog::Tracing::Distributed::Headers::Datadog).to receive(:inject!).and_raise(error)
-          allow(Datadog.logger).to receive(:error)
-        end
-
-        it do
+      context 'when sampling priority is not set' do
+        it 'leaves the sampling priority blank in the data' do
           inject!
+          expect(data).not_to include('x-datadog-sampling-priority')
+        end
+      end
 
-          expect(env).to_not include('x-datadog-trace-id' => '1000', 'x-datadog-parent-id' => '2000')
-          expect(Datadog.logger).to have_received(:error).with(/Cause: test_err Location: caller:1/)
+      context 'when origin is set' do
+        let(:origin) { 'synthetics' }
+
+        it 'injects the origin' do
+          inject!
+          expect(data).to include('x-datadog-origin' => 'synthetics')
+        end
+      end
+
+      context 'when origin is not set' do
+        it 'leaves the origin blank in the data' do
+          inject!
+          expect(data).not_to include('x-datadog-origin')
         end
       end
     end
 
     context 'given nil' do
+      before { inject! }
       let(:trace) { nil }
 
-      it do
-        inject!
-        expect(env).to eq('something' => 'alien')
-      end
+      it { is_expected.to be_nil }
+      it { expect(data).to be_empty }
     end
 
     context 'given a TraceDigest and env' do
-      let(:trace) { Datadog::Tracing::TraceDigest.new(**trace_attrs) }
+      let(:trace) do
+        Datadog::Tracing::TraceDigest.new(
+          span_id: span_id,
+          trace_id: trace_id,
+          trace_origin: origin,
+          trace_sampling_priority: sampling_priority
+        )
+      end
 
-      it_behaves_like 'trace injection'
+      it_behaves_like 'trace injection' do
+        context 'with no styles configured' do
+          before do
+            Datadog.configure do |c|
+              c.tracing.distributed_tracing.propagation_inject_style = []
+            end
+          end
+
+          it { is_expected.to eq(false) }
+
+          it 'does not inject data' do
+            inject!
+            expect(data).to be_empty
+          end
+        end
+      end
     end
 
     context 'given a TraceOperation and env' do
       let(:trace) do
         Datadog::Tracing::TraceOperation.new(
-          id: trace_attrs[:trace_id],
-          origin: trace_attrs[:trace_origin],
-          parent_span_id: trace_attrs[:span_id],
-          sampling_priority: trace_attrs[:trace_sampling_priority]
+          id: trace_id,
+          origin: origin,
+          parent_span_id: span_id,
+          sampling_priority: sampling_priority
         )
       end
 
@@ -132,21 +123,21 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
     end
   end
 
-  describe '::extract' do
-    subject(:extract) { described_class.extract(env) }
+  describe '.extract' do
+    subject(:extract) { propagation.extract(data) }
     let(:trace_digest) { extract }
 
-    context 'given a blank env' do
-      let(:env) { {} }
+    context 'given empty data' do
+      let(:data) { nil }
       it { is_expected.to be nil }
     end
 
-    context 'given an env containing' do
+    context 'given an data containing' do
       context 'datadog trace id and parent id' do
-        let(:env) do
+        let(:data) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => '123',
-            'HTTP_X_DATADOG_PARENT_ID' => '456'
+            prepare_key['x-datadog-trace-id'] => '123',
+            prepare_key['x-datadog-parent-id'] => '456'
           }
         end
 
@@ -159,11 +150,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and sampling priority' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '7',
-              'HTTP_X_DATADOG_PARENT_ID' => '8',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0'
+              prepare_key['x-datadog-trace-id'] => '7',
+              prepare_key['x-datadog-parent-id'] => '8',
+              prepare_key['x-datadog-sampling-priority'] => '0'
             }
           end
 
@@ -176,12 +167,12 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
           end
 
           context 'and origin' do
-            let(:env) do
+            let(:data) do
               {
-                'HTTP_X_DATADOG_TRACE_ID' => '7',
-                'HTTP_X_DATADOG_PARENT_ID' => '8',
-                'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '0',
-                'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+                prepare_key['x-datadog-trace-id'] => '7',
+                prepare_key['x-datadog-parent-id'] => '8',
+                prepare_key['x-datadog-sampling-priority'] => '0',
+                prepare_key['x-datadog-origin'] => 'synthetics'
               }
             end
 
@@ -196,11 +187,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and origin' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '7',
-              'HTTP_X_DATADOG_PARENT_ID' => '8',
-              'HTTP_X_DATADOG_ORIGIN' => 'synthetics'
+              prepare_key['x-datadog-trace-id'] => '7',
+              prepare_key['x-datadog-parent-id'] => '8',
+              prepare_key['x-datadog-origin'] => 'synthetics'
             }
           end
 
@@ -215,10 +206,10 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       end
 
       context 'B3 trace id and parent id' do
-        let(:env) do
+        let(:data) do
           {
-            'HTTP_X_B3_TRACEID' => '00ef01',
-            'HTTP_X_B3_SPANID' => '011ef0'
+            prepare_key['x-b3-traceid'] => '00ef01',
+            prepare_key['x-b3-spanid'] => '011ef0'
           }
         end
 
@@ -230,11 +221,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and sampling priority' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_B3_TRACEID' => '00ef01',
-              'HTTP_X_B3_SPANID' => '011ef0',
-              'HTTP_X_B3_SAMPLED' => '0'
+              prepare_key['x-b3-traceid'] => '00ef01',
+              prepare_key['x-b3-spanid'] => '011ef0',
+              prepare_key['x-b3-sampled'] => '0'
             }
           end
 
@@ -248,9 +239,9 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       end
 
       context 'B3 single trace id and parent id' do
-        let(:env) do
+        let(:data) do
           {
-            'HTTP_B3' => '00ef01-011ef0'
+            prepare_key['b3'] => '00ef01-011ef0'
           }
         end
 
@@ -262,9 +253,9 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and sampling priority' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_B3' => '00ef01-011ef0-0'
+              prepare_key['b3'] => '00ef01-011ef0-0'
             }
           end
 
@@ -278,12 +269,12 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       end
 
       context 'datadog, and b3 header' do
-        let(:env) do
+        let(:data) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => '61185',
-            'HTTP_X_DATADOG_PARENT_ID' => '73456',
-            'HTTP_X_B3_TRACEID' => '00ef01',
-            'HTTP_X_B3_SPANID' => '011ef0'
+            prepare_key['x-datadog-trace-id'] => '61185',
+            prepare_key['x-datadog-parent-id'] => '73456',
+            prepare_key['x-b3-traceid'] => '00ef01',
+            prepare_key['x-b3-spanid'] => '011ef0'
           }
         end
 
@@ -295,14 +286,14 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and sampling priority' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '61185',
-              'HTTP_X_DATADOG_PARENT_ID' => '73456',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
-              'HTTP_X_B3_TRACEID' => '00ef01',
-              'HTTP_X_B3_SPANID' => '011ef0',
-              'HTTP_X_B3_SAMPLED' => '0'
+              prepare_key['x-datadog-trace-id'] => '61185',
+              prepare_key['x-datadog-parent-id'] => '73456',
+              prepare_key['x-datadog-sampling-priority'] => '1',
+              prepare_key['x-b3-traceid'] => '00ef01',
+              prepare_key['x-b3-spanid'] => '011ef0',
+              prepare_key['x-b3-sampled'] => '0'
             }
           end
 
@@ -317,7 +308,7 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
             let(:error) { StandardError.new('test_err').tap { |e| e.set_backtrace('caller:1') } }
 
             before do
-              allow(::Datadog::Tracing::Distributed::Headers::Datadog).to receive(:extract).and_raise(error)
+              allow_any_instance_of(::Datadog::Tracing::Distributed::Datadog).to receive(:extract).and_raise(error)
               allow(Datadog.logger).to receive(:error)
             end
 
@@ -336,12 +327,12 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'with mismatched values' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '7',
-              'HTTP_X_DATADOG_PARENT_ID' => '8',
-              'HTTP_X_B3_TRACEID' => '00ef01',
-              'HTTP_X_B3_SPANID' => '011ef0'
+              prepare_key['x-datadog-trace-id'] => '7',
+              prepare_key['x-datadog-parent-id'] => '8',
+              prepare_key['x-b3-traceid'] => '00ef01',
+              prepare_key['x-b3-spanid'] => '011ef0'
             }
           end
 
@@ -355,13 +346,13 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       end
 
       context 'datadog, b3, and b3 single header' do
-        let(:env) do
+        let(:data) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => '61185',
-            'HTTP_X_DATADOG_PARENT_ID' => '73456',
-            'HTTP_X_B3_TRACEID' => '00ef01',
-            'HTTP_X_B3_SPANID' => '011ef0',
-            'HTTP_B3' => '00ef01-011ef0'
+            prepare_key['x-datadog-trace-id'] => '61185',
+            prepare_key['x-datadog-parent-id'] => '73456',
+            prepare_key['x-b3-traceid'] => '00ef01',
+            prepare_key['x-b3-spanid'] => '011ef0',
+            prepare_key['b3'] => '00ef01-011ef0'
           }
         end
 
@@ -373,15 +364,15 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and sampling priority' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '61185',
-              'HTTP_X_DATADOG_PARENT_ID' => '73456',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
-              'HTTP_X_B3_TRACEID' => '00ef01',
-              'HTTP_X_B3_SPANID' => '011ef0',
-              'HTTP_X_B3_SAMPLED' => '1',
-              'HTTP_B3' => '00ef01-011ef0-1'
+              prepare_key['x-datadog-trace-id'] => '61185',
+              prepare_key['x-datadog-parent-id'] => '73456',
+              prepare_key['x-datadog-sampling-priority'] => '1',
+              prepare_key['x-b3-traceid'] => '00ef01',
+              prepare_key['x-b3-spanid'] => '011ef0',
+              prepare_key['x-b3-sampled'] => '1',
+              prepare_key['b3'] => '00ef01-011ef0-1'
             }
           end
 
@@ -394,14 +385,14 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'with mismatched values' do
-          let(:env) do
+          let(:data) do
             # DEV: We only need 1 to be mismatched
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '7',
-              'HTTP_X_DATADOG_PARENT_ID' => '8',
-              'HTTP_X_B3_TRACEID' => '00ef01',
-              'HTTP_X_B3_SPANID' => '011ef0',
-              'HTTP_B3' => '00ef01-011ef0'
+              prepare_key['x-datadog-trace-id'] => '7',
+              prepare_key['x-datadog-parent-id'] => '8',
+              prepare_key['x-b3-traceid'] => '00ef01',
+              prepare_key['x-b3-spanid'] => '011ef0',
+              prepare_key['b3'] => '00ef01-011ef0'
             }
           end
 
@@ -415,11 +406,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       end
 
       context 'datadog, and b3 single header' do
-        let(:env) do
+        let(:data) do
           {
-            'HTTP_X_DATADOG_TRACE_ID' => '61185',
-            'HTTP_X_DATADOG_PARENT_ID' => '73456',
-            'HTTP_B3' => '00ef01-011ef0'
+            prepare_key['x-datadog-trace-id'] => '61185',
+            prepare_key['x-datadog-parent-id'] => '73456',
+            prepare_key['b3'] => '00ef01-011ef0'
           }
         end
 
@@ -431,12 +422,12 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'and sampling priority' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '61185',
-              'HTTP_X_DATADOG_PARENT_ID' => '73456',
-              'HTTP_X_DATADOG_SAMPLING_PRIORITY' => '1',
-              'HTTP_B3' => '00ef01-011ef0-1'
+              prepare_key['x-datadog-trace-id'] => '61185',
+              prepare_key['x-datadog-parent-id'] => '73456',
+              prepare_key['x-datadog-sampling-priority'] => '1',
+              prepare_key['b3'] => '00ef01-011ef0-1'
             }
           end
 
@@ -449,11 +440,11 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
         end
 
         context 'with mismatched values' do
-          let(:env) do
+          let(:data) do
             {
-              'HTTP_X_DATADOG_TRACE_ID' => '7',
-              'HTTP_X_DATADOG_PARENT_ID' => '8',
-              'HTTP_B3' => '00ef01-011ef0'
+              prepare_key['x-datadog-trace-id'] => '7',
+              prepare_key['x-datadog-parent-id'] => '8',
+              prepare_key['b3'] => '00ef01-011ef0'
             }
           end
 
@@ -467,4 +458,8 @@ RSpec.describe Datadog::Tracing::Propagation::HTTP do
       end
     end
   end
+end
+
+RSpec.describe Datadog::Tracing::Distributed::Propagation do
+  it_behaves_like 'Distributed tracing propagator'
 end

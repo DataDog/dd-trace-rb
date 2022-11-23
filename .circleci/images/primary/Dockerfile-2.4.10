@@ -1,6 +1,4 @@
-# NOTE: There are images with the newer debian version 10 (2.4.10-buster) but they broke the sequel gem due to a missing shared library,
-# so I decided to stay with debian 9 "stretch"
-FROM ruby:2.4.10-stretch
+FROM ruby:2.4.10-buster
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -41,22 +39,18 @@ RUN set -ex \
   && (docker version || true)
 
 # Install Docker Compose
-# Releases over there don't work as they need a more recent glibc than Stretch has: https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51
-# So we fall back to using stretch-backports which has 1.21
-RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http://ftp.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list \
-  && apt-get update \
-  && apt-get install -y docker-compose \
-  && docker-compose version \
-  && rm -rf /var/lib/apt/lists/*
+RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51/docker-compose-$(dpkg --print-architecture)" \
+  && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL \
+  && chmod +x /usr/bin/docker-compose \
+  && docker-compose version
 
 # Install Dockerize
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
-RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
-# Install RubyGems
+# Install RubyGems and Bundler
 RUN gem update --system
 RUN gem install bundler
 ENV BUNDLE_SILENCE_ROOT_WARNING 1

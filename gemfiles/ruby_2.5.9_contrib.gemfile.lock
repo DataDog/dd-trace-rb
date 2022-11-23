@@ -1487,8 +1487,6 @@ GEM
     pry-stack_explorer (0.4.13)
       binding_of_caller (~> 0.7)
       pry (~> 0.13)
-    qless (0.10.0)
-      redis (>= 2.2)
     que (1.4.0)
     racc (1.6.0)
     racecar (2.6.0)
@@ -1700,7 +1698,6 @@ DEPENDENCIES
   pry
   pry-nav
   pry-stack_explorer
-  qless
   que (>= 1.0.0)
   racecar (>= 0.3.5)
   rack

@@ -37,6 +37,8 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_ATTRIBUTES, sqs_msg.attributes) if sqs_msg.respond_to?(:attributes)
               span.set_tag(Ext::TAG_JOB_BODY, body) if configuration[:tag_body]
 
+              span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CONSUMER)
+
               yield
             end
           end

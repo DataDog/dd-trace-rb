@@ -14,10 +14,11 @@
 #else
   // On older Rubies, use a copy of the VM internal headers shipped in the debase-ruby_core_source gem
 
-  // We can't do anything about warnings in VM headers, so we just use this technique to surpress them.
+  // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
+  #pragma GCC diagnostic ignored "-Wattributes"
     #include <vm_core.h>
   #pragma GCC diagnostic pop
   #include <iseq.h>
@@ -35,7 +36,7 @@
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
-  if (thread_data_type == NULL) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
 
   return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }

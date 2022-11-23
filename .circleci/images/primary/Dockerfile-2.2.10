@@ -15,10 +15,8 @@ RUN mkdir -p /usr/local/etc \
 ENV RUBY_MAJOR 2.2
 ENV RUBY_VERSION 2.2.10
 ENV RUBY_DOWNLOAD_SHA256 bf77bcb7e6666ccae8d0882ea12b05f382f963f0a9a5285a328760c06a9ab650
-# TODO: update only once
-ENV RUBYGEMS_VERSION 2.7.7
-# TODO: update only once
-ENV BUNDLER_VERSION 1.16.2
+ENV RUBYGEMS_VERSION 2.7.11
+ENV BUNDLER_VERSION 1.17.3
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -135,11 +133,6 @@ RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http:
 
 # Install Dockerize
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
-
-# Install RubyGems
-RUN gem update --system 2.7.9
-RUN gem install bundler -v '1.17.3'
-ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
 WORKDIR /app

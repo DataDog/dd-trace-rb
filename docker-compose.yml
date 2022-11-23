@@ -126,7 +126,7 @@ services:
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.6:
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.7-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -148,7 +148,7 @@ services:
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-2.7:
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.3-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -170,7 +170,7 @@ services:
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.3-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -202,7 +202,7 @@ services:
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.1:
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.1-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -223,7 +223,7 @@ services:
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.2:
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview2-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-preview3-dd
     command: /bin/bash
     depends_on:
       - ddagent

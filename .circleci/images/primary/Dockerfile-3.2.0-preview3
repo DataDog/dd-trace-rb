@@ -1,4 +1,4 @@
-FROM ruby:3.0.3-bullseye
+FROM ruby:3.2.0-preview3-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -48,7 +48,6 @@ RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/d
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
-RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler
