@@ -7,16 +7,14 @@
 # - https://github.com/jruby/jruby/issues/7033
 # - https://github.com/DataDog/dd-trace-rb/pull/2380#issuecomment-1320994823
 #
-# taken from https://github.com/jruby/docker-jruby/blob/5de2f8fd4c518cfb621be236fe7e9732c77b6129/9000/jre/Dockerfile
-#
-# openjdk:8-jre image is from https://github.com/docker-library/openjdk/blob/a0c4da867ddd1a11408b7ec5032f12130bdc5476/8/jre/bullseye/Dockerfile
+# openjdk:11-jre image is from https://github.com/docker-library/openjdk/blob/8dfb0c5645098b8c330c4811c8228cae52f18388/11/jre/buster/Dockerfile
 # note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
-FROM openjdk:8-jre-buster AS jruby-9.2.8.0-jre8
+FROM openjdk:11-jre-buster AS jruby-9.3.9.0-jre11
 
 RUN apt-get update && apt-get install -y libc6-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-ENV JRUBY_VERSION 9.2.8.0
-ENV JRUBY_SHA256 b7c58688093f54acd89d732a8bf40e3ae0ac4c92488d6f5b424c33e4fb09c7bb
+ENV JRUBY_VERSION 9.3.9.0
+ENV JRUBY_SHA256 251e6dd8d1d2f82922c8c778d7857e1bef82fe5ca2cf77bc09356421d0b05ab8
 RUN mkdir /opt/jruby \
   && curl -fSL https://repo1.maven.org/maven2/org/jruby/jruby-dist/${JRUBY_VERSION}/jruby-dist-${JRUBY_VERSION}-bin.tar.gz -o /tmp/jruby.tar.gz \
   && echo "$JRUBY_SHA256 /tmp/jruby.tar.gz" | sha256sum -c - \
@@ -47,7 +45,7 @@ RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 
 CMD [ "irb" ]
 
-FROM jruby-9.2.8.0-jre8
+FROM jruby-9.3.9.0-jre11
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -64,7 +62,8 @@ RUN set -ex; \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
             tzdata rsync vim less jq \
-            build-essential; \
+            build-essential \
+            shared-mime-info; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default

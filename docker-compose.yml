@@ -266,8 +266,8 @@ services:
       - .:/app
       - bundle-jruby-9.2.8.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-jruby-9.2-latest:
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.18.0-dd
+  tracer-jruby-9.2:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -285,10 +285,10 @@ services:
     tty: true
     volumes:
       - .:/app
-      - bundle-jruby-9.2-latest:/usr/local/bundle
+      - bundle-jruby-9.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
-  tracer-jruby-9.3-latest:
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.4.0-dd
+  tracer-jruby-9.3:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
@@ -306,7 +306,7 @@ services:
     tty: true
     volumes:
       - .:/app
-      - bundle-jruby-9.3-latest:/usr/local/bundle
+      - bundle-jruby-9.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # TruffleRuby
   tracer-truffleruby-22.3.0:
@@ -427,8 +427,8 @@ volumes:
   bundle-3.2:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2.8.0:
-  bundle-jruby-9.2-latest:
-  bundle-jruby-9.3-latest:
+  bundle-jruby-9.2:
+  bundle-jruby-9.3:
   bundle-truffleruby-22.3.0:
   ddagent_var_run:
   # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
