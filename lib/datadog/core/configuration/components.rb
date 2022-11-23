@@ -248,6 +248,8 @@ module Datadog
             # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
             if settings.profiling.advanced.force_enable_new_profiler
+              print_new_profiler_warnings
+
               recorder = Datadog::Profiling::StackRecorder.new
               collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
                 recorder: recorder,
@@ -343,6 +345,23 @@ module Datadog
               true
             else
               false
+            end
+          end
+
+          def print_new_profiler_warnings
+            if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.6')
+              Datadog.logger.warn(
+                'New Ruby profiler has been force-enabled. This feature is in alpha state. Please report any issues ' \
+                'you run into!'
+              )
+            else
+              # For more details on the issue, see the "BIG Issue" comment on `gvl_owner` function in
+              # `private_vm_api_access.c`.
+              Datadog.logger.warn(
+                'New Ruby profiler has been force-enabled on a legacy Ruby version (< 2.6). This is not recommended in ' \
+                'production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes in very ' \
+                'rare situations. Please report any issues you run into!'
+              )
             end
           end
         end

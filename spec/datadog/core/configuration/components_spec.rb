@@ -1012,6 +1012,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       context 'when force_enable_new_profiler is enabled' do
         before do
           settings.profiling.advanced.force_enable_new_profiler = true
+          allow(Datadog.logger).to receive(:warn)
         end
 
         it 'does not initialize the OldStack collector' do
@@ -1037,8 +1038,32 @@ RSpec.describe Datadog::Core::Configuration::Components do
           build_profiler
         end
 
+        context 'on Ruby 2.6 and above' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '2.6.' }
+
+          it 'logs a warning message mentioning that profiler has been force-enabled' do
+            expect(Datadog.logger).to receive(:warn).with(
+              /New Ruby profiler has been force-enabled. This feature is in alpha state/
+            )
+
+            build_profiler
+          end
+        end
+
+        context 'on Ruby 2.5 and below' do
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '2.6.' }
+
+          it 'logs a warning message mentioning that profiler has been force-enabled AND that it may cause issues' do
+            expect(Datadog.logger).to receive(:warn).with(
+              /New Ruby profiler has been force-enabled on a legacy Ruby version \(< 2.6\). This is not recommended/
+            )
+
+            build_profiler
+          end
+        end
+
         context 'on Ruby 2.x' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3' }
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3.' }
 
           it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to true' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
@@ -1050,7 +1075,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         context 'on Ruby 3.x' do
-          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3' }
+          before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3.' }
 
           it 'initializes a CpuAndWallTimeWorker collector with gc_profiling_enabled set to false' do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
