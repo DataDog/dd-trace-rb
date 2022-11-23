@@ -18,6 +18,7 @@
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
   #pragma GCC diagnostic push
   #pragma GCC diagnostic ignored "-Wunused-parameter"
+  #pragma GCC diagnostic ignored "-Wattributes"
     #include <vm_core.h>
   #pragma GCC diagnostic pop
   #include <iseq.h>
