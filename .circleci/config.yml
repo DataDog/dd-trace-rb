@@ -494,7 +494,7 @@ job_configuration:
     resource_class_to_use: medium+
   - &config-2_4
     <<: *filters_all_branches_and_tags
-    ruby_version: '2.4'
+    ruby_version: '2.4.10'
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     resource_class_to_use: medium+
   - &config-2_5
