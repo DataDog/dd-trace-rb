@@ -167,7 +167,7 @@ step_run_all_tests: &step_run_all_tests
     name: Run tests
     command: |
         # Ensures it's possible to debug hung tests in CI
-        echo "--format=documentation" > .rspec-local
+        echo "--format=documentation" >> .rspec-local
 
         # Configure RSpec metadata exporter
         echo "
