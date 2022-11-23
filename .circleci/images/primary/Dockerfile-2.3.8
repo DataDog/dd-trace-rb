@@ -52,10 +52,9 @@ RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http:
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
-RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
-# Install RubyGems
+# Install RubyGems and Bundler
 # NOTE: Rubygems 3.0.6 is the last version that seems to work fine in this image AND not drag bundler 2 along.
 # Later versions are either broken or they force the use of bundler 2, which we can't use because some of our
 # dependencies (e.g. rails 3.0.20) don't like it.
