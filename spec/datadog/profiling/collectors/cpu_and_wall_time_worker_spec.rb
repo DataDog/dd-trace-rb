@@ -114,6 +114,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
 
         expect(exception.message).to include 'pre-existing SIGPROF'
+        expect(exception.message).to include 'handle_sampling_signal' # validate that handler name is included
       end
 
       it 'leaves the existing signal handler in place' do
