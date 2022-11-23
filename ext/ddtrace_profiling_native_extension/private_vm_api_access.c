@@ -66,11 +66,27 @@ bool is_current_thread_holding_the_gvl(void) {
 }
 
 current_gvl_owner gvl_owner(void) {
-  // TODO: This is a racy read. Should we perhaps add a read barrier here?
-  const rb_thread_t *current_owner = GET_VM()->gvl.owner;
+  // TODO: Reading owner/running is a racy read. Should we perhaps add a read barrier here?
+  const rb_thread_t *current_owner =
+    #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+      GET_RACTOR()->threads.sched.running;
+    #elif HAVE_RUBY_RACTOR_H
+      GET_RACTOR()->threads.gvl.owner;
+    #else
+      GET_VM()->gvl.owner;
+    #endif
 
-  return current_owner != NULL ?
-    (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id} : (current_gvl_owner) {.valid = false};
+  if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+  return (current_gvl_owner) {
+    .valid = true,
+    .owner =
+      #ifndef NO_RB_NATIVE_THREAD
+        current_owner->nt->thread_id
+      #else
+        current_owner->thread_id
+      #endif
+  };
 }
 
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)

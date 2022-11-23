@@ -126,6 +126,9 @@ end
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << '-DNO_RB_NATIVE_THREAD' if RUBY_VERSION < '3.2'
 
+# On older Rubies, there was no struct rb_thread_sched (it was struct rb_global_vm_lock_struct)
+$defs << '-DNO_RB_THREAD_SCHED' if RUBY_VERSION < '3.2'
+
 # On older Rubies, there was no tid member in the internal thread structure
 $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
 
