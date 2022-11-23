@@ -1,4 +1,42 @@
-FROM jruby:9.3.4-jre11
+# openjdk:11-jre image is from https://github.com/docker-library/openjdk/blob/8dfb0c5645098b8c330c4811c8228cae52f18388/11/jre/buster/Dockerfile
+# note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
+FROM openjdk:11-jre-buster AS jruby-9.3.9.0-jre11
+
+RUN apt-get update && apt-get install -y libc6-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
+ENV JRUBY_VERSION 9.3.9.0
+ENV JRUBY_SHA256 251e6dd8d1d2f82922c8c778d7857e1bef82fe5ca2cf77bc09356421d0b05ab8
+RUN mkdir /opt/jruby \
+  && curl -fSL https://repo1.maven.org/maven2/org/jruby/jruby-dist/${JRUBY_VERSION}/jruby-dist-${JRUBY_VERSION}-bin.tar.gz -o /tmp/jruby.tar.gz \
+  && echo "$JRUBY_SHA256 /tmp/jruby.tar.gz" | sha256sum -c - \
+  && tar -zx --strip-components=1 -f /tmp/jruby.tar.gz -C /opt/jruby \
+  && rm /tmp/jruby.tar.gz \
+  && update-alternatives --install /usr/local/bin/ruby ruby /opt/jruby/bin/jruby 1
+ENV PATH /opt/jruby/bin:$PATH
+
+# skip installing gem documentation
+RUN mkdir -p /opt/jruby/etc \
+  && { \
+    echo 'install: --no-document'; \
+    echo 'update: --no-document'; \
+  } >> /opt/jruby/etc/gemrc
+
+RUN gem install bundler rake net-telnet xmlrpc
+
+# install things globally, for great justice
+# and don't create ".bundle" in all our apps
+ENV GEM_HOME /usr/local/bundle
+ENV BUNDLE_PATH="$GEM_HOME" \
+    BUNDLE_BIN="$GEM_HOME/bin" \
+    BUNDLE_SILENCE_ROOT_WARNING=1 \
+    BUNDLE_APP_CONFIG="$GEM_HOME"
+ENV PATH $BUNDLE_BIN:$PATH
+RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
+  && chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
+
+CMD [ "irb" ]
+
+FROM jruby-9.3.9.0-jre11
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -50,7 +88,6 @@ RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/d
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
-RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
 # Upgrade RubyGems and Bundler

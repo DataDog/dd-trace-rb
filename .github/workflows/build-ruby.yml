@@ -52,14 +52,14 @@ jobs:
             version: 3.2.0-preview3
             dockerfile: Dockerfile-3.2.0-preview3
           - engine: jruby
-            version: 9.2.18.0
-            dockerfile: Dockerfile-jruby-9.2-latest
+            version: 9.2.21.0
+            dockerfile: Dockerfile-jruby-9.2.21.0
           - engine: jruby
             version: 9.2.8.0
             dockerfile: Dockerfile-jruby-9.2.8.0
           - engine: jruby
-            version: 9.3.4.0
-            dockerfile: Dockerfile-jruby-9.3-latest
+            version: 9.3.9.0
+            dockerfile: Dockerfile-jruby-9.3.9.0
           - engine: truffleruby
             version: 22.3.0
             dockerfile: Dockerfile-truffleruby-22.3.0

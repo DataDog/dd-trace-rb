@@ -89,8 +89,11 @@ RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/d
 RUN curl -sfL $(curl -s https://api.github.com/repos/powerman/dockerize/releases/latest | grep -i /dockerize-$(uname -s)-$(dpkg --print-architecture)\" | cut -d\" -f4) | install /dev/stdin /usr/local/bin/dockerize
 
 # Install RubyGems
-RUN gem update --system
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
+
+# Upgrade RubyGems and Bundler
+RUN gem update --system
+RUN gem install bundler
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Ensure JRuby is available when running "bash --login"
