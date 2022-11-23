@@ -299,18 +299,16 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 // We need to be careful not to change any state that may be observed OR to restore it if we do. For instance, if anything
 // we do here can set `errno`, then we must be careful to restore the old `errno` after the fact.
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
-  if (!ruby_thread_has_gvl_p()) {
-    return; // Not safe to enqueue a sample from this thread
-  }
-  if (!ddtrace_rb_ractor_main_p()) {
-    return; // We're not on the main Ractor; we currently don't support profiling non-main Ractors
-  }
+  if (
+    !ruby_native_thread_p() || // Not a Ruby thread
+    !is_current_thread_holding_the_gvl() || // Not safe to enqueue a sample from this thread
+    !ddtrace_rb_ractor_main_p() // We're not on the main Ractor; we currently don't support profiling non-main Ractors
+  ) return;
 
   // We implicitly assume there can be no concurrent nor nested calls to handle_sampling_signal because
   // a) we get triggered using SIGPROF, and the docs state second SIGPROF will not interrupt an existing one
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
-  // TODO: Validate that this does not impact Ractors
 
   // Note: rb_postponed_job_register_one ensures that if there's a previous sample_from_postponed_job queued for execution
   // then we will not queue a second one. It does this by doing a linear scan on the existing jobs; in the future we

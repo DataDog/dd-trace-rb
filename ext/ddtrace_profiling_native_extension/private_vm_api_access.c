@@ -808,15 +808,6 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
 #endif // USE_LEGACY_RB_PROFILE_FRAMES
 
-#ifdef NO_THREAD_HAS_GVL
-int ruby_thread_has_gvl_p(void) {
-  // TODO: The CpuAndWallTimeWorker needs this function, but Ruby 2.2 doesn't expose it... For now this placeholder
-  // will enable the profiling native extension to continue to compile on Ruby 2.2, but the CpuAndWallTimeWorker will
-  // not work properly on 2.2. Will be addressed later.
-  return 0;
-}
-#endif // NO_THREAD_HAS_GVL
-
 #ifndef NO_RACTORS
   // This API and definition are exported as a public symbol by the VM BUT the function header is not defined in any public header, so we
   // repeat it here to be able to use in our code.
