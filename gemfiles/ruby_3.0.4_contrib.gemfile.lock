@@ -1442,6 +1442,7 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
+    king_konf (1.0.1)
     libdatadog (0.9.0.1.0-aarch64-linux)
     libdatadog (0.9.0.1.0-x86_64-linux)
     libddwaf (1.5.1.0.0-aarch64-linux)
@@ -1458,6 +1459,7 @@ GEM
     mime-types (3.4.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2022.0105)
+    mini_portile2 (2.8.0)
     minitest (5.15.0)
     mongo (2.14.1)
       bson (>= 4.8.2, < 5.0.0)
@@ -1501,6 +1503,9 @@ GEM
       pry (~> 0.13)
     que (2.2.0)
     racc (1.6.0)
+    racecar (2.8.2)
+      king_konf (~> 1.0.0)
+      rdkafka (~> 0.12.0)
     rack (2.2.3)
     rack-accept (0.4.5)
       rack (>= 0.4)
@@ -1520,6 +1525,10 @@ GEM
     rake-compiler (1.1.9)
       rake
     rbtree (0.4.5)
+    rdkafka (0.12.0)
+      ffi (~> 1.15)
+      mini_portile2 (~> 2.6)
+      rake (> 12)
     redcarpet (3.5.1)
     redis (3.3.5)
     redis-namespace (1.8.2)
@@ -1684,6 +1693,7 @@ DEPENDENCIES
   pry-byebug
   pry-stack_explorer
   que (>= 1.0.0)
+  racecar (>= 0.3.5)
   rack
   rack-contrib
   rack-test
