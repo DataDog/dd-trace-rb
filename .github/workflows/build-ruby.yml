@@ -40,8 +40,8 @@ jobs:
             version: 2.6.7
             dockerfile: Dockerfile-2.6.7
           - engine: ruby
-            version: 2.7.3
-            dockerfile: Dockerfile-2.7.3
+            version: 2.7.6
+            dockerfile: Dockerfile-2.7.6
           - engine: ruby
             version: 3.0.3
             dockerfile: Dockerfile-3.0.3
