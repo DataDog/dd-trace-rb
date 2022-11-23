@@ -65,29 +65,71 @@ bool is_current_thread_holding_the_gvl(void) {
   return owner.valid && pthread_equal(pthread_self(), owner.owner);
 }
 
-current_gvl_owner gvl_owner(void) {
-  // TODO: Reading owner/running is a racy read. Should we perhaps add a read barrier here?
-  const rb_thread_t *current_owner =
-    #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
-      GET_RACTOR()->threads.sched.running;
-    #elif HAVE_RUBY_RACTOR_H
-      GET_RACTOR()->threads.gvl.owner;
-    #else
-      GET_VM()->gvl.owner;
-    #endif
-
-  if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
-
-  return (current_gvl_owner) {
-    .valid = true,
-    .owner =
-      #ifndef NO_RB_NATIVE_THREAD
-        current_owner->nt->thread_id
+#ifndef NO_GVL_OWNER // Ruby < 2.6 doesn't have the owner/running field
+  current_gvl_owner gvl_owner(void) {
+    // TODO: Reading owner/running is a racy read. Should we perhaps add a read barrier here?
+    const rb_thread_t *current_owner =
+      #ifndef NO_RB_THREAD_SCHED // Introduced in Ruby 3.2 as a replacement for struct rb_global_vm_lock_struct
+        GET_RACTOR()->threads.sched.running;
+      #elif HAVE_RUBY_RACTOR_H
+        GET_RACTOR()->threads.gvl.owner;
       #else
-        current_owner->thread_id
+        GET_VM()->gvl.owner;
       #endif
-  };
-}
+
+    if (current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+    return (current_gvl_owner) {
+      .valid = true,
+      .owner =
+        #ifndef NO_RB_NATIVE_THREAD
+          current_owner->nt->thread_id
+        #else
+          current_owner->thread_id
+        #endif
+    };
+  }
+#else
+  current_gvl_owner gvl_owner(void) {
+    rb_vm_t *vm = GET_VM();
+
+    // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
+    // "atomic" -- when a thread sets it, it "declares" two things in a single step
+    // * Declaration 1: Someone has the GVL
+    // * Declaration 2: That someone is the specific thread
+    //
+    // Observation 1: On older versions of Ruby, this ownership concept is actually split. Specifically, `gvl.acquired`
+    // is a boolean that represents declaration 1 above, and `vm->running_thread` (or `ruby_current_thread`/
+    // `ruby_current_execution_context_ptr`) represents declaration 2.
+    //
+    // Observation 2: In addition, when a thread releases the GVL, it only sets `gvl.acquired` back to 0 **BUT CRUCIALLY
+    // DOES NOT CHANGE THE OTHER global variables**.
+    //
+    // Observation 1+2 above lead to the following possible race:
+    // * Thread A grabs the GVL (`gvl.acquired == 1`)
+    // * Thread A sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread A`)
+    // * Thread A releases the GVL (`gvl.acquired == 0` + `running_thread == Thread A`)
+    // * Thread B grabs the GVL (`gvl.acquired == 1` + `running_thread == Thread A`)
+    // * Thread A calls gvl_owner. Due to the current state (`gvl.acquired == 1` + `running_thread == Thread A`), this
+    //   function returns an incorrect result.
+    // * Thread B finally sets `running_thread` (`gvl.acquired == 1` + `running_thread == Thread B`)
+    //
+    // This is especially problematic because we use `gvl_owner` to implement `is_current_thread_holding_the_gvl` which
+    // is called in a signal handler to decide "is it safe for me to call `rb_postponed_job_register_one` or not".
+    // (See constraints in `collectors_cpu_and_wall_time_worker.c` comments for why).
+    //
+    // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
+    //
+    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 and below by default, and we print a
+    // warning when customers force-enable it.
+    bool gvl_acquired = vm->gvl.acquired != 0;
+    rb_thread_t *current_owner = vm->running_thread;
+
+    if (!gvl_acquired || current_owner == NULL) return (current_gvl_owner) {.valid = false};
+
+    return (current_gvl_owner) {.valid = true, .owner = current_owner->thread_id};
+  }
+#endif // NO_GVL_OWNER
 
 // Taken from upstream vm_core.h at commit d9cf0388599a3234b9f3c06ddd006cd59a58ab8b (November 2022, Ruby 3.2 trunk)
 // Copyright (C) 2004-2007 Koichi Sasada

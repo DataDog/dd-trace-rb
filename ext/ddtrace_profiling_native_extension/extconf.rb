@@ -138,6 +138,9 @@ $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 # On older Rubies, there are no Ractors
 $defs << '-DNO_RACTORS' if RUBY_VERSION < '3'
 
+# On older Rubies, rb_global_vm_lock_struct did not include the owner field
+$defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
+
 # On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
 $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
 
