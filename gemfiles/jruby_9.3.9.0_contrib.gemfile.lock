@@ -1678,7 +1678,7 @@ DEPENDENCIES
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
-  que (>= 1.0.0)
+  que (>= 1.0.0, < 2.0.0)
   racecar (>= 0.3.5)
   rack
   rack-contrib
@@ -1711,4 +1711,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.20
+   2.3.26
