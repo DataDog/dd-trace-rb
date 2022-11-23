@@ -144,6 +144,9 @@ $defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
 # On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
 $defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
 
+# On older Rubies, extensions can't use GET_VM()
+$defs << '-DNO_GET_VM' if RUBY_VERSION < '2.5'
+
 # On older Rubies...
 if RUBY_VERSION < '2.4'
   # ...we need to use RUBY_VM_NORMAL_ISEQ_P instead of VM_FRAME_RUBYFRAME_P

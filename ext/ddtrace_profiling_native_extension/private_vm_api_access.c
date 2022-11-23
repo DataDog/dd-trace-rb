@@ -91,7 +91,12 @@ bool is_current_thread_holding_the_gvl(void) {
   }
 #else
   current_gvl_owner gvl_owner(void) {
-    rb_vm_t *vm = GET_VM();
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
 
     // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
     // "atomic" -- when a thread sets it, it "declares" two things in a single step
@@ -209,7 +214,12 @@ VALUE ddtrace_thread_list(void) {
     rb_ractor_t *current_ractor = GET_RACTOR();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
-    rb_vm_t *vm = GET_VM();
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
     list_for_each(&vm->living_threads, thread, vmlt_node) {
   #endif
       switch (thread->status) {
