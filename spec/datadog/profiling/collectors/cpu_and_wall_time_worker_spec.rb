@@ -314,16 +314,25 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect(Thread.list.map(&:name)).to_not include(described_class.name)
     end
 
-    it 'removes the profiling sigprof signal handler' do
+    it 'replaces the profiling sigprof signal handler with an empty one' do
       stop
 
-      expect(described_class::Testing._native_current_sigprof_signal_handler).to be nil
+      expect(described_class::Testing._native_current_sigprof_signal_handler).to be :empty
     end
 
     it 'disables the garbage collection tracepoint' do
       stop
 
       expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+    end
+
+    it 'leaves behind an empty SIGPROF signal handler' do
+      stop
+
+      # Without an empty SIGPROF signal handler (e.g. with no signal handler) the following command will make the VM
+      # instantly terminate with a confusing "Profiling timer expired" message left behind. (This message doesn't
+      # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
+      Process.kill('SIGPROF', Process.pid)
     end
   end
 
