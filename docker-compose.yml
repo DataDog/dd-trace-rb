@@ -170,7 +170,7 @@ services:
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-3.0:
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.3-dd
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
     command: /bin/bash
     depends_on:
       - ddagent
